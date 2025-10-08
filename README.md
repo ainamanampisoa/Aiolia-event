@@ -2,11 +2,32 @@
 
 **Plateforme complète de gestion d'événements et de billetterie pour Madagascar**
 
+[![Symfony](https://img.shields.io/badge/Symfony-7.0-000000?logo=symfony)](https://symfony.com/)
+[![React](https://img.shields.io/badge/React-18+-61DAFB?logo=react)](https://reactjs.org/)
+[![MySQL](https://img.shields.io/badge/MySQL-8.0-4479A1?logo=mysql)](https://www.mysql.com/)
+[![License](https://img.shields.io/badge/license-Proprietary-blue)]()
+
 ---
 
 ## 📋 Description
 
-Aiolia Event est une solution moderne et complète pour la gestion d'événements, la billetterie en ligne, et l'engagement des utilisateurs. La plateforme intègre des fonctionnalités avancées comme la tarification dynamique, le paiement Mobile Money, la gamification, et un système de fidélité.
+Aiolia Event est une **solution moderne et complète** pour la gestion d'événements, la billetterie en ligne, et l'engagement des utilisateurs. La plateforme intègre des fonctionnalités avancées comme la tarification dynamique, le paiement Mobile Money, la gamification, et un système de fidélité.
+
+### 🏗️ Architecture Découplée
+
+```
+┌─────────────────┐        ┌─────────────────┐        ┌─────────────────┐
+│   FRONTEND      │◄──────►│    BACKEND      │◄──────►│    DATABASE     │
+│   React.js      │  API   │   Symfony 7     │  ORM   │    MySQL 8.0    │
+│   Port: 3000    │  REST  │   Port: 8000    │Doctrine│   60+ tables    │
+└─────────────────┘        └─────────────────┘        └─────────────────┘
+```
+
+**Avantages** :
+- ✅ Frontend et Backend totalement découplés
+- ✅ Déploiements indépendants
+- ✅ Scalabilité maximale
+- ✅ Équipes peuvent travailler en parallèle
 
 ### 🎯 Objectifs
 
@@ -93,34 +114,77 @@ Aiolia Event est une solution moderne et complète pour la gestion d'événement
 
 ## 🏗️ Architecture
 
-### Stack Technologique Recommandée
+### 📁 Structure du Projet
 
-#### Backend
-- **Language** : Node.js (Express) ou PHP (Laravel) ou Python (Django/FastAPI)
-- **API** : REST ou GraphQL
-- **Authentication** : JWT + OAuth 2.0
-- **Base de données** : MySQL 8.0+ ou MariaDB 10.5+
+```
+Aiolia-event/
+├── frontend/                  ⚛️ React.js Application (Module Utilisateur)
+│   ├── src/
+│   │   ├── components/       # Composants réutilisables
+│   │   ├── pages/            # Pages principales
+│   │   ├── services/         # Services API
+│   │   ├── store/            # Redux Store
+│   │   └── hooks/            # Custom Hooks
+│   ├── public/
+│   └── package.json
+│
+├── backend/                   🎻 Symfony 7 API + Admin
+│   ├── src/
+│   │   ├── Controller/       # API & Admin
+│   │   ├── Entity/           # 60+ Entités Doctrine
+│   │   ├── Repository/       # Repositories
+│   │   ├── Service/          # Services métier
+│   │   └── Security/         # Authentification
+│   ├── config/
+│   ├── templates/            # Templates Twig (Admin)
+│   └── composer.json
+│
+├── database/                  📊 SQL & Documentation
+│   ├── schema.sql            # 60+ tables
+│   ├── triggers.sql          # 30+ triggers
+│   ├── procedures.sql        # 15+ procédures
+│   ├── seeds.sql             # Données de test
+│   └── *.md                  # Documentation complète
+│
+└── docs/                      📚 Documentation
+    ├── PROJECT_ARCHITECTURE.md
+    ├── BACKEND_SETUP.md
+    ├── FRONTEND_SETUP.md
+    └── QUICK_START.md
+```
+
+### Stack Technologique
+
+#### Backend (Symfony 7)
+- **Language** : PHP 8.2+
+- **Framework** : Symfony 7.0
+- **ORM** : Doctrine
+- **API** : REST + JWT Authentication
+- **Admin** : EasyAdmin Bundle
+- **Base de données** : MySQL 8.0+
 - **Cache** : Redis
-- **Queue** : RabbitMQ ou AWS SQS
-- **Storage** : AWS S3 ou Google Cloud Storage
+- **Queue** : Symfony Messenger
+- **Storage** : AWS S3 (Flysystem)
 
-#### Frontend
-- **Framework** : React.js ou Vue.js ou Next.js
-- **UI Library** : Material-UI ou Tailwind CSS
-- **State Management** : Redux ou Zustand
-- **Charts** : Chart.js ou Recharts
-- **Maps** : Google Maps API ou Mapbox
+#### Frontend (React.js)
+- **Framework** : React 18+
+- **Build Tool** : Vite
+- **UI Library** : Tailwind CSS + Material-UI
+- **State Management** : Redux Toolkit
+- **Routing** : React Router v6
+- **HTTP Client** : Axios
+- **Charts** : Recharts
+- **Forms** : React Hook Form
 
-#### Mobile (Optionnel)
-- **Framework** : React Native ou Flutter
+#### Mobile (Future)
+- **Framework** : React Native
 - **Notifications** : Firebase Cloud Messaging
 
 #### DevOps
 - **Containerisation** : Docker
-- **Orchestration** : Kubernetes ou Docker Swarm
-- **CI/CD** : GitHub Actions ou GitLab CI
+- **CI/CD** : GitHub Actions
 - **Monitoring** : Grafana + Prometheus
-- **Logs** : ELK Stack (Elasticsearch, Logstash, Kibana)
+- **Logs** : ELK Stack
 
 ### Architecture de la Base de Données
 
@@ -159,93 +223,109 @@ Aiolia Event est une solution moderne et complète pour la gestion d'événement
 
 ---
 
-## 🚀 Installation
+## 🚀 Installation Rapide (15 minutes)
 
 ### Prérequis
 
-- MySQL 8.0+ ou MariaDB 10.5+
-- Node.js 18+ (si backend Node.js)
-- PHP 8.1+ (si backend PHP)
-- Composer (si PHP)
-- Redis (recommandé)
+- **MySQL** 8.0+ ou MariaDB 10.5+
+- **PHP** 8.2+ avec extensions (xml, mbstring, curl, zip, intl, redis, gd, bcmath)
+- **Composer** 2.5+
+- **Node.js** 18+ (LTS)
+- **npm** 9+ ou **yarn**
+- **Redis** (optionnel mais recommandé)
 
-### Installation de la Base de Données
+### 📚 Guide Complet
+
+👉 **[QUICK_START.md](QUICK_START.md)** - Guide détaillé pas à pas
+
+### Installation Express
+
+#### 1. Base de Données (5 min)
 
 ```bash
-# 1. Cloner le repository
+# Cloner le repository
 git clone https://github.com/votre-org/aiolia-event.git
 cd aiolia-event
 
-# 2. Créer la base de données
+# Créer et importer la base de données
 mysql -u root -p -e "CREATE DATABASE aiolia_event CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci;"
-
-# 3. Importer le schéma
-cd database
-mysql -u root -p aiolia_event < schema.sql
-mysql -u root -p aiolia_event < triggers.sql
-mysql -u root -p aiolia_event < procedures.sql
-mysql -u root -p aiolia_event < seeds.sql
-mysql -u root -p aiolia_event < indexes_optimization.sql
+mysql -u root -p < database/schema.sql
+mysql -u root -p aiolia_event < database/triggers.sql
+mysql -u root -p aiolia_event < database/procedures.sql
+mysql -u root -p aiolia_event < database/seeds.sql
 ```
 
-### Configuration Backend
+#### 2. Backend Symfony 7 (5 min)
 
 ```bash
-# Copier le fichier d'environnement
-cp .env.example .env
+# Installer Symfony
+mkdir backend && cd backend
+symfony new . --version=7.0 --webapp
 
-# Configurer les variables
-nano .env
+# Installer les dépendances essentielles
+composer require symfony/orm-pack symfony/maker-bundle --dev
+composer require lexik/jwt-authentication-bundle
+composer require nelmio/cors-bundle easycorp/easyadmin-bundle
+
+# Configurer
+cp .env .env.local
+# Éditer .env.local avec vos paramètres
+
+# Générer clés JWT
+mkdir -p config/jwt
+openssl genpkey -out config/jwt/private.pem -aes256 -algorithm rsa -pkeyopt rsa_keygen_bits:4096
+openssl pkey -in config/jwt/private.pem -out config/jwt/public.pem -pubout
+
+# Générer les entités depuis la BDD
+php bin/console doctrine:mapping:import "App\Entity" attribute
+php bin/console make:entity --regenerate App
+
+# Lancer
+symfony server:start -d
 ```
 
-**Variables essentielles** :
-```env
-# Database
-DB_HOST=localhost
-DB_PORT=3306
-DB_NAME=aiolia_event
-DB_USER=root
-DB_PASSWORD=your_password
+**✅ Backend disponible sur http://localhost:8000**
 
-# JWT
-JWT_SECRET=your_super_secret_key
-JWT_EXPIRES_IN=15m
-REFRESH_TOKEN_EXPIRES_IN=7d
-
-# Mobile Money
-ORANGE_MONEY_API_KEY=your_key
-ORANGE_MONEY_API_SECRET=your_secret
-AIRTEL_MONEY_API_KEY=your_key
-TELMA_MONEY_API_KEY=your_key
-
-# Storage
-AWS_S3_BUCKET=your_bucket
-AWS_ACCESS_KEY_ID=your_key
-AWS_SECRET_ACCESS_KEY=your_secret
-
-# Email
-SMTP_HOST=smtp.gmail.com
-SMTP_PORT=587
-SMTP_USER=your_email@gmail.com
-SMTP_PASSWORD=your_password
-
-# Redis
-REDIS_HOST=localhost
-REDIS_PORT=6379
-```
-
-### Démarrage
+#### 3. Frontend React.js (5 min)
 
 ```bash
-# Installer les dépendances
-npm install  # ou composer install
+cd ..
+mkdir frontend && cd frontend
 
-# Démarrer en développement
-npm run dev  # ou php artisan serve
+# Créer le projet React avec Vite
+npm create vite@latest . -- --template react
+npm install
 
-# Démarrer en production
-npm run start  # ou php artisan serve --env=production
+# Installer les dépendances essentielles
+npm install react-router-dom axios @reduxjs/toolkit react-redux
+npm install -D tailwindcss postcss autoprefixer
+npx tailwindcss init -p
+
+# Configurer
+echo "REACT_APP_API_URL=http://localhost:8000/api" > .env.local
+
+# Lancer
+npm run dev
 ```
+
+**✅ Frontend disponible sur http://localhost:5173**
+
+### 🎉 C'est Prêt !
+
+```
+✅ Backend API : http://localhost:8000
+✅ Frontend App : http://localhost:5173
+✅ Admin Panel : http://localhost:8000/admin
+```
+
+### 📖 Guides Détaillés
+
+| Guide | Description |
+|-------|-------------|
+| [PROJECT_ARCHITECTURE.md](PROJECT_ARCHITECTURE.md) | Architecture complète du projet |
+| [BACKEND_SETUP.md](BACKEND_SETUP.md) | Installation détaillée du backend |
+| [FRONTEND_SETUP.md](FRONTEND_SETUP.md) | Installation détaillée du frontend |
+| [QUICK_START.md](QUICK_START.md) | Guide de démarrage rapide |
 
 ---
 
