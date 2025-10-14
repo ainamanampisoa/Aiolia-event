@@ -1,480 +1,687 @@
-# 🗄️ Base de Données Aiolia Event
+# 📊 Documentation de la Base de Données Aiolia Event
 
-Cette documentation décrit la structure et l'utilisation de la base de données pour la plateforme **Aiolia Event**.
+## Vue d'ensemble
 
----
-
-## 📁 Structure des Fichiers
-
-```
-database/
-├── README.md                    # Ce fichier
-├── CONCEPTION_SQL.md           # Documentation complète de la conception
-├── schema.sql                  # Schéma principal de la BDD (tables)
-├── triggers.sql                # Triggers automatiques
-├── procedures.sql              # Procédures stockées
-├── seeds.sql                   # Données de base et de test
-├── indexes_optimization.sql    # Index supplémentaires pour performance
-└── migrations/                 # (À créer) Migrations versionnées
-```
+Cette base de données PostgreSQL gère l'ensemble du système de billetterie d'événements Aiolia Event. Elle comprend **19 tables** organisées en modules fonctionnels.
 
 ---
 
-## 🚀 Installation
+## 📑 Table des matières
 
-### Prérequis
-
-- MySQL 8.0+ ou MariaDB 10.5+
-- Privilèges suffisants pour créer des bases de données
-- Au moins 500 MB d'espace disque disponible
-
-### Installation Rapide
-
-```bash
-# 1. Créer la base de données
-mysql -u root -p -e "CREATE DATABASE aiolia_event CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci;"
-
-# 2. Importer le schéma
-mysql -u root -p aiolia_event < schema.sql
-
-# 3. Importer les triggers
-mysql -u root -p aiolia_event < triggers.sql
-
-# 4. Importer les procédures stockées
-mysql -u root -p aiolia_event < procedures.sql
-
-# 5. Importer les données de base
-mysql -u root -p aiolia_event < seeds.sql
-
-# 6. (Optionnel) Ajouter les index d'optimisation
-mysql -u root -p aiolia_event < indexes_optimization.sql
-```
-
-### Installation avec Docker
-
-```bash
-# Créer un conteneur MySQL
-docker run -d \
-  --name aiolia-mysql \
-  -e MYSQL_ROOT_PASSWORD=your_password \
-  -e MYSQL_DATABASE=aiolia_event \
-  -p 3306:3306 \
-  -v $(pwd)/database:/docker-entrypoint-initdb.d \
-  mysql:8.0
-
-# Les fichiers SQL seront automatiquement exécutés au premier démarrage
-```
+- [Types ENUM](#types-enum)
+- [Tables principales](#tables-principales)
+  - [1. Authentification & Utilisateurs](#1-authentification--utilisateurs)
+  - [2. Catégories & Événements](#2-catégories--événements)
+  - [3. Billets & Catégories](#3-billets--catégories)
+  - [4. Commandes & Paiements](#4-commandes--paiements)
+  - [5. Codes Promo](#5-codes-promo)
+  - [6. Panier d'achat](#6-panier-dachat)
+  - [7. Favoris](#7-favoris)
+  - [8. Notifications](#8-notifications)
+  - [9. Avis & Évaluations](#9-avis--évaluations)
+  - [10. Statistiques](#10-statistiques)
+  - [11. Configuration système](#11-configuration-système)
+- [Vues SQL](#vues-sql)
+- [Triggers](#triggers)
 
 ---
 
-## 📊 Schéma de Base de Données
+## Types ENUM
 
-### Vue d'ensemble
+Le schéma utilise des types ENUM PostgreSQL pour garantir l'intégrité des données :
 
-La base de données est organisée en **20 modules principaux** :
-
-1. **Authentification & Utilisateurs** - Gestion des comptes et permissions
-2. **Catégories & Événements** - Catalogues d'événements
-3. **Billets** - Gestion de la billetterie et QR codes
-4. **Codes Promo** - Système de promotions
-5. **Commandes & Paiements** - Transactions et Mobile Money
-6. **Panier** - Panier d'achat persistant
-7. **Favoris** - Wishlist et événements favoris
-8. **Historique** - Recherches et vues d'événements
-9. **Portefeuille** - Points de fidélité et solde
-10. **Parrainage** - Programme de parrainage
-11. **Mini-Jeu** - Gamification "Ticket Chance"
-12. **Social** - Amis et événements partagés
-13. **Liste d'Attente** - File d'attente pour événements complets
-14. **Notifications** - Multi-canal (email, push, SMS)
-15. **Avis** - Évaluations et commentaires
-16. **Statistiques** - Analytics temps réel
-17. **Rapports** - Génération de rapports
-18. **Audit** - Logs de traçabilité
-19. **Configuration** - Paramètres système
-20. **Multi-langue** - Support internationalisation
-
-### Tables Principales
-
-| Table | Description | Enregistrements estimés |
-|-------|-------------|------------------------|
-| `users` | Utilisateurs (clients + organisateurs) | 10K - 1M |
-| `events` | Événements | 1K - 100K |
-| `tickets` | Billets individuels | 100K - 10M |
-| `orders` | Commandes | 50K - 5M |
-| `notifications` | Notifications | 500K - 50M |
-| `event_views` | Historique de vues | 1M - 100M |
+- **`user_role`** : `user`, `co_organizer`, `organizer`, `admin`
+- **`oauth_provider`** : `google`, `facebook`, `local`
+- **`event_status`** : `draft`, `published`, `ongoing`, `completed`, `cancelled`
+- **`order_status`** : `pending`, `processing`, `completed`, `failed`, `cancelled`, `refunded`
+- **`payment_status`** : `pending`, `processing`, `paid`, `failed`, `refunded`
+- **`payment_method`** : `orange_money`, `airtel_money`, `mvola`, `bank_card`, `bank_transfer`
+- **`ticket_status`** : `valid`, `used`, `cancelled`, `refunded`, `transferred`
+- **`notification_type`** : `order_confirmation`, `payment_success`, `event_reminder`, `ticket_transferred`, `new_event`, `promotion`
+- **`notification_channel`** : `email`, `push`, `sms`, `in_app`
+- **`notification_status`** : `pending`, `sent`, `failed`, `read`
 
 ---
 
-## 🔧 Configuration
+## Tables principales
 
-### Paramètres MySQL Recommandés
+### 1. Authentification & Utilisateurs
 
-Ajoutez dans votre fichier `my.cnf` ou `my.ini` :
+#### 📌 **`users`** - Utilisateurs de la plateforme
 
-```ini
-[mysqld]
-# Encodage
-character-set-server=utf8mb4
-collation-server=utf8mb4_unicode_ci
+Gère tous les utilisateurs de la plateforme.
 
-# Performance
-max_connections=500
-innodb_buffer_pool_size=2G
-innodb_log_file_size=512M
-innodb_flush_log_at_trx_commit=2
+**Champs principaux :**
+- `id` : Identifiant unique auto-incrémenté (BIGSERIAL)
+- `email` : Email unique de l'utilisateur (connexion)
+- `password_hash` : Mot de passe crypté
+- `first_name`, `last_name` : Nom et prénom
+- `phone` : Numéro de téléphone
+- `photo_url` : URL de la photo de profil
+- `role` : Rôle de l'utilisateur (user, co_organizer, organizer, admin)
+- `email_verified` : Statut de vérification de l'email
+- `oauth_provider` : Type de connexion (Google, Facebook, ou local)
+- `oauth_provider_id` : ID du fournisseur OAuth
+- `is_active` : Statut du compte
+- `created_at`, `updated_at` : Horodatage
+- `last_login_at` : Dernière connexion
 
-# Cache
-query_cache_type=1
-query_cache_size=128M
-query_cache_limit=4M
+**Index :**
+- `idx_users_email` : Recherche rapide par email
+- `idx_users_role` : Filtrage par rôle
 
-# Slow query log
-slow_query_log=1
-long_query_time=1
-slow_query_log_file=/var/log/mysql/slow.log
+**Utilité :** C'est le cœur de l'authentification. Tous les autres modules y font référence.
 
-# Binlog (pour réplication)
-log_bin=mysql-bin
-binlog_format=ROW
-expire_logs_days=7
-```
+---
 
-### Créer un Utilisateur Dédié
+#### 📌 **`refresh_tokens`** - Tokens de rafraîchissement JWT
 
+Stocke les tokens de rafraîchissement pour l'authentification JWT.
+
+**Champs principaux :**
+- `id` : Identifiant unique
+- `user_id` : Référence vers l'utilisateur
+- `token` : Token unique de rafraîchissement (500 caractères)
+- `expires_at` : Date d'expiration du token
+- `is_revoked` : Si le token est révoqué (déconnexion)
+- `created_at` : Date de création
+
+**Index :**
+- `idx_refresh_tokens_user` : Par utilisateur
+- `idx_refresh_tokens_token` : Par token
+
+**Utilité :** Permet de maintenir les utilisateurs connectés de façon sécurisée et de révoquer l'accès si nécessaire.
+
+---
+
+### 2. Catégories & Événements
+
+#### 📌 **`event_categories`** - Catégories d'événements
+
+Définit les différents types d'événements disponibles sur la plateforme.
+
+**Champs principaux :**
+- `id` : Identifiant unique (SERIAL)
+- `name` : Nom de la catégorie (Concert, Sport, etc.)
+- `slug` : Identifiant URL-friendly (concert, sport)
+- `description` : Description de la catégorie
+- `icon` : Icône pour l'affichage dans l'interface
+- `is_active` : Si la catégorie est active
+- `created_at` : Date de création
+
+**Index :**
+- `idx_event_categories_slug` : Recherche par slug
+
+**Utilité :** Organise les événements par type pour faciliter la navigation et la recherche.
+
+**Données par défaut :** Concert, Conférence, Sport, Festival, Théâtre, Formation, Networking, Autre
+
+---
+
+#### 📌 **`events`** - Événements
+
+Table centrale qui stocke tous les événements de la plateforme.
+
+**Champs principaux :**
+- `id` : Identifiant unique (BIGSERIAL)
+- `organizer_id` : Référence vers l'utilisateur organisateur
+- `category_id` : Type d'événement
+- `title` : Titre de l'événement
+- `slug` : URL-friendly identifier
+- `description` : Description complète
+- `short_description` : Description courte (500 caractères)
+- `location` : Lieu de l'événement
+- `address` : Adresse complète
+- `latitude`, `longitude` : Coordonnées GPS
+- `start_date`, `end_date` : Dates de début et fin
+- `timezone` : Fuseau horaire (défaut: Indian/Antananarivo)
+- `status` : État de l'événement (draft, published, ongoing, completed, cancelled)
+- `is_featured` : Si l'événement est mis en avant
+- `total_capacity` : Capacité totale de l'événement
+- `views_count` : Nombre de vues
+- `created_at`, `updated_at` : Horodatage
+- `published_at` : Date de publication
+
+**Index :**
+- `idx_events_organizer` : Par organisateur
+- `idx_events_category` : Par catégorie
+- `idx_events_dates` : Par dates (composite)
+- `idx_events_status` : Par statut
+- `idx_events_slug` : Par slug
+- `idx_events_search` : Recherche plein texte (GIN) sur titre et description
+
+**Utilité :** Table centrale qui représente chaque événement avec toutes ses informations essentielles.
+
+---
+
+#### 📌 **`event_media`** - Médias d'événements
+
+Stocke les images, vidéos et documents associés à un événement.
+
+**Champs principaux :**
+- `id` : Identifiant unique
+- `event_id` : Référence vers l'événement
+- `media_type` : Type de média (image, video, document)
+- `file_url` : URL du fichier stocké
+- `file_name` : Nom du fichier
+- `is_primary` : Si c'est l'image/média principal
+- `display_order` : Ordre d'affichage dans la galerie
+- `uploaded_by` : Référence vers l'utilisateur qui a uploadé
+- `created_at` : Date d'upload
+
+**Index :**
+- `idx_event_media_event` : Par événement
+
+**Utilité :** Gère la galerie multimédia de chaque événement (photos de couverture, galerie d'images, vidéos promotionnelles).
+
+---
+
+### 3. Billets & Catégories
+
+#### 📌 **`ticket_categories`** - Catégories de billets
+
+Définit les différents types de billets disponibles pour un événement.
+
+**Champs principaux :**
+- `id` : Identifiant unique
+- `event_id` : Référence vers l'événement
+- `name` : Nom du type de billet (VIP, Standard, Gratuit, etc.)
+- `description` : Description des avantages
+- `price` : Prix du billet
+- `currency` : Devise (défaut: MGA - Ariary malgache)
+- `quantity_total` : Nombre total de billets disponibles
+- `quantity_sold` : Nombre de billets vendus
+- `quantity_reserved` : Billets en cours de réservation (dans les paniers)
+- `min_purchase` : Nombre minimum de billets par achat
+- `max_purchase` : Nombre maximum de billets par achat
+- `sale_start_date`, `sale_end_date` : Période de vente
+- `is_active` : Si la vente est active
+- `display_order` : Ordre d'affichage
+- `created_at`, `updated_at` : Horodatage
+
+**Contrainte :** `quantity_sold + quantity_reserved <= quantity_total`
+
+**Index :**
+- `idx_ticket_categories_event` : Par événement
+
+**Utilité :** Permet de créer différents tarifs et types de places pour un même événement (Early Bird, VIP, Standard, etc.).
+
+---
+
+#### 📌 **`tickets`** - Billets individuels
+
+Représente chaque billet individuel acheté (e-ticket).
+
+**Champs principaux :**
+- `id` : Identifiant unique
+- `ticket_category_id` : Type de billet
+- `order_id` : Référence vers la commande d'origine
+- `user_id` : Propriétaire actuel du billet
+- `ticket_number` : Numéro unique du billet
+- `qr_code_data` : Données encodées dans le QR code
+- `qr_code_image_url` : URL de l'image du QR code
+- `status` : État du billet (valid, used, cancelled, refunded, transferred)
+- `check_in_at` : Horodatage du scan à l'entrée
+- `check_in_by` : Référence vers l'utilisateur qui a scanné
+- `created_at`, `updated_at` : Horodatage
+
+**Index :**
+- `idx_tickets_category` : Par catégorie
+- `idx_tickets_order` : Par commande
+- `idx_tickets_user` : Par utilisateur
+- `idx_tickets_qr` : Par QR code (scan rapide)
+- `idx_tickets_status` : Par statut
+
+**Utilité :** Chaque billet individuel avec son QR code unique pour le contrôle d'accès à l'événement.
+
+---
+
+### 4. Commandes & Paiements
+
+#### 📌 **`orders`** - Commandes
+
+Représente une commande complète passée par un utilisateur.
+
+**Champs principaux :**
+- `id` : Identifiant unique
+- `user_id` : Référence vers le client
+- `order_number` : Numéro unique de commande
+- `status` : État de la commande (pending, processing, completed, failed, cancelled, refunded)
+- `subtotal` : Sous-total avant réductions
+- `discount_amount` : Montant de la réduction appliquée
+- `total_amount` : Montant total à payer
+- `currency` : Devise (défaut: MGA)
+- `payment_status` : État du paiement
+- `payment_method` : Moyen de paiement utilisé
+- `billing_email`, `billing_phone` : Informations de facturation
+- `completed_at` : Date de finalisation de la commande
+- `created_at`, `updated_at` : Horodatage
+
+**Index :**
+- `idx_orders_user` : Par utilisateur
+- `idx_orders_number` : Par numéro de commande
+- `idx_orders_status` : Par statut
+
+**Utilité :** Trace toutes les commandes passées sur la plateforme avec leur cycle de vie complet.
+
+---
+
+#### 📌 **`order_items`** - Articles de commande
+
+Détaille le contenu d'une commande (quels billets et en quelle quantité).
+
+**Champs principaux :**
+- `id` : Identifiant unique
+- `order_id` : Référence vers la commande
+- `ticket_category_id` : Type de billet acheté
+- `quantity` : Nombre de billets de ce type
+- `unit_price` : Prix unitaire au moment de l'achat
+- `total_price` : Prix total pour cette ligne (quantity × unit_price)
+- `created_at` : Date d'ajout
+
+**Index :**
+- `idx_order_items_order` : Par commande
+
+**Utilité :** Permet à une commande de contenir plusieurs types de billets différents (ex: 2 VIP + 3 Standard).
+
+---
+
+#### 📌 **`payments`** - Paiements
+
+Gère les transactions de paiement avec les fournisseurs (Mobile Money, banque).
+
+**Champs principaux :**
+- `id` : Identifiant unique
+- `order_id` : Référence vers la commande
+- `payment_method` : Méthode utilisée (orange_money, airtel_money, mvola, bank_card, bank_transfer)
+- `amount` : Montant payé
+- `currency` : Devise
+- `status` : État du paiement (pending, processing, completed, failed, refunded)
+- `transaction_id` : ID de transaction du fournisseur de paiement
+- `reference_number` : Numéro de référence
+- `phone_number` : Numéro de téléphone pour Mobile Money
+- `provider_response` : Réponse complète du provider (JSONB)
+- `error_message` : Message d'erreur en cas d'échec
+- `completed_at` : Date de finalisation du paiement
+- `created_at`, `updated_at` : Horodatage
+
+**Index :**
+- `idx_payments_order` : Par commande
+- `idx_payments_transaction` : Par ID de transaction
+- `idx_payments_status` : Par statut
+
+**Utilité :** Trace toutes les tentatives de paiement, leur résultat et permet la réconciliation avec les fournisseurs.
+
+---
+
+### 5. Codes Promo
+
+#### 📌 **`promo_codes`** - Codes promotionnels
+
+Gère les codes de réduction et promotions.
+
+**Champs principaux :**
+- `id` : Identifiant unique
+- `code` : Code unique (ex: NOEL2024, BIENVENUE)
+- `description` : Description de la promotion
+- `discount_type` : Type de réduction (percentage ou fixed_amount)
+- `discount_value` : Valeur de la réduction (ex: 20 pour 20% ou 5000 pour 5000 MGA)
+- `currency` : Devise (si fixed_amount)
+- `max_uses` : Nombre maximum d'utilisations (NULL = illimité)
+- `current_uses` : Nombre d'utilisations actuelles
+- `max_uses_per_user` : Limite par utilisateur
+- `valid_from`, `valid_until` : Période de validité
+- `is_active` : Si le code est actif
+- `min_purchase_amount` : Montant minimum d'achat requis
+- `created_by` : Référence vers l'utilisateur créateur
+- `created_at`, `updated_at` : Horodatage
+
+**Index :**
+- `idx_promo_codes_code` : Par code
+- `idx_promo_codes_active` : Par statut actif
+
+**Utilité :** Permet de créer des promotions, réductions et campagnes marketing.
+
+---
+
+#### 📌 **`promo_code_usage`** - Utilisation des codes promo
+
+Trace l'historique d'utilisation des codes promotionnels.
+
+**Champs principaux :**
+- `id` : Identifiant unique
+- `promo_code_id` : Référence vers le code utilisé
+- `user_id` : Référence vers l'utilisateur
+- `order_id` : Référence vers la commande
+- `discount_applied` : Montant de réduction effectivement appliqué
+- `used_at` : Date et heure d'utilisation
+
+**Index :**
+- `idx_promo_usage_code` : Par code promo
+- `idx_promo_usage_user` : Par utilisateur
+
+**Utilité :** Empêche la réutilisation abusive des codes et permet le suivi des performances des campagnes.
+
+---
+
+### 6. Panier d'achat
+
+#### 📌 **`cart`** - Panier
+
+Panier d'achat d'un utilisateur (connecté ou invité).
+
+**Champs principaux :**
+- `id` : Identifiant unique
+- `user_id` : Référence vers l'utilisateur (NULL si non connecté)
+- `session_id` : ID de session pour utilisateurs anonymes
+- `created_at`, `updated_at` : Horodatage
+- `expires_at` : Date d'expiration du panier (réservation temporaire)
+
+**Index :**
+- `idx_cart_user` : Par utilisateur
+- `idx_cart_session` : Par session
+
+**Utilité :** Permet aux utilisateurs de préparer leur commande avant validation et paiement.
+
+---
+
+#### 📌 **`cart_items`** - Articles du panier
+
+Contenu du panier (billets sélectionnés).
+
+**Champs principaux :**
+- `id` : Identifiant unique
+- `cart_id` : Référence vers le panier
+- `ticket_category_id` : Type de billet sélectionné
+- `quantity` : Nombre de billets
+- `added_at` : Date d'ajout au panier
+
+**Contrainte :** UNIQUE(cart_id, ticket_category_id) - Un type de billet par panier
+
+**Index :**
+- `idx_cart_items_cart` : Par panier
+
+**Utilité :** Stocke les billets sélectionnés avant validation de la commande.
+
+---
+
+### 7. Favoris
+
+#### 📌 **`favorites`** - Favoris
+
+Événements mis en favoris par les utilisateurs.
+
+**Champs principaux :**
+- `id` : Identifiant unique
+- `user_id` : Référence vers l'utilisateur
+- `event_id` : Référence vers l'événement favori
+- `created_at` : Date d'ajout aux favoris
+
+**Contrainte :** UNIQUE(user_id, event_id) - Un événement ne peut être favori qu'une fois par utilisateur
+
+**Index :**
+- `idx_favorites_user` : Par utilisateur
+- `idx_favorites_event` : Par événement
+
+**Utilité :** Permet aux utilisateurs de sauvegarder et retrouver facilement leurs événements préférés.
+
+---
+
+### 8. Notifications
+
+#### 📌 **`notifications`** - Notifications
+
+Système de notifications multi-canaux.
+
+**Champs principaux :**
+- `id` : Identifiant unique
+- `user_id` : Destinataire de la notification
+- `type` : Type de notification (order_confirmation, payment_success, event_reminder, etc.)
+- `title` : Titre de la notification
+- `message` : Contenu du message
+- `channel` : Canal d'envoi (email, push, sms, in_app)
+- `status` : État (pending, sent, failed, read)
+- `reference_type` : Type d'élément lié (order, event, ticket, etc.)
+- `reference_id` : ID de l'élément lié
+- `metadata` : Données supplémentaires (JSONB)
+- `sent_at` : Date d'envoi
+- `read_at` : Date de lecture
+- `created_at` : Date de création
+
+**Index :**
+- `idx_notifications_user` : Par utilisateur
+- `idx_notifications_type` : Par type
+- `idx_notifications_status` : Par statut
+
+**Utilité :** Communique avec les utilisateurs par email, notifications push, SMS ou in-app.
+
+---
+
+### 9. Avis & Évaluations
+
+#### 📌 **`reviews`** - Avis
+
+Évaluations et commentaires des événements par les participants.
+
+**Champs principaux :**
+- `id` : Identifiant unique
+- `event_id` : Référence vers l'événement évalué
+- `user_id` : Auteur de l'avis
+- `order_id` : Référence vers la commande (preuve d'achat)
+- `rating` : Note de 1 à 5 étoiles
+- `title` : Titre de l'avis
+- `comment` : Commentaire détaillé
+- `is_verified_purchase` : Si c'est un achat vérifié
+- `is_published` : Si l'avis est publié publiquement
+- `organizer_response` : Réponse de l'organisateur
+- `organizer_response_at` : Date de réponse
+- `helpful_count` : Nombre de votes "utile"
+- `created_at`, `updated_at` : Horodatage
+
+**Contrainte :** UNIQUE(user_id, event_id) - Un utilisateur ne peut laisser qu'un seul avis par événement
+
+**Index :**
+- `idx_reviews_event` : Par événement
+- `idx_reviews_user` : Par utilisateur
+- `idx_reviews_rating` : Par note
+
+**Utilité :** Système de notation et feedback pour améliorer la qualité des événements et aider les utilisateurs à choisir.
+
+---
+
+### 10. Statistiques
+
+#### 📌 **`event_statistics`** - Statistiques des événements
+
+Agrège les métriques et statistiques d'un événement.
+
+**Champs principaux :**
+- `id` : Identifiant unique
+- `event_id` : Référence vers l'événement (UNIQUE)
+- `total_views` : Nombre total de vues
+- `total_favorites` : Nombre de fois mis en favori
+- `total_tickets_sold` : Nombre total de billets vendus
+- `total_revenue` : Revenu total généré
+- `average_ticket_price` : Prix moyen du billet
+- `conversion_rate` : Taux de conversion visiteurs → acheteurs (%)
+- `average_rating` : Note moyenne des avis
+- `total_reviews` : Nombre total d'avis
+- `last_calculated_at` : Date de dernière mise à jour des stats
+
+**Index :**
+- `idx_event_statistics_event` : Par événement
+
+**Utilité :** Dashboard et analytics pour les organisateurs. Permet de suivre les performances d'un événement.
+
+---
+
+### 11. Configuration système
+
+#### 📌 **`system_settings`** - Paramètres système
+
+Configuration globale de l'application.
+
+**Champs principaux :**
+- `id` : Identifiant unique
+- `setting_key` : Clé unique du paramètre
+- `setting_value` : Valeur du paramètre
+- `setting_type` : Type de données (string, number, boolean, json)
+- `description` : Description du paramètre
+- `is_public` : Si accessible via API publique
+- `updated_by` : Référence vers l'utilisateur qui a modifié
+- `updated_at` : Date de dernière modification
+
+**Index :**
+- `idx_system_settings_key` : Par clé
+
+**Paramètres par défaut :**
+- `site_name` : Nom du site (Aiolia Event)
+- `site_email` : Email de contact
+- `default_currency` : Devise par défaut (MGA)
+- `ticket_reservation_timeout` : Durée de réservation du panier (15 minutes)
+- `max_tickets_per_order` : Nombre maximum de billets par commande (10)
+- `enable_mobile_money` : Activation des paiements Mobile Money
+
+**Utilité :** Centralise tous les paramètres configurables de l'application sans nécessiter de redéploiement.
+
+---
+
+## Vues SQL
+
+### 📊 **`upcoming_events`** - Événements à venir enrichis
+
+Vue SQL qui combine plusieurs tables pour afficher facilement les événements à venir avec leurs statistiques.
+
+**Colonnes retournées :**
+- Toutes les colonnes de la table `events`
+- `category_name` : Nom de la catégorie
+- `organizer_name` : Nom complet de l'organisateur (prénom + nom)
+- `total_tickets_sold` : Billets vendus
+- `total_revenue` : Revenu généré
+- `average_rating` : Note moyenne
+- `favorites_count` : Nombre de favoris
+
+**Filtres :**
+- Statut : `published` uniquement
+- Date : Événements dont `start_date > CURRENT_TIMESTAMP`
+
+**Tri :** Par date de début (ASC)
+
+**Utilité :** Simplifie les requêtes pour l'affichage de la page d'accueil et la liste des événements.
+
+---
+
+## Triggers
+
+### 🔄 Fonction `update_updated_at_column()`
+
+Fonction PostgreSQL qui met à jour automatiquement le champ `updated_at` à chaque modification d'une ligne.
+
+**Tables concernées :**
+- `users`
+- `events`
+- `ticket_categories`
+- `orders`
+- `payments`
+- `tickets`
+- `promo_codes`
+- `reviews`
+
+**Exemple :**
 ```sql
--- Utilisateur pour l'application (lecture/écriture)
-CREATE USER 'aiolia_app'@'localhost' IDENTIFIED BY 'secure_password_here';
-GRANT SELECT, INSERT, UPDATE, DELETE ON aiolia_event.* TO 'aiolia_app'@'localhost';
-
--- Utilisateur pour les rapports (lecture seule)
-CREATE USER 'aiolia_readonly'@'localhost' IDENTIFIED BY 'readonly_password';
-GRANT SELECT ON aiolia_event.* TO 'aiolia_readonly'@'localhost';
-
--- Utilisateur admin (tous les privilèges)
-CREATE USER 'aiolia_admin'@'localhost' IDENTIFIED BY 'admin_password';
-GRANT ALL PRIVILEGES ON aiolia_event.* TO 'aiolia_admin'@'localhost';
-
-FLUSH PRIVILEGES;
+CREATE TRIGGER update_users_updated_at 
+BEFORE UPDATE ON users
+FOR EACH ROW 
+EXECUTE FUNCTION update_updated_at_column();
 ```
 
----
-
-## 🔄 Maintenance
-
-### Jobs CRON Recommandés
-
-```bash
-# Fichier : /etc/cron.d/aiolia-event
-
-# Recalcul des statistiques (chaque heure)
-0 * * * * mysql_user mysql -u aiolia_app -p'password' -e "CALL calculate_all_event_statistics();"
-
-# Statistiques quotidiennes (chaque jour à 1h)
-0 1 * * * mysql_user mysql -u aiolia_app -p'password' -e "CALL generate_daily_sales_stats(CURDATE() - INTERVAL 1 DAY);"
-
-# Nettoyage des paniers expirés (toutes les 15 min)
-*/15 * * * * mysql_user mysql -u aiolia_app -p'password' -e "DELETE FROM aiolia_event.cart WHERE expires_at < NOW();"
-
-# Libération des réservations expirées (toutes les 5 min)
-*/5 * * * * mysql_user mysql -u aiolia_app -p'password' -e "UPDATE aiolia_event.ticket_categories tc SET quantity_reserved = (SELECT COUNT(*) FROM aiolia_event.cart_items ci WHERE ci.ticket_category_id = tc.id);"
-
-# Archivage des logs (chaque mois le 1er)
-0 2 1 * * mysql_user mysql -u aiolia_app -p'password' -e "DELETE FROM aiolia_event.audit_logs WHERE created_at < DATE_SUB(NOW(), INTERVAL 1 YEAR);"
-
-# Optimisation des tables (chaque dimanche à 3h)
-0 3 * * 0 mysql_user mysql -u aiolia_app -p'password' -e "OPTIMIZE TABLE aiolia_event.events, aiolia_event.tickets, aiolia_event.orders, aiolia_event.notifications;"
-```
-
-### Backup Automatique
-
-```bash
-#!/bin/bash
-# Fichier : /usr/local/bin/backup-aiolia-db.sh
-
-BACKUP_DIR="/var/backups/aiolia-event"
-DATE=$(date +%Y%m%d_%H%M%S)
-FILENAME="aiolia_event_${DATE}.sql.gz"
-
-# Créer le répertoire si nécessaire
-mkdir -p $BACKUP_DIR
-
-# Backup complet
-mysqldump \
-  --user=aiolia_admin \
-  --password=admin_password \
-  --single-transaction \
-  --routines \
-  --triggers \
-  --events \
-  aiolia_event | gzip > "${BACKUP_DIR}/${FILENAME}"
-
-# Garder seulement les 30 derniers jours
-find $BACKUP_DIR -name "aiolia_event_*.sql.gz" -mtime +30 -delete
-
-echo "Backup créé : ${FILENAME}"
-```
-
-Ajoutez au crontab :
-```bash
-# Backup quotidien à 2h du matin
-0 2 * * * /usr/local/bin/backup-aiolia-db.sh
-```
-
----
-
-## 📈 Monitoring
-
-### Requêtes Utiles
-
-```sql
--- Taille de la base de données
-SELECT 
-    table_schema AS "Database",
-    ROUND(SUM(data_length + index_length) / 1024 / 1024, 2) AS "Size (MB)"
-FROM information_schema.tables
-WHERE table_schema = 'aiolia_event'
-GROUP BY table_schema;
-
--- Taille par table
-SELECT 
-    table_name AS "Table",
-    ROUND(((data_length + index_length) / 1024 / 1024), 2) AS "Size (MB)",
-    table_rows AS "Rows"
-FROM information_schema.tables
-WHERE table_schema = 'aiolia_event'
-ORDER BY (data_length + index_length) DESC;
-
--- Index non utilisés (après quelques semaines de prod)
-SELECT 
-    object_schema AS database_name,
-    object_name AS table_name,
-    index_name
-FROM performance_schema.table_io_waits_summary_by_index_usage
-WHERE index_name IS NOT NULL
-  AND count_star = 0
-  AND object_schema = 'aiolia_event'
-ORDER BY object_name;
-
--- Requêtes les plus lentes
-SELECT 
-    ROUND(avg_timer_wait / 1000000000000, 2) AS avg_time_sec,
-    count_star AS calls,
-    digest_text AS query
-FROM performance_schema.events_statements_summary_by_digest
-WHERE schema_name = 'aiolia_event'
-ORDER BY avg_timer_wait DESC
-LIMIT 20;
-
--- Connexions actives
-SELECT 
-    user,
-    host,
-    db,
-    command,
-    time,
-    state,
-    info
-FROM information_schema.processlist
-WHERE db = 'aiolia_event'
-ORDER BY time DESC;
-```
-
-### Métriques à Surveiller
-
-1. **Espace disque** : La BDD peut grossir rapidement
-2. **Temps de réponse** : Requêtes > 1 seconde
-3. **Connexions** : Nombre de connexions actives
-4. **Locks** : Tables verrouillées trop longtemps
-5. **Réplication** : Si configurée, vérifier le lag
-
----
-
-## 🧪 Tests
-
-### Tester les Procédures Stockées
-
-```sql
--- Test : Vérifier disponibilité d'un billet
-CALL check_ticket_availability(1, 5, @available, @remaining);
-SELECT @available, @remaining;
-
--- Test : Créer une commande depuis le panier
-CALL create_order_from_cart(1, 'BIENVENUE2025', @order_id, @success, @message);
-SELECT @order_id, @success, @message;
-
--- Test : Scanner un billet
-CALL checkin_ticket('AIOLIA-123456-TKT-000001-000001', 2, @success, @message);
-SELECT @success, @message;
-```
-
-### Seed Data pour Tests
-
-Le fichier `seeds.sql` contient déjà des données de test :
-
-- **Utilisateurs** : `admin@aiolia-event.com`, `organizer@aiolia-event.com`, `user@aiolia-event.com`
-- **Mot de passe** : `Password123!` (à changer en production !)
-- **Événement de démo** : Festival de Musique Malagasy 2025
-- **Codes promo** : `BIENVENUE2025`, `EARLY50`, `FIDELE5000`
+**Utilité :** Automatise la gestion de l'horodatage des modifications sans intervention manuelle dans le code applicatif.
 
 ---
 
 ## 🔐 Sécurité
 
-### Checklist Sécurité
+### Contraintes d'intégrité
 
-- [x] Mots de passe hashés avec bcrypt (min 10 rounds)
-- [x] Tokens JWT avec expiration (15 min)
-- [x] Refresh tokens révocables
-- [x] Aucune donnée sensible en clair (CB, etc.)
-- [x] Logs d'audit complets
-- [x] Connexions SSL/TLS obligatoires
-- [x] Permissions utilisateurs restrictives
-- [x] Input validation côté serveur
-- [x] Rate limiting sur API
-- [x] Protection contre SQL injection (requêtes préparées)
+- **Clés étrangères avec CASCADE ou RESTRICT** : Empêche la suppression accidentelle de données liées
+- **UNIQUE constraints** : Garantit l'unicité des emails, codes promo, numéros de commande
+- **CHECK constraints** : Valide les données (rating entre 1-5, quantités de billets cohérentes)
 
-### Configuration SSL
+### Index de performance
 
-```ini
-[mysqld]
-require_secure_transport=ON
-ssl-ca=/path/to/ca.pem
-ssl-cert=/path/to/server-cert.pem
-ssl-key=/path/to/server-key.pem
+- **Index sur clés étrangères** : Accélère les jointures
+- **Index composites** : Optimise les requêtes fréquentes (dates, statuts)
+- **Index GIN** : Recherche plein texte performante sur les événements
+- **Index UNIQUE** : Garantit l'unicité tout en accélérant les recherches
+
+---
+
+## 📈 Statistiques
+
+### Résumé du schéma
+
+- **19 tables** au total
+- **1 vue SQL** pré-calculée
+- **8 triggers** automatiques
+- **10 types ENUM** personnalisés
+- **Supports** :
+  - ✅ Multi-devises (MGA par défaut)
+  - ✅ Multi-canaux de paiement (Mobile Money + Cartes)
+  - ✅ Multi-canaux de notification (Email, Push, SMS, In-app)
+  - ✅ Recherche plein texte
+  - ✅ Géolocalisation (latitude/longitude)
+  - ✅ OAuth (Google, Facebook)
+  - ✅ Système de favoris
+  - ✅ Codes promotionnels
+  - ✅ Avis et évaluations
+  - ✅ Statistiques et analytics
+
+---
+
+## 🚀 Installation
+
+Pour créer la base de données, exécutez :
+
+```bash
+psql -U postgres -d aiolia_event -f schema.sql
+```
+
+Ou avec Docker :
+
+```bash
+docker exec -i postgres_container psql -U postgres -d aiolia_event < schema.sql
 ```
 
 ---
 
-## 🌍 Multi-Langue
+## 📝 Notes de développement
 
-Le système supporte plusieurs langues via la table `translations`.
+### Bonnes pratiques
 
-### Ajouter une traduction
+1. **Toujours utiliser des transactions** pour les opérations critiques (commandes, paiements)
+2. **Vérifier les contraintes** avant insertion (quantités de billets, validité des codes promo)
+3. **Mettre à jour les statistiques** de façon asynchrone ou par batch
+4. **Logger les actions critiques** (paiements, annulations, transferts)
+5. **Nettoyer régulièrement** les paniers expirés et tokens révoqués
 
-```sql
--- Traduire le titre d'un événement
-INSERT INTO translations (
-    entity_type,
-    entity_id,
-    field_name,
-    language,
-    translated_value
-) VALUES (
-    'event',
-    1,
-    'title',
-    'en',
-    'Malagasy Music Festival 2025'
-);
-```
+### Évolutions futures possibles
 
-### Récupérer le contenu traduit
-
-```sql
--- Événement en anglais
-SELECT 
-    e.id,
-    COALESCE(t_title.translated_value, e.title) AS title,
-    COALESCE(t_desc.translated_value, e.description) AS description
-FROM events e
-LEFT JOIN translations t_title ON 
-    t_title.entity_type = 'event' 
-    AND t_title.entity_id = e.id 
-    AND t_title.field_name = 'title'
-    AND t_title.language = 'en'
-LEFT JOIN translations t_desc ON 
-    t_desc.entity_type = 'event' 
-    AND t_desc.entity_id = e.id 
-    AND t_desc.field_name = 'description'
-    AND t_desc.language = 'en'
-WHERE e.id = 1;
-```
-
----
-
-## 📚 Ressources
-
-### Documentation
-
-- [Conception SQL Complète](CONCEPTION_SQL.md) - Analyse détaillée de l'architecture
-- [Index & Optimisation](indexes_optimization.sql) - Guide d'optimisation des performances
-
-### Outils Recommandés
-
-- **phpMyAdmin** : Interface web pour gérer la BDD
-- **MySQL Workbench** : Modélisation et gestion visuelle
-- **DBeaver** : Client SQL multi-plateforme
-- **Adminer** : Alternative légère à phpMyAdmin
-- **pt-query-digest** : Analyse des slow queries (Percona Toolkit)
-
-### Liens Utiles
-
-- [MySQL Documentation](https://dev.mysql.com/doc/)
-- [MariaDB Knowledge Base](https://mariadb.com/kb/en/)
-- [SQL Performance Explained](https://use-the-index-luke.com/)
-
----
-
-## 🐛 Troubleshooting
-
-### Problème : "Too many connections"
-
-```sql
--- Augmenter le nombre de connexions max
-SET GLOBAL max_connections = 500;
-
--- Identifier les connexions qui ne se ferment pas
-SELECT * FROM information_schema.processlist;
-```
-
-### Problème : "Table is marked as crashed"
-
-```sql
--- Réparer une table
-REPAIR TABLE events;
-```
-
-### Problème : "Deadlock found"
-
-```sql
--- Voir les transactions en cours
-SELECT * FROM information_schema.innodb_trx;
-
--- Tuer une transaction problématique
-KILL <trx_mysql_thread_id>;
-```
-
-### Problème : Requêtes lentes
-
-```sql
--- Activer le slow query log
-SET GLOBAL slow_query_log = 'ON';
-SET GLOBAL long_query_time = 1;
-
--- Analyser une requête avec EXPLAIN
-EXPLAIN SELECT * FROM events WHERE status = 'published';
-```
+- 🔄 Système de transfert de billets entre utilisateurs
+- 📊 Rapports et exports avancés
+- 🎮 Gamification (points de fidélité, défis)
+- 👥 Système d'amis et événements partagés
+- 📋 Liste d'attente pour événements complets
+- 🌍 Support multi-langues (traductions)
+- 📧 Templates d'emails personnalisables
+- 🎟️ Tarification dynamique selon la demande
 
 ---
 
 ## 📞 Support
 
-Pour toute question ou problème :
+Pour toute question sur le schéma de base de données, contactez l'équipe de développement.
 
-- 📧 **Email** : dev@aiolia-event.com
-- 🐛 **Issues** : https://github.com/aiolia-event/issues
-- 📚 **Wiki** : https://github.com/aiolia-event/wiki
-
----
-
-## 📄 Licence
-
-© 2025 Aiolia Event. Tous droits réservés.
-
----
-
-**Dernière mise à jour** : Octobre 2025  
-**Version** : 1.0.0
+**Version :** 1.0  
+**Dernière mise à jour :** 2025  
+**Base de données :** PostgreSQL 14+
 
