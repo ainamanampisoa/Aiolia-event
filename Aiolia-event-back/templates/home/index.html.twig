@@ -1,0 +1,25 @@
+{% extends 'base.html.twig' %}
+
+{% block title %}Accueil - Aiolia Event{% endblock %}
+
+{% block body %}
+<div class="sec-event pt-100 pb-100">
+    <div class="container">
+        <h1 class="text-center">Bienvenue sur Aiolia Event</h1>
+        
+        {% if app.user %}
+            <div class="text-center">
+                <p>Bonjour {{ app.user.fullName }} !</p>
+                <a href="{{ path('app_logout') }}" class="btn">Se déconnecter</a>
+            </div>
+        {% else %}
+            <div class="text-center">
+                <p>Veuillez vous connecter pour accéder à la plateforme</p>
+                <a href="{{ path('app_login') }}" class="btn">Se connecter</a>
+                <a href="{{ path('app_register') }}" class="btn" style="background: var(--green); margin-left: 20px;">S'inscrire</a>
+            </div>
+        {% endif %}
+    </div>
+</div>
+{% endblock %}
+
