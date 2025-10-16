@@ -1,9 +1,9 @@
 -- ============================================================================
--- AIOLIA EVENT - SCHÉMA POSTGRESQL OPTIMISÉ
+-- AIOLIA EVENT - SCHÉMA POSTGRESQL SIMPLIFIÉ
 -- ============================================================================
--- Version: 3.0 Optimisé - Toutes fonctionnalités couvertes
--- Description: Système complet de gestion d'événements avec billetterie
--- Tables: 32 (24 originales + 8 nouvelles)
+-- Version: 2.0 Simple - Fonctionnalités essentielles
+-- Description: Système de gestion d'événements avec billetterie
+-- Tables: 18 tables essentielles
 -- ============================================================================
 
 -- ============================================================================
@@ -17,13 +17,10 @@ CREATE TYPE order_status AS ENUM ('pending', 'processing', 'completed', 'failed'
 CREATE TYPE payment_status AS ENUM ('pending', 'processing', 'paid', 'failed', 'refunded');
 CREATE TYPE payment_method AS ENUM ('orange_money', 'airtel_money', 'mvola', 'bank_card', 'bank_transfer');
 CREATE TYPE ticket_status AS ENUM ('valid', 'used', 'cancelled', 'refunded', 'transferred');
-CREATE TYPE notification_type AS ENUM ('order_confirmation', 'payment_success', 'event_reminder', 'ticket_transferred', 'new_event', 'promotion', 'alert');
+CREATE TYPE notification_type AS ENUM ('order_confirmation', 'payment_success', 'event_reminder', 'ticket_transferred', 'new_event', 'promotion');
 CREATE TYPE notification_channel AS ENUM ('email', 'push', 'sms', 'in_app');
 CREATE TYPE collaborator_role AS ENUM ('owner', 'admin', 'editor', 'viewer');
 CREATE TYPE transfer_status AS ENUM ('pending', 'accepted', 'declined', 'cancelled', 'expired');
-CREATE TYPE activity_type AS ENUM ('view', 'click', 'share', 'favorite', 'search', 'purchase');
-CREATE TYPE audit_action AS ENUM ('create', 'update', 'delete', 'login', 'logout', 'payment', 'refund', 'transfer');
-CREATE TYPE reward_type AS ENUM ('discount', 'free_ticket', 'loyalty_points', 'voucher');
 
 -- ============================================================================
 -- SECTION 2: UTILISATEURS
@@ -43,25 +40,6 @@ CREATE TABLE users (
     oauth_provider oauth_provider DEFAULT 'local',
     oauth_provider_id VARCHAR(255),
     is_active BOOLEAN DEFAULT TRUE,
-    
-    -- Préférences
-    theme VARCHAR(20) DEFAULT 'light',
-    language VARCHAR(5) DEFAULT 'fr',
-    notifications_email BOOLEAN DEFAULT TRUE,
-    notifications_push BOOLEAN DEFAULT TRUE,
-    notifications_sms BOOLEAN DEFAULT FALSE,
-    marketing_emails BOOLEAN DEFAULT TRUE,
-    
-    -- Fidélité
-    loyalty_points INT DEFAULT 0,
-    points_lifetime_earned INT DEFAULT 0,
-    loyalty_tier VARCHAR(50) DEFAULT 'bronze',
-    
-    -- Statistiques personnelles (dénormalisé pour performance)
-    total_events_attended INT DEFAULT 0,
-    total_amount_spent DECIMAL(12, 2) DEFAULT 0,
-    favorite_category_id INT,
-    
     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
     updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
     last_login_at TIMESTAMP
@@ -69,10 +47,8 @@ CREATE TABLE users (
 
 CREATE INDEX idx_users_email ON users(email);
 CREATE INDEX idx_users_role ON users(role);
-CREATE INDEX idx_users_language ON users(language);
-CREATE INDEX idx_users_loyalty_tier ON users(loyalty_tier);
 
--- Table 2: Tokens
+-- Table 2: Tokens de rafraîchissement
 CREATE TABLE refresh_tokens (
     id BIGSERIAL PRIMARY KEY,
     user_id BIGINT NOT NULL REFERENCES users(id) ON DELETE CASCADE,
@@ -90,7 +66,7 @@ CREATE INDEX idx_refresh_tokens_expires ON refresh_tokens(expires_at) WHERE is_r
 -- SECTION 3: ÉVÉNEMENTS
 -- ============================================================================
 
--- Table 3: Catégories
+-- Table 3: Catégories d'événements
 CREATE TABLE event_categories (
     id SERIAL PRIMARY KEY,
     name VARCHAR(100) NOT NULL,
@@ -105,19 +81,7 @@ CREATE TABLE event_categories (
 CREATE INDEX idx_event_categories_slug ON event_categories(slug);
 CREATE INDEX idx_event_categories_active ON event_categories(is_active);
 
--- Table 4: Tags (NOUVEAU - pour améliorer recherche et suggestions)
-CREATE TABLE event_tags (
-    id SERIAL PRIMARY KEY,
-    name VARCHAR(50) UNIQUE NOT NULL,
-    slug VARCHAR(50) UNIQUE NOT NULL,
-    usage_count INT DEFAULT 0,
-    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
-);
-
-CREATE INDEX idx_event_tags_slug ON event_tags(slug);
-CREATE INDEX idx_event_tags_usage ON event_tags(usage_count DESC);
-
--- Table 5: Événements
+-- Table 4: Événements
 CREATE TABLE events (
     id BIGSERIAL PRIMARY KEY,
     organizer_id BIGINT NOT NULL REFERENCES users(id) ON DELETE RESTRICT,
@@ -137,18 +101,6 @@ CREATE TABLE events (
     is_featured BOOLEAN DEFAULT FALSE,
     total_capacity INT,
     views_count INT DEFAULT 0,
-    
-    -- Tarification
-    tax_rate DECIMAL(5, 2) DEFAULT 0,
-    tax_included BOOLEAN DEFAULT TRUE,
-    enable_dynamic_pricing BOOLEAN DEFAULT FALSE,
-    
-    -- Statistiques (dénormalisé pour performance)
-    tickets_sold INT DEFAULT 0,
-    revenue_total DECIMAL(12, 2) DEFAULT 0,
-    average_rating DECIMAL(3, 2) DEFAULT 0,
-    reviews_count INT DEFAULT 0,
-    
     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
     updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
     published_at TIMESTAMP
@@ -161,21 +113,8 @@ CREATE INDEX idx_events_status ON events(status);
 CREATE INDEX idx_events_slug ON events(slug);
 CREATE INDEX idx_events_featured ON events(is_featured) WHERE is_featured = TRUE;
 CREATE INDEX idx_events_search ON events USING GIN(to_tsvector('french', title || ' ' || COALESCE(description, '')));
-CREATE INDEX idx_events_location ON events USING GIN(to_tsvector('french', COALESCE(location, '') || ' ' || COALESCE(address, '')));
 
--- Table 6: Association événements-tags (NOUVEAU)
-CREATE TABLE event_tags_association (
-    id BIGSERIAL PRIMARY KEY,
-    event_id BIGINT NOT NULL REFERENCES events(id) ON DELETE CASCADE,
-    tag_id INT NOT NULL REFERENCES event_tags(id) ON DELETE CASCADE,
-    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-    UNIQUE(event_id, tag_id)
-);
-
-CREATE INDEX idx_event_tags_assoc_event ON event_tags_association(event_id);
-CREATE INDEX idx_event_tags_assoc_tag ON event_tags_association(tag_id);
-
--- Table 7: Médias
+-- Table 5: Médias d'événements
 CREATE TABLE event_media (
     id BIGSERIAL PRIMARY KEY,
     event_id BIGINT NOT NULL REFERENCES events(id) ON DELETE CASCADE,
@@ -193,7 +132,7 @@ CREATE TABLE event_media (
 CREATE INDEX idx_event_media_event ON event_media(event_id);
 CREATE INDEX idx_event_media_type ON event_media(media_type);
 
--- Table 8: Collaborateurs
+-- Table 6: Collaborateurs d'événements
 CREATE TABLE event_collaborators (
     id BIGSERIAL PRIMARY KEY,
     event_id BIGINT NOT NULL REFERENCES events(id) ON DELETE CASCADE,
@@ -212,12 +151,13 @@ CREATE TABLE event_collaborators (
 
 CREATE INDEX idx_collaborators_event ON event_collaborators(event_id);
 CREATE INDEX idx_collaborators_user ON event_collaborators(user_id);
+CREATE INDEX idx_collaborators_role ON event_collaborators(role);
 
 -- ============================================================================
 -- SECTION 4: BILLETTERIE
 -- ============================================================================
 
--- Table 9: Catégories de billets
+-- Table 7: Catégories de billets
 CREATE TABLE ticket_categories (
     id BIGSERIAL PRIMARY KEY,
     event_id BIGINT NOT NULL REFERENCES events(id) ON DELETE CASCADE,
@@ -253,7 +193,7 @@ CREATE INDEX idx_ticket_categories_event ON ticket_categories(event_id);
 CREATE INDEX idx_ticket_categories_active ON ticket_categories(is_active);
 CREATE INDEX idx_ticket_categories_dates ON ticket_categories(sale_start_date, sale_end_date);
 
--- Table 10: Historique prix
+-- Table 8: Historique des modifications de prix
 CREATE TABLE ticket_price_history (
     id BIGSERIAL PRIMARY KEY,
     ticket_category_id BIGINT NOT NULL REFERENCES ticket_categories(id) ON DELETE CASCADE,
@@ -271,7 +211,7 @@ CREATE INDEX idx_price_history_date ON ticket_price_history(created_at);
 -- SECTION 5: COMMANDES & PAIEMENTS
 -- ============================================================================
 
--- Table 11: Commandes
+-- Table 9: Commandes
 CREATE TABLE orders (
     id BIGSERIAL PRIMARY KEY,
     user_id BIGINT NOT NULL REFERENCES users(id),
@@ -298,7 +238,7 @@ CREATE INDEX idx_orders_status ON orders(status);
 CREATE INDEX idx_orders_payment_status ON orders(payment_status);
 CREATE INDEX idx_orders_created ON orders(created_at DESC);
 
--- Table 12: Items de commande
+-- Table 10: Items de commande
 CREATE TABLE order_items (
     id BIGSERIAL PRIMARY KEY,
     order_id BIGINT NOT NULL REFERENCES orders(id) ON DELETE CASCADE,
@@ -312,7 +252,7 @@ CREATE TABLE order_items (
 CREATE INDEX idx_order_items_order ON order_items(order_id);
 CREATE INDEX idx_order_items_category ON order_items(ticket_category_id);
 
--- Table 13: Billets (déplacé après orders)
+-- Table 11: Billets individuels
 CREATE TABLE tickets (
     id BIGSERIAL PRIMARY KEY,
     ticket_category_id BIGINT NOT NULL REFERENCES ticket_categories(id),
@@ -335,7 +275,7 @@ CREATE INDEX idx_tickets_qr ON tickets(qr_code_data);
 CREATE INDEX idx_tickets_status ON tickets(status);
 CREATE INDEX idx_tickets_number ON tickets(ticket_number);
 
--- Table 14: Transferts de billets
+-- Table 12: Transferts de billets
 CREATE TABLE ticket_transfers (
     id BIGSERIAL PRIMARY KEY,
     ticket_id BIGINT NOT NULL REFERENCES tickets(id) ON DELETE CASCADE,
@@ -352,10 +292,11 @@ CREATE TABLE ticket_transfers (
 
 CREATE INDEX idx_ticket_transfers_ticket ON ticket_transfers(ticket_id);
 CREATE INDEX idx_ticket_transfers_from_user ON ticket_transfers(from_user_id);
+CREATE INDEX idx_ticket_transfers_to_user ON ticket_transfers(to_user_id);
 CREATE INDEX idx_ticket_transfers_code ON ticket_transfers(transfer_code);
 CREATE INDEX idx_ticket_transfers_status ON ticket_transfers(status);
 
--- Table 15: Paiements
+-- Table 13: Paiements
 CREATE TABLE payments (
     id BIGSERIAL PRIMARY KEY,
     order_id BIGINT NOT NULL REFERENCES orders(id) ON DELETE RESTRICT,
@@ -367,7 +308,7 @@ CREATE TABLE payments (
     reference_number VARCHAR(100),
     phone_number VARCHAR(20),
     error_message TEXT,
-    provider_response TEXT,
+    provider_response JSONB,
     completed_at TIMESTAMP,
     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
     updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
@@ -379,7 +320,7 @@ CREATE INDEX idx_payments_status ON payments(status);
 CREATE INDEX idx_payments_method ON payments(payment_method);
 CREATE INDEX idx_payments_created ON payments(created_at DESC);
 
--- Table 16: Codes promo
+-- Table 14: Codes promo
 CREATE TABLE promo_codes (
     id BIGSERIAL PRIMARY KEY,
     code VARCHAR(50) UNIQUE NOT NULL,
@@ -394,7 +335,6 @@ CREATE TABLE promo_codes (
     valid_until TIMESTAMP NOT NULL,
     is_active BOOLEAN DEFAULT TRUE,
     min_purchase_amount DECIMAL(10, 2),
-    applicable_to VARCHAR(20) DEFAULT 'all' CHECK (applicable_to IN ('all', 'specific_events', 'specific_categories')),
     created_by BIGINT NOT NULL REFERENCES users(id),
     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
     updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
@@ -404,19 +344,7 @@ CREATE INDEX idx_promo_codes_code ON promo_codes(code);
 CREATE INDEX idx_promo_codes_active ON promo_codes(is_active);
 CREATE INDEX idx_promo_codes_dates ON promo_codes(valid_from, valid_until);
 
--- Table 17: Association codes promo - événements (NOUVEAU)
-CREATE TABLE event_promo_codes (
-    id BIGSERIAL PRIMARY KEY,
-    promo_code_id BIGINT NOT NULL REFERENCES promo_codes(id) ON DELETE CASCADE,
-    event_id BIGINT NOT NULL REFERENCES events(id) ON DELETE CASCADE,
-    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-    UNIQUE(promo_code_id, event_id)
-);
-
-CREATE INDEX idx_event_promo_codes_promo ON event_promo_codes(promo_code_id);
-CREATE INDEX idx_event_promo_codes_event ON event_promo_codes(event_id);
-
--- Table 18: Utilisation codes promo
+-- Table 15: Utilisation des codes promo
 CREATE TABLE promo_code_usage (
     id BIGSERIAL PRIMARY KEY,
     promo_code_id BIGINT NOT NULL REFERENCES promo_codes(id),
@@ -434,7 +362,7 @@ CREATE INDEX idx_promo_usage_order ON promo_code_usage(order_id);
 -- SECTION 6: PANIER
 -- ============================================================================
 
--- Table 19: Panier
+-- Table 16: Panier
 CREATE TABLE cart (
     id BIGSERIAL PRIMARY KEY,
     user_id BIGINT REFERENCES users(id) ON DELETE CASCADE,
@@ -448,7 +376,7 @@ CREATE INDEX idx_cart_user ON cart(user_id);
 CREATE INDEX idx_cart_session ON cart(session_id);
 CREATE INDEX idx_cart_expires ON cart(expires_at);
 
--- Table 20: Items du panier
+-- Table 17: Items du panier
 CREATE TABLE cart_items (
     id BIGSERIAL PRIMARY KEY,
     cart_id BIGINT NOT NULL REFERENCES cart(id) ON DELETE CASCADE,
@@ -464,7 +392,7 @@ CREATE INDEX idx_cart_items_cart ON cart_items(cart_id);
 -- SECTION 7: FAVORIS & SOCIAL
 -- ============================================================================
 
--- Table 21: Favoris
+-- Table 18: Favoris
 CREATE TABLE favorites (
     id BIGSERIAL PRIMARY KEY,
     user_id BIGINT NOT NULL REFERENCES users(id) ON DELETE CASCADE,
@@ -476,25 +404,7 @@ CREATE TABLE favorites (
 CREATE INDEX idx_favorites_user ON favorites(user_id);
 CREATE INDEX idx_favorites_event ON favorites(event_id);
 
--- Table 22: Parrainage
-CREATE TABLE user_referrals (
-    id BIGSERIAL PRIMARY KEY,
-    referrer_user_id BIGINT NOT NULL REFERENCES users(id) ON DELETE CASCADE,
-    referred_email VARCHAR(255) NOT NULL,
-    referred_user_id BIGINT REFERENCES users(id),
-    referral_code VARCHAR(50) UNIQUE NOT NULL,
-    status VARCHAR(20) DEFAULT 'pending',
-    reward_points INT,
-    reward_discount_code VARCHAR(50),
-    completed_at TIMESTAMP,
-    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
-);
-
-CREATE INDEX idx_referrals_referrer ON user_referrals(referrer_user_id);
-CREATE INDEX idx_referrals_code ON user_referrals(referral_code);
-CREATE INDEX idx_referrals_status ON user_referrals(status);
-
--- Table 23: Connexions (amis)
+-- Table 19: Connexions sociales (amis)
 CREATE TABLE user_connections (
     id BIGSERIAL PRIMARY KEY,
     user_id BIGINT NOT NULL REFERENCES users(id) ON DELETE CASCADE,
@@ -511,123 +421,10 @@ CREATE INDEX idx_connections_friend ON user_connections(friend_user_id);
 CREATE INDEX idx_connections_status ON user_connections(status);
 
 -- ============================================================================
--- SECTION 8: ACTIVITÉ UTILISATEUR (NOUVEAU - pour suggestions)
+-- SECTION 8: NOTIFICATIONS
 -- ============================================================================
 
--- Table 24: Historique de recherche (NOUVEAU)
-CREATE TABLE user_search_history (
-    id BIGSERIAL PRIMARY KEY,
-    user_id BIGINT REFERENCES users(id) ON DELETE CASCADE,
-    session_id VARCHAR(100),
-    search_query VARCHAR(255) NOT NULL,
-    search_filters JSONB,
-    results_count INT,
-    clicked_event_id BIGINT REFERENCES events(id) ON DELETE SET NULL,
-    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
-);
-
-CREATE INDEX idx_search_history_user ON user_search_history(user_id);
-CREATE INDEX idx_search_history_query ON user_search_history(search_query);
-CREATE INDEX idx_search_history_created ON user_search_history(created_at DESC);
-
--- Table 25: Log d'activité utilisateur (NOUVEAU - pour algorithme de suggestions)
-CREATE TABLE user_activity_log (
-    id BIGSERIAL PRIMARY KEY,
-    user_id BIGINT REFERENCES users(id) ON DELETE CASCADE,
-    session_id VARCHAR(100),
-    activity_type activity_type NOT NULL,
-    event_id BIGINT REFERENCES events(id) ON DELETE CASCADE,
-    category_id INT REFERENCES event_categories(id) ON DELETE SET NULL,
-    metadata JSONB,
-    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
-);
-
-CREATE INDEX idx_activity_log_user ON user_activity_log(user_id);
-CREATE INDEX idx_activity_log_type ON user_activity_log(activity_type);
-CREATE INDEX idx_activity_log_event ON user_activity_log(event_id);
-CREATE INDEX idx_activity_log_created ON user_activity_log(created_at DESC);
-CREATE INDEX idx_activity_log_user_created ON user_activity_log(user_id, created_at DESC);
-
--- ============================================================================
--- SECTION 9: MINI-JEU "TICKET CHANCE" (NOUVEAU)
--- ============================================================================
-
--- Table 26: Participations au mini-jeu (NOUVEAU)
-CREATE TABLE mini_game_participations (
-    id BIGSERIAL PRIMARY KEY,
-    user_id BIGINT NOT NULL REFERENCES users(id) ON DELETE CASCADE,
-    game_type VARCHAR(50) DEFAULT 'ticket_chance',
-    is_winner BOOLEAN DEFAULT FALSE,
-    reward_id BIGINT REFERENCES mini_game_rewards(id),
-    played_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-    expires_at TIMESTAMP
-);
-
-CREATE INDEX idx_mini_game_user ON mini_game_participations(user_id);
-CREATE INDEX idx_mini_game_winner ON mini_game_participations(is_winner);
-CREATE INDEX idx_mini_game_played ON mini_game_participations(played_at DESC);
-
--- Table 27: Récompenses du mini-jeu (NOUVEAU)
-CREATE TABLE mini_game_rewards (
-    id BIGSERIAL PRIMARY KEY,
-    reward_type reward_type NOT NULL,
-    reward_value DECIMAL(10, 2),
-    reward_description VARCHAR(255) NOT NULL,
-    promo_code_id BIGINT REFERENCES promo_codes(id),
-    ticket_category_id BIGINT REFERENCES ticket_categories(id),
-    loyalty_points INT,
-    probability DECIMAL(5, 2) NOT NULL,
-    is_active BOOLEAN DEFAULT TRUE,
-    max_claims INT,
-    current_claims INT DEFAULT 0,
-    valid_from TIMESTAMP,
-    valid_until TIMESTAMP,
-    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
-);
-
-CREATE INDEX idx_mini_game_rewards_type ON mini_game_rewards(reward_type);
-CREATE INDEX idx_mini_game_rewards_active ON mini_game_rewards(is_active);
-
--- Table 28: Réclamations de récompenses (NOUVEAU)
-CREATE TABLE mini_game_reward_claims (
-    id BIGSERIAL PRIMARY KEY,
-    participation_id BIGINT NOT NULL REFERENCES mini_game_participations(id) ON DELETE CASCADE,
-    user_id BIGINT NOT NULL REFERENCES users(id) ON DELETE CASCADE,
-    reward_id BIGINT NOT NULL REFERENCES mini_game_rewards(id),
-    order_id BIGINT REFERENCES orders(id),
-    is_claimed BOOLEAN DEFAULT FALSE,
-    is_used BOOLEAN DEFAULT FALSE,
-    claimed_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-    used_at TIMESTAMP,
-    expires_at TIMESTAMP NOT NULL
-);
-
-CREATE INDEX idx_reward_claims_user ON mini_game_reward_claims(user_id);
-CREATE INDEX idx_reward_claims_participation ON mini_game_reward_claims(participation_id);
-CREATE INDEX idx_reward_claims_status ON mini_game_reward_claims(is_claimed, is_used);
-
--- ============================================================================
--- SECTION 10: NOTIFICATIONS
--- ============================================================================
-
--- Table 29: Templates de notifications (NOUVEAU)
-CREATE TABLE notification_templates (
-    id SERIAL PRIMARY KEY,
-    template_key VARCHAR(100) UNIQUE NOT NULL,
-    notification_type notification_type NOT NULL,
-    channel notification_channel NOT NULL,
-    subject_template VARCHAR(255),
-    body_template TEXT NOT NULL,
-    variables JSONB,
-    is_active BOOLEAN DEFAULT TRUE,
-    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-    updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
-);
-
-CREATE INDEX idx_notification_templates_key ON notification_templates(template_key);
-CREATE INDEX idx_notification_templates_type ON notification_templates(notification_type);
-
--- Table 30: Notifications
+-- Table 20: Notifications
 CREATE TABLE notifications (
     id BIGSERIAL PRIMARY KEY,
     user_id BIGINT NOT NULL REFERENCES users(id) ON DELETE CASCADE,
@@ -636,10 +433,9 @@ CREATE TABLE notifications (
     message TEXT NOT NULL,
     channel notification_channel NOT NULL,
     status VARCHAR(20) DEFAULT 'pending',
-    priority VARCHAR(20) DEFAULT 'normal',
     reference_type VARCHAR(50),
     reference_id BIGINT,
-    template_id INT REFERENCES notification_templates(id),
+    metadata JSONB,
     sent_at TIMESTAMP,
     read_at TIMESTAMP,
     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
@@ -652,10 +448,10 @@ CREATE INDEX idx_notifications_user_read ON notifications(user_id, read_at);
 CREATE INDEX idx_notifications_created ON notifications(created_at DESC);
 
 -- ============================================================================
--- SECTION 11: AVIS
+-- SECTION 9: AVIS
 -- ============================================================================
 
--- Table 31: Avis
+-- Table 21: Avis
 CREATE TABLE reviews (
     id BIGSERIAL PRIMARY KEY,
     event_id BIGINT NOT NULL REFERENCES events(id) ON DELETE CASCADE,
@@ -680,10 +476,31 @@ CREATE INDEX idx_reviews_rating ON reviews(rating);
 CREATE INDEX idx_reviews_published ON reviews(is_published);
 
 -- ============================================================================
--- SECTION 12: LISTE D'ATTENTE
+-- SECTION 10: HISTORIQUE DE RECHERCHE
 -- ============================================================================
 
--- Table 32: Liste d'attente
+-- Table 22: Historique de recherche utilisateur
+CREATE TABLE user_search_history (
+    id BIGSERIAL PRIMARY KEY,
+    user_id BIGINT REFERENCES users(id) ON DELETE CASCADE,
+    session_id VARCHAR(100),
+    search_query VARCHAR(255) NOT NULL,
+    search_filters JSONB,
+    results_count INT,
+    clicked_event_id BIGINT REFERENCES events(id) ON DELETE SET NULL,
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+);
+
+CREATE INDEX idx_search_history_user ON user_search_history(user_id);
+CREATE INDEX idx_search_history_query ON user_search_history(search_query);
+CREATE INDEX idx_search_history_created ON user_search_history(created_at DESC);
+CREATE INDEX idx_search_history_user_created ON user_search_history(user_id, created_at DESC);
+
+-- ============================================================================
+-- SECTION 11: LISTE D'ATTENTE
+-- ============================================================================
+
+-- Table 23: Liste d'attente pour événements complets
 CREATE TABLE event_waitlist (
     id BIGSERIAL PRIMARY KEY,
     event_id BIGINT NOT NULL REFERENCES events(id) ON DELETE CASCADE,
@@ -705,10 +522,34 @@ CREATE INDEX idx_waitlist_status ON event_waitlist(status);
 CREATE INDEX idx_waitlist_position ON event_waitlist(position);
 
 -- ============================================================================
--- SECTION 13: SYSTÈME & AUDIT
+-- SECTION 12: HISTORIQUE & AUDIT
 -- ============================================================================
 
--- Table 33: Configuration
+-- Table 24: Historique des activités (Audit Log)
+CREATE TABLE activity_history (
+    id BIGSERIAL PRIMARY KEY,
+    user_id BIGINT REFERENCES users(id) ON DELETE SET NULL,
+    action VARCHAR(50) NOT NULL,
+    entity_type VARCHAR(50) NOT NULL,
+    entity_id BIGINT NOT NULL,
+    old_values JSONB,
+    new_values JSONB,
+    ip_address VARCHAR(45),
+    user_agent TEXT,
+    description TEXT,
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+);
+
+CREATE INDEX idx_activity_history_user ON activity_history(user_id);
+CREATE INDEX idx_activity_history_action ON activity_history(action);
+CREATE INDEX idx_activity_history_entity ON activity_history(entity_type, entity_id);
+CREATE INDEX idx_activity_history_created ON activity_history(created_at DESC);
+
+-- ============================================================================
+-- SECTION 13: CONFIGURATION SYSTÈME
+-- ============================================================================
+
+-- Table 25: Configuration système
 CREATE TABLE system_settings (
     id SERIAL PRIMARY KEY,
     setting_key VARCHAR(100) UNIQUE NOT NULL,
@@ -723,30 +564,11 @@ CREATE TABLE system_settings (
 CREATE INDEX idx_system_settings_key ON system_settings(setting_key);
 CREATE INDEX idx_system_settings_public ON system_settings(is_public);
 
--- Table 34: Audit log (NOUVEAU - traçabilité)
-CREATE TABLE audit_log (
-    id BIGSERIAL PRIMARY KEY,
-    user_id BIGINT REFERENCES users(id) ON DELETE SET NULL,
-    action audit_action NOT NULL,
-    entity_type VARCHAR(50) NOT NULL,
-    entity_id BIGINT NOT NULL,
-    old_values JSONB,
-    new_values JSONB,
-    ip_address VARCHAR(45),
-    user_agent TEXT,
-    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
-);
-
-CREATE INDEX idx_audit_log_user ON audit_log(user_id);
-CREATE INDEX idx_audit_log_action ON audit_log(action);
-CREATE INDEX idx_audit_log_entity ON audit_log(entity_type, entity_id);
-CREATE INDEX idx_audit_log_created ON audit_log(created_at DESC);
-
 -- ============================================================================
 -- SECTION 14: VUES
 -- ============================================================================
 
--- Vue des événements à venir (stats calculées à la volée)
+-- Vue des événements à venir
 CREATE VIEW upcoming_events AS
 SELECT 
     e.*,
@@ -768,82 +590,6 @@ WHERE e.status = 'published'
   AND e.start_date > CURRENT_TIMESTAMP
 ORDER BY e.start_date ASC;
 
--- Vue des amis au même événement
-CREATE VIEW event_attendees_friends AS
-SELECT 
-    t1.user_id,
-    t1.ticket_category_id,
-    tc.event_id,
-    uc.friend_user_id,
-    u.first_name || ' ' || u.last_name as friend_name,
-    u.photo_url as friend_photo
-FROM tickets t1
-JOIN ticket_categories tc ON t1.ticket_category_id = tc.id
-JOIN user_connections uc ON t1.user_id = uc.user_id AND uc.status = 'accepted'
-JOIN tickets t2 ON uc.friend_user_id = t2.user_id AND tc.id = t2.ticket_category_id
-JOIN users u ON uc.friend_user_id = u.id
-WHERE t1.status = 'valid' AND t2.status = 'valid';
-
--- Vue pour les suggestions d'événements (NOUVEAU)
-CREATE VIEW user_event_suggestions AS
-SELECT DISTINCT
-    u.id as user_id,
-    e.id as event_id,
-    e.title,
-    e.slug,
-    e.start_date,
-    -- Score de pertinence basé sur plusieurs facteurs
-    (
-        -- Catégorie préférée (30 points)
-        CASE WHEN e.category_id = u.favorite_category_id THEN 30 ELSE 0 END +
-        -- Événements vus récemment dans cette catégorie (20 points)
-        (SELECT COUNT(*) * 5 FROM user_activity_log ual 
-         WHERE ual.user_id = u.id 
-         AND ual.category_id = e.category_id 
-         AND ual.created_at > CURRENT_TIMESTAMP - INTERVAL '30 days'
-         LIMIT 4) +
-        -- Événements favoris dans cette catégorie (25 points)
-        (SELECT COUNT(*) * 5 FROM favorites f 
-         JOIN events e2 ON f.event_id = e2.id
-         WHERE f.user_id = u.id 
-         AND e2.category_id = e.category_id
-         LIMIT 5) +
-        -- Popularité générale (25 points max)
-        LEAST(e.views_count / 100, 25)
-    ) as relevance_score
-FROM users u
-CROSS JOIN events e
-WHERE e.status = 'published'
-  AND e.start_date > CURRENT_TIMESTAMP
-  AND e.id NOT IN (
-      -- Exclure les événements déjà achetés
-      SELECT DISTINCT e3.id 
-      FROM events e3
-      JOIN ticket_categories tc ON e3.id = tc.event_id
-      JOIN tickets t ON tc.id = t.ticket_category_id
-      WHERE t.user_id = u.id
-  )
-ORDER BY relevance_score DESC;
-
--- Vue des statistiques utilisateur (NOUVEAU)
-CREATE VIEW user_statistics AS
-SELECT 
-    u.id as user_id,
-    u.email,
-    u.total_events_attended,
-    u.total_amount_spent,
-    u.loyalty_points,
-    u.loyalty_tier,
-    (SELECT COUNT(*) FROM favorites WHERE user_id = u.id) as favorites_count,
-    (SELECT COUNT(*) FROM user_connections WHERE user_id = u.id AND status = 'accepted') as friends_count,
-    (SELECT COUNT(DISTINCT tc.event_id) FROM tickets t 
-     JOIN ticket_categories tc ON t.ticket_category_id = tc.id
-     WHERE t.user_id = u.id AND t.status != 'cancelled') as unique_events_attended,
-    (SELECT ec.name FROM event_categories ec WHERE ec.id = u.favorite_category_id) as favorite_category_name,
-    (SELECT COUNT(*) FROM orders WHERE user_id = u.id AND status = 'completed') as completed_orders_count,
-    (SELECT SUM(total_amount) FROM orders WHERE user_id = u.id AND status = 'completed') as lifetime_spending
-FROM users u;
-
 -- ============================================================================
 -- SECTION 15: FONCTIONS
 -- ============================================================================
@@ -857,29 +603,7 @@ BEGIN
 END;
 $$ LANGUAGE plpgsql;
 
--- Fonction de détection de conflits
-CREATE OR REPLACE FUNCTION check_event_conflicts(
-    p_organizer_id BIGINT,
-    p_start_date TIMESTAMP,
-    p_end_date TIMESTAMP,
-    p_event_id BIGINT DEFAULT NULL
-)
-RETURNS TABLE(
-    conflicting_event_id BIGINT,
-    conflicting_title VARCHAR
-) AS $$
-BEGIN
-    RETURN QUERY
-    SELECT e.id, e.title
-    FROM events e
-    WHERE e.id != COALESCE(p_event_id, -1)
-    AND e.organizer_id = p_organizer_id
-    AND (e.start_date, e.end_date) OVERLAPS (p_start_date, p_end_date)
-    AND e.status NOT IN ('cancelled', 'draft');
-END;
-$$ LANGUAGE plpgsql;
-
--- Fonction pour calculer le prix dynamique (NOUVEAU)
+-- Fonction pour calculer le prix dynamique
 CREATE OR REPLACE FUNCTION get_dynamic_price(p_ticket_category_id BIGINT)
 RETURNS DECIMAL(10, 2) AS $$
 DECLARE
@@ -922,62 +646,6 @@ BEGIN
 END;
 $$ LANGUAGE plpgsql;
 
--- Fonction pour mettre à jour les statistiques d'événement (NOUVEAU)
-CREATE OR REPLACE FUNCTION update_event_statistics()
-RETURNS TRIGGER AS $$
-DECLARE
-    v_event_id BIGINT;
-BEGIN
-    -- Déterminer l'ID de l'événement selon le contexte
-    IF TG_TABLE_NAME = 'tickets' THEN
-        SELECT tc.event_id INTO v_event_id
-        FROM ticket_categories tc
-        WHERE tc.id = COALESCE(NEW.ticket_category_id, OLD.ticket_category_id);
-    ELSIF TG_TABLE_NAME = 'reviews' THEN
-        v_event_id := COALESCE(NEW.event_id, OLD.event_id);
-    END IF;
-    
-    -- Mettre à jour les statistiques
-    UPDATE events SET
-        tickets_sold = (
-            SELECT COUNT(*) FROM tickets t
-            JOIN ticket_categories tc ON t.ticket_category_id = tc.id
-            WHERE tc.event_id = v_event_id AND t.status NOT IN ('cancelled', 'refunded')
-        ),
-        revenue_total = (
-            SELECT COALESCE(SUM(oi.total_price), 0) FROM order_items oi
-            JOIN ticket_categories tc ON oi.ticket_category_id = tc.id
-            JOIN orders o ON oi.order_id = o.id
-            WHERE tc.event_id = v_event_id AND o.status = 'completed'
-        ),
-        average_rating = (
-            SELECT COALESCE(AVG(rating), 0) FROM reviews
-            WHERE event_id = v_event_id AND is_published = true
-        ),
-        reviews_count = (
-            SELECT COUNT(*) FROM reviews
-            WHERE event_id = v_event_id AND is_published = true
-        )
-    WHERE id = v_event_id;
-    
-    RETURN COALESCE(NEW, OLD);
-END;
-$$ LANGUAGE plpgsql;
-
--- Fonction pour mettre à jour les statistiques utilisateur (NOUVEAU)
-CREATE OR REPLACE FUNCTION update_user_statistics()
-RETURNS TRIGGER AS $$
-BEGIN
-    IF NEW.status = 'completed' AND OLD.status != 'completed' THEN
-        UPDATE users SET
-            total_amount_spent = total_amount_spent + NEW.total_amount
-        WHERE id = NEW.user_id;
-    END IF;
-    
-    RETURN NEW;
-END;
-$$ LANGUAGE plpgsql;
-
 -- ============================================================================
 -- SECTION 16: TRIGGERS
 -- ============================================================================
@@ -1010,27 +678,11 @@ CREATE TRIGGER update_reviews_updated_at BEFORE UPDATE ON reviews
 CREATE TRIGGER update_cart_updated_at BEFORE UPDATE ON cart
     FOR EACH ROW EXECUTE FUNCTION update_updated_at_column();
 
-CREATE TRIGGER update_notification_templates_updated_at BEFORE UPDATE ON notification_templates
-    FOR EACH ROW EXECUTE FUNCTION update_updated_at_column();
-
--- Triggers pour statistiques automatiques
-CREATE TRIGGER trigger_update_event_stats_on_ticket 
-    AFTER INSERT OR UPDATE OR DELETE ON tickets
-    FOR EACH ROW EXECUTE FUNCTION update_event_statistics();
-
-CREATE TRIGGER trigger_update_event_stats_on_review 
-    AFTER INSERT OR UPDATE OR DELETE ON reviews
-    FOR EACH ROW EXECUTE FUNCTION update_event_statistics();
-
-CREATE TRIGGER trigger_update_user_stats_on_order 
-    AFTER UPDATE ON orders
-    FOR EACH ROW EXECUTE FUNCTION update_user_statistics();
-
 -- ============================================================================
 -- SECTION 17: DONNÉES INITIALES
 -- ============================================================================
 
--- Catégories d'événements (les traductions sont dans translations.js)
+-- Catégories d'événements
 INSERT INTO event_categories (name, slug, description, icon, display_order) VALUES
 ('Concert', 'concert', 'Concerts et spectacles musicaux', 'music', 1),
 ('Conférence', 'conference', 'Conférences et séminaires', 'presentation', 2),
@@ -1040,46 +692,6 @@ INSERT INTO event_categories (name, slug, description, icon, display_order) VALU
 ('Formation', 'formation', 'Formations et ateliers', 'school', 6),
 ('Networking', 'networking', 'Événements de réseautage', 'people', 7),
 ('Autre', 'autre', 'Autres types d''événements', 'category', 8);
-
--- Tags populaires
-INSERT INTO event_tags (name, slug) VALUES
-('Musique', 'musique'),
-('Tech', 'tech'),
-('Business', 'business'),
-('Art', 'art'),
-('Culture', 'culture'),
-('Famille', 'famille'),
-('Jeunesse', 'jeunesse'),
-('Gastronomie', 'gastronomie'),
-('Charité', 'charite'),
-('Innovation', 'innovation');
-
--- Templates de notifications
-INSERT INTO notification_templates (template_key, notification_type, channel, subject_template, body_template, variables) VALUES
-('order_confirmation_email', 'order_confirmation', 'email', 
- 'Confirmation de commande #{{order_number}}',
- 'Bonjour {{user_name}},\n\nVotre commande #{{order_number}} a été confirmée.\nMontant total: {{total_amount}} {{currency}}\n\nMerci pour votre achat!',
- '["order_number", "user_name", "total_amount", "currency"]'::jsonb),
-
-('payment_success_email', 'payment_success', 'email',
- 'Paiement confirmé - Commande #{{order_number}}',
- 'Bonjour {{user_name}},\n\nVotre paiement de {{amount}} {{currency}} a été confirmé.\nVos billets sont disponibles dans votre compte.',
- '["order_number", "user_name", "amount", "currency"]'::jsonb),
-
-('event_reminder_email', 'event_reminder', 'email',
- 'Rappel: {{event_title}} commence dans 24h',
- 'Bonjour {{user_name}},\n\nN''oubliez pas! L''événement "{{event_title}}" commence demain à {{start_time}}.\n\nLieu: {{location}}\n\nVos billets sont prêts!',
- '["user_name", "event_title", "start_time", "location"]'::jsonb),
-
-('new_event_push', 'new_event', 'push',
- 'Nouvel événement: {{event_title}}',
- 'Un nouvel événement dans votre catégorie préférée "{{category_name}}" vient d''être publié!',
- '["event_title", "category_name"]'::jsonb),
-
-('promotion_push', 'promotion', 'push',
- 'Promotion flash: {{discount}}% de réduction!',
- 'Code promo: {{promo_code}}\nValable jusqu''au {{valid_until}}',
- '["discount", "promo_code", "valid_until"]'::jsonb);
 
 -- Paramètres système
 INSERT INTO system_settings (setting_key, setting_value, setting_type, description, is_public) VALUES
@@ -1091,96 +703,67 @@ INSERT INTO system_settings (setting_key, setting_value, setting_type, descripti
 ('ticket_reservation_timeout', '15', 'number', 'Durée réservation panier (minutes)', false),
 ('max_tickets_per_order', '10', 'number', 'Nombre max billets par commande', true),
 ('enable_mobile_money', 'true', 'boolean', 'Activer paiements Mobile Money', false),
-('platform_fee_percentage', '5', 'number', 'Commission plateforme (%)', false),
-('loyalty_points_per_1000_mga', '10', 'number', 'Points par 1000 MGA dépensés', false),
-('referral_bonus_points', '500', 'number', 'Points bonus parrainage', false),
-('enable_mini_game', 'true', 'boolean', 'Activer mini-jeu Ticket Chance', true),
-('mini_game_daily_limit', '3', 'number', 'Participations quotidiennes max au mini-jeu', false),
-('low_stock_threshold', '10', 'number', 'Seuil alerte stock bas', false),
-('event_reminder_hours', '24', 'number', 'Heures avant événement pour rappel', false),
-('search_history_retention_days', '90', 'number', 'Jours de rétention historique recherche', false),
-('activity_log_retention_days', '180', 'number', 'Jours de rétention logs activité', false);
-
--- Récompenses du mini-jeu
-INSERT INTO mini_game_rewards (reward_type, reward_value, reward_description, loyalty_points, probability, is_active, max_claims) VALUES
-('loyalty_points', 100, 'Gagnez 100 points de fidélité', 100, 40.00, true, 1000),
-('loyalty_points', 500, 'Gagnez 500 points de fidélité', 500, 20.00, true, 500),
-('discount', 10, 'Réduction de 10% sur votre prochain achat', NULL, 25.00, true, 300),
-('discount', 25, 'Réduction de 25% sur votre prochain achat', NULL, 10.00, true, 100),
-('discount', 50, 'Réduction de 50% sur votre prochain achat', NULL, 4.00, true, 50),
-('voucher', 10000, 'Bon d''achat de 10 000 MGA', NULL, 0.90, true, 10),
-('free_ticket', NULL, 'Billet gratuit pour un événement sélectionné', NULL, 0.10, true, 5);
+('platform_fee_percentage', '5', 'number', 'Commission plateforme (%)', false);
 
 -- ============================================================================
--- FIN DU SCHÉMA - 34 TABLES
+-- FIN DU SCHÉMA - 25 TABLES COMPLÈTES
 -- ============================================================================
 
 /*
-RÉSUMÉ DES 34 TABLES (24 originales + 10 nouvelles):
+RÉSUMÉ DES 25 TABLES COMPLÈTES:
 
-TABLES ORIGINALES:
-1.  users                      - Utilisateurs (amélioré avec stats)
+1.  users                      - Utilisateurs
 2.  refresh_tokens             - Tokens JWT
 3.  event_categories           - Catégories événements
-5.  events                     - Événements (amélioré avec stats dénormalisées)
-7.  event_media                - Médias (amélioré)
-8.  event_collaborators        - Co-organisateurs
-9.  ticket_categories          - Catégories billets (amélioré avec tarification dynamique)
-10. ticket_price_history       - Historique modifications prix
-13. tickets                    - Billets individuels
-14. ticket_transfers           - Transferts billets
-11. orders                     - Commandes (amélioré)
-12. order_items                - Items commandes
-15. payments                   - Paiements (amélioré)
-16. promo_codes                - Codes promotionnels (amélioré)
-18. promo_code_usage           - Utilisation codes promo
-19. cart                       - Panier d'achat
-20. cart_items                 - Items du panier
-21. favorites                  - Favoris
-22. user_referrals             - Système de parrainage (amélioré)
-23. user_connections           - Connexions sociales (amélioré)
-30. notifications              - Notifications
-31. reviews                    - Avis et évaluations
-32. event_waitlist             - Liste d'attente (amélioré)
-33. system_settings            - Configuration système (amélioré)
+4.  events                     - Événements
+5.  event_media                - Médias
+6.  event_collaborators        - Collaborateurs d'événements
+7.  ticket_categories          - Catégories billets (avec tarification dynamique)
+8.  ticket_price_history       - Historique des modifications de prix
+9.  orders                     - Commandes
+10. order_items                - Items commandes
+11. tickets                    - Billets individuels
+12. ticket_transfers           - Transferts de billets
+13. payments                   - Paiements
+14. promo_codes                - Codes promotionnels
+15. promo_code_usage           - Utilisation codes promo
+16. cart                       - Panier d'achat
+17. cart_items                 - Items du panier
+18. favorites                  - Favoris
+19. user_connections           - Connexions sociales (amis)
+20. notifications              - Notifications
+21. reviews                    - Avis et évaluations
+22. user_search_history        - Historique de recherche utilisateur
+23. event_waitlist             - Liste d'attente pour événements complets
+24. activity_history           - Historique des activités (AUDIT LOG)
+25. system_settings            - Configuration système
 
-NOUVELLES TABLES:
-4.  event_tags                 - Tags pour recherche avancée
-6.  event_tags_association     - Association événements-tags
-17. event_promo_codes          - Codes promo liés à des événements spécifiques
-24. user_search_history        - Historique de recherche utilisateur
-25. user_activity_log          - Logs d'activité (vues, clics, favoris)
-26. mini_game_participations   - Participations au mini-jeu "Ticket Chance"
-27. mini_game_rewards          - Récompenses disponibles
-28. mini_game_reward_claims    - Réclamations de récompenses
-29. notification_templates     - Templates de notifications réutilisables
-34. audit_log                  - Traçabilité complète des actions
+FONCTIONNALITÉS INCLUSES:
+✅ Gestion utilisateurs et authentification
+✅ Gestion d'événements complète
+✅ Collaborateurs d'événements (co-organisateurs)
+✅ Billetterie avec catégories
+✅ Tarification dynamique (prix variables)
+✅ Historique des modifications de prix
+✅ Système de commande et paiement
+✅ Transferts de billets entre utilisateurs
+✅ Codes promotionnels
+✅ Panier d'achat
+✅ Favoris
+✅ Connexions sociales (amis)
+✅ Notifications
+✅ Avis et évaluations
+✅ Historique de recherche utilisateur
+✅ Liste d'attente pour événements complets
+✅ Historique des activités (Audit log)
+✅ Configuration système
 
-NOUVELLES VUES:
-- upcoming_events              - Événements à venir avec stats
-- event_attendees_friends      - Amis au même événement
-- user_event_suggestions       - Suggestions personnalisées (NOUVEAU)
-- user_statistics              - Statistiques utilisateur complètes (NOUVEAU)
-
-NOUVELLES FONCTIONS:
-- update_updated_at_column()          - MAJ automatique updated_at
-- check_event_conflicts()             - Détection conflits de dates
-- get_dynamic_price()                 - Calcul prix dynamique (NOUVEAU)
-- update_event_statistics()           - MAJ stats événements (NOUVEAU)
-- update_user_statistics()            - MAJ stats utilisateurs (NOUVEAU)
-
-OPTIMISATIONS:
-✅ Toutes les fonctionnalités demandées couvertes
-✅ Historique de recherche et suggestions "Pour vous"
-✅ Mini-jeu "Ticket Chance" complet
-✅ Tarification dynamique automatique
-✅ Statistiques dénormalisées pour performance
-✅ Audit log pour conformité et sécurité
-✅ Templates de notifications réutilisables
-✅ Index optimisés pour toutes les requêtes fréquentes
-✅ Triggers pour mise à jour automatique des stats
-✅ Support multi-événements dans le panier
-✅ Codes promo liés à des événements spécifiques
-✅ Système de tags pour meilleure recherche
+FONCTIONNALITÉS RETIRÉES (par rapport à schemaOptimized.sql):
+❌ Tags d'événements
+❌ Parrainage
+❌ Mini-jeu "Ticket Chance"
+❌ Templates de notifications
+❌ Statistiques dénormalisées
+❌ Codes promo liés à des événements spécifiques
 */
 
