@@ -1,0 +1,288 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Connexion - Plateforme de Ticketing</title>
+    <link rel="stylesheet" href="{{ asset('css/auth.css') }}">
+    <link href="https://fonts.googleapis.com/css2?family=Rubik:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
+    <style>
+        /* Styles spécifiques pour le login */
+        .auth-wrapper {
+            min-height: 700px;
+            max-height: 750px;
+        }
+        
+        .auth-left {
+            padding: 60px 40px;
+        }
+        
+        .auth-right {
+            padding: 40px 30px;
+        }
+        
+        .auth-form-container {
+            max-width: 400px;
+            margin: 0 auto;
+        }
+        
+        .auth-form-container h2 {
+            font-size: 2rem;
+            margin-bottom: 10px;
+        }
+        
+        .auth-subtitle {
+            margin-bottom: 30px;
+            font-size: 1rem;
+        }
+        
+        .form-group {
+            margin-bottom: 20px;
+        }
+        
+        .auth-form .form-control {
+            padding: 16px 20px;
+            font-size: 1rem;
+        }
+        
+        /* Styles améliorés pour les boutons sociaux */
+        .social-login {
+            display: flex;
+            gap: 12px;
+            margin-bottom: 25px;
+        }
+        
+        .social-btn {
+            flex: 1;
+            padding: 14px;
+            border: 2px solid var(--beige);
+            border-radius: 10px;
+            background: var(--white);
+            cursor: pointer;
+            transition: all 0.3s ease;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 1rem;
+            font-weight: 500;
+            color: var(--blue);
+        }
+        
+        .social-btn:hover {
+            border-color: var(--green);
+            transform: translateY(-2px);
+            box-shadow: 0 5px 15px rgba(31, 45, 61, 0.1);
+        }
+        
+        .social-btn.google {
+            background: #DB4437;
+            color: white;
+            border-color: #DB4437;
+        }
+        
+        .social-btn.google:hover {
+            background: #c23321;
+            border-color: #c23321;
+        }
+        
+        .social-btn.facebook {
+            background: #4267B2;
+            color: white;
+            border-color: #4267B2;
+        }
+        
+        .social-btn.facebook:hover {
+            background: #365899;
+            border-color: #365899;
+        }
+        
+        .social-btn .social-icon {
+            margin-right: 8px;
+            font-size: 1.1rem;
+        }
+        
+        .auth-divider {
+            text-align: center;
+            margin: 25px 0;
+            position: relative;
+        }
+        
+        .auth-divider::before {
+            content: '';
+            position: absolute;
+            top: 50%;
+            left: 0;
+            right: 0;
+            height: 1px;
+            background: var(--beige);
+        }
+        
+        .auth-divider span {
+            background: var(--white);
+            padding: 0 15px;
+            color: #666;
+            font-size: 0.9rem;
+        }
+        
+        .form-check {
+            margin-bottom: 25px;
+        }
+        
+        .auth-btn {
+            padding: 16px;
+            font-size: 1rem;
+        }
+        
+        .auth-links {
+            margin-top: 25px;
+        }
+
+        /* Optimisation pour mobile */
+        @media (max-width: 768px) {
+            .auth-form-container {
+                max-width: 100%;
+            }
+            
+            .social-login {
+                flex-direction: column;
+                gap: 10px;
+            }
+        }
+    </style>
+</head>
+<body class="auth-body">
+    <div class="auth-container">
+        <div class="auth-wrapper">
+            <!-- Left Side - Branding -->
+            <div class="auth-left">
+                <div class="auth-features">
+                    <div class="auth-logo">
+                        <h1>TicketMaster</h1>
+                        <p>Votre plateforme de billetterie en ligne</p>
+                    </div>
+                    
+                   <ul class="feature-list">
+                        <li>
+                            <i class="fas fa-chart-line"></i>
+                            <span>Tableau de bord analytics</span>
+                        </li>
+                        <li>
+                            <i class="fas fa-calendar-alt"></i>
+                            <span>Gestion des événements</span>
+                        </li>
+                        <li>
+                            <i class="fas fa-users"></i>
+                            <span>Administration utilisateurs</span>
+                        </li>
+                        <li>
+                            <i class="fas fa-file-invoice"></i>
+                            <span>Rapports financiers</span>
+                        </li>
+                    </ul>
+                </div>
+            </div>
+
+            <!-- Right Side - Login Form -->
+            <div class="auth-right">
+                <div class="auth-content">
+                    <div class="auth-form-container">
+                        <h2>Connexion</h2>
+                        <p class="auth-subtitle">Content de vous revoir !</p>
+
+                        <!-- Flash Messages -->
+                        {% for message in app.flashes('success') %}
+                            <div class="alert alert-success">{{ message }}</div>
+                        {% endfor %}
+                        
+                        {% for message in app.flashes('error') %}
+                            <div class="alert alert-danger">{{ message }}</div>
+                        {% endfor %}
+
+                        <!-- Boutons sociaux bien visibles -->
+                        <div class="social-login">
+                            <button class="social-btn google" type="button">
+                                <i class="fab fa-google social-icon"></i>
+                                Google
+                            </button>
+                            <button class="social-btn facebook" type="button">
+                                <i class="fab fa-facebook-f social-icon"></i>
+                                Facebook
+                            </button>
+                        </div>
+
+                        <div class="auth-divider">
+                            <span>Ou avec votre email</span>
+                        </div>
+
+                        <!-- Login Form -->
+                        <form method="post" class="auth-form">
+                            {% if error %}
+                                <div class="alert alert-danger">{{ error.messageKey|trans(error.messageData, 'security') }}</div>
+                            {% endif %}
+
+                            <div class="form-group">
+                                <label for="inputEmail">Email <span>*</span></label>
+                                <input type="email" value="{{ last_username }}" name="email" id="inputEmail" 
+                                       class="form-control" autocomplete="email" required autofocus 
+                                       placeholder="votre@email.com">
+                            </div>
+
+                            <div class="form-group">
+                                <label for="inputPassword">Mot de passe <span>*</span></label>
+                                <div class="password-input">
+                                    <input type="password" name="password" id="inputPassword" 
+                                           class="form-control" autocomplete="current-password" required 
+                                           placeholder="Votre mot de passe">
+                                    <button type="button" class="toggle-password" id="togglePassword">
+                                        <i class="far fa-eye"></i>
+                                    </button>
+                                </div>
+                            </div>
+
+                            <input type="hidden" name="_csrf_token" value="{{ csrf_token('authenticate') }}">
+
+                            <div class="form-check">
+                                <input type="checkbox" id="remember_me" name="_remember_me" class="form-check-input" checked>
+                                <label for="remember_me" class="form-check-label">
+                                    Se souvenir de moi
+                                </label>
+                            </div>
+
+                            <button type="submit" class="auth-btn">
+                                <i class="fas fa-sign-in-alt"></i> Se connecter
+                            </button>
+                        </form>
+
+                        <div class="auth-links">
+                            <a href="{{ path('app_forgot_password_request') }}">Mot de passe oublié ? </a>
+                            <a href="{{ path('app_register') }}">Créer un compte</a>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // Toggle password visibility
+        document.addEventListener('DOMContentLoaded', function() {
+            const togglePassword = document.querySelector('#togglePassword');
+            const password = document.querySelector('#inputPassword');
+            const icon = togglePassword.querySelector('i');
+
+            togglePassword.addEventListener('click', function() {
+                const type = password.getAttribute('type') === 'password' ? 'text' : 'password';
+                password.setAttribute('type', type);
+                
+                // Toggle icon
+                if (type === 'password') {
+                    icon.className = 'far fa-eye';
+                } else {
+                    icon.className = 'far fa-eye-slash';
+                }
+            });
+        });
+    </script>
+</body>
+</html>
