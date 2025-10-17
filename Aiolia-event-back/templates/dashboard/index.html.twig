@@ -1,0 +1,113 @@
+{% extends 'base.html.twig' %}
+
+{% block title %}Tableau de bord - Backoffice{% endblock %}
+
+{% block body %}
+<div class="dashboard">
+    <!-- En-tête du dashboard -->
+    <div class="dashboard-header">
+        <h1>Tableau de bord</h1>
+        <div class="header-actions">
+            <button class="btn btn-primary">
+                <i class="fas fa-plus"></i>
+                Nouvel événement
+            </button>
+        </div>
+    </div>
+
+    <!-- Cartes de statistiques -->
+    <div class="stats-grid">
+        <div class="stat-card">
+            <div class="stat-icon">
+                <i class="fas fa-ticket-alt"></i>
+            </div>
+            <div class="stat-content">
+                <h3>{{ stats.tickets.purchased_count ?? '1,248' }}</h3>
+                <p>Billets achetés</p>
+            </div>
+        </div>
+
+        <div class="stat-card">
+            <div class="stat-icon">
+                <i class="fas fa-calendar-alt"></i>
+            </div>
+            <div class="stat-content">
+                <h3>{{ stats.events.created_count ?? '24' }}</h3>
+                <p>Événements créés</p>
+            </div>
+        </div>
+
+        <div class="stat-card">
+            <div class="stat-icon">
+                <i class="fas fa-users"></i>
+            </div>
+            <div class="stat-content">
+                <h3>{{ stats.events.collaborated_count ?? '45' }}</h3>
+                <p>Collaborations</p>
+            </div>
+        </div>
+
+        <div class="stat-card">
+            <div class="stat-icon">
+                <i class="fas fa-star"></i>
+            </div>
+            <div class="stat-content">
+                <h3>{{ stats.loyalty.points ?? '1,250' }}</h3>
+                <p>Points ({{ (stats.loyalty.tier ?? 'gold')|capitalize }})</p>
+            </div>
+        </div>
+    </div>
+
+    <!-- Graphiques et tableaux -->
+    <div class="dashboard-content">
+        <div class="content-row">
+            <div class="content-col">
+                <div class="chart-card">
+                    <div class="card-header">
+                        <h3>Ventes des 30 derniers jours</h3>
+                    </div>
+                    <div class="card-body">
+                        <div class="chart-placeholder">
+                            <i class="fas fa-chart-line"></i>
+                            <p>Graphique des ventes</p>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            
+            <div class="content-col">
+                <div class="chart-card">
+                    <div class="card-header">
+                        <h3>Événements populaires</h3>
+                    </div>
+                    <div class="card-body">
+                        <div class="event-list">
+                            <div class="event-item">
+                                <div class="event-info">
+                                    <h4>Concert Rock Nation</h4>
+                                    <p>256 billets vendus</p>
+                                </div>
+                                <span class="event-badge">€12,450</span>
+                            </div>
+                            <div class="event-item">
+                                <div class="event-info">
+                                    <h4>Festival Jazz</h4>
+                                    <p>189 billets vendus</p>
+                                </div>
+                                <span class="event-badge">€8,920</span>
+                            </div>
+                            <div class="event-item">
+                                <div class="event-info">
+                                    <h4>Théâtre Classique</h4>
+                                    <p>134 billets vendus</p>
+                                </div>
+                                <span class="event-badge">€6,780</span>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

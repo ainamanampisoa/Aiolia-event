@@ -16,7 +16,7 @@ class SlugService
     /**
      * Génère un slug unique pour une entité
      */
-    public function generateUniqueSlug(string $text, string $entityClass, int $excludeId = null): string
+    public function generateUniqueSlug(string $text, string $entityClass, int $excludeId = 0): string
     {
         $slug = $this->slugger->slug($text)->lower()->toString();
         $originalSlug = $slug;

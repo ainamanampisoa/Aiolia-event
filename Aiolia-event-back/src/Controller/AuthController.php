@@ -4,6 +4,7 @@ namespace App\Controller;
 
 use App\Entity\User;
 use App\Form\RegistrationFormType;
+use App\Service\UserStatsService;
 use Doctrine\ORM\EntityManagerInterface;
 use Symfony\Bundle\FrameworkBundle\Controller\AbstractController;
 use Symfony\Component\HttpFoundation\Request;
@@ -115,13 +116,17 @@ class AuthController extends AbstractController
     }
 
     #[Route('/dashboard', name: 'app_dashboard')]
-    public function dashboard(): Response
+    public function dashboard(UserStatsService $userStatsService): Response
     {
         // Cette route nécessite une authentification
         $this->denyAccessUnlessGranted('IS_AUTHENTICATED_FULLY');
 
+        // Récupérer les statistiques calculées dynamiquement
+        $stats = $userStatsService->getUserStatistics($this->getUser());
+
         return $this->render('dashboard/index.html.twig', [
             'user' => $this->getUser(),
+            'stats' => $stats,
         ]);
     }
 }

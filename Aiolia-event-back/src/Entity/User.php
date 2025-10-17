@@ -53,42 +53,6 @@ class User implements UserInterface, PasswordAuthenticatedUserInterface
     #[ORM\Column]
     private bool $isActive = true;
 
-    #[ORM\Column(length: 20)]
-    private string $theme = 'light';
-
-    #[ORM\Column(length: 5)]
-    private string $language = 'fr';
-
-    #[ORM\Column]
-    private bool $notificationsEmail = true;
-
-    #[ORM\Column]
-    private bool $notificationsPush = true;
-
-    #[ORM\Column]
-    private bool $notificationsSms = false;
-
-    #[ORM\Column]
-    private bool $marketingEmails = true;
-
-    #[ORM\Column(type: Types::INTEGER)]
-    private int $loyaltyPoints = 0;
-
-    #[ORM\Column(type: Types::INTEGER)]
-    private int $pointsLifetimeEarned = 0;
-
-    #[ORM\Column(length: 50)]
-    private string $loyaltyTier = 'bronze';
-
-    #[ORM\Column(type: Types::INTEGER)]
-    private int $totalEventsAttended = 0;
-
-    #[ORM\Column(type: Types::DECIMAL, precision: 12, scale: 2)]
-    private string $totalAmountSpent = '0.00';
-
-    #[ORM\Column(type: Types::INTEGER, nullable: true)]
-    private ?int $favoriteCategoryId = null;
-
     #[ORM\Column(type: Types::DATETIME_MUTABLE)]
     private ?\DateTimeInterface $createdAt = null;
 

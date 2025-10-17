@@ -191,8 +191,8 @@ class CloudinaryService
      */
     public function getOptimizedUrl(
         string $publicId,
-        int $width = null,
-        int $height = null,
+        int $width = 0,
+        int $height = 0,
         string $crop = 'fill'
     ): string {
         $transformations = [];

@@ -108,7 +108,7 @@ class EventService
     /**
      * Récupère les événements à venir
      */
-    public function getUpcomingEvents(int $limit = null): array
+    public function getUpcomingEvents(int $limit = 0): array
     {
         return $this->eventRepository->findUpcomingEvents($limit);
     }
