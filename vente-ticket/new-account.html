@@ -1,0 +1,298 @@
+
+<!DOCTYPE html>
+<html lang="fr">
+    <head>
+    	<meta http-equiv="Content-Type" content="text/html; charset=UTF-8" />
+    	<title>New acount - Vente tickets</title>
+    	<meta name="description" content="" />
+    	<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no"/>
+    	<!--[if lt IE 9]>
+    	<script src="js/html5.js"></script>
+    	<![endif]-->
+        <link rel="stylesheet" type="text/css" href="css/animate.min.css">
+        <link rel="stylesheet" type="text/css" href="css/slick.css">
+        <link rel="stylesheet" type="text/css" href="css/jquery-ui.css">
+        <link rel="stylesheet" type="text/css" href="css/main.css">
+        
+    </head>
+    <body>
+        <header>
+            <div class="head">
+                <div class="container d-flex justify-content-between ">
+                    <a href="#" class="logo"><img src="images/logo.png" alt="Powered by"></a>
+                    <div class="blcMenu d-flex ">
+                        <div class="wrapMenuMobile">
+                            <div class="menuMobile">
+                                <div></div>       
+                            </div>
+                        </div>
+
+                        <nav class="menu">
+                            <ul>
+                                <li class="selected">
+                                    <a href="#" title="Evènements">évènements</a>
+                                </li>
+                                <li>
+                                    <a href="#" title="Devenir organisateur">devenir organisateur</a>
+                                </li>
+                                <li>
+                                    <a href="#" title="Contact">contact</a>
+                                </li>
+                            </ul>
+                             <div class="login">
+                                <a href="#">se connecter</a>
+                            </div>
+                        </nav>
+                       
+                        <div class="panier">
+                            <a href="#"></a>
+                            <span>02</span>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <div class="blc-banner  page event">
+                <div class="banner">
+                    <div class="img" style="background: url(images/banner.jpg);"> </div>
+                    <div class="txt-banner">
+                        <div class="container">
+                            <div class="inner ">
+                                <div class="content ">
+                                    <div class="txt wow fadeIn" data-wow-delay="700ms">
+                                        <div class="left">
+                                            <span class="s-titre">Evénement à ne pas rater</span>
+                                            <h1>Jazz show avec Koundé au "Le Grand Café de la Gare"</h1>     
+                                        </div>                        
+                                    </div>
+                                    <div id="timer">
+                                          <div id="days"><div></div></div>
+                                          <div id="hours"></div>
+                                          <div id="minutes"></div>
+                                          <div id="seconds"></div>
+                                    </div>
+                                </div>
+
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+        </header>
+        <main>
+
+            <section class="sec-new-account pt-100 pb-100">
+                <div class="container">
+                    <h2 class="text-center">Créer un nouveau compte</h2>
+                    <div class="blc-compte bg-beige">
+                        <form>
+                            <div class="blc-option d-flex">
+                                <label>Je souhaite créer un compte en tant que :</label>
+                                <div class="option d-flex">
+                                 <div class="check">
+                                    <input type="radio" id="organisateur" name="radio-group" checked>
+                                    <label for="organisateur">Organisateur</label>
+                                  </div>
+                                  <div class="check">
+                                    <input type="radio" id="particulier" name="radio-group">
+                                    <label for="particulier">Particulier</label>
+                                  </div>
+                                </div>
+                            </div>
+
+                            <div class="informations">
+                                <h3><strong>01.</strong> Informations personnelles</h3>
+
+                                <div class="row d-flex">
+                                    <div class="blc-chp col50">
+                                        <label>Votre nom complet <span>*</span></label>
+                                        <input type="text" name="" class="form-control">
+                                    </div>
+                                    <div class="blc-chp col50">
+                                        <label>Votre adresse email <span>*</span></label>
+                                        <input type="text" name="" class="form-control">
+                                    </div>
+                                </div>
+                                <div class="row d-flex">
+                                    <div class="blc-chp col50">
+                                        <label>Votre numéro de téléphone <span>*</span></label>
+                                        <div class="blc-tel">
+                                            <div class="ico">
+                                                <img src="images/mdg.png">
+                                            </div>
+                                            <select  class="select-tel">
+                                                <option data-icon="mdg">+261</option>
+                                                <option data-icon="fr">+262</option>
+                                            </select>
+                                            <input type="text" name="" class="form-control tel">
+                                        </div>
+                                    </div>
+                                    <div class="blc-chp col50">
+                                        <label>Région</label>   
+                                        <select>
+                                            <option>Analamanga</option>
+                                            <option>Itasy</option>
+                                        </select>
+                                    </div>
+                                </div>
+                                <div class="row d-flex">
+                                    <div class="blc-chp col50">
+                                        <label>Ville</label>
+                                        <input type="text" name="" class="form-control">
+                                    </div>
+                                    <div class="blc-chp col50">
+                                        <label>Code postal</label>   
+                                        <input type="text" name="" class="form-control code-postale">
+                                    </div>
+                                </div>
+
+                                <div class="row d-flex">
+                                    <div class="blc-chp col50">
+                                        <label>Votre mot de passe <span>*</span></label>
+                                        <div class="blc-password">
+                                            <input type="password" name="mdp" class="form-control">
+                                            <span class="material-symbols-rounded pointer toggle-password"></span>
+                                            <div class="txt-error">Le mot de passe doit contenir au moins un majuscule, un symbole et un chiffre</div>
+                                        </div>
+                                    </div>
+                                    <div class="blc-chp col50">
+                                        <label>Confirmer votre mot de passe <span>*</span></label>   
+                                        <div class="blc-password">
+                                            <input type="password" name="confirmation" class="form-control" >
+                                            <span class="material-symbols-rounded pointer toggle-password"></span>
+                                        </div>
+                                    </div>
+                                </div>
+
+                            </div>
+                            <div class="sep"></div>
+
+                            <div class="informations no-border">
+                                <h3><strong>02.</strong> Informations sur votre organisation</h3>
+                                <div class="row d-flex">
+                                    <div class="blc-chp col50">
+                                        <label>Le nom de votre organisation ou société <span>*</span></label>
+                                        <input type="text" name="" class="form-control">
+                                    </div>
+                                    <div class="blc-chp col50">
+                                        <label>Activités</label>
+                                        <input type="text" name="" class="form-control">
+                                    </div>
+                                </div>
+                                <div class="row d-flex">
+                                    <div class="blc-chp col50">
+                                        <label>NIF  <span>*</span></label>
+                                        <input type="text" name="" class="form-control">
+                                    </div>
+                                    <div class="blc-chp col50">
+                                        <label>stat <span>*</span></label>
+                                        <input type="text" name="" class="form-control">
+                                    </div>
+                                </div>
+                                <div class="row d-flex">
+                                    <div class="blc-chp col50">
+                                        <label>Numéro ouverture MIN TOUR <span>*</span><div class="info">
+                                            <img src="images/info.png">
+                                            <div class="tooltip">Lorem ipsum dolor sit amet, consectetur adipiscing elit,</div></div></label>
+                                        <input type="text" name="" class="form-control">
+                                    </div>
+                                    <div class="blc-chp col50">
+                                        <label>Site web</label>
+                                        <input type="text" name="" class="form-control">
+                                    </div>
+                                </div>
+                                <div class="blc-check blc-chp">
+                                    <div class="check-connect">
+                                        <input type="checkbox" id="info1">
+                                        <label for="info1">Informations sur le gérant ou président de l'association différentes</label>
+                                    </div>
+                                </div>
+                                <div class="row d-flex">
+                                    <div class="blc-chp col50">
+                                        <label>Nom du gérant/président<span>*</span></label>
+                                        <input type="text" name="" class="form-control">
+                                    </div>
+                                    <div class="blc-chp col50">
+                                        <label>Adresse email du gérant/président <span>*</span></label>
+                                        <input type="text" name="" class="form-control">
+                                    </div>
+                                </div>
+                                <div class="row d-flex">
+                                    <div class="blc-chp col50">
+                                        <label>Votre numéro de téléphone<span>*</span></label>
+                                        <div class="blc-tel">
+                                            <div class="ico">
+                                                <img src="images/mdg.png">
+                                            </div>
+                                            <select  class="select-tel">
+                                                <option data-icon="mdg">+261</option>
+                                                <option data-icon="fr">+262</option>
+                                            </select>
+                                       
+                                            <input type="text" name="" class="form-control tel">
+                                        </div>
+                                    </div>
+                                    
+                                </div>
+                                <div class="blc-check blc-chp">
+                                    <div class="check-connect">
+                                        <input type="checkbox" id="info2">
+                                        <label for="info2">J’accepte les <a href="#">conditions générales d’utilisation</a> et la <a href="#">politique de confidentialité.</a></label>
+                                    </div>
+                                </div>
+                            </div>
+                            <div class="blc-btn text-center">
+                                <input type="submit" class="btn-submit check" name="" value="créer mon compte">
+                                <a href="#" class="link-form">annuler / retour à la page d'accueil</a>
+                            </div>
+                        </form>
+                    </div>
+                </div>
+            </section>
+       
+
+              
+        </main>
+
+         <footer class="footer">
+             <div class="container">
+                    <div class="ftr-top d-flex justify-content-between">
+                        <div class="logo-ftr">
+                            <a href="#"><img src="images/VenteTicket.png" alt="VenteTicket.mg"></a>
+                        </div>
+                        <div class="menu-ftr">
+                            <ul>
+                                <li><a href="#" title="Evènements">évènements</a></li>
+                                <li><a href="#" title="Devenir organisateur">devenir organisateur</a></li>
+                                <li><a href="#" title="Contact">contact</a></li>
+                                <li><a href="#" title="A propos">à propos</a></li>
+                            </ul>
+                        </div>
+                    </div>
+                    <div class="ftr-bottom d-flex justify-content-between">
+                        <div class="left">
+                            <div class="copy">Tous droits réservés © 2025 </div>
+                            <ul>
+                                <li><a href="#" title="Mentions légales">Mentions légales</a></li>
+                                <li><a href="#" title="Politique de confidentialité">Politique de confidentialité</a></li>
+                                <li><a href="#" title="Conditions générales d'utilisation">Conditions générales d'utilisation</a></li>  
+                            </ul>
+                        </div>
+                        <div class="powered">
+                            <span>Powered by</span>
+                            <a href="#"><img src="images/powered.svg"></a>
+                        </div>
+                    </div>
+
+             </div>
+         </footer>
+        <script type="text/javascript" src="js/jquery.min.js"></script>
+    	<script type="text/javascript" src="js/wow.js"></script>
+        <script type="text/javascript" src="js/slick.min.js"></script>
+        <script type="text/javascript" src="js/jquery-ui.js"></script>  
+        <script type="text/javascript" src="js/custom.js"></script>
+
+        
+    </body>
+</html>
