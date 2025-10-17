@@ -127,7 +127,7 @@ class MediaService
     /**
      * Génère une URL optimisée depuis Cloudinary
      */
-    public function getOptimizedImageUrl(EventMedia $media, int $width = null, int $height = null): string
+    public function getOptimizedImageUrl(EventMedia $media, int $width = 0, int $height = 0): string
     {
         $publicId = $this->extractPublicIdFromUrl($media->getFileUrl());
         
@@ -155,7 +155,7 @@ class MediaService
     /**
      * Récupère tous les médias d'un événement
      */
-    public function getEventMedias(Event $event, string $type = null): array
+    public function getEventMedias(Event $event, string $type = ''): array
     {
         $mediaRepository = $this->entityManager->getRepository(EventMedia::class);
         

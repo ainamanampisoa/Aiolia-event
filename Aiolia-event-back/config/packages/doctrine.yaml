@@ -8,6 +8,18 @@ doctrine:
 
         profiling_collect_backtrace: '%kernel.debug%'
         use_savepoints: true
+        mapping_types:
+            user_role: string
+            oauth_provider: string
+            event_status: string
+            order_status: string
+            payment_status: string
+            payment_method: string
+            ticket_status: string
+            notification_type: string
+            notification_channel: string
+            collaborator_role: string
+            transfer_status: string
     orm:
         auto_generate_proxy_classes: true
         enable_lazy_ghost_objects: true

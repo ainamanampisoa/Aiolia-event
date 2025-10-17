@@ -24,9 +24,9 @@ OÙ TROUVER VOS CREDENTIALS ?
 EXEMPLE
 ==============================================
 
-CLOUDINARY_CLOUD_NAME=mon-cloud-aiolia
-CLOUDINARY_API_KEY=123456789012345
-CLOUDINARY_API_SECRET=abcdefghijklmnopqrstuvwxyz1234567
+CLOUDINARY_CLOUD_NAME=dylxwfq0f
+CLOUDINARY_API_KEY=393824619368845
+CLOUDINARY_API_SECRET=otdAg4yBtIkClMM_J2xKRWB7vEs
 
 ==============================================
 
