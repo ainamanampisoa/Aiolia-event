@@ -1,0 +1,345 @@
+{% extends 'base.html.twig' %}
+
+{% block title %}Rapports - Aiolia Event{% endblock %}
+
+{% block body %}
+<div class="dashboard">
+    <!-- En-tête de la page -->
+    <div class="dashboard-header">
+        <div>
+            <h1>📄 Rapports</h1>
+            <p style="color: var(--gray-600); margin-top: 8px; font-size: 1rem;">
+                Rapports fiscaux et exports de données
+            </p>
+        </div>
+        <div class="header-actions">
+            <button class="btn" style="background: var(--success); color: white; border: none; padding: 12px 24px; border-radius: var(--border-radius-md); cursor: pointer; font-weight: 600; margin-right: 10px;">
+                <i class="fas fa-file-pdf"></i>
+                Exporter PDF
+            </button>
+            <button class="btn" style="background: var(--accent); color: white; border: none; padding: 12px 24px; border-radius: var(--border-radius-md); cursor: pointer; font-weight: 600;">
+                <i class="fas fa-file-csv"></i>
+                Exporter CSV
+            </button>
+        </div>
+    </div>
+
+    <!-- Statistiques fiscales -->
+    <div class="chart-card" style="margin-bottom: 24px;">
+        <div class="card-header">
+            <h3>💰 Statistiques fiscales</h3>
+            <p style="color: var(--gray-600); font-size: 0.9rem; margin-top: 4px;">
+                Revenus et taxes du mois en cours
+            </p>
+        </div>
+        <div class="card-body">
+            <div class="stats-details">
+                <div class="stat-row">
+                    <div class="stat-label">
+                        <i class="fas fa-money-bill-wave" style="color: var(--success); margin-right: 8px;"></i>
+                        Revenus bruts
+                    </div>
+                    <div class="stat-value-lg">45,890 €</div>
+                </div>
+                <div class="stat-row">
+                    <div class="stat-label">
+                        <i class="fas fa-percentage" style="color: var(--warning); margin-right: 8px;"></i>
+                        TVA (18%)
+                    </div>
+                    <div class="stat-value-lg">8,260 €</div>
+                </div>
+                <div class="stat-row">
+                    <div class="stat-label">
+                        <i class="fas fa-hand-holding-usd" style="color: var(--info); margin-right: 8px;"></i>
+                        Commissions plateforme (5%)
+                    </div>
+                    <div class="stat-value-lg">2,294 €</div>
+                </div>
+                <div class="stat-row stat-row-total">
+                    <div class="stat-label">
+                        <i class="fas fa-wallet" style="color: var(--primary); margin-right: 8px;"></i>
+                        <strong>Revenus nets</strong>
+                    </div>
+                    <div class="stat-value-lg"><strong>35,336 €</strong></div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Rapports mensuels -->
+    <div class="chart-card" style="margin-bottom: 24px;">
+        <div class="card-header">
+            <h3>📊 Rapports mensuels</h3>
+            <p style="color: var(--gray-600); font-size: 0.9rem; margin-top: 4px;">
+                Synthèse des performances par mois
+            </p>
+        </div>
+        <div class="card-body">
+            <div class="reports-grid">
+                <div class="report-card">
+                    <div class="report-month">Octobre 2025</div>
+                    <div class="report-stats">
+                        <div class="report-item">
+                            <span>Événements</span>
+                            <strong>12</strong>
+                        </div>
+                        <div class="report-item">
+                            <span>Billets vendus</span>
+                            <strong>1,248</strong>
+                        </div>
+                        <div class="report-item">
+                            <span>Revenus</span>
+                            <strong>45,890 €</strong>
+                        </div>
+                    </div>
+                    <button class="btn-report">
+                        <i class="fas fa-download"></i> Télécharger
+                    </button>
+                </div>
+
+                <div class="report-card">
+                    <div class="report-month">Septembre 2025</div>
+                    <div class="report-stats">
+                        <div class="report-item">
+                            <span>Événements</span>
+                            <strong>10</strong>
+                        </div>
+                        <div class="report-item">
+                            <span>Billets vendus</span>
+                            <strong>986</strong>
+                        </div>
+                        <div class="report-item">
+                            <span>Revenus</span>
+                            <strong>38,450 €</strong>
+                        </div>
+                    </div>
+                    <button class="btn-report">
+                        <i class="fas fa-download"></i> Télécharger
+                    </button>
+                </div>
+
+                <div class="report-card">
+                    <div class="report-month">Août 2025</div>
+                    <div class="report-stats">
+                        <div class="report-item">
+                            <span>Événements</span>
+                            <strong>15</strong>
+                        </div>
+                        <div class="report-item">
+                            <span>Billets vendus</span>
+                            <strong>1,567</strong>
+                        </div>
+                        <div class="report-item">
+                            <span>Revenus</span>
+                            <strong>52,340 €</strong>
+                        </div>
+                    </div>
+                    <button class="btn-report">
+                        <i class="fas fa-download"></i> Télécharger
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Rapports personnalisés -->
+    <div class="chart-card">
+        <div class="card-header">
+            <h3>⚙️ Générer un rapport personnalisé</h3>
+            <p style="color: var(--gray-600); font-size: 0.9rem; margin-top: 4px;">
+                Créez un rapport sur mesure avec les critères de votre choix
+            </p>
+        </div>
+        <div class="card-body">
+            <div class="custom-report-form">
+                <div class="form-row">
+                    <div class="form-group">
+                        <label>Période de début</label>
+                        <input type="date" class="form-control">
+                    </div>
+                    <div class="form-group">
+                        <label>Période de fin</label>
+                        <input type="date" class="form-control">
+                    </div>
+                </div>
+                <div class="form-row">
+                    <div class="form-group">
+                        <label>Type de rapport</label>
+                        <select class="form-control">
+                            <option>Rapport complet</option>
+                            <option>Revenus uniquement</option>
+                            <option>Ventes par événement</option>
+                            <option>Statistiques fiscales</option>
+                        </select>
+                    </div>
+                    <div class="form-group">
+                        <label>Format d'export</label>
+                        <select class="form-control">
+                            <option>PDF</option>
+                            <option>CSV</option>
+                            <option>Excel</option>
+                        </select>
+                    </div>
+                </div>
+                <button class="btn" style="background: var(--accent); color: white; padding: 12px 32px; border: none; border-radius: 8px; cursor: pointer; font-weight: 600; margin-top: 10px;">
+                    <i class="fas fa-file-export"></i> Générer le rapport
+                </button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<style>
+.stats-details {
+    display: flex;
+    flex-direction: column;
+    gap: 14px;
+}
+
+.stat-row {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 16px 18px;
+    background: var(--gray-50);
+    border-radius: var(--border-radius-md);
+    border-left: 4px solid var(--gray-300);
+    transition: var(--transition-base);
+}
+
+.stat-row:hover {
+    background: var(--gray-100);
+}
+
+.stat-row-total {
+    background: linear-gradient(135deg, rgba(52, 152, 219, 0.1), rgba(52, 152, 219, 0.05));
+    border-left-color: var(--accent);
+    margin-top: 10px;
+}
+
+.stat-label {
+    font-size: 0.95rem;
+    color: var(--gray-700);
+    display: flex;
+    align-items: center;
+    font-weight: var(--font-weight-medium);
+}
+
+.stat-value-lg {
+    font-size: 1.4rem;
+    font-weight: var(--font-weight-bold);
+    color: var(--primary);
+}
+
+.reports-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+    gap: 20px;
+}
+
+.report-card {
+    background: var(--gray-50);
+    border-radius: var(--border-radius-md);
+    padding: 20px;
+    border: 1px solid var(--gray-200);
+    transition: var(--transition-base);
+}
+
+.report-card:hover {
+    box-shadow: var(--shadow-md);
+    border-color: var(--accent-light);
+}
+
+.report-month {
+    font-size: 1.2rem;
+    font-weight: var(--font-weight-bold);
+    color: var(--primary);
+    margin-bottom: 16px;
+}
+
+.report-stats {
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+    margin-bottom: 16px;
+}
+
+.report-item {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 10px;
+    background: white;
+    border-radius: 6px;
+}
+
+.report-item span {
+    font-size: 0.85rem;
+    color: var(--gray-600);
+}
+
+.report-item strong {
+    font-size: 1rem;
+    color: var(--primary);
+}
+
+.btn-report {
+    width: 100%;
+    padding: 10px;
+    background: var(--accent);
+    color: white;
+    border: none;
+    border-radius: var(--border-radius-sm);
+    cursor: pointer;
+    font-weight: var(--font-weight-semibold);
+    transition: var(--transition-base);
+}
+
+.btn-report:hover {
+    background: var(--accent-light);
+}
+
+.custom-report-form {
+    max-width: 800px;
+}
+
+.form-row {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 20px;
+    margin-bottom: 20px;
+}
+
+.form-group {
+    display: flex;
+    flex-direction: column;
+}
+
+.form-group label {
+    font-size: 0.9rem;
+    font-weight: var(--font-weight-semibold);
+    color: var(--gray-700);
+    margin-bottom: 8px;
+}
+
+.form-control {
+    padding: 10px 14px;
+    border: 2px solid var(--gray-200);
+    border-radius: var(--border-radius-sm);
+    font-size: 0.95rem;
+    transition: var(--transition-base);
+}
+
+.form-control:focus {
+    outline: none;
+    border-color: var(--accent);
+}
+
+@media (max-width: 768px) {
+    .form-row {
+        grid-template-columns: 1fr;
+    }
+}
+</style>
+{% endblock %}
+

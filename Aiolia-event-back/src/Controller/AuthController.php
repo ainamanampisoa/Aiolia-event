@@ -118,8 +118,8 @@ class AuthController extends AbstractController
     #[Route('/dashboard', name: 'app_dashboard')]
     public function dashboard(UserStatsService $userStatsService): Response
     {
-        // Cette route nécessite une authentification
-        $this->denyAccessUnlessGranted('IS_AUTHENTICATED_FULLY');
+        // Cette route nécessite une authentification (accepte aussi remember-me)
+        $this->denyAccessUnlessGranted('IS_AUTHENTICATED_REMEMBERED');
 
         // Récupérer les statistiques calculées dynamiquement
         $stats = $userStatsService->getUserStatistics($this->getUser());
@@ -129,4 +129,5 @@ class AuthController extends AbstractController
             'stats' => $stats,
         ]);
     }
+
 }
