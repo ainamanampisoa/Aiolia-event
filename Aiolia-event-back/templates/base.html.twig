@@ -3,19 +3,19 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>{% block title %}Backoffice TicketMaster{% endblock %}</title>
-    <link rel="stylesheet" href="{{ asset('css/app.css') }}">
+    <title>{% block title %}Aiolia Event - Dashboard{% endblock %}</title>
+        <link rel="stylesheet" href="{{ asset('css/app.css') }}?v=2.0">
     <link href="https://fonts.googleapis.com/css2?family=Rubik:wght@300;400;500;600;700&display=swap" rel="stylesheet">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
     {% block stylesheets %}{% endblock %}
 </head>
 <body class="admin-body">
     <!-- Header -->
-    {% include 'dashboard/includes/header.html.twig' %}
+    {% include 'includes/header.html.twig' %}
     
     <div class="admin-container">
         <!-- Sidebar -->
-        {% include 'dashboard/includes/sidebar.html.twig' %}
+        {% include 'includes/sidebar.html.twig' %}
         
         <!-- Main Content -->
         <main class="admin-main">
@@ -24,9 +24,9 @@
     </div>
     
     <!-- Footer -->
-    {% include 'dashboard/includes/footer.html.twig' %}
+    {% include 'includes/footer.html.twig' %}
     
-    <script src="{{ asset('js/admin.js') }}"></script>
+        <script src="{{ asset('js/admin.js') }}?v=2.1"></script>
     {% block javascripts %}{% endblock %}
 </body>
 </html>

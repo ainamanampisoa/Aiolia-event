@@ -10,6 +10,12 @@
     </div>
     
     <div class="header-right">
+        <div class="header-theme">
+            <button class="theme-toggle" id="themeToggle" title="Basculer le thème">
+                <i class="fas fa-sun" id="themeIcon"></i>
+            </button>
+        </div>
+        
         <div class="header-notifications">
             <button class="notification-btn">
                 <i class="fas fa-bell"></i>
@@ -21,11 +27,17 @@
             <div class="user-dropdown">
                 <div class="user-info">
                     <div class="user-avatar">
-                        <img src="{{ asset('images/avatar.jpg') }}" alt="Avatar">
+                        {% if app.user.photoUrl %}
+                            <img src="{{ app.user.photoUrl }}" alt="Avatar">
+                        {% else %}
+                            <div class="user-avatar-initials">
+                                {{ app.user.firstName|first|upper }}{{ app.user.lastName|first|upper }}
+                            </div>
+                        {% endif %}
                     </div>
                     <div class="user-details">
                         <span class="user-name">{{ app.user.firstName }} {{ app.user.lastName }}</span>
-                        <span class="user-role">Administrateur</span>
+                        <span class="user-role">{{ app.user.role|capitalize }}</span>
                     </div>
                     <i class="fas fa-chevron-down"></i>
                 </div>

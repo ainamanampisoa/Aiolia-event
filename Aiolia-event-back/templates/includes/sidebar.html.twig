@@ -2,7 +2,7 @@
     <div class="sidebar-logo">
         <h2>
             <i class="fas fa-ticket-alt"></i>
-            <span class="logo-text">TicketMaster</span>
+            <span class="logo-text">Aiolia Event</span>
         </h2>
     </div>
     
@@ -16,7 +16,7 @@
             </li>
             
             <li class="nav-item">
-                <a href="#" class="nav-link">
+                <a href="{{ path('app_event_index') }}" class="nav-link">
                     <i class="fas fa-calendar-alt"></i>
                     <span class="nav-text">Événements</span>
                     <span class="nav-badge">12</span>
@@ -24,33 +24,34 @@
             </li>
             
             <li class="nav-item">
-                <a href="#" class="nav-link">
+                <a href="{{ path('app_ticket_index') }}" class="nav-link">
                     <i class="fas fa-ticket-alt"></i>
                     <span class="nav-text">Billets</span>
-                    <span class="nav-badge">156</span>
+                    <span class="nav-badge">1.2k</span>
                 </a>
             </li>
             
             <li class="nav-item">
-                <a href="#" class="nav-link">
-                    <i class="fas fa-users"></i>
-                    <span class="nav-text">Utilisateurs</span>
-                    <span class="nav-badge">2.4k</span>
-                </a>
-            </li>
-            
-            <li class="nav-item">
-                <a href="#" class="nav-link">
-                    <i class="fas fa-shopping-cart"></i>
-                    <span class="nav-text">Commandes</span>
-                    <span class="nav-badge">89</span>
-                </a>
-            </li>
-            
-            <li class="nav-item">
-                <a href="#" class="nav-link">
+                <a href="{{ path('app_promotion_index') }}" class="nav-link">
                     <i class="fas fa-tags"></i>
-                    <span class="nav-text">Catégories</span>
+                    <span class="nav-text">Promotions</span>
+                    <span class="nav-badge">24</span>
+                </a>
+            </li>
+            
+            <li class="nav-item">
+                <a href="{{ path('app_notification_index') }}" class="nav-link">
+                    <i class="fas fa-bell"></i>
+                    <span class="nav-text">Notifications</span>
+                    <span class="nav-badge">12</span>
+                </a>
+            </li>
+            
+            <li class="nav-item">
+                <a href="{{ path('app_event_index', {filter: 'collaborations'}) }}" class="nav-link">
+                    <i class="fas fa-users"></i>
+                    <span class="nav-text">Équipe</span>
+                    <span class="nav-badge">8</span>
                 </a>
             </li>
             
@@ -59,16 +60,23 @@
             </li>
             
             <li class="nav-item">
-                <a href="#" class="nav-link">
-                    <i class="fas fa-chart-bar"></i>
+                <a href="{{ path('app_reports_rapports') }}" class="nav-link">
+                    <i class="fas fa-file-alt"></i>
                     <span class="nav-text">Rapports</span>
                 </a>
             </li>
             
             <li class="nav-item">
-                <a href="#" class="nav-link">
+                <a href="{{ path('app_reports_statistiques') }}" class="nav-link">
                     <i class="fas fa-chart-line"></i>
-                    <span class="nav-text">Analytics</span>
+                    <span class="nav-text">Statistiques</span>
+                </a>
+            </li>
+            
+            <li class="nav-item">
+                <a href="{{ path('app_reports_ventes') }}" class="nav-link">
+                    <i class="fas fa-list-alt"></i>
+                    <span class="nav-text">Listes des ventes</span>
                 </a>
             </li>
             
@@ -77,16 +85,16 @@
             </li>
             
             <li class="nav-item">
-                <a href="#" class="nav-link">
-                    <i class="fas fa-cog"></i>
-                    <span class="nav-text">Paramètres</span>
+                <a href="{{ path('app_profile_index') }}" class="nav-link">
+                    <i class="fas fa-user-circle"></i>
+                    <span class="nav-text">Mon profil</span>
                 </a>
             </li>
             
             <li class="nav-item">
-                <a href="#" class="nav-link">
-                    <i class="fas fa-headset"></i>
-                    <span class="nav-text">Support</span>
+                <a href="{{ path('app_settings_index') }}" class="nav-link">
+                    <i class="fas fa-cog"></i>
+                    <span class="nav-text">Paramètres</span>
                 </a>
             </li>
         </ul>

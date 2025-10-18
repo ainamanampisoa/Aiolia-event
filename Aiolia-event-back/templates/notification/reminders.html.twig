@@ -1,0 +1,118 @@
+{% extends 'base.html.twig' %}
+
+{% block title %}Rappels - Aiolia Event{% endblock %}
+
+{% block body %}
+<div class="dashboard">
+    <div class="dashboard-header">
+        <div>
+            <h1>🕐 Rappels automatiques</h1>
+        </div>
+    </div>
+
+    <div class="chart-card">
+        <div class="card-body">
+            <div class="reminders-list">
+                <div class="reminder-item">
+                    <div class="reminder-date">
+                        <div class="date-day">18</div>
+                        <div class="date-month">OCT</div>
+                    </div>
+                    <div class="reminder-content">
+                        <h4>Rappel - Concert Rock Nation</h4>
+                        <p>Envoi automatique de rappel aux 256 participants</p>
+                    </div>
+                    <span class="reminder-status status-scheduled">
+                        <i class="fas fa-clock"></i> Planifié
+                    </span>
+                </div>
+
+                <div class="reminder-item">
+                    <div class="reminder-date">
+                        <div class="date-day">25</div>
+                        <div class="date-month">OCT</div>
+                    </div>
+                    <div class="reminder-content">
+                        <h4>Rappel - Festival Jazz</h4>
+                        <p>Envoi automatique de rappel aux 189 participants</p>
+                    </div>
+                    <span class="reminder-status status-scheduled">
+                        <i class="fas fa-clock"></i> Planifié
+                    </span>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<style>
+.reminders-list {
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+}
+
+.reminder-item {
+    display: flex;
+    align-items: center;
+    gap: 20px;
+    padding: 16px;
+    background: var(--gray-50);
+    border-radius: var(--border-radius-md);
+    border: 1px solid var(--gray-200);
+}
+
+.reminder-date {
+    background: linear-gradient(135deg, var(--accent), var(--accent-light));
+    color: white;
+    padding: 10px;
+    border-radius: var(--border-radius-md);
+    text-align: center;
+    min-width: 60px;
+}
+
+.date-day {
+    font-size: 1.5rem;
+    font-weight: var(--font-weight-bold);
+    line-height: 1;
+}
+
+.date-month {
+    font-size: 0.8rem;
+    font-weight: var(--font-weight-semibold);
+    margin-top: 2px;
+}
+
+.reminder-content {
+    flex: 1;
+}
+
+.reminder-content h4 {
+    font-size: 1rem;
+    color: var(--primary);
+    margin: 0 0 4px 0;
+}
+
+.reminder-content p {
+    font-size: 0.85rem;
+    color: var(--gray-600);
+    margin: 0;
+}
+
+.reminder-status {
+    padding: 6px 14px;
+    border-radius: 20px;
+    font-size: 0.8rem;
+    font-weight: var(--font-weight-bold);
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+}
+
+.status-scheduled {
+    background: rgba(52, 152, 219, 0.1);
+    color: var(--accent);
+}
+</style>
+{% endblock %}
+

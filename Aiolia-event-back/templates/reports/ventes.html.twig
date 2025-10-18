@@ -1,0 +1,526 @@
+{% extends 'base.html.twig' %}
+
+{% block title %}Listes des ventes - Aiolia Event{% endblock %}
+
+{% block body %}
+<div class="dashboard">
+    <!-- En-tête de la page -->
+    <div class="dashboard-header">
+        <div>
+            <h1>📋 Listes des ventes</h1>
+            <p style="color: var(--gray-600); margin-top: 8px; font-size: 1rem;">
+                Tableau détaillé de toutes les ventes de billets
+            </p>
+        </div>
+        <div class="header-actions">
+            <button class="btn" style="background: var(--success); color: white; border: none; padding: 10px 20px; border-radius: 8px; cursor: pointer; font-weight: 600;">
+                <i class="fas fa-file-csv"></i> Export CSV
+            </button>
+        </div>
+    </div>
+
+    <!-- Filtres rapides -->
+    <div class="quick-filters" style="margin-bottom: 20px;">
+        <button class="filter-chip active">
+            <i class="fas fa-calendar-check"></i> Tous
+        </button>
+        <button class="filter-chip">
+            <i class="fas fa-clock"></i> Aujourd'hui
+        </button>
+        <button class="filter-chip">
+            <i class="fas fa-calendar-week"></i> Cette semaine
+        </button>
+        <button class="filter-chip">
+            <i class="fas fa-calendar-alt"></i> Ce mois
+        </button>
+        <button class="filter-chip">
+            <i class="fas fa-check-circle"></i> Payées
+        </button>
+        <button class="filter-chip">
+            <i class="fas fa-hourglass-half"></i> En attente
+        </button>
+    </div>
+
+    <!-- Tableau des ventes -->
+    <div class="chart-card">
+        <div class="card-header">
+            <div style="display: flex; justify-content: space-between; align-items: center;">
+                <div>
+                    <h3>📊 Historique des ventes</h3>
+                    <p style="color: var(--gray-600); font-size: 0.9rem; margin-top: 4px;">
+                        {{ total_ventes ?? 1248 }} ventes enregistrées
+                    </p>
+                </div>
+                <div class="search-bar-small">
+                    <i class="fas fa-search"></i>
+                    <input type="text" placeholder="Rechercher une vente..." class="search-input-sm">
+                </div>
+            </div>
+        </div>
+        <div class="card-body">
+            <div class="table-responsive">
+                <table class="sales-table">
+                    <thead>
+                        <tr>
+                            <th>
+                                <input type="checkbox">
+                            </th>
+                            <th>ID Vente</th>
+                            <th>Date</th>
+                            <th>Événement</th>
+                            <th>Client</th>
+                            <th>Billets</th>
+                            <th>Montant</th>
+                            <th>Méthode</th>
+                            <th>Statut</th>
+                            <th>Actions</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        <tr>
+                            <td><input type="checkbox"></td>
+                            <td class="td-id">#VT-001248</td>
+                            <td>17 Oct 2025, 14:35</td>
+                            <td>
+                                <div class="event-cell">
+                                    <strong>🎸 Concert Rock Nation</strong>
+                                    <span>15 Nov 2025</span>
+                                </div>
+                            </td>
+                            <td>
+                                <div class="client-cell">
+                                    <div class="client-avatar">JD</div>
+                                    <div>
+                                        <strong>Jean Dupont</strong>
+                                        <span>jean.dupont@email.com</span>
+                                    </div>
+                                </div>
+                            </td>
+                            <td>2 × VIP</td>
+                            <td class="td-amount">98.00 €</td>
+                            <td>
+                                <span class="payment-method">
+                                    <i class="fas fa-credit-card"></i> Carte
+                                </span>
+                            </td>
+                            <td><span class="status-badge status-success">Payée</span></td>
+                            <td>
+                                <div class="action-buttons">
+                                    <button class="btn-icon-sm" title="Voir"><i class="fas fa-eye"></i></button>
+                                    <button class="btn-icon-sm" title="Imprimer"><i class="fas fa-print"></i></button>
+                                    <button class="btn-icon-sm" title="Plus"><i class="fas fa-ellipsis-v"></i></button>
+                                </div>
+                            </td>
+                        </tr>
+
+                        <tr>
+                            <td><input type="checkbox"></td>
+                            <td class="td-id">#VT-001247</td>
+                            <td>17 Oct 2025, 12:20</td>
+                            <td>
+                                <div class="event-cell">
+                                    <strong>🎵 Festival Jazz Mada</strong>
+                                    <span>22 Nov 2025</span>
+                                </div>
+                            </td>
+                            <td>
+                                <div class="client-cell">
+                                    <div class="client-avatar">MM</div>
+                                    <div>
+                                        <strong>Marie Martin</strong>
+                                        <span>marie.m@email.com</span>
+                                    </div>
+                                </div>
+                            </td>
+                            <td>4 × Standard</td>
+                            <td class="td-amount">180.00 €</td>
+                            <td>
+                                <span class="payment-method">
+                                    <i class="fas fa-mobile-alt"></i> Mobile Money
+                                </span>
+                            </td>
+                            <td><span class="status-badge status-success">Payée</span></td>
+                            <td>
+                                <div class="action-buttons">
+                                    <button class="btn-icon-sm" title="Voir"><i class="fas fa-eye"></i></button>
+                                    <button class="btn-icon-sm" title="Imprimer"><i class="fas fa-print"></i></button>
+                                    <button class="btn-icon-sm" title="Plus"><i class="fas fa-ellipsis-v"></i></button>
+                                </div>
+                            </td>
+                        </tr>
+
+                        <tr>
+                            <td><input type="checkbox"></td>
+                            <td class="td-id">#VT-001246</td>
+                            <td>17 Oct 2025, 10:15</td>
+                            <td>
+                                <div class="event-cell">
+                                    <strong>⚽ Match de Football</strong>
+                                    <span>28 Nov 2025</span>
+                                </div>
+                            </td>
+                            <td>
+                                <div class="client-cell">
+                                    <div class="client-avatar">PB</div>
+                                    <div>
+                                        <strong>Pierre Bernard</strong>
+                                        <span>p.bernard@email.com</span>
+                                    </div>
+                                </div>
+                            </td>
+                            <td>3 × Tribune</td>
+                            <td class="td-amount">150.00 €</td>
+                            <td>
+                                <span class="payment-method">
+                                    <i class="fas fa-credit-card"></i> Carte
+                                </span>
+                            </td>
+                            <td><span class="status-badge status-pending">En attente</span></td>
+                            <td>
+                                <div class="action-buttons">
+                                    <button class="btn-icon-sm" title="Voir"><i class="fas fa-eye"></i></button>
+                                    <button class="btn-icon-sm" title="Imprimer"><i class="fas fa-print"></i></button>
+                                    <button class="btn-icon-sm" title="Plus"><i class="fas fa-ellipsis-v"></i></button>
+                                </div>
+                            </td>
+                        </tr>
+
+                        <tr>
+                            <td><input type="checkbox"></td>
+                            <td class="td-id">#VT-001245</td>
+                            <td>16 Oct 2025, 18:45</td>
+                            <td>
+                                <div class="event-cell">
+                                    <strong>🎭 Théâtre Classique</strong>
+                                    <span>05 Déc 2025</span>
+                                </div>
+                            </td>
+                            <td>
+                                <div class="client-cell">
+                                    <div class="client-avatar">SL</div>
+                                    <div>
+                                        <strong>Sophie Lefèvre</strong>
+                                        <span>sophie.l@email.com</span>
+                                    </div>
+                                </div>
+                            </td>
+                            <td>2 × Balcon</td>
+                            <td class="td-amount">70.00 €</td>
+                            <td>
+                                <span class="payment-method">
+                                    <i class="fas fa-university"></i> Virement
+                                </span>
+                            </td>
+                            <td><span class="status-badge status-success">Payée</span></td>
+                            <td>
+                                <div class="action-buttons">
+                                    <button class="btn-icon-sm" title="Voir"><i class="fas fa-eye"></i></button>
+                                    <button class="btn-icon-sm" title="Imprimer"><i class="fas fa-print"></i></button>
+                                    <button class="btn-icon-sm" title="Plus"><i class="fas fa-ellipsis-v"></i></button>
+                                </div>
+                            </td>
+                        </tr>
+
+                        <tr>
+                            <td><input type="checkbox"></td>
+                            <td class="td-id">#VT-001244</td>
+                            <td>16 Oct 2025, 16:30</td>
+                            <td>
+                                <div class="event-cell">
+                                    <strong>🎸 Concert Rock Nation</strong>
+                                    <span>15 Nov 2025</span>
+                                </div>
+                            </td>
+                            <td>
+                                <div class="client-cell">
+                                    <div class="client-avatar">AL</div>
+                                    <div>
+                                        <strong>Antoine Leblanc</strong>
+                                        <span>a.leblanc@email.com</span>
+                                    </div>
+                                </div>
+                            </td>
+                            <td>5 × Standard</td>
+                            <td class="td-amount">200.00 €</td>
+                            <td>
+                                <span class="payment-method">
+                                    <i class="fas fa-mobile-alt"></i> Mobile Money
+                                </span>
+                            </td>
+                            <td><span class="status-badge status-success">Payée</span></td>
+                            <td>
+                                <div class="action-buttons">
+                                    <button class="btn-icon-sm" title="Voir"><i class="fas fa-eye"></i></button>
+                                    <button class="btn-icon-sm" title="Imprimer"><i class="fas fa-print"></i></button>
+                                    <button class="btn-icon-sm" title="Plus"><i class="fas fa-ellipsis-v"></i></button>
+                                </div>
+                            </td>
+                        </tr>
+                    </tbody>
+                </table>
+            </div>
+
+            <!-- Pagination -->
+            <div class="pagination">
+                <button class="pagination-btn" disabled>
+                    <i class="fas fa-chevron-left"></i>
+                </button>
+                <button class="pagination-btn active">1</button>
+                <button class="pagination-btn">2</button>
+                <button class="pagination-btn">3</button>
+                <button class="pagination-btn">4</button>
+                <span>...</span>
+                <button class="pagination-btn">42</button>
+                <button class="pagination-btn">
+                    <i class="fas fa-chevron-right"></i>
+                </button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<style>
+.quick-filters {
+    display: flex;
+    gap: 10px;
+    flex-wrap: wrap;
+}
+
+.filter-chip {
+    padding: 8px 16px;
+    border: 2px solid var(--gray-300);
+    background: white;
+    border-radius: 20px;
+    cursor: pointer;
+    font-size: 0.85rem;
+    font-weight: var(--font-weight-medium);
+    color: var(--gray-700);
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    transition: var(--transition-base);
+}
+
+.filter-chip:hover {
+    border-color: var(--accent);
+    color: var(--accent);
+}
+
+.filter-chip.active {
+    background: var(--accent);
+    border-color: var(--accent);
+    color: white;
+}
+
+.search-bar-small {
+    position: relative;
+    display: flex;
+    align-items: center;
+}
+
+.search-bar-small i {
+    position: absolute;
+    left: 12px;
+    color: var(--gray-500);
+}
+
+.search-input-sm {
+    padding: 8px 12px 8px 36px;
+    border: 2px solid var(--gray-200);
+    border-radius: 8px;
+    width: 250px;
+    font-size: 0.9rem;
+    transition: var(--transition-base);
+}
+
+.search-input-sm:focus {
+    outline: none;
+    border-color: var(--accent);
+}
+
+.table-responsive {
+    overflow-x: auto;
+}
+
+.sales-table {
+    width: 100%;
+    border-collapse: collapse;
+    font-size: 0.9rem;
+}
+
+.sales-table thead {
+    background: var(--gray-100);
+}
+
+.sales-table th {
+    padding: 12px;
+    text-align: left;
+    font-size: 0.85rem;
+    font-weight: var(--font-weight-semibold);
+    color: var(--gray-700);
+    border-bottom: 2px solid var(--gray-300);
+}
+
+.sales-table td {
+    padding: 14px 12px;
+    border-bottom: 1px solid var(--gray-200);
+}
+
+.sales-table tbody tr {
+    transition: var(--transition-base);
+}
+
+.sales-table tbody tr:hover {
+    background: var(--gray-50);
+}
+
+.td-id {
+    font-family: 'Courier New', monospace;
+    font-weight: var(--font-weight-bold);
+    color: var(--accent);
+}
+
+.event-cell {
+    display: flex;
+    flex-direction: column;
+    gap: 2px;
+}
+
+.event-cell strong {
+    font-size: 0.9rem;
+    color: var(--primary);
+}
+
+.event-cell span {
+    font-size: 0.75rem;
+    color: var(--gray-600);
+}
+
+.client-cell {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+}
+
+.client-avatar {
+    width: 36px;
+    height: 36px;
+    border-radius: 50%;
+    background: linear-gradient(135deg, var(--accent), var(--accent-light));
+    color: white;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-weight: var(--font-weight-bold);
+    font-size: 0.8rem;
+}
+
+.client-cell strong {
+    display: block;
+    font-size: 0.9rem;
+    color: var(--primary);
+}
+
+.client-cell span {
+    display: block;
+    font-size: 0.75rem;
+    color: var(--gray-600);
+}
+
+.td-amount {
+    font-size: 1rem;
+    font-weight: var(--font-weight-bold);
+    color: var(--success);
+}
+
+.payment-method {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    padding: 4px 10px;
+    background: var(--gray-100);
+    border-radius: var(--border-radius-sm);
+    font-size: 0.8rem;
+    color: var(--gray-700);
+}
+
+.status-badge {
+    padding: 4px 10px;
+    border-radius: var(--border-radius-sm);
+    font-size: 0.75rem;
+    font-weight: var(--font-weight-bold);
+}
+
+.status-success {
+    background: rgba(39, 174, 96, 0.1);
+    color: var(--success);
+}
+
+.status-pending {
+    background: rgba(243, 156, 18, 0.1);
+    color: var(--warning);
+}
+
+.action-buttons {
+    display: flex;
+    gap: 6px;
+}
+
+.btn-icon-sm {
+    width: 30px;
+    height: 30px;
+    border: none;
+    background: var(--gray-100);
+    border-radius: var(--border-radius-sm);
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    color: var(--gray-600);
+    transition: var(--transition-base);
+}
+
+.btn-icon-sm:hover {
+    background: var(--accent);
+    color: white;
+}
+
+.pagination {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 8px;
+    margin-top: 24px;
+}
+
+.pagination-btn {
+    min-width: 36px;
+    height: 36px;
+    padding: 0 12px;
+    border: 1px solid var(--gray-300);
+    background: white;
+    border-radius: var(--border-radius-sm);
+    cursor: pointer;
+    font-weight: var(--font-weight-medium);
+    color: var(--gray-700);
+    transition: var(--transition-base);
+}
+
+.pagination-btn:hover:not(:disabled) {
+    border-color: var(--accent);
+    color: var(--accent);
+}
+
+.pagination-btn.active {
+    background: var(--accent);
+    border-color: var(--accent);
+    color: white;
+}
+
+.pagination-btn:disabled {
+    opacity: 0.5;
+    cursor: not-allowed;
+}
+</style>
+{% endblock %}
+

@@ -1,0 +1,499 @@
+{% extends 'base.html.twig' %}
+
+{% block title %}Mon profil - Aiolia Event{% endblock %}
+
+{% block body %}
+<div class="dashboard">
+    <!-- En-tête -->
+    <div class="dashboard-header">
+        <div>
+            <h1>👤 Mon profil</h1>
+            <p style="color: var(--gray-600); margin-top: 8px; font-size: 1rem;">
+                Gérez vos informations personnelles
+            </p>
+        </div>
+        <div class="header-actions">
+            <a href="{{ path('app_profile_edit') }}" class="btn btn-primary" style="background: var(--accent); color: white; border: none; padding: 12px 24px; border-radius: 8px; text-decoration: none; font-weight: 600; display: inline-flex; align-items: center; gap: 8px;">
+                <i class="fas fa-edit"></i>
+                Modifier
+            </a>
+        </div>
+    </div>
+
+    <div class="profile-grid">
+        <!-- Colonne gauche -->
+        <div class="profile-main">
+            <!-- Carte profil -->
+            <div class="profile-card">
+                <div class="profile-header">
+                    <div class="profile-avatar-large">
+                        {% if app.user.photoUrl %}
+                            <img src="{{ app.user.photoUrl }}" alt="Photo">
+                        {% else %}
+                            <div class="avatar-large-initials">
+                                {{ app.user.firstName|first|upper }}{{ app.user.lastName|first|upper }}
+                            </div>
+                        {% endif %}
+                    </div>
+                    <div class="profile-info-header">
+                        <h2>{{ app.user.firstName }} {{ app.user.lastName }}</h2>
+                        <p>{{ app.user.email }}</p>
+                        <div class="profile-badges">
+                            <span class="badge-role">{{ app.user.role|capitalize }}</span>
+                            {% if app.user.emailVerified %}
+                                <span class="badge-verified">
+                                    <i class="fas fa-check-circle"></i> Vérifié
+                                </span>
+                            {% endif %}
+                        </div>
+                    </div>
+                </div>
+
+                <div class="profile-details">
+                    <div class="detail-row">
+                        <div class="detail-label">
+                            <i class="fas fa-envelope"></i>
+                            Email
+                        </div>
+                        <div class="detail-value">{{ app.user.email }}</div>
+                    </div>
+
+                    <div class="detail-row">
+                        <div class="detail-label">
+                            <i class="fas fa-phone"></i>
+                            Téléphone
+                        </div>
+                        <div class="detail-value">{{ app.user.phone ?? 'Non renseigné' }}</div>
+                    </div>
+
+                    <div class="detail-row">
+                        <div class="detail-label">
+                            <i class="fas fa-user-tag"></i>
+                            Rôle
+                        </div>
+                        <div class="detail-value">{{ app.user.role|capitalize }}</div>
+                    </div>
+
+                    <div class="detail-row">
+                        <div class="detail-label">
+                            <i class="fas fa-calendar"></i>
+                            Membre depuis
+                        </div>
+                        <div class="detail-value">{{ app.user.createdAt|date('d F Y') }}</div>
+                    </div>
+
+                    <div class="detail-row">
+                        <div class="detail-label">
+                            <i class="fas fa-clock"></i>
+                            Dernière connexion
+                        </div>
+                        <div class="detail-value">{{ app.user.lastLoginAt|date('d F Y à H:i') }}</div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Sécurité -->
+            <div class="security-card">
+                <div class="card-title">
+                    <i class="fas fa-shield-alt"></i>
+                    Sécurité du compte
+                </div>
+                <div class="security-content">
+                    <div class="security-item">
+                        <div class="security-info">
+                            <h4>Mot de passe</h4>
+                            <p>Dernière modification : {{ app.user.updatedAt|date('d F Y') }}</p>
+                        </div>
+                        <a href="{{ path('app_profile_password') }}" class="btn-security">
+                            <i class="fas fa-key"></i>
+                            Changer
+                        </a>
+                    </div>
+
+                    <div class="security-item">
+                        <div class="security-info">
+                            <h4>Authentification à deux facteurs</h4>
+                            <p>Sécurisez davantage votre compte</p>
+                        </div>
+                        <button class="btn-security" disabled style="opacity: 0.5;">
+                            <i class="fas fa-lock"></i>
+                            Bientôt
+                        </button>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Colonne droite -->
+        <div class="profile-sidebar">
+            <!-- Statistiques personnelles -->
+            <div class="stats-card">
+                <div class="card-title">
+                    <i class="fas fa-chart-bar"></i>
+                    Vos statistiques
+                </div>
+                <div class="stats-list">
+                    <div class="stat-item-profile">
+                        <div class="stat-icon-small" style="background: rgba(52, 152, 219, 0.1); color: var(--accent);">
+                            <i class="fas fa-calendar-alt"></i>
+                        </div>
+                        <div class="stat-content-small">
+                            <div class="stat-value-small">24</div>
+                            <div class="stat-label-small">Événements créés</div>
+                        </div>
+                    </div>
+
+                    <div class="stat-item-profile">
+                        <div class="stat-icon-small" style="background: rgba(39, 174, 96, 0.1); color: var(--success);">
+                            <i class="fas fa-ticket-alt"></i>
+                        </div>
+                        <div class="stat-content-small">
+                            <div class="stat-value-small">1,248</div>
+                            <div class="stat-label-small">Billets vendus</div>
+                        </div>
+                    </div>
+
+                    <div class="stat-item-profile">
+                        <div class="stat-icon-small" style="background: rgba(243, 156, 18, 0.1); color: var(--warning);">
+                            <i class="fas fa-euro-sign"></i>
+                        </div>
+                        <div class="stat-content-small">
+                            <div class="stat-value-small">45,890 €</div>
+                            <div class="stat-label-small">Revenus totaux</div>
+                        </div>
+                    </div>
+
+                    <div class="stat-item-profile">
+                        <div class="stat-icon-small" style="background: rgba(155, 89, 182, 0.1); color: #9B59B6;">
+                            <i class="fas fa-users"></i>
+                        </div>
+                        <div class="stat-content-small">
+                            <div class="stat-value-small">12</div>
+                            <div class="stat-label-small">Collaborateurs</div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Actions rapides -->
+            <div class="actions-card">
+                <div class="card-title">
+                    <i class="fas fa-bolt"></i>
+                    Actions rapides
+                </div>
+                <div class="actions-list">
+                    <a href="{{ path('app_profile_edit') }}" class="action-link">
+                        <i class="fas fa-edit"></i>
+                        Modifier le profil
+                    </a>
+                    <a href="{{ path('app_profile_password') }}" class="action-link">
+                        <i class="fas fa-key"></i>
+                        Changer le mot de passe
+                    </a>
+                    <a href="{{ path('app_event_new') }}" class="action-link">
+                        <i class="fas fa-plus-circle"></i>
+                        Créer un événement
+                    </a>
+                    <a href="{{ path('app_event_index') }}" class="action-link">
+                        <i class="fas fa-calendar-alt"></i>
+                        Mes événements
+                    </a>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<style>
+.profile-grid {
+    display: grid;
+    grid-template-columns: 1fr 350px;
+    gap: 24px;
+}
+
+.profile-main {
+    display: flex;
+    flex-direction: column;
+    gap: 20px;
+}
+
+.profile-card {
+    background: var(--white);
+    border-radius: var(--border-radius-xl);
+    padding: 32px;
+    box-shadow: var(--shadow-lg);
+    border: 1px solid var(--gray-200);
+}
+
+.profile-header {
+    display: flex;
+    gap: 24px;
+    margin-bottom: 32px;
+    padding-bottom: 24px;
+    border-bottom: 2px solid var(--gray-200);
+}
+
+.profile-avatar-large {
+    flex-shrink: 0;
+}
+
+.profile-avatar-large img,
+.avatar-large-initials {
+    width: 120px;
+    height: 120px;
+    border-radius: 50%;
+    object-fit: cover;
+    border: 4px solid var(--gray-200);
+}
+
+.avatar-large-initials {
+    background: linear-gradient(135deg, var(--accent), var(--accent-light));
+    color: white;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 2.5rem;
+    font-weight: var(--font-weight-bold);
+}
+
+.profile-info-header h2 {
+    font-size: 1.8rem;
+    color: var(--primary);
+    margin: 0 0 8px 0;
+}
+
+.profile-info-header p {
+    color: var(--gray-600);
+    font-size: 1rem;
+    margin: 0 0 12px 0;
+}
+
+.profile-badges {
+    display: flex;
+    gap: 8px;
+}
+
+.badge-role {
+    padding: 6px 14px;
+    background: linear-gradient(135deg, var(--accent), var(--accent-light));
+    color: white;
+    border-radius: 20px;
+    font-size: 0.8rem;
+    font-weight: var(--font-weight-bold);
+}
+
+.badge-verified {
+    padding: 6px 14px;
+    background: rgba(39, 174, 96, 0.1);
+    color: var(--success);
+    border-radius: 20px;
+    font-size: 0.8rem;
+    font-weight: var(--font-weight-bold);
+}
+
+.profile-details {
+    display: flex;
+    flex-direction: column;
+    gap: 16px;
+}
+
+.detail-row {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 14px 0;
+    border-bottom: 1px solid var(--gray-200);
+}
+
+.detail-row:last-child {
+    border-bottom: none;
+}
+
+.detail-label {
+    font-size: 0.9rem;
+    color: var(--gray-600);
+    display: flex;
+    align-items: center;
+    gap: 10px;
+}
+
+.detail-label i {
+    color: var(--accent);
+    width: 20px;
+}
+
+.detail-value {
+    font-size: 1rem;
+    font-weight: var(--font-weight-semibold);
+    color: var(--primary);
+}
+
+.security-card {
+    background: var(--white);
+    border-radius: var(--border-radius-xl);
+    padding: 28px;
+    box-shadow: var(--shadow-md);
+    border: 1px solid var(--gray-200);
+}
+
+.card-title {
+    font-size: 1.2rem;
+    font-weight: var(--font-weight-semibold);
+    color: var(--primary);
+    margin-bottom: 20px;
+    display: flex;
+    align-items: center;
+    gap: 10px;
+}
+
+.card-title i {
+    color: var(--accent);
+}
+
+.security-content {
+    display: flex;
+    flex-direction: column;
+    gap: 16px;
+}
+
+.security-item {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 16px;
+    background: var(--gray-50);
+    border-radius: var(--border-radius-md);
+    border: 1px solid var(--gray-200);
+}
+
+.security-info h4 {
+    font-size: 1rem;
+    color: var(--primary);
+    margin: 0 0 4px 0;
+}
+
+.security-info p {
+    font-size: 0.85rem;
+    color: var(--gray-600);
+    margin: 0;
+}
+
+.btn-security {
+    padding: 8px 20px;
+    background: var(--accent);
+    color: white;
+    border: none;
+    border-radius: var(--border-radius-sm);
+    cursor: pointer;
+    font-weight: var(--font-weight-semibold);
+    font-size: 0.9rem;
+    text-decoration: none;
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+    transition: var(--transition-base);
+}
+
+.btn-security:hover {
+    background: var(--accent-light);
+}
+
+.profile-sidebar {
+    display: flex;
+    flex-direction: column;
+    gap: 20px;
+}
+
+.stats-card, .actions-card {
+    background: var(--white);
+    border-radius: var(--border-radius-lg);
+    padding: 24px;
+    box-shadow: var(--shadow-md);
+    border: 1px solid var(--gray-200);
+}
+
+.stats-list {
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+}
+
+.stat-item-profile {
+    display: flex;
+    align-items: center;
+    gap: 14px;
+    padding: 12px;
+    background: var(--gray-50);
+    border-radius: var(--border-radius-md);
+}
+
+.stat-icon-small {
+    width: 44px;
+    height: 44px;
+    border-radius: var(--border-radius-md);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 1.2rem;
+}
+
+.stat-content-small {
+    flex: 1;
+}
+
+.stat-value-small {
+    font-size: 1.2rem;
+    font-weight: var(--font-weight-bold);
+    color: var(--primary);
+    line-height: 1.2;
+}
+
+.stat-label-small {
+    font-size: 0.8rem;
+    color: var(--gray-600);
+}
+
+.actions-list {
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+}
+
+.action-link {
+    padding: 12px 16px;
+    background: var(--gray-50);
+    color: var(--gray-700);
+    text-decoration: none;
+    border-radius: var(--border-radius-md);
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    transition: var(--transition-base);
+    border: 1px solid var(--gray-200);
+}
+
+.action-link:hover {
+    background: var(--accent);
+    color: white;
+    border-color: var(--accent);
+}
+
+.action-link i {
+    width: 20px;
+}
+
+@media (max-width: 1024px) {
+    .profile-grid {
+        grid-template-columns: 1fr;
+    }
+}
+
+@media (max-width: 768px) {
+    .profile-header {
+        flex-direction: column;
+        text-align: center;
+    }
+}
+</style>
+{% endblock %}
+

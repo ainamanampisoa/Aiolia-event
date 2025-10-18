@@ -1,0 +1,44 @@
+{% extends 'base.html.twig' %}
+
+{% block title %}Alertes - Aiolia Event{% endblock %}
+
+{% block body %}
+<div class="dashboard">
+    <div class="dashboard-header">
+        <div>
+            <h1>⚠️ Alertes automatiques</h1>
+        </div>
+    </div>
+
+    <div class="chart-card">
+        <div class="card-body">
+            <div class="alerts-list">
+                <div class="alert-item alert-warning">
+                    <div class="alert-icon">
+                        <i class="fas fa-exclamation-triangle"></i>
+                    </div>
+                    <div class="alert-content">
+                        <h4>Stock bas</h4>
+                        <p>Concert Rock Nation - Il reste 15 billets VIP</p>
+                        <span class="alert-time">Il y a 2 heures</span>
+                    </div>
+                    <button class="btn-notif">Action</button>
+                </div>
+
+                <div class="alert-item alert-warning">
+                    <div class="alert-icon">
+                        <i class="fas fa-clock"></i>
+                    </div>
+                    <div class="alert-content">
+                        <h4>Promotion expire bientôt</h4>
+                        <p>Code promo "VIP10" expire dans 2 jours</p>
+                        <span class="alert-time">Il y a 1 jour</span>
+                    </div>
+                    <button class="btn-notif">Renouveler</button>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
