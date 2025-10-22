@@ -151,60 +151,172 @@ function MyTickets() {
                 <div className="titre">
                   <em>{filteredTickets.length}</em> billet{filteredTickets.length > 1 ? 's' : ''}
                 </div>
-                <div className="lst-my-event d-flex">
+                <div className="lst-my-event d-flex" style={{ flexWrap: 'wrap', gap: '15px', justifyContent: 'space-between' }}>
                   {filteredTickets.map((ticket) => {
                     const dateInfo = formatDate(ticket.eventDate);
                     return (
-                      <div key={ticket.id} className="col50 bg-beige">
-                        <h2>{ticket.eventTitle}</h2>
-                        <div className="lst-event">
-                          <div className="item">
-                            <div className="inner">
-                              <div className="blc-col1">
-                                <div className="col1">
-                                  <div className="date">
-                                    <span>{dateInfo.day}</span>
-                                    <strong>{dateInfo.dayNumber}</strong>
-                                    <span className="text-upper">{dateInfo.month} {dateInfo.year}</span>
-                                  </div>
-                                  <div className="hour">à {dateInfo.time}</div>
-                                  <div className="code-barre">
-                                    <img
-                                      src={`https://api.qrserver.com/v1/create-qr-code/?size=100x100&data=${ticket.qrCode}`}
-                                      alt="QR Code"
-                                    />
-                                  </div>
-                                </div>
-                                <div className="col2">
-                                  <span className="bandeau">{ticket.category}</span>
-                                  <div className="adresse">Lieu : {ticket.eventLocation}</div>
-                                  <div className="tarif">Type : {ticket.ticketType}</div>
-                                  <div className="capacite">Quantité : {ticket.quantity} billet{ticket.quantity > 1 ? 's' : ''}</div>
-                                  <div className="capacite">Prix total : {(ticket.price * ticket.quantity).toLocaleString()} MGA</div>
-                                  <div className="blcBtn d-flex justify-content-between">
-                                    <div className="left">
-                                      <Link to={`/events/${ticket.id}`} className="btn plus"></Link>
-                                    </div>
-                                    <div className="right">
-                                      <button
-                                        onClick={() => downloadTicket(ticket.id)}
-                                        className="btn edit"
-                                      >
-                                        Télécharger PDF
-                                      </button>
-                                      <button
-                                        onClick={() => shareTicket(ticket.id)}
-                                        className="btn"
-                                        style={{ marginLeft: '10px' }}
-                                      >
-                                        Partager
-                                      </button>
-                                    </div>
-                                  </div>
-                                </div>
+                      <div key={ticket.id} className="bg-beige" style={{ 
+                        width: '48%',
+                        minHeight: '350px', 
+                        display: 'flex', 
+                        flexDirection: 'column',
+                        padding: '15px',
+                        borderRadius: '8px',
+                        boxShadow: '0 3px 6px rgba(0,0,0,0.1)',
+                        marginBottom: '15px'
+                      }}>
+                        {/* En-tête avec titre et catégorie */}
+                        <div style={{ marginBottom: '15px' }}>
+                          <h2 style={{ 
+                            margin: '0 0 8px 0', 
+                            fontSize: '18px', 
+                            lineHeight: '1.2',
+                            color: '#1F2D3D'
+                          }}>
+                            {ticket.eventTitle}
+                          </h2>
+                          <span className="bandeau" style={{ 
+                            display: 'inline-block',
+                            background: '#C5C1A4',
+                            color: 'white',
+                            padding: '3px 10px',
+                            borderRadius: '12px',
+                            fontSize: '11px',
+                            fontWeight: 'bold'
+                          }}>
+                            {ticket.category}
+                          </span>
+                        </div>
+
+                        {/* Contenu principal */}
+                        <div style={{ flex: 1, display: 'flex', gap: '15px' }}>
+                          {/* Colonne gauche - Date et QR Code */}
+                          <div style={{ 
+                            display: 'flex', 
+                            flexDirection: 'column', 
+                            alignItems: 'center',
+                            minWidth: '100px'
+                          }}>
+                            <div className="date" style={{
+                              textAlign: 'center',
+                              background: '#f8f9fa',
+                              padding: '12px',
+                              borderRadius: '6px',
+                              marginBottom: '12px',
+                              border: '2px solid #C5C1A4'
+                            }}>
+                              <span style={{ display: 'block', fontSize: '10px', color: '#666' }}>{dateInfo.day}</span>
+                              <strong style={{ display: 'block', fontSize: '24px', color: '#1F2D3D' }}>{dateInfo.dayNumber}</strong>
+                              <span className="text-upper" style={{ display: 'block', fontSize: '10px', color: '#666' }}>
+                                {dateInfo.month} {dateInfo.year}
+                              </span>
+                            </div>
+                            <div className="hour" style={{ 
+                              fontSize: '12px', 
+                              color: '#C5C1A4', 
+                              fontWeight: 'bold',
+                              marginBottom: '12px'
+                            }}>
+                              à {dateInfo.time}
+                            </div>
+                            <div className="code-barre" style={{ textAlign: 'center' }}>
+                              <img
+                                src={`https://api.qrserver.com/v1/create-qr-code/?size=60x60&data=${ticket.qrCode}`}
+                                alt="QR Code"
+                                style={{ maxWidth: '60px', height: 'auto' }}
+                              />
+                            </div>
+                          </div>
+
+                          {/* Colonne droite - Détails */}
+                          <div style={{ flex: 1 }}>
+                            <div style={{ 
+                              display: 'flex', 
+                              flexDirection: 'column', 
+                              gap: '6px',
+                              marginBottom: '15px'
+                            }}>
+                              <div className="adresse" style={{ 
+                                display: 'flex', 
+                                alignItems: 'center', 
+                                gap: '6px',
+                                fontSize: '12px',
+                                color: '#666'
+                              }}>
+                                <span>📍</span>
+                                <span>Lieu : {ticket.eventLocation}</span>
+                              </div>
+                              <div className="tarif" style={{ 
+                                display: 'flex', 
+                                alignItems: 'center', 
+                                gap: '6px',
+                                fontSize: '12px',
+                                color: '#666'
+                              }}>
+                                <span>🎫</span>
+                                <span>Type : {ticket.ticketType}</span>
+                              </div>
+                              <div className="capacite" style={{ 
+                                display: 'flex', 
+                                alignItems: 'center', 
+                                gap: '6px',
+                                fontSize: '12px',
+                                color: '#666'
+                              }}>
+                                <span>👥</span>
+                                <span>Quantité : {ticket.quantity} billet{ticket.quantity > 1 ? 's' : ''}</span>
+                              </div>
+                              <div style={{ 
+                                display: 'flex', 
+                                alignItems: 'center', 
+                                gap: '6px',
+                                fontSize: '14px',
+                                fontWeight: 'bold',
+                                color: '#C5C1A4'
+                              }}>
+                                <span>💰</span>
+                                <span>Prix total : {(ticket.price * ticket.quantity).toLocaleString()} MGA</span>
                               </div>
                             </div>
                           </div>
+                        </div>
+
+                        {/* Boutons d'action */}
+                        <div style={{ 
+                          display: 'flex', 
+                          gap: '8px', 
+                          marginTop: 'auto',
+                          paddingTop: '15px'
+                        }}>
+                          <Link 
+                            to={`/events/${ticket.id}`} 
+                            className="btn plus"
+                            style={{ 
+                              minWidth: '35px',
+                              height: '35px',
+                              display: 'flex',
+                              alignItems: 'center',
+                              justifyContent: 'center',
+                              fontSize: '16px'
+                            }}
+                            title="Voir détails"
+                          >
+                            +
+                          </Link>
+                          <button
+                            onClick={() => downloadTicket(ticket.id)}
+                            className="btn edit"
+                            style={{ flex: 1, height: '35px', fontSize: '12px' }}
+                          >
+                            Télécharger PDF
+                          </button>
+                          <button
+                            onClick={() => shareTicket(ticket.id)}
+                            className="btn"
+                            style={{ flex: 1, height: '35px', fontSize: '12px' }}
+                          >
+                            Partager
+                          </button>
                         </div>
                       </div>
                     );
@@ -242,6 +354,7 @@ function MyTickets() {
 }
 
 export default MyTickets;
+
 
 
 

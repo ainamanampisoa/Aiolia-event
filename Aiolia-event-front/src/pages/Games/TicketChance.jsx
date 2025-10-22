@@ -52,53 +52,89 @@ function TicketChance() {
 
             <div className="blc-compte bg-beige">
               {/* Roue de la fortune */}
-              <div style={{ textAlign: 'center', padding: '40px 0' }}>
-                <div style={{
-                  width: '400px',
-                  height: '400px',
-                  margin: '0 auto',
-                  position: 'relative',
-                  borderRadius: '50%',
-                  border: '10px solid #C5C1A4',
-                  overflow: 'hidden',
-                  display: 'grid',
-                  gridTemplateColumns: 'repeat(2, 1fr)',
-                  gridTemplateRows: 'repeat(4, 1fr)',
-                  transform: isSpinning ? 'rotate(1440deg)' : 'rotate(0deg)',
-                  transition: isSpinning ? 'transform 3s cubic-bezier(0.17, 0.67, 0.12, 0.99)' : 'none'
+              <div style={{ 
+                display: 'flex', 
+                flexDirection: 'column', 
+                alignItems: 'center', 
+                padding: '40px 0',
+                position: 'relative'
+              }}>
+                {/* Informations latérales */}
+                <div style={{ 
+                  display: 'flex', 
+                  justifyContent: 'space-between', 
+                  width: '100%', 
+                  maxWidth: '500px',
+                  marginBottom: '30px'
                 }}>
-                  {prizes.map((prize, index) => (
-                    <div
-                      key={index}
-                      style={{
-                        background: prize.color,
-                        display: 'flex',
-                        alignItems: 'center',
-                        justifyContent: 'center',
-                        padding: '10px',
-                        fontSize: '14px',
-                        fontWeight: 'bold',
-                        textAlign: 'center',
-                        borderRight: '2px solid white',
-                        borderBottom: '2px solid white'
-                      }}
-                    >
-                      {prize.label}
+                  <div style={{ textAlign: 'center' }}>
+                    <div style={{ fontSize: '48px', fontWeight: 'bold', color: '#C5C1A4' }}>
+                      {attemptsLeft}
                     </div>
-                  ))}
+                    <div style={{ fontSize: '16px', color: '#666' }}>Tentatives restantes</div>
+                  </div>
+                  <div style={{ textAlign: 'center' }}>
+                    <div style={{ fontSize: '48px', fontWeight: 'bold', color: '#4ECDC4' }}>
+                      24h
+                    </div>
+                    <div style={{ fontSize: '16px', color: '#666' }}>Prochaine chance</div>
+                  </div>
                 </div>
 
-                {/* Indicateur */}
-                <div style={{
-                  width: 0,
-                  height: 0,
-                  borderLeft: '20px solid transparent',
-                  borderRight: '20px solid transparent',
-                  borderTop: '40px solid #C5C1A4',
-                  margin: '-240px auto 0',
-                  position: 'relative',
-                  zIndex: 10
-                }}></div>
+                {/* Roue principale */}
+                <div style={{ position: 'relative', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                  <div style={{
+                    width: '350px',
+                    height: '350px',
+                    position: 'relative',
+                    borderRadius: '50%',
+                    border: '8px solid #C5C1A4',
+                    overflow: 'hidden',
+                    display: 'grid',
+                    gridTemplateColumns: 'repeat(2, 1fr)',
+                    gridTemplateRows: 'repeat(4, 1fr)',
+                    transform: isSpinning ? 'rotate(1440deg)' : 'rotate(0deg)',
+                    transition: isSpinning ? 'transform 3s cubic-bezier(0.17, 0.67, 0.12, 0.99)' : 'none',
+                    boxShadow: '0 10px 30px rgba(0,0,0,0.3)'
+                  }}>
+                    {prizes.map((prize, index) => (
+                      <div
+                        key={index}
+                        style={{
+                          background: prize.color,
+                          display: 'flex',
+                          alignItems: 'center',
+                          justifyContent: 'center',
+                          padding: '8px',
+                          fontSize: '12px',
+                          fontWeight: 'bold',
+                          textAlign: 'center',
+                          borderRight: '1px solid white',
+                          borderBottom: '1px solid white',
+                          color: 'white',
+                          textShadow: '1px 1px 2px rgba(0,0,0,0.5)'
+                        }}
+                      >
+                        {prize.label}
+                      </div>
+                    ))}
+                  </div>
+
+                  {/* Indicateur fixe */}
+                  <div style={{
+                    position: 'absolute',
+                    top: '-20px',
+                    left: '50%',
+                    transform: 'translateX(-50%)',
+                    width: 0,
+                    height: 0,
+                    borderLeft: '15px solid transparent',
+                    borderRight: '15px solid transparent',
+                    borderTop: '30px solid #C5C1A4',
+                    zIndex: 10,
+                    filter: 'drop-shadow(0 2px 4px rgba(0,0,0,0.3))'
+                  }}></div>
+                </div>
               </div>
 
               {/* Résultat */}
@@ -124,20 +160,6 @@ function TicketChance() {
 
               {/* Informations */}
               <div className="informations no-border">
-                <div className="row d-flex" style={{ justifyContent: 'space-around', marginBottom: '30px' }}>
-                  <div style={{ textAlign: 'center' }}>
-                    <div style={{ fontSize: '48px', fontWeight: 'bold', color: '#C5C1A4' }}>
-                      {attemptsLeft}
-                    </div>
-                    <div>Tentatives restantes</div>
-                  </div>
-                  <div style={{ textAlign: 'center' }}>
-                    <div style={{ fontSize: '48px', fontWeight: 'bold', color: '#4ECDC4' }}>
-                      24h
-                    </div>
-                    <div>Prochaine chance</div>
-                  </div>
-                </div>
 
                 <div className="blc-btn text-center">
                   <button

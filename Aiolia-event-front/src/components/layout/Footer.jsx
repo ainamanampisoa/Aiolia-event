@@ -7,7 +7,7 @@ function Footer() {
         <div className="ftr-top d-flex justify-content-between">
           <div className="logo-ftr">
             <Link to="/">
-              <img src="/images/VenteTicket.png" alt="VenteTicket.mg" />
+              <img src="/images/VenteTicket.png" alt="Aiolia-event.mg" />
             </Link>
           </div>
           <div className="menu-ftr">
@@ -57,10 +57,7 @@ function Footer() {
             </ul>
           </div>
           <div className="powered">
-            <span>Powered by</span>
-            <Link to="#">
-              <img src="/images/powered.svg" alt="Powered by" />
-            </Link>
+            <span>Aiolia-event</span>
           </div>
         </div>
       </div>

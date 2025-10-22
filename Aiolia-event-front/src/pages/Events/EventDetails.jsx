@@ -1,7 +1,7 @@
 import { useState, useEffect } from 'react';
 import { useParams, Link } from 'react-router-dom';
 import Header from '../../components/layout/Header';
-import Footer from '../../components/layout/Footer';
+import Footer from '../../components/layout/Footer'; 
 import EventCard from '../../components/common/EventCard';
 import TicketSelector from '../../components/common/TicketSelector';
 
@@ -318,6 +318,8 @@ function EventDetails() {
 }
 
 export default EventDetails;
+
+
 
 
 

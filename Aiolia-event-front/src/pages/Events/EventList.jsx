@@ -73,13 +73,6 @@ function EventList() {
     fetchEvents();
   };
 
-  const handlePriceChange = (values) => {
-    setFilters(prev => ({
-      ...prev,
-      priceMin: values[0],
-      priceMax: values[1]
-    }));
-  };
 
   return (
     <>
@@ -109,17 +102,30 @@ function EventList() {
                   </div>
 
                   <div className="blc-chp">
-                    <label htmlFor="amount">Prix</label>
-                    <input
-                      type="text"
-                      id="amount"
-                      readOnly
-                      value={`${filters.priceMin.toLocaleString()} MGA - ${filters.priceMax.toLocaleString()} MGA`}
-                    />
-                    <div id="slider-range"></div>
-                    <div className="blc-prix">
-                      <span className="min">5.000 MGA</span>
-                      <span className="max">1.000.000 MGA</span>
+                    <label>Prix (MGA)</label>
+                    <div className="blc-prix-inputs" style={{ display: 'flex', gap: '10px' }}>
+                      <div style={{ flex: 1 }}>
+                        <input
+                          type="number"
+                          name="priceMin"
+                          value={filters.priceMin}
+                          onChange={handleFilterChange}
+                          placeholder="Min"
+                          min="0"
+                          style={{ width: '100%', padding: '8px' }}
+                        />
+                      </div>
+                      <div style={{ flex: 1 }}>
+                        <input
+                          type="number"
+                          name="priceMax"
+                          value={filters.priceMax}
+                          onChange={handleFilterChange}
+                          placeholder="Max"
+                          min="0"
+                          style={{ width: '100%', padding: '8px' }}
+                        />
+                      </div>
                     </div>
                   </div>
                 </div>
@@ -159,25 +165,27 @@ function EventList() {
                 <div className="col">
                   <div className="blc-chp">
                     <label>Date</label>
-                    <div className="blc-date">
-                      <label htmlFor="from">Du</label>
-                      <input
-                        type="date"
-                        id="from"
-                        name="dateFrom"
-                        className="chp date"
-                        value={filters.dateFrom}
-                        onChange={handleFilterChange}
-                      />
-                      <label htmlFor="to">Au</label>
-                      <input
-                        type="date"
-                        id="to"
-                        name="dateTo"
-                        className="chp date"
-                        value={filters.dateTo}
-                        onChange={handleFilterChange}
-                      />
+                    <div className="blc-date" style={{ display: 'flex', gap: '10px' }}>
+                      <div style={{ flex: 1 }}>
+                        <input
+                          type="date"
+                          name="dateFrom"
+                          value={filters.dateFrom}
+                          onChange={handleFilterChange}
+                          placeholder="Du"
+                          style={{ width: '100%', padding: '8px' }}
+                        />
+                      </div>
+                      <div style={{ flex: 1 }}>
+                        <input
+                          type="date"
+                          name="dateTo"
+                          value={filters.dateTo}
+                          onChange={handleFilterChange}
+                          placeholder="Au"
+                          style={{ width: '100%', padding: '8px' }}
+                        />
+                      </div>
                     </div>
                   </div>
 
@@ -240,9 +248,17 @@ function EventList() {
                 </div>
               </div>
 
-              <div className="blcBtn text-center">
-                <button type="submit" className="btn submit">
-                  Affiner ma recherche
+              <div className="blcBtn text-center" style={{ 
+                marginTop: '10px', 
+                paddingTop: '15px',
+                borderTop: '1px solid #e0e0e0'
+              }}>
+                <button type="submit" className="btn submit" style={{ 
+                  padding: '12px 30px',
+                  fontSize: '16px',
+                  fontWeight: 'bold'
+                }}>
+                  Rechercher
                 </button>
               </div>
             </form>
@@ -336,6 +352,8 @@ function EventList() {
 }
 
 export default EventList;
+
+
 
 
 

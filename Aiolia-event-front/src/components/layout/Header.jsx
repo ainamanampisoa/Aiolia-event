@@ -6,7 +6,7 @@ function Header({ showBanner = false, bannerData = null }) {
       <div className="head">
         <div className="container d-flex justify-content-between">
           <Link to="/" className="logo">
-            <img src="/images/logo.png" alt="VenteTicket" />
+            <img src="/images/aiolia_event.png" alt="VenteTicket" />
           </Link>
           <div className="blcMenu d-flex">
             <div className="wrapMenuMobile">
@@ -18,7 +18,7 @@ function Header({ showBanner = false, bannerData = null }) {
             <nav className="menu">
               <ul>
                 <li className="selected">
-                  <Link to="/events" title="Évènements">
+                  <Link to="/" title="Évènements">
                     évènements
                   </Link>
                 </li>
@@ -47,7 +47,7 @@ function Header({ showBanner = false, bannerData = null }) {
       </div>
 
       {showBanner && bannerData && (
-        <div className="blc-banner page event">
+        <div className="blc-banner">
           <div className="banner">
             <div
               className="img"
@@ -57,22 +57,47 @@ function Header({ showBanner = false, bannerData = null }) {
               <div className="container">
                 <div className="inner">
                   <div className="content">
-                    <div className="txt wow fadeIn" data-wow-delay="700ms">
-                      <div className="left">
-                        <span className="s-titre">{bannerData.subtitle}</span>
-                        <h1>{bannerData.title}</h1>
-                      </div>
-                    </div>
-                    {bannerData.showTimer && (
-                      <div id="timer">
-                        <div id="days">
-                          <div></div>
-                        </div>
-                        <div id="hours"></div>
-                        <div id="minutes"></div>
-                        <div id="seconds"></div>
+                    {bannerData.logo && (
+                      <div className="img-logo wow fadeIn" data-wow-delay="500ms">
+                        <img src={bannerData.logo} alt="Vente tickets" />
                       </div>
                     )}
+                    <div className="txt wow fadeIn" data-wow-delay="700ms">
+                      <h1>{bannerData.title}</h1>
+                      {bannerData.address && (
+                        <div className="adresse">{bannerData.address}</div>
+                      )}
+                      {bannerData.description && (
+                        <p>{bannerData.description}</p>
+                      )}
+                      {bannerData.contact && (
+                        <div className="contact">
+                          <ul>
+                            {bannerData.contact.phone && (
+                              <li className="tel">
+                                <a href={`tel:${bannerData.contact.phone.replace(/\s/g, '')}`}>
+                                  <span>{bannerData.contact.phone}</span>
+                                </a>
+                              </li>
+                            )}
+                            {bannerData.contact.email && (
+                              <li className="mail">
+                                <a href={`mailto:${bannerData.contact.email}`}>
+                                  <span>{bannerData.contact.email}</span>
+                                </a>
+                              </li>
+                            )}
+                            {bannerData.contact.website && (
+                              <li className="web">
+                                <a href={`https://${bannerData.contact.website}`} target="_blank" rel="noopener noreferrer">
+                                  <span>{bannerData.contact.website}</span>
+                                </a>
+                              </li>
+                            )}
+                          </ul>
+                        </div>
+                      )}
+                    </div>
                   </div>
                 </div>
               </div>

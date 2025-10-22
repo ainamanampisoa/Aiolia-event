@@ -5,15 +5,21 @@
 | Fichier | URL | Description |
 |---------|-----|-------------|
 | `Login.jsx` | `/login` | Page de connexion (email/password + "Se souvenir de moi") |
-| `Register.jsx` | `/register` | Page d'inscription (Organisateur/Particulier + infos complètes) |
+| `Register.jsx` | `/register` | Inscription utilisateur (prénom, nom, email, téléphone, mot de passe) |
+| `BecomeOrganizer.jsx` | `/become-organizer` | Inscription organisateur (infos personnelles + organisation + documents légaux) |
 
 ---
 
-## 🎉 Événements
+## 🏠 Page d'accueil publique
 
 | Fichier | URL | Description |
 |---------|-----|-------------|
-| `Home.jsx` | `/` | Page d'accueil (bannière + liste événements + calendrier + stats) |
+| `Landing.jsx` | `/` | Page d'accueil publique (bannière + événements + comment acheter + calendrier + stats) |
+
+## 🎉 Événements (après connexion)
+
+| Fichier | URL | Description |
+|---------|-----|-------------|
 | `EventList.jsx` | `/events` | Liste complète des événements avec filtres avancés (type, localisation, date, prix) |
 | `EventDetails.jsx` | `/events/:id` | Détails complets d'un événement (description, vidéo, map, billets, similaires) |
 
@@ -53,11 +59,12 @@
 
 ## 📊 Résumé
 
-### **Total : 16 pages principales**
+### **Total : 17 pages principales**
 
 **Par catégorie :**
-- 🔐 Authentification : 2 pages
-- 🎉 Événements : 3 pages  
+- 🏠 Page d'accueil : 1 page
+- 🔐 Authentification : 3 pages
+- 🎉 Événements : 2 pages  
 - 🛒 Panier & Paiement : 3 pages
 - 👤 Profil utilisateur : 7 pages
 - 🎮 Jeux : 1 page
@@ -108,9 +115,11 @@ Puis ouvrez : **http://localhost:5173**
 
 - ✅ Tous les designs sont basés sur le template HTML du dossier `vente-ticket`
 - ✅ Les CSS et assets sont déjà copiés dans `/public/`
+- ✅ Inscription séparée : Utilisateurs (`/register`) et Organisateurs (`/become-organizer`)
 - ⚠️ Les appels API sont simulés (TODO: connecter avec Symfony backend)
 - ⚠️ Les QR codes utilisent une API externe gratuite (https://api.qrserver.com)
 - ⚠️ Les paiements Mobile Money sont simulés (TODO: intégration réelle)
+- ⚠️ Validation des organisateurs : processus manuel sous 48h (TODO: automatiser)
 
 ---
 

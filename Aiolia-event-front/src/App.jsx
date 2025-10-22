@@ -3,9 +3,12 @@ import { BrowserRouter as Router, Routes, Route, Navigate } from 'react-router-d
 // Auth
 import Login from './pages/Auth/Login';
 import Register from './pages/Auth/Register';
+import BecomeOrganizer from './pages/Auth/BecomeOrganizer';
+
+// Home
+import Landing from './pages/Home/Landing';
 
 // Events
-import Home from './pages/Events/Home';
 import EventList from './pages/Events/EventList';
 import EventDetails from './pages/Events/EventDetails';
 
@@ -26,6 +29,9 @@ import Calendar from './pages/User/Calendar';
 // Games
 import TicketChance from './pages/Games/TicketChance';
 
+// Contact
+import Contact from './pages/Contact/Contact';
+
 // Contexts
 import { CartProvider } from './contexts/CartContext';
 import { AuthProvider } from './contexts/AuthContext';
@@ -36,14 +42,18 @@ function App() {
       <CartProvider>
         <Router>
           <Routes>
-            {/* Page d'accueil */}
-            <Route path="/" element={<Home />} />
+            {/* Page d'accueil publique */}
+            <Route path="/" element={<Landing />} />
             
-            {/* Authentification */}
-            <Route path="/login" element={<Login />} />
-            <Route path="/register" element={<Register />} />
+                  {/* Authentification */}
+                  <Route path="/login" element={<Login />} />
+                  <Route path="/register" element={<Register />} />
+                  <Route path="/become-organizer" element={<BecomeOrganizer />} />
+
+                  {/* Contact */}
+                  <Route path="/contact" element={<Contact />} />
             
-            {/* Événements */}
+            {/* Événements (après connexion) */}
             <Route path="/events" element={<EventList />} />
             <Route path="/events/:id" element={<EventDetails />} />
             
