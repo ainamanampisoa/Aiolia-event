@@ -12,7 +12,7 @@ class HomeController extends AbstractController
     #[Route('/', name: 'home')]
     public function index(): Response
     {
-        return $this->redirect('/vente-ticket/index.html');
+        return $this->render('home/index.html.twig');
     }
 
     #[Route('/api/health', name: 'api_health', methods: ['GET'])]
