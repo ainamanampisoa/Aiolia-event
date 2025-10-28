@@ -120,8 +120,12 @@ class UserManagementController extends AbstractController
             throw $this->createNotFoundException('Utilisateur non trouvé');
         }
 
+        // Récupérer l'historique de l'utilisateur
+        $auditLogs = $this->auditLogRepository->findByEntity('User', $id);
+
         return $this->render('admin/users/show.html.twig', [
             'user' => $user,
+            'auditLogs' => $auditLogs,
         ]);
     }
 
@@ -250,6 +254,39 @@ class UserManagementController extends AbstractController
         return $this->redirectToRoute('admin_users_list');
     }
 
+    /**
+     * Historique global des actions
+     */
+    #[Route('/audit/history', name: 'admin_audit_history')]
+    public function auditHistory(Request $request): Response
+    {
+        $action = $request->query->get('action');
+        $userId = $request->query->get('user_id');
+        $startDate = $request->query->get('start_date') 
+            ? new \DateTime($request->query->get('start_date')) 
+            : null;
+        $endDate = $request->query->get('end_date') 
+            ? new \DateTime($request->query->get('end_date')) 
+            : null;
+
+        $auditLogs = $this->auditLogRepository->findWithFilters(
+            $action,
+            $userId,
+            $startDate,
+            $endDate
+        );
+
+        $actionStats = $this->auditLogRepository->getActionStatistics();
+
+        return $this->render('admin/users/audit_history.html.twig', [
+            'auditLogs' => $auditLogs,
+            'actionStats' => $actionStats,
+            'currentAction' => $action,
+            'currentUserId' => $userId,
+            'startDate' => $startDate,
+            'endDate' => $endDate,
+        ]);
+    }
 
     private function getRoleLabel(string $role): string
     {
