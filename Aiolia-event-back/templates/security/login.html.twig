@@ -4,6 +4,7 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Connexion - Plateforme de Aiolia Event</title>
+    <link rel="icon" type="image/svg+xml" href="{{ asset('images/favicon.svg') }}">
     <link rel="stylesheet" href="{{ asset('css/auth.css') }}">
     <link href="https://fonts.googleapis.com/css2?family=Rubik:wght@300;400;500;600;700&display=swap" rel="stylesheet">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
@@ -158,7 +159,7 @@
             <div class="auth-left">
                 <div class="auth-features">
                     <div class="auth-logo">
-                        <h1>Aiolia Event</h1>
+                        <img src="{{ asset('images/auth-logo.svg') }}" alt="Aiolia Event" class="auth-logo-image">
                         <p>Votre plateforme de billetterie en ligne</p>
                     </div>
                     
@@ -199,7 +200,7 @@
                             <div class="alert alert-danger">{{ message }}</div>
                         {% endfor %}
 
-                        <!-- Boutons sociaux bien visibles -->
+                        {# <!-- Boutons sociaux bien visibles -->
                         <div class="social-login">
                             <button class="social-btn google" type="button">
                                 <i class="fab fa-google social-icon"></i>
@@ -213,7 +214,7 @@
 
                         <div class="auth-divider">
                             <span>Ou avec votre email</span>
-                        </div>
+                        </div> #}
 
                         <!-- Login Form -->
                         <form method="post" class="auth-form">
@@ -256,7 +257,6 @@
 
                         <div class="auth-links">
                             <a href="{{ path('app_forgot_password_request') }}">Mot de passe oublié ? </a>
-                            <a href="{{ path('app_register') }}">Créer un compte</a>
                         </div>
                     </div>
                 </div>

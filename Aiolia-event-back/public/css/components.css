@@ -1,0 +1,541 @@
+/* ============================================
+   COMPOSANTS UNIFIÉS - CSS COMMUN
+   ============================================ */
+
+/* ============================================
+   TITRES (h1, h2, h3, h4, h5, h6)
+   ============================================ */
+h1, h2, h3, h4, h5, h6 {
+    font-family: 'Rubik', sans-serif;
+    font-weight: 600;
+    color: #2c3e50;
+    margin-bottom: 1rem;
+    line-height: 1.2;
+}
+
+h1 {
+    font-size: 2rem;
+    margin-bottom: 1.5rem;
+}
+
+h2 {
+    font-size: 1.75rem;
+    margin-bottom: 1.25rem;
+}
+
+h3 {
+    font-size: 1.5rem;
+    margin-bottom: 1rem;
+}
+
+h4 {
+    font-size: 1.25rem;
+    margin-bottom: 0.75rem;
+}
+
+h5 {
+    font-size: 1.1rem;
+    margin-bottom: 0.5rem;
+}
+
+h6 {
+    font-size: 1rem;
+    margin-bottom: 0.5rem;
+}
+
+/* ============================================
+   CHAMPS DE RECHERCHE ET FORMULAIRES
+   ============================================ */
+
+/* Conteneur de recherche */
+.search-container {
+    background: #fff;
+    padding: 1.5rem;
+    border-radius: 0.5rem;
+    margin-bottom: 1.5rem;
+    border: 1px solid #e3e6f0;
+    box-shadow: 0 0.15rem 1.75rem 0 rgba(58, 59, 69, 0.15);
+}
+
+/* Champs de recherche */
+.search-input {
+    width: 100%;
+    padding: 0.75rem 1rem;
+    font-size: 0.875rem;
+    font-weight: 400;
+    line-height: 1.5;
+    color: #6e707e;
+    background-color: #fff;
+    border: 1px solid #d1d3e2;
+    border-radius: 0.35rem;
+    transition: border-color 0.15s ease-in-out, box-shadow 0.15s ease-in-out;
+}
+
+.search-input:focus {
+    color: #6e707e;
+    background-color: #fff;
+    border-color: #bac8f3;
+    outline: 0;
+    box-shadow: 0 0 0 0.2rem rgba(78, 115, 223, 0.25);
+}
+
+.search-input::placeholder {
+    color: #b7b9cc;
+}
+
+/* Labels de formulaire */
+.form-label {
+    margin-bottom: 0.5rem;
+    font-weight: 600;
+    color: #5a5c69;
+    font-size: 0.875rem;
+    display: block;
+}
+
+/* Selects */
+.form-select {
+    display: block;
+    width: 100%;
+    padding: 0.75rem 1rem;
+    font-size: 0.875rem;
+    font-weight: 400;
+    line-height: 1.5;
+    color: #6e707e;
+    background-color: #fff;
+    border: 1px solid #d1d3e2;
+    border-radius: 0.35rem;
+    transition: border-color 0.15s ease-in-out, box-shadow 0.15s ease-in-out;
+}
+
+.form-select:focus {
+    border-color: #bac8f3;
+    outline: 0;
+    box-shadow: 0 0 0 0.2rem rgba(78, 115, 223, 0.25);
+}
+
+/* ============================================
+   TABLES - STYLE UNIFIÉ
+   ============================================ */
+
+/* Conteneur de table */
+.table-container {
+    background-color: #fff;
+    border: 1px solid #e3e6f0;
+    border-radius: 0.35rem;
+    overflow: hidden;
+}
+
+/* Table principale */
+.table {
+    width: 100%;
+    margin-bottom: 0;
+    color: #858796;
+    font-size: 0.875rem;
+}
+
+/* En-têtes de table */
+.table thead th {
+    background-color: #f8f9fc;
+    border-bottom: 2px solid #e3e6f0;
+    padding: 1rem 0.75rem;
+    vertical-align: bottom;
+    font-weight: 600;
+    text-transform: uppercase;
+    font-size: 0.75rem;
+    color: #5a5c69;
+    letter-spacing: 0.5px;
+}
+
+/* Cellules de table */
+.table td {
+    padding: 0.75rem;
+    vertical-align: top;
+    border-top: 1px solid #e3e6f0;
+    font-size: 0.875rem;
+}
+
+/* Effet hover sur les lignes */
+.table-hover tbody tr:hover {
+    color: #858796;
+    background-color: rgba(0, 0, 0, 0.025);
+}
+
+/* Ligne alternée (optionnel) */
+.table-striped tbody tr:nth-of-type(odd) {
+    background-color: rgba(0, 0, 0, 0.02);
+}
+
+/* Table responsive */
+.table-responsive {
+    display: block;
+    width: 100%;
+    overflow-x: auto;
+    -webkit-overflow-scrolling: touch;
+}
+
+/* ============================================
+   BOUTONS - STYLE UNIFIÉ
+   ============================================ */
+
+.btn {
+    display: inline-block;
+    font-weight: 400;
+    text-align: center;
+    vertical-align: middle;
+    cursor: pointer;
+    border: 1px solid transparent;
+    padding: 0.5rem 1rem;
+    font-size: 0.875rem;
+    line-height: 1.5;
+    border-radius: 0.35rem;
+    text-decoration: none;
+    transition: all 0.15s ease-in-out;
+}
+
+.btn-sm {
+    padding: 0.375rem 0.75rem;
+    font-size: 0.75rem;
+    line-height: 1.5;
+    border-radius: 0.25rem;
+}
+
+/* Boutons principaux */
+.btn-primary {
+    color: #fff;
+    background-color: #4e73df;
+    border-color: #4e73df;
+}
+
+.btn-primary:hover {
+    color: #fff;
+    background-color: #2e59d9;
+    border-color: #2653d4;
+}
+
+.btn-secondary {
+    color: #fff;
+    background-color: #858796;
+    border-color: #858796;
+}
+
+.btn-secondary:hover {
+    color: #fff;
+    background-color: #717384;
+    border-color: #6b6d7d;
+}
+
+.btn-outline-secondary {
+    color: #858796;
+    border-color: #858796;
+    background-color: transparent;
+}
+
+.btn-outline-secondary:hover {
+    color: #fff;
+    background-color: #858796;
+    border-color: #858796;
+}
+
+.btn-success {
+    color: #fff;
+    background-color: #1cc88a;
+    border-color: #1cc88a;
+}
+
+.btn-success:hover {
+    color: #fff;
+    background-color: #17a673;
+    border-color: #169b6b;
+}
+
+.btn-danger {
+    color: #fff;
+    background-color: #e74a3b;
+    border-color: #e74a3b;
+}
+
+.btn-danger:hover {
+    color: #fff;
+    background-color: #e02d1b;
+    border-color: #d52a1a;
+}
+
+.btn-warning {
+    color: #212529;
+    background-color: #f6c23e;
+    border-color: #f6c23e;
+}
+
+.btn-warning:hover {
+    color: #212529;
+    background-color: #f4b619;
+    border-color: #f4b30d;
+}
+
+.btn-info {
+    color: #fff;
+    background-color: #36b9cc;
+    border-color: #36b9cc;
+}
+
+.btn-info:hover {
+    color: #fff;
+    background-color: #2c9faf;
+    border-color: #2a96a5;
+}
+
+/* Boutons outline */
+.btn-outline-primary {
+    color: #4e73df;
+    border-color: #4e73df;
+    background-color: transparent;
+}
+
+.btn-outline-primary:hover {
+    color: #fff;
+    background-color: #4e73df;
+    border-color: #4e73df;
+}
+
+.btn-outline-secondary {
+    color: #858796;
+    border-color: #858796;
+    background-color: transparent;
+}
+
+.btn-outline-secondary:hover {
+    color: #fff;
+    background-color: #858796;
+    border-color: #858796;
+}
+
+/* ============================================
+   BADGES - STYLE UNIFIÉ
+   ============================================ */
+
+.badge {
+    display: inline-block;
+    padding: 0.375rem 0.75rem;
+    font-size: 0.75rem;
+    font-weight: 700;
+    line-height: 1;
+    text-align: center;
+    white-space: nowrap;
+    vertical-align: baseline;
+    border-radius: 0.35rem;
+}
+
+.bg-primary {
+    background-color: #4e73df !important;
+    color: #fff !important;
+}
+
+.bg-success {
+    background-color: #1cc88a !important;
+    color: #fff !important;
+}
+
+.bg-info {
+    background-color: #36b9cc !important;
+    color: #fff !important;
+}
+
+.bg-secondary {
+    background-color: #858796 !important;
+    color: #fff !important;
+}
+
+.bg-danger {
+    background-color: #e74a3b !important;
+    color: #fff !important;
+}
+
+.bg-warning {
+    background-color: #f6c23e !important;
+    color: #212529 !important;
+}
+
+.bg-dark {
+    background-color: #5a5c69 !important;
+    color: #fff !important;
+}
+
+/* ============================================
+   CARDS - STYLE UNIFIÉ
+   ============================================ */
+
+.card {
+    background-color: #fff;
+    border: 1px solid #e3e6f0;
+    border-radius: 0.35rem;
+    box-shadow: 0 0.15rem 1.75rem 0 rgba(58, 59, 69, 0.15);
+}
+
+.card-header {
+    background-color: #f8f9fc;
+    border-bottom: 1px solid #e3e6f0;
+    padding: 1rem 1.25rem;
+    margin-bottom: 0;
+    border-radius: 0.35rem 0.35rem 0 0;
+}
+
+.card-body {
+    padding: 1.25rem;
+}
+
+.card-title {
+    margin-bottom: 0.75rem;
+    font-size: 1.25rem;
+    font-weight: 600;
+    color: #5a5c69;
+}
+
+/* ============================================
+   ALERTS - STYLE UNIFIÉ
+   ============================================ */
+
+.alert {
+    padding: 1rem 1.25rem;
+    margin-bottom: 1rem;
+    border: 1px solid transparent;
+    border-radius: 0.35rem;
+    font-size: 0.875rem;
+}
+
+.alert-info {
+    color: #0c5460;
+    background-color: #d1ecf1;
+    border-color: #bee5eb;
+}
+
+.alert-success {
+    color: #155724;
+    background-color: #d4edda;
+    border-color: #c3e6cb;
+}
+
+.alert-warning {
+    color: #856404;
+    background-color: #fff3cd;
+    border-color: #ffeaa7;
+}
+
+.alert-danger {
+    color: #721c24;
+    background-color: #f8d7da;
+    border-color: #f5c6cb;
+}
+
+/* ============================================
+   LAYOUT - STYLE UNIFIÉ
+   ============================================ */
+
+.container-fluid {
+    padding: 0 !important;
+}
+
+.py-4 {
+    padding-top: 1.5rem !important;
+    padding-bottom: 1.5rem !important;
+}
+
+.row {
+    margin-left: -15px;
+    margin-right: -15px;
+    display: flex;
+    flex-wrap: wrap;
+}
+
+.col-12 {
+    flex: 0 0 100%;
+    max-width: 100%;
+    padding-left: 15px;
+    padding-right: 15px;
+}
+
+.col-md-4 {
+    flex: 0 0 33.333333%;
+    max-width: 33.333333%;
+    padding-left: 15px;
+    padding-right: 15px;
+}
+
+.col-md-6 {
+    flex: 0 0 50%;
+    max-width: 50%;
+    padding-left: 15px;
+    padding-right: 15px;
+}
+
+.col-md-8 {
+    flex: 0 0 66.666667%;
+    max-width: 66.666667%;
+    padding-left: 15px;
+    padding-right: 15px;
+}
+
+.col-md-2 {
+    flex: 0 0 16.666667%;
+    max-width: 16.666667%;
+    padding-left: 15px;
+    padding-right: 15px;
+}
+
+/* ============================================
+   UTILITAIRES
+   ============================================ */
+
+.text-center {
+    text-align: center !important;
+}
+
+.text-right {
+    text-align: right !important;
+}
+
+.text-left {
+    text-align: left !important;
+}
+
+.mb-3 {
+    margin-bottom: 1rem !important;
+}
+
+.mb-4 {
+    margin-bottom: 1.5rem !important;
+}
+
+.mb-0 {
+    margin-bottom: 0 !important;
+}
+
+.mt-3 {
+    margin-top: 1rem !important;
+}
+
+.mt-4 {
+    margin-top: 1.5rem !important;
+}
+
+/* ============================================
+   RESPONSIVE
+   ============================================ */
+
+@media (max-width: 768px) {
+    .col-md-4,
+    .col-md-6,
+    .col-md-8,
+    .col-md-2 {
+        flex: 0 0 100%;
+        max-width: 100%;
+    }
+    
+    .table-responsive {
+        font-size: 0.8rem;
+    }
+    
+    .btn {
+        padding: 0.375rem 0.75rem;
+        font-size: 0.8rem;
+    }
+}

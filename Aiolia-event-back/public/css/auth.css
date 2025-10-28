@@ -71,6 +71,13 @@
     font-weight: 700;
 }
 
+.auth-logo .auth-logo-image {
+    max-width: 280px;
+    width: 100%;
+    height: auto;
+    margin-bottom: 15px;
+}
+
 .auth-logo p {
     color: var(--beige);
     font-size: 1.1rem;
@@ -381,6 +388,10 @@
     
     .auth-logo h1 {
         font-size: 2rem;
+    }
+    
+    .auth-logo .auth-logo-image {
+        max-width: 220px;
     }
     
     .auth-form-container h2 {

@@ -53,6 +53,9 @@ class User implements UserInterface, PasswordAuthenticatedUserInterface
     #[ORM\Column]
     private bool $isActive = true;
 
+    #[ORM\Column(length: 20)]
+    private string $accountStatus = 'active'; // active, pending_validation, rejected, suspended
+
     #[ORM\Column(type: Types::DATETIME_MUTABLE)]
     private ?\DateTimeInterface $createdAt = null;
 
@@ -255,6 +258,32 @@ class User implements UserInterface, PasswordAuthenticatedUserInterface
     public function getFullName(): string
     {
         return trim($this->firstName . ' ' . $this->lastName);
+    }
+
+    public function getAccountStatus(): string
+    {
+        return $this->accountStatus;
+    }
+
+    public function setAccountStatus(string $accountStatus): static
+    {
+        $this->accountStatus = $accountStatus;
+        return $this;
+    }
+
+    public function isPendingValidation(): bool
+    {
+        return $this->accountStatus === 'pending_validation';
+    }
+
+    public function isRejected(): bool
+    {
+        return $this->accountStatus === 'rejected';
+    }
+
+    public function isSuspended(): bool
+    {
+        return $this->accountStatus === 'suspended';
     }
 }
 
