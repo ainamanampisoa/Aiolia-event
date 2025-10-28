@@ -577,3 +577,5 @@ _(À ajouter une fois l'interface développée)_
 
 **Dernière mise à jour** : Octobre 2025  
 **Version** : 1.0.0
+sudo lsof -i :5173
+sudo kill -9 12345
