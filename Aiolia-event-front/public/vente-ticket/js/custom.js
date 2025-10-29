@@ -1,0 +1,218 @@
+jQuery(document).ready(function($) {
+
+
+
+    /*** wow animation ***/
+    new WOW({
+        mobile: false,
+    }).init()
+
+     $(".menuMobile").click(function() {
+        $(this).toggleClass('active');
+        $("body").toggleClass('overflow');
+        $(".blcMenu").toggleClass('active');
+
+    });
+
+
+
+
+	
+$( "#datepicker" ).datepicker({
+    dayNamesMin: [ "D", "L", "M", "M", "J", "V", "S" ],
+    monthNames: [ "Janvier", "Février", "Mars", "Avril", "Mai", "Juin",
+            "Juillet", "Août", "Septembre", "Octobre", "Novembre", "Décembre" ],
+
+ 
+});
+
+$( function() {
+    var dateFormat = "dd/mm/yy",
+      from = $( "#from" )
+        .datepicker({
+          defaultDate: "+1w",
+          changeMonth: true,
+          numberOfMonths: 1,
+          dayNamesMin: [ "D", "L", "M", "M", "J", "V", "S" ],
+        monthNamesShort: [ "Janvier", "Février", "Mars", "Avril", "Mai", "Juin",
+            "Juillet", "Août", "Septembre", "Octobre", "Novembre", "Décembre" ],
+        })
+        .on( "change", function() {
+          to.datepicker( "option", "minDate", getDate( this ) );
+        }),
+      to = $( "#to" ).datepicker({
+        defaultDate: "+1w",
+        changeMonth: true,
+        numberOfMonths: 1,
+        dayNamesMin: [ "D", "L", "M", "M", "J", "V", "S" ],
+        monthNamesShort: [ "Janvier", "Février", "Mars", "Avril", "Mai", "Juin",
+            "Juillet", "Août", "Septembre", "Octobre", "Novembre", "Décembre" ],
+      })
+      .on( "change", function() {
+        from.datepicker( "option", "maxDate", getDate( this ) );
+      });
+ 
+    function getDate( element ) {
+      var date;
+      try {
+        date = $.datepicker.parseDate( dateFormat, element.value );
+      } catch( error ) {
+        date = null;
+      }
+ 
+      return date;
+    }
+  } );
+
+$( function() {
+    $( "#slider-range" ).slider({
+      range: true,
+      min: 5000,
+      max: 1000000,
+      values: [ 5000, 300000 ],
+      slide: function( event, ui ) {
+        $( "#amount" ).val( ui.values[ 0 ] + "MGA" + " - " + ui.values[ 1 ] + "MGA"  );
+      }
+    });
+    $( "#amount" ).val($( "#slider-range" ).slider( "values", 0 ) + "MGA"
+      + " - " + $( "#slider-range" ).slider( "values", 1 ) + "MGA"  );
+  } );
+
+
+ $(".numbers-row .button").on("click", function() {
+        var $button = $(this);
+        var oldValue = $button.parent().find("input").val();
+        if ($button.text() == "+") {
+            var newVal = parseFloat(oldValue) + 1;
+        } else {
+            if (oldValue > 1) {
+                var newVal = parseFloat(oldValue) - 1;
+            } else {
+                newVal = 1;
+            }
+        }
+        $button.parent().find("input").val(newVal);
+    });
+    $(".toggle-password").click(function() {
+        $(this).toggleClass("showcharacters");
+        input = $(this).parent().find("input");
+        if (input.attr("type") == "password") {
+            input.attr("type", "text");
+        } else {
+            input.attr("type", "password");
+        }
+    });
+ /* Video */
+
+  $('.btn_play').click(function() {
+        $(this).toggleClass('hide')
+        var vid = $('#video');
+        vid[0].paused ? vid[0].play() : vid[0].pause();
+    });
+    $('.play-btn').click(function() {
+        var videoId = $(this).data('video');
+        var video = document.getElementById(videoId);
+
+        // Pause all videos first
+        $('video').each(function() {
+            this.pause();
+            this.currentTime = 0;
+        });
+        // Hide all buttons
+        $('.play-btn').show();
+
+        // Play selected video
+        video.play();
+
+        // Hide the button
+        $(this).hide();
+    });
+
+    // Optional: Show button again when video ends
+    $('video').on('ended', function() {
+        $('button[data-video="' + this.id + '"]').show();
+    });
+
+    /* end video*/
+
+    const inputFile = document.querySelector(".picture__input");
+    const pictureImage = document.querySelector(".picture__image");
+    const pictureImageTxt = "";
+    pictureImage.innerHTML = pictureImageTxt;
+
+    inputFile.addEventListener("change", function (e) {
+      const inputTarget = e.target;
+      const file = inputTarget.files[0];
+
+      if (file) {
+        const reader = new FileReader();
+
+        reader.addEventListener("load", function (e) {
+          const readerTarget = e.target;
+
+          const img = document.createElement("img");
+          img.src = readerTarget.result;
+          img.classList.add("picture__img");
+
+          pictureImage.innerHTML = "";
+          pictureImage.appendChild(img);
+        });
+
+        reader.readAsDataURL(file);
+      } else {
+        pictureImage.innerHTML = pictureImageTxt;
+      }
+    });
+
+
+  
+
+      //check local storage for the lang
+      var sessionLang = localStorage.getItem('lang');
+      if (sessionLang){
+        //find an item with value of sessionLang
+        var langIndex = langArray.indexOf(sessionLang);
+        $('.btn-select').html(langArray[langIndex]);
+        $('.btn-select').attr('value', sessionLang);
+      } else {
+         var langIndex = langArray.indexOf('ch');
+        console.log(langIndex);
+        $('.btn-select').html(langArray[langIndex]);
+        //$('.btn-select').attr('value', 'en');
+      }
+
+
+   
+
+
+
+
+
+function makeTimer() {
+ //     var endTime = new Date("29 April 2018 9:56:00 GMT+01:00");  
+        var endTime = new Date("10 August 2025 9:56:00 GMT+01:00");          
+            endTime = (Date.parse(endTime) / 1000);
+
+            var now = new Date();
+            now = (Date.parse(now) / 1000);
+
+            var timeLeft = endTime - now;
+
+            var days = Math.floor(timeLeft / 86400); 
+            var hours = Math.floor((timeLeft - (days * 86400)) / 3600);
+            var minutes = Math.floor((timeLeft - (days * 86400) - (hours * 3600 )) / 60);
+            var seconds = Math.floor((timeLeft - (days * 86400) - (hours * 3600) - (minutes * 60)));
+  
+            if (hours < "10") { hours = "0" + hours; }
+            if (minutes < "10") { minutes = "0" + minutes; }
+            if (seconds < "10") { seconds = "0" + seconds; }
+
+            $("#days").html(days + "<em></em>" + "<span>Jours</span>");
+            $("#hours").html(hours + "<em></em>" + "<span>Heures</span>");
+            $("#minutes").html(minutes + "<em></em>"  + "<span>Minutes</span>");
+            $("#seconds").html(seconds + "<em></em>"  + "<span>Secondes</span>");       
+
+}
+    setInterval(function() { makeTimer(); }, 1000);
+})
+

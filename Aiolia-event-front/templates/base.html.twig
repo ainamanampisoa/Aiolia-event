@@ -1,0 +1,118 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>{% block title %}Aiolia Event{% endblock %}</title>
+    {% block stylesheets %}{% endblock %}
+</head>
+<body>
+        <header>
+            <div class="head">
+                <div class="container d-flex justify-content-between ">
+                    <a href="{{ path('home') }}" class="logo"><img src="{{ asset('vente-ticket/images/logo.png') }}" alt="Powered by"></a>
+                    <div class="blcMenu d-flex ">
+                        <div class="wrapMenuMobile">
+                            <div class="menuMobile">
+                                <div></div>
+                                
+                            </div>
+                        </div>
+
+                        <nav class="menu">
+                            <ul>
+                                <li>
+                                    <a href="{{ path('events') }}" title="Evènements">évènements</a>
+                                </li>
+                                <li>
+                                    <a href="{{ path('become_organizer') }}" title="Devenir organisateur">devenir organisateur</a>
+                                </li>
+                                <li>
+                                    <a href="{{ path('contact') }}" title="Contact">contact</a>
+                                </li>
+                            </ul>
+                             <div class="login">
+                                <a href="{{ path('login') }}">se connecter</a>
+                            </div>
+                        </nav>
+                        
+                        <div class="panier">
+                            <a href="{{ path('cart') }}"></a>
+                            <span>02</span>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            {% block hero %}
+            <div class="blc-banner">
+                <div class="banner">
+                    <div class="img" style="background: url({{ asset('vente-ticket/images/banner.jpg') }});"></div>
+                    <div class="txt-banner">
+                        <div class="container">
+                            <div class="inner ">
+                                <div class="content ">
+                                    <div class="img-logo wow fadeIn" data-wow-delay="500ms">
+                                        <img src="{{ asset('vente-ticket/images/cafe-de-la-gare.jpg') }}" alt="Vente tickets">
+                                    </div>
+                                    <div class="txt wow fadeIn" data-wow-delay="700ms">
+                                        <h1>Jazz show avec Koundé au <br>"Le Grand Café de la Gare"</h1>
+                                        <div class="adresse">PK O - Gare Soarano, Antananarivo Madagascar</div>
+                                        <p>Lorem ipsum dolor sit amet, te vituperata efficiendi assueverit nec, eu primis instructior usu. Per et equidem denique pericula.</p>
+                                        <div class="contact">
+                                            <ul>
+                                                <li class="tel"><a href="tel:0370500101"><span>037 05 001 01</span></a></li>
+                                                <li class="mail"><a href="mailto:info@cafedelagare.mg"><span>info@cafedelagare.mg</span></a></li>
+                                                <li class="web"><a href="https://www.cafedelagare.mg" target="_blank"><span>www.cafedelagare.mg</span></a></li>
+                                            </ul>
+                                        </div>
+                                    </div>
+                                </div>
+
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+            </div>
+            {% endblock %}
+        </header>
+
+    {% block body %}{% endblock %}
+
+         <footer class="footer">
+             <div class="container">
+                    <div class="ftr-top d-flex justify-content-between">
+                        <div class="logo-ftr">
+                            <a href="{{ path('home') }}"><img src="{{ asset('vente-ticket/images/VenteTicket.png') }}" alt="VenteTicket.mg"></a>
+                        </div>
+                        <div class="menu-ftr">
+                            <ul>
+                                <li><a href="{{ path('events') }}" title="Evènements">évènements</a></li>
+                                <li><a href="{{ path('become_organizer') }}" title="Devenir organisateur">devenir organisateur</a></li>
+                                <li><a href="{{ path('contact') }}" title="Contact">contact</a></li>
+                                <li><a href="{{ path('about') }}" title="A propos">à propos</a></li>
+                            </ul>
+                        </div>
+                    </div>
+                    <div class="ftr-bottom d-flex justify-content-between">
+                        <div class="left">
+                            <div class="copy">Tous droits réservés © 2025 </div>
+                            <ul>
+                                <li><a href="#" title="Mentions légales">Mentions légales</a></li>
+                                <li><a href="#" title="Politique de confidentialité">Politique de confidentialité</a></li>
+                                <li><a href="#" title="Conditions générales d'utilisation">Conditions générales d'utilisation</a></li>  
+                            </ul>
+                        </div>
+                        <div class="powered">
+                            <span>Powered by</span>
+                            <a href="#"><img src="{{ asset('vente-ticket/images/powered.svg') }}"></a>
+                        </div>
+                    </div>
+
+             </div>
+         </footer>
+
+    {% block javascripts %}{% endblock %}
+</body>
+</html>
