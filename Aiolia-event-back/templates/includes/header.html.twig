@@ -1,55 +1,87 @@
 <header class="admin-header">
     <div class="header-left">
-        <button class="sidebar-toggle" id="sidebarToggle">
+        <button class="sidebar-toggle" id="sidebarToggle" aria-label="Toggle sidebar">
             <i class="fas fa-bars"></i>
         </button>
+        
+        <div class="header-search">
+            <i class="fas fa-search"></i>
+            <input type="text" class="search-input" placeholder="Rechercher...">
+        </div>
     </div>
     
     <div class="header-right">
-        <div class="header-theme">
-            <button class="theme-toggle" id="themeToggle" title="Basculer le thème">
+        <div class="header-actions">
+            <button class="theme-toggle" id="themeToggle" aria-label="Basculer le thème">
                 <i class="fas fa-sun" id="themeIcon"></i>
             </button>
-        </div>
-        
-        <div class="header-notifications">
-            <button class="notification-btn">
+            
+            <button class="notification-btn" aria-label="Notifications">
                 <i class="fas fa-bell"></i>
                 <span class="notification-badge">3</span>
+                <div class="notification-pulse"></div>
             </button>
         </div>
         
         <div class="header-user">
             <div class="user-dropdown">
-                <div class="user-info">
+                <button class="user-trigger" aria-expanded="false" aria-haspopup="true">
                     <div class="user-avatar">
                         {% if app.user.photoUrl %}
-                            <img src="{{ app.user.photoUrl }}" alt="Avatar">
+                            <img src="{{ app.user.photoUrl }}" alt="Avatar de {{ app.user.firstName }} {{ app.user.lastName }}">
                         {% else %}
                             <div class="user-avatar-initials">
                                 {{ app.user.firstName|first|upper }}{{ app.user.lastName|first|upper }}
                             </div>
                         {% endif %}
+                        <div class="user-status"></div>
                     </div>
                     <div class="user-details">
                         <span class="user-name">{{ app.user.firstName }} {{ app.user.lastName }}</span>
                         <span class="user-role">{{ app.user.role|capitalize }}</span>
                     </div>
-                    <i class="fas fa-chevron-down"></i>
-                </div>
-                <div class="dropdown-menu">
-                    <a href="#" class="dropdown-item">
-                        <i class="fas fa-user"></i>
-                        Mon profil
-                    </a>
-                    <a href="#" class="dropdown-item">
-                        <i class="fas fa-cog"></i>
-                        Paramètres
-                    </a>
+                    <i class="fas fa-chevron-down dropdown-arrow"></i>
+                </button>
+                
+                <div class="dropdown-menu" role="menu">
+                    <div class="dropdown-header">
+                        <div class="user-avatar-sm">
+                            {% if app.user.photoUrl %}
+                                <img src="{{ app.user.photoUrl }}" alt="Avatar">
+                            {% else %}
+                                <div class="user-avatar-initials-sm">
+                                    {{ app.user.firstName|first|upper }}{{ app.user.lastName|first|upper }}
+                                </div>
+                            {% endif %}
+                        </div>
+                        <div class="user-info-sm">
+                            <span class="user-name-sm">{{ app.user.firstName }} {{ app.user.lastName }}</span>
+                            <span class="user-email-sm">{{ app.user.email }}</span>
+                        </div>
+                    </div>
+                    
                     <div class="dropdown-divider"></div>
-                    <a href="{{ path('app_logout') }}" class="dropdown-item logout">
+                    
+                    <a href="{{ path('app_profile_index') }}" class="dropdown-item" role="menuitem">
+                        <i class="fas fa-user-circle"></i>
+                        <span>Mon Profil</span>
+                    </a>
+                    
+                    <a href="{{ path('app_settings_index') }}" class="dropdown-item" role="menuitem">
+                        <i class="fas fa-cog"></i>
+                        <span>Paramètres</span>
+                    </a>
+                    
+                    <a href="#" class="dropdown-item" role="menuitem">
+                        <i class="fas fa-question-circle"></i>
+                        <span>Aide Support</span>
+                    </a>
+                    
+                    <div class="dropdown-divider"></div>
+                    
+                    <a href="{{ path('app_logout') }}" class="dropdown-item logout" role="menuitem">
                         <i class="fas fa-sign-out-alt"></i>
-                        Déconnexion
+                        <span>Déconnexion</span>
                     </a>
                 </div>
             </div>

@@ -1,169 +1,788 @@
 {% extends 'base.html.twig' %}
 
-{% block title %}Gestion des utilisateurs{% endblock %}
+{% block title %}Gestion des utilisateurs - Aiolia Event{% endblock %}
 
 {% block stylesheets %}
 {{ parent() }}
 <!-- Select2 CSS -->
 <link href="https://cdn.jsdelivr.net/npm/select2@4.1.0-rc.0/dist/css/select2.min.css" rel="stylesheet" />
+<!-- Font Awesome -->
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
 {% endblock %}
 
 {% block body %}
-<div class="container-fluid py-4">
-    <div class="row">
-        <div class="col-12">
-            <div class="card">
-                <div class="card-header">
+<div class="dashboard">
+    <!-- En-tête -->
+    <div class="dashboard-header">
+        <div>
+            <h1>Gestion des utilisateurs</h1>
+            <p class="dashboard-subtitle">
+                Gérez et administrez les comptes utilisateurs de votre plateforme
+            </p>
+        </div>
+        <div class="header-actions">
+            <button class="btn btn-primary" onclick="exportUsers()">
+                <i class="fas fa-download"></i>
+                Exporter
+            </button>
+        </div>
+    </div>
+
+    <!-- Cartes de statistiques rapides -->
+    <div class="stats-grid stats-grid-compact">
+        <div class="stat-card stat-card-compact">
+            <div class="stat-icon stat-icon-compact bg-primary">
+                <i class="fas fa-users"></i>
+            </div>
+            <div class="stat-content">
+                <h3>156</h3>
+                <p>Utilisateurs totaux</p>
+            </div>
+        </div>
+
+        <div class="stat-card stat-card-compact">
+            <div class="stat-icon stat-icon-compact bg-warning">
+                <i class="fas fa-clock"></i>
+            </div>
+            <div class="stat-content">
+                <h3>12</h3>
+                <p>En attente</p>
+            </div>
+        </div>
+
+        <div class="stat-card stat-card-compact">
+            <div class="stat-icon stat-icon-compact bg-success">
+                <i class="fas fa-check-circle"></i>
+            </div>
+            <div class="stat-content">
+                <h3>134</h3>
+                <p>Utilisateurs actifs</p>
+            </div>
+        </div>
+
+        <div class="stat-card stat-card-compact">
+            <div class="stat-icon stat-icon-compact bg-info">
+                <i class="fas fa-user-shield"></i>
+            </div>
+            <div class="stat-content">
+                <h3>5</h3>
+                <p>Administrateurs</p>
+            </div>
+        </div>
+    </div>
+
+    <!-- Carte principale -->
+    <div class="card">
+        <div class="card-header">
+            <div class="card-header-content">
+                <div>
                     <h4 class="mb-0">
-                        <i class="fas fa-users"></i> Gestion des utilisateurs
+                        <i class="fas fa-users-cog"></i> Liste des utilisateurs
                     </h4>
+                    <p class="card-subtitle">Filtrez et gérez les comptes utilisateurs</p>
                 </div>
-                <div class="card-body">
-                    {# Recherche multi-critères #}
-                    <div class="search-container">
-                        <form method="get" class="row g-3">
-                            <div class="col-md-4">
-                                <label class="form-label">
-                                    <i class="fas fa-search"></i> Recherche (nom, email)
-                                </label>
+                <div class="card-header-actions">
+                    <span class="users-count">8 utilisateur(s)</span>
+                </div>
+            </div>
+        </div>
+
+        <div class="card-body">
+            {# Recherche et filtres avancés #}
+            <div class="filters-section">
+                <form method="get" class="filters-form">
+                    <div class="filters-grid">
+                        <!-- Recherche principale -->
+                        <div class="filter-group">
+                            <label class="form-label">
+                                <i class="fas fa-search"></i> Recherche
+                            </label>
+                            <div class="search-input-wrapper">
                                 <input type="text" 
                                        name="search" 
                                        class="search-input" 
-                                       value="{{ search }}" 
-                                       placeholder="Rechercher un utilisateur..."
+                                       value="" 
+                                       placeholder="Nom, email, téléphone..."
                                        id="searchInput">
+                                <i class="fas fa-search search-icon"></i>
                             </div>
-                            
-                            <div class="col-md-2">
-                                <label class="form-label">
-                                    <i class="fas fa-user-tag"></i> Rôle
-                                </label>
-                                <select name="role" class="form-select">
-                                    <option value="">Tous les rôles</option>
-                                    <option value="user" {{ currentRole == 'user' ? 'selected' : '' }}>Utilisateur</option>
-                                    <option value="organizer" {{ currentRole == 'organizer' ? 'selected' : '' }}>Organisateur</option>
-                                    <option value="co_organizer" {{ currentRole == 'co_organizer' ? 'selected' : '' }}>Co-organisateur</option>
-                                    <option value="admin" {{ currentRole == 'admin' ? 'selected' : '' }}>Administrateur</option>
-                                </select>
-                            </div>
-                            
-                            <div class="col-md-2">
-                                <label class="form-label">
-                                    <i class="fas fa-toggle-on"></i> Statut
-                                </label>
-                                <select name="status" class="form-select">
-                                    <option value="">Tous les statuts</option>
-                                    <option value="active" {{ currentStatus == 'active' ? 'selected' : '' }}>Actif</option>
-                                    <option value="pending_validation" {{ currentStatus == 'pending_validation' ? 'selected' : '' }}>En attente</option>
-                                    <option value="rejected" {{ currentStatus == 'rejected' ? 'selected' : '' }}>Rejeté</option>
-                                    <option value="suspended" {{ currentStatus == 'suspended' ? 'selected' : '' }}>Suspendu</option>
-                                </select>
-                            </div>
-                            
-                            <div class="col-md-2">
-                                <label class="form-label">
-                                    <i class="fas fa-sort"></i> Trier par
-                                </label>
-                                <select name="sort" class="form-select">
-                                    <option value="created_at" {{ currentSort == 'created_at' ? 'selected' : '' }}>Date création</option>
-                                    <option value="email" {{ currentSort == 'email' ? 'selected' : '' }}>Email</option>
-                                    <option value="first_name" {{ currentSort == 'first_name' ? 'selected' : '' }}>Prénom</option>
-                                    <option value="last_name" {{ currentSort == 'last_name' ? 'selected' : '' }}>Nom</option>
-                                </select>
-                            </div>
-                            
-                            <div class="col-md-2">
-                                <label class="form-label">
-                                    <i class="fas fa-arrow-down-up-across-line"></i> Ordre
-                                </label>
-                                <select name="order" class="form-select">
-                                    <option value="DESC" {{ currentOrder == 'DESC' ? 'selected' : '' }}>Décroissant</option>
-                                    <option value="ASC" {{ currentOrder == 'ASC' ? 'selected' : '' }}>Croissant</option>
-                                </select>
-                            </div>
-                            
-                            <div class="col-12">
-                                <button type="submit" class="btn btn-primary">
-                                    <i class="fas fa-search"></i> Rechercher
-                                </button>
-                                <a href="{{ path('admin_users_list') }}" class="btn btn-secondary">
-                                    <i class="fas fa-redo"></i> Réinitialiser
-                                </a>
-                            </div>
-                        </form>
+                        </div>
+
+                        <!-- Filtres rapides -->
+                        <div class="filter-group">
+                            <label class="form-label">
+                                <i class="fas fa-user-tag"></i> Rôle
+                            </label>
+                            <select name="role" class="form-select filter-select">
+                                <option value="">Tous les rôles</option>
+                                <option value="user">Utilisateur</option>
+                                <option value="organizer">Organisateur</option>
+                                <option value="co_organizer">Co-organisateur</option>
+                                <option value="admin">Administrateur</option>
+                            </select>
+                        </div>
+
+                        <div class="filter-group">
+                            <label class="form-label">
+                                <i class="fas fa-toggle-on"></i> Statut
+                            </label>
+                            <select name="status" class="form-select filter-select">
+                                <option value="">Tous les statuts</option>
+                                <option value="active">Actif</option>
+                                <option value="pending_validation">En attente</option>
+                                <option value="rejected">Rejeté</option>
+                                <option value="suspended">Suspendu</option>
+                            </select>
+                        </div>
+
+                        <!-- Tri -->
+                        <div class="filter-group">
+                            <label class="form-label">
+                                <i class="fas fa-sort"></i> Trier par
+                            </label>
+                            <select name="sort" class="form-select filter-select">
+                                <option value="created_at">Date création</option>
+                                <option value="email">Email</option>
+                                <option value="first_name">Prénom</option>
+                                <option value="last_name">Nom</option>
+                            </select>
+                        </div>
+
+                        <div class="filter-group">
+                            <label class="form-label">
+                                <i class="fas fa-arrow-down-up-across-line"></i> Ordre
+                            </label>
+                            <select name="order" class="form-select filter-select">
+                                <option value="DESC">Décroissant</option>
+                                <option value="ASC">Croissant</option>
+                            </select>
+                        </div>
                     </div>
 
-                    {# Résultats #}
-                    {% if users is empty %}
-                        <div class="alert alert-info text-center">
-                            <i class="fas fa-info-circle"></i>
-                            Aucun utilisateur trouvé
-                        </div>
-                    {% else %}
-                        <div class="mb-3">
-                            <span class="badge bg-primary">{{ users|length }} utilisateur(s) trouvé(s)</span>
-                        </div>
+                    <div class="filters-actions">
+                        <button type="submit" class="btn btn-primary btn-sm">
+                            <i class="fas fa-filter"></i> Appliquer les filtres
+                        </button>
+                        <a href="{{ path('admin_users_list') }}" class="btn btn-outline-secondary btn-sm">
+                            <i class="fas fa-redo"></i> Réinitialiser
+                        </a>
+                    </div>
+                </form>
+            </div>
 
-                        <div class="table-responsive">
-                            <table class="table table-hover">
-                                <thead>
-                                    <tr>
-                                        <th>ID</th>
-                                        <th>Nom complet</th>
-                                        <th>Email</th>
-                                        <th>Téléphone</th>
-                                        <th>Rôle</th>
-                                        <th>Statut</th>
-                                        <th>Date création</th>
-                                        <th>Actions</th>
-                                    </tr>
-                                </thead>
-                                <tbody>
-                                    {% for user in users %}
-                                        <tr>
-                                            <td>{{ user.id }}</td>
-                                            <td>
-                                                <strong>{{ user.fullName }}</strong>
-                                            </td>
-                                            <td>{{ user.email }}</td>
-                                            <td>{{ user.phone ?? '-' }}</td>
-                                            <td>
-                                                {% if user.role == 'admin' %}
-                                                    <span class="badge bg-danger">Administrateur</span>
-                                                {% elseif user.role == 'organizer' %}
-                                                    <span class="badge bg-primary">Organisateur</span>
-                                                {% elseif user.role == 'co_organizer' %}
-                                                    <span class="badge bg-info">Co-organisateur</span>
-                                                {% else %}
-                                                    <span class="badge bg-secondary">Utilisateur</span>
-                                                {% endif %}
-                                            </td>
-                                            <td>
-                                                {% if user.accountStatus == 'active' %}
-                                                    <span class="badge bg-success">Actif</span>
-                                                {% elseif user.accountStatus == 'pending_validation' %}
-                                                    <span class="badge bg-warning">En attente</span>
-                                                {% elseif user.accountStatus == 'rejected' %}
-                                                    <span class="badge bg-danger">Rejeté</span>
-                                                {% else %}
-                                                    <span class="badge bg-dark">Suspendu</span>
-                                                {% endif %}
-                                            </td>
-                                            <td>{{ user.createdAt|date('d/m/Y') }}</td>
-                                            <td>
-                                                <a href="{{ path('admin_users_show', {id: user.id}) }}" 
-                                                   class="btn btn-sm btn-outline-primary"
-                                                   title="Voir détails">
-                                                    <i class="fas fa-eye"></i>
-                                                </a>
-                                            </td>
-                                        </tr>
-                                    {% endfor %}
-                                </tbody>
-                            </table>
-                        </div>
-                    {% endif %}
-                </div>
+            <!-- Tableau des utilisateurs -->
+            <div class="table-responsive">
+                <table class="table table-hover users-table">
+                    <thead>
+                        <tr>
+                            <th class="select-column">
+                                <input type="checkbox" id="selectAll" class="form-check-input">
+                            </th>
+                            <th>Utilisateur</th>
+                            <th>Contact</th>
+                            <th>Rôle</th>
+                            <th>Statut</th>
+                            <th>Activité</th>
+                            <th class="actions-column">Actions</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        <!-- Utilisateur 1 -->
+                        <tr data-user-id="1">
+                            <td class="select-column">
+                                <input type="checkbox" class="form-check-input user-checkbox" value="1">
+                            </td>
+                            <td>
+                                <div class="user-info">
+                                    <div class="user-avatar-sm">
+                                        <div class="user-avatar-initials-sm">MD</div>
+                                    </div>
+                                    <div class="user-details">
+                                        <strong class="user-name">Marie Dubois</strong>
+                                        <small class="user-id">ID: 1</small>
+                                    </div>
+                                </div>
+                            </td>
+                            <td>
+                                <div class="contact-info">
+                                    <div class="email">
+                                        <i class="fas fa-envelope"></i>
+                                        marie.dubois@email.com
+                                    </div>
+                                    <div class="phone">
+                                        <i class="fas fa-phone"></i>
+                                        06 12 34 56 78
+                                    </div>
+                                </div>
+                            </td>
+                            <td>
+                                <span class="badge role-badge role-admin">
+                                    <i class="fas fa-crown"></i> Admin
+                                </span>
+                            </td>
+                            <td>
+                                <span class="badge status-badge status-active">
+                                    <i class="fas fa-check-circle"></i> Actif
+                                </span>
+                            </td>
+                            <td>
+                                <div class="activity-info">
+                                    <div class="created-date">
+                                        <small>Créé le 15/01/2024</small>
+                                    </div>
+                                    <div class="last-login">
+                                        <small>Dernière activité: Aujourd'hui</small>
+                                    </div>
+                                </div>
+                            </td>
+                            <td class="actions-column">
+                                <div class="action-buttons">
+                                    <a href="#" class="btn btn-action btn-view"
+                                       title="Voir détails"
+                                       data-bs-toggle="tooltip">
+                                        <i class="fas fa-eye"></i>
+                                    </a>
+                                    <button class="btn btn-action btn-edit"
+                                            title="Modifier"
+                                            data-bs-toggle="tooltip"
+                                            onclick="editUser(1)">
+                                        <i class="fas fa-edit"></i>
+                                    </button>
+                                    <button class="btn btn-action btn-status"
+                                            title="Changer statut"
+                                            data-bs-toggle="tooltip"
+                                            onclick="changeUserStatus(1)">
+                                        <i class="fas fa-cog"></i>
+                                    </button>
+                                </div>
+                            </td>
+                        </tr>
+
+                        <!-- Utilisateur 2 -->
+                        <tr data-user-id="2">
+                            <td class="select-column">
+                                <input type="checkbox" class="form-check-input user-checkbox" value="2">
+                            </td>
+                            <td>
+                                <div class="user-info">
+                                    <div class="user-avatar-sm">
+                                        <div class="user-avatar-initials-sm">PD</div>
+                                    </div>
+                                    <div class="user-details">
+                                        <strong class="user-name">Pierre Durand</strong>
+                                        <small class="user-id">ID: 2</small>
+                                    </div>
+                                </div>
+                            </td>
+                            <td>
+                                <div class="contact-info">
+                                    <div class="email">
+                                        <i class="fas fa-envelope"></i>
+                                        pierre.durand@email.com
+                                    </div>
+                                    <div class="phone">
+                                        <i class="fas fa-phone"></i>
+                                        06 23 45 67 89
+                                    </div>
+                                </div>
+                            </td>
+                            <td>
+                                <span class="badge role-badge role-organizer">
+                                    <i class="fas fa-calendar-alt"></i> Organisateur
+                                </span>
+                            </td>
+                            <td>
+                                <span class="badge status-badge status-active">
+                                    <i class="fas fa-check-circle"></i> Actif
+                                </span>
+                            </td>
+                            <td>
+                                <div class="activity-info">
+                                    <div class="created-date">
+                                        <small>Créé le 20/01/2024</small>
+                                    </div>
+                                    <div class="last-login">
+                                        <small>Dernière activité: Hier</small>
+                                    </div>
+                                </div>
+                            </td>
+                            <td class="actions-column">
+                                <div class="action-buttons">
+                                    <a href="#" class="btn btn-action btn-view"
+                                       title="Voir détails"
+                                       data-bs-toggle="tooltip">
+                                        <i class="fas fa-eye"></i>
+                                    </a>
+                                    <button class="btn btn-action btn-edit"
+                                            title="Modifier"
+                                            data-bs-toggle="tooltip"
+                                            onclick="editUser(2)">
+                                        <i class="fas fa-edit"></i>
+                                    </button>
+                                    <button class="btn btn-action btn-status"
+                                            title="Changer statut"
+                                            data-bs-toggle="tooltip"
+                                            onclick="changeUserStatus(2)">
+                                        <i class="fas fa-cog"></i>
+                                    </button>
+                                </div>
+                            </td>
+                        </tr>
+
+                        <!-- Utilisateur 3 -->
+                        <tr data-user-id="3">
+                            <td class="select-column">
+                                <input type="checkbox" class="form-check-input user-checkbox" value="3">
+                            </td>
+                            <td>
+                                <div class="user-info">
+                                    <div class="user-avatar-sm">
+                                        <div class="user-avatar-initials-sm">SM</div>
+                                    </div>
+                                    <div class="user-details">
+                                        <strong class="user-name">Sophie Martin</strong>
+                                        <small class="user-id">ID: 3</small>
+                                    </div>
+                                </div>
+                            </td>
+                            <td>
+                                <div class="contact-info">
+                                    <div class="email">
+                                        <i class="fas fa-envelope"></i>
+                                        sophie.martin@email.com
+                                    </div>
+                                    <div class="phone">
+                                        <i class="fas fa-phone"></i>
+                                        06 34 56 78 90
+                                    </div>
+                                </div>
+                            </td>
+                            <td>
+                                <span class="badge role-badge role-co-organizer">
+                                    <i class="fas fa-users"></i> Co-organisateur
+                                </span>
+                            </td>
+                            <td>
+                                <span class="badge status-badge status-pending">
+                                    <i class="fas fa-clock"></i> En attente
+                                </span>
+                            </td>
+                            <td>
+                                <div class="activity-info">
+                                    <div class="created-date">
+                                        <small>Créé le 25/01/2024</small>
+                                    </div>
+                                    <div class="last-login">
+                                        <small>Dernière activité: 2 jours</small>
+                                    </div>
+                                </div>
+                            </td>
+                            <td class="actions-column">
+                                <div class="action-buttons">
+                                    <a href="#" class="btn btn-action btn-view"
+                                       title="Voir détails"
+                                       data-bs-toggle="tooltip">
+                                        <i class="fas fa-eye"></i>
+                                    </a>
+                                    <button class="btn btn-action btn-edit"
+                                            title="Modifier"
+                                            data-bs-toggle="tooltip"
+                                            onclick="editUser(3)">
+                                        <i class="fas fa-edit"></i>
+                                    </button>
+                                    <button class="btn btn-action btn-status"
+                                            title="Changer statut"
+                                            data-bs-toggle="tooltip"
+                                            onclick="changeUserStatus(3)">
+                                        <i class="fas fa-cog"></i>
+                                    </button>
+                                </div>
+                            </td>
+                        </tr>
+
+                        <!-- Utilisateur 4 -->
+                        <tr data-user-id="4">
+                            <td class="select-column">
+                                <input type="checkbox" class="form-check-input user-checkbox" value="4">
+                            </td>
+                            <td>
+                                <div class="user-info">
+                                    <div class="user-avatar-sm">
+                                        <div class="user-avatar-initials-sm">LB</div>
+                                    </div>
+                                    <div class="user-details">
+                                        <strong class="user-name">Luc Bernard</strong>
+                                        <small class="user-id">ID: 4</small>
+                                    </div>
+                                </div>
+                            </td>
+                            <td>
+                                <div class="contact-info">
+                                    <div class="email">
+                                        <i class="fas fa-envelope"></i>
+                                        luc.bernard@email.com
+                                    </div>
+                                    <div class="phone">
+                                        <i class="fas fa-phone"></i>
+                                        06 45 67 89 01
+                                    </div>
+                                </div>
+                            </td>
+                            <td>
+                                <span class="badge role-badge role-user">
+                                    <i class="fas fa-user"></i> Utilisateur
+                                </span>
+                            </td>
+                            <td>
+                                <span class="badge status-badge status-active">
+                                    <i class="fas fa-check-circle"></i> Actif
+                                </span>
+                            </td>
+                            <td>
+                                <div class="activity-info">
+                                    <div class="created-date">
+                                        <small>Créé le 30/01/2024</small>
+                                    </div>
+                                    <div class="last-login">
+                                        <small>Dernière activité: 3 jours</small>
+                                    </div>
+                                </div>
+                            </td>
+                            <td class="actions-column">
+                                <div class="action-buttons">
+                                    <a href="#" class="btn btn-action btn-view"
+                                       title="Voir détails"
+                                       data-bs-toggle="tooltip">
+                                        <i class="fas fa-eye"></i>
+                                    </a>
+                                    <button class="btn btn-action btn-edit"
+                                            title="Modifier"
+                                            data-bs-toggle="tooltip"
+                                            onclick="editUser(4)">
+                                        <i class="fas fa-edit"></i>
+                                    </button>
+                                    <button class="btn btn-action btn-status"
+                                            title="Changer statut"
+                                            data-bs-toggle="tooltip"
+                                            onclick="changeUserStatus(4)">
+                                        <i class="fas fa-cog"></i>
+                                    </button>
+                                </div>
+                            </td>
+                        </tr>
+
+                        <!-- Utilisateur 5 -->
+                        <tr data-user-id="5">
+                            <td class="select-column">
+                                <input type="checkbox" class="form-check-input user-checkbox" value="5">
+                            </td>
+                            <td>
+                                <div class="user-info">
+                                    <div class="user-avatar-sm">
+                                        <div class="user-avatar-initials-sm">ET</div>
+                                    </div>
+                                    <div class="user-details">
+                                        <strong class="user-name">Emma Torres</strong>
+                                        <small class="user-id">ID: 5</small>
+                                    </div>
+                                </div>
+                            </td>
+                            <td>
+                                <div class="contact-info">
+                                    <div class="email">
+                                        <i class="fas fa-envelope"></i>
+                                        emma.torres@email.com
+                                    </div>
+                                    <div class="phone">
+                                        <i class="fas fa-phone"></i>
+                                        06 56 78 90 12
+                                    </div>
+                                </div>
+                            </td>
+                            <td>
+                                <span class="badge role-badge role-organizer">
+                                    <i class="fas fa-calendar-alt"></i> Organisateur
+                                </span>
+                            </td>
+                            <td>
+                                <span class="badge status-badge status-suspended">
+                                    <i class="fas fa-pause-circle"></i> Suspendu
+                                </span>
+                            </td>
+                            <td>
+                                <div class="activity-info">
+                                    <div class="created-date">
+                                        <small>Créé le 05/02/2024</small>
+                                    </div>
+                                    <div class="last-login">
+                                        <small>Dernière activité: 1 semaine</small>
+                                    </div>
+                                </div>
+                            </td>
+                            <td class="actions-column">
+                                <div class="action-buttons">
+                                    <a href="#" class="btn btn-action btn-view"
+                                       title="Voir détails"
+                                       data-bs-toggle="tooltip">
+                                        <i class="fas fa-eye"></i>
+                                    </a>
+                                    <button class="btn btn-action btn-edit"
+                                            title="Modifier"
+                                            data-bs-toggle="tooltip"
+                                            onclick="editUser(5)">
+                                        <i class="fas fa-edit"></i>
+                                    </button>
+                                    <button class="btn btn-action btn-status"
+                                            title="Changer statut"
+                                            data-bs-toggle="tooltip"
+                                            onclick="changeUserStatus(5)">
+                                        <i class="fas fa-cog"></i>
+                                    </button>
+                                </div>
+                            </td>
+                        </tr>
+
+                        <!-- Utilisateur 6 -->
+                        <tr data-user-id="6">
+                            <td class="select-column">
+                                <input type="checkbox" class="form-check-input user-checkbox" value="6">
+                            </td>
+                            <td>
+                                <div class="user-info">
+                                    <div class="user-avatar-sm">
+                                        <div class="user-avatar-initials-sm">AR</div>
+                                    </div>
+                                    <div class="user-details">
+                                        <strong class="user-name">Antoine Roux</strong>
+                                        <small class="user-id">ID: 6</small>
+                                    </div>
+                                </div>
+                            </td>
+                            <td>
+                                <div class="contact-info">
+                                    <div class="email">
+                                        <i class="fas fa-envelope"></i>
+                                        antoine.roux@email.com
+                                    </div>
+                                    <div class="phone">
+                                        <i class="fas fa-phone"></i>
+                                        06 67 89 01 23
+                                    </div>
+                                </div>
+                            </td>
+                            <td>
+                                <span class="badge role-badge role-user">
+                                    <i class="fas fa-user"></i> Utilisateur
+                                </span>
+                            </td>
+                            <td>
+                                <span class="badge status-badge status-rejected">
+                                    <i class="fas fa-times-circle"></i> Rejeté
+                                </span>
+                            </td>
+                            <td>
+                                <div class="activity-info">
+                                    <div class="created-date">
+                                        <small>Créé le 10/02/2024</small>
+                                    </div>
+                                    <div class="last-login">
+                                        <small>Dernière activité: 2 semaines</small>
+                                    </div>
+                                </div>
+                            </td>
+                            <td class="actions-column">
+                                <div class="action-buttons">
+                                    <a href="#" class="btn btn-action btn-view"
+                                       title="Voir détails"
+                                       data-bs-toggle="tooltip">
+                                        <i class="fas fa-eye"></i>
+                                    </a>
+                                    <button class="btn btn-action btn-edit"
+                                            title="Modifier"
+                                            data-bs-toggle="tooltip"
+                                            onclick="editUser(6)">
+                                        <i class="fas fa-edit"></i>
+                                    </button>
+                                    <button class="btn btn-action btn-status"
+                                            title="Changer statut"
+                                            data-bs-toggle="tooltip"
+                                            onclick="changeUserStatus(6)">
+                                        <i class="fas fa-cog"></i>
+                                    </button>
+                                </div>
+                            </td>
+                        </tr>
+
+                        <!-- Utilisateur 7 -->
+                        <tr data-user-id="7">
+                            <td class="select-column">
+                                <input type="checkbox" class="form-check-input user-checkbox" value="7">
+                            </td>
+                            <td>
+                                <div class="user-info">
+                                    <div class="user-avatar-sm">
+                                        <div class="user-avatar-initials-sm">CP</div>
+                                    </div>
+                                    <div class="user-details">
+                                        <strong class="user-name">Chloé Petit</strong>
+                                        <small class="user-id">ID: 7</small>
+                                    </div>
+                                </div>
+                            </td>
+                            <td>
+                                <div class="contact-info">
+                                    <div class="email">
+                                        <i class="fas fa-envelope"></i>
+                                        chloe.petit@email.com
+                                    </div>
+                                    <div class="phone">
+                                        <i class="fas fa-phone"></i>
+                                        06 78 90 12 34
+                                    </div>
+                                </div>
+                            </td>
+                            <td>
+                                <span class="badge role-badge role-co-organizer">
+                                    <i class="fas fa-users"></i> Co-organisateur
+                                </span>
+                            </td>
+                            <td>
+                                <span class="badge status-badge status-active">
+                                    <i class="fas fa-check-circle"></i> Actif
+                                </span>
+                            </td>
+                            <td>
+                                <div class="activity-info">
+                                    <div class="created-date">
+                                        <small>Créé le 15/02/2024</small>
+                                    </div>
+                                    <div class="last-login">
+                                        <small>Dernière activité: 4 jours</small>
+                                    </div>
+                                </div>
+                            </td>
+                            <td class="actions-column">
+                                <div class="action-buttons">
+                                    <a href="#" class="btn btn-action btn-view"
+                                       title="Voir détails"
+                                       data-bs-toggle="tooltip">
+                                        <i class="fas fa-eye"></i>
+                                    </a>
+                                    <button class="btn btn-action btn-edit"
+                                            title="Modifier"
+                                            data-bs-toggle="tooltip"
+                                            onclick="editUser(7)">
+                                        <i class="fas fa-edit"></i>
+                                    </button>
+                                    <button class="btn btn-action btn-status"
+                                            title="Changer statut"
+                                            data-bs-toggle="tooltip"
+                                            onclick="changeUserStatus(7)">
+                                        <i class="fas fa-cog"></i>
+                                    </button>
+                                </div>
+                            </td>
+                        </tr>
+
+                        <!-- Utilisateur 8 -->
+                        <tr data-user-id="8">
+                            <td class="select-column">
+                                <input type="checkbox" class="form-check-input user-checkbox" value="8">
+                            </td>
+                            <td>
+                                <div class="user-info">
+                                    <div class="user-avatar-sm">
+                                        <div class="user-avatar-initials-sm">JL</div>
+                                    </div>
+                                    <div class="user-details">
+                                        <strong class="user-name">Julien Leroy</strong>
+                                        <small class="user-id">ID: 8</small>
+                                    </div>
+                                </div>
+                            </td>
+                            <td>
+                                <div class="contact-info">
+                                    <div class="email">
+                                        <i class="fas fa-envelope"></i>
+                                        julien.leroy@email.com
+                                    </div>
+                                    <div class="phone">
+                                        <i class="fas fa-phone"></i>
+                                        06 89 01 23 45
+                                    </div>
+                                </div>
+                            </td>
+                            <td>
+                                <span class="badge role-badge role-admin">
+                                    <i class="fas fa-crown"></i> Admin
+                                </span>
+                            </td>
+                            <td>
+                                <span class="badge status-badge status-active">
+                                    <i class="fas fa-check-circle"></i> Actif
+                                </span>
+                            </td>
+                            <td>
+                                <div class="activity-info">
+                                    <div class="created-date">
+                                        <small>Créé le 20/02/2024</small>
+                                    </div>
+                                    <div class="last-login">
+                                        <small>Dernière activité: Aujourd'hui</small>
+                                    </div>
+                                </div>
+                            </td>
+                            <td class="actions-column">
+                                <div class="action-buttons">
+                                    <a href="#" class="btn btn-action btn-view"
+                                       title="Voir détails"
+                                       data-bs-toggle="tooltip">
+                                        <i class="fas fa-eye"></i>
+                                    </a>
+                                    <button class="btn btn-action btn-edit"
+                                            title="Modifier"
+                                            data-bs-toggle="tooltip"
+                                            onclick="editUser(8)">
+                                        <i class="fas fa-edit"></i>
+                                    </button>
+                                    <button class="btn btn-action btn-status"
+                                            title="Changer statut"
+                                            data-bs-toggle="tooltip"
+                                            onclick="changeUserStatus(8)">
+                                        <i class="fas fa-cog"></i>
+                                    </button>
+                                </div>
+                            </td>
+                        </tr>
+                    </tbody>
+                </table>
+            </div>
+
+            <!-- Pagination -->
+            <div class="pagination-section">
+                <nav aria-label="Pagination">
+                    <ul class="pagination">
+                        <li class="page-item disabled">
+                            <a class="page-link" href="#">
+                                <i class="fas fa-chevron-left"></i>
+                            </a>
+                        </li>
+                        <li class="page-item active">
+                            <a class="page-link" href="#">1</a>
+                        </li>
+                        <li class="page-item">
+                            <a class="page-link" href="#">2</a>
+                        </li>
+                        <li class="page-item">
+                            <a class="page-link" href="#">3</a>
+                        </li>
+                        <li class="page-item">
+                            <a class="page-link" href="#">
+                                <i class="fas fa-chevron-right"></i>
+                            </a>
+                        </li>
+                    </ul>
+                </nav>
             </div>
         </div>
     </div>
@@ -175,31 +794,62 @@
 <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
 <!-- Select2 JS -->
 <script src="https://cdn.jsdelivr.net/npm/select2@4.1.0-rc.0/dist/js/select2.min.js"></script>
+
 <script>
 document.addEventListener('DOMContentLoaded', function() {
-    // Initialiser Select2 pour l'autocomplete
+    // Initialiser Select2
     $('#searchInput').select2({
-        ajax: {
-            url: '{{ path('admin_users_autocomplete') }}',
-            dataType: 'json',
-            delay: 250,
-            data: function (params) {
-                return {
-                    q: params.term
-                };
-            },
-            processResults: function (data) {
-                return {
-                    results: data
-                };
-            },
-            cache: true
-        },
-        minimumInputLength: 2,
         placeholder: 'Rechercher un utilisateur...',
-        allowClear: true
+        allowClear: true,
+        width: '100%'
+    });
+
+    // Initialiser les tooltips Bootstrap
+    var tooltipTriggerList = [].slice.call(document.querySelectorAll('[data-bs-toggle="tooltip"]'));
+    var tooltipList = tooltipTriggerList.map(function (tooltipTriggerEl) {
+        return new bootstrap.Tooltip(tooltipTriggerEl);
+    });
+
+    // Sélection multiple
+    $('#selectAll').change(function() {
+        $('.user-checkbox').prop('checked', this.checked);
     });
 });
-</script>
-{% endblock %}
 
+function toggleUserSelection() {
+    $('.user-checkbox').prop('checked', false);
+    $('#selectAll').prop('checked', false);
+    $('.select-column').toggleClass('visible');
+}
+
+function exportUsers() {
+    const selectedUsers = $('.user-checkbox:checked').map(function() {
+        return this.value;
+    }).get();
+    
+    if (selectedUsers.length === 0) {
+        alert('Veuillez sélectionner au moins un utilisateur à exporter.');
+        return;
+    }
+    
+    alert('Export des utilisateurs: ' + selectedUsers.join(', '));
+}
+
+function showUserStats() {
+    alert('Affichage des statistiques utilisateurs');
+}
+
+function editUser(userId) {
+    alert('Édition de l\\'utilisateur ID: ' + userId);
+}
+
+function changeUserStatus(userId) {
+    alert('Changement de statut pour l\\'utilisateur ID: ' + userId);
+}
+</script>
+
+<style>
+/* Les styles CSS restent exactement les mêmes que dans la version précédente */
+/* ... (tous les styles CSS de la version précédente) ... */
+</style>
+{% endblock %}

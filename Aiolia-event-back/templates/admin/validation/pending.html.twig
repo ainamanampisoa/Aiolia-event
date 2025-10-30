@@ -1,148 +1,743 @@
 {% extends 'base.html.twig' %}
 
-{% block title %}Demandes de validation en attente{% endblock %}
+{% block title %}Validation des comptes - Aiolia Event{% endblock %}
 
 {% block stylesheets %}
 {{ parent() }}
+<!-- Font Awesome -->
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
 {% endblock %}
 
 {% block body %}
-<div class="container-fluid py-4">
-    <div class="row">
-        <div class="col-12">
-            <div class="card">
-                <div class="card-header d-flex justify-content-between align-items-center">
+<div class="dashboard">
+    <!-- En-tête -->
+    <div class="dashboard-header">
+        <div>
+            <h1>Validation des comptes</h1>
+            <p class="dashboard-subtitle">
+                Gérez les demandes de validation de rôle des utilisateurs
+            </p>
+        </div>
+    </div>
+
+    <!-- Carte principale -->
+    <div class="card">
+        <div class="card-header">
+            <div class="card-header-content">
+                <div>
                     <h4 class="mb-0">
-                        <i class="fas fa-user-check"></i> Demandes de validation en attente
+                        <i class="fas fa-user-check"></i> Demandes en attente
                     </h4>
+                    <p class="card-subtitle">Approuvez ou rejetez les demandes de changement de rôle</p>
                 </div>
-                <div class="card-body">
-                    {% if requests is empty %}
-                        <div class="alert alert-info text-center">
-                            <i class="fas fa-info-circle"></i>
-                            Aucune demande de validation en attente
-                        </div>
-                    {% else %}
-                        <div class="table-responsive">
-                            <table class="table table-hover">
-                                <thead>
-                                    <tr>
-                                        <th>Date de demande</th>
-                                        <th>Utilisateur</th>
-                                        <th>Email</th>
-                                        <th>Rôle demandé</th>
-                                        <th>Raison</th>
-                                        <th>Actions</th>
-                                    </tr>
-                                </thead>
-                                <tbody>
-                                    {% for request in requests %}
-                                        <tr>
-                                            <td>{{ request.createdAt|date('d/m/Y H:i') }}</td>
-                                            <td>
-                                                <strong>{{ request.user.fullName }}</strong>
-                                            </td>
-                                            <td>{{ request.user.email }}</td>
-                                            <td>
-                                                <span class="badge bg-{{ request.requestedRole == 'organizer' ? 'primary' : 'info' }}">
-                                                    {{ request.requestedRole == 'organizer' ? 'Organisateur' : 'Co-organisateur' }}
-                                                </span>
-                                            </td>
-                                            <td>
-                                                {% if request.reason %}
-                                                    <small>{{ request.reason|length > 100 ? request.reason|slice(0, 100) ~ '...' : request.reason }}</small>
-                                                {% else %}
-                                                    <em class="text-muted">Aucune raison fournie</em>
-                                                {% endif %}
-                                            </td>
-                                            <td>
-                                                <button type="button" class="btn btn-sm btn-success" 
-                                                        data-bs-toggle="modal" 
-                                                        data-bs-target="#approveModal{{ request.id }}">
-                                                    <i class="fas fa-check"></i> Approuver
-                                                </button>
-                                                <button type="button" class="btn btn-sm btn-danger" 
-                                                        data-bs-toggle="modal" 
-                                                        data-bs-target="#rejectModal{{ request.id }}">
-                                                    <i class="fas fa-times"></i> Rejeter
-                                                </button>
-                                            </td>
-                                        </tr>
-
-                                        {# Modal d'approbation #}
-                                        <div class="modal fade" id="approveModal{{ request.id }}" tabindex="-1">
-                                            <div class="modal-dialog">
-                                                <div class="modal-content">
-                                                    <div class="modal-header">
-                                                        <h5 class="modal-title">Approuver la demande</h5>
-                                                        <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
-                                                    </div>
-                                                    <form method="post" action="{{ path('admin_validation_approve', {id: request.id}) }}">
-                                                        <div class="modal-body">
-                                                            <p>Voulez-vous approuver la demande de <strong>{{ request.user.fullName }}</strong> pour devenir <strong>{{ request.requestedRole == 'organizer' ? 'Organisateur' : 'Co-organisateur' }}</strong> ?</p>
-                                                            
-                                                            <div class="mb-3">
-                                                                <label class="form-label">Commentaire (optionnel)</label>
-                                                                <textarea name="comment" class="form-control" rows="3" placeholder="Ajouter un commentaire..."></textarea>
-                                                            </div>
-
-                                                            {% if request.reason %}
-                                                                <div class="alert alert-info">
-                                                                    <strong>Raison de la demande :</strong><br>
-                                                                    {{ request.reason }}
-                                                                </div>
-                                                            {% endif %}
-                                                        </div>
-                                                        <div class="modal-footer">
-                                                            <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Annuler</button>
-                                                            <button type="submit" class="btn btn-success">
-                                                                <i class="fas fa-check"></i> Approuver
-                                                            </button>
-                                                        </div>
-                                                    </form>
-                                                </div>
-                                            </div>
-                                        </div>
-
-                                        {# Modal de rejet #}
-                                        <div class="modal fade" id="rejectModal{{ request.id }}" tabindex="-1">
-                                            <div class="modal-dialog">
-                                                <div class="modal-content">
-                                                    <div class="modal-header">
-                                                        <h5 class="modal-title">Rejeter la demande</h5>
-                                                        <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
-                                                    </div>
-                                                    <form method="post" action="{{ path('admin_validation_reject', {id: request.id}) }}">
-                                                        <div class="modal-body">
-                                                            <p>Voulez-vous rejeter la demande de <strong>{{ request.user.fullName }}</strong> ?</p>
-                                                            
-                                                            <div class="mb-3">
-                                                                <label class="form-label">Raison du rejet <span class="text-danger">*</span></label>
-                                                                <textarea name="comment" class="form-control" rows="3" required placeholder="Indiquez la raison du rejet..."></textarea>
-                                                            </div>
-                                                        </div>
-                                                        <div class="modal-footer">
-                                                            <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Annuler</button>
-                                                            <button type="submit" class="btn btn-danger">
-                                                                <i class="fas fa-times"></i> Rejeter
-                                                            </button>
-                                                        </div>
-                                                    </form>
-                                                </div>
-                                            </div>
-                                        </div>
-                                    {% endfor %}
-                                </tbody>
-                            </table>
-                        </div>
-                    {% endif %}
+                <div class="card-header-actions">
+                    <span class="requests-count">{{ requests|length }} demande(s)</span>
                 </div>
             </div>
+        </div>
+
+        <div class="card-body">
+            {% if requests is empty %}
+                <!-- État vide -->
+                <div class="empty-state">
+                    <div class="empty-state-icon">
+                        <i class="fas fa-check-double"></i>
+                    </div>
+                    <h3>Aucune demande en attente</h3>
+                    <p>Toutes les demandes de validation ont été traitées.</p>
+                    <div class="empty-state-actions">
+                        <a href="{{ path('admin_users_list') }}" class="btn btn-primary">
+                            <i class="fas fa-users"></i> Voir tous les utilisateurs
+                        </a>
+                    </div>
+                </div>
+            {% else %}
+                <!-- Filtres rapides -->
+                <div class="filters-section">
+                    <div class="filters-grid">
+                        <div class="filter-group">
+                            <label class="form-label">
+                                <i class="fas fa-filter"></i> Filtrer par rôle
+                            </label>
+                            <select class="form-select filter-select" id="roleFilter">
+                                <option value="all">Tous les rôles</option>
+                                <option value="organizer">Organisateur</option>
+                                <option value="co_organizer">Co-organisateur</option>
+                            </select>
+                        </div>
+                        <div class="filter-group">
+                            <label class="form-label">
+                                <i class="fas fa-sort"></i> Trier par
+                            </label>
+                            <select class="form-select filter-select" id="sortFilter">
+                                <option value="newest">Plus récent</option>
+                                <option value="oldest">Plus ancien</option>
+                                <option value="name">Nom</option>
+                            </select>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Liste des demandes en tableau -->
+                <div class="table-responsive">
+                    <table class="table table-hover requests-table">
+                        <thead>
+                            <tr>
+                                <th>Utilisateur</th>
+                                <th>Contact</th>
+                                <th>Rôle demandé</th>
+                                <th>Date demande</th>
+                                <th>Raison</th>
+                                <th class="actions-column">Actions</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {% for request in requests %}
+                                <tr class="request-row" data-role="{{ request.requestedRole }}" data-date="{{ request.createdAt|date('U') }}" data-name="{{ request.user.fullName|lower }}">
+                                    <td>
+                                        <div class="user-info">
+                                            <div class="user-avatar-sm">
+                                                {% if request.user.photoUrl %}
+                                                    <img src="{{ request.user.photoUrl }}" alt="{{ request.user.fullName }}">
+                                                {% else %}
+                                                    <div class="user-avatar-initials-sm">
+                                                        {{ request.user.firstName|first|upper }}{{ request.user.lastName|first|upper }}
+                                                    </div>
+                                                {% endif %}
+                                            </div>
+                                            <div class="user-details">
+                                                <strong class="user-name">{{ request.user.fullName }}</strong>
+                                                <div class="user-meta">
+                                                    <span class="user-email">{{ request.user.email }}</span>
+                                                    {% if request.user.phone %}
+                                                        <span class="user-phone">{{ request.user.phone }}</span>
+                                                    {% endif %}
+                                                </div>
+                                            </div>
+                                        </div>
+                                    </td>
+                                    <td>
+                                        <div class="contact-info">
+                                            <div class="email">
+                                                <i class="fas fa-envelope"></i>
+                                                {{ request.user.email }}
+                                            </div>
+                                            {% if request.user.phone %}
+                                                <div class="phone">
+                                                    <i class="fas fa-phone"></i>
+                                                    {{ request.user.phone }}
+                                                </div>
+                                            {% endif %}
+                                        </div>
+                                    </td>
+                                    <td>
+                                        <span class="badge role-badge {{ request.requestedRole == 'organizer' ? 'role-organizer' : 'role-co-organizer' }}">
+                                            <i class="fas fa-{{ request.requestedRole == 'organizer' ? 'calendar-alt' : 'users' }}"></i>
+                                            {{ request.requestedRole == 'organizer' ? 'Organisateur' : 'Co-organisateur' }}
+                                        </span>
+                                    </td>
+                                    <td>
+                                        <div class="date-info">
+                                            <div class="request-date">
+                                                {{ request.createdAt|date('d/m/Y') }}
+                                            </div>
+                                            <div class="request-time">
+                                                {{ request.createdAt|date('H:i') }}
+                                            </div>
+                                        </div>
+                                    </td>
+                                    <td>
+                                        {% if request.reason %}
+                                            <div class="reason-preview">
+                                                <button class="btn-reason-preview" data-bs-toggle="modal" data-bs-target="#reasonModal{{ request.id }}">
+                                                    <i class="fas fa-comment"></i>
+                                                    Voir la raison
+                                                </button>
+                                            </div>
+                                        {% else %}
+                                            <span class="no-reason">
+                                                <i class="fas fa-info-circle"></i>
+                                                Aucune raison
+                                            </span>
+                                        {% endif %}
+                                    </td>
+                                    <td class="actions-column">
+                                        <div class="action-buttons">
+                                            <button class="btn btn-success btn-sm btn-approve" 
+                                                    data-bs-toggle="modal" 
+                                                    data-bs-target="#approveModal{{ request.id }}"
+                                                    title="Approuver la demande">
+                                                <i class="fas fa-check"></i>
+                                            </button>
+                                            <button class="btn btn-danger btn-sm btn-reject" 
+                                                    data-bs-toggle="modal" 
+                                                    data-bs-target="#rejectModal{{ request.id }}"
+                                                    title="Rejeter la demande">
+                                                <i class="fas fa-times"></i>
+                                            </button>
+                                            <a href="{{ path('admin_users_show', {id: request.user.id}) }}" 
+                                               class="btn btn-primary btn-sm btn-view"
+                                               title="Voir le profil">
+                                                <i class="fas fa-eye"></i>
+                                            </a>
+                                        </div>
+                                    </td>
+                                </tr>
+
+                                <!-- Modal pour voir la raison -->
+                                <div class="modal fade" id="reasonModal{{ request.id }}" tabindex="-1">
+                                    <div class="modal-dialog">
+                                        <div class="modal-content">
+                                            <div class="modal-header">
+                                                <h5 class="modal-title">
+                                                    <i class="fas fa-comment"></i> Raison de la demande
+                                                </h5>
+                                                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                                            </div>
+                                            <div class="modal-body">
+                                                <div class="reason-content">
+                                                    <p><strong>{{ request.user.fullName }}</strong> - {{ request.createdAt|date('d/m/Y à H:i') }}</p>
+                                                    <div class="reason-text">
+                                                        {{ request.reason }}
+                                                    </div>
+                                                </div>
+                                            </div>
+                                            <div class="modal-footer">
+                                                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Fermer</button>
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+
+                                <!-- Modal d'approbation -->
+                                <div class="modal fade" id="approveModal{{ request.id }}" tabindex="-1">
+                                    <div class="modal-dialog">
+                                        <div class="modal-content">
+                                            <div class="modal-header">
+                                                <div class="modal-header-content">
+                                                    <div class="modal-icon modal-icon-success">
+                                                        <i class="fas fa-check-circle"></i>
+                                                    </div>
+                                                    <div>
+                                                        <h5 class="modal-title">Approuver la demande</h5>
+                                                        <p class="modal-subtitle">Confirmez l'approbation du rôle</p>
+                                                    </div>
+                                                </div>
+                                                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                                            </div>
+                                            <form method="post" action="{{ path('admin_validation_approve', {id: request.id}) }}">
+                                                <div class="modal-body">
+                                                    <div class="approval-info">
+                                                        <div class="user-summary">
+                                                            <div class="user-avatar-sm">
+                                                                {% if request.user.photoUrl %}
+                                                                    <img src="{{ request.user.photoUrl }}" alt="{{ request.user.fullName }}">
+                                                                {% else %}
+                                                                    <div class="user-avatar-initials-sm">
+                                                                        {{ request.user.firstName|first|upper }}{{ request.user.lastName|first|upper }}
+                                                                    </div>
+                                                                {% endif %}
+                                                            </div>
+                                                            <div class="user-summary-details">
+                                                                <h6>{{ request.user.fullName }}</h6>
+                                                                <p>{{ request.user.email }}</p>
+                                                            </div>
+                                                        </div>
+
+                                                        <div class="approval-message">
+                                                            <p>Vous êtes sur le point d'approuver la demande de <strong>{{ request.user.fullName }}</strong> pour le rôle de <strong>{{ request.requestedRole == 'organizer' ? 'Organisateur' : 'Co-organisateur' }}</strong>.</p>
+                                                        </div>
+
+                                                        <div class="form-group">
+                                                            <label class="form-label">
+                                                                <i class="fas fa-comment-dots"></i> Commentaire (optionnel)
+                                                            </label>
+                                                            <textarea name="comment" class="form-control" rows="3" 
+                                                                      placeholder="Ajoutez un commentaire pour l'utilisateur..."></textarea>
+                                                        </div>
+                                                    </div>
+                                                </div>
+                                                <div class="modal-footer">
+                                                    <button type="button" class="btn btn-outline-secondary" data-bs-dismiss="modal">
+                                                        Annuler
+                                                    </button>
+                                                    <button type="submit" class="btn btn-success">
+                                                        <i class="fas fa-check"></i> Approuver
+                                                    </button>
+                                                </div>
+                                            </form>
+                                        </div>
+                                    </div>
+                                </div>
+
+                                <!-- Modal de rejet -->
+                                <div class="modal fade" id="rejectModal{{ request.id }}" tabindex="-1">
+                                    <div class="modal-dialog">
+                                        <div class="modal-content">
+                                            <div class="modal-header">
+                                                <div class="modal-header-content">
+                                                    <div class="modal-icon modal-icon-danger">
+                                                        <i class="fas fa-times-circle"></i>
+                                                    </div>
+                                                    <div>
+                                                        <h5 class="modal-title">Rejeter la demande</h5>
+                                                        <p class="modal-subtitle">Indiquez la raison du rejet</p>
+                                                    </div>
+                                                </div>
+                                                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                                            </div>
+                                            <form method="post" action="{{ path('admin_validation_reject', {id: request.id}) }}">
+                                                <div class="modal-body">
+                                                    <div class="rejection-info">
+                                                        <div class="user-summary">
+                                                            <div class="user-avatar-sm">
+                                                                {% if request.user.photoUrl %}
+                                                                    <img src="{{ request.user.photoUrl }}" alt="{{ request.user.fullName }}">
+                                                                {% else %}
+                                                                    <div class="user-avatar-initials-sm">
+                                                                        {{ request.user.firstName|first|upper }}{{ request.user.lastName|first|upper }}
+                                                                    </div>
+                                                                {% endif %}
+                                                            </div>
+                                                            <div class="user-summary-details">
+                                                                <h6>{{ request.user.fullName }}</h6>
+                                                                <p>{{ request.user.email }}</p>
+                                                            </div>
+                                                        </div>
+
+                                                        <div class="rejection-message">
+                                                            <p>Vous êtes sur le point de rejeter la demande de <strong>{{ request.user.fullName }}</strong>.</p>
+                                                        </div>
+
+                                                        <div class="form-group">
+                                                            <label class="form-label required">
+                                                                <i class="fas fa-comment-exclamation"></i> Raison du rejet
+                                                            </label>
+                                                            <textarea name="comment" class="form-control" rows="3" required
+                                                                      placeholder="Expliquez pourquoi la demande est rejetée..."></textarea>
+                                                        </div>
+                                                    </div>
+                                                </div>
+                                                <div class="modal-footer">
+                                                    <button type="button" class="btn btn-outline-secondary" data-bs-dismiss="modal">
+                                                        Annuler
+                                                    </button>
+                                                    <button type="submit" class="btn btn-danger">
+                                                        <i class="fas fa-times"></i> Rejeter
+                                                    </button>
+                                                </div>
+                                            </form>
+                                        </div>
+                                    </div>
+                                </div>
+                            {% endfor %}
+                        </tbody>
+                    </table>
+                </div>
+            {% endif %}
         </div>
     </div>
 </div>
 
 <!-- Bootstrap JS -->
 <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
-{% endblock %}
 
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    // Initialiser les tooltips Bootstrap
+    var tooltipTriggerList = [].slice.call(document.querySelectorAll('[title]'));
+    var tooltipList = tooltipTriggerList.map(function (tooltipTriggerEl) {
+        return new bootstrap.Tooltip(tooltipTriggerEl);
+    });
+
+    // Filtrage par rôle
+    const roleFilter = document.getElementById('roleFilter');
+    const sortFilter = document.getElementById('sortFilter');
+    const requestRows = document.querySelectorAll('.request-row');
+
+    roleFilter.addEventListener('change', function() {
+        filterRequests(this.value);
+    });
+
+    sortFilter.addEventListener('change', function() {
+        sortRequests(this.value);
+    });
+
+    function filterRequests(role) {
+        requestRows.forEach(row => {
+            if (role === 'all' || row.dataset.role === role) {
+                row.style.display = '';
+            } else {
+                row.style.display = 'none';
+            }
+        });
+    }
+
+    function sortRequests(criteria) {
+        const tbody = document.querySelector('.requests-table tbody');
+        const rows = Array.from(requestRows).filter(row => row.style.display !== 'none');
+        
+        rows.sort((a, b) => {
+            switch(criteria) {
+                case 'newest':
+                    return b.dataset.date - a.dataset.date;
+                case 'oldest':
+                    return a.dataset.date - b.dataset.date;
+                case 'name':
+                    return a.dataset.name.localeCompare(b.dataset.name);
+                default:
+                    return 0;
+            }
+        });
+        
+        // Réorganiser les lignes
+        rows.forEach(row => tbody.appendChild(row));
+    }
+});
+
+function showValidationStats() {
+    alert('Affichage des statistiques de validation');
+}
+</script>
+
+<style>
+/* Styles spécifiques à la validation */
+.dashboard-subtitle {
+    color: var(--gray-600);
+    margin-top: 8px;
+    font-size: 1rem;
+}
+
+.card-header-content {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    width: 100%;
+}
+
+.card-subtitle {
+    color: var(--gray-600);
+    font-size: 0.9rem;
+    margin-top: 4px;
+}
+
+.requests-count {
+    background: var(--gray-100);
+    padding: 6px 12px;
+    border-radius: 20px;
+    font-size: 0.85rem;
+    font-weight: 600;
+    color: var(--gray-700);
+}
+
+/* Filtres */
+.filters-section {
+    background: var(--gray-50);
+    border-radius: var(--border-radius-md);
+    padding: 16px;
+    margin-bottom: 20px;
+    border: 1px solid var(--gray-200);
+}
+
+.filters-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+    gap: 12px;
+}
+
+/* Tableau des demandes */
+.requests-table {
+    font-size: 0.9rem;
+}
+
+.requests-table th {
+    font-weight: 600;
+    color: var(--gray-700);
+    border-bottom: 2px solid var(--gray-300);
+    padding: 12px 8px;
+}
+
+.requests-table td {
+    padding: 12px 8px;
+    vertical-align: middle;
+}
+
+.user-info {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+}
+
+.user-avatar-sm {
+    width: 40px;
+    height: 40px;
+    border-radius: 50%;
+    overflow: hidden;
+    flex-shrink: 0;
+}
+
+.user-avatar-sm img {
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+}
+
+.user-avatar-initials-sm {
+    width: 40px;
+    height: 40px;
+    border-radius: 50%;
+    background: linear-gradient(135deg, var(--accent), var(--accent-light));
+    color: white;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-weight: 600;
+    font-size: 0.9rem;
+}
+
+.user-details {
+    display: flex;
+    flex-direction: column;
+}
+
+.user-name {
+    font-weight: 600;
+    color: var(--gray-900);
+    font-size: 0.95rem;
+    margin-bottom: 2px;
+}
+
+.user-meta {
+    display: flex;
+    flex-direction: column;
+    gap: 1px;
+}
+
+.user-email, .user-phone {
+    font-size: 0.8rem;
+    color: var(--gray-600);
+}
+
+.contact-info {
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+}
+
+.email, .phone {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    font-size: 0.85rem;
+}
+
+.email i, .phone i {
+    color: var(--gray-500);
+    width: 14px;
+}
+
+/* Badges de rôle */
+.role-badge {
+    font-size: 0.75rem;
+    padding: 6px 10px;
+    border-radius: 12px;
+    font-weight: 600;
+}
+
+.role-organizer {
+    background: rgba(52, 152, 219, 0.1);
+    color: #3498db;
+    border: 1px solid rgba(52, 152, 219, 0.2);
+}
+
+.role-co-organizer {
+    background: rgba(155, 89, 182, 0.1);
+    color: #9b59b6;
+    border: 1px solid rgba(155, 89, 182, 0.2);
+}
+
+/* Date */
+.date-info {
+    display: flex;
+    flex-direction: column;
+}
+
+.request-date {
+    font-weight: 600;
+    color: var(--gray-900);
+}
+
+.request-time {
+    font-size: 0.8rem;
+    color: var(--gray-600);
+}
+
+/* Raison */
+.reason-preview {
+    text-align: center;
+}
+
+.btn-reason-preview {
+    background: none;
+    border: 1px solid var(--gray-300);
+    color: var(--gray-700);
+    padding: 6px 12px;
+    border-radius: 6px;
+    font-size: 0.8rem;
+    cursor: pointer;
+    transition: all 0.2s ease;
+}
+
+.btn-reason-preview:hover {
+    background: var(--gray-100);
+    border-color: var(--accent);
+    color: var(--accent);
+}
+
+.no-reason {
+    color: var(--gray-500);
+    font-style: italic;
+    font-size: 0.85rem;
+}
+
+.no-reason i {
+    margin-right: 4px;
+}
+
+/* Actions */
+.actions-column {
+    width: 140px;
+}
+
+.action-buttons {
+    display: flex;
+    gap: 6px;
+    justify-content: center;
+}
+
+.action-buttons .btn {
+    width: 32px;
+    height: 32px;
+    padding: 0;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    border: none;
+    border-radius: 6px;
+    font-size: 0.8rem;
+}
+
+/* Modals */
+.modal-header-content {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+}
+
+.modal-icon {
+    width: 40px;
+    height: 40px;
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 1.2rem;
+}
+
+.modal-icon-success {
+    background: rgba(46, 204, 113, 0.1);
+    color: #2ecc71;
+}
+
+.modal-icon-danger {
+    background: rgba(231, 76, 60, 0.1);
+    color: #e74c3c;
+}
+
+.modal-subtitle {
+    color: var(--gray-600);
+    font-size: 0.9rem;
+    margin: 0;
+}
+
+.user-summary {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    margin-bottom: 16px;
+    padding: 12px;
+    background: var(--gray-50);
+    border-radius: var(--border-radius-md);
+}
+
+.reason-content {
+    background: var(--gray-50);
+    padding: 16px;
+    border-radius: var(--border-radius-md);
+    border-left: 3px solid var(--accent);
+}
+
+.reason-text {
+    font-size: 0.9rem;
+    line-height: 1.5;
+    color: var(--gray-700);
+    margin: 0;
+}
+
+/* État vide */
+.empty-state {
+    text-align: center;
+    padding: 60px 20px;
+}
+
+.empty-state-icon {
+    font-size: 4rem;
+    color: var(--gray-400);
+    margin-bottom: 20px;
+}
+
+.empty-state h3 {
+    color: var(--gray-700);
+    margin-bottom: 12px;
+}
+
+.empty-state p {
+    color: var(--gray-600);
+    margin-bottom: 24px;
+}
+
+.empty-state-actions {
+    display: flex;
+    gap: 12px;
+    justify-content: center;
+}
+
+/* Responsive */
+@media (max-width: 768px) {
+    .filters-grid {
+        grid-template-columns: 1fr;
+    }
+    
+    .card-header-content {
+        flex-direction: column;
+        align-items: flex-start;
+        gap: 12px;
+    }
+    
+    .user-info {
+        flex-direction: column;
+        text-align: center;
+        gap: 8px;
+    }
+    
+    .action-buttons {
+        flex-direction: column;
+    }
+    
+    .action-buttons .btn {
+        width: 28px;
+        height: 28px;
+    }
+}
+</style>
+{% endblock %}
