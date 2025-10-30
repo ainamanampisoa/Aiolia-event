@@ -74,7 +74,7 @@
                     
                     <a href="#" class="dropdown-item" role="menuitem">
                         <i class="fas fa-question-circle"></i>
-                        <span>Aide Support</span>
+                        <span>Aide & Support</span>
                     </a>
                     
                     <div class="dropdown-divider"></div>
@@ -88,3 +88,191 @@
         </div>
     </div>
 </header>
+
+{% block javascripts %}
+<script>
+// ============================================
+// HEADER INTERACTIONS
+// ============================================
+document.addEventListener('DOMContentLoaded', function() {
+    
+    // ============================================
+    // USER DROPDOWN
+    // ============================================
+    const userTrigger = document.querySelector('.user-trigger');
+    const dropdownMenu = document.querySelector('.dropdown-menu');
+    const userDropdown = document.querySelector('.user-dropdown');
+    
+    if (userTrigger && dropdownMenu) {
+        // Toggle dropdown
+        userTrigger.addEventListener('click', function(e) {
+            e.preventDefault();
+            e.stopPropagation();
+            
+            const isExpanded = this.getAttribute('aria-expanded') === 'true';
+            
+            if (isExpanded) {
+                closeDropdown();
+            } else {
+                openDropdown();
+            }
+        });
+        
+        // Fermeture au clic extérieur
+        document.addEventListener('click', function(e) {
+            if (userDropdown && !userDropdown.contains(e.target)) {
+                closeDropdown();
+            }
+        });
+        
+        // Navigation clavier
+        userTrigger.addEventListener('keydown', function(e) {
+            if (e.key === 'Enter' || e.key === ' ') {
+                e.preventDefault();
+                const isExpanded = this.getAttribute('aria-expanded') === 'true';
+                if (isExpanded) {
+                    closeDropdown();
+                } else {
+                    openDropdown();
+                }
+            } else if (e.key === 'Escape') {
+                closeDropdown();
+            }
+        });
+        
+        // Navigation dans le menu
+        const dropdownItems = dropdownMenu.querySelectorAll('.dropdown-item');
+        dropdownItems.forEach((item, index) => {
+            item.addEventListener('keydown', function(e) {
+                if (e.key === 'ArrowDown') {
+                    e.preventDefault();
+                    const next = dropdownItems[index + 1];
+                    if (next) next.focus();
+                } else if (e.key === 'ArrowUp') {
+                    e.preventDefault();
+                    const prev = dropdownItems[index - 1];
+                    if (prev) {
+                        prev.focus();
+                    } else {
+                        userTrigger.focus();
+                    }
+                } else if (e.key === 'Escape') {
+                    closeDropdown();
+                    userTrigger.focus();
+                }
+            });
+        });
+        
+        function openDropdown() {
+            userTrigger.setAttribute('aria-expanded', 'true');
+            dropdownMenu.classList.add('show');
+            
+            // Focus premier item après animation
+            setTimeout(() => {
+                const firstItem = dropdownMenu.querySelector('.dropdown-item');
+                if (firstItem) firstItem.focus();
+            }, 100);
+        }
+        
+        function closeDropdown() {
+            userTrigger.setAttribute('aria-expanded', 'false');
+            dropdownMenu.classList.remove('show');
+        }
+    }
+    
+    // ============================================
+    // SEARCH INPUT
+    // ============================================
+    const searchInput = document.querySelector('.search-input');
+    
+    if (searchInput) {
+        // Raccourci clavier (Ctrl/Cmd + K)
+        document.addEventListener('keydown', function(e) {
+            if ((e.ctrlKey || e.metaKey) && e.key === 'k') {
+                e.preventDefault();
+                searchInput.focus();
+            }
+            
+            // Échapper pour sortir de la recherche
+            if (e.key === 'Escape' && document.activeElement === searchInput) {
+                searchInput.blur();
+            }
+        });
+        
+        // Debounce pour la recherche
+        let searchTimeout;
+        searchInput.addEventListener('input', function(e) {
+            clearTimeout(searchTimeout);
+            const query = e.target.value;
+            
+            if (query.length >= 2) {
+                searchTimeout = setTimeout(() => {
+                    performSearch(query);
+                }, 300);
+            }
+        });
+        
+        function performSearch(query) {
+            console.log('🔍 Recherche:', query);
+            // Implémenter la logique de recherche ici
+            // Exemple: fetch('/api/search?q=' + encodeURIComponent(query))
+        }
+    }
+    
+    // ============================================
+    // NOTIFICATIONS
+    // ============================================
+    const notificationBtn = document.querySelector('.notification-btn');
+    
+    if (notificationBtn) {
+        notificationBtn.addEventListener('click', function() {
+            console.log('🔔 Notifications ouvertes');
+            // Implémenter le panneau de notifications
+            showNotificationPanel();
+        });
+    }
+    
+    function showNotificationPanel() {
+        // Placeholder pour le panneau de notifications
+        // Vous pouvez créer un modal ou un dropdown pour afficher les notifications
+        alert('Panneau de notifications à implémenter');
+    }
+    
+    // ============================================
+    // HEADER SCROLL BEHAVIOR
+    // ============================================
+    const header = document.querySelector('.admin-header');
+    let lastScroll = 0;
+    let scrollTimeout;
+    
+    if (header) {
+        window.addEventListener('scroll', function() {
+            clearTimeout(scrollTimeout);
+            
+            scrollTimeout = setTimeout(() => {
+                const currentScroll = window.pageYOffset;
+                
+                // Masquer header au scroll down (après 100px)
+                if (currentScroll > lastScroll && currentScroll > 100) {
+                    header.style.transform = 'translateY(-100%)';
+                } else {
+                    header.style.transform = 'translateY(0)';
+                }
+                
+                lastScroll = currentScroll;
+            }, 10);
+        });
+    }
+    
+    // ============================================
+    // ANIMATIONS AU CHARGEMENT
+    // ============================================
+    setTimeout(() => {
+        if (header) {
+            header.style.opacity = '1';
+            header.style.transform = 'translateY(0)';
+        }
+    }, 100);
+});
+</script>
+{% endblock %}
