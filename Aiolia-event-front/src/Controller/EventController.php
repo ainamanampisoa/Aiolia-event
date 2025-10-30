@@ -97,6 +97,13 @@ class EventController extends AbstractController
         ]);
     }
 
+    #[Route('/event-detail', name: 'event_detail_static')]
+    public function showEventDetailStatic(): Response
+    {
+        // Rend la page de détails statique (copie fidèle du HTML)
+        return $this->render('event/details.html.twig');
+    }
+
     #[Route('/api/events', name: 'api_events_list', methods: ['GET'])]
     public function listEventsApi(Request $request): JsonResponse
     {

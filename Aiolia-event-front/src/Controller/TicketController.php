@@ -34,7 +34,7 @@ class TicketController extends AbstractController
     #[Route('/contact', name: 'contact')]
     public function contact(): Response
     {
-        // TODO: Implémenter la page de contact
+        // Page de contact (copie depuis vente-ticket/contact.html)
         return $this->render('contact/index.html.twig');
     }
 

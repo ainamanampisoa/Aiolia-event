@@ -1,0 +1,58 @@
+{% extends 'base.html.twig' %}
+
+{% block title %}Créer un compte - Vente tickets{% endblock %}
+
+{% block stylesheets %}
+        <link rel="stylesheet" type="text/css" href="{{ asset('vente-ticket/css/animate.min.css') }}">
+        <link rel="stylesheet" type="text/css" href="{{ asset('vente-ticket/css/slick.css') }}">
+        <link rel="stylesheet" type="text/css" href="{{ asset('vente-ticket/css/jquery-ui.css') }}">
+        <link rel="stylesheet" type="text/css" href="{{ asset('vente-ticket/css/main.css') }}">
+{% endblock %}
+
+{% block body %}
+        <main>
+            <section class="sec-login pt-100 pb-100">
+                <div class="container">
+                    <h2 class="text-center">Créer un compte</h2>
+                    <div class="blc-login bg-beige">
+                        <form>
+                            <div class="blc-chp">
+                                <label>Votre nom complet</label>
+                                <input type="text" class="form-control">
+                            </div>
+                            <div class="blc-chp">
+                                <label>Votre adresse email</label>
+                                <input type="email" class="form-control">
+                            </div>
+                            <div class="blc-chp">
+                                <label>Mot de passe</label>
+                                <div class="blc-password">
+                                    <input type="password" class="form-control" placeholder="****">
+                                    <span class="material-symbols-rounded pointer toggle-password"></span>
+                                </div>
+                            </div>
+                            <div class="blc-chp">
+                                <label>Confirmer le mot de passe</label>
+                                <div class="blc-password">
+                                    <input type="password" class="form-control" placeholder="****">
+                                    <span class="material-symbols-rounded pointer toggle-password"></span>
+                                </div>
+                            </div>
+                            <div class="blc-btn text-center">
+                                <input type="submit" class="btn-submit check" value="Créer mon compte">
+                                <a href="{{ path('login') }}" class="link-form">Déjà un compte ? Se connecter</a>
+                            </div>
+                        </form>
+                    </div>
+                </div>
+            </section>
+        </main>
+{% endblock %}
+
+{% block javascripts %}
+        <script type="text/javascript" src="{{ asset('vente-ticket/js/jquery.min.js') }}"></script>
+        <script type="text/javascript" src="{{ asset('vente-ticket/js/wow.js') }}"></script>
+        <script type="text/javascript" src="{{ asset('vente-ticket/js/slick.min.js') }}"></script>
+        <script type="text/javascript" src="{{ asset('vente-ticket/js/jquery-ui.js') }}"></script>  
+        <script type="text/javascript" src="{{ asset('vente-ticket/js/custom.js') }}"></script>
+{% endblock %}
