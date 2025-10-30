@@ -1,0 +1,92 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+    <meta http-equiv="Content-Type" content="text/html; charset=UTF-8" />
+    <title>{% block title %}Aiolia Event{% endblock %}</title>
+    <meta name="description" content="{% block description %}{% endblock %}" />
+    <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no"/>
+    <!--[if lt IE 9]>
+    <script src="{{ asset('vente-ticket/js/html5.js') }}"></script>
+    <![endif]-->
+    <link rel="stylesheet" type="text/css" href="{{ asset('vente-ticket/css/animate.min.css') }}">
+    <link rel="stylesheet" type="text/css" href="{{ asset('vente-ticket/css/slick.css') }}">
+    <link rel="stylesheet" type="text/css" href="{{ asset('vente-ticket/css/jquery-ui.css') }}">
+    <link rel="stylesheet" type="text/css" href="{{ asset('vente-ticket/css/main.css') }}">
+    {% block stylesheets %}{% endblock %}
+</head>
+<body>
+    <header>
+        <div class="head">
+            <div class="container d-flex justify-content-between">
+                <a href="#" class="logo"><img src="{{ asset('vente-ticket/images/logo.png') }}" alt="Powered by"></a>
+                </a>
+                <div class="blcMenu d-flex">
+                    <div class="wrapMenuMobile">
+                        <div class="menuMobile">
+                            <div></div>
+                        </div>
+                    </div>
+
+                    <nav class="menu">
+                        <ul>
+                            <li>
+                                <a href="#" title="Evènements">évènements</a>
+                            </li>
+                            <li>
+                                <a href="#" title="Devenir organisateur">devenir organisateur</a>
+                            </li>
+                            <li>
+                                <a href="#" title="Contact">contact</a>
+                            </li>
+                        </ul>
+                        <div class="login">
+                            <a href="#">se connecter</a>
+                        </div>
+                    </nav>
+                   
+                    <div class="panier">
+                        <a href="#"></a>
+                        <span>02</span>
+                    </div>
+                </div>
+            </div>
+        </div>
+        {% block header_banner %}{% endblock %}
+    </header>
+
+    <main>
+        {% block body %}{% endblock %}
+    </main>
+
+    <footer>
+        <div class="container">
+            <div class="row">
+                <div class="col-md-4">
+                    <h3>Aiolia Event</h3>
+                    <p>Plateforme de vente de billets d'événements</p>
+                </div>
+                <div class="col-md-4">
+                    <h3>Liens utiles</h3>
+                    <ul>
+                        <li><a href="{{ path('events') }}">Événements</a></li>
+                        <li><a href="{{ path('become_organizer') }}">Devenir organisateur</a></li>
+                        <li><a href="{{ path('contact') }}">Contact</a></li>
+                    </ul>
+                </div>
+                <div class="col-md-4">
+                    <h3>Contact</h3>
+                    <p>Email: contact@aiolia-event.com</p>
+                    <p>Téléphone: +261 XX XX XX XX</p>
+                </div>
+            </div>
+        </div>
+    </footer>
+
+    <script src="{{ asset('vente-ticket/js/jquery.min.js') }}"></script>
+    <script src="{{ asset('vente-ticket/js/jquery-ui.js') }}"></script>
+    <script src="{{ asset('vente-ticket/js/slick.min.js') }}"></script>
+    <script src="{{ asset('vente-ticket/js/wow.js') }}"></script>
+    <script src="{{ asset('vente-ticket/js/custom.js') }}"></script>
+    {% block javascripts %}{% endblock %}
+</body>
+</html>

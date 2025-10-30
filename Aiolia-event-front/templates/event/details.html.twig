@@ -1,0 +1,411 @@
+<!DOCTYPE html>
+<html lang="fr">
+    <head>
+    	<meta http-equiv="Content-Type" content="text/html; charset=UTF-8" />
+    	<title>Event détails - Vente tickets</title>
+    	<meta name="description" content="" />
+    	<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no"/>
+    	<!--[if lt IE 9]>
+    	<script src="{{ asset('vente-ticket/js/html5.js') }}"></script>
+    	<![endif]-->
+        <link rel="stylesheet" type="text/css" href="{{ asset('vente-ticket/css/animate.min.css') }}">
+        <link rel="stylesheet" type="text/css" href="{{ asset('vente-ticket/css/slick.css') }}">
+        <link rel="stylesheet" type="text/css" href="{{ asset('vente-ticket/css/jquery-ui.css') }}">
+        <link rel="stylesheet" type="text/css" href="{{ asset('vente-ticket/css/main.css') }}">
+        
+    </head>
+    <body>
+        <header>
+            <div class="head">
+                <div class="container d-flex justify-content-between ">
+                    <a href="#" class="logo"><img src="{{ asset('vente-ticket/images/logo.png') }}" alt="Powered by"></a>
+                    <div class="blcMenu d-flex ">
+                        <div class="wrapMenuMobile">
+                            <div class="menuMobile">
+                                <div></div>       
+                            </div>
+                        </div>
+
+                        <nav class="menu">
+                            <ul>
+                                <li>
+                                    <a href="#" title="Evènements">évènements</a>
+                                </li>
+                                <li>
+                                    <a href="#" title="Devenir organisateur">devenir organisateur</a>
+                                </li>
+                                <li>
+                                    <a href="#" title="Contact">contact</a>
+                                </li>
+                            </ul>
+                             <div class="login">
+                                <a href="#">se connecter</a>
+                            </div>
+                        </nav>
+                       
+                        <div class="panier">
+                            <a href="#"></a>
+                            <span>02</span>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+           
+        </header>
+        <main>
+
+            <section class="sec-event-details">
+                <div class="container">
+                    <div class="inner-details">
+                        <h2 class="wow fadeIn" data-wow-delay="300ms">Jazz Style Music on Sunday evening event</h2>
+                        <div class="lst-event wow fadeInUp" data-wow-delay="300ms">
+                            <div class="item ">
+                                <div class="inner">
+                                    <div class="blc-col2">
+                                        <div class="img">
+                                            <img src="{{ asset('vente-ticket/images/img1.png') }}" alt="ventes tickets">
+                                        </div>  
+                                    </div>
+                                    <div class="blc-col1">
+                                        <div class="col1">
+                                            <div class="date">
+                                                <span>Dimanche</span>
+                                                <strong>20</strong>
+                                                <span class="text-upper">juil. 2025</span>
+                                            </div>
+                                            <div class="hour">
+                                                à 20:00
+                                            </div>
+                                            <div class="code-barre">
+                                                <img src="{{ asset('vente-ticket/images/code1.png') }}">
+                                            </div>
+                                        </div>
+                                        <div class="col2">
+                                            <span class="bandeau">Soirée live</span>
+                                            <div class="adresse">Lieu : Analakely au Café de la Gare</div>
+                                            <div class="tarif">Tarifs : 50.000MGA - 150.000MGA</div>
+                                            <div class="capacite">Capacité : 320 personnes max.</div>
+
+                                            <div id="timer">
+                                              <div id="days"><div></div></div>
+                                              <div id="hours"></div>
+                                              <div id="minutes"></div>
+                                              <div id="seconds"></div>
+                                            </div>
+
+                                            
+                                        </div>
+                                      
+                                    </div>
+                                    
+                                    <div class="blc-col3">
+                                        <h3>Option sur le ticket</h3>
+                                        <div class="type">
+                                            <form>
+                                                <div class="blc-select">
+                                                    <label>Type de ticket</label>
+                                                    <select>
+                                                        <option>Offre VIP</option>
+                                                        <option>lorem ipsum</option>
+
+                                                    </select>
+                                                </div>
+                                                <div class="blc-nbr d-flex">
+                                                    <div class="col">
+                                                        <label>Adulte</label>
+                                                        <div class="numbers-row">
+                                                            <div class="dec button"><span>-</span></div>
+                                                            <input type="text" name="qtt" id="qtt" value="1" class="qtt">
+                                                            <div class="inc button"><span>+</span></div>    
+                                                        </div>
+                                                    </div>
+                                                    <div class="col">
+                                                        <label>Enfant <span class="info"><img src="{{ asset('vente-ticket/images/info.png') }}"><div class="tooltip">Un ticket est requis pour les enfants de plus de 10 ans</div></span></label>
+                                                        <div class="numbers-row">
+                                                            <div class="dec button"><span>-</span></div>
+                                                            <input type="text" name="qtt" id="qtt" value="1" class="qtt">
+                                                            <div class="inc button"><span>+</span></div>    
+                                                        </div>
+                                                    </div>
+                                                    <div class="col btn-ok">
+                                                        <button class="btn ok">OK</button>
+                                                    </div>
+
+
+                                                </div>
+                                            </form>
+                                        </div>
+                                    </div>
+                                </div>
+                                <div class="blc-paiement">
+                                    <div class="btn-left">
+                                        <a href="#" class="btn">je souhaite Acheter/réserver un ticket à cet évènement</a>
+                                    </div>
+                                    <div class="blc-right">
+                                        <span>Modes de paiement :</span>
+                                        <ul>
+                                            <li>
+                                                <a href="#"><img src="{{ asset('vente-ticket/images/mastercard.png') }}" alt="Mastercard"></a>
+                                            </li>
+                                            <li>
+                                                <a href="#"><img src="{{ asset('vente-ticket/images/visa.png') }}" alt="Visa"></a>
+                                            </li>
+                                            <li>
+                                                <a href="#"><img src="{{ asset('vente-ticket/images/m-vola.png') }}" alt="M-vola"></a>
+                                            </li>
+                                            <li>
+                                                <a href="#"><img src="{{ asset('vente-ticket/images/orange-money.png') }}" alt="Orange money"></a>
+                                            </li>
+                                            <li>
+                                                <a href="#"><img src="{{ asset('vente-ticket/images/airtel.png') }}" alt="Airtel money"></a>
+                                            </li>
+                                        </ul>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+
+                        <div class="blc-text wow fadeInUp" data-wow-delay="300ms">
+                            <h3>Description de l'évènement</h3>
+                            <div class="text">
+                                <p>Sed ut perspiciatis unde omnis iste natus error sit voluptatem accusantium doloremque laudantium, totam rem aperiam, eaque ipsa quae ab illo inventore veritatis et quasi architecto beatae vitae dicta sunt explicabo. Nemo enim ipsam voluptatem quia voluptas sit aspernatur aut odit aut fugit, sed quia consequuntur magni dolores eos qui ratione voluptatem sequi nesciunt. Neque porro quisquam est, qui dolorem ipsum quia dolor sit amet, consectetur, adipisci velit, sed quia non numquam eius modi tempora incidunt ut labore et dolore magnam aliquam quaerat voluptatem.</p>
+                            </div>
+                            <div class="lst-hack">
+                                <ul class="d-flex">
+                                    <li>#jazz</li>
+                                    <li>#cafédelagare</li>
+                                    <li>#live</li>
+                                    <li>#soirée</li>
+                                </ul>
+                            </div>
+
+                        </div>
+
+                        <div class="blc-video wow fadeInUp" data-wow-delay="300ms">
+                            <h3>Vidéo de présentation de l'évènement</h3>
+                            <div class="video-container">
+                              <video id="video1" width="1506" height="750" poster="{{ asset('vente-ticket/images/poster.jpg') }}">
+                                <source src="{{ asset('vente-ticket/video/video.mp4') }}" type="video/mp4">   
+                              </video>
+                              <button class="play-btn" data-video="video1"></button>
+                            </div>
+                        </div>
+
+                        <div class="blc-map wow fadeInUp" data-wow-delay="300ms">
+                            <h3>Lieu de l'évènement</h3>
+                            <div class="map">
+                                <iframe src="https://www.google.com/maps/embed?pb=!1m18!1m12!1m3!1d7549.281261584579!2d47.52111267994531!3d-18.90301741478975!2m3!1f0!2f0!3f0!3m2!1i1024!2i768!4f13.1!3m3!1m2!1s0x21f07e02f859da69%3A0x71d77dd98fe324ac!2sGrand%20Caf%C3%A9%20de%20la%20Gare!5e0!3m2!1sfr!2smg!4v1754476892148!5m2!1sfr!2smg" width="600" height="450" style="border:0;" allowfullscreen="" loading="lazy" referrerpolicy="no-referrer-when-downgrade"></iframe>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </section>
+
+            <section class="sec-event all-event">
+                <div class="container">
+                    <h2 class="wow fadeIn" data-wow-delay="300ms">Evènements similaires</h2>
+                    <div class="lst-event">
+                        <div class="item  wow fadeInUp" data-wow-delay="300ms">
+                            <div class="inner">
+                                <div class="blc-col1">
+                                    <div class="col1">
+                                        <div class="date">
+                                            <span>Dimanche</span>
+                                            <strong>20</strong>
+                                            <span class="text-upper">juil. 2025</span>
+                                        </div>
+                                        <div class="hour">
+                                            à 20:00
+                                        </div>
+                                        <div class="code-barre">
+                                            <img src="{{ asset('vente-ticket/images/code1.png') }}">
+                                        </div>
+                                    </div>
+                                    <div class="col2">
+                                        <span class="bandeau">Soirée live</span>
+                                        <h3>Music on Sunday</h3>
+                                        <div class="adresse">Lieu : Analakely au Café de la Gare</div>
+                                        <div class="tarif">Tarifs : 50.000MGA - 150.000MGA</div>
+                                        <div class="blcBtn ">
+                                            <a href="#" class="btn ticket">Acheter un ticket</a>
+                                            <a href="#" class="btn details">détails</a>
+
+                                        </div>
+                                    </div>
+                                  
+                                </div>
+                                <div class="blc-col2">
+                                    <div class="img">
+                                        <img src="{{ asset('vente-ticket/images/img1.png') }}" alt="ventes tickets">
+                                    </div>  
+                                </div>
+                                <div class="blc-col3">
+                                    <h3>Option sur le ticket</h3>
+                                    <div class="type">
+                                        <form>
+                                            <div class="blc-select">
+                                                <label>Type de ticket</label>
+                                                <select>
+                                                    <option>Offre VIP</option>
+                                                    <option>lorem ipsum</option>
+
+                                                </select>
+                                            </div>
+                                            <div class="blc-nbr d-flex">
+                                                <div class="col">
+                                                    <label>Adulte</label>
+                                                    <div class="numbers-row">
+                                                        <div class="dec button"><span>-</span></div>
+                                                        <input type="text" name="qtt" id="qtt" value="1" class="qtt">
+                                                        <div class="inc button"><span>+</span></div>    
+                                                    </div>
+                                                </div>
+                                                <div class="col">
+                                                    <label>Enfant <span class="info"><img src="{{ asset('vente-ticket/images/info.png') }}"><div class="tooltip">Un ticket est requis pour les enfants de plus de 10 ans</div></span></label>
+                                                    <div class="numbers-row">
+                                                        <div class="dec button"><span>-</span></div>
+                                                        <input type="text" name="qtt" id="qtt" value="1" class="qtt">
+                                                        <div class="inc button"><span>+</span></div>    
+                                                    </div>
+                                                </div>
+                                                <div class="col btn-ok">
+                                                    <button class="btn ok">OK</button>
+                                                </div>
+
+
+                                            </div>
+                                        </form>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="item wow fadeInUp" data-wow-delay="300ms">
+                            <div class="inner">
+                                <div class="blc-col1">
+                                    <div class="col1">
+                                        <div class="date">
+                                            <span>Dimanche</span>
+                                            <strong>20</strong>
+                                            <span class="text-upper">juil. 2025</span>
+                                        </div>
+                                        <div class="hour">
+                                            à 20:00
+                                        </div>
+                                        <div class="code-barre">
+                                            <img src="{{ asset('vente-ticket/images/code1.png') }}">
+                                        </div>
+                                    </div>
+                                    <div class="col2">
+                                        <span class="bandeau">Soirée live</span>
+                                        <h3>Music on Sunday</h3>
+                                        <div class="adresse">Lieu : Analakely au Café de la Gare</div>
+                                        <div class="tarif">Tarifs : 50.000MGA - 150.000MGA</div>
+                                        <div class="blcBtn ">
+                                            <a href="#" class="btn ticket">Acheter un ticket</a>
+                                            <a href="#" class="btn details">détails</a>
+
+                                        </div>
+                                    </div>
+                                  
+                                </div>
+                                <div class="blc-col2">
+                                    <div class="img">
+                                        <img src="{{ asset('vente-ticket/images/img2.png') }}" alt="ventes tickets">
+                                    </div>  
+                                </div>
+                                <div class="blc-col3">
+                                    <h3>Option sur le ticket</h3>
+                                    <div class="type">
+                                        <form>
+                                            <div class="blc-select">
+                                                <label>Type de ticket</label>
+                                                <select>
+                                                    <option>Offre VIP</option>
+                                                    <option>lorem ipsum</option>
+
+                                                </select>
+                                            </div>
+                                           <div class="blc-nbr d-flex">
+                                                <div class="col">
+                                                    <label>Adulte</label>
+                                                    <div class="numbers-row">
+                                                        <div class="dec button"><span>-</span></div>
+                                                        <input type="text" name="qtt" id="qtt" value="1" class="qtt">
+                                                        <div class="inc button"><span>+</span></div>    
+                                                    </div>
+                                                </div>
+                                                <div class="col">
+                                                    <label>Enfant <span class="info"><img src="{{ asset('vente-ticket/images/info.png') }}"><div class="tooltip">Un ticket est requis pour les enfants de plus de 10 ans</div></span></label>
+                                                    <div class="numbers-row">
+                                                        <div class="dec button"><span>-</span></div>
+                                                        <input type="text" name="qtt" id="qtt" value="1" class="qtt">
+                                                        <div class="inc button"><span>+</span></div>    
+                                                    </div>
+                                                </div>
+                                                <div class="col btn-ok">
+                                                    <button class="btn ok">OK</button>
+                                                </div>
+
+
+                                            </div>
+                                        </form>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>   
+                    </div>
+                   
+
+                    
+                </div>
+            </section>
+
+           
+
+          
+
+        
+
+              
+         </main>
+
+         <footer class="footer">
+             <div class="container">
+                    <div class="ftr-top d-flex justify-content-between">
+                        <div class="logo-ftr">
+                            <a href="#"><img src="{{ asset('vente-ticket/images/VenteTicket.png') }}" alt="VenteTicket.mg"></a>
+                        </div>
+                        <div class="menu-ftr">
+                            <ul>
+                                <li><a href="#" title="Evènements">évènements</a></li>
+                                <li><a href="#" title="Devenir organisateur">devenir organisateur</a></li>
+                                <li><a href="#" title="Contact">contact</a></li>
+                                <li><a href="#" title="A propos">à propos</a></li>
+                            </ul>
+                        </div>
+                    </div>
+                    <div class="ftr-bottom d-flex justify-content-between">
+                        <div class="left">
+                            <div class="copy">Tous droits réservés © 2025 </div>
+                            <ul>
+                                <li><a href="#" title="Mentions légales">Mentions légales</a></li>
+                                <li><a href="#" title="Politique de confidentialité">Politique de confidentialité</a></li>
+                                <li><a href="#" title="Conditions générales d'utilisation">Conditions générales d'utilisation</a></li>  
+                            </ul>
+                        </div>
+                        <div class="powered">
+                            <span>Powered by</span>
+                            <a href="#"><img src="{{ asset('vente-ticket/images/powered.svg') }}"></a>
+                        </div>
+                    </div>
+
+             </div>
+         </footer>
+        <script type="text/javascript" src="{{ asset('vente-ticket/js/jquery.min.js') }}"></script>
+    	<script type="text/javascript" src="{{ asset('vente-ticket/js/wow.js') }}"></script>
+        <script type="text/javascript" src="{{ asset('vente-ticket/js/slick.min.js') }}"></script>
+        <script type="text/javascript" src="{{ asset('vente-ticket/js/jquery-ui.js') }}"></script>  
+        <script type="text/javascript" src="{{ asset('vente-ticket/js/custom.js') }}"></script>
+    </body>
+</html>
