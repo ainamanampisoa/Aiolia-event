@@ -1,0 +1,754 @@
+{% extends 'base.html.twig' %}
+
+{% block title %}Notifications - Aiolia Event{% endblock %}
+
+{% block body %}
+<div class="dashboard">
+    <div class="dashboard-header">
+        <div>
+            <h1>🔔 Notifications & Alertes</h1>
+            <p style="color: var(--gray-600); margin-top: 8px; font-size: 1rem;">
+                Gérez vos notifications et alertes automatiques
+            </p>
+        </div>
+        <div class="header-actions">
+            <a href="{{ path('app_notification_settings') }}" class="btn" style="background: white; color: var(--gray-700); border: 2px solid var(--gray-300); padding: 12px 20px; border-radius: 8px; text-decoration: none; font-weight: 600;">
+                <i class="fas fa-cog"></i> Paramètres
+            </a>
+        </div>
+    </div>
+
+    <!-- Navigation Tabs -->
+    <div class="notification-nav">
+        <div class="nav-container">
+            <div class="nav-tabs">
+                <a href="{{ path('app_notification_index') }}" class="nav-tab active" data-tab="all">
+                    <div class="tab-icon">
+                        <i class="fas fa-bell"></i>
+                        <div class="tab-badge">12</div>
+                    </div>
+                    <div class="tab-content">
+                        <span class="tab-title">Toutes</span>
+                        <span class="tab-subtitle">Notifications générales</span>
+                    </div>
+                    <div class="tab-indicator"></div>
+                </a>
+                
+                <a href="{{ path('app_notification_alerts') }}" class="nav-tab" data-tab="alerts">
+                    <div class="tab-icon">
+                        <i class="fas fa-exclamation-triangle"></i>
+                        <div class="tab-badge critical">3</div>
+                    </div>
+                    <div class="tab-content">
+                        <span class="tab-title">Alertes</span>
+                        <span class="tab-subtitle">Stock & urgences</span>
+                    </div>
+                    <div class="tab-indicator"></div>
+                </a>
+                
+                <a href="{{ path('app_notification_reminders') }}" class="nav-tab" data-tab="reminders">
+                    <div class="tab-icon">
+                        <i class="fas fa-clock"></i>
+                        <div class="tab-badge warning">5</div>
+                    </div>
+                    <div class="tab-content">
+                        <span class="tab-title">Rappels</span>
+                        <span class="tab-subtitle">Événements à venir</span>
+                    </div>
+                    <div class="tab-indicator"></div>
+                </a>
+            </div>
+            
+            <div class="nav-actions">
+                <button class="action-btn" id="markAllRead" title="Marquer tout comme lu">
+                    <i class="fas fa-check-double"></i>
+                </button>
+                <button class="action-btn" id="refreshNotifications" title="Actualiser">
+                    <i class="fas fa-sync-alt"></i>
+                </button>
+                <button class="action-btn" id="filterNotifications" title="Filtres avancés">
+                    <i class="fas fa-filter"></i>
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Notifications -->
+    <div class="chart-card">
+        <div class="card-body">
+            <div class="notifications-list">
+                <div class="notif-item notif-warning unread">
+                    <div class="notif-icon">
+                        <i class="fas fa-exclamation-triangle"></i>
+                    </div>
+                    <div class="notif-content">
+                        <div class="notif-header">
+                            <h4>Stock bas - Concert Rock Nation</h4>
+                            <span class="notif-time">Il y a 2 heures</span>
+                        </div>
+                        <p>Il ne reste que 15 billets VIP pour le Concert Rock Nation. Envisagez d'augmenter les prix ou d'envoyer une notification.</p>
+                        <div class="notif-actions">
+                            <button class="btn-notif">Voir l'événement</button>
+                            <button class="btn-notif-secondary">Marquer comme lu</button>
+                        </div>
+                    </div>
+                    <div class="notif-badge">
+                        <span class="unread-dot"></span>
+                    </div>
+                </div>
+
+                <div class="notif-item notif-success unread">
+                    <div class="notif-icon">
+                        <i class="fas fa-check-circle"></i>
+                    </div>
+                    <div class="notif-content">
+                        <div class="notif-header">
+                            <h4>Événement complet !</h4>
+                            <span class="notif-time">Il y a 5 heures</span>
+                        </div>
+                        <p>Félicitations ! Tous les billets du Match de Football ont été vendus.</p>
+                        <div class="notif-actions">
+                            <button class="btn-notif">Voir le rapport</button>
+                            <button class="btn-notif-secondary">Marquer comme lu</button>
+                        </div>
+                    </div>
+                    <div class="notif-badge">
+                        <span class="unread-dot"></span>
+                    </div>
+                </div>
+
+                <div class="notif-item notif-info">
+                    <div class="notif-icon">
+                        <i class="fas fa-calendar"></i>
+                    </div>
+                    <div class="notif-content">
+                        <div class="notif-header">
+                            <h4>Rappel d'événement - Festival Jazz</h4>
+                            <span class="notif-time">Il y a 1 jour</span>
+                        </div>
+                        <p>Le Festival Jazz Mada démarre dans 3 jours. N'oubliez pas d'envoyer les rappels aux participants.</p>
+                        <div class="notif-actions">
+                            <button class="btn-notif">Envoyer rappel</button>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="notif-item notif-default">
+                    <div class="notif-icon">
+                        <i class="fas fa-user-plus"></i>
+                    </div>
+                    <div class="notif-content">
+                        <div class="notif-header">
+                            <h4>Nouveau co-organisateur ajouté</h4>
+                            <span class="notif-time">Il y a 2 jours</span>
+                        </div>
+                        <p>Jean Dupont a été ajouté comme co-organisateur pour "Théâtre Classique".</p>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<style>
+/* Navigation améliorée */
+.notification-nav {
+    background: var(--bg-card);
+    border: 1px solid var(--border-color);
+    border-radius: var(--border-radius-md);
+    margin-bottom: 30px;
+    overflow: hidden;
+    box-shadow: var(--shadow-sm);
+}
+
+.nav-container {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 0;
+}
+
+.nav-tabs {
+    display: flex;
+    flex: 1;
+}
+
+.nav-tab {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    padding: 20px 24px;
+    text-decoration: none;
+    color: var(--text-secondary);
+    transition: all 0.3s ease;
+    position: relative;
+    flex: 1;
+    border-right: 1px solid var(--border-light);
+    background: var(--bg-secondary);
+}
+
+.nav-tab:last-child {
+    border-right: none;
+}
+
+.nav-tab:hover {
+    background: var(--gray-50);
+    color: var(--text-primary);
+    transform: translateY(-2px);
+}
+
+.nav-tab.active {
+    background: linear-gradient(135deg, var(--accent), var(--accent-light));
+    color: var(--white);
+    transform: translateY(-2px);
+    box-shadow: 0 8px 25px rgba(52, 152, 219, 0.3);
+}
+
+.nav-tab.active .tab-indicator {
+    opacity: 1;
+    transform: scaleX(1);
+}
+
+.tab-icon {
+    position: relative;
+    width: 40px;
+    height: 40px;
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 1.2rem;
+    background: rgba(255, 255, 255, 0.2);
+    transition: all 0.3s ease;
+}
+
+.nav-tab.active .tab-icon {
+    background: rgba(255, 255, 255, 0.3);
+    transform: scale(1.1);
+}
+
+.tab-badge {
+    position: absolute;
+    top: -8px;
+    right: -8px;
+    background: var(--accent);
+    color: var(--white);
+    font-size: 0.7rem;
+    font-weight: var(--font-weight-bold);
+    padding: 4px 6px;
+    border-radius: 10px;
+    min-width: 18px;
+    text-align: center;
+    animation: badgePulse 2s infinite;
+}
+
+.tab-badge.critical {
+    background: var(--danger);
+    animation: badgeCriticalPulse 1.5s infinite;
+}
+
+.tab-badge.warning {
+    background: var(--warning);
+    animation: badgeWarningPulse 1.8s infinite;
+}
+
+@keyframes badgePulse {
+    0%, 100% {
+        transform: scale(1);
+        box-shadow: 0 0 0 0 rgba(52, 152, 219, 0.4);
+    }
+    50% {
+        transform: scale(1.05);
+        box-shadow: 0 0 0 4px rgba(52, 152, 219, 0);
+    }
+}
+
+@keyframes badgeCriticalPulse {
+    0%, 100% {
+        transform: scale(1);
+        box-shadow: 0 0 0 0 rgba(231, 76, 60, 0.6);
+    }
+    50% {
+        transform: scale(1.1);
+        box-shadow: 0 0 0 6px rgba(231, 76, 60, 0);
+    }
+}
+
+@keyframes badgeWarningPulse {
+    0%, 100% {
+        transform: scale(1);
+        box-shadow: 0 0 0 0 rgba(243, 156, 18, 0.5);
+    }
+    50% {
+        transform: scale(1.08);
+        box-shadow: 0 0 0 5px rgba(243, 156, 18, 0);
+    }
+}
+
+.tab-content {
+    display: flex;
+    flex-direction: column;
+    gap: 2px;
+}
+
+.tab-title {
+    font-size: 1rem;
+    font-weight: var(--font-weight-semibold);
+    line-height: 1.2;
+}
+
+.tab-subtitle {
+    font-size: 0.8rem;
+    opacity: 0.8;
+    line-height: 1.2;
+}
+
+.tab-indicator {
+    position: absolute;
+    bottom: 0;
+    left: 0;
+    right: 0;
+    height: 3px;
+    background: var(--white);
+    opacity: 0;
+    transform: scaleX(0);
+    transition: all 0.3s ease;
+}
+
+.nav-actions {
+    display: flex;
+    gap: 8px;
+    padding: 20px 24px;
+    background: var(--gray-50);
+    border-left: 1px solid var(--border-light);
+}
+
+.action-btn {
+    width: 40px;
+    height: 40px;
+    border: none;
+    border-radius: 50%;
+    background: var(--bg-secondary);
+    color: var(--text-secondary);
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    transition: all 0.3s ease;
+    font-size: 1rem;
+}
+
+.action-btn:hover {
+    background: var(--accent);
+    color: var(--white);
+    transform: scale(1.1);
+    box-shadow: 0 4px 15px rgba(52, 152, 219, 0.3);
+}
+
+.action-btn:active {
+    transform: scale(0.95);
+}
+
+/* Responsive */
+@media (max-width: 768px) {
+    .nav-container {
+        flex-direction: column;
+    }
+    
+    .nav-tabs {
+        width: 100%;
+    }
+    
+    .nav-tab {
+        flex-direction: column;
+        text-align: center;
+        padding: 16px 12px;
+    }
+    
+    .tab-content {
+        margin-top: 8px;
+    }
+    
+    .nav-actions {
+        width: 100%;
+        justify-content: center;
+        border-left: none;
+        border-top: 1px solid var(--border-light);
+    }
+}
+
+.notifications-list {
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+}
+
+.notif-item {
+    display: flex;
+    gap: 16px;
+    padding: 20px;
+    border-radius: var(--border-radius-lg);
+    border-left: 4px solid;
+    transition: var(--transition-base);
+}
+
+.notif-item.unread {
+    background: var(--gray-50);
+}
+
+.notif-warning {
+    border-left-color: var(--warning);
+}
+
+.notif-success {
+    border-left-color: var(--success);
+}
+
+.notif-info {
+    border-left-color: var(--info);
+}
+
+.notif-default {
+    border-left-color: var(--gray-400);
+}
+
+.notif-icon {
+    width: 48px;
+    height: 48px;
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    flex-shrink: 0;
+    font-size: 1.2rem;
+}
+
+.notif-warning .notif-icon {
+    background: var(--warning);
+    color: white;
+}
+
+.notif-success .notif-icon {
+    background: var(--success);
+    color: white;
+}
+
+.notif-info .notif-icon {
+    background: var(--info);
+    color: white;
+}
+
+.notif-default .notif-icon {
+    background: var(--gray-400);
+    color: white;
+}
+
+.notif-content {
+    flex: 1;
+}
+
+.notif-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 8px;
+}
+
+.notif-header h4 {
+    font-size: 1.05rem;
+    font-weight: var(--font-weight-semibold);
+    color: var(--primary);
+    margin: 0;
+}
+
+.notif-time {
+    font-size: 0.8rem;
+    color: var(--gray-500);
+}
+
+.notif-content p {
+    color: var(--gray-700);
+    font-size: 0.9rem;
+    margin: 0 0 12px 0;
+    line-height: 1.6;
+}
+
+.notif-actions {
+    display: flex;
+    gap: 10px;
+}
+
+.btn-notif {
+    padding: 8px 16px;
+    background: var(--accent);
+    color: white;
+    border: none;
+    border-radius: var(--border-radius-sm);
+    cursor: pointer;
+    font-size: 0.85rem;
+    font-weight: var(--font-weight-semibold);
+    transition: var(--transition-base);
+}
+
+.btn-notif:hover {
+    background: var(--accent-light);
+}
+
+.btn-notif-secondary {
+    padding: 8px 16px;
+    background: transparent;
+    color: var(--gray-600);
+    border: 1px solid var(--gray-300);
+    border-radius: var(--border-radius-sm);
+    cursor: pointer;
+    font-size: 0.85rem;
+    font-weight: var(--font-weight-medium);
+    transition: var(--transition-base);
+}
+
+.btn-notif-secondary:hover {
+    background: var(--gray-100);
+}
+
+.unread-dot {
+    width: 10px;
+    height: 10px;
+    background: var(--accent);
+    border-radius: 50%;
+    display: block;
+}
+</style>
+
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    // Gestion des onglets de navigation
+    const navTabs = document.querySelectorAll('.nav-tab');
+    
+    navTabs.forEach(tab => {
+        tab.addEventListener('click', function(e) {
+            e.preventDefault();
+            
+            // Retirer la classe active de tous les onglets
+            navTabs.forEach(t => t.classList.remove('active'));
+            
+            // Ajouter la classe active à l'onglet cliqué
+            this.classList.add('active');
+            
+            // Animation de l'onglet actif
+            this.style.transform = 'translateY(-2px) scale(1.02)';
+            setTimeout(() => {
+                this.style.transform = 'translateY(-2px)';
+            }, 200);
+            
+            // Simuler le changement de contenu
+            const tabType = this.getAttribute('data-tab');
+            filterNotifications(tabType);
+        });
+        
+        // Effet de survol
+        tab.addEventListener('mouseenter', function() {
+            if (!this.classList.contains('active')) {
+                this.style.transform = 'translateY(-1px)';
+            }
+        });
+        
+        tab.addEventListener('mouseleave', function() {
+            if (!this.classList.contains('active')) {
+                this.style.transform = 'translateY(0)';
+            }
+        });
+    });
+    
+    // Fonction de filtrage des notifications
+    function filterNotifications(type) {
+        const notifications = document.querySelectorAll('.notif-item');
+        
+        notifications.forEach((notification, index) => {
+            notification.style.opacity = '0';
+            notification.style.transform = 'translateX(-20px)';
+            
+            setTimeout(() => {
+                // Logique de filtrage basée sur le type
+                let shouldShow = true;
+                
+                if (type === 'alerts') {
+                    shouldShow = notification.classList.contains('notif-warning') || 
+                                notification.classList.contains('notif-success');
+                } else if (type === 'reminders') {
+                    shouldShow = notification.classList.contains('notif-info');
+                }
+                
+                if (shouldShow) {
+                    notification.style.display = 'flex';
+                    notification.style.opacity = '1';
+                    notification.style.transform = 'translateX(0)';
+                    notification.style.transition = `all 0.4s ease ${index * 0.1}s`;
+                } else {
+                    notification.style.display = 'none';
+                }
+            }, 100);
+        });
+    }
+    
+    // Gestion des boutons d'action
+    const markAllReadBtn = document.getElementById('markAllRead');
+    const refreshBtn = document.getElementById('refreshNotifications');
+    const filterBtn = document.getElementById('filterNotifications');
+    
+    if (markAllReadBtn) {
+        markAllReadBtn.addEventListener('click', function() {
+            // Animation du bouton
+            this.style.transform = 'scale(0.9)';
+            this.innerHTML = '<i class="fas fa-spinner fa-spin"></i>';
+            
+            setTimeout(() => {
+                this.style.transform = 'scale(1)';
+                this.innerHTML = '<i class="fas fa-check-double"></i>';
+                
+                // Marquer toutes les notifications comme lues
+                const unreadItems = document.querySelectorAll('.notif-item.unread');
+                unreadItems.forEach((item, index) => {
+                    setTimeout(() => {
+                        item.classList.remove('unread');
+                        item.style.opacity = '0.7';
+                        item.style.transform = 'scale(0.98)';
+                        
+                        // Ajouter un indicateur "lu"
+                        const readIndicator = document.createElement('div');
+                        readIndicator.innerHTML = '<i class="fas fa-check"></i> Lu';
+                        readIndicator.style.cssText = `
+                            position: absolute;
+                            top: 10px;
+                            right: 10px;
+                            background: var(--success);
+                            color: white;
+                            padding: 4px 8px;
+                            border-radius: 4px;
+                            font-size: 0.7rem;
+                            animation: slideInRight 0.3s ease;
+                        `;
+                        
+                        item.style.position = 'relative';
+                        item.appendChild(readIndicator);
+                    }, index * 100);
+                });
+            }, 1500);
+        });
+    }
+    
+    if (refreshBtn) {
+        refreshBtn.addEventListener('click', function() {
+            // Animation de rotation
+            this.style.transform = 'rotate(360deg)';
+            this.innerHTML = '<i class="fas fa-spinner fa-spin"></i>';
+            
+            setTimeout(() => {
+                this.style.transform = 'rotate(0deg)';
+                this.innerHTML = '<i class="fas fa-sync-alt"></i>';
+                
+                // Animation de rafraîchissement des notifications
+                const notifications = document.querySelectorAll('.notif-item');
+                notifications.forEach((notification, index) => {
+                    notification.style.animation = 'none';
+                    setTimeout(() => {
+                        notification.style.animation = `fadeInUp 0.5s ease ${index * 0.1}s`;
+                    }, 10);
+                });
+            }, 2000);
+        });
+    }
+    
+    if (filterBtn) {
+        filterBtn.addEventListener('click', function() {
+            // Toggle d'un panneau de filtres (simulation)
+            this.style.transform = 'scale(0.9)';
+            setTimeout(() => {
+                this.style.transform = 'scale(1)';
+                
+                // Afficher un message de filtres
+                const filterMessage = document.createElement('div');
+                filterMessage.innerHTML = `
+                    <div style="
+                        position: fixed;
+                        top: 50%;
+                        left: 50%;
+                        transform: translate(-50%, -50%);
+                        background: var(--bg-card);
+                        padding: 20px;
+                        border-radius: var(--border-radius-md);
+                        box-shadow: var(--shadow-lg);
+                        z-index: 1000;
+                        text-align: center;
+                    ">
+                        <h3>Filtres avancés</h3>
+                        <p>Fonctionnalité en cours de développement</p>
+                        <button onclick="this.parentElement.parentElement.remove()" style="
+                            background: var(--accent);
+                            color: white;
+                            border: none;
+                            padding: 8px 16px;
+                            border-radius: 4px;
+                            cursor: pointer;
+                            margin-top: 10px;
+                        ">Fermer</button>
+                    </div>
+                `;
+                document.body.appendChild(filterMessage);
+            }, 150);
+        });
+    }
+    
+    // Animation d'entrée des notifications
+    const notifications = document.querySelectorAll('.notif-item');
+    notifications.forEach((notification, index) => {
+        notification.style.opacity = '0';
+        notification.style.transform = 'translateY(20px)';
+        
+        setTimeout(() => {
+            notification.style.opacity = '1';
+            notification.style.transform = 'translateY(0)';
+            notification.style.transition = `all 0.5s ease ${index * 0.1}s`;
+        }, 200 + index * 100);
+    });
+    
+    // Effet de pulsation pour les badges critiques
+    const criticalBadges = document.querySelectorAll('.tab-badge.critical');
+    criticalBadges.forEach(badge => {
+        setInterval(() => {
+            badge.style.transform = 'scale(1.1)';
+            setTimeout(() => {
+                badge.style.transform = 'scale(1)';
+            }, 200);
+        }, 3000);
+    });
+});
+
+// CSS pour les animations
+const style = document.createElement('style');
+style.textContent = `
+    @keyframes fadeInUp {
+        from {
+            opacity: 0;
+            transform: translateY(20px);
+        }
+        to {
+            opacity: 1;
+            transform: translateY(0);
+        }
+    }
+    
+    @keyframes slideInRight {
+        from {
+            opacity: 0;
+            transform: translateX(20px);
+        }
+        to {
+            opacity: 1;
+            transform: translateX(0);
+        }
+    }
+`;
+document.head.appendChild(style);
+</script>
+{% endblock %}
+

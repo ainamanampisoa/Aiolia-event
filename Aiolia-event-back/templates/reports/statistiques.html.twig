@@ -1,0 +1,297 @@
+{% extends 'base.html.twig' %}
+
+{% block title %}Statistiques - Aiolia Event{% endblock %}
+
+{% block body %}
+<div class="dashboard">
+    <!-- En-tête de la page -->
+    <div class="dashboard-header">
+        <div>
+            <h1>📈 Statistiques</h1>
+            <p style="color: var(--gray-600); margin-top: 8px; font-size: 1rem;">
+                Graphiques et analyses de performances
+            </p>
+        </div>
+        <div class="header-actions">
+            <select style="padding: 10px 16px; border: 2px solid var(--gray-300); border-radius: 8px; font-size: 0.9rem; cursor: pointer;">
+                <option>7 derniers jours</option>
+                <option>30 derniers jours</option>
+                <option>3 derniers mois</option>
+                <option>Cette année</option>
+            </select>
+        </div>
+    </div>
+
+    <!-- Graphiques des ventes -->
+    <div class="content-row" style="margin-bottom: 24px;">
+        <div class="content-col">
+            <div class="chart-card">
+                <div class="card-header">
+                    <h3>📊 Évolution des ventes</h3>
+                    <p style="color: var(--gray-600); font-size: 0.9rem; margin-top: 4px;">
+                        Nombre de billets vendus par jour
+                    </p>
+                </div>
+                <div class="card-body">
+                    <div class="chart-placeholder" style="height: 300px;">
+                        <i class="fas fa-chart-line" style="font-size: 3rem; color: var(--accent);"></i>
+                        <p>Graphique linéaire (Chart.js)</p>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div class="content-col">
+            <div class="chart-card">
+                <div class="card-header">
+                    <h3>💰 Revenus par catégorie</h3>
+                    <p style="color: var(--gray-600); font-size: 0.9rem; margin-top: 4px;">
+                        Répartition des revenus
+                    </p>
+                </div>
+                <div class="card-body">
+                    <div class="chart-placeholder" style="height: 300px;">
+                        <i class="fas fa-chart-pie" style="font-size: 3rem; color: var(--success);"></i>
+                        <p>Graphique circulaire (Chart.js)</p>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Graphique comparatif -->
+    <div class="chart-card" style="margin-bottom: 24px;">
+        <div class="card-header">
+            <h3>📊 Comparatif des événements</h3>
+            <p style="color: var(--gray-600); font-size: 0.9rem; margin-top: 4px;">
+                Performances de ventes par événement
+            </p>
+        </div>
+        <div class="card-body">
+            <div class="chart-placeholder" style="height: 400px;">
+                <i class="fas fa-chart-bar" style="font-size: 3rem; color: var(--warning);"></i>
+                <p>Graphique à barres (Chart.js)</p>
+            </div>
+        </div>
+    </div>
+
+    <!-- Statistiques par événement -->
+    <div class="chart-card">
+        <div class="card-header">
+            <h3>🎯 Performances par événement</h3>
+            <p style="color: var(--gray-600); font-size: 0.9rem; margin-top: 4px;">
+                Taux de conversion et engagement
+            </p>
+        </div>
+        <div class="card-body">
+            <div class="performance-grid">
+                <div class="performance-card">
+                    <div class="performance-header">
+                        <h4>🎸 Concert Rock Nation</h4>
+                        <span class="badge badge-success">85% rempli</span>
+                    </div>
+                    <div class="performance-stats">
+                        <div class="perf-stat">
+                            <div class="perf-label">Taux de conversion</div>
+                            <div class="perf-value">12.5%</div>
+                            <div class="perf-bar">
+                                <div class="perf-fill" style="width: 12.5%; background: var(--success);"></div>
+                            </div>
+                        </div>
+                        <div class="perf-stat">
+                            <div class="perf-label">Temps moyen de vente</div>
+                            <div class="perf-value">3.2 jours</div>
+                        </div>
+                        <div class="perf-stat">
+                            <div class="perf-label">Panier moyen</div>
+                            <div class="perf-value">48.63 €</div>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="performance-card">
+                    <div class="performance-header">
+                        <h4>🎵 Festival Jazz Mada</h4>
+                        <span class="badge badge-warning">63% rempli</span>
+                    </div>
+                    <div class="performance-stats">
+                        <div class="perf-stat">
+                            <div class="perf-label">Taux de conversion</div>
+                            <div class="perf-value">9.8%</div>
+                            <div class="perf-bar">
+                                <div class="perf-fill" style="width: 9.8%; background: var(--warning);"></div>
+                            </div>
+                        </div>
+                        <div class="perf-stat">
+                            <div class="perf-label">Temps moyen de vente</div>
+                            <div class="perf-value">5.1 jours</div>
+                        </div>
+                        <div class="perf-stat">
+                            <div class="perf-label">Panier moyen</div>
+                            <div class="perf-value">47.20 €</div>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="performance-card">
+                    <div class="performance-header">
+                        <h4>⚽ Match de Football</h4>
+                        <span class="badge badge-danger">100% complet</span>
+                    </div>
+                    <div class="performance-stats">
+                        <div class="perf-stat">
+                            <div class="perf-label">Taux de conversion</div>
+                            <div class="perf-value">18.3%</div>
+                            <div class="perf-bar">
+                                <div class="perf-fill" style="width: 18.3%; background: var(--danger);"></div>
+                            </div>
+                        </div>
+                        <div class="perf-stat">
+                            <div class="perf-label">Temps moyen de vente</div>
+                            <div class="perf-value">1.8 jours</div>
+                        </div>
+                        <div class="perf-stat">
+                            <div class="perf-label">Panier moyen</div>
+                            <div class="perf-value">50.00 €</div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<style>
+.content-row {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 20px;
+}
+
+.content-col {
+    display: flex;
+}
+
+.chart-placeholder {
+    background: linear-gradient(135deg, var(--gray-50), var(--gray-100));
+    border-radius: var(--border-radius-md);
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    color: var(--gray-500);
+    border: 2px dashed var(--gray-300);
+}
+
+.chart-placeholder i {
+    margin-bottom: 16px;
+    opacity: 0.6;
+}
+
+.chart-placeholder p {
+    font-size: 1rem;
+    font-weight: var(--font-weight-medium);
+}
+
+.performance-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(320px, 1fr));
+    gap: 20px;
+}
+
+.performance-card {
+    background: var(--gray-50);
+    border-radius: var(--border-radius-md);
+    padding: 20px;
+    border: 1px solid var(--gray-200);
+    transition: var(--transition-base);
+}
+
+.performance-card:hover {
+    box-shadow: var(--shadow-md);
+    border-color: var(--accent-light);
+}
+
+.performance-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 16px;
+    padding-bottom: 12px;
+    border-bottom: 2px solid var(--gray-200);
+}
+
+.performance-header h4 {
+    font-size: 1.1rem;
+    font-weight: var(--font-weight-semibold);
+    color: var(--primary);
+    margin: 0;
+}
+
+.badge {
+    padding: 4px 12px;
+    border-radius: var(--border-radius-sm);
+    font-size: 0.75rem;
+    font-weight: var(--font-weight-bold);
+}
+
+.badge-success {
+    background: rgba(39, 174, 96, 0.1);
+    color: var(--success);
+}
+
+.badge-warning {
+    background: rgba(243, 156, 18, 0.1);
+    color: var(--warning);
+}
+
+.badge-danger {
+    background: rgba(231, 76, 60, 0.1);
+    color: var(--danger);
+}
+
+.performance-stats {
+    display: flex;
+    flex-direction: column;
+    gap: 14px;
+}
+
+.perf-stat {
+    background: white;
+    padding: 12px;
+    border-radius: var(--border-radius-sm);
+}
+
+.perf-label {
+    font-size: 0.8rem;
+    color: var(--gray-600);
+    margin-bottom: 6px;
+}
+
+.perf-value {
+    font-size: 1.3rem;
+    font-weight: var(--font-weight-bold);
+    color: var(--primary);
+    margin-bottom: 8px;
+}
+
+.perf-bar {
+    height: 6px;
+    background: var(--gray-200);
+    border-radius: 3px;
+    overflow: hidden;
+}
+
+.perf-fill {
+    height: 100%;
+    transition: width 0.5s ease;
+}
+
+@media (max-width: 992px) {
+    .content-row {
+        grid-template-columns: 1fr;
+    }
+}
+</style>
+{% endblock %}
+

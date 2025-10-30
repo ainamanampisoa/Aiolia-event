@@ -1,0 +1,673 @@
+{% extends 'base.html.twig' %}
+
+{% block title %}{{ event.name ?? 'Événement' }} - Aiolia Event{% endblock %}
+
+{% block body %}
+<div class="dashboard">
+    <!-- En-tête avec actions -->
+    <div class="event-detail-header">
+        <div class="header-breadcrumb">
+            <a href="{{ path('app_event_index') }}">Événements</a>
+            <i class="fas fa-chevron-right"></i>
+            <span>{{ event.name ?? 'Concert Rock Nation' }}</span>
+        </div>
+        <div class="header-actions-row">
+            <button class="btn btn-primary" style="background: var(--accent); color: white; border: none; padding: 10px 20px; border-radius: 8px; cursor: pointer; font-weight: 600;">
+                <i class="fas fa-edit"></i> Modifier
+            </button>
+            <button class="btn" style="background: var(--success); color: white; border: none; padding: 10px 20px; border-radius: 8px; cursor: pointer; font-weight: 600;">
+                <i class="fas fa-share-alt"></i> Partager
+            </button>
+            <button class="btn" style="background: white; color: var(--gray-700); border: 2px solid var(--gray-300); padding: 10px 20px; border-radius: 8px; cursor: pointer; font-weight: 600;">
+                <i class="fas fa-ellipsis-v"></i>
+            </button>
+        </div>
+    </div>
+
+    <!-- Bannière de l'événement -->
+    <div class="event-banner">
+        <img src="https://via.placeholder.com/1200x400/3498db/ffffff?text=Concert+Rock+Nation+2025" alt="Bannière événement">
+        <div class="event-overlay">
+            <div class="event-badge-status">
+                <i class="fas fa-circle"></i> En vente
+            </div>
+            <h1 class="event-title">🎸 Concert Rock Nation 2025</h1>
+            <div class="event-meta-quick">
+                <span><i class="fas fa-calendar"></i> 15 Novembre 2025</span>
+                <span><i class="fas fa-clock"></i> 20:00</span>
+                <span><i class="fas fa-map-marker-alt"></i> Stade Municipal, Antananarivo</span>
+            </div>
+        </div>
+    </div>
+
+    <!-- Stats rapides -->
+    <div class="quick-stats">
+        <div class="quick-stat-card">
+            <div class="qstat-icon" style="color: var(--accent);">
+                <i class="fas fa-ticket-alt"></i>
+            </div>
+            <div class="qstat-content">
+                <div class="qstat-value">256 / 300</div>
+                <div class="qstat-label">Billets vendus</div>
+                <div class="qstat-progress">
+                    <div class="qstat-bar" style="width: 85%; background: var(--accent);"></div>
+                </div>
+            </div>
+        </div>
+
+        <div class="quick-stat-card">
+            <div class="qstat-icon" style="color: var(--success);">
+                <i class="fas fa-euro-sign"></i>
+            </div>
+            <div class="qstat-content">
+                <div class="qstat-value">12,450 €</div>
+                <div class="qstat-label">Revenus totaux</div>
+                <div class="qstat-progress">
+                    <div class="qstat-bar" style="width: 85%; background: var(--success);"></div>
+                </div>
+            </div>
+        </div>
+
+        <div class="quick-stat-card">
+            <div class="qstat-icon" style="color: var(--warning);">
+                <i class="fas fa-chart-line"></i>
+            </div>
+            <div class="qstat-content">
+                <div class="qstat-value">85%</div>
+                <div class="qstat-label">Taux de remplissage</div>
+                <div class="qstat-progress">
+                    <div class="qstat-bar" style="width: 85%; background: var(--warning);"></div>
+                </div>
+            </div>
+        </div>
+
+        <div class="quick-stat-card">
+            <div class="qstat-icon" style="color: #9B59B6;">
+                <i class="fas fa-users"></i>
+            </div>
+            <div class="qstat-content">
+                <div class="qstat-value">3</div>
+                <div class="qstat-label">Collaborateurs</div>
+                <div class="qstat-progress">
+                    <div class="qstat-bar" style="width: 100%; background: #9B59B6;"></div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Contenu principal en 2 colonnes -->
+    <div class="event-content-grid">
+        <!-- Colonne gauche -->
+        <div class="event-main-content">
+            <!-- Description -->
+            <div class="content-card">
+                <div class="card-title">
+                    <i class="fas fa-align-left"></i>
+                    Description de l'événement
+                </div>
+                <div class="card-content">
+                    <p>
+                        Préparez-vous pour une soirée inoubliable ! Le Concert Rock Nation 2025 réunit les plus grands groupes de rock pour une performance explosive. 
+                    </p>
+                    <p style="margin-top: 12px;">
+                        Au programme : 5 groupes, 4 heures de show non-stop, effets spéciaux, écrans géants et une ambiance électrique garantie !
+                    </p>
+                </div>
+            </div>
+
+            <!-- Catégories de billets -->
+            <div class="content-card">
+                <div class="card-title">
+                    <i class="fas fa-ticket-alt"></i>
+                    Catégories de billets
+                </div>
+                <div class="card-content">
+                    <div class="tickets-list">
+                        <div class="ticket-item">
+                            <div class="ticket-info">
+                                <h4>VIP</h4>
+                                <p>Accès prioritaire + Backstage + Goodies</p>
+                            </div>
+                            <div class="ticket-stats">
+                                <div class="ticket-price">75 €</div>
+                                <div class="ticket-available">45 / 50</div>
+                                <div class="ticket-progress-mini">
+                                    <div style="width: 90%; background: var(--success);"></div>
+                                </div>
+                            </div>
+                        </div>
+
+                        <div class="ticket-item">
+                            <div class="ticket-info">
+                                <h4>Standard</h4>
+                                <p>Accès général à l'événement</p>
+                            </div>
+                            <div class="ticket-stats">
+                                <div class="ticket-price">40 €</div>
+                                <div class="ticket-available">211 / 250</div>
+                                <div class="ticket-progress-mini">
+                                    <div style="width: 84%; background: var(--accent);"></div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Graphique des ventes -->
+            <div class="content-card">
+                <div class="card-title">
+                    <i class="fas fa-chart-area"></i>
+                    Évolution des ventes
+                </div>
+                <div class="card-content">
+                    <div class="chart-placeholder" style="height: 250px;">
+                        <i class="fas fa-chart-line"></i>
+                        <p>Graphique des ventes (Chart.js)</p>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Colonne droite (sidebar infos) -->
+        <div class="event-sidebar-info">
+            <!-- Informations -->
+            <div class="info-card">
+                <div class="info-card-title">
+                    <i class="fas fa-info-circle"></i>
+                    Informations
+                </div>
+                <div class="info-list">
+                    <div class="info-item">
+                        <div class="info-label">
+                            <i class="fas fa-calendar"></i>
+                            Date de début
+                        </div>
+                        <div class="info-value">15 Nov 2025, 20:00</div>
+                    </div>
+                    <div class="info-item">
+                        <div class="info-label">
+                            <i class="fas fa-map-marker-alt"></i>
+                            Lieu
+                        </div>
+                        <div class="info-value">Stade Municipal<br>Antananarivo</div>
+                    </div>
+                    <div class="info-item">
+                        <div class="info-label">
+                            <i class="fas fa-tag"></i>
+                            Catégorie
+                        </div>
+                        <div class="info-value">Concert</div>
+                    </div>
+                    <div class="info-item">
+                        <div class="info-label">
+                            <i class="fas fa-clock"></i>
+                            Créé le
+                        </div>
+                        <div class="info-value">10 Oct 2025</div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Collaborateurs -->
+            <div class="info-card">
+                <div class="info-card-title">
+                    <i class="fas fa-users"></i>
+                    Équipe organisatrice
+                </div>
+                <div class="collaborators-list">
+                    <div class="collaborator-item">
+                        <div class="collaborator-avatar">AS</div>
+                        <div class="collaborator-info">
+                            <strong>Admin System</strong>
+                            <span>Organisateur principal</span>
+                        </div>
+                    </div>
+                    <div class="collaborator-item">
+                        <div class="collaborator-avatar">JD</div>
+                        <div class="collaborator-info">
+                            <strong>Jean Dupont</strong>
+                            <span>Co-organisateur</span>
+                        </div>
+                    </div>
+                    <div class="collaborator-item">
+                        <div class="collaborator-avatar">MM</div>
+                        <div class="collaborator-info">
+                            <strong>Marie Martin</strong>
+                            <span>Co-organisateur</span>
+                        </div>
+                    </div>
+                </div>
+                <button class="btn-add-collaborator" style="width: 100%; padding: 10px; background: rgba(52, 152, 219, 0.1); color: var(--accent); border: none; border-radius: 8px; cursor: pointer; font-weight: 600; margin-top: 12px;">
+                    <i class="fas fa-user-plus"></i> Ajouter un collaborateur
+                </button>
+            </div>
+
+            <!-- Actions rapides -->
+            <div class="info-card">
+                <div class="info-card-title">
+                    <i class="fas fa-bolt"></i>
+                    Actions rapides
+                </div>
+                <div class="quick-actions-list">
+                    <button class="action-btn">
+                        <i class="fas fa-qrcode"></i>
+                        Générer QR Codes
+                    </button>
+                    <button class="action-btn">
+                        <i class="fas fa-download"></i>
+                        Export participants
+                    </button>
+                    <button class="action-btn">
+                        <i class="fas fa-envelope"></i>
+                        Envoyer notification
+                    </button>
+                    <button class="action-btn">
+                        <i class="fas fa-copy"></i>
+                        Dupliquer événement
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<style>
+.event-detail-header {
+    margin-bottom: 20px;
+}
+
+.header-breadcrumb {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    margin-bottom: 16px;
+    font-size: 0.9rem;
+}
+
+.header-breadcrumb a {
+    color: var(--accent);
+    text-decoration: none;
+    font-weight: var(--font-weight-medium);
+}
+
+.header-breadcrumb a:hover {
+    text-decoration: underline;
+}
+
+.header-breadcrumb i {
+    font-size: 0.7rem;
+    color: var(--gray-500);
+}
+
+.header-breadcrumb span {
+    color: var(--gray-700);
+    font-weight: var(--font-weight-semibold);
+}
+
+.header-actions-row {
+    display: flex;
+    gap: 10px;
+}
+
+.event-banner {
+    position: relative;
+    border-radius: var(--border-radius-xl);
+    overflow: hidden;
+    margin-bottom: 24px;
+    box-shadow: var(--shadow-lg);
+}
+
+.event-banner img {
+    width: 100%;
+    height: 350px;
+    object-fit: cover;
+}
+
+.event-overlay {
+    position: absolute;
+    bottom: 0;
+    left: 0;
+    right: 0;
+    background: linear-gradient(to top, rgba(0,0,0,0.9), transparent);
+    padding: 40px;
+    color: white;
+}
+
+.event-badge-status {
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+    background: rgba(39, 174, 96, 0.95);
+    padding: 8px 16px;
+    border-radius: 20px;
+    font-size: 0.85rem;
+    font-weight: var(--font-weight-bold);
+    margin-bottom: 16px;
+}
+
+.event-title {
+    font-size: 2.5rem;
+    font-weight: var(--font-weight-bold);
+    margin-bottom: 12px;
+}
+
+.event-meta-quick {
+    display: flex;
+    gap: 24px;
+    font-size: 0.95rem;
+}
+
+.event-meta-quick span {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+}
+
+.quick-stats {
+    display: grid;
+    grid-template-columns: repeat(4, 1fr);
+    gap: 16px;
+    margin-bottom: 24px;
+}
+
+.quick-stat-card {
+    background: var(--white);
+    border-radius: var(--border-radius-lg);
+    padding: 20px;
+    box-shadow: var(--shadow-md);
+    border: 1px solid var(--gray-200);
+    display: flex;
+    gap: 16px;
+    align-items: center;
+}
+
+.qstat-icon {
+    font-size: 2rem;
+}
+
+.qstat-content {
+    flex: 1;
+}
+
+.qstat-value {
+    font-size: 1.5rem;
+    font-weight: var(--font-weight-bold);
+    color: var(--primary);
+    margin-bottom: 4px;
+}
+
+.qstat-label {
+    font-size: 0.85rem;
+    color: var(--gray-600);
+    margin-bottom: 8px;
+}
+
+.qstat-progress {
+    height: 4px;
+    background: var(--gray-200);
+    border-radius: 2px;
+    overflow: hidden;
+}
+
+.qstat-bar {
+    height: 100%;
+    transition: width 0.5s ease;
+}
+
+.event-content-grid {
+    display: grid;
+    grid-template-columns: 1fr 350px;
+    gap: 24px;
+}
+
+.event-main-content {
+    display: flex;
+    flex-direction: column;
+    gap: 20px;
+}
+
+.content-card {
+    background: var(--white);
+    border-radius: var(--border-radius-lg);
+    padding: 24px;
+    box-shadow: var(--shadow-md);
+    border: 1px solid var(--gray-200);
+}
+
+.card-title {
+    font-size: 1.2rem;
+    font-weight: var(--font-weight-semibold);
+    color: var(--primary);
+    margin-bottom: 16px;
+    display: flex;
+    align-items: center;
+    gap: 10px;
+}
+
+.card-title i {
+    color: var(--accent);
+}
+
+.card-content p {
+    color: var(--gray-700);
+    line-height: 1.8;
+}
+
+.tickets-list {
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+}
+
+.ticket-item {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 16px;
+    background: var(--gray-50);
+    border-radius: var(--border-radius-md);
+    border: 1px solid var(--gray-200);
+}
+
+.ticket-info h4 {
+    font-size: 1.1rem;
+    color: var(--primary);
+    margin: 0 0 4px 0;
+}
+
+.ticket-info p {
+    font-size: 0.85rem;
+    color: var(--gray-600);
+    margin: 0;
+}
+
+.ticket-stats {
+    text-align: right;
+}
+
+.ticket-price {
+    font-size: 1.3rem;
+    font-weight: var(--font-weight-bold);
+    color: var(--success);
+    margin-bottom: 4px;
+}
+
+.ticket-available {
+    font-size: 0.85rem;
+    color: var(--gray-600);
+    margin-bottom: 6px;
+}
+
+.ticket-progress-mini {
+    width: 80px;
+    height: 4px;
+    background: var(--gray-200);
+    border-radius: 2px;
+    overflow: hidden;
+    margin-left: auto;
+}
+
+.ticket-progress-mini div {
+    height: 100%;
+    transition: width 0.3s ease;
+}
+
+.event-sidebar-info {
+    display: flex;
+    flex-direction: column;
+    gap: 20px;
+}
+
+.info-card {
+    background: var(--white);
+    border-radius: var(--border-radius-lg);
+    padding: 20px;
+    box-shadow: var(--shadow-md);
+    border: 1px solid var(--gray-200);
+}
+
+.info-card-title {
+    font-size: 1.1rem;
+    font-weight: var(--font-weight-semibold);
+    color: var(--primary);
+    margin-bottom: 16px;
+    display: flex;
+    align-items: center;
+    gap: 10px;
+}
+
+.info-list {
+    display: flex;
+    flex-direction: column;
+    gap: 14px;
+}
+
+.info-item {
+    padding-bottom: 14px;
+    border-bottom: 1px solid var(--gray-200);
+}
+
+.info-item:last-child {
+    border-bottom: none;
+    padding-bottom: 0;
+}
+
+.info-label {
+    font-size: 0.8rem;
+    color: var(--gray-600);
+    margin-bottom: 6px;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+}
+
+.info-label i {
+    color: var(--accent);
+    width: 16px;
+}
+
+.info-value {
+    font-size: 0.95rem;
+    font-weight: var(--font-weight-semibold);
+    color: var(--primary);
+}
+
+.collaborators-list {
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+}
+
+.collaborator-item {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+}
+
+.collaborator-avatar {
+    width: 40px;
+    height: 40px;
+    border-radius: 50%;
+    background: linear-gradient(135deg, var(--accent), var(--accent-light));
+    color: white;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-weight: var(--font-weight-bold);
+    font-size: 0.9rem;
+}
+
+.collaborator-info {
+    flex: 1;
+}
+
+.collaborator-info strong {
+    display: block;
+    font-size: 0.9rem;
+    color: var(--primary);
+}
+
+.collaborator-info span {
+    display: block;
+    font-size: 0.75rem;
+    color: var(--gray-600);
+}
+
+.quick-actions-list {
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+}
+
+.action-btn {
+    width: 100%;
+    padding: 12px 16px;
+    background: var(--gray-50);
+    border: 1px solid var(--gray-200);
+    border-radius: var(--border-radius-md);
+    cursor: pointer;
+    font-weight: var(--font-weight-medium);
+    color: var(--gray-700);
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    transition: var(--transition-base);
+}
+
+.action-btn:hover {
+    background: var(--accent);
+    border-color: var(--accent);
+    color: white;
+}
+
+.action-btn i {
+    width: 20px;
+}
+
+@media (max-width: 1200px) {
+    .event-content-grid {
+        grid-template-columns: 1fr;
+    }
+    
+    .quick-stats {
+        grid-template-columns: repeat(2, 1fr);
+    }
+}
+
+@media (max-width: 768px) {
+    .quick-stats {
+        grid-template-columns: 1fr;
+    }
+    
+    .event-title {
+        font-size: 1.8rem;
+    }
+    
+    .event-overlay {
+        padding: 24px;
+    }
+}
+</style>
+{% endblock %}
+

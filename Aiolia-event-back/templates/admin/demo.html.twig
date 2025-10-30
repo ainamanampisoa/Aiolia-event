@@ -1,0 +1,198 @@
+{% extends 'base.html.twig' %}
+
+{% block title %}Démonstration CSS Unifié{% endblock %}
+
+{% block body %}
+<div class="container-fluid py-4">
+    <div class="row">
+        <div class="col-12">
+            <!-- Titres -->
+            <h1><i class="fas fa-demo"></i> Démonstration CSS Unifié</h1>
+            <h2>Composants communs pour toutes les pages</h2>
+            <h3>Tables, formulaires et boutons</h3>
+            
+            <!-- Conteneur de recherche -->
+            <div class="search-container">
+                <h4>Zone de recherche</h4>
+                <div class="row g-3">
+                    <div class="col-md-4">
+                        <label class="form-label">
+                            <i class="fas fa-search"></i> Recherche
+                        </label>
+                        <input type="text" class="search-input" placeholder="Rechercher...">
+                    </div>
+                    <div class="col-md-4">
+                        <label class="form-label">
+                            <i class="fas fa-filter"></i> Filtre
+                        </label>
+                        <select class="form-select">
+                            <option>Tous</option>
+                            <option>Option 1</option>
+                            <option>Option 2</option>
+                        </select>
+                    </div>
+                    <div class="col-md-4">
+                        <label class="form-label">
+                            <i class="fas fa-sort"></i> Tri
+                        </label>
+                        <select class="form-select">
+                            <option>Date</option>
+                            <option>Nom</option>
+                            <option>Statut</option>
+                        </select>
+                    </div>
+                </div>
+                <div class="mt-3">
+                    <button class="btn btn-primary">
+                        <i class="fas fa-search"></i> Rechercher
+                    </button>
+                    <button class="btn btn-secondary">
+                        <i class="fas fa-undo"></i> Réinitialiser
+                    </button>
+                </div>
+            </div>
+            
+            <!-- Tableau -->
+            <div class="table-container">
+                <table class="table table-hover">
+                    <thead>
+                        <tr>
+                            <th>ID</th>
+                            <th>Nom</th>
+                            <th>Email</th>
+                            <th>Statut</th>
+                            <th>Date</th>
+                            <th>Actions</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        <tr>
+                            <td>#001</td>
+                            <td>Jean Dupont</td>
+                            <td>jean@example.com</td>
+                            <td><span class="badge bg-success">Actif</span></td>
+                            <td>17/10/2025</td>
+                            <td>
+                                <button class="btn btn-sm btn-outline-primary">
+                                    <i class="fas fa-eye"></i>
+                                </button>
+                                <button class="btn btn-sm btn-warning">
+                                    <i class="fas fa-edit"></i>
+                                </button>
+                                <button class="btn btn-sm btn-danger">
+                                    <i class="fas fa-trash"></i>
+                                </button>
+                            </td>
+                        </tr>
+                        <tr>
+                            <td>#002</td>
+                            <td>Marie Martin</td>
+                            <td>marie@example.com</td>
+                            <td><span class="badge bg-warning">En attente</span></td>
+                            <td>17/10/2025</td>
+                            <td>
+                                <button class="btn btn-sm btn-outline-primary">
+                                    <i class="fas fa-eye"></i>
+                                </button>
+                                <button class="btn btn-sm btn-warning">
+                                    <i class="fas fa-edit"></i>
+                                </button>
+                                <button class="btn btn-sm btn-danger">
+                                    <i class="fas fa-trash"></i>
+                                </button>
+                            </td>
+                        </tr>
+                        <tr>
+                            <td>#003</td>
+                            <td>Pierre Bernard</td>
+                            <td>pierre@example.com</td>
+                            <td><span class="badge bg-danger">Suspendu</span></td>
+                            <td>17/10/2025</td>
+                            <td>
+                                <button class="btn btn-sm btn-outline-primary">
+                                    <i class="fas fa-eye"></i>
+                                </button>
+                                <button class="btn btn-sm btn-warning">
+                                    <i class="fas fa-edit"></i>
+                                </button>
+                                <button class="btn btn-sm btn-danger">
+                                    <i class="fas fa-trash"></i>
+                                </button>
+                            </td>
+                        </tr>
+                    </tbody>
+                </table>
+            </div>
+            
+            <!-- Cards -->
+            <div class="row mt-4">
+                <div class="col-md-4">
+                    <div class="card">
+                        <div class="card-header">
+                            <h5 class="card-title mb-0">
+                                <i class="fas fa-chart-bar"></i> Statistiques
+                            </h5>
+                        </div>
+                        <div class="card-body">
+                            <p>Contenu de la carte avec des statistiques.</p>
+                            <button class="btn btn-info btn-sm">
+                                <i class="fas fa-info"></i> Détails
+                            </button>
+                        </div>
+                    </div>
+                </div>
+                <div class="col-md-4">
+                    <div class="card">
+                        <div class="card-header">
+                            <h5 class="card-title mb-0">
+                                <i class="fas fa-users"></i> Utilisateurs
+                            </h5>
+                        </div>
+                        <div class="card-body">
+                            <p>Gestion des utilisateurs du système.</p>
+                            <button class="btn btn-success btn-sm">
+                                <i class="fas fa-plus"></i> Ajouter
+                            </button>
+                        </div>
+                    </div>
+                </div>
+                <div class="col-md-4">
+                    <div class="card">
+                        <div class="card-header">
+                            <h5 class="card-title mb-0">
+                                <i class="fas fa-cog"></i> Configuration
+                            </h5>
+                        </div>
+                        <div class="card-body">
+                            <p>Paramètres et configuration du système.</p>
+                            <button class="btn btn-secondary btn-sm">
+                                <i class="fas fa-cog"></i> Configurer
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            
+            <!-- Alerts -->
+            <div class="mt-4">
+                <div class="alert alert-info">
+                    <i class="fas fa-info-circle"></i> 
+                    Ceci est une alerte d'information avec le CSS unifié.
+                </div>
+                <div class="alert alert-success">
+                    <i class="fas fa-check-circle"></i> 
+                    Opération réussie avec le CSS unifié.
+                </div>
+                <div class="alert alert-warning">
+                    <i class="fas fa-exclamation-triangle"></i> 
+                    Attention avec le CSS unifié.
+                </div>
+                <div class="alert alert-danger">
+                    <i class="fas fa-times-circle"></i> 
+                    Erreur avec le CSS unifié.
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

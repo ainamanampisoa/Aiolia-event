@@ -1,0 +1,584 @@
+{% extends 'base.html.twig' %}
+
+{% block title %}Paramètres - Aiolia Event{% endblock %}
+
+{% block body %}
+<div class="dashboard">
+    <!-- En-tête -->
+    <div class="dashboard-header">
+        <div>
+            <h1>⚙️ Paramètres</h1>
+            <p style="color: var(--gray-600); margin-top: 8px; font-size: 1rem;">
+                Personnalisez votre expérience Aiolia Event
+            </p>
+        </div>
+    </div>
+
+    <!-- Section: Apparence -->
+    <div class="settings-section">
+        <div class="section-header-settings">
+            <div class="section-icon" style="background: linear-gradient(135deg, rgba(52, 152, 219, 0.15), rgba(52, 152, 219, 0.05)); color: var(--accent);">
+                <i class="fas fa-palette"></i>
+            </div>
+            <div>
+                <h2>Apparence</h2>
+                <p>Personnalisez l'interface selon vos préférences</p>
+            </div>
+        </div>
+
+        <div class="settings-content">
+            <!-- Mode sombre -->
+            <div class="setting-row">
+                <div class="setting-info">
+                    <div class="setting-icon" style="background: linear-gradient(135deg, #2C3E50, #34495E); color: white;">
+                        <i class="fas fa-moon"></i>
+                    </div>
+                    <div class="setting-text">
+                        <h3>Mode sombre</h3>
+                        <p>Activez le thème sombre pour réduire la fatigue oculaire</p>
+                    </div>
+                </div>
+                <div class="setting-control">
+                    <label class="toggle-switch">
+                        <input type="checkbox" id="darkModeToggle">
+                        <span class="toggle-slider"></span>
+                    </label>
+                </div>
+            </div>
+
+            <!-- Thème de couleur -->
+            <div class="setting-row">
+                <div class="setting-info">
+                    <div class="setting-icon" style="background: linear-gradient(135deg, #3498DB, #5DADE2); color: white;">
+                        <i class="fas fa-paint-brush"></i>
+                    </div>
+                    <div class="setting-text">
+                        <h3>Thème de couleur</h3>
+                        <p>Choisissez votre couleur d'accentuation</p>
+                    </div>
+                </div>
+                <div class="setting-control">
+                    <div class="color-picker">
+                        <button class="color-option active" style="background: #3498DB;" data-color="blue"></button>
+                        <button class="color-option" style="background: #27AE60;" data-color="green"></button>
+                        <button class="color-option" style="background: #9B59B6;" data-color="purple"></button>
+                        <button class="color-option" style="background: #E74C3C;" data-color="red"></button>
+                        <button class="color-option" style="background: #F39C12;" data-color="orange"></button>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Section: Langue et région -->
+    <div class="settings-section">
+        <div class="section-header-settings">
+            <div class="section-icon" style="background: linear-gradient(135deg, rgba(39, 174, 96, 0.15), rgba(39, 174, 96, 0.05)); color: var(--success);">
+                <i class="fas fa-globe"></i>
+            </div>
+            <div>
+                <h2>Langue et région</h2>
+                <p>Configurez votre langue et format régional</p>
+            </div>
+        </div>
+
+        <div class="settings-content">
+            <!-- Langue de l'interface -->
+            <div class="setting-row">
+                <div class="setting-info">
+                    <div class="setting-icon" style="background: linear-gradient(135deg, #E74C3C, #C0392B); color: white;">
+                        <i class="fas fa-language"></i>
+                    </div>
+                    <div class="setting-text">
+                        <h3>Langue de l'interface</h3>
+                        <p>Choisissez la langue d'affichage de l'application</p>
+                    </div>
+                </div>
+                <div class="setting-control">
+                    <select class="setting-select" id="languageSelect">
+                        <option value="fr" selected>🇫🇷 Français</option>
+                        <option value="en">🇬🇧 English</option>
+                        <option value="mg">🇲🇬 Malagasy</option>
+                    </select>
+                </div>
+            </div>
+
+            <!-- Devise -->
+            <div class="setting-row">
+                <div class="setting-info">
+                    <div class="setting-icon" style="background: linear-gradient(135deg, #27AE60, #229954); color: white;">
+                        <i class="fas fa-euro-sign"></i>
+                    </div>
+                    <div class="setting-text">
+                        <h3>Devise</h3>
+                        <p>Monnaie d'affichage des prix</p>
+                    </div>
+                </div>
+                <div class="setting-control">
+                    <select class="setting-select">
+                        <option value="eur" selected>€ Euro (EUR)</option>
+                        <option value="mga">Ar Ariary (MGA)</option>
+                        <option value="usd">$ Dollar (USD)</option>
+                    </select>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Section: Notifications -->
+    <div class="settings-section">
+        <div class="section-header-settings">
+            <div class="section-icon" style="background: linear-gradient(135deg, rgba(243, 156, 18, 0.15), rgba(243, 156, 18, 0.05)); color: var(--warning);">
+                <i class="fas fa-bell"></i>
+            </div>
+            <div>
+                <h2>Préférences de notification</h2>
+                <p>Gérez comment vous recevez les notifications</p>
+            </div>
+        </div>
+
+        <div class="settings-content">
+            <div class="setting-row">
+                <div class="setting-info">
+                    <div class="setting-icon" style="background: linear-gradient(135deg, #3498DB, #2980B9); color: white;">
+                        <i class="fas fa-envelope"></i>
+                    </div>
+                    <div class="setting-text">
+                        <h3>Notifications par email</h3>
+                        <p>Recevoir les notifications importantes par email</p>
+                    </div>
+                </div>
+                <div class="setting-control">
+                    <label class="toggle-switch">
+                        <input type="checkbox" checked>
+                        <span class="toggle-slider"></span>
+                    </label>
+                </div>
+            </div>
+
+            <div class="setting-row">
+                <div class="setting-info">
+                    <div class="setting-icon" style="background: linear-gradient(135deg, #E74C3C, #C0392B); color: white;">
+                        <i class="fas fa-exclamation-triangle"></i>
+                    </div>
+                    <div class="setting-text">
+                        <h3>Alertes stock bas</h3>
+                        <p>Notification quand le stock est inférieur à 20%</p>
+                    </div>
+                </div>
+                <div class="setting-control">
+                    <label class="toggle-switch">
+                        <input type="checkbox" checked>
+                        <span class="toggle-slider"></span>
+                    </label>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Actions -->
+    <div class="form-actions">
+        <button class="btn btn-primary" id="saveSettings" style="background: linear-gradient(135deg, var(--accent), var(--accent-light)); color: white; border: none; padding: 14px 32px; border-radius: 10px; font-weight: 600; font-size: 1rem;">
+            <i class="fas fa-check"></i>
+            Enregistrer les paramètres
+        </button>
+        <button class="btn btn-secondary" style="background: white; color: var(--gray-700); border: 2px solid var(--gray-300); padding: 14px 32px; border-radius: 10px; font-weight: 600; font-size: 1rem;">
+            <i class="fas fa-redo"></i>
+            Réinitialiser
+        </button>
+    </div>
+</div>
+
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    // ============================================
+    // MODE SOMBRE
+    // ============================================
+    const darkModeToggle = document.getElementById('darkModeToggle');
+    const body = document.body;
+    
+    // Charger la préférence sauvegardée
+    if (localStorage.getItem('darkMode') === 'true') {
+        body.classList.add('dark-mode');
+        darkModeToggle.checked = true;
+    }
+    
+    darkModeToggle.addEventListener('change', function() {
+        if (this.checked) {
+            body.classList.add('dark-mode');
+            localStorage.setItem('darkMode', 'true');
+            showNotification('Mode sombre activé 🌙');
+        } else {
+            body.classList.remove('dark-mode');
+            localStorage.setItem('darkMode', 'false');
+            showNotification('Mode clair activé ☀️');
+        }
+    });
+
+    // ============================================
+    // SÉLECTEUR DE LANGUE
+    // ============================================
+    const languageSelect = document.getElementById('languageSelect');
+    
+    // Charger la langue sauvegardée
+    const savedLanguage = localStorage.getItem('language') || 'fr';
+    languageSelect.value = savedLanguage;
+    
+    languageSelect.addEventListener('change', function() {
+        localStorage.setItem('language', this.value);
+        const languages = {
+            'fr': 'Français',
+            'en': 'English',
+            'mg': 'Malagasy',
+            'es': 'Español',
+            'de': 'Deutsch',
+            'it': 'Italiano',
+            'pt': 'Português',
+            'ar': 'العربية'
+        };
+        showNotification(`Langue changée : ${languages[this.value]} 🌍`);
+    });
+
+    // ============================================
+    // SÉLECTEUR DE COULEUR
+    // ============================================
+    const colorOptions = document.querySelectorAll('.color-option');
+    
+    colorOptions.forEach(option => {
+        option.addEventListener('click', function() {
+            colorOptions.forEach(opt => opt.classList.remove('active'));
+            this.classList.add('active');
+            
+            const color = this.dataset.color;
+            const colors = {
+                'blue': '#3498DB',
+                'green': '#27AE60',
+                'purple': '#9B59B6',
+                'red': '#E74C3C',
+                'orange': '#F39C12'
+            };
+            
+            document.documentElement.style.setProperty('--accent', colors[color]);
+            localStorage.setItem('accentColor', color);
+            showNotification('Couleur du thème changée ! 🎨');
+        });
+    });
+
+    // ============================================
+    // SAUVEGARDER LES PARAMÈTRES
+    // ============================================
+    document.getElementById('saveSettings').addEventListener('click', function() {
+        showNotification('✅ Paramètres enregistrés avec succès !');
+    });
+
+    // ============================================
+    // NOTIFICATION TOAST
+    // ============================================
+    function showNotification(message) {
+        const toast = document.createElement('div');
+        toast.className = 'toast-notification';
+        toast.textContent = message;
+        document.body.appendChild(toast);
+        
+        setTimeout(() => toast.classList.add('show'), 100);
+        
+        setTimeout(() => {
+            toast.classList.remove('show');
+            setTimeout(() => toast.remove(), 300);
+        }, 3000);
+    }
+});
+</script>
+
+<style>
+.settings-section {
+    background: var(--white);
+    border-radius: var(--border-radius-xl);
+    padding: 28px;
+    margin-bottom: 24px;
+    box-shadow: var(--shadow-md);
+    border: 1px solid var(--gray-200);
+}
+
+.section-header-settings {
+    display: flex;
+    align-items: center;
+    gap: 16px;
+    margin-bottom: 24px;
+    padding-bottom: 20px;
+    border-bottom: 2px solid var(--gray-200);
+}
+
+.section-header-settings .section-icon {
+    width: 56px;
+    height: 56px;
+    border-radius: var(--border-radius-lg);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 1.6rem;
+    flex-shrink: 0;
+}
+
+.section-header-settings h2 {
+    font-size: 1.5rem;
+    font-weight: var(--font-weight-bold);
+    color: var(--primary);
+    margin: 0;
+}
+
+.section-header-settings p {
+    font-size: 0.9rem;
+    color: var(--gray-600);
+    margin: 4px 0 0 0;
+}
+
+.settings-content {
+    display: flex;
+    flex-direction: column;
+    gap: 16px;
+}
+
+.setting-row {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 20px;
+    background: var(--gray-50);
+    border-radius: var(--border-radius-lg);
+    border: 1px solid var(--gray-200);
+    transition: var(--transition-base);
+}
+
+.setting-row:hover {
+    background: white;
+    box-shadow: var(--shadow-sm);
+}
+
+.setting-info {
+    display: flex;
+    align-items: center;
+    gap: 16px;
+    flex: 1;
+}
+
+.setting-icon {
+    width: 50px;
+    height: 50px;
+    border-radius: var(--border-radius-md);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 1.3rem;
+    flex-shrink: 0;
+}
+
+.setting-text h3 {
+    font-size: 1.1rem;
+    font-weight: var(--font-weight-semibold);
+    color: var(--primary);
+    margin: 0 0 4px 0;
+}
+
+.setting-text p {
+    font-size: 0.85rem;
+    color: var(--gray-600);
+    margin: 0;
+}
+
+.setting-control {
+    flex-shrink: 0;
+}
+
+/* Toggle Switch */
+.toggle-switch {
+    position: relative;
+    width: 60px;
+    height: 32px;
+    display: inline-block;
+}
+
+.toggle-switch input {
+    opacity: 0;
+    width: 0;
+    height: 0;
+}
+
+.toggle-slider {
+    position: absolute;
+    cursor: pointer;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    background: var(--gray-300);
+    border-radius: 32px;
+    transition: 0.3s;
+}
+
+.toggle-slider:before {
+    position: absolute;
+    content: "";
+    height: 24px;
+    width: 24px;
+    left: 4px;
+    bottom: 4px;
+    background: white;
+    border-radius: 50%;
+    transition: 0.3s;
+    box-shadow: 0 2px 4px rgba(0,0,0,0.2);
+}
+
+input:checked + .toggle-slider {
+    background: linear-gradient(135deg, var(--accent), var(--accent-light));
+}
+
+input:checked + .toggle-slider:before {
+    transform: translateX(28px);
+}
+
+/* Select personnalisé */
+.setting-select {
+    min-width: 220px;
+    padding: 10px 16px;
+    border: 2px solid var(--gray-200);
+    border-radius: var(--border-radius-md);
+    font-size: 0.95rem;
+    font-family: var(--font-family);
+    font-weight: var(--font-weight-medium);
+    background: white;
+    cursor: pointer;
+    transition: var(--transition-base);
+}
+
+.setting-select:focus {
+    outline: none;
+    border-color: var(--accent);
+    box-shadow: 0 0 0 3px rgba(52, 152, 219, 0.1);
+}
+
+/* Color Picker */
+.color-picker {
+    display: flex;
+    gap: 10px;
+}
+
+.color-option {
+    width: 44px;
+    height: 44px;
+    border-radius: 50%;
+    border: 3px solid transparent;
+    cursor: pointer;
+    transition: var(--transition-base);
+    position: relative;
+}
+
+.color-option:hover {
+    transform: scale(1.1);
+}
+
+.color-option.active {
+    border-color: var(--gray-700);
+    box-shadow: 0 0 0 3px rgba(0,0,0,0.1);
+}
+
+.color-option.active::after {
+    content: '✓';
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%);
+    color: white;
+    font-weight: bold;
+    font-size: 1.2rem;
+}
+
+/* Toast notification */
+.toast-notification {
+    position: fixed;
+    bottom: 30px;
+    right: 30px;
+    background: linear-gradient(135deg, var(--primary), var(--primary-light));
+    color: white;
+    padding: 16px 24px;
+    border-radius: var(--border-radius-lg);
+    box-shadow: var(--shadow-xl);
+    font-weight: var(--font-weight-semibold);
+    font-size: 0.95rem;
+    z-index: 1000;
+    opacity: 0;
+    transform: translateY(20px);
+    transition: all 0.3s ease;
+}
+
+.toast-notification.show {
+    opacity: 1;
+    transform: translateY(0);
+}
+
+/* ============================================
+   MODE SOMBRE
+   ============================================ */
+body.dark-mode {
+    --bg-primary: #1a1a1a;
+    --bg-secondary: #2d2d2d;
+    --bg-sidebar: #0d1117;
+    --white: #2d2d2d;
+    --gray-50: #1a1a1a;
+    --gray-100: #242424;
+    --gray-200: #2d2d2d;
+    --gray-300: #3d3d3d;
+    --gray-700: #e0e0e0;
+    --gray-800: #f0f0f0;
+    --primary: #f0f0f0;
+}
+
+body.dark-mode .admin-header,
+body.dark-mode .admin-footer,
+body.dark-mode .chart-card,
+body.dark-mode .stat-card,
+body.dark-mode .quick-action-card,
+body.dark-mode .settings-section,
+body.dark-mode .event-card,
+body.dark-mode .form-section {
+    background: var(--bg-secondary);
+    border-color: var(--gray-300);
+}
+
+body.dark-mode .form-control,
+body.dark-mode .setting-select,
+body.dark-mode .search-input {
+    background: var(--gray-100);
+    border-color: var(--gray-300);
+    color: var(--gray-700);
+}
+
+body.dark-mode .setting-row,
+body.dark-mode .stat-card-compact {
+    background: var(--gray-100);
+}
+
+body.dark-mode .admin-sidebar {
+    background: var(--bg-sidebar);
+}
+
+@media (max-width: 768px) {
+    .setting-row {
+        flex-direction: column;
+        align-items: flex-start;
+        gap: 16px;
+    }
+    
+    .setting-select {
+        width: 100%;
+    }
+    
+    .toast-notification {
+        bottom: 20px;
+        right: 20px;
+        left: 20px;
+    }
+}
+</style>
+{% endblock %}
+

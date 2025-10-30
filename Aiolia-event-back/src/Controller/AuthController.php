@@ -3,7 +3,10 @@
 namespace App\Controller;
 
 use App\Entity\User;
+use App\Entity\UserValidationRequest;
 use App\Form\RegistrationFormType;
+use App\Service\AuditLogService;
+use App\Service\UserStatsService;
 use Doctrine\ORM\EntityManagerInterface;
 use Symfony\Bundle\FrameworkBundle\Controller\AbstractController;
 use Symfony\Component\HttpFoundation\Request;
@@ -38,7 +41,8 @@ class AuthController extends AbstractController
     public function register(
         Request $request,
         UserPasswordHasherInterface $userPasswordHasher,
-        EntityManagerInterface $entityManager
+        EntityManagerInterface $entityManager,
+        AuditLogService $auditLogService
     ): Response {
         // Si l'utilisateur est déjà connecté, rediriger vers le dashboard
         if ($this->getUser()) {
@@ -50,6 +54,9 @@ class AuthController extends AbstractController
         $form->handleRequest($request);
 
         if ($form->isSubmitted() && $form->isValid()) {
+            $requestedRole = $form->get('requestedRole')->getData();
+            $requestReason = $form->get('requestReason')->getData();
+
             // Encoder le mot de passe
             $user->setPasswordHash(
                 $userPasswordHasher->hashPassword(
@@ -58,12 +65,52 @@ class AuthController extends AbstractController
                 )
             );
 
+            // Déterminer le statut du compte selon le rôle demandé
+            if (in_array($requestedRole, ['organizer', 'co_organizer'])) {
+                // Si l'utilisateur demande à être organisateur ou co-organisateur
+                // Le compte est en attente de validation
+                $user->setRole('user'); // Rôle temporaire
+                $user->setAccountStatus('pending_validation');
+                
+                // Créer une demande de validation
+                $validationRequest = new UserValidationRequest();
+                $validationRequest->setUser($user);
+                $validationRequest->setRequestedRole($requestedRole);
+                $validationRequest->setReason($requestReason);
+                $validationRequest->setStatus('pending');
+                
+                $entityManager->persist($validationRequest);
+                
+                $message = 'Votre demande d\'inscription en tant que ' . 
+                    ($requestedRole === 'organizer' ? 'Organisateur' : 'Co-organisateur') . 
+                    ' a été envoyée. Vous recevrez une notification une fois que votre compte sera validé par un administrateur.';
+            } else {
+                // Utilisateur normal - compte actif immédiatement
+                $user->setRole('user');
+                $user->setAccountStatus('active');
+                $message = 'Votre compte a été créé avec succès ! Vous pouvez maintenant vous connecter.';
+            }
+
             // Sauvegarder l'utilisateur
             $entityManager->persist($user);
             $entityManager->flush();
 
+            // Logger la création de l'utilisateur
+            $auditLogService->log(
+                AuditLogService::ACTION_USER_CREATED,
+                'User',
+                $user->getId(),
+                [
+                    'email' => $user->getEmail(),
+                    'name' => $user->getFullName(),
+                    'requested_role' => $requestedRole,
+                    'account_status' => $user->getAccountStatus(),
+                ],
+                null
+            );
+
             // Message de succès
-            $this->addFlash('success', 'Votre compte a été créé avec succès ! Vous pouvez maintenant vous connecter.');
+            $this->addFlash('success', $message);
 
             return $this->redirectToRoute('app_login');
         }
@@ -115,13 +162,18 @@ class AuthController extends AbstractController
     }
 
     #[Route('/dashboard', name: 'app_dashboard')]
-    public function dashboard(): Response
+    public function dashboard(UserStatsService $userStatsService): Response
     {
-        // Cette route nécessite une authentification
-        $this->denyAccessUnlessGranted('IS_AUTHENTICATED_FULLY');
+        // Cette route nécessite une authentification (accepte aussi remember-me)
+        $this->denyAccessUnlessGranted('IS_AUTHENTICATED_REMEMBERED');
+
+        // Récupérer les statistiques calculées dynamiquement
+        $stats = $userStatsService->getUserStatistics($this->getUser());
 
         return $this->render('dashboard/index.html.twig', [
             'user' => $this->getUser(),
+            'stats' => $stats,
         ]);
     }
+
 }

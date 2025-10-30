@@ -1,0 +1,38 @@
+<svg width="350" height="80" viewBox="0 0 350 80" xmlns="http://www.w3.org/2000/svg">
+  <defs>
+    <style>
+      .aiolia-text { 
+        font-family: 'Rubik', Arial, sans-serif; 
+        font-weight: 700; 
+        font-size: 36px; 
+        fill: #ffffff; 
+        text-shadow: 2px 2px 4px rgba(31, 45, 61, 0.3);
+        letter-spacing: 1px;
+      }
+      .dash-text { 
+        font-family: 'Rubik', Arial, sans-serif; 
+        font-weight: 700; 
+        font-size: 36px; 
+        fill: #C5C1A4; 
+        text-shadow: 2px 2px 4px rgba(31, 45, 61, 0.3);
+      }
+      .event-text { 
+        font-family: 'Rubik', Arial, sans-serif; 
+        font-weight: 700; 
+        font-size: 36px; 
+        fill: #EFE6DD; 
+        text-shadow: 2px 2px 4px rgba(31, 45, 61, 0.3);
+        letter-spacing: 1px;
+      }
+    </style>
+  </defs>
+  
+  <!-- Aiolia text -->
+  <text x="20" y="55" class="aiolia-text">AIOLIA</text>
+  
+  <!-- Dash -->
+  <text x="155" y="55" class="dash-text">-</text>
+  
+  <!-- Event text -->
+  <text x="170" y="55" class="event-text">EVENT</text>
+</svg>

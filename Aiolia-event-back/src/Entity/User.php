@@ -54,40 +54,7 @@ class User implements UserInterface, PasswordAuthenticatedUserInterface
     private bool $isActive = true;
 
     #[ORM\Column(length: 20)]
-    private string $theme = 'light';
-
-    #[ORM\Column(length: 5)]
-    private string $language = 'fr';
-
-    #[ORM\Column]
-    private bool $notificationsEmail = true;
-
-    #[ORM\Column]
-    private bool $notificationsPush = true;
-
-    #[ORM\Column]
-    private bool $notificationsSms = false;
-
-    #[ORM\Column]
-    private bool $marketingEmails = true;
-
-    #[ORM\Column(type: Types::INTEGER)]
-    private int $loyaltyPoints = 0;
-
-    #[ORM\Column(type: Types::INTEGER)]
-    private int $pointsLifetimeEarned = 0;
-
-    #[ORM\Column(length: 50)]
-    private string $loyaltyTier = 'bronze';
-
-    #[ORM\Column(type: Types::INTEGER)]
-    private int $totalEventsAttended = 0;
-
-    #[ORM\Column(type: Types::DECIMAL, precision: 12, scale: 2)]
-    private string $totalAmountSpent = '0.00';
-
-    #[ORM\Column(type: Types::INTEGER, nullable: true)]
-    private ?int $favoriteCategoryId = null;
+    private string $accountStatus = 'active'; // active, pending_validation, rejected, suspended
 
     #[ORM\Column(type: Types::DATETIME_MUTABLE)]
     private ?\DateTimeInterface $createdAt = null;
@@ -291,6 +258,32 @@ class User implements UserInterface, PasswordAuthenticatedUserInterface
     public function getFullName(): string
     {
         return trim($this->firstName . ' ' . $this->lastName);
+    }
+
+    public function getAccountStatus(): string
+    {
+        return $this->accountStatus;
+    }
+
+    public function setAccountStatus(string $accountStatus): static
+    {
+        $this->accountStatus = $accountStatus;
+        return $this;
+    }
+
+    public function isPendingValidation(): bool
+    {
+        return $this->accountStatus === 'pending_validation';
+    }
+
+    public function isRejected(): bool
+    {
+        return $this->accountStatus === 'rejected';
+    }
+
+    public function isSuspended(): bool
+    {
+        return $this->accountStatus === 'suspended';
     }
 }
 

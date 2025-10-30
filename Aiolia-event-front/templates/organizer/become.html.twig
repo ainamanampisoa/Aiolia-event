@@ -1,0 +1,247 @@
+{% extends 'base.html.twig' %}
+
+{% block title %}Devenir organisateur - Vente tickets{% endblock %}
+
+{% block stylesheets %}
+        <link rel="stylesheet" type="text/css" href="{{ asset('vente-ticket/css/animate.min.css') }}">
+        <link rel="stylesheet" type="text/css" href="{{ asset('vente-ticket/css/slick.css') }}">
+        <link rel="stylesheet" type="text/css" href="{{ asset('vente-ticket/css/jquery-ui.css') }}">
+        <link rel="stylesheet" type="text/css" href="{{ asset('vente-ticket/css/main.css') }}">
+        <style>
+            .blc-compte .form-control::placeholder { color: #AEB8C2; opacity: 1; }
+            .blc-compte textarea.form-control::placeholder { color: #AEB8C2; opacity: 1; }
+            .blc-compte .form-control::-webkit-input-placeholder { color: #AEB8C2; }
+            .blc-compte .form-control::-moz-placeholder { color: #AEB8C2; }
+            .blc-compte .form-control:-ms-input-placeholder { color: #AEB8C2; }
+            .blc-compte .form-control::-ms-input-placeholder { color: #AEB8C2; }
+
+            /* Mixed grey-blue styling for titles */
+            .page-title {
+                font-weight: 700;
+                background: linear-gradient(90deg, #6B7C93 0%, var(--blue) 50%, #2e4a63 100%);
+                -webkit-background-clip: text;
+                background-clip: text;
+                color: transparent;
+            }
+            .section-title {
+                color: var(--blue);
+                position: relative;
+            }
+            .section-title:after {
+                content: "";
+                display: block;
+                width: 90px;
+                height: 3px;
+                background: linear-gradient(90deg, #3C475B 0%, var(--blue) 100%);
+                margin-top: 6px;
+            }
+            /* First part grey, second part dark blue */
+            .section-title strong {
+                color: #3C475B;
+                background: none;
+            }
+            .section-title span {
+                color: var(--blue);
+            }
+            .upload-caption {
+                margin-bottom: 8px;
+                color: #1F2D3D;
+                font-weight: 600;
+            }
+        </style>
+{% endblock %}
+
+{% block hero %}{% endblock %}
+
+{% block body %}
+        <main>
+            <section class="pt-100 pb-100">
+                <div class="container">
+                    <h2 class="text-center page-title">Devenir organisateur</h2>
+                    <div class="text-center" style="margin-top:10px;color:#757575">Renseignez vos informations pour vérifier votre compte organisateur.</div>
+
+                    <div class="blc-compte" style="margin-top:20px;">
+                        <div class="bg-beige">
+                            <div class="blc-option d-flex">
+                                <label style="color: var(--blue); font-weight: 600;">Type d'organisation</label>
+                                <div class="option">
+                                    <div class="check">
+                                        <input type="radio" id="org-entreprise" name="org_type" checked>
+                                        <label for="org-entreprise">Entreprise</label>
+                                    </div>
+                                    <div class="check">
+                                        <input type="radio" id="org-association" name="org_type">
+                                        <label for="org-association">Association</label>
+                                    </div>
+                                    <div class="check">
+                                        <input type="radio" id="org-particulier" name="org_type">
+                                        <label for="org-particulier">Particulier</label>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+
+                        <div class="sep"></div>
+
+                        <form>
+                            <div class="informations">
+                                <h3 class="section-title"><strong>Informations</strong> <span>de l'organisation</span></h3>
+                                <div class="bg-beige" style="margin-top:10px;">
+                                    <div class="row">
+                                        <div class="col50">
+                                            <div class="blc-chp">
+                                                <label style="color: var(--blue);">Nom de l'organisation <span>*</span></label>
+                                                <input type="text" class="form-control" required placeholder="Ex: Event Corp Madagascar">
+                                            </div>
+                                        </div>
+                                        <div class="col50">
+                                            <div class="blc-chp">
+                                                <label style="color: var(--blue);">Responsable (Nom & Prénom) <span>*</span></label>
+                                                <input type="text" class="form-control" required placeholder="Ex: Rakoto Jean">
+                                            </div>
+                                        </div>
+                                        <div class="col50">
+                                            <div class="blc-chp">
+                                                <label style="color: var(--blue);">Email <span>*</span></label>
+                                                <input type="email" class="form-control" required placeholder="email@domaine.com">
+                                            </div>
+                                        </div>
+                                        <div class="col50">
+                                            <div class="blc-chp">
+                                                <label style="color: var(--blue);">Téléphone <span>*</span></label>
+                                                <input type="text" class="form-control" required placeholder="Ex: 032 12 345 67">
+                                            </div>
+                                        </div>
+                                        <div class="col100">
+                                            <div class="blc-chp">
+                                                <label style="color: var(--blue);">Adresse postale <span>*</span></label>
+                                                <input type="text" class="form-control" required placeholder="Ex: Lot II A 12, Analakely">
+                                            </div>
+                                        </div>
+                                        <div class="col50">
+                                            <div class="blc-chp">
+                                                <label style="color: var(--blue);">Ville <span>*</span></label>
+                                                <input type="text" class="form-control" required placeholder="Ex: Antananarivo">
+                                            </div>
+                                        </div>
+                                        <div class="col50">
+                                            <div class="blc-chp code-postale">
+                                                <label style="color: var(--blue);">Code postal</label>
+                                                <input type="text" class="form-control" placeholder="Ex: 101">
+                                            </div>
+                                        </div>
+                                        <div class="col100">
+                                            <div class="blc-chp">
+                                                <label style="color: var(--blue);">Site web (optionnel)</label>
+                                                <input type="url" class="form-control" placeholder="https://votre-site.com">
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+
+                            <div class="sep"></div>
+
+                            <div class="informations">
+                                <h3 class="section-title"><strong>Informations</strong> <span>légales</span></h3>
+                                <div class="bg-beige" style="margin-top:10px;">
+                                    <div class="row">
+                                        <div class="col50">
+                                            <div class="blc-chp">
+                                                <label style="color: var(--blue);">NIF <span>*</span></label>
+                                                <input type="text" class="form-control" required placeholder="Numéro NIF">
+                                            </div>
+                                        </div>
+                                        <div class="col50">
+                                            <div class="blc-chp">
+                                                <label style="color: var(--blue);">STAT <span>*</span></label>
+                                                <input type="text" class="form-control" required placeholder="Numéro STAT">
+                                            </div>
+                                        </div>
+                                        <div class="col50">
+                                            <div class="blc-chp">
+                                                <label style="color: var(--blue);">RCS (optionnel)</label>
+                                                <input type="text" class="form-control" placeholder="Numéro RCS">
+                                            </div>
+                                        </div>
+                                        <div class="col50">
+                                            <div class="blc-chp">
+                                                <label style="color: var(--blue);">Numéro fiscal (optionnel)</label>
+                                                <input type="text" class="form-control" placeholder="Numéro fiscal">
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+
+                            <div class="sep"></div>
+
+                            <div class="informations">
+                                <h3 class="section-title"><strong>Présentation</strong> <span>& pièces</span></h3>
+                                <div class="bg-beige" style="margin-top:10px;">
+                                    <div class="row">
+                                        <div class="col100">
+                                            <div class="blc-chp">
+                                                <label style="color: var(--blue);">Présentation de l'organisation</label>
+                                                <textarea class="form-control" placeholder="Décrivez vos activités, votre expérience en organisation d'évènements, etc."></textarea>
+                                            </div>
+                                        </div>
+                                    </div>
+                                    <div class="image-upload-container">
+                                        <div class="image-upload-one">
+                                            <div class="upload-caption">NIF (image ou PDF)</div>
+                                            <div class="form-input">
+                                                <label for="upload-nif">
+                                                    <input type="file" id="upload-nif" accept="image/*,application/pdf">
+                                                </label>
+                                            </div>
+                                        </div>
+                                        <div class="image-upload-two">
+                                            <div class="upload-caption">STAT (image ou PDF)</div>
+                                            <div class="form-input">
+                                                <label for="upload-stat">
+                                                    <input type="file" id="upload-stat" accept="image/*,application/pdf">
+                                                </label>
+                                            </div>
+                                        </div>
+                                        <div class="image-upload-three">
+                                            <div class="upload-caption">RCS (image ou PDF)</div>
+                                            <div class="form-input">
+                                                <label for="upload-rcs">
+                                                    <input type="file" id="upload-rcs" accept="image/*,application/pdf">
+                                                </label>
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+
+                            <div class="sep no-border"></div>
+
+                            <div class="bg-beige" style="margin-bottom:20px;">
+                                <div class="blc-check d-flex justify-content-center">
+                                    <div class="check-connect">
+                                        <input type="checkbox" id="cgu" required>
+                                        <label for="cgu"><span style="color: var(--green); font-weight: 600;">J'accepte</span> les conditions générales d'utilisation</label>
+                                    </div>
+                                </div>
+                            </div>
+
+                            <div class="blc-btn text-center">
+                                <input type="submit" class="btn-submit check" value="Soumettre ma demande">
+                                <a href="{{ path('login') }}" class="link-form">Déjà inscrit ? Se connecter</a>
+                            </div>
+                        </form>
+                    </div>
+                </div>
+            </section>
+        </main>
+{% endblock %}
+
+{% block javascripts %}
+        <script type="text/javascript" src="{{ asset('vente-ticket/js/jquery.min.js') }}"></script>
+        <script type="text/javascript" src="{{ asset('vente-ticket/js/wow.js') }}"></script>
+        <script type="text/javascript" src="{{ asset('vente-ticket/js/slick.min.js') }}"></script>
+        <script type="text/javascript" src="{{ asset('vente-ticket/js/jquery-ui.js') }}"></script>  
+        <script type="text/javascript" src="{{ asset('vente-ticket/js/custom.js') }}"></script>
+{% endblock %}

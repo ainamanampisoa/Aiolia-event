@@ -1,0 +1,286 @@
+{% extends 'base.html.twig' %}
+
+{% block title %}Promotions & Codes promo - Aiolia Event{% endblock %}
+
+{% block body %}
+<div class="dashboard">
+    <div class="dashboard-header">
+        <div>
+            <h1>🎁 Promotions & Codes promo</h1>
+            <p style="color: var(--gray-600); margin-top: 8px; font-size: 1rem;">
+                Gérez vos réductions et codes promo
+            </p>
+        </div>
+        <div class="header-actions">
+            <a href="{{ path('app_promotion_new') }}" class="btn btn-primary" style="background: var(--accent); color: white; border: none; padding: 12px 24px; border-radius: 8px; text-decoration: none; font-weight: 600; display: inline-flex; align-items: center; gap: 8px;">
+                <i class="fas fa-plus"></i>
+                Nouveau code promo
+            </a>
+        </div>
+    </div>
+
+    <!-- Stats promotions -->
+    <div class="stats-grid stats-grid-compact">
+        <div class="stat-card stat-card-compact">
+            <div class="stat-icon stat-icon-compact" style="background: linear-gradient(135deg, rgba(52, 152, 219, 0.1), rgba(52, 152, 219, 0.05)); color: var(--accent);">
+                <i class="fas fa-tags"></i>
+            </div>
+            <div class="stat-content">
+                <h3>24</h3>
+                <p>Codes actifs</p>
+            </div>
+        </div>
+
+        <div class="stat-card stat-card-compact">
+            <div class="stat-icon stat-icon-compact" style="background: linear-gradient(135deg, rgba(39, 174, 96, 0.1), rgba(39, 174, 96, 0.05)); color: var(--success);">
+                <i class="fas fa-chart-line"></i>
+            </div>
+            <div class="stat-content">
+                <h3>456</h3>
+                <p>Utilisations</p>
+            </div>
+        </div>
+
+        <div class="stat-card stat-card-compact">
+            <div class="stat-icon stat-icon-compact" style="background: linear-gradient(135deg, rgba(243, 156, 18, 0.1), rgba(243, 156, 18, 0.05)); color: var(--warning);">
+                <i class="fas fa-euro-sign"></i>
+            </div>
+            <div class="stat-content">
+                <h3>-8,450 €</h3>
+                <p>Réductions accordées</p>
+            </div>
+        </div>
+
+        <div class="stat-card stat-card-compact">
+            <div class="stat-icon stat-icon-compact" style="background: linear-gradient(135deg, rgba(231, 76, 60, 0.1), rgba(231, 76, 60, 0.05)); color: var(--danger);">
+                <i class="fas fa-clock"></i>
+            </div>
+            <div class="stat-content">
+                <h3>5</h3>
+                <p>Expirent bientôt</p>
+            </div>
+        </div>
+    </div>
+
+    <!-- Liste des promotions -->
+    <div class="chart-card">
+        <div class="card-header">
+            <h3>🏷️ Codes promo actifs</h3>
+        </div>
+        <div class="card-body">
+            <div class="promotions-grid">
+                <div class="promo-card">
+                    <div class="promo-header">
+                        <div class="promo-code">EARLYBIRD</div>
+                        <span class="promo-status status-active">Active</span>
+                    </div>
+                    <div class="promo-details">
+                        <div class="promo-discount">-20%</div>
+                        <p>Réduction pour les achats anticipés</p>
+                    </div>
+                    <div class="promo-info">
+                        <div class="promo-stat">
+                            <i class="fas fa-calendar"></i>
+                            Expire le 31 Oct 2025
+                        </div>
+                        <div class="promo-stat">
+                            <i class="fas fa-users"></i>
+                            156 utilisations
+                        </div>
+                    </div>
+                    <div class="promo-actions">
+                        <button class="btn-promo-action">
+                            <i class="fas fa-edit"></i>
+                        </button>
+                        <button class="btn-promo-action">
+                            <i class="fas fa-pause"></i>
+                        </button>
+                        <button class="btn-promo-action" style="color: var(--danger);">
+                            <i class="fas fa-trash"></i>
+                        </button>
+                    </div>
+                </div>
+
+                <div class="promo-card">
+                    <div class="promo-header">
+                        <div class="promo-code">FESTIVAL50</div>
+                        <span class="promo-status status-active">Active</span>
+                    </div>
+                    <div class="promo-details">
+                        <div class="promo-discount">-50%</div>
+                        <p>Offre spéciale Festival Jazz</p>
+                    </div>
+                    <div class="promo-info">
+                        <div class="promo-stat">
+                            <i class="fas fa-calendar"></i>
+                            Expire le 20 Nov 2025
+                        </div>
+                        <div class="promo-stat">
+                            <i class="fas fa-users"></i>
+                            89 / 100 utilisations
+                        </div>
+                    </div>
+                    <div class="promo-actions">
+                        <button class="btn-promo-action">
+                            <i class="fas fa-edit"></i>
+                        </button>
+                        <button class="btn-promo-action">
+                            <i class="fas fa-pause"></i>
+                        </button>
+                        <button class="btn-promo-action" style="color: var(--danger);">
+                            <i class="fas fa-trash"></i>
+                        </button>
+                    </div>
+                </div>
+
+                <div class="promo-card">
+                    <div class="promo-header">
+                        <div class="promo-code">VIP10</div>
+                        <span class="promo-status status-warning">Expire bientôt</span>
+                    </div>
+                    <div class="promo-details">
+                        <div class="promo-discount">-10€</div>
+                        <p>Réduction fixe sur billets VIP</p>
+                    </div>
+                    <div class="promo-info">
+                        <div class="promo-stat">
+                            <i class="fas fa-calendar"></i>
+                            Expire le 18 Oct 2025
+                        </div>
+                        <div class="promo-stat">
+                            <i class="fas fa-users"></i>
+                            43 utilisations
+                        </div>
+                    </div>
+                    <div class="promo-actions">
+                        <button class="btn-promo-action">
+                            <i class="fas fa-edit"></i>
+                        </button>
+                        <button class="btn-promo-action">
+                            <i class="fas fa-pause"></i>
+                        </button>
+                        <button class="btn-promo-action" style="color: var(--danger);">
+                            <i class="fas fa-trash"></i>
+                        </button>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<style>
+.promotions-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(320px, 1fr));
+    gap: 20px;
+}
+
+.promo-card {
+    background: var(--white);
+    border-radius: var(--border-radius-lg);
+    padding: 20px;
+    border: 2px solid var(--gray-200);
+    transition: var(--transition-base);
+}
+
+.promo-card:hover {
+    border-color: var(--accent);
+    box-shadow: var(--shadow-md);
+}
+
+.promo-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 16px;
+}
+
+.promo-code {
+    font-family: 'Courier New', monospace;
+    font-size: 1.3rem;
+    font-weight: var(--font-weight-bold);
+    color: var(--primary);
+    background: var(--gray-100);
+    padding: 6px 14px;
+    border-radius: var(--border-radius-sm);
+}
+
+.promo-status {
+    padding: 4px 10px;
+    border-radius: 12px;
+    font-size: 0.75rem;
+    font-weight: var(--font-weight-bold);
+}
+
+.status-active {
+    background: rgba(39, 174, 96, 0.1);
+    color: var(--success);
+}
+
+.status-warning {
+    background: rgba(243, 156, 18, 0.1);
+    color: var(--warning);
+}
+
+.promo-details {
+    margin-bottom: 16px;
+}
+
+.promo-discount {
+    font-size: 2rem;
+    font-weight: var(--font-weight-bold);
+    color: var(--accent);
+    margin-bottom: 8px;
+}
+
+.promo-details p {
+    color: var(--gray-600);
+    font-size: 0.9rem;
+}
+
+.promo-info {
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+    margin-bottom: 16px;
+    padding-top: 16px;
+    border-top: 1px solid var(--gray-200);
+}
+
+.promo-stat {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    font-size: 0.85rem;
+    color: var(--gray-600);
+}
+
+.promo-stat i {
+    color: var(--accent);
+    width: 16px;
+}
+
+.promo-actions {
+    display: flex;
+    gap: 8px;
+}
+
+.btn-promo-action {
+    flex: 1;
+    padding: 10px;
+    background: var(--gray-100);
+    border: none;
+    border-radius: var(--border-radius-sm);
+    cursor: pointer;
+    color: var(--gray-700);
+    transition: var(--transition-base);
+}
+
+.btn-promo-action:hover {
+    background: var(--accent);
+    color: white;
+}
+</style>
+{% endblock %}
+

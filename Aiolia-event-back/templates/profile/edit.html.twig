@@ -1,0 +1,122 @@
+{% extends 'base.html.twig' %}
+
+{% block title %}Modifier mon profil - Aiolia Event{% endblock %}
+
+{% block body %}
+<div class="dashboard">
+    <div class="dashboard-header">
+        <div>
+            <h1>✏️ Modifier mon profil</h1>
+        </div>
+        <div class="header-actions">
+            <a href="{{ path('app_profile_index') }}" class="btn" style="background: white; color: var(--gray-700); border: 2px solid var(--gray-300); padding: 12px 20px; border-radius: 8px; text-decoration: none; font-weight: 600;">
+                <i class="fas fa-arrow-left"></i> Retour
+            </a>
+        </div>
+    </div>
+
+    <form method="post" class="profile-form">
+        <div class="form-section">
+            <div class="form-grid">
+                <div class="form-group">
+                    <label>Prénom <span class="required">*</span></label>
+                    <input type="text" name="first_name" class="form-control" value="{{ app.user.firstName }}" required>
+                </div>
+                <div class="form-group">
+                    <label>Nom <span class="required">*</span></label>
+                    <input type="text" name="last_name" class="form-control" value="{{ app.user.lastName }}" required>
+                </div>
+                <div class="form-group span-2">
+                    <label>Email <span class="required">*</span></label>
+                    <input type="email" name="email" class="form-control" value="{{ app.user.email }}" readonly>
+                    <small class="form-help">L'email ne peut pas être modifié</small>
+                </div>
+                <div class="form-group">
+                    <label>Téléphone</label>
+                    <input type="tel" name="phone" class="form-control" value="{{ app.user.phone }}">
+                </div>
+            </div>
+        </div>
+
+        <div class="form-actions">
+            <button type="submit" class="btn btn-primary" style="background: var(--accent); color: white; border: none; padding: 14px 32px; border-radius: 10px; font-weight: 600;">
+                <i class="fas fa-check"></i> Enregistrer
+            </button>
+            <a href="{{ path('app_profile_index') }}" class="btn" style="color: var(--gray-600); text-decoration: none; padding: 14px 24px;">Annuler</a>
+        </div>
+    </form>
+</div>
+
+<style>
+.profile-form {
+    max-width: 800px;
+}
+
+.form-section {
+    background: var(--white);
+    border-radius: var(--border-radius-xl);
+    padding: 28px;
+    box-shadow: var(--shadow-md);
+    border: 1px solid var(--gray-200);
+    margin-bottom: 20px;
+}
+
+.form-grid {
+    display: grid;
+    grid-template-columns: repeat(2, 1fr);
+    gap: 20px;
+}
+
+.form-group {
+    display: flex;
+    flex-direction: column;
+}
+
+.form-group.span-2 {
+    grid-column: span 2;
+}
+
+.form-group label {
+    font-size: 0.9rem;
+    font-weight: var(--font-weight-semibold);
+    color: var(--gray-700);
+    margin-bottom: 8px;
+}
+
+.required {
+    color: var(--danger);
+}
+
+.form-control {
+    padding: 12px 14px;
+    border: 2px solid var(--gray-200);
+    border-radius: var(--border-radius-md);
+    font-size: 0.95rem;
+    font-family: var(--font-family);
+    transition: var(--transition-base);
+}
+
+.form-control:focus {
+    outline: none;
+    border-color: var(--accent);
+    box-shadow: 0 0 0 3px rgba(52, 152, 219, 0.1);
+}
+
+.form-help {
+    font-size: 0.8rem;
+    color: var(--gray-600);
+    margin-top: 6px;
+}
+
+.form-actions {
+    display: flex;
+    gap: 16px;
+    padding: 24px;
+    background: var(--white);
+    border-radius: var(--border-radius-xl);
+    box-shadow: var(--shadow-md);
+    border: 1px solid var(--gray-200);
+}
+</style>
+{% endblock %}
+

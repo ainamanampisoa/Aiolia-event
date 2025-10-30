@@ -1,0 +1,82 @@
+{% extends 'base.html.twig' %}
+
+{% block title %}Contact - Vente tickets{% endblock %}
+
+{% block stylesheets %}
+        <link rel="stylesheet" type="text/css" href="{{ asset('vente-ticket/css/animate.min.css') }}">
+        <link rel="stylesheet" type="text/css" href="{{ asset('vente-ticket/css/slick.css') }}">
+        <link rel="stylesheet" type="text/css" href="{{ asset('vente-ticket/css/jquery-ui.css') }}">
+        <link rel="stylesheet" type="text/css" href="{{ asset('vente-ticket/css/main.css') }}">
+{% endblock %}
+
+{% block body %}
+        <main>
+            <section class="sec-contact">
+                <div class="container">
+                    <div class="blc-contact">
+                        <div class="col blc-left">
+                            <h2>Contactez-nous</h2>
+                            <p>Lorem ipsum dolor sit amet, consectetur adipiscing elit, sed do eiusmod tempor incididunt ut labore et dolore magna aliqua. Ut enim ad minim veniam, Lorem ipsum dolor sit amet, consectetur adipiscing elit, sed do eiusmod tempor incididunt ut labore et dolore magna aliqua. Ut enim ad minim veniam,</p>
+                            <div class="blc-btn-whatspp">
+                                <div class="inner">
+                                    <span>Whatsapp  | </span>
+                                    <a href="#">+32 00 000 00</a>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="col blc-right">
+                            <div class="blc-formulaire">
+                                <form>
+                                    <div class="blc-option d-flex">
+                                        <label>Je suis un</label>
+                                       <div class="option">
+                                         <div class="check">
+                                            <input type="radio" id="organisateur" name="radio-group" checked>
+                                            <label for="organisateur">Organisateur</label>
+                                          </div>
+                                          <div class="check">
+                                            <input type="radio" id="particulier" name="radio-group">
+                                            <label for="particulier">Particulier</label>
+                                          </div>
+                                        </div>
+                                    </div>
+                                    <h3>Formulaire de contact</h3>
+                                    <div class="blc-chp">
+                                        <label>Votre nom complet <span>*</span></label>
+                                        <input type="text" name="" class="form-control">
+                                    </div>
+                                    <div class="blc-chp">
+                                        <label>Votre adresse mail <span>*</span></label>
+                                        <input type="text" name="" class="form-control">
+                                    </div>
+                                    <div class="blc-chp">
+                                        <label>objet <span>*</span></label>
+                                        <select>
+                                            <option>objet1</option>
+                                            <option>objet2</option>
+                                        </select>
+                                    </div>
+                                    <div class="blc-chp">
+                                        <label>Votre mot de pass <span>*</span></label>
+                                        <textarea class="form-control"></textarea>
+                                    </div>
+
+                                    <div class="blc-btn">
+                                        <input type="submit" value="Envoyer" name="" class="btn-submit">
+                                    </div>
+                                </form>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </section>
+        </main>
+{% endblock %}
+
+{% block javascripts %}
+        <script type="text/javascript" src="{{ asset('vente-ticket/js/jquery.min.js') }}"></script>
+        <script type="text/javascript" src="{{ asset('vente-ticket/js/wow.js') }}"></script>
+        <script type="text/javascript" src="{{ asset('vente-ticket/js/slick.min.js') }}"></script>
+        <script type="text/javascript" src="{{ asset('vente-ticket/js/jquery-ui.js') }}"></script>  
+        <script type="text/javascript" src="{{ asset('vente-ticket/js/custom.js') }}"></script>
+{% endblock %}

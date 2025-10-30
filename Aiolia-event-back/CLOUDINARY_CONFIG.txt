@@ -1,0 +1,32 @@
+==============================================
+CONFIGURATION CLOUDINARY - À AJOUTER DANS .env.local
+==============================================
+
+Créez ou modifiez le fichier .env.local et ajoutez ces lignes :
+
+# Cloudinary Configuration
+CLOUDINARY_CLOUD_NAME=votre_cloud_name
+CLOUDINARY_API_KEY=votre_api_key
+CLOUDINARY_API_SECRET=votre_api_secret
+
+==============================================
+OÙ TROUVER VOS CREDENTIALS ?
+==============================================
+
+1. Allez sur : https://console.cloudinary.com/console
+2. Connectez-vous avec votre compte
+3. Sur le Dashboard, vous verrez :
+   - Cloud Name
+   - API Key  
+   - API Secret (cliquez sur "Show" pour le voir)
+
+==============================================
+EXEMPLE
+==============================================
+
+CLOUDINARY_CLOUD_NAME=dylxwfq0f
+CLOUDINARY_API_KEY=393824619368845
+CLOUDINARY_API_SECRET=otdAg4yBtIkClMM_J2xKRWB7vEs
+
+==============================================
+

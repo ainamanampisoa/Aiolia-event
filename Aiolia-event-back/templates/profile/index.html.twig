@@ -1,0 +1,376 @@
+{% extends 'base.html.twig' %}
+
+{% block title %}Mon profil - Aiolia Event{% endblock %}
+
+{% block body %}
+<div class="dashboard">
+    <!-- En-tête -->
+    <div class="dashboard-header">
+        <div>
+            <h1>👤 Mon profil</h1>
+            <p style="color: var(--gray-600); margin-top: 8px; font-size: 1rem;">
+                Gérez vos informations personnelles
+            </p>
+        </div>
+    </div>
+
+    <div class="profile-grid">
+        <!-- Colonne gauche -->
+        <div class="profile-main">
+            <!-- Carte profil -->
+            <div class="profile-card">
+                <div class="profile-header">
+                    <div class="profile-avatar-large">
+                        {% if app.user.photoUrl %}
+                            <img src="{{ app.user.photoUrl }}" alt="Photo">
+                        {% else %}
+                            <div class="avatar-large-initials">
+                                {{ app.user.firstName|first|upper }}{{ app.user.lastName|first|upper }}
+                            </div>
+                        {% endif %}
+                    </div>
+                    <div class="profile-info-header">
+                        <h2>{{ app.user.firstName }} {{ app.user.lastName }}</h2>
+                    </div>
+                </div>
+
+                <div class="profile-details">
+                    <div class="detail-row">
+                        <div class="detail-label">
+                            <i class="fas fa-envelope"></i>
+                            Email
+                        </div>
+                        <div class="detail-value">{{ app.user.email }}</div>
+                    </div>
+
+                    <div class="detail-row">
+                        <div class="detail-label">
+                            <i class="fas fa-phone"></i>
+                            Téléphone
+                        </div>
+                        <div class="detail-value">{{ app.user.phone ?? 'Non renseigné' }}</div>
+                    </div>
+
+                    <div class="detail-row">
+                        <div class="detail-label">
+                            <i class="fas fa-user-tag"></i>
+                            Rôle
+                        </div>
+                        <div class="detail-value">{{ app.user.role|capitalize }}</div>
+                    </div>
+
+                    <div class="detail-row">
+                        <div class="detail-label">
+                            <i class="fas fa-calendar"></i>
+                            Membre depuis
+                        </div>
+                        <div class="detail-value">{{ app.user.createdAt|date('d F Y') }}</div>
+                    </div>
+
+                    <div class="detail-row">
+                        <div class="detail-label">
+                            <i class="fas fa-clock"></i>
+                            Dernière connexion
+                        </div>
+                        <div class="detail-value">{{ app.user.lastLoginAt|date('d F Y à H:i') }}</div>
+                    </div>
+                </div>
+            </div>
+
+        </div>
+
+        <!-- Colonne droite -->
+        <div class="profile-sidebar">
+            <!-- Actions rapides -->
+            <div class="actions-card">
+                 <div class="card-title">
+                    <i class="fas fa-cog"></i>
+                    Paramètres du compte
+                </div>
+                <div class="actions-list">
+                    <a href="{{ path('app_profile_edit') }}" class="action-link">
+                        <i class="fas fa-edit"></i>
+                        Modifier le profil
+                    </a>
+                    <a href="{{ path('app_profile_password') }}" class="action-link">
+                        <i class="fas fa-key"></i>
+                        Changer le mot de passe
+                    </a>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<style>
+.profile-grid {
+    display: grid;
+    grid-template-columns: 1fr 350px;
+    gap: 24px;
+    align-items: start;
+}
+
+.profile-main {
+    display: flex;
+    flex-direction: column;
+    gap: 20px;
+}
+
+.profile-card {
+    background: var(--white);
+    border-radius: var(--border-radius-xl);
+    padding: 32px;
+    box-shadow: var(--shadow-lg);
+    border: 1px solid var(--gray-200);
+    transition: transform 0.2s ease, box-shadow 0.2s ease;
+}
+
+.profile-card:hover {
+    transform: translateY(-2px);
+    box-shadow: var(--shadow-xl);
+}
+
+.profile-header {
+    display: flex;
+    gap: 24px;
+    margin-bottom: 32px;
+    padding-bottom: 24px;
+    border-bottom: 2px solid var(--gray-200);
+    align-items: center;
+}
+
+.profile-avatar-large {
+    flex-shrink: 0;
+    position: relative;
+}
+
+.profile-avatar-large img,
+.avatar-large-initials {
+    width: 120px;
+    height: 120px;
+    border-radius: 50%;
+    object-fit: cover;
+    border: 4px solid var(--gray-200);
+    transition: border-color 0.3s ease;
+}
+
+.profile-avatar-large:hover img,
+.profile-avatar-large:hover .avatar-large-initials {
+    border-color: var(--accent);
+}
+
+.avatar-large-initials {
+    background: linear-gradient(135deg, var(--accent), var(--accent-light));
+    color: white;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 2.5rem;
+    font-weight: var(--font-weight-bold);
+    cursor: pointer;
+}
+
+.profile-info-header h2 {
+    font-size: 1.8rem;
+    color: var(--primary);
+    margin: 0 0 8px 0;
+    line-height: 1.2;
+}
+
+.profile-info-header p {
+    color: var(--gray-600);
+    font-size: 1rem;
+    margin: 0 0 12px 0;
+}
+
+.profile-details {
+    display: flex;
+    flex-direction: column;
+    gap: 16px;
+}
+
+.detail-row {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 14px 0;
+    border-bottom: 1px solid var(--gray-200);
+    transition: background-color 0.2s ease;
+}
+
+.detail-row:hover {
+    background-color: var(--gray-50);
+    margin: 0 -8px;
+    padding: 14px 8px;
+    border-radius: var(--border-radius-md);
+}
+
+.detail-row:last-child {
+    border-bottom: none;
+}
+
+.detail-label {
+    font-size: 0.9rem;
+    color: var(--gray-600);
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    flex: 1;
+}
+
+.detail-label i {
+    color: var(--accent);
+    width: 20px;
+    text-align: center;
+}
+
+.detail-value {
+    font-size: 1rem;
+    font-weight: var(--font-weight-semibold);
+    color: var(--primary);
+    text-align: right;
+    flex: 1;
+}
+
+.profile-sidebar {
+    display: flex;
+    flex-direction: column;
+    gap: 20px;
+    position: sticky;
+    top: 20px;
+}
+
+.actions-card {
+    background: var(--white);
+    border-radius: var(--border-radius-lg);
+    padding: 24px;
+    box-shadow: var(--shadow-md);
+    border: 1px solid var(--gray-200);
+    transition: transform 0.2s ease;
+}
+
+.actions-card:hover {
+    transform: translateY(-1px);
+    box-shadow: var(--shadow-lg);
+}
+
+.card-title {
+    font-size: 1.2rem;
+    font-weight: var(--font-weight-semibold);
+    color: var(--primary);
+    margin-bottom: 20px;
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    padding-bottom: 12px;
+    border-bottom: 1px solid var(--gray-200);
+}
+
+.card-title i {
+    color: var(--accent);
+}
+
+.actions-list {
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+}
+
+.action-link {
+    padding: 14px 16px;
+    background: var(--gray-50);
+    color: var(--gray-700);
+    text-decoration: none;
+    border-radius: var(--border-radius-md);
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    transition: all 0.3s ease;
+    border: 1px solid var(--gray-200);
+    font-weight: var(--font-weight-medium);
+}
+
+.action-link:hover {
+    background: var(--accent);
+    color: white;
+    border-color: var(--accent);
+    transform: translateX(4px);
+}
+
+.action-link i {
+    width: 20px;
+    transition: transform 0.2s ease;
+}
+
+.action-link:hover i {
+    transform: scale(1.1);
+}
+
+/* Responsive */
+@media (max-width: 1024px) {
+    .profile-grid {
+        grid-template-columns: 1fr;
+        gap: 20px;
+    }
+    
+    .profile-sidebar {
+        position: static;
+    }
+}
+
+@media (max-width: 768px) {
+    .profile-header {
+        flex-direction: column;
+        text-align: center;
+        gap: 20px;
+    }
+    
+    .profile-card {
+        padding: 24px 20px;
+    }
+    
+    .detail-row {
+        flex-direction: column;
+        align-items: flex-start;
+        gap: 8px;
+    }
+    
+    .detail-value {
+        text-align: left;
+        width: 100%;
+    }
+    
+    .action-link {
+        padding: 12px 14px;
+        font-size: 0.95rem;
+    }
+}
+
+@media (max-width: 480px) {
+    .profile-grid {
+        gap: 16px;
+    }
+    
+    .profile-card {
+        padding: 20px 16px;
+        border-radius: var(--border-radius-lg);
+    }
+    
+    .profile-avatar-large img,
+    .avatar-large-initials {
+        width: 100px;
+        height: 100px;
+        font-size: 2rem;
+    }
+    
+    .profile-info-header h2 {
+        font-size: 1.5rem;
+    }
+    
+    .actions-card {
+        padding: 20px 16px;
+    }
+}
+</style>
+{% endblock %}
+

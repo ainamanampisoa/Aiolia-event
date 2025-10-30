@@ -5,9 +5,11 @@ namespace App\Form;
 use App\Entity\User;
 use Symfony\Component\Form\AbstractType;
 use Symfony\Component\Form\Extension\Core\Type\CheckboxType;
+use Symfony\Component\Form\Extension\Core\Type\ChoiceType;
 use Symfony\Component\Form\Extension\Core\Type\EmailType;
 use Symfony\Component\Form\Extension\Core\Type\PasswordType;
 use Symfony\Component\Form\Extension\Core\Type\RepeatedType;
+use Symfony\Component\Form\Extension\Core\Type\TextareaType;
 use Symfony\Component\Form\Extension\Core\Type\TextType;
 use Symfony\Component\Form\FormBuilderInterface;
 use Symfony\Component\OptionsResolver\OptionsResolver;
@@ -84,6 +86,30 @@ class RegistrationFormType extends AbstractType
                         'minMessage' => 'Votre mot de passe doit contenir au moins {{ limit }} caractères',
                         'max' => 4096,
                     ]),
+                ],
+            ])
+            ->add('requestedRole', ChoiceType::class, [
+                'label' => 'Type de compte',
+                'mapped' => false,
+                'choices' => [
+                    'Utilisateur' => 'user',
+                    'Organisateur' => 'organizer',
+                    'Co-organisateur' => 'co_organizer',
+                ],
+                'expanded' => true,
+                'data' => 'user',
+                'attr' => [
+                    'class' => 'role-choice'
+                ],
+            ])
+            ->add('requestReason', TextareaType::class, [
+                'label' => 'Raison de la demande (si organisateur/co-organisateur)',
+                'mapped' => false,
+                'required' => false,
+                'attr' => [
+                    'class' => 'form-control',
+                    'rows' => 3,
+                    'placeholder' => 'Expliquez pourquoi vous souhaitez devenir organisateur ou co-organisateur...',
                 ],
             ])
             ->add('agreeTerms', CheckboxType::class, [

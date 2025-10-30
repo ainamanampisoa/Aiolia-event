@@ -1,0 +1,84 @@
+{% extends 'base.html.twig' %}
+
+{% block title %}Catégories de billets - Aiolia Event{% endblock %}
+
+{% block body %}
+<div class="dashboard">
+    <div class="dashboard-header">
+        <div>
+            <h1>🏷️ Catégories de billets</h1>
+            <p style="color: var(--gray-600); margin-top: 8px; font-size: 1rem;">
+                Configurez les catégories et prix de vos billets
+            </p>
+        </div>
+    </div>
+
+    <div class="chart-card">
+        <div class="card-body">
+            <div class="categories-grid">
+                <div class="category-card">
+                    <h3>VIP</h3>
+                    <div class="category-price">75 €</div>
+                    <p>Accès prioritaire + Backstage</p>
+                    <div class="category-stats">
+                        <span>156 vendus</span>
+                        <span>44 restants</span>
+                    </div>
+                </div>
+                <div class="category-card">
+                    <h3>Standard</h3>
+                    <div class="category-price">40 €</div>
+                    <p>Accès général</p>
+                    <div class="category-stats">
+                        <span>892 vendus</span>
+                        <span>108 restants</span>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<style>
+.categories-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(250px, 1fr));
+    gap: 20px;
+}
+
+.category-card {
+    background: var(--gray-50);
+    padding: 24px;
+    border-radius: var(--border-radius-lg);
+    border: 2px solid var(--gray-200);
+    text-align: center;
+}
+
+.category-card h3 {
+    font-size: 1.3rem;
+    color: var(--primary);
+    margin-bottom: 12px;
+}
+
+.category-price {
+    font-size: 2rem;
+    font-weight: var(--font-weight-bold);
+    color: var(--success);
+    margin-bottom: 12px;
+}
+
+.category-stats {
+    display: flex;
+    justify-content: space-around;
+    margin-top: 16px;
+    padding-top: 16px;
+    border-top: 1px solid var(--gray-200);
+}
+
+.category-stats span {
+    font-size: 0.85rem;
+    color: var(--gray-600);
+}
+</style>
+{% endblock %}
+

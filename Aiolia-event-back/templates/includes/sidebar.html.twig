@@ -1,0 +1,123 @@
+<aside class="admin-sidebar" id="adminSidebar">
+    <div class="sidebar-logo">
+        <img src="{{ asset('images/aiolia-logo.svg') }}" alt="Aiolia Event" class="logo-image">
+    </div>
+    
+    <nav class="sidebar-nav">
+        <ul class="nav-menu">
+            <li class="nav-item active">
+                <a href="{{ path('app_dashboard') }}" class="nav-link">
+                    <i class="fas fa-tachometer-alt"></i>
+                    <span class="nav-text">Tableau de bord</span>
+                </a>
+            </li>
+            
+            <li class="nav-item">
+                <a href="{{ path('app_event_index') }}" class="nav-link">
+                    <i class="fas fa-calendar-alt"></i>
+                    <span class="nav-text">Événements</span>
+                    <span class="nav-badge">12</span>
+                </a>
+            </li>
+            
+            <li class="nav-item">
+                <a href="{{ path('app_ticket_index') }}" class="nav-link">
+                    <i class="fas fa-ticket-alt"></i>
+                    <span class="nav-text">Billets</span>
+                    <span class="nav-badge">1.2k</span>
+                </a>
+            </li>
+            
+            <li class="nav-item">
+                <a href="{{ path('app_promotion_index') }}" class="nav-link">
+                    <i class="fas fa-tags"></i>
+                    <span class="nav-text">Promotions</span>
+                    <span class="nav-badge">24</span>
+                </a>
+            </li>
+            
+            <li class="nav-item">
+                <a href="{{ path('app_notification_index') }}" class="nav-link">
+                    <i class="fas fa-bell"></i>
+                    <span class="nav-text">Notifications</span>
+                    <span class="nav-badge">12</span>
+                </a>
+            </li>
+            
+            <li class="nav-item">
+                <a href="{{ path('app_event_index', {filter: 'collaborations'}) }}" class="nav-link">
+                    <i class="fas fa-users"></i>
+                    <span class="nav-text">Équipe</span>
+                    <span class="nav-badge">8</span>
+                </a>
+            </li>
+            
+            <li class="nav-item nav-section">
+                <span class="nav-section-title">ANALYSE</span>
+            </li>
+            
+            <li class="nav-item">
+                <a href="{{ path('app_reports_rapports') }}" class="nav-link">
+                    <i class="fas fa-file-alt"></i>
+                    <span class="nav-text">Rapports</span>
+                </a>
+            </li>
+            
+            <li class="nav-item">
+                <a href="{{ path('app_reports_statistiques') }}" class="nav-link">
+                    <i class="fas fa-chart-line"></i>
+                    <span class="nav-text">Statistiques</span>
+                </a>
+            </li>
+            
+            <li class="nav-item">
+                <a href="{{ path('app_reports_ventes') }}" class="nav-link">
+                    <i class="fas fa-list-alt"></i>
+                    <span class="nav-text">Listes des ventes</span>
+                </a>
+            </li>
+            
+            <li class="nav-item nav-section">
+                <span class="nav-section-title">SYSTÈME</span>
+            </li>
+            
+            {% if is_granted('ROLE_ADMIN') %}
+            <li class="nav-item">
+                <a href="{{ path('admin_users_list') }}" class="nav-link">
+                    <i class="fas fa-users-cog"></i>
+                    <span class="nav-text">Gestion utilisateurs</span>
+                </a>
+            </li>
+            
+        <li class="nav-item">
+            <a href="{{ path('admin_validation_pending') }}" class="nav-link">
+                <i class="fas fa-user-check"></i>
+                <span class="nav-text">Validation comptes</span>
+                <span class="nav-badge badge-warning">3</span>
+            </a>
+        </li>
+            {% endif %}
+            
+            <li class="nav-item">
+                <a href="{{ path('app_profile_index') }}" class="nav-link">
+                    <i class="fas fa-user-circle"></i>
+                    <span class="nav-text">Mon profil</span>
+                </a>
+            </li>
+            
+            <li class="nav-item">
+                <a href="{{ path('app_settings_index') }}" class="nav-link">
+                    <i class="fas fa-cog"></i>
+                    <span class="nav-text">Paramètres</span>
+                </a>
+            </li>
+        </ul>
+    </nav>
+    
+    <div class="sidebar-footer">
+        <div class="sidebar-help">
+            <i class="fas fa-question-circle"></i>
+            <span>Aide & Support</span>
+        </div>
+    </div>
+</aside>

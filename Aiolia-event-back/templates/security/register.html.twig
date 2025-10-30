@@ -4,6 +4,7 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Inscription - Plateforme de Ticketing</title>
+    <link rel="icon" type="image/svg+xml" href="{{ asset('images/favicon.svg') }}">
     <link rel="stylesheet" href="{{ asset('css/auth.css') }}">
     <link href="https://fonts.googleapis.com/css2?family=Rubik:wght@300;400;500;600;700&display=swap" rel="stylesheet">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
@@ -19,7 +20,7 @@
         }
         
         .auth-right {
-            padding: 50px 40px;
+            padding: 60px 60px;
             overflow-y: auto;
         }
         
@@ -29,8 +30,8 @@
         
         .form-row {
             display: flex;
-            gap: 25px;
-            margin-bottom: 30px;
+            gap: 50px;
+            margin-bottom: 25px;
         }
         
         .form-row .form-group {
@@ -41,41 +42,130 @@
         .auth-form-container h2 {
             font-size: 2.2rem;
             margin-bottom: 15px;
+            color: #2C3E50;
+            font-weight: 700;
+            text-align: center;
         }
         
         .auth-subtitle {
-            margin-bottom: 40px;
+            margin-bottom: 30px;
             font-size: 1.1rem;
+            color: #6C757D;
+            text-align: center;
+            line-height: 1.5;
         }
         
         .form-group {
-            margin-bottom: 25px;
+            margin-bottom: 12px;
         }
         
         .auth-form .form-control {
-            padding: 18px 20px;
-            font-size: 1.1rem;
-            border-radius: 12px;
-            border: 2px solid var(--beige);
+            padding: 8px 10px;
+            font-size: 0.9rem;
+            border-radius: 2px;
+            border: 1px solid #bbb;
+            background-color: #FFFFFF;
         }
         
+        .auth-form .form-control:focus {
+            border-color: var(--blue);
+            outline: none;
+        }
+        
+        .password-input {
+            position: relative;
+        }
+        
+        .toggle-password {
+            position: absolute;
+            right: 12px;
+            top: 50%;
+            transform: translateY(-50%);
+            background: none;
+            border: none;
+            color: #6C757D;
+            cursor: pointer;
+            padding: 4px;
+        }
+        
+        .toggle-password:hover {
+            color: var(--blue);
+        }
+        
+        .password-input .form-control {
+            padding-right: 40px;
+        }
+        
+        .strength-bar {
+            width: 100%;
+            height: 4px;
+            background-color: #E9ECEF;
+            border-radius: 2px;
+            overflow: hidden;
+            margin-bottom: 4px;
+        }
+        
+        .strength-fill {
+            height: 100%;
+            width: 0%;
+            transition: all 0.3s ease;
+            border-radius: 2px;
+        }
+        
+        .strength-fill.weak { 
+            width: 33%; 
+            background-color: #E74C3C; 
+        }
+        
+        .strength-fill.medium { 
+            width: 66%; 
+            background-color: #F39C12; 
+        }
+        
+        .strength-fill.strong { 
+            width: 100%; 
+            background-color: #27AE60; 
+        }
+        
+        .strength-text.weak { color: #E74C3C; }
+        .strength-text.medium { color: #F39C12; }
+        .strength-text.strong { color: #27AE60; }
+        
         .auth-form label {
-            font-size: 1rem;
-            margin-bottom: 10px;
+            font-size: 0.85rem;
+            margin-bottom: 4px;
+            font-weight: 400;
+            color: #666;
+            display: block;
         }
         
         .form-check {
-            margin-bottom: 30px;
+            margin-bottom: 12px;
+        }
+        
+        .form-check-input {
+            margin-right: 5px;
         }
         
         .form-check-label {
-            font-size: 1rem;
+            font-size: 0.8rem;
+            color: #777;
         }
         
+        
         .auth-btn {
-            padding: 18px;
-            font-size: 1.1rem;
-            border-radius: 12px;
+            padding: 8px 16px;
+            font-size: 0.9rem;
+            border-radius: 2px;
+            font-weight: 400;
+            background-color: var(--blue);
+            border: none;
+            color: white;
+            width: 100%;
+        }
+        
+        .auth-btn:hover {
+            background-color: #2C3E50;
         }
         
         .auth-links {
@@ -85,7 +175,9 @@
         
         /* Espacement supplémentaire */
         .auth-form-container {
-            padding: 10px 0;
+            padding: 20px 0;
+            max-width: 750px;
+            margin: 0 auto;
         }
         
         /* Optimisation pour mobile */
@@ -118,7 +210,7 @@
             <div class="auth-left">
                 <div class="auth-features">
                     <div class="auth-logo">
-                        <h1>TicketMaster</h1>
+                        <img src="{{ asset('images/auth-logo.svg') }}" alt="Aiolia Event" class="auth-logo-image">
                         <p>Rejoignez notre communauté</p>
                     </div>
                     
@@ -188,20 +280,30 @@
                                 <div class="form-group">
                                     {{ form_label(registrationForm.plainPassword.first) }}
                                     <div class="password-input">
-                                        {{ form_widget(registrationForm.plainPassword.first, {'attr': {'class': 'form-control', 'placeholder': 'Créez un mot de passe'}}) }}
-                                        <button type="button" class="toggle-password">
+                                        {{ form_widget(registrationForm.plainPassword.first, {'attr': {'class': 'form-control', 'placeholder': '********', 'id': 'password'}}) }}
+                                        <button type="button" class="toggle-password" data-target="password">
                                             <i class="far fa-eye"></i>
                                         </button>
+                                    </div>
+                                    <div class="password-strength" id="password-strength" style="margin-top: 8px; font-size: 0.9rem; display: none;">
+                                        <div class="strength-bar">
+                                            <div class="strength-fill"></div>
+                                        </div>
+                                        <span class="strength-text"></span>
                                     </div>
                                 </div>
 
                                 <div class="form-group">
                                     {{ form_label(registrationForm.plainPassword.second) }}
                                     <div class="password-input">
-                                        {{ form_widget(registrationForm.plainPassword.second, {'attr': {'class': 'form-control', 'placeholder': 'Confirmez le mot de passe'}}) }}
-                                        <button type="button" class="toggle-password">
+                                        {{ form_widget(registrationForm.plainPassword.second, {'attr': {'class': 'form-control', 'placeholder': '********', 'id': 'confirm-password'}}) }}
+                                        <button type="button" class="toggle-password" data-target="confirm-password">
                                             <i class="far fa-eye"></i>
                                         </button>
+                                    </div>
+                                    <div class="password-match" id="password-match" style="margin-top: 8px; font-size: 0.9rem; display: none;">
+                                        <i class="fas fa-check-circle" style="color: #27AE60;"></i>
+                                        <span>Les mots de passe correspondent</span>
                                     </div>
                                 </div>
                             </div>
@@ -228,13 +330,18 @@
     </div>
 
     <script>
-        // Toggle password visibility for all password fields
         document.addEventListener('DOMContentLoaded', function() {
             const toggleButtons = document.querySelectorAll('.toggle-password');
+            const passwordInput = document.getElementById('password');
+            const confirmPasswordInput = document.getElementById('confirm-password');
+            const strengthIndicator = document.getElementById('password-strength');
+            const matchIndicator = document.getElementById('password-match');
             
+            // Toggle password visibility
             toggleButtons.forEach(button => {
                 button.addEventListener('click', function() {
-                    const input = this.parentElement.querySelector('input');
+                    const targetId = this.getAttribute('data-target');
+                    const input = document.getElementById(targetId);
                     const icon = this.querySelector('i');
                     const type = input.getAttribute('type') === 'password' ? 'text' : 'password';
                     
@@ -248,6 +355,66 @@
                     }
                 });
             });
+            
+            // Password strength checker
+            passwordInput.addEventListener('input', function() {
+                const password = this.value;
+                const strengthFill = strengthIndicator.querySelector('.strength-fill');
+                const strengthText = strengthIndicator.querySelector('.strength-text');
+                
+                if (password.length === 0) {
+                    strengthIndicator.style.display = 'none';
+                    return;
+                }
+                
+                strengthIndicator.style.display = 'block';
+                
+                let strength = 0;
+                let strengthLabel = '';
+                
+                if (password.length >= 8) strength++;
+                if (/[a-z]/.test(password)) strength++;
+                if (/[A-Z]/.test(password)) strength++;
+                if (/[0-9]/.test(password)) strength++;
+                if (/[^A-Za-z0-9]/.test(password)) strength++;
+                
+                if (strength <= 2) {
+                    strengthFill.className = 'strength-fill weak';
+                    strengthText.className = 'strength-text weak';
+                    strengthText.textContent = 'Mot de passe faible';
+                } else if (strength <= 3) {
+                    strengthFill.className = 'strength-fill medium';
+                    strengthText.className = 'strength-text medium';
+                    strengthText.textContent = 'Mot de passe moyen';
+                } else {
+                    strengthFill.className = 'strength-fill strong';
+                    strengthText.className = 'strength-text strong';
+                    strengthText.textContent = 'Mot de passe fort';
+                }
+                
+                checkPasswordMatch();
+            });
+            
+            // Password match checker
+            function checkPasswordMatch() {
+                const password = passwordInput.value;
+                const confirmPassword = confirmPasswordInput.value;
+                
+                if (confirmPassword.length === 0) {
+                    matchIndicator.style.display = 'none';
+                    return;
+                }
+                
+                matchIndicator.style.display = 'block';
+                
+                if (password === confirmPassword) {
+                    matchIndicator.innerHTML = '<i class="fas fa-check-circle" style="color: #27AE60;"></i><span> Les mots de passe correspondent</span>';
+                } else {
+                    matchIndicator.innerHTML = '<i class="fas fa-times-circle" style="color: #E74C3C;"></i><span> Les mots de passe ne correspondent pas</span>';
+                }
+            }
+            
+            confirmPasswordInput.addEventListener('input', checkPasswordMatch);
         });
     </script>
 </body>

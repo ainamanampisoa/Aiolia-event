@@ -1,0 +1,58 @@
+<header class="admin-header">
+    <div class="header-left">
+        <button class="sidebar-toggle" id="sidebarToggle">
+            <i class="fas fa-bars"></i>
+        </button>
+    </div>
+    
+    <div class="header-right">
+        <div class="header-theme">
+            <button class="theme-toggle" id="themeToggle" title="Basculer le thème">
+                <i class="fas fa-sun" id="themeIcon"></i>
+            </button>
+        </div>
+        
+        <div class="header-notifications">
+            <button class="notification-btn">
+                <i class="fas fa-bell"></i>
+                <span class="notification-badge">3</span>
+            </button>
+        </div>
+        
+        <div class="header-user">
+            <div class="user-dropdown">
+                <div class="user-info">
+                    <div class="user-avatar">
+                        {% if app.user.photoUrl %}
+                            <img src="{{ app.user.photoUrl }}" alt="Avatar">
+                        {% else %}
+                            <div class="user-avatar-initials">
+                                {{ app.user.firstName|first|upper }}{{ app.user.lastName|first|upper }}
+                            </div>
+                        {% endif %}
+                    </div>
+                    <div class="user-details">
+                        <span class="user-name">{{ app.user.firstName }} {{ app.user.lastName }}</span>
+                        <span class="user-role">{{ app.user.role|capitalize }}</span>
+                    </div>
+                    <i class="fas fa-chevron-down"></i>
+                </div>
+                <div class="dropdown-menu">
+                    <a href="#" class="dropdown-item">
+                        <i class="fas fa-user"></i>
+                        Mon profil
+                    </a>
+                    <a href="#" class="dropdown-item">
+                        <i class="fas fa-cog"></i>
+                        Paramètres
+                    </a>
+                    <div class="dropdown-divider"></div>
+                    <a href="{{ path('app_logout') }}" class="dropdown-item logout">
+                        <i class="fas fa-sign-out-alt"></i>
+                        Déconnexion
+                    </a>
+                </div>
+            </div>
+        </div>
+    </div>
+</header>

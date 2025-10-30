@@ -1,0 +1,54 @@
+{% extends 'base.html.twig' %}
+
+{% block title %}Login - Vente tickets{% endblock %}
+
+{% block stylesheets %}
+        <link rel="stylesheet" type="text/css" href="{{ asset('vente-ticket/css/animate.min.css') }}">
+        <link rel="stylesheet" type="text/css" href="{{ asset('vente-ticket/css/slick.css') }}">
+        <link rel="stylesheet" type="text/css" href="{{ asset('vente-ticket/css/jquery-ui.css') }}">
+        <link rel="stylesheet" type="text/css" href="{{ asset('vente-ticket/css/main.css') }}">
+{% endblock %}
+
+{% block body %}
+        <main>
+            <section class="sec-login pt-100 pb-100">
+                <div class="container">
+                    <h2 class="text-center">Se connecter</h2>
+                    <div class="blc-login bg-beige">
+                        <form>
+                            <div class="blc-chp">
+                                <label>Votre adresse email</label>
+                                <input type="text" name="" class="form-control">
+                            </div>
+                            <div class="blc-chp">
+                                <label>Votre mot de passe</label>
+                                <div class="blc-password">
+                                    <input type="password" name="mdp" class="form-control" placeholder="****">
+                                    <span class="material-symbols-rounded pointer toggle-password"></span>
+                                </div>
+                            </div>
+                            <div class="blc-check d-flex justify-content-between">
+                                <div class="check-connect">
+                                    <input type="checkbox" id="reste-connecte">
+                                    <label for="reste-connecte">Rester connecté</label>
+                                </div>
+                                <a href="{{ path('forgot_password') }}" class="pass-forgot">J'ai oublié mon mot de passe</a>
+                            </div>
+                            <div class="blc-btn text-center">
+                                <input type="submit" class="btn-submit login" name="" value="se connecter">
+                                <a href="{{ path('register') }}" class="link-form">Créer un nouveau compte</a>
+                            </div>
+                        </form>
+                    </div>
+                </div>
+            </section>
+        </main>
+{% endblock %}
+
+{% block javascripts %}
+        <script type="text/javascript" src="{{ asset('vente-ticket/js/jquery.min.js') }}"></script>
+        <script type="text/javascript" src="{{ asset('vente-ticket/js/wow.js') }}"></script>
+        <script type="text/javascript" src="{{ asset('vente-ticket/js/slick.min.js') }}"></script>
+        <script type="text/javascript" src="{{ asset('vente-ticket/js/jquery-ui.js') }}"></script>  
+        <script type="text/javascript" src="{{ asset('vente-ticket/js/custom.js') }}"></script>
+{% endblock %}
