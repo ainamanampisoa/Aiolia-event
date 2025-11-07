@@ -13,17 +13,56 @@
             display: flex;
             align-items: center;
             gap: 18px;
-            margin-right: 32px;
+            margin-right: 0;
+        }
+
+        header .head .container {
+            display: flex;
+            flex-direction: column;
+            gap: 16px;
+        }
+
+        .head-top {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            gap: 24px;
+        }
+
+        .head-bottom {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 18px;
+            flex-wrap: wrap;
+        }
+
+        .head-bottom .blcMenu {
+            display: flex;
+            align-items: center;
+            gap: 18px;
+            justify-content: center;
+        }
+
+        .menu ul {
+            display: flex;
+            align-items: center;
+            gap: 18px;
+            margin: 0;
+        }
+
+        .head-bottom > * {
+            display: flex;
+            align-items: center;
+            gap: 18px;
         }
 
         .user-connected-search {
+            position: relative;
             display: flex;
             align-items: center;
-            gap: 10px;
-            background: rgba(239, 239, 239, 0.95);
-            border-radius: 999px;
-            padding: 9px 16px;
-            box-shadow: inset 0 0 0 1px rgba(31, 45, 61, 0.08);
+            padding: 4px 0;
+            border-bottom: 2px solid rgba(16, 57, 140, 0.35);
         }
 
         .user-connected-search input[type="search"] {
@@ -32,7 +71,8 @@
             outline: none;
             font-size: 14px;
             color: #1F2D3D;
-            min-width: 180px;
+            min-width: 200px;
+            padding-right: 26px;
         }
 
         .user-connected-search input[type="search"]::placeholder {
@@ -40,14 +80,25 @@
         }
 
         .user-connected-search button {
-            width: 32px;
-            height: 32px;
-            border-radius: 50%;
+            position: absolute;
+            right: 0;
+            top: 50%;
+            transform: translateY(-50%);
             border: none;
-            background: linear-gradient(135deg, #1F2D3D, #0F1C2D);
-            color: #ffffff;
+            background: transparent;
             cursor: pointer;
-            font-size: 13px;
+            padding: 0;
+        }
+
+        .user-connected-search button svg {
+            width: 16px;
+            height: 16px;
+            stroke: #1049A0;
+            transition: stroke 0.2s ease;
+        }
+
+        .user-connected-search button:hover svg {
+            stroke: #0B3576;
         }
 
         .user-connected-link,
@@ -89,10 +140,13 @@
         }
 
         @media (max-width: 992px) {
-            .user-connected {
-                flex-wrap: wrap;
-                justify-content: flex-end;
-                margin-right: 0;
+            header .head .container {
+                gap: 12px;
+            }
+
+            .head-bottom {
+                gap: 12px;
+                justify-content: center;
             }
 
             .user-connected-search {
@@ -118,40 +172,51 @@
         {% endif %}
         <header>
             <div class="head">
-                <div class="container d-flex justify-content-between ">
-                    <a href="{{ path('home') }}" class="logo"><img src="{{ asset('vente-ticket/images/aiolia_event.png') }}" alt="Powered by"></a>
-                    <div class="blcMenu d-flex ">
-                        <div class="wrapMenuMobile">
-                            <div class="menuMobile">
-                                <div></div>
-                                
+                <div class="container">
+                    <div class="head-top">
+                        <a href="{{ path('home') }}" class="logo"><img src="{{ asset('vente-ticket/images/aiolia_event.png') }}" alt="Powered by"></a>
+                        {% if isAuthenticated %}
+                        <form method="get" action="{{ path('events') }}" class="user-connected-search">
+                            <input type="search" name="q" placeholder="Rechercher un évènement">
+                            <button type="submit" title="Rechercher" aria-label="Rechercher">
+                                <svg viewBox="0 0 24 24" fill="none" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                                    <circle cx="11" cy="11" r="7"></circle>
+                                    <line x1="16.65" y1="16.65" x2="21" y2="21"></line>
+                                </svg>
+                            </button>
+                        </form>
+                        {% endif %}
+                    </div>
+                    <div class="head-bottom">
+                        <div class="blcMenu d-flex ">
+                            <div class="wrapMenuMobile">
+                                <div class="menuMobile">
+                                    <div></div>
+                                    
+                                </div>
                             </div>
-                        </div>
 
-                        <nav class="menu">
-                            <ul>
-                                <li>
-                                    <a href="{{ path('events') }}" title="Evènements">évènements</a>
-                                </li>
-                                <li>
-                                    <a href="{{ path('become_organizer') }}" title="Devenir organisateur">devenir organisateur</a>
-                                </li>
-                                <li>
-                                    <a href="{{ path('contact') }}" title="Contact">contact</a>
-                                </li>
-                            </ul>
-                             {% if not isAuthenticated %}
-                                 <div class="login">
-                                    <a href="{{ path('login') }}">se connecter</a>
-                                 </div>
-                             {% endif %}
-                        </nav>
+                            <nav class="menu">
+                                <ul>
+                                    <li>
+                                        <a href="{{ path('events') }}" title="Evènements">évènements</a>
+                                    </li>
+                                    <li>
+                                        <a href="{{ path('become_organizer') }}" title="Devenir organisateur">devenir organisateur</a>
+                                    </li>
+                                    <li>
+                                        <a href="{{ path('contact') }}" title="Contact">contact</a>
+                                    </li>
+                                </ul>
+                                 {% if not isAuthenticated %}
+                                     <div class="login">
+                                        <a href="{{ path('login') }}">se connecter</a>
+                                     </div>
+                                 {% endif %}
+                            </nav>
+                        </div>
                         {% if isAuthenticated %}
                         <div class="user-connected">
-                            <form method="get" action="{{ path('events') }}" class="user-connected-search">
-                                <input type="search" name="q" placeholder="Rechercher un évènement">
-                                <button type="submit" title="Rechercher">🔍</button>
-                            </form>
                             <a href="{{ path('notifications') }}" title="Notifications" class="user-connected-link">🔔</a>
                             <a href="{{ path('profile_index') }}" title="Mon profil" class="user-connected-link profile-link">{{ profileName }}</a>
                             <button type="button" title="Menu" class="user-connected-menu">☰</button>
