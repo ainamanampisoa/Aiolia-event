@@ -15,15 +15,18 @@
                 <div class="container">
                     <h2 class="text-center">Se connecter</h2>
                     <div class="blc-login bg-beige">
-                        <form>
+                        <form method="post" action="{{ path('login') }}">
+                            {% if error %}
+                                <p class="msg-error">{{ error }}</p>
+                            {% endif %}
                             <div class="blc-chp">
                                 <label>Votre adresse email</label>
-                                <input type="text" name="" class="form-control">
+                                <input type="text" name="email" class="form-control" value="{{ last_email|default('') }}" required>
                             </div>
                             <div class="blc-chp">
                                 <label>Votre mot de passe</label>
                                 <div class="blc-password">
-                                    <input type="password" name="mdp" class="form-control" placeholder="****">
+                                    <input type="password" name="password" class="form-control" placeholder="****" required>
                                     <span class="material-symbols-rounded pointer toggle-password"></span>
                                 </div>
                             </div>
@@ -38,6 +41,7 @@
                                 <input type="submit" class="btn-submit login" name="" value="se connecter">
                                 <a href="{{ path('register') }}" class="link-form">Créer un nouveau compte</a>
                             </div>
+                            <p class="info-test">Identifiants de test : <strong>demo@venteticket.mg</strong> / <strong>demo123</strong></p>
                         </form>
                     </div>
                 </div>
