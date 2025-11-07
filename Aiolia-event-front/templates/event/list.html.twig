@@ -7,9 +7,13 @@
         <link rel="stylesheet" type="text/css" href="{{ asset('vente-ticket/css/slick.css') }}">
         <link rel="stylesheet" type="text/css" href="{{ asset('vente-ticket/css/jquery-ui.css') }}">
         <link rel="stylesheet" type="text/css" href="{{ asset('vente-ticket/css/main.css') }}">
+        <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+        <link rel="stylesheet" type="text/css" href="{{ asset('vente-ticket/css/events.css') }}">
 {% endblock %}
 
 {% block body %}
+        {% set currentUser = app.session.get('user') %}
+        {% set isAuthenticated = currentUser is not null %}
         <main>
             <section class="sec-filtre">
                 <div class="container">
@@ -114,6 +118,11 @@
                                 {% for event in events %}
                                 <div class="item  wow fadeInUp" data-wow-delay="300ms">
                                     <div class="inner">
+                                        {% if isAuthenticated %}
+                                        <button class="favorite-toggle {% if event.isFavorite is defined and event.isFavorite %}is-active{% endif %}" type="button" data-event-id="{{ event.id ?? loop.index }}" title="Ajouter aux favoris">
+                                            <i class="fas fa-heart"></i>
+                                        </button>
+                                        {% endif %}
                                         <div class="blc-col1">
                                             <div class="col1">
                                                 <div class="date">
@@ -155,6 +164,11 @@
                             {% for i in 1..4 %}
                             <div class="item  wow fadeInUp" data-wow-delay="300ms">
                                 <div class="inner">
+                                    {% if isAuthenticated %}
+                                    <button class="favorite-toggle" type="button" data-event-id="{{ i }}" title="Ajouter aux favoris">
+                                        <i class="fas fa-heart"></i>
+                                    </button>
+                                    {% endif %}
                                     <div class="blc-col1">
                                         <div class="col1">
                                             <div class="date">
@@ -217,6 +231,16 @@
         <script type="text/javascript" src="{{ asset('vente-ticket/js/slick.min.js') }}"></script>
         <script type="text/javascript" src="{{ asset('vente-ticket/js/jquery-ui.js') }}"></script>  
         <script type="text/javascript" src="{{ asset('vente-ticket/js/custom.js') }}"></script>
+        <script>
+            document.addEventListener('DOMContentLoaded', () => {
+                document.querySelectorAll('.favorite-toggle').forEach(btn => {
+                    btn.addEventListener('click', () => {
+                        btn.classList.toggle('is-active');
+                        btn.setAttribute('aria-pressed', btn.classList.contains('is-active'));
+                    });
+                });
+            });
+        </script>
 {% endblock %}
 
 
