@@ -2,11 +2,117 @@
 
 {% block title %}Statistiques - Vente tickets{% endblock %}
 
+{% block stylesheets %}
+    <link rel="stylesheet" type="text/css" href="{{ asset('vente-ticket/css/animate.min.css') }}">
+    <link rel="stylesheet" type="text/css" href="{{ asset('vente-ticket/css/slick.css') }}">
+    <link rel="stylesheet" type="text/css" href="{{ asset('vente-ticket/css/jquery-ui.css') }}">
+    <link rel="stylesheet" type="text/css" href="{{ asset('vente-ticket/css/main.css') }}">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <link rel="stylesheet" type="text/css" href="{{ asset('vente-ticket/css/profile-stats.css') }}">
+{% endblock %}
+
+{% block hero %}{% endblock %}
+
 {% block body %}
-        <main class="pt-100 pb-100">
-            <div class="container">
-                <h2>Statistiques</h2>
-                <p>Indicateurs et graphiques (à venir).</p>
-            </div>
-        </main>
+    <main class="profile-stats-wrapper">
+        <div class="container">
+            <header class="stats-header wow fadeIn" data-wow-delay="100ms">
+                <div>
+                    <h1>Statistiques personnelles</h1>
+                    <p>Suivez votre activité, vos dépenses et vos habitudes d’achat pour optimiser vos prochaines sorties.</p>
+                </div>
+                <div class="stats-actions">
+                    <button class="btn-outline"><i class="fas fa-calendar-alt"></i> 90 derniers jours</button>
+                    <button class="btn-solid"><i class="fas fa-download"></i> Exporter</button>
+                </div>
+            </header>
+
+            <section class="stats-cards wow fadeInUp" data-wow-delay="150ms">
+                <article class="stat-card">
+                    <span class="stat-label">Billets achetés</span>
+                    <strong>28</strong>
+                    <small><i class="fas fa-arrow-up"></i> +12 % vs trimestre précédent</small>
+                </article>
+                <article class="stat-card">
+                    <span class="stat-label">Montant dépensé</span>
+                    <strong>1 280 000 MGA</strong>
+                    <small><i class="fas fa-wallet"></i> Panier moyen 106 000 MGA</small>
+                </article>
+                <article class="stat-card">
+                    <span class="stat-label">Évènements différents</span>
+                    <strong>16</strong>
+                    <small><i class="fas fa-calendar-check"></i> 4 par mois en moyenne</small>
+                </article>
+                <article class="stat-card">
+                    <span class="stat-label">Invités accompagnés</span>
+                    <strong>9</strong>
+                    <small><i class="fas fa-user-friends"></i> 3 invités réguliers</small>
+                </article>
+            </section>
+
+            <section class="stats-charts">
+                <div class="chart-card wow fadeInUp" data-wow-delay="200ms">
+                    <header>
+                        <h2>Dépenses mensuelles</h2>
+                        <span class="chart-period">Mai - Novembre 2025</span>
+                    </header>
+                    <div class="chart-placeholder">
+                        <div class="bars">
+                            {% for value in [40, 60, 55, 90, 75, 110] %}
+                                <span style="height: {{ value + 40 }}px"></span>
+                            {% endfor %}
+                        </div>
+                        <div class="chart-legend">
+                            <span><i></i> Dépenses (MGA x 1 000)</span>
+                        </div>
+                    </div>
+                </div>
+                <div class="chart-card wow fadeInUp" data-wow-delay="240ms">
+                    <header>
+                        <h2>Types d’évènements</h2>
+                        <span class="chart-period">Répartition 2025</span>
+                    </header>
+                    <div class="chart-placeholder donut">
+                        <div class="donut-chart">
+                            <svg viewBox="0 0 36 36">
+                                <path class="slice slice-1" d="M18 2a16 16 0 0 1 11.314 27.314L18 18Z" />
+                                <path class="slice slice-2" d="M29.314 29.314A16 16 0 1 1 18 2l0 16Z" />
+                                <circle class="donut-hole" cx="18" cy="18" r="9"></circle>
+                            </svg>
+                            <div class="donut-value">35 %<span>Live Music</span></div>
+                        </div>
+                        <ul class="chart-legend">
+                            <li><span class="dot dot-1"></span> Live music (35 %)</li>
+                            <li><span class="dot dot-2"></span> Mode & lifestyle (22 %)</li>
+                            <li><span class="dot dot-3"></span> Festivals (18 %)</li>
+                            <li><span class="dot dot-4"></span> Conférences & pro (15 %)</li>
+                            <li><span class="dot dot-5"></span> Autres (10 %)</li>
+                        </ul>
+                    </div>
+                </div>
+            </section>
+
+            <section class="stats-insights wow fadeInUp" data-wow-delay="260ms">
+                <div class="insight-card">
+                    <h3>Moments privilégiés</h3>
+                    <p>Vos achats se concentrent le mercredi et jeudi entre 10h et 12h. Les évènements du samedi soir sont les plus réservés.</p>
+                    <ul>
+                        <li><i class="fas fa-check"></i> Téléchargez vos billets dès confirmation pour éviter les oublis.</li>
+                        <li><i class="fas fa-check"></i> Utilisez vos 1 250 points fidélité sur une prochaine commande.</li>
+                    </ul>
+                </div>
+                <div class="insight-card">
+                    <h3>Suggestions personnalisées</h3>
+                    <p>Nous avons sélectionné des évènements qui correspondent à vos goûts récents.</p>
+                    <div class="insight-tags">
+                        <span>#Jazz</span>
+                        <span>#Fashion</span>
+                        <span>#Networking</span>
+                        <span>#Afterwork</span>
+                    </div>
+                    <a href="{{ path('events') }}" class="btn-solid">Voir les recommandations</a>
+                </div>
+            </section>
+        </div>
+    </main>
 {% endblock %}

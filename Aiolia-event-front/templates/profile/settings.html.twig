@@ -2,11 +2,142 @@
 
 {% block title %}Paramètres - Vente tickets{% endblock %}
 
+{% block stylesheets %}
+    <link rel="stylesheet" type="text/css" href="{{ asset('vente-ticket/css/animate.min.css') }}">
+    <link rel="stylesheet" type="text/css" href="{{ asset('vente-ticket/css/slick.css') }}">
+    <link rel="stylesheet" type="text/css" href="{{ asset('vente-ticket/css/jquery-ui.css') }}">
+    <link rel="stylesheet" type="text/css" href="{{ asset('vente-ticket/css/main.css') }}">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <link rel="stylesheet" type="text/css" href="{{ asset('vente-ticket/css/profile-settings.css') }}">
+{% endblock %}
+
+{% block hero %}{% endblock %}
+
 {% block body %}
-        <main class="pt-100 pb-100">
-            <div class="container">
-                <h2>Paramètres</h2>
-                <p>Préférences du compte, notifications, et mode sombre (à venir).</p>
+    <main class="profile-settings-wrapper">
+        <div class="container">
+            <header class="settings-header wow fadeIn" data-wow-delay="100ms">
+                <div>
+                    <h1>Paramètres du compte</h1>
+                    <p>Gérez vos informations personnelles, vos préférences de notification et la sécurité de votre compte.</p>
+                </div>
+                <button class="btn-solid"><i class="fas fa-save"></i> Sauvegarder les modifications</button>
+            </header>
+
+            <div class="settings-grid">
+                <section class="settings-card wow fadeInUp" data-wow-delay="150ms">
+                    <h2>Informations personnelles</h2>
+                    <form class="settings-form">
+                        <div class="form-group">
+                            <label>Nom complet</label>
+                            <input type="text" value="Rachel Andrianina" placeholder="Votre nom">
+                        </div>
+                        <div class="form-group">
+                            <label>Adresse e-mail</label>
+                            <input type="email" value="rachel.andrianina@example.com" placeholder="email@exemple.com">
+                        </div>
+                        <div class="form-row">
+                            <div class="form-group">
+                                <label>Téléphone</label>
+                                <input type="tel" value="032 12 345 67">
+                            </div>
+                            <div class="form-group">
+                                <label>Langue</label>
+                                <select>
+                                    <option>Français</option>
+                                    <option>Anglais</option>
+                                </select>
+                            </div>
+                        </div>
+                        <div class="form-group">
+                            <label>Adresse</label>
+                            <input type="text" placeholder="Adresse postale">
+                        </div>
+                    </form>
+                </section>
+
+                <section class="settings-card wow fadeInUp" data-wow-delay="180ms">
+                    <h2>Notifications</h2>
+                    <div class="settings-toggle">
+                        <div>
+                            <strong>Alertes billets disponibles</strong>
+                            <span>Recevoir un email dès qu’un billet est à nouveau disponible.</span>
+                        </div>
+                        <label class="switch">
+                            <input type="checkbox" checked>
+                            <span class="slider"></span>
+                        </label>
+                    </div>
+                    <div class="settings-toggle">
+                        <div>
+                            <strong>Rappels d’évènement</strong>
+                            <span>Notification 24h et 2h avant chaque évènement.</span>
+                        </div>
+                        <label class="switch">
+                            <input type="checkbox" checked>
+                            <span class="slider"></span>
+                        </label>
+                    </div>
+                    <div class="settings-toggle">
+                        <div>
+                            <strong>Actualités & offres</strong>
+                            <span>Promotions personnalisées et newsletters.</span>
+                        </div>
+                        <label class="switch">
+                            <input type="checkbox">
+                            <span class="slider"></span>
+                        </label>
+                    </div>
+                </section>
+
+                <section class="settings-card wow fadeInUp" data-wow-delay="210ms">
+                    <h2>Sécurité</h2>
+                    <div class="settings-security">
+                        <div>
+                            <strong>Mot de passe</strong>
+                            <span>Dernière modification : 12 août 2025</span>
+                        </div>
+                        <button class="btn-outline"><i class="fas fa-lock"></i> Modifier</button>
+                    </div>
+                    <div class="settings-security">
+                        <div>
+                            <strong>Double authentification</strong>
+                            <span>Ajoutez une couche de sécurité via SMS.</span>
+                        </div>
+                        <label class="switch">
+                            <input type="checkbox">
+                            <span class="slider"></span>
+                        </label>
+                    </div>
+                    <div class="settings-security">
+                        <div>
+                            <strong>Appareils connectés</strong>
+                            <span>MacOS • Chrome • 07 nov. 2025 13:15</span>
+                        </div>
+                        <button class="link-btn">Gérer</button>
+                    </div>
+                </section>
+
+                <section class="settings-card wow fadeInUp" data-wow-delay="240ms">
+                    <h2>Apparence</h2>
+                    <div class="appearance-options">
+                        <label class="appearance-card">
+                            <input type="radio" name="theme" checked>
+                            <span>
+                                <strong>Clair</strong>
+                                <small>Par défaut</small>
+                            </span>
+                        </label>
+                        <label class="appearance-card">
+                            <input type="radio" name="theme">
+                            <span>
+                                <strong>Sombre</strong>
+                                <small>En développement</small>
+                            </span>
+                        </label>
+                    </div>
+                </section>
             </div>
-        </main>
+        </div>
+    </main>
 {% endblock %}

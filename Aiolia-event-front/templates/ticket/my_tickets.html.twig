@@ -7,6 +7,8 @@
         <link rel="stylesheet" type="text/css" href="{{ asset('vente-ticket/css/slick.css') }}">
         <link rel="stylesheet" type="text/css" href="{{ asset('vente-ticket/css/jquery-ui.css') }}">
         <link rel="stylesheet" type="text/css" href="{{ asset('vente-ticket/css/main.css') }}">
+        <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+        <link rel="stylesheet" type="text/css" href="{{ asset('vente-ticket/css/my-tickets.css') }}">
 {% endblock %}
 
 {% block hero %}{% endblock %}
@@ -16,15 +18,15 @@
             <section class="sec-event all-event">
                 <div class="container">
                     <h2 class="wow fadeIn" data-wow-delay="300ms">Mes billets</h2>
-                    <div class="wow fadeInUp" data-wow-delay="200ms" style="display:flex; gap:16px; align-items:center; margin:20px 0;">
-                        <a href="?filter=upcoming" class="btn" style="background:#2ecc71; border-color:#2ecc71;">À venir</a>
+                    <div class="wow fadeInUp ticket-filters" data-wow-delay="200ms">
+                        <a href="?filter=upcoming" class="btn ticket-filter-active">À venir</a>
                         <a href="?filter=past" class="btn btn-secondary">Passés</a>
-                        <span class="badge" style="margin-left:auto; background:#2ecc71; color:#fff; border-radius:20px; padding:6px 12px; font-size:12px;">{{ upcomingCount|default(2) }} à venir</span>
+                        <span class="ticket-badge">{{ upcomingCount|default(2) }} à venir</span>
                     </div>
 
                     {% if tickets is defined and tickets|length == 0 %}
-                        <div class="wow fadeInUp" data-wow-delay="200ms" style="text-align:center; padding:40px 20px; background:#f7f8fa; border-radius:8px;">
-                            <div style="font-size:18px; margin-bottom:8px;">Aucun billet pour le moment</div>
+                        <div class="wow fadeInUp ticket-empty" data-wow-delay="200ms">
+                            <div class="ticket-empty-title">Aucun billet pour le moment</div>
                             <a href="{{ path('events') }}" class="btn">Découvrir des évènements</a>
                         </div>
                     {% else %}
@@ -51,13 +53,13 @@
                                         <h3>Music on Sunday</h3>
                                         <div class="adresse">Lieu : Analakely au Café de la Gare</div>
                                         <div class="tarif">Tarifs : 50.000MGA - 150.000MGA</div>
-                                        <div class="blcBtn" style="display:flex; gap:10px; flex-wrap:wrap;">
+                                        <div class="blcBtn ticket-actions">
                                             <a href="{{ path('my_ticket_details', {id: i}) }}" class="btn details">détails</a>
                                             <a href="#" class="btn btn-secondary"><i class="fa fa-file-pdf"></i> Télécharger PDF</a>
                                             <a href="#" class="btn btn-secondary"><i class="fa fa-share-alt"></i> Partager</a>
                                             <a href="#" class="btn btn-secondary"><i class="fa fa-exchange-alt"></i> Transférer</a>
                                         </div>
-                                        <div style="margin-top:8px; color:#2ecc71; font-weight:600;">Statut: valide</div>
+                                        <div class="ticket-status">Statut : valide</div>
                                     </div>
                                     
                                 </div>

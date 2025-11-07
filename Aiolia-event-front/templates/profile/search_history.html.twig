@@ -1,0 +1,63 @@
+{% extends 'base.html.twig' %}
+
+{% block title %}Historique de recherche - Vente tickets{% endblock %}
+
+{% block stylesheets %}
+    <link rel="stylesheet" type="text/css" href="{{ asset('vente-ticket/css/animate.min.css') }}">
+    <link rel="stylesheet" type="text/css" href="{{ asset('vente-ticket/css/slick.css') }}">
+    <link rel="stylesheet" type="text/css" href="{{ asset('vente-ticket/css/jquery-ui.css') }}">
+    <link rel="stylesheet" type="text/css" href="{{ asset('vente-ticket/css/main.css') }}">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <link rel="stylesheet" type="text/css" href="{{ asset('vente-ticket/css/profile-search-history.css') }}">
+{% endblock %}
+
+{% block hero %}{% endblock %}
+
+{% block body %}
+    {% set searches = searches|default([
+        { query: 'Concert jazz Antananarivo', date: '07 nov. 2025 · 14:10', results: 12 },
+        { query: 'Festival urbain 2025', date: '05 nov. 2025 · 22:45', results: 8 },
+        { query: 'Afterwork networking', date: '02 nov. 2025 · 09:02', results: 5 },
+        { query: 'Spectacle enfants décembre', date: '29 oct. 2025 · 19:18', results: 9 }
+    ]) %}
+
+    <main class="profile-search-wrapper">
+        <div class="container">
+            <header class="search-header wow fadeIn" data-wow-delay="100ms">
+                <div>
+                    <h1>Historique de recherche</h1>
+                    <p>Retrouvez vos mots-clés récents pour rejouer une recherche ou créer une alerte personnalisée.</p>
+                </div>
+                <button class="btn-outline"><i class="fas fa-trash"></i> Effacer l'historique</button>
+            </header>
+
+            <section class="search-card wow fadeInUp" data-wow-delay="150ms">
+                <div class="search-input">
+                    <i class="fas fa-search"></i>
+                    <input type="search" placeholder="Rechercher dans votre historique">
+                    <button class="btn-solid"><i class="fas fa-bell"></i> Créer une alerte</button>
+                </div>
+                <ul class="search-list">
+                    {% for item in searches %}
+                        <li>
+                            <div class="search-query">
+                                <i class="fas fa-clock"></i>
+                                <div>
+                                    <strong>{{ item.query }}</strong>
+                                    <span>{{ item.date }}</span>
+                                </div>
+                            </div>
+                            <div class="search-actions">
+                                <span class="results">{{ item.results }} résultats</span>
+                                <div class="search-buttons">
+                                    <a href="{{ path('events') }}" class="btn-outline">Relancer</a>
+                                    <button class="btn-link">Créer alerte</button>
+                                </div>
+                            </div>
+                        </li>
+                    {% endfor %}
+                </ul>
+            </section>
+        </div>
+    </main>
+{% endblock %}

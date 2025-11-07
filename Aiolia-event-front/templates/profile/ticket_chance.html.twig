@@ -1,0 +1,61 @@
+{% extends 'base.html.twig' %}
+
+{% block title %}Ticket Chance - Vente tickets{% endblock %}
+
+{% block stylesheets %}
+    <link rel="stylesheet" type="text/css" href="{{ asset('vente-ticket/css/animate.min.css') }}">
+    <link rel="stylesheet" type="text/css" href="{{ asset('vente-ticket/css/slick.css') }}">
+    <link rel="stylesheet" type="text/css" href="{{ asset('vente-ticket/css/jquery-ui.css') }}">
+    <link rel="stylesheet" type="text/css" href="{{ asset('vente-ticket/css/main.css') }}">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <link rel="stylesheet" type="text/css" href="{{ asset('vente-ticket/css/profile-ticket-chance.css') }}">
+{% endblock %}
+
+{% block hero %}{% endblock %}
+
+{% block body %}
+    <main class="ticket-chance-wrapper">
+        <div class="container">
+            <header class="ticket-chance-header wow fadeIn" data-wow-delay="100ms">
+                <div>
+                    <h1>Ticket Chance</h1>
+                    <p>Tentez votre chance et gagnez des réductions ou des billets offerts pour vos prochains évènements.</p>
+                </div>
+                <button class="btn-solid"><i class="fas fa-sync"></i> Lancer un tirage</button>
+            </header>
+
+            <section class="ticket-chance-grid">
+                <div class="ticket-chance-card wow fadeInUp" data-wow-delay="150ms">
+                    <div class="prize-wheel">
+                        <div class="wheel"></div>
+                        <button class="wheel-btn"><i class="fas fa-play"></i></button>
+                    </div>
+                    <div class="ticket-chance-info">
+                        <h2>Roulette des récompenses</h2>
+                        <ul>
+                            <li><i class="fas fa-gift"></i> Réduction -20 %</li>
+                            <li><i class="fas fa-ticket-alt"></i> Billet gratuit (tirage mensuel)</li>
+                            <li><i class="fas fa-coins"></i> +150 points fidélité</li>
+                        </ul>
+                    </div>
+                </div>
+                <aside class="ticket-chance-card wow fadeInUp" data-wow-delay="180ms">
+                    <h2>Règles du jeu</h2>
+                    <ol>
+                        <li>1 tirage gratuit par semaine, bonus après chaque achat validé.</li>
+                        <li>Les récompenses sont créditées immédiatement sur votre compte.</li>
+                        <li>Les billets gratuits sont valables sur une sélection d’évènements partenaires.</li>
+                    </ol>
+                    <div class="ticket-chance-history">
+                        <h3>Derniers gains</h3>
+                        <ul>
+                            <li><strong>07/11</strong> · -20 % Afro Jazz Experience</li>
+                            <li><strong>02/11</strong> · +150 points fidélité</li>
+                            <li><strong>28/10</strong> · Billet Offert (Fashion Night)</li>
+                        </ul>
+                    </div>
+                </aside>
+            </section>
+        </div>
+    </main>
+{% endblock %}

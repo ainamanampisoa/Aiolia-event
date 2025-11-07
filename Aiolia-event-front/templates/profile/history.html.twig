@@ -2,11 +2,147 @@
 
 {% block title %}Historique d’achat - Vente tickets{% endblock %}
 
+{% block stylesheets %}
+    <link rel="stylesheet" type="text/css" href="{{ asset('vente-ticket/css/animate.min.css') }}">
+    <link rel="stylesheet" type="text/css" href="{{ asset('vente-ticket/css/slick.css') }}">
+    <link rel="stylesheet" type="text/css" href="{{ asset('vente-ticket/css/jquery-ui.css') }}">
+    <link rel="stylesheet" type="text/css" href="{{ asset('vente-ticket/css/main.css') }}">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <link rel="stylesheet" type="text/css" href="{{ asset('vente-ticket/css/profile-history.css') }}">
+{% endblock %}
+
+{% block hero %}{% endblock %}
+
 {% block body %}
-        <main class="pt-100 pb-100">
-            <div class="container">
-                <h2>Historique d’achat</h2>
-                <p>Liste des commandes passées.</p>
-            </div>
-        </main>
+    {% set orders = orders|default([
+        {
+            code: 'CMD-548211',
+            title: 'Afro Jazz Experience',
+            date: '07 novembre 2025',
+            hour: '21:00',
+            status: 'confirmée',
+            amount: '320 000 MGA',
+            method: 'Visa',
+            tickets: 2
+        },
+        {
+            code: 'CMD-548105',
+            title: 'Madagascar Fashion Night',
+            date: '28 octobre 2025',
+            hour: '19:30',
+            status: 'remboursée',
+            amount: '240 000 MGA',
+            method: 'Mobile Money',
+            tickets: 3
+        },
+        {
+            code: 'CMD-547998',
+            title: 'Festival des Arts Urbains',
+            date: '14 octobre 2025',
+            hour: '18:00',
+            status: 'confirmée',
+            amount: '180 000 MGA',
+            method: 'Mastercard',
+            tickets: 2
+        },
+        {
+            code: 'CMD-547850',
+            title: 'Soirée Electro Rooftop',
+            date: '02 octobre 2025',
+            hour: '20:00',
+            status: 'annulée',
+            amount: '0 MGA',
+            method: 'Mobile Money',
+            tickets: 2
+        }
+    ]) %}
+
+    <main class="profile-history-wrapper">
+        <div class="container">
+            <header class="profile-history-header wow fadeIn" data-wow-delay="100ms">
+                <div>
+                    <h1>Historique d’achat</h1>
+                    <p>Retrouvez toutes vos commandes passées, remboursements et reçus téléchargeables.</p>
+                </div>
+                <div class="profile-history-actions">
+                    <button class="btn-outline"><i class="fas fa-file-download"></i> Exporter (PDF)</button>
+                    <button class="btn-solid"><i class="fas fa-filter"></i> Filtrer</button>
+                </div>
+            </header>
+
+            <section class="profile-history-summary wow fadeInUp" data-wow-delay="150ms">
+                <div class="summary-card">
+                    <span class="summary-label">Total dépensé</span>
+                    <strong>1 280 000 MGA</strong>
+                    <small>12 commandes confirmées</small>
+                </div>
+                <div class="summary-card">
+                    <span class="summary-label">Billets achetés</span>
+                    <strong>28 billets</strong>
+                    <small>Dont 6 VIP</small>
+                </div>
+                <div class="summary-card">
+                    <span class="summary-label">Remboursements</span>
+                    <strong>2 transactions</strong>
+                    <small>Montant total 240 000 MGA</small>
+                </div>
+            </section>
+
+            <section class="profile-history-table wow fadeInUp" data-wow-delay="200ms">
+                <div class="history-table-head">
+                    <div class="history-search">
+                        <i class="fas fa-search"></i>
+                        <input type="search" placeholder="Rechercher une commande ou un évènement">
+                    </div>
+                    <div class="history-filters">
+                        <button class="tag active">Tous</button>
+                        <button class="tag">Confirmés</button>
+                        <button class="tag">Remboursés</button>
+                        <button class="tag">Annulés</button>
+                    </div>
+                </div>
+                <div class="history-table-wrapper">
+                    <table>
+                        <thead>
+                            <tr>
+                                <th>Commande</th>
+                                <th>Évènement</th>
+                                <th>Date & heure</th>
+                                <th>Billets</th>
+                                <th>Montant</th>
+                                <th>Paiement</th>
+                                <th class="align-right">Actions</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {% for order in orders %}
+                                <tr class="history-row {% if order.status == 'confirmée' %}is-confirmed{% elseif order.status == 'remboursée' %}is-refunded{% else %}is-cancelled{% endif %}">
+                                    <td>
+                                        <div class="order-code">{{ order.code }}</div>
+                                        <span class="order-status">{{ order.status|capitalize }}</span>
+                                    </td>
+                                    <td>
+                                        <strong>{{ order.title }}</strong>
+                                    </td>
+                                    <td>
+                                        <div>{{ order.date }}</div>
+                                        <small>{{ order.hour }}</small>
+                                    </td>
+                                    <td>{{ order.tickets }} billet(s)</td>
+                                    <td>{{ order.amount }}</td>
+                                    <td>
+                                        <i class="fas fa-credit-card"></i> {{ order.method }}
+                                    </td>
+                                    <td class="align-right">
+                                        <button class="link-btn"><i class="fas fa-receipt"></i> Reçu</button>
+                                        <button class="link-btn"><i class="fas fa-print"></i> Imprimer</button>
+                                    </td>
+                                </tr>
+                            {% endfor %}
+                        </tbody>
+                    </table>
+                </div>
+            </section>
+        </div>
+    </main>
 {% endblock %}

@@ -32,6 +32,12 @@ class ProfileController extends AbstractController
         return $this->render('profile/favorites.html.twig');
     }
 
+    #[Route('/profile/search-history', name: 'profile_search_history')]
+    public function searchHistory(): Response
+    {
+        return $this->render('profile/search_history.html.twig');
+    }
+
     #[Route('/profile/calendar', name: 'profile_calendar')]
     public function calendar(): Response
     {
@@ -48,5 +54,17 @@ class ProfileController extends AbstractController
     public function settings(): Response
     {
         return $this->render('profile/settings.html.twig');
+    }
+
+    #[Route('/profile/financial-history', name: 'profile_financial')]
+    public function financialHistory(): Response
+    {
+        return $this->render('profile/financial.html.twig');
+    }
+
+    #[Route('/profile/ticket-chance', name: 'profile_ticket_chance')]
+    public function ticketChance(): Response
+    {
+        return $this->render('profile/ticket_chance.html.twig');
     }
 }

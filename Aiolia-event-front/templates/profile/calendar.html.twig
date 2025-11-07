@@ -2,23 +2,119 @@
 
 {% block title %}Calendrier - Vente tickets{% endblock %}
 
+{% block stylesheets %}
+    <link rel="stylesheet" type="text/css" href="{{ asset('vente-ticket/css/animate.min.css') }}">
+    <link rel="stylesheet" type="text/css" href="{{ asset('vente-ticket/css/slick.css') }}">
+    <link rel="stylesheet" type="text/css" href="{{ asset('vente-ticket/css/jquery-ui.css') }}">
+    <link rel="stylesheet" type="text/css" href="{{ asset('vente-ticket/css/main.css') }}">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <link rel="stylesheet" type="text/css" href="{{ asset('vente-ticket/css/profile-calendar.css') }}">
+{% endblock %}
+
+{% block hero %}{% endblock %}
+
 {% block body %}
-        <main class="pt-100 pb-100">
-            <div class="container">
-                <h2>Calendrier</h2>
-                <div class="calendar" style="margin-top:20px;">
-                    <div class="col">
-                        <div class="blcLeft">
-                            <div class="blc-datepicker"><div id="datepicker"></div></div>
-                        </div>
+    {% set events = events|default([
+        {
+            date: '07 décembre 2025',
+            time: '20:00',
+            title: 'Afro Jazz Experience',
+            location: 'Grand Café de la Gare',
+            status: 'Confirmé',
+            type: 'Concert'
+        },
+        {
+            date: '14 décembre 2025',
+            time: '19:30',
+            title: 'Madagascar Fashion Night',
+            location: 'Carlton',
+            status: 'À valider',
+            type: 'Mode'
+        },
+        {
+            date: '05 janvier 2026',
+            time: '18:00',
+            title: 'Festival des Arts Urbains',
+            location: 'Arena Andohatapenaka',
+            status: 'En attente de billets',
+            type: 'Festival'
+        }
+    ]) %}
+
+    <main class="profile-calendar-wrapper">
+        <div class="container">
+            <header class="calendar-header wow fadeIn" data-wow-delay="100ms">
+                <div>
+                    <h1>Calendrier des évènements</h1>
+                    <p>Visualisez vos prochains évènements, ajoutez-les à votre agenda et retrouvez vos billets en un clic.</p>
+                </div>
+                <div class="calendar-actions">
+                    <button class="btn-outline"><i class="fas fa-calendar-plus"></i> Ajouter un évènement externe</button>
+                    <button class="btn-solid"><i class="fas fa-sync"></i> Synchroniser</button>
+                </div>
+            </header>
+
+            <section class="calendar-grid">
+                <div class="calendar-month wow fadeInLeft" data-wow-delay="150ms">
+                    <div class="calendar-month-header">
+                        <button class="nav prev" aria-label="Mois précédent"><i class="fas fa-chevron-left"></i></button>
+                        <div class="month">Décembre 2025</div>
+                        <button class="nav next" aria-label="Mois suivant"><i class="fas fa-chevron-right"></i></button>
                     </div>
-                    <div class="col">
-                        <div class="blcRight">
-                            <h3>Évènements à venir</h3>
-                            <div class="lst-pro-event"></div>
-                        </div>
+                    <div class="calendar-weekdays">
+                        <span>L</span><span>M</span><span>M</span><span>J</span><span>V</span><span>S</span><span>D</span>
+                    </div>
+                    <div class="calendar-days">
+                        {% for day in [0,0,0,0,1,2,3,4,5,6,7,8,9,10,11,12,13,14,15,16,17,18,19,20,21,22,23,24,25,26,27,28,29,30,31] %}
+                            {% if day == 0 %}
+                                <span class="empty"></span>
+                            {% else %}
+                                <span class="day {% if day in [7,14] %}has-event{% endif %}">
+                                    {{ '%02d'|format(day) }}
+                                    {% if day == 7 %}<i class="fas fa-music"></i>{% endif %}
+                                    {% if day == 14 %}<i class="fas fa-star"></i>{% endif %}
+                                </span>
+                            {% endif %}
+                        {% endfor %}
                     </div>
                 </div>
-            </div>
-        </main>
+
+                <div class="calendar-agenda wow fadeInRight" data-wow-delay="180ms">
+                    <header>
+                        <h2>Agenda personnel</h2>
+                        <div class="agenda-filters">
+                            <button class="tag active">Tous</button>
+                            <button class="tag">À venir</button>
+                            <button class="tag">Passés</button>
+                        </div>
+                    </header>
+                    <div class="agenda-list">
+                        {% for event in events %}
+                            <article class="agenda-item">
+                                <div class="agenda-date">
+                                    <span class="day">{{ event.date|split(' ')|first }}</span>
+                                    <span class="month">{{ event.date|split(' ')|slice(1)|join(' ') }}</span>
+                                </div>
+                                <div class="agenda-content">
+                                    <h3>{{ event.title }}</h3>
+                                    <div class="agenda-meta">
+                                        <span><i class="fas fa-clock"></i> {{ event.time }}</span>
+                                        <span><i class="fas fa-map-marker-alt"></i> {{ event.location }}</span>
+                                        <span><i class="fas fa-tag"></i> {{ event.type }}</span>
+                                    </div>
+                                    <div class="agenda-status">
+                                        <span class="status-dot"></span> {{ event.status }}
+                                    </div>
+                                </div>
+                                <div class="agenda-actions">
+                                    <a href="{{ path('my_ticket_details', { id: loop.index }) }}" class="btn-details"><i class="fas fa-ticket-alt"></i> Billets</a>
+                                    <button class="btn-outline"><i class="fas fa-calendar-plus"></i></button>
+                                </div>
+                            </article>
+                        {% endfor %}
+                    </div>
+                </div>
+            </section>
+        </div>
+    </main>
 {% endblock %}

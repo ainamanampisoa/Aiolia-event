@@ -1,0 +1,216 @@
+/* Historique financier */
+
+.profile-financial-wrapper {
+    background: #f6f8fb;
+    padding: 80px 0 100px;
+}
+
+.financial-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: flex-start;
+    gap: 24px;
+    margin-bottom: 32px;
+}
+
+.financial-header h1 {
+    margin: 0;
+    font-size: 28px;
+    color: #10398C;
+}
+
+.financial-header p {
+    margin-top: 8px;
+    max-width: 520px;
+    color: rgba(17, 34, 68, 0.7);
+}
+
+.financial-actions {
+    display: flex;
+    gap: 12px;
+}
+
+.btn-outline,
+.btn-solid {
+    border-radius: 999px;
+    padding: 10px 20px;
+    font-weight: 600;
+    font-size: 13px;
+    border: 1px solid transparent;
+    cursor: pointer;
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+}
+
+.btn-outline {
+    background: transparent;
+    border-color: rgba(16, 57, 140, 0.24);
+    color: #10398C;
+}
+
+.btn-solid {
+    background: linear-gradient(135deg, #10398C, #0B2B6A);
+    color: #ffffff;
+}
+
+.financial-summary {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+    gap: 18px;
+    margin-bottom: 32px;
+}
+
+.financial-card {
+    background: #ffffff;
+    border-radius: 20px;
+    padding: 24px;
+    box-shadow: 0 24px 65px -42px rgba(15, 35, 74, 0.45);
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+}
+
+.financial-card span {
+    text-transform: uppercase;
+    font-size: 12px;
+    letter-spacing: 0.05em;
+    color: rgba(17, 34, 68, 0.55);
+}
+
+.financial-card strong {
+    font-size: 22px;
+    color: #0F234A;
+}
+
+.financial-card small {
+    color: rgba(17, 34, 68, 0.6);
+}
+
+.financial-grid {
+    display: grid;
+    grid-template-columns: minmax(0, 1.5fr) minmax(0, 1fr);
+    gap: 24px;
+}
+
+.financial-chart,
+.financial-breakdown {
+    background: #ffffff;
+    border-radius: 22px;
+    padding: 26px;
+    box-shadow: 0 28px 70px -42px rgba(15, 35, 74, 0.45);
+}
+
+.financial-chart header,
+.financial-breakdown header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 16px;
+}
+
+.financial-chart h2,
+.financial-breakdown h2 {
+    margin: 0;
+    color: #0F234A;
+}
+
+.financial-chart span {
+    color: rgba(17, 34, 68, 0.6);
+}
+
+.financial-bars {
+    display: flex;
+    align-items: flex-end;
+    gap: 18px;
+    min-height: 240px;
+    background: linear-gradient(180deg, rgba(249, 250, 252, 0.9), rgba(244, 247, 252, 0.95));
+    border-radius: 18px;
+    padding: 20px;
+}
+
+.bar-item {
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 10px;
+}
+
+.bar {
+    width: 100%;
+    border-radius: 14px 14px 0 0;
+    background: linear-gradient(180deg, rgba(16, 57, 140, 0.8), rgba(16, 57, 140, 0.35));
+}
+
+.bar-month {
+    font-weight: 600;
+    color: #0F234A;
+}
+
+.bar-value {
+    font-size: 12px;
+    color: rgba(17, 34, 68, 0.6);
+}
+
+.financial-breakdown ul {
+    list-style: none;
+    padding: 0;
+    margin: 0 0 16px;
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+}
+
+.financial-breakdown li {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    background: rgba(16, 57, 140, 0.06);
+    border-radius: 14px;
+    padding: 12px 16px;
+    color: #0F234A;
+}
+
+.financial-breakdown strong {
+    color: #10398C;
+}
+
+.dot {
+    width: 12px;
+    height: 12px;
+    border-radius: 50%;
+    margin-right: 10px;
+}
+
+.dot-1 { background: #10398C; }
+.dot-2 { background: #27ae60; }
+.dot-3 { background: #f39c12; }
+.dot-4 { background: #8e44ad; }
+
+.financial-note {
+    background: rgba(39, 174, 96, 0.08);
+    border-radius: 14px;
+    padding: 16px;
+    color: #1f4d2f;
+    font-size: 13px;
+}
+
+@media (max-width: 1200px) {
+    .financial-grid {
+        grid-template-columns: 1fr;
+    }
+}
+
+@media (max-width: 992px) {
+    .financial-header {
+        flex-direction: column;
+        align-items: flex-start;
+    }
+}
+
+@media (max-width: 768px) {
+    .profile-financial-wrapper {
+        padding: 60px 0 80px;
+    }
+}
