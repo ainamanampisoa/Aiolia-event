@@ -13,8 +13,11 @@ class TicketController extends AbstractController
     #[Route('/cart', name: 'cart')]
     public function cart(): Response
     {
-        // TODO: Implémenter la page du panier
-        return $this->render('ticket/cart.html.twig');
+        $items = $this->getMockCartItems();
+
+        return $this->render('ticket/cart.html.twig', [
+            'items' => $items,
+        ]);
     }
 
     #[Route('/add-to-cart', name: 'add_to_cart', methods: ['POST'])]
@@ -43,6 +46,58 @@ class TicketController extends AbstractController
     {
         // TODO: Implémenter la page à propos
         return $this->render('about/index.html.twig');
+    }
+
+    // Checkout pages
+    #[Route('/checkout/summary', name: 'checkout_summary')]
+    public function checkoutSummary(): Response
+    {
+        return $this->redirectToRoute('checkout_payment');
+    }
+
+    #[Route('/checkout/payment', name: 'checkout_payment')]
+    public function checkoutPayment(): Response
+    {
+        $items = $this->getMockCartItems();
+
+        $orderTotal = 0;
+        foreach ($items as $item) {
+            $adultTotal = $item['adultQuantity'] * $item['event']['adultPrice'];
+            $childPrice = $item['event']['childPrice'] ?? 0;
+            $childTotal = $item['childQuantity'] * $childPrice;
+            $orderTotal += $adultTotal + $childTotal;
+        }
+
+        $serviceFees = 3000;
+        $paymentDeadline = new \DateTime('+15 minutes');
+        $reference = 'CMD-' . date('Ymd') . '-0001';
+
+        return $this->render('ticket/payment.html.twig', [
+            'items' => $items,
+            'orderTotal' => $orderTotal,
+            'serviceFees' => $serviceFees,
+            'paymentDeadline' => $paymentDeadline,
+            'orderReference' => $reference,
+        ]);
+    }
+
+    #[Route('/checkout/confirmation', name: 'checkout_confirmation')]
+    public function checkoutConfirmation(): Response
+    {
+        return $this->render('ticket/confirmation.html.twig');
+    }
+
+    // My tickets
+    #[Route('/my-tickets', name: 'my_tickets')]
+    public function myTickets(): Response
+    {
+        return $this->render('ticket/my_tickets.html.twig');
+    }
+
+    #[Route('/my-tickets/{id}', name: 'my_ticket_details')]
+    public function myTicketDetails(int $id): Response
+    {
+        return $this->render('ticket/my_ticket_details.html.twig', ['id' => $id]);
     }
 
     #[Route('/api/tickets', name: 'api_tickets_list', methods: ['GET'])]
@@ -149,6 +204,45 @@ class TicketController extends AbstractController
             'message' => "Suppression du panier {$id} - À implémenter",
             'status' => 'success'
         ]);
+    }
+
+    /**
+     * Données factices pour le panier en attendant la connexion au backend.
+     *
+     * @return array<int, array<string, mixed>>
+     */
+    private function getMockCartItems(): array
+    {
+        return [
+            [
+                'event' => [
+                    'id' => 1,
+                    'image' => 'vente-ticket/images/img1.png',
+                    'title' => 'Music on Sunday',
+                    'category' => 'Soirée live',
+                    'location' => 'Analakely au Café de la Gare',
+                    'date' => new \DateTime('+7 days 20:00'),
+                    'adultPrice' => 50000,
+                    'childPrice' => 25000,
+                ],
+                'adultQuantity' => 1,
+                'childQuantity' => 1,
+            ],
+            [
+                'event' => [
+                    'id' => 2,
+                    'image' => 'vente-ticket/images/img1.png',
+                    'title' => 'Jazz Night Downtown',
+                    'category' => 'Concert',
+                    'location' => 'Antaninarenina - Hall Central',
+                    'date' => new \DateTime('+14 days 21:00'),
+                    'adultPrice' => 80000,
+                    'childPrice' => null,
+                ],
+                'adultQuantity' => 2,
+                'childQuantity' => 0,
+            ],
+        ];
     }
 }
 

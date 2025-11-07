@@ -1,0 +1,97 @@
+{% extends 'base.html.twig' %}
+
+{% block title %}Mes Billets - Vente tickets{% endblock %}
+
+{% block stylesheets %}
+        <link rel="stylesheet" type="text/css" href="{{ asset('vente-ticket/css/animate.min.css') }}">
+        <link rel="stylesheet" type="text/css" href="{{ asset('vente-ticket/css/slick.css') }}">
+        <link rel="stylesheet" type="text/css" href="{{ asset('vente-ticket/css/jquery-ui.css') }}">
+        <link rel="stylesheet" type="text/css" href="{{ asset('vente-ticket/css/main.css') }}">
+{% endblock %}
+
+{% block hero %}{% endblock %}
+
+{% block body %}
+        <main>
+            <section class="sec-event all-event">
+                <div class="container">
+                    <h2 class="wow fadeIn" data-wow-delay="300ms">Mes billets</h2>
+                    <div class="wow fadeInUp" data-wow-delay="200ms" style="display:flex; gap:16px; align-items:center; margin:20px 0;">
+                        <a href="?filter=upcoming" class="btn" style="background:#2ecc71; border-color:#2ecc71;">À venir</a>
+                        <a href="?filter=past" class="btn btn-secondary">Passés</a>
+                        <span class="badge" style="margin-left:auto; background:#2ecc71; color:#fff; border-radius:20px; padding:6px 12px; font-size:12px;">{{ upcomingCount|default(2) }} à venir</span>
+                    </div>
+
+                    {% if tickets is defined and tickets|length == 0 %}
+                        <div class="wow fadeInUp" data-wow-delay="200ms" style="text-align:center; padding:40px 20px; background:#f7f8fa; border-radius:8px;">
+                            <div style="font-size:18px; margin-bottom:8px;">Aucun billet pour le moment</div>
+                            <a href="{{ path('events') }}" class="btn">Découvrir des évènements</a>
+                        </div>
+                    {% else %}
+                    <div class="lst-event">
+                        {% for i in 1..4 %}
+                        <div class="item  wow fadeInUp" data-wow-delay="300ms">
+                            <div class="inner">
+                                <div class="blc-col1">
+                                    <div class="col1">
+                                        <div class="date">
+                                            <span>Dimanche</span>
+                                            <strong>20</strong>
+                                            <span class="text-upper">juil. 2025</span>
+                                        </div>
+                                        <div class="hour">
+                                            à 20:00
+                                        </div>
+                                        <div class="code-barre">
+                                            <img src="{{ asset('vente-ticket/images/code1.png') }}">
+                                        </div>
+                                    </div>
+                                    <div class="col2">
+                                        <span class="bandeau">Soirée live</span>
+                                        <h3>Music on Sunday</h3>
+                                        <div class="adresse">Lieu : Analakely au Café de la Gare</div>
+                                        <div class="tarif">Tarifs : 50.000MGA - 150.000MGA</div>
+                                        <div class="blcBtn" style="display:flex; gap:10px; flex-wrap:wrap;">
+                                            <a href="{{ path('my_ticket_details', {id: i}) }}" class="btn details">détails</a>
+                                            <a href="#" class="btn btn-secondary"><i class="fa fa-file-pdf"></i> Télécharger PDF</a>
+                                            <a href="#" class="btn btn-secondary"><i class="fa fa-share-alt"></i> Partager</a>
+                                            <a href="#" class="btn btn-secondary"><i class="fa fa-exchange-alt"></i> Transférer</a>
+                                        </div>
+                                        <div style="margin-top:8px; color:#2ecc71; font-weight:600;">Statut: valide</div>
+                                    </div>
+                                    
+                                </div>
+                                <div class="blc-col2">
+                                    <div class="img">
+                                        <img src="{{ asset('vente-ticket/images/img1.png') }}" alt="ventes tickets">
+                                    </div>  
+                                </div>
+                            </div>
+                        </div>
+                        {% endfor %}
+                    </div>
+                    {% endif %}
+                    
+                    <div class="pagination">
+                        <ul>
+                            <li class="prev"><a href="#"></a></li>
+                            <li class="selected"><a href="#">1</a></li>
+                            <li><a href="#">2</a></li>
+                            <li><a href="#">3</a></li>
+                            <li><a href="#">4</a></li>
+                            <li class="next"><a href="#"></a></li>
+                        </ul>
+                    </div>
+
+                </div>
+            </section>
+        </main>
+{% endblock %}
+
+{% block javascripts %}
+        <script type="text/javascript" src="{{ asset('vente-ticket/js/jquery.min.js') }}"></script>
+        <script type="text/javascript" src="{{ asset('vente-ticket/js/wow.js') }}"></script>
+        <script type="text/javascript" src="{{ asset('vente-ticket/js/slick.min.js') }}"></script>
+        <script type="text/javascript" src="{{ asset('vente-ticket/js/jquery-ui.js') }}"></script>  
+        <script type="text/javascript" src="{{ asset('vente-ticket/js/custom.js') }}"></script>
+{% endblock %}

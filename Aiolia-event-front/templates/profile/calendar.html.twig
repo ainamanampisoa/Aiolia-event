@@ -1,0 +1,24 @@
+{% extends 'base.html.twig' %}
+
+{% block title %}Calendrier - Vente tickets{% endblock %}
+
+{% block body %}
+        <main class="pt-100 pb-100">
+            <div class="container">
+                <h2>Calendrier</h2>
+                <div class="calendar" style="margin-top:20px;">
+                    <div class="col">
+                        <div class="blcLeft">
+                            <div class="blc-datepicker"><div id="datepicker"></div></div>
+                        </div>
+                    </div>
+                    <div class="col">
+                        <div class="blcRight">
+                            <h3>Évènements à venir</h3>
+                            <div class="lst-pro-event"></div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </main>
+{% endblock %}
