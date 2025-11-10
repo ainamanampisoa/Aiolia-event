@@ -441,7 +441,7 @@ CREATE TABLE ticket_transfers (
 CREATE TABLE payments (
     payment_id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
     order_id UUID NOT NULL REFERENCES orders(order_id) ON DELETE CASCADE,
-    provider TEXT NOT NULL CHECK (provider IN ('orange', 'airtel', 'telma', 'stripe', 'paypal', 'cash')),
+    provider TEXT NOT NULL CHECK (provider IN ('orange', 'airtel', 'telma')),
     provider_reference TEXT,
     status TEXT NOT NULL DEFAULT 'initiated'
         CHECK (status IN ('initiated', 'processing', 'paid', 'failed', 'refunded')),
@@ -451,6 +451,98 @@ CREATE TABLE payments (
     metadata JSONB,
     created_at TIMESTAMPTZ NOT NULL DEFAULT now(),
     updated_at TIMESTAMPTZ NOT NULL DEFAULT now()
+);
+
+-- Abonnements & Facturation --------------------------------------------------------
+
+CREATE TABLE subscription_plans (
+    plan_id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+    code TEXT NOT NULL UNIQUE,
+    name TEXT NOT NULL,
+    description TEXT,
+    billing_period TEXT NOT NULL CHECK (billing_period IN ('monthly', 'quarterly', 'yearly', 'lifetime')),
+    period_count INTEGER NOT NULL DEFAULT 1 CHECK (period_count > 0),
+    currency currency_code NOT NULL DEFAULT 'MGA',
+    price NUMERIC(12,2) NOT NULL CHECK (price >= 0),
+    setup_fee NUMERIC(12,2) NOT NULL DEFAULT 0 CHECK (setup_fee >= 0),
+    vat_rate NUMERIC(5,2) NOT NULL DEFAULT 0 CHECK (vat_rate >= 0),
+    features JSONB,
+    is_active BOOLEAN NOT NULL DEFAULT TRUE,
+    created_at TIMESTAMPTZ NOT NULL DEFAULT now(),
+    updated_at TIMESTAMPTZ NOT NULL DEFAULT now()
+);
+
+CREATE TABLE organizer_subscriptions (
+    subscription_id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+    organizer_id UUID NOT NULL REFERENCES organizer_profiles(organizer_id) ON DELETE CASCADE,
+    plan_id UUID NOT NULL REFERENCES subscription_plans(plan_id),
+    status TEXT NOT NULL DEFAULT 'pending'
+        CHECK (status IN ('pending', 'active', 'past_due', 'suspended', 'cancelled', 'expired')),
+    starts_at TIMESTAMPTZ NOT NULL DEFAULT now(),
+    current_period_start TIMESTAMPTZ NOT NULL DEFAULT now(),
+    current_period_end TIMESTAMPTZ NOT NULL,
+    renewal_at TIMESTAMPTZ,
+    trial_ends_at TIMESTAMPTZ,
+    cancel_at_period_end BOOLEAN NOT NULL DEFAULT FALSE,
+    cancelled_at TIMESTAMPTZ,
+    notes TEXT,
+    metadata JSONB,
+    created_at TIMESTAMPTZ NOT NULL DEFAULT now(),
+    updated_at TIMESTAMPTZ NOT NULL DEFAULT now()
+);
+
+CREATE TABLE organizer_subscription_status_history (
+    history_id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+    subscription_id UUID NOT NULL REFERENCES organizer_subscriptions(subscription_id) ON DELETE CASCADE,
+    status_from TEXT,
+    status_to TEXT NOT NULL,
+    reason TEXT,
+    changed_by UUID REFERENCES users(user_id),
+    metadata JSONB,
+    changed_at TIMESTAMPTZ NOT NULL DEFAULT now()
+);
+
+CREATE TABLE invoices (
+    invoice_id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+    invoice_number TEXT NOT NULL UNIQUE DEFAULT LPAD(nextval('invoice_number_seq')::text, 8, '0'),
+    customer_id UUID NOT NULL REFERENCES users(user_id),
+    order_id UUID REFERENCES orders(order_id) ON DELETE SET NULL,
+    subscription_id UUID REFERENCES organizer_subscriptions(subscription_id) ON DELETE SET NULL,
+    currency currency_code NOT NULL DEFAULT 'MGA',
+    subtotal_amount NUMERIC(12,2) NOT NULL DEFAULT 0 CHECK (subtotal_amount >= 0),
+    tax_amount NUMERIC(12,2) NOT NULL DEFAULT 0 CHECK (tax_amount >= 0),
+    total_amount NUMERIC(12,2) NOT NULL DEFAULT 0 CHECK (total_amount >= 0),
+    status TEXT NOT NULL DEFAULT 'draft'
+        CHECK (status IN ('draft', 'issued', 'paid', 'partially_paid', 'void', 'refunded', 'overdue')),
+    issued_at TIMESTAMPTZ NOT NULL DEFAULT now(),
+    due_at TIMESTAMPTZ,
+    paid_at TIMESTAMPTZ,
+    pdf_url TEXT,
+    metadata JSONB,
+    created_at TIMESTAMPTZ NOT NULL DEFAULT now(),
+    updated_at TIMESTAMPTZ NOT NULL DEFAULT now()
+);
+
+CREATE TABLE invoice_status_history (
+    history_id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+    invoice_id UUID NOT NULL REFERENCES invoices(invoice_id) ON DELETE CASCADE,
+    status_from TEXT,
+    status_to TEXT NOT NULL,
+    amount_snapshot NUMERIC(12,2),
+    changed_by UUID REFERENCES users(user_id),
+    notes TEXT,
+    changed_at TIMESTAMPTZ NOT NULL DEFAULT now()
+);
+
+CREATE TABLE payment_history (
+    history_id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+    payment_id UUID NOT NULL REFERENCES payments(payment_id) ON DELETE CASCADE,
+    status_from TEXT,
+    status_to TEXT NOT NULL,
+    provider_reference TEXT,
+    amount_snapshot NUMERIC(12,2),
+    metadata JSONB,
+    occurred_at TIMESTAMPTZ NOT NULL DEFAULT now()
 );
 
 -- Portefeuille & Fidélité -----------------------------------------------------------
@@ -690,6 +782,13 @@ CREATE INDEX idx_daily_sales_event_date ON daily_sales_summary(event_id, summary
 CREATE UNIQUE INDEX uq_user_validation_requests_pending ON user_validation_requests(user_id) WHERE status = 'pending';
 CREATE UNIQUE INDEX uq_ticket_transfers_pending ON ticket_transfers(ticket_id) WHERE status = 'pending';
 CREATE UNIQUE INDEX uq_wishlists_default ON wishlists(user_id) WHERE is_default;
+CREATE UNIQUE INDEX uq_organizer_subscription_active ON organizer_subscriptions(organizer_id) WHERE status IN ('pending', 'active', 'past_due');
+CREATE INDEX idx_organizer_subscriptions_plan ON organizer_subscriptions(plan_id);
+CREATE INDEX idx_subscription_history_subscription ON organizer_subscription_status_history(subscription_id);
+CREATE INDEX idx_invoices_status ON invoices(status);
+CREATE INDEX idx_invoices_subscription ON invoices(subscription_id);
+CREATE INDEX idx_invoice_history_invoice ON invoice_status_history(invoice_id);
+CREATE INDEX idx_payment_history_payment ON payment_history(payment_id);
 
 -- Contraintes supplémentaires -------------------------------------------------------
 

@@ -1,54 +1,63 @@
-# ✅ Suivi Module 2 – Organisateurs
+# ✅ Suivi Module 2 – Administrateur
 
-## Sprint 1 – Fondations organisateur
-- [ ] CRUD événements riches (texte, images, vidéos)
-- [ ] Profil organisateurs (nom, email, téléphone, photo)
-- [ ] Upload médias (images, vidéos)
-- [ ] Stockage médias cloud
-- [ ] Gestion des catégories d’événements
-- [ ] Détection conflits dates / lieux
-- [ ] Duplication d’événement (template)
-- [ ] Vue calendrier
+## Sprint – Gestion utilisateurs & abonnements
+- [ ] Consultation de la liste complète des utilisateurs avec filtres (nom, statut, rôle, tri, ordre)
+- [ ] Validation, modification ou suspension des comptes utilisateurs et organisateurs
+- [ ] Notification automatique par email lors des changements de statut
+- [ ] Tableau de bord avec indicateurs clés : abonnements actifs, revenus, TVA
+- [ ] Statistiques globales sur les abonnements organisateurs
+- [ ] Rapports consolidés sur les performances et les revenus par période
 
-## Sprint 2 – Billetterie & inventaire
-- [ ] Génération du QR code avec identifiant unique
-- [ ] Envoi du billet avec QR (email + affichage site)
-- [ ] Gestion des billets en temps réel (édition, quotas)
-- [ ] Gestion des quotas billets par catégorie
-- [ ] Alerte stock bas automatique
-- [ ] Stock global billets / quotas
-- [ ] Gestion de liste d’attente (si complet)
-- [ ] Tarification dynamique (palier, variation selon quotas atteints)
-- [ ] Variation automatique selon quotas atteints
-- [ ] Configuration prix par catégorie de billet
-- [ ] Gestion des périodes de validité des prix
-- [ ] Historique des modifications de prix
 
-## Sprint 3 – Promotions & notifications
-- [ ] Configuration promotions par catégorie de billet
+# ✅ Suivi Module 2 – Organisateur
+
+## Sprint 1 – Connexion & Profils
+- [ ] Authentification sécurisée côté organisateur
+- [ ] Gestion du profil (nom, email, téléphone, photo)
+- [ ] Support multi-langue pour l’espace organisateur
+- [ ] Préférence de mode sombre / clair enregistrée dans le profil
+
+## Sprint 2 – Gestion des événements & médias
+- [ ] Création / modification / suppression d’événements riches (texte, images, vidéos)
+- [ ] Détection automatique des conflits de date et de lieu
+- [ ] Catégorisation des événements (Concert, Sport, Conférence, etc.)
+- [ ] Duplication d’un événement (template)
+- [ ] Vue calendrier globale des événements organisateur
+- [ ] Upload d’images et de vidéos
+- [ ] Stockage sécurisé des médias sur le cloud
+- [ ] Association directe des médias aux événements
+
+## Sprint 3 – Billetterie & Promotions
+- [ ] Création de catégories de billets avec quotas et prix
+- [ ] Gestion en temps réel des ventes et des éditions de billets
+- [ ] Génération automatique d’un QR code avec identifiant unique par billet
+- [ ] Stockage du QR code dans la base de données
+- [ ] Envoi automatique du billet avec QR par email et affichage sur le site
+- [ ] Alerte automatique en cas de stock bas
+- [ ] Variation automatique des prix selon les quotas atteints
+- [ ] Configuration des périodes de validité des prix
+- [ ] Historique complet des modifications de prix
+- [ ] Configuration de promotions par catégorie de billet
 - [ ] Gestion des périodes de validité des promotions
-- [ ] Codes promo (activation, expiration, notifications)
-- [ ] Système de notifications ciblées (email)
-- [ ] Rappels automatiques avant événement
-- [ ] Rapport post-événement automatique
+- [ ] Gestion des codes promo : activation, expiration, notifications automatiques
 
-## Sprint 4 – Finances & exports
+## Sprint 4 – Utilisateurs & Statistiques
+- [ ] Tableau de bord organisateur (billets vendus, restants, revenus, TVA)
+- [ ] Statistiques détaillées sur ventes, revenus, promotions et billets
+- [ ] Historique complet des ventes organisateur
+- [ ] Rapports personnalisés et exports (PDF, CSV)
+
+## Sprint 5 – Automatisations, Exports & Facturation
+- [ ] Alertes automatiques en cas de seuil bas de billets
+- [ ] Rappels automatiques envoyés avant l’événement
+- [ ] Rapport post-événement automatique (PDF + email)
+- [ ] Export CSV des ventes détaillées
+- [ ] Export PDF d’un rapport rapide (tickets vendus, revenus)
+- [ ] Export de la liste des participants
+- [ ] Recherche multi-critères (date, type, catégorie)
+- [ ] Filtrage par statut de vente (en vente / complet / annulé)
+- [ ] Gestion de liste d’attente si l’événement est complet
 - [ ] Génération automatique de factures PDF (client + TVA)
 - [ ] Numérotation unique des factures (année + compteur)
-- [ ] Historique & statut facture (Payée / En attente / Annulée)
-- [ ] Envoi automatique facture post-paiement
-- [ ] Export CSV ventes détaillé
-- [ ] Export PDF rapport rapide (tickets vendus, revenus)
-- [ ] Export liste participants
-- [ ] Historique des ventes
-
-## Sprint 5 – Analytics & dashboards
-- [ ] Dashboard organisateur
-- [ ] Dashboard administrateur
-- [ ] Statistiques détaillées organisateur (ventes, promotions, billets)
-- [ ] Statistiques globales abonnements organisateurs & rapports consolidés
-- [ ] Graphiques comparatifs événements
-- [ ] Gestion des accès par événement
-- [ ] Support multi-langue
-- [ ] Recherche multi-critères (date, type billet, catégorie)
-- [ ] Filtre par statut de vente (en vente / complet / annulé)
+- [ ] Historique et statut des factures (Payée / En attente / Annulée)
+- [ ] Envoi automatique de la facture au client après paiement
