@@ -7,28 +7,48 @@
     <!-- En-tête de la page -->
     <div class="dashboard-header">
         <div>
-            <h1>📄 Rapports</h1>
-            <p style="color: var(--gray-600); margin-top: 8px; font-size: 1rem;">
+            <h1 data-i18n="reports.header.title">📄 Rapports</h1>
+            <p data-i18n="reports.header.subtitle" style="color: var(--text-secondary); margin-top: 8px; font-size: 1rem;">
                 Rapports fiscaux et exports de données
             </p>
         </div>
         <div class="header-actions">
             <button class="btn" style="background: var(--success); color: white; border: none; padding: 12px 24px; border-radius: var(--border-radius-md); cursor: pointer; font-weight: 600; margin-right: 10px;">
                 <i class="fas fa-file-pdf"></i>
-                Exporter PDF
+                <span data-i18n="reports.actions.export_pdf">Exporter PDF</span>
             </button>
             <button class="btn" style="background: var(--accent); color: white; border: none; padding: 12px 24px; border-radius: var(--border-radius-md); cursor: pointer; font-weight: 600;">
                 <i class="fas fa-file-csv"></i>
-                Exporter CSV
+                <span data-i18n="reports.actions.export_csv">Exporter CSV</span>
             </button>
+        </div>
+    </div>
+
+    <!-- KPIs globaux -->
+    <div class="kpi-grid">
+        <div class="kpi-card">
+            <div class="kpi-label" data-i18n="reports.kpi.organizers">Organisateurs</div>
+            <div class="kpi-value">{{ stats.counts.organizers ?? '57' }}</div>
+        </div>
+        <div class="kpi-card">
+            <div class="kpi-label" data-i18n="reports.kpi.users">Utilisateurs</div>
+            <div class="kpi-value">{{ stats.counts.users ?? '2 345' }}</div>
+        </div>
+        <div class="kpi-card">
+            <div class="kpi-label" data-i18n="reports.kpi.active_subscriptions">Abonnements actifs</div>
+            <div class="kpi-value">{{ stats.counts.active_subscriptions ?? '173' }}</div>
+        </div>
+        <div class="kpi-card">
+            <div class="kpi-label" data-i18n="reports.kpi.subscription_revenue">Revenus abonnements</div>
+            <div class="kpi-value">{{ stats.organizers.subscription_revenue_total ?? '45 890 €' }}</div>
         </div>
     </div>
 
     <!-- Statistiques fiscales -->
     <div class="chart-card" style="margin-bottom: 24px;">
         <div class="card-header">
-            <h3>💰 Statistiques fiscales</h3>
-            <p style="color: var(--gray-600); font-size: 0.9rem; margin-top: 4px;">
+            <h3 data-i18n="reports.sections.tax_stats.title">💰 Statistiques fiscales</h3>
+            <p data-i18n="reports.sections.tax_stats.subtitle" style="color: var(--text-secondary); font-size: 0.9rem; margin-top: 4px;">
                 Revenus et taxes du mois en cours
             </p>
         </div>
@@ -37,28 +57,28 @@
                 <div class="stat-row">
                     <div class="stat-label">
                         <i class="fas fa-money-bill-wave" style="color: var(--success); margin-right: 8px;"></i>
-                        Revenus bruts
+                        <span data-i18n="reports.stats.gross_revenue">Revenus bruts</span>
                     </div>
                     <div class="stat-value-lg">45,890 €</div>
                 </div>
                 <div class="stat-row">
                     <div class="stat-label">
                         <i class="fas fa-percentage" style="color: var(--warning); margin-right: 8px;"></i>
-                        TVA (18%)
+                        <span data-i18n="reports.stats.vat">TVA (18%)</span>
                     </div>
                     <div class="stat-value-lg">8,260 €</div>
                 </div>
                 <div class="stat-row">
                     <div class="stat-label">
                         <i class="fas fa-hand-holding-usd" style="color: var(--info); margin-right: 8px;"></i>
-                        Commissions plateforme (5%)
+                        <span data-i18n="reports.stats.platform_commission">Commissions plateforme (5%)</span>
                     </div>
                     <div class="stat-value-lg">2,294 €</div>
                 </div>
                 <div class="stat-row stat-row-total">
                     <div class="stat-label">
                         <i class="fas fa-wallet" style="color: var(--primary); margin-right: 8px;"></i>
-                        <strong>Revenus nets</strong>
+                        <strong data-i18n="reports.stats.net_revenue">Revenus nets</strong>
                     </div>
                     <div class="stat-value-lg"><strong>35,336 €</strong></div>
                 </div>
@@ -66,76 +86,76 @@
         </div>
     </div>
 
-    <!-- Rapports mensuels -->
+    <!-- Rapports mensuels (abonnements) -->
     <div class="chart-card" style="margin-bottom: 24px;">
         <div class="card-header">
-            <h3>📊 Rapports mensuels</h3>
-            <p style="color: var(--gray-600); font-size: 0.9rem; margin-top: 4px;">
-                Synthèse des performances par mois
+            <h3 data-i18n="reports.sections.monthly_reports.title">📊 Rapports mensuels (abonnements)</h3>
+            <p data-i18n="reports.sections.monthly_reports.subtitle" style="color: var(--text-secondary); font-size: 0.9rem; margin-top: 4px;">
+                Synthèse des abonnements et revenus par mois
             </p>
         </div>
         <div class="card-body">
             <div class="reports-grid">
                 <div class="report-card">
-                    <div class="report-month">Octobre 2025</div>
+                    <div class="report-month" data-i18n="reports.months.october_2025">Octobre 2025</div>
                     <div class="report-stats">
                         <div class="report-item">
-                            <span>Événements</span>
-                            <strong>12</strong>
+                            <span data-i18n="reports.labels.organizers">Organisateurs</span>
+                            <strong>{{ stats.monthly['2025-10'].organizers ?? '57' }}</strong>
                         </div>
                         <div class="report-item">
-                            <span>Billets vendus</span>
-                            <strong>1,248</strong>
+                            <span data-i18n="reports.labels.active_subscriptions">Abonnements actifs</span>
+                            <strong>{{ stats.monthly['2025-10'].active_subs ?? '173' }}</strong>
                         </div>
                         <div class="report-item">
-                            <span>Revenus</span>
-                            <strong>45,890 €</strong>
+                            <span data-i18n="reports.labels.subscription_revenue">Revenus abonnements</span>
+                            <strong>{{ stats.monthly['2025-10'].revenue ?? '45 890 €' }}</strong>
                         </div>
                     </div>
                     <button class="btn-report">
-                        <i class="fas fa-download"></i> Télécharger
+                        <i class="fas fa-download"></i> <span data-i18n="reports.actions.download">Télécharger</span>
                     </button>
                 </div>
 
                 <div class="report-card">
-                    <div class="report-month">Septembre 2025</div>
+                    <div class="report-month" data-i18n="reports.months.september_2025">Septembre 2025</div>
                     <div class="report-stats">
                         <div class="report-item">
-                            <span>Événements</span>
-                            <strong>10</strong>
+                            <span data-i18n="reports.labels.organizers">Organisateurs</span>
+                            <strong>{{ stats.monthly['2025-09'].organizers ?? '51' }}</strong>
                         </div>
                         <div class="report-item">
-                            <span>Billets vendus</span>
-                            <strong>986</strong>
+                            <span data-i18n="reports.labels.active_subscriptions">Abonnements actifs</span>
+                            <strong>{{ stats.monthly['2025-09'].active_subs ?? '168' }}</strong>
                         </div>
                         <div class="report-item">
-                            <span>Revenus</span>
-                            <strong>38,450 €</strong>
+                            <span data-i18n="reports.labels.subscription_revenue">Revenus abonnements</span>
+                            <strong>{{ stats.monthly['2025-09'].revenue ?? '38 450 €' }}</strong>
                         </div>
                     </div>
                     <button class="btn-report">
-                        <i class="fas fa-download"></i> Télécharger
+                        <i class="fas fa-download"></i> <span data-i18n="reports.actions.download">Télécharger</span>
                     </button>
                 </div>
 
                 <div class="report-card">
-                    <div class="report-month">Août 2025</div>
+                    <div class="report-month" data-i18n="reports.months.august_2025">Août 2025</div>
                     <div class="report-stats">
                         <div class="report-item">
-                            <span>Événements</span>
-                            <strong>15</strong>
+                            <span data-i18n="reports.labels.organizers">Organisateurs</span>
+                            <strong>{{ stats.monthly['2025-08'].organizers ?? '49' }}</strong>
                         </div>
                         <div class="report-item">
-                            <span>Billets vendus</span>
-                            <strong>1,567</strong>
+                            <span data-i18n="reports.labels.active_subscriptions">Abonnements actifs</span>
+                            <strong>{{ stats.monthly['2025-08'].active_subs ?? '160' }}</strong>
                         </div>
                         <div class="report-item">
-                            <span>Revenus</span>
-                            <strong>52,340 €</strong>
+                            <span data-i18n="reports.labels.subscription_revenue">Revenus abonnements</span>
+                            <strong>{{ stats.monthly['2025-08'].revenue ?? '52 340 €' }}</strong>
                         </div>
                     </div>
                     <button class="btn-report">
-                        <i class="fas fa-download"></i> Télécharger
+                        <i class="fas fa-download"></i> <span data-i18n="reports.actions.download">Télécharger</span>
                     </button>
                 </div>
             </div>
@@ -145,8 +165,8 @@
     <!-- Rapports personnalisés -->
     <div class="chart-card">
         <div class="card-header">
-            <h3>⚙️ Générer un rapport personnalisé</h3>
-            <p style="color: var(--gray-600); font-size: 0.9rem; margin-top: 4px;">
+            <h3 data-i18n="reports.sections.custom.title">⚙️ Générer un rapport personnalisé</h3>
+            <p data-i18n="reports.sections.custom.subtitle" style="color: var(--text-secondary); font-size: 0.9rem; margin-top: 4px;">
                 Créez un rapport sur mesure avec les critères de votre choix
             </p>
         </div>
@@ -154,42 +174,78 @@
             <div class="custom-report-form">
                 <div class="form-row">
                     <div class="form-group">
-                        <label>Période de début</label>
+                        <label data-i18n="reports.form.start_period">Période de début</label>
                         <input type="date" class="form-control">
                     </div>
                     <div class="form-group">
-                        <label>Période de fin</label>
+                        <label data-i18n="reports.form.end_period">Période de fin</label>
                         <input type="date" class="form-control">
                     </div>
                 </div>
                 <div class="form-row">
                     <div class="form-group">
-                        <label>Type de rapport</label>
+                        <label data-i18n="reports.form.report_type">Type de rapport</label>
                         <select class="form-control">
-                            <option>Rapport complet</option>
-                            <option>Revenus uniquement</option>
-                            <option>Ventes par événement</option>
-                            <option>Statistiques fiscales</option>
+                            <option data-i18n="reports.form.option.full_report">Rapport complet</option>
+                            <option data-i18n="reports.form.option.revenue_only">Revenus uniquement</option>
+                            <option data-i18n="reports.form.option.sales_by_event">Ventes par événement</option>
+                            <option data-i18n="reports.form.option.tax_stats">Statistiques fiscales</option>
                         </select>
                     </div>
                     <div class="form-group">
-                        <label>Format d'export</label>
+                        <label data-i18n="reports.form.export_format">Format d'export</label>
                         <select class="form-control">
-                            <option>PDF</option>
-                            <option>CSV</option>
-                            <option>Excel</option>
+                            <option data-i18n="reports.form.option.pdf">PDF</option>
+                            <option data-i18n="reports.form.option.csv">CSV</option>
+                            <option data-i18n="reports.form.option.excel">Excel</option>
                         </select>
                     </div>
                 </div>
                 <button class="btn" style="background: var(--accent); color: white; padding: 12px 32px; border: none; border-radius: 8px; cursor: pointer; font-weight: 600; margin-top: 10px;">
-                    <i class="fas fa-file-export"></i> Générer le rapport
+                    <i class="fas fa-file-export"></i> <span data-i18n="reports.actions.generate">Générer le rapport</span>
                 </button>
             </div>
         </div>
     </div>
 </div>
 
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    const updateReportsTitle = (retry = 0) => {
+        const manager = window.languageManager;
+        if (!manager) {
+            if (retry < 20) {
+                setTimeout(() => updateReportsTitle(retry + 1), 100);
+            }
+            return;
+        }
+
+        const translated = manager.translate('reports.meta.title') || 'Rapports - Aiolia Event';
+        document.title = translated;
+    };
+
+    updateReportsTitle();
+    document.addEventListener('aiolia:language-changed', () => updateReportsTitle());
+});
+</script>
+
 <style>
+.kpi-grid {
+    display: grid;
+    grid-template-columns: repeat(4, 1fr);
+    gap: 12px;
+    margin: 12px 0 24px;
+}
+.kpi-card {
+    background: var(--bg-card);
+    border: 1px solid var(--border-color);
+    border-radius: var(--border-radius-md);
+    padding: 14px;
+}
+.kpi-label { font-size: 0.85rem; color: var(--text-secondary); }
+.kpi-value { font-size: 1.4rem; font-weight: var(--font-weight-bold); color: var(--text-primary); }
+@media (max-width: 1200px){ .kpi-grid { grid-template-columns: repeat(2, 1fr); } }
+@media (max-width: 768px){ .kpi-grid { grid-template-columns: 1fr; } }
 .stats-details {
     display: flex;
     flex-direction: column;
@@ -201,14 +257,14 @@
     justify-content: space-between;
     align-items: center;
     padding: 16px 18px;
-    background: var(--gray-50);
+    background: var(--bg-secondary);
     border-radius: var(--border-radius-md);
-    border-left: 4px solid var(--gray-300);
+    border-left: 4px solid var(--border-light);
     transition: var(--transition-base);
 }
 
 .stat-row:hover {
-    background: var(--gray-100);
+    background: var(--bg-primary);
 }
 
 .stat-row-total {
@@ -219,7 +275,7 @@
 
 .stat-label {
     font-size: 0.95rem;
-    color: var(--gray-700);
+    color: var(--text-secondary);
     display: flex;
     align-items: center;
     font-weight: var(--font-weight-medium);
@@ -228,7 +284,7 @@
 .stat-value-lg {
     font-size: 1.4rem;
     font-weight: var(--font-weight-bold);
-    color: var(--primary);
+    color: var(--text-primary);
 }
 
 .reports-grid {
@@ -238,10 +294,10 @@
 }
 
 .report-card {
-    background: var(--gray-50);
+    background: var(--bg-card);
     border-radius: var(--border-radius-md);
     padding: 20px;
-    border: 1px solid var(--gray-200);
+    border: 1px solid var(--border-color);
     transition: var(--transition-base);
 }
 
@@ -253,7 +309,7 @@
 .report-month {
     font-size: 1.2rem;
     font-weight: var(--font-weight-bold);
-    color: var(--primary);
+    color: var(--text-primary);
     margin-bottom: 16px;
 }
 
@@ -269,18 +325,18 @@
     justify-content: space-between;
     align-items: center;
     padding: 10px;
-    background: white;
+    background: var(--bg-secondary);
     border-radius: 6px;
 }
 
 .report-item span {
     font-size: 0.85rem;
-    color: var(--gray-600);
+    color: var(--text-secondary);
 }
 
 .report-item strong {
     font-size: 1rem;
-    color: var(--primary);
+    color: var(--text-primary);
 }
 
 .btn-report {
@@ -318,16 +374,18 @@
 .form-group label {
     font-size: 0.9rem;
     font-weight: var(--font-weight-semibold);
-    color: var(--gray-700);
+    color: var(--text-primary);
     margin-bottom: 8px;
 }
 
 .form-control {
     padding: 10px 14px;
-    border: 2px solid var(--gray-200);
+    border: 2px solid var(--border-color);
     border-radius: var(--border-radius-sm);
     font-size: 0.95rem;
     transition: var(--transition-base);
+    background: var(--bg-secondary);
+    color: var(--text-primary);
 }
 
 .form-control:focus {

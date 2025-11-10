@@ -5,7 +5,9 @@ namespace App\Controller\Admin;
 use App\Entity\User;
 use App\Repository\UserRepository;
 use App\Repository\AuditLogRepository;
+use App\Repository\EventRepository;
 use App\Service\AuditLogService;
+use App\Service\UserNotificationService;
 use Doctrine\ORM\EntityManagerInterface;
 use Symfony\Bundle\FrameworkBundle\Controller\AbstractController;
 use Symfony\Component\HttpFoundation\JsonResponse;
@@ -22,7 +24,9 @@ class UserManagementController extends AbstractController
         private EntityManagerInterface $entityManager,
         private UserRepository $userRepository,
         private AuditLogRepository $auditLogRepository,
-        private AuditLogService $auditLogService
+        private EventRepository $eventRepository,
+        private AuditLogService $auditLogService,
+        private UserNotificationService $notificationService
     ) {
     }
 
@@ -37,34 +41,97 @@ class UserManagementController extends AbstractController
         $status = $request->query->get('status', '');
         $sort = $request->query->get('sort', 'created_at');
         $order = $request->query->get('order', 'DESC');
+        
+        // Pagination : 5 utilisateurs par page
+        $itemsPerPage = 5;
+        $page = max(1, (int) $request->query->get('page', 1));
+        $offset = ($page - 1) * $itemsPerPage;
 
-        // Construction de la requête
+        // Construction de la requête pour compter le total (avec filtres)
+        $countQb = $this->userRepository->createQueryBuilder('u')
+            ->select('COUNT(u.id)');
+
+        // Construction de la requête pour récupérer les utilisateurs (avec filtres)
         $qb = $this->userRepository->createQueryBuilder('u');
 
-        // Recherche par nom/email
+        // Recherche par nom (prénom + nom), email ou téléphone
         if ($search) {
-            $qb->andWhere('u.firstName LIKE :search OR u.lastName LIKE :search OR u.email LIKE :search')
-               ->setParameter('search', '%' . $search . '%');
+            $searchTerm = '%' . trim($search) . '%';
+            $searchCondition = '
+                u.firstName LIKE :search OR 
+                u.lastName LIKE :search OR 
+                u.email LIKE :search OR 
+                u.phone LIKE :search
+            ';
+            $qb->andWhere($searchCondition)
+               ->setParameter('search', $searchTerm);
+            $countQb->andWhere($searchCondition)
+                    ->setParameter('search', $searchTerm);
         }
 
         // Filtre par rôle
-        if ($role && in_array($role, ['user', 'organizer', 'co_organizer', 'admin'])) {
+        if ($role && in_array($role, ['user', 'organizer', 'admin'])) {
             $qb->andWhere('u.role = :role')
                ->setParameter('role', $role);
+            $countQb->andWhere('u.role = :role')
+                    ->setParameter('role', $role);
         }
 
         // Filtre par statut
         if ($status && in_array($status, ['active', 'pending_validation', 'rejected', 'suspended'])) {
             $qb->andWhere('u.accountStatus = :status')
                ->setParameter('status', $status);
+            $countQb->andWhere('u.accountStatus = :status')
+                    ->setParameter('status', $status);
         }
 
-        // Tri
+        // Tri par défaut : date de création décroissante (plus récents en premier)
         $validSortFields = ['created_at' => 'createdAt', 'email' => 'email', 'first_name' => 'firstName', 'last_name' => 'lastName'];
         $sortField = $validSortFields[$sort] ?? 'createdAt';
         $qb->orderBy('u.' . $sortField, strtoupper($order) === 'ASC' ? 'ASC' : 'DESC');
 
+        // Compter le total d'utilisateurs avec les filtres appliqués
+        $totalUsersFiltered = (int) $countQb->getQuery()->getSingleScalarResult();
+        $totalPages = (int) ceil($totalUsersFiltered / $itemsPerPage);
+
+        // Appliquer la pagination : récupérer seulement 5 utilisateurs par page
+        $qb->setFirstResult($offset)
+           ->setMaxResults($itemsPerPage);
+
+        // Récupérer les utilisateurs de la page courante depuis la base de données
         $users = $qb->getQuery()->getResult();
+
+        // Calculer les statistiques depuis la base de données
+        $statsQb = $this->userRepository->createQueryBuilder('u');
+        
+        // Total des utilisateurs
+        $totalUsers = (int) $statsQb->select('COUNT(u.id)')
+            ->getQuery()
+            ->getSingleScalarResult();
+
+        // Utilisateurs en attente
+        $pendingUsers = (int) $this->userRepository->createQueryBuilder('u')
+            ->select('COUNT(u.id)')
+            ->where('u.accountStatus = :status')
+            ->setParameter('status', 'pending_validation')
+            ->getQuery()
+            ->getSingleScalarResult();
+
+        // Utilisateurs actifs
+        $activeUsers = (int) $this->userRepository->createQueryBuilder('u')
+            ->select('COUNT(u.id)')
+            ->where('u.accountStatus = :status')
+            ->setParameter('status', 'active')
+            ->getQuery()
+            ->getSingleScalarResult();
+
+        // Organisateurs
+        $organizers = (int) $this->userRepository->createQueryBuilder('u')
+            ->select('COUNT(u.id)')
+            ->where('u.role = :role')
+            ->setParameter('role', 'organizer')
+            ->getQuery()
+            ->getSingleScalarResult();
 
         return $this->render('admin/users/list.html.twig', [
             'users' => $users,
@@ -73,6 +140,16 @@ class UserManagementController extends AbstractController
             'currentStatus' => $status,
             'currentSort' => $sort,
             'currentOrder' => $order,
+            'currentPage' => $page,
+            'totalPages' => $totalPages,
+            'totalUsersFiltered' => $totalUsersFiltered,
+            'itemsPerPage' => $itemsPerPage,
+            'stats' => [
+                'total' => $totalUsers,
+                'pending' => $pendingUsers,
+                'active' => $activeUsers,
+                'organizers' => $organizers,
+            ],
         ]);
     }
 
@@ -123,9 +200,22 @@ class UserManagementController extends AbstractController
         // Récupérer l'historique de l'utilisateur
         $auditLogs = $this->auditLogRepository->findByEntity('User', $id);
 
+        // Récupérer les événements créés par l'organisateur (si organisateur)
+        $events = [];
+        if ($user->getRole() === 'organizer') {
+            $events = $this->eventRepository->findByOrganizer($user);
+        }
+
+        // Compter les statistiques de l'utilisateur
+        $eventsCount = count($events);
+        $publishedEventsCount = count(array_filter($events, fn($e) => $e->getStatus() === 'published'));
+
         return $this->render('admin/users/show.html.twig', [
             'user' => $user,
             'auditLogs' => $auditLogs,
+            'events' => $events,
+            'eventsCount' => $eventsCount,
+            'publishedEventsCount' => $publishedEventsCount,
         ]);
     }
 
@@ -143,7 +233,7 @@ class UserManagementController extends AbstractController
         }
 
         $newRole = $request->request->get('role');
-        if (!in_array($newRole, ['user', 'organizer', 'co_organizer', 'admin'])) {
+        if (!in_array($newRole, ['user', 'organizer', 'admin'])) {
             $this->addFlash('error', 'Rôle invalide');
             return $this->redirectToRoute('admin_users_show', ['id' => $id]);
         }
@@ -164,6 +254,9 @@ class UserManagementController extends AbstractController
             $this->getUser()
         );
 
+        // Envoyer une notification par email
+        $this->notificationService->sendRoleChangeNotification($user, $oldRole, $newRole);
+
         $this->addFlash('success', sprintf(
             'Rôle de %s modifié : %s → %s',
             $user->getFullName(),
@@ -178,7 +271,7 @@ class UserManagementController extends AbstractController
      * Suspendre/Activer un utilisateur
      */
     #[Route('/{id}/toggle-status', name: 'admin_users_toggle_status', methods: ['POST'])]
-    public function toggleStatus(int $id): Response
+    public function toggleStatus(int $id, Request $request): Response
     {
         $user = $this->userRepository->find($id);
 
@@ -187,6 +280,13 @@ class UserManagementController extends AbstractController
             return $this->redirectToRoute('admin_users_list');
         }
 
+        // Validation CSRF
+        if (!$this->isCsrfTokenValid('toggle_status_' . $id, $request->request->get('_token'))) {
+            $this->addFlash('error', 'Token de sécurité invalide');
+            return $this->redirectToRoute('admin_users_list');
+        }
+
+        $oldStatus = $user->getAccountStatus();
         $newStatus = $user->getAccountStatus() === 'suspended' ? 'active' : 'suspended';
         $user->setAccountStatus($newStatus);
         $this->entityManager->flush();
@@ -201,6 +301,9 @@ class UserManagementController extends AbstractController
             ],
             $this->getUser()
         );
+
+        // Envoyer une notification par email
+        $this->notificationService->sendStatusChangeNotification($user, $oldStatus, $newStatus);
 
         $this->addFlash('success', sprintf(
             'Compte de %s %s',
@@ -225,7 +328,8 @@ class UserManagementController extends AbstractController
         }
 
         // Ne pas permettre la suppression de son propre compte
-        if ($user->getId() === $this->getUser()->getId()) {
+        $currentUser = $this->getUser();
+        if ($currentUser instanceof User && $user->getId() === $currentUser->getId()) {
             $this->addFlash('error', 'Vous ne pouvez pas supprimer votre propre compte');
             return $this->redirectToRoute('admin_users_show', ['id' => $id]);
         }
@@ -288,11 +392,93 @@ class UserManagementController extends AbstractController
         ]);
     }
 
+    /**
+     * Historique des paiements d'un utilisateur
+     */
+    #[Route('/{id}/payments', name: 'admin_users_payments', requirements: ['id' => '\d+'])]
+    public function payments(int $id): Response
+    {
+        $user = $this->userRepository->find($id);
+
+        if (!$user) {
+            throw $this->createNotFoundException('Utilisateur non trouvé');
+        }
+
+        // TODO: Récupérer les paiements réels depuis la base de données
+        // Pour l'instant, on retourne une liste vide
+        $payments = [];
+
+        return $this->render('admin/users/payments.html.twig', [
+            'user' => $user,
+            'payments' => $payments,
+        ]);
+    }
+
+    /**
+     * Informations supplémentaires d'un utilisateur
+     */
+    #[Route('/{id}/info', name: 'admin_users_info', requirements: ['id' => '\d+'])]
+    public function info(int $id): Response
+    {
+        $user = $this->userRepository->find($id);
+
+        if (!$user) {
+            throw $this->createNotFoundException('Utilisateur non trouvé');
+        }
+
+        return $this->render('admin/users/info.html.twig', [
+            'user' => $user,
+        ]);
+    }
+
+    /**
+     * Événements créés par un organisateur avec pagination
+     */
+    #[Route('/{id}/events', name: 'admin_users_events', requirements: ['id' => '\d+'])]
+    public function events(int $id, Request $request): Response
+    {
+        $user = $this->userRepository->find($id);
+
+        if (!$user) {
+            throw $this->createNotFoundException('Utilisateur non trouvé');
+        }
+
+        if ($user->getRole() !== 'organizer') {
+            $this->addFlash('warning', 'Cet utilisateur n\'est pas un organisateur');
+            return $this->redirectToRoute('admin_users_show', ['id' => $id]);
+        }
+
+        // Pagination : 5 événements par page
+        $page = max(1, (int) $request->query->get('page', 1));
+        $perPage = 5;
+        $offset = ($page - 1) * $perPage;
+
+        // Récupérer tous les événements de l'organisateur
+        $allEvents = $this->eventRepository->findByOrganizer($user);
+        $totalEvents = count($allEvents);
+        $totalPages = ceil($totalEvents / $perPage);
+
+        // Paginer les événements
+        $events = array_slice($allEvents, $offset, $perPage);
+
+        // Statistiques
+        $eventsCount = $totalEvents;
+        $publishedEventsCount = count(array_filter($allEvents, fn($e) => $e->getStatus() === 'published'));
+
+        return $this->render('admin/users/events.html.twig', [
+            'user' => $user,
+            'events' => $events,
+            'eventsCount' => $eventsCount,
+            'publishedEventsCount' => $publishedEventsCount,
+            'currentPage' => $page,
+            'totalPages' => $totalPages,
+        ]);
+    }
+
     private function getRoleLabel(string $role): string
     {
         return match($role) {
             'organizer' => 'Organisateur',
-            'co_organizer' => 'Co-organisateur',
             'admin' => 'Administrateur',
             default => 'Utilisateur',
         };

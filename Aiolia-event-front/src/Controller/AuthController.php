@@ -10,11 +10,42 @@ use Symfony\Component\Routing\Annotation\Route;
 
 class AuthController extends AbstractController
 {
-    #[Route('/login', name: 'login')]
-    public function loginPage(): Response
+    #[Route('/login', name: 'login', methods: ['GET', 'POST'])]
+    public function loginPage(Request $request): Response
     {
-        // TODO: Implémenter la page de connexion
-        return $this->render('auth/login.html.twig');
+        $session = $request->getSession();
+        $error = null;
+        $lastEmail = '';
+
+        if ($session->has('user')) {
+            $user = $session->get('user');
+            $lastEmail = $user['email'] ?? '';
+        }
+
+        if ($request->isMethod('POST')) {
+            $email = trim((string) $request->request->get('email'));
+            $password = (string) $request->request->get('password');
+            $lastEmail = $email;
+
+            $validEmail = 'demo@venteticket.mg';
+            $validPassword = 'demo123';
+
+            if ($email === $validEmail && $password === $validPassword) {
+                $session->set('user', [
+                    'email' => $validEmail,
+                    'username' => 'Demo Utilisateur',
+                ]);
+
+                return $this->redirectToRoute('home');
+            }
+
+            $error = 'Identifiants invalides. Utilisez demo@venteticket.mg / demo123.';
+        }
+
+        return $this->render('auth/login.html.twig', [
+            'last_email' => $lastEmail,
+            'error' => $error,
+        ]);
     }
 
     #[Route('/register', name: 'register')]
@@ -32,9 +63,9 @@ class AuthController extends AbstractController
     }
 
     #[Route('/logout', name: 'logout')]
-    public function logoutPage(): Response
+    public function logoutPage(Request $request): Response
     {
-        // TODO: Implémenter la déconnexion
+        $request->getSession()->remove('user');
         return $this->redirectToRoute('home');
     }
 

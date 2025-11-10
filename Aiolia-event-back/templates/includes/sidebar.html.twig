@@ -1,123 +1,105 @@
+{% set currentRoute = app.request.attributes.get('_route') %}
+{% set isDashboard = currentRoute starts with 'app_dashboard' %}
+{% set isReportsMain = currentRoute == 'app_reports_rapports' %}
+{% set isStats = currentRoute == 'app_reports_statistiques' %}
+{% set isUserManagement = currentRoute starts with 'admin_users' or currentRoute starts with 'admin_audit_' %}
+{% set isValidation = currentRoute starts with 'admin_validation' %}
+{% set isProfile = currentRoute starts with 'app_profile' %}
+{% set isSettings = currentRoute starts with 'app_settings' %}
+
 <aside class="admin-sidebar" id="adminSidebar">
-    <div class="sidebar-logo">
-        <img src="{{ asset('images/aiolia-logo.svg') }}" alt="Aiolia Event" class="logo-image">
+    <div class="sidebar-header">
+        <div class="sidebar-logo">
+            <img src="{{ asset('images/aiolia-logo.svg') }}" alt="Aiolia Event" class="logo-image">
+        </div>
     </div>
     
-    <nav class="sidebar-nav">
+    <nav class="sidebar-nav" aria-label="Main navigation">
         <ul class="nav-menu">
-            <li class="nav-item active">
-                <a href="{{ path('app_dashboard') }}" class="nav-link">
-                    <i class="fas fa-tachometer-alt"></i>
-                    <span class="nav-text">Tableau de bord</span>
+            <li class="nav-item {{ isDashboard ? 'active' }}">
+                <a href="{{ path('app_dashboard') }}" class="nav-link {{ isDashboard ? 'active' }}" {% if isDashboard %}aria-current="page"{% endif %}>
+                    <div class="nav-icon">
+                        <i class="fas fa-tachometer-alt"></i>
+                    </div>
+                    <span class="nav-text" data-i18n="layout.sidebar.dashboard"></span>
+                    <span class="nav-tooltip" data-i18n="layout.sidebar.dashboard"></span>
                 </a>
             </li>
             
-            <li class="nav-item">
-                <a href="{{ path('app_event_index') }}" class="nav-link">
-                    <i class="fas fa-calendar-alt"></i>
-                    <span class="nav-text">Événements</span>
-                    <span class="nav-badge">12</span>
+            <li class="nav-section">
+                <span class="nav-section-title" data-i18n="layout.sidebar.analytics_section"></span>
+            </li>
+            
+            <li class="nav-item {{ isReportsMain ? 'active' }}">
+                <a href="{{ path('app_reports_rapports') }}" class="nav-link {{ isReportsMain ? 'active' }}" {% if isReportsMain %}aria-current="page"{% endif %}>
+                    <div class="nav-icon">
+                        <i class="fas fa-chart-bar"></i>
+                    </div>
+                    <span class="nav-text" data-i18n="layout.sidebar.analytics_reports"></span>
+                    <span class="nav-tooltip" data-i18n="layout.sidebar.analytics_reports"></span>
                 </a>
             </li>
             
-            <li class="nav-item">
-                <a href="{{ path('app_ticket_index') }}" class="nav-link">
-                    <i class="fas fa-ticket-alt"></i>
-                    <span class="nav-text">Billets</span>
-                    <span class="nav-badge">1.2k</span>
+            <li class="nav-item {{ isStats ? 'active' }}">
+                <a href="{{ path('app_reports_statistiques') }}" class="nav-link {{ isStats ? 'active' }}" {% if isStats %}aria-current="page"{% endif %}>
+                    <div class="nav-icon">
+                        <i class="fas fa-chart-line"></i>
+                    </div>
+                    <span class="nav-text" data-i18n="layout.sidebar.analytics_stats"></span>
+                    <span class="nav-tooltip" data-i18n="layout.sidebar.analytics_stats"></span>
                 </a>
-            </li>
-            
-            <li class="nav-item">
-                <a href="{{ path('app_promotion_index') }}" class="nav-link">
-                    <i class="fas fa-tags"></i>
-                    <span class="nav-text">Promotions</span>
-                    <span class="nav-badge">24</span>
-                </a>
-            </li>
-            
-            <li class="nav-item">
-                <a href="{{ path('app_notification_index') }}" class="nav-link">
-                    <i class="fas fa-bell"></i>
-                    <span class="nav-text">Notifications</span>
-                    <span class="nav-badge">12</span>
-                </a>
-            </li>
-            
-            <li class="nav-item">
-                <a href="{{ path('app_event_index', {filter: 'collaborations'}) }}" class="nav-link">
-                    <i class="fas fa-users"></i>
-                    <span class="nav-text">Équipe</span>
-                    <span class="nav-badge">8</span>
-                </a>
-            </li>
-            
-            <li class="nav-item nav-section">
-                <span class="nav-section-title">ANALYSE</span>
-            </li>
-            
-            <li class="nav-item">
-                <a href="{{ path('app_reports_rapports') }}" class="nav-link">
-                    <i class="fas fa-file-alt"></i>
-                    <span class="nav-text">Rapports</span>
-                </a>
-            </li>
-            
-            <li class="nav-item">
-                <a href="{{ path('app_reports_statistiques') }}" class="nav-link">
-                    <i class="fas fa-chart-line"></i>
-                    <span class="nav-text">Statistiques</span>
-                </a>
-            </li>
-            
-            <li class="nav-item">
-                <a href="{{ path('app_reports_ventes') }}" class="nav-link">
-                    <i class="fas fa-list-alt"></i>
-                    <span class="nav-text">Listes des ventes</span>
-                </a>
-            </li>
-            
-            <li class="nav-item nav-section">
-                <span class="nav-section-title">SYSTÈME</span>
             </li>
             
             {% if is_granted('ROLE_ADMIN') %}
-            <li class="nav-item">
-                <a href="{{ path('admin_users_list') }}" class="nav-link">
-                    <i class="fas fa-users-cog"></i>
-                    <span class="nav-text">Gestion utilisateurs</span>
+            <li class="nav-section">
+                <span class="nav-section-title" data-i18n="layout.sidebar.admin_section"></span>
+            </li>
+            
+            <li class="nav-item {{ isUserManagement ? 'active' }}">
+                <a href="{{ path('admin_users_list') }}" class="nav-link {{ isUserManagement ? 'active' }}" {% if isUserManagement %}aria-current="page"{% endif %}>
+                    <div class="nav-icon">
+                        <i class="fas fa-users-gear"></i>
+                    </div>
+                    <span class="nav-text" data-i18n="layout.sidebar.users"></span>
+                    <span class="nav-tooltip" data-i18n="layout.sidebar.users"></span>
                 </a>
             </li>
             
-        <li class="nav-item">
-            <a href="{{ path('admin_validation_pending') }}" class="nav-link">
-                <i class="fas fa-user-check"></i>
-                <span class="nav-text">Validation comptes</span>
-                <span class="nav-badge badge-warning">3</span>
-            </a>
-        </li>
+            <li class="nav-item {{ isValidation ? 'active' }}">
+                <a href="{{ path('admin_validation_pending') }}" class="nav-link {{ isValidation ? 'active' }}" {% if isValidation %}aria-current="page"{% endif %}>
+                    <div class="nav-icon">
+                        <i class="fas fa-user-check"></i>
+                    </div>
+                    <span class="nav-text" data-i18n="layout.sidebar.validation"></span>
+                    <span class="nav-tooltip" data-i18n="layout.sidebar.validation"></span>
+                </a>
+            </li>
             {% endif %}
             
-            <li class="nav-item">
-                <a href="{{ path('app_profile_index') }}" class="nav-link">
-                    <i class="fas fa-user-circle"></i>
-                    <span class="nav-text">Mon profil</span>
+            <li class="nav-section">
+                <span class="nav-section-title" data-i18n="layout.sidebar.account_section"></span>
+            </li>
+            
+            <li class="nav-item {{ isProfile ? 'active' }}">
+                <a href="{{ path('app_profile_index') }}" class="nav-link {{ isProfile ? 'active' }}" {% if isProfile %}aria-current="page"{% endif %}>
+                    <div class="nav-icon">
+                        <i class="fas fa-user-circle"></i>
+                    </div>
+                    <span class="nav-text" data-i18n="layout.sidebar.profile"></span>
+                    <span class="nav-tooltip" data-i18n="layout.sidebar.profile"></span>
                 </a>
             </li>
             
-            <li class="nav-item">
-                <a href="{{ path('app_settings_index') }}" class="nav-link">
-                    <i class="fas fa-cog"></i>
-                    <span class="nav-text">Paramètres</span>
+            <li class="nav-item {{ isSettings ? 'active' }}">
+                <a href="{{ path('app_settings_index') }}" class="nav-link {{ isSettings ? 'active' }}" {% if isSettings %}aria-current="page"{% endif %}>
+                    <div class="nav-icon">
+                        <i class="fas fa-sliders"></i>
+                    </div>
+                    <span class="nav-text" data-i18n="layout.sidebar.settings"></span>
+                    <span class="nav-tooltip" data-i18n="layout.sidebar.settings"></span>
                 </a>
             </li>
         </ul>
     </nav>
     
-    <div class="sidebar-footer">
-        <div class="sidebar-help">
-            <i class="fas fa-question-circle"></i>
-            <span>Aide & Support</span>
-        </div>
-    </div>
 </aside>

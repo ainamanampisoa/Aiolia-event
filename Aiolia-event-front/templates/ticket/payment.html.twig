@@ -1,0 +1,242 @@
+{% extends 'base.html.twig' %}
+
+{% block title %}Paiement - Vente tickets{% endblock %}
+
+{% block stylesheets %}
+    <link rel="stylesheet" href="{{ asset('vente-ticket/css/main.css') }}">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <link rel="stylesheet" href="{{ asset('vente-ticket/css/payment.css') }}">
+{% endblock %}
+
+{% block hero %}{% endblock %}
+
+{% block body %}
+    <main class="payment-page">
+        <div class="container">
+            {% set items = items|default([]) %}
+            {% set orderTotal = orderTotal|default(0) %}
+            {% set serviceFees = serviceFees|default(0) %}
+            {% set grandTotal = orderTotal + serviceFees %}
+
+            <header class="payment-header">
+                <span class="badge-step">Étape 2 sur 3</span>
+                <h1>Paiement sécurisé</h1>
+                <p>
+                    Terminez votre paiement{% if paymentDeadline is defined %} avant <strong>{{ paymentDeadline|date('H\\hi') }}</strong>{% endif %}.
+                    {% if orderReference is defined %}Référence : <strong>{{ orderReference }}</strong>{% endif %}
+                </p>
+            </header>
+
+            <div class="payment-layout">
+                <section class="payment-summary">
+                    <h2>Résumé de la commande</h2>
+                    <div class="summary-card">
+                        {% if items|length > 0 %}
+                            <ul class="summary-list">
+                                {% for item in items %}
+                                    {% set adultTotal = item.adultQuantity * item.event.adultPrice %}
+                                    {% set childPrice = item.event.childPrice ?? 0 %}
+                                    {% set childTotal = item.childQuantity * childPrice %}
+                                    <li class="summary-item">
+                                        <div class="summary-info">
+                                            <span class="event-category">{{ item.event.category }}</span>
+                                            <h3>{{ item.event.title }}</h3>
+                                            <p>
+                                                <i class="fas fa-calendar-day"></i> {{ item.event.date|date('d M Y · H:i') }}<br>
+                                                <i class="fas fa-map-marker-alt"></i> {{ item.event.location }}
+                                            </p>
+                                        </div>
+                                        <div class="summary-pricing">
+                                            <div>
+                                                <span>{{ item.adultQuantity }} billet(s) adulte</span>
+                                                <strong>{{ adultTotal|number_format(0, ',', ' ') }} MGA</strong>
+                                            </div>
+                                            {% if childPrice > 0 %}
+                                                <div>
+                                                    <span>{{ item.childQuantity }} billet(s) enfant</span>
+                                                    <strong>{{ childTotal|number_format(0, ',', ' ') }} MGA</strong>
+                                                </div>
+                                            {% endif %}
+                                        </div>
+                                    </li>
+                                {% endfor %}
+                            </ul>
+                        {% else %}
+                            <div class="summary-empty">
+                                <i class="fas fa-ticket-alt"></i>
+                                <p>Aucun billet trouvé. Retournez au panier pour ajouter des événements.</p>
+                                <a href="{{ path('cart') }}" class="btn-link">Retour au panier</a>
+                            </div>
+                        {% endif %}
+
+                        <div class="summary-totals">
+                            <div class="line">
+                                <span>Sous-total</span>
+                                <span>{{ orderTotal|number_format(0, ',', ' ') }} MGA</span>
+                            </div>
+                            <div class="line">
+                                <span>Frais de service</span>
+                                <span>{{ serviceFees|number_format(0, ',', ' ') }} MGA</span>
+                            </div>
+                            <div class="line total">
+                                <span>Total à payer</span>
+                                <span>{{ grandTotal|number_format(0, ',', ' ') }} MGA</span>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="support-card">
+                        <h3>Besoin d'aide ?</h3>
+                        <p>Contactez notre support au <strong>034 12 345 67</strong> ou par e-mail : support@venteticket.mg</p>
+                        <span class="availability">Disponible 7j/7 de 8h à 20h</span>
+                    </div>
+                </section>
+
+                <section class="payment-content">
+                    <form class="payment-form" action="#" method="post">
+                        <div class="form-section">
+                            <h2>Méthode de paiement</h2>
+                            <div class="method-grid">
+                                <label class="method-option">
+                                    <input type="radio" name="payment_method" value="mvola" checked>
+                                    <span class="method-content">
+                                        <span class="method-icon">
+                                            <img src="{{ asset('vente-ticket/images/m-vola.png') }}" alt="M-Vola">
+                                        </span>
+                                        <span class="method-text">
+                                            <strong>M-Vola</strong>
+                                            <small>Confirmation immédiate</small>
+                                        </span>
+                                    </span>
+                                </label>
+                                <label class="method-option">
+                                    <input type="radio" name="payment_method" value="orange-money">
+                                    <span class="method-content">
+                                        <span class="method-icon">
+                                            <img src="{{ asset('vente-ticket/images/orange-money.png') }}" alt="Orange Money">
+                                        </span>
+                                        <span class="method-text">
+                                            <strong>Orange Money</strong>
+                                            <small>Disponible 24h/24</small>
+                                        </span>
+                                    </span>
+                                </label>
+                                <label class="method-option">
+                                    <input type="radio" name="payment_method" value="airtel-money">
+                                    <span class="method-content">
+                                        <span class="method-icon">
+                                            <img src="{{ asset('vente-ticket/images/airtel.png') }}" alt="Airtel Money">
+                                        </span>
+                                        <span class="method-text">
+                                            <strong>Airtel Money</strong>
+                                            <small>Validation en quelques minutes</small>
+                                        </span>
+                                    </span>
+                                </label>
+                            </div>
+                            <p class="method-note">Vous recevrez un message de confirmation dès que le paiement sera validé.</p>
+                        </div>
+
+                        <div class="form-section">
+                            <h2>Informations de paiement</h2>
+                            <div class="form-grid">
+                                <div class="form-group">
+                                    <label for="payment-name">Nom et prénom</label>
+                                    <input type="text" id="payment-name" name="payment_name" placeholder="Nom et prénom du titulaire du compte">
+                                </div>
+                                <div class="form-group">
+                                    <label for="payment-email">Adresse e-mail</label>
+                                    <input type="email" id="payment-email" name="payment_email" placeholder="exemple@domain.mg">
+                                </div>
+                                <div class="form-group">
+                                    <label for="payment-phone">Numéro de téléphone (Mobile Money)</label>
+                                    <input type="tel" id="payment-phone" name="payment_phone" placeholder="034 12 345 67">
+                                </div>
+                                <div class="form-group">
+                                    <label for="payment-invoice">Souhaitez-vous une facture ?</label>
+                                    <select id="payment-invoice" name="payment_invoice">
+                                        <option value="no" selected>Non, pas nécessaire</option>
+                                        <option value="personal">Oui, facture personnelle</option>
+                                        <option value="company">Oui, facture entreprise</option>
+                                    </select>
+                                </div>
+                                <div class="form-group form-group-full" id="invoice-details" style="display:none;">
+                                    <label for="invoice-info">Informations de facturation</label>
+                                    <textarea id="invoice-info" name="invoice_info" rows="3" placeholder="Nom de l'entreprise, NIF, STAT, adresse..."></textarea>
+                                </div>
+                            </div>
+                        </div>
+
+                        <div class="form-section">
+                            <h2>Conditions</h2>
+                            <label class="checkbox">
+                                <input type="checkbox" name="terms" checked>
+                                <span>J'accepte les conditions générales d'utilisation et la politique de confidentialité.</span>
+                            </label>
+                            <label class="checkbox">
+                                <input type="checkbox" name="receive_emails">
+                                <span>Je souhaite recevoir ma confirmation de paiement par SMS et e-mail.</span>
+                            </label>
+                        </div>
+
+                        <div class="submit-area">
+                            <button type="button" class="btn-secondary" onclick="window.location.href='{{ path('cart') }}'">
+                                <i class="fas fa-arrow-left"></i> Retour au panier
+                            </button>
+                            <button type="button" id="btn-payment-confirm" class="btn-primary">
+                                Confirmer et payer {{ grandTotal|number_format(0, ',', ' ') }} MGA
+                            </button>
+                        </div>
+                    </form>
+
+                    <div class="security-note">
+                        <i class="fas fa-shield-alt"></i>
+                        <div>
+                            <strong>Paiement sécurisé</strong>
+                            <p>Vos informations sont chiffrées. VenteTicket ne stocke jamais vos données de paiement.</p>
+                        </div>
+                    </div>
+                </section>
+            </div>
+        </div>
+    </main>
+{% endblock %}
+
+{% block javascripts %}
+    <script>
+        document.addEventListener('DOMContentLoaded', function () {
+            const methodInputs = document.querySelectorAll('.method-option input[type="radio"]');
+            const invoiceSelect = document.getElementById('payment-invoice');
+            const invoiceDetails = document.getElementById('invoice-details');
+            const confirmButton = document.getElementById('btn-payment-confirm');
+
+            methodInputs.forEach(input => {
+                const option = input.closest('.method-option');
+                input.addEventListener('change', () => {
+                    document.querySelectorAll('.method-option').forEach(opt => opt.classList.remove('active'));
+                    option.classList.add('active');
+                });
+
+                if (input.checked) {
+                    option.classList.add('active');
+                }
+            });
+
+            if (invoiceSelect && invoiceDetails) {
+                invoiceSelect.addEventListener('change', function () {
+                    if (this.value === 'personal' || this.value === 'company') {
+                        invoiceDetails.style.display = 'block';
+                    } else {
+                        invoiceDetails.style.display = 'none';
+                    }
+                });
+            }
+
+            if (confirmButton) {
+                confirmButton.addEventListener('click', function () {
+                    window.location.href = '{{ path('checkout_confirmation') }}';
+                });
+            }
+        });
+    </script>
+{% endblock %}

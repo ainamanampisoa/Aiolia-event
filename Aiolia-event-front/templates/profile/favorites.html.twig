@@ -1,0 +1,100 @@
+{% extends 'base.html.twig' %}
+
+{% block title %}Favoris - Vente tickets{% endblock %}
+
+{% block stylesheets %}
+    <link rel="stylesheet" type="text/css" href="{{ asset('vente-ticket/css/animate.min.css') }}">
+    <link rel="stylesheet" type="text/css" href="{{ asset('vente-ticket/css/slick.css') }}">
+    <link rel="stylesheet" type="text/css" href="{{ asset('vente-ticket/css/jquery-ui.css') }}">
+    <link rel="stylesheet" type="text/css" href="{{ asset('vente-ticket/css/main.css') }}">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <link rel="stylesheet" type="text/css" href="{{ asset('vente-ticket/css/profile-favorites.css') }}">
+{% endblock %}
+
+{% block hero %}{% endblock %}
+
+{% block body %}
+    {% set favorites = favorites|default([
+        {
+            title: 'Afro Jazz Experience',
+            date: 'Samedi 14 décembre · 20h00',
+            location: 'Le Grand Café de la Gare, Antananarivo',
+            image: 'vente-ticket/images/img1.png',
+            status: 'Ouvert à la vente',
+            badges: ['Jazz', 'Live band'],
+            price: 'Dès 80 000 MGA'
+        },
+        {
+            title: 'Madagascar Fashion Night',
+            date: 'Vendredi 20 décembre · 19h30',
+            location: 'Carlton, Antananarivo',
+            image: 'vente-ticket/images/img2.png',
+            status: 'Prévente VIP',
+            badges: ['Fashion', 'Premium'],
+            price: 'Dès 150 000 MGA'
+        },
+        {
+            title: 'Festival des Arts Urbains',
+            date: 'Dimanche 05 janvier · 17h00',
+            location: 'Arena Andohatapenaka',
+            image: 'vente-ticket/images/img3.png',
+            status: 'Bientôt disponible',
+            badges: ['Street Art', 'Hip-Hop'],
+            price: 'Notification à l’ouverture'
+        }
+    ]) %}
+
+    <main class="profile-favorites-wrapper">
+        <div class="container">
+            <header class="favorites-header wow fadeIn" data-wow-delay="100ms">
+                <div>
+                    <h1>Évènements favoris</h1>
+                    <p>Retrouvez vos coups de cœur et recevez des alertes dès que des billets sont disponibles.</p>
+                </div>
+                <a href="{{ path('events') }}" class="btn-discover"><i class="fas fa-compass"></i> Découvrir de nouveaux évènements</a>
+            </header>
+
+            {% if favorites|length == 0 %}
+                <section class="favorites-empty wow fadeInUp" data-wow-delay="150ms">
+                    <i class="fas fa-heart"></i>
+                    <h2>Aucun favori enregistré</h2>
+                    <p>Ajoutez des évènements à vos favoris pour les retrouver facilement et être prévenu des mises en vente.</p>
+                    <a href="{{ path('events') }}" class="btn-solid">Parcourir les évènements</a>
+                </section>
+            {% else %}
+                <section class="favorites-grid">
+                    {% for event in favorites %}
+                        <article class="favorite-card wow fadeInUp" data-wow-delay="{{ loop.index * 80 }}ms">
+                            <div class="favorite-cover">
+                                <img src="{{ asset(event.image) }}" alt="{{ event.title }}">
+                                <button class="favorite-remove" title="Retirer des favoris"><i class="fas fa-times"></i></button>
+                            </div>
+                            <div class="favorite-content">
+                                <div class="favorite-badges">
+                                    {% for badge in event.badges %}
+                                        <span>{{ badge }}</span>
+                                    {% endfor %}
+                                </div>
+                                <h2>{{ event.title }}</h2>
+                                <div class="favorite-meta">
+                                    <span><i class="fas fa-calendar-alt"></i> {{ event.date }}</span>
+                                    <span><i class="fas fa-map-marker-alt"></i> {{ event.location }}</span>
+                                </div>
+                                <div class="favorite-status">
+                                    <span class="status-dot"></span> {{ event.status }}
+                                </div>
+                                <div class="favorite-footer">
+                                    <span class="favorite-price">{{ event.price }}</span>
+                                    <div class="favorite-actions">
+                                        <a href="{{ path('my_ticket_details', { id: loop.index }) }}" class="btn-details"><i class="fas fa-info-circle"></i> Détails</a>
+                                        <button class="btn-notify"><i class="fas fa-bell"></i> Alerte</button>
+                                    </div>
+                                </div>
+                            </div>
+                        </article>
+                    {% endfor %}
+                </section>
+            {% endif %}
+        </div>
+    </main>
+{% endblock %}

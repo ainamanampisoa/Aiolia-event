@@ -9,7 +9,7 @@
             <h1>✏️ Modifier mon profil</h1>
         </div>
         <div class="header-actions">
-            <a href="{{ path('app_profile_index') }}" class="btn" style="background: white; color: var(--gray-700); border: 2px solid var(--gray-300); padding: 12px 20px; border-radius: 8px; text-decoration: none; font-weight: 600;">
+            <a href="{{ path('app_profile_index') }}" class="btn" style="background: var(--bg-secondary); color: var(--text-secondary); border: 2px solid var(--border-color); padding: 12px 20px; border-radius: 8px; text-decoration: none; font-weight: 600;">
                 <i class="fas fa-arrow-left"></i> Retour
             </a>
         </div>
@@ -39,10 +39,10 @@
         </div>
 
         <div class="form-actions">
-            <button type="submit" class="btn btn-primary" style="background: var(--accent); color: white; border: none; padding: 14px 32px; border-radius: 10px; font-weight: 600;">
+            <button type="submit" class="btn btn-primary" style="background: var(--accent); color: var(--text-inverse); border: none; padding: 14px 32px; border-radius: 10px; font-weight: 600;">
                 <i class="fas fa-check"></i> Enregistrer
             </button>
-            <a href="{{ path('app_profile_index') }}" class="btn" style="color: var(--gray-600); text-decoration: none; padding: 14px 24px;">Annuler</a>
+            <a href="{{ path('app_profile_index') }}" class="btn" style="color: var(--text-secondary); text-decoration: none; padding: 14px 24px;">Annuler</a>
         </div>
     </form>
 </div>
@@ -53,11 +53,11 @@
 }
 
 .form-section {
-    background: var(--white);
+    background: var(--bg-card);
     border-radius: var(--border-radius-xl);
     padding: 28px;
     box-shadow: var(--shadow-md);
-    border: 1px solid var(--gray-200);
+    border: 1px solid var(--border-color);
     margin-bottom: 20px;
 }
 
@@ -79,7 +79,7 @@
 .form-group label {
     font-size: 0.9rem;
     font-weight: var(--font-weight-semibold);
-    color: var(--gray-700);
+    color: var(--text-primary);
     margin-bottom: 8px;
 }
 
@@ -89,11 +89,12 @@
 
 .form-control {
     padding: 12px 14px;
-    border: 2px solid var(--gray-200);
+    border: 2px solid var(--border-color);
     border-radius: var(--border-radius-md);
     font-size: 0.95rem;
     font-family: var(--font-family);
     transition: var(--transition-base);
+    background: var(--bg-secondary);
 }
 
 .form-control:focus {
@@ -104,7 +105,7 @@
 
 .form-help {
     font-size: 0.8rem;
-    color: var(--gray-600);
+    color: var(--text-secondary);
     margin-top: 6px;
 }
 
@@ -112,10 +113,10 @@
     display: flex;
     gap: 16px;
     padding: 24px;
-    background: var(--white);
+    background: var(--bg-card);
     border-radius: var(--border-radius-xl);
     box-shadow: var(--shadow-md);
-    border: 1px solid var(--gray-200);
+    border: 1px solid var(--border-color);
 }
 </style>
 {% endblock %}

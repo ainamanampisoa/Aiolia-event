@@ -7,9 +7,13 @@
         <link rel="stylesheet" type="text/css" href="{{ asset('vente-ticket/css/slick.css') }}">
         <link rel="stylesheet" type="text/css" href="{{ asset('vente-ticket/css/jquery-ui.css') }}">
         <link rel="stylesheet" type="text/css" href="{{ asset('vente-ticket/css/main.css') }}">
+        <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+        <link rel="stylesheet" type="text/css" href="{{ asset('vente-ticket/css/events.css') }}">
 {% endblock %}
 
 {% block body %}
+        {% set currentUser = app.session.get('user') %}
+        {% set isAuthenticated = currentUser is not null %}
         <main>
             <section class="sec-filtre">
                 <div class="container">
@@ -107,55 +111,103 @@
 
             <section class="sec-event all-event">
                 <div class="container">
-                    {% set categoryTitle = category.name ?? currentCategory ?? selectedCategory ?? null %}
-                    <h2 class="wow fadeIn" data-wow-delay="300ms">
-                        {% if categoryTitle %}
-                            Evènements - {{ categoryTitle }}
-                        {% else %}
-                            Tous les évènements
-                        {% endif %}
-                    </h2>
-                    <div class="lst-event">
-                        {% for i in 1..4 %}
-                        <div class="item  wow fadeInUp" data-wow-delay="300ms">
-                            <div class="inner">
-                                <div class="blc-col1">
-                                    <div class="col1">
-                                        <div class="date">
-                                            <span>Dimanche</span>
-                                            <strong>20</strong>
-                                            <span class="text-upper">juil. 2025</span>
+                    {% if groupedEvents is defined and groupedEvents %}
+                        {% for categoryName, events in groupedEvents %}
+                            <h2 class="wow fadeIn" data-wow-delay="300ms">{{ categoryName }}</h2>
+                            <div class="lst-event">
+                                {% for event in events %}
+                                <div class="item  wow fadeInUp" data-wow-delay="300ms">
+                                    <div class="inner">
+                                        {% if isAuthenticated %}
+                                        <button class="favorite-toggle {% if event.isFavorite is defined and event.isFavorite %}is-active{% endif %}" type="button" data-event-id="{{ event.id ?? loop.index }}" title="Ajouter aux favoris">
+                                            <i class="fas fa-heart"></i>
+                                        </button>
+                                        {% endif %}
+                                        <div class="blc-col1">
+                                            <div class="col1">
+                                                <div class="date">
+                                                    <span>{{ event.weekday ?? 'Dimanche' }}</span>
+                                                    <strong>{{ event.day ?? '20' }}</strong>
+                                                    <span class="text-upper">{{ event.monthYear ?? 'juil. 2025' }}</span>
+                                                </div>
+                                                <div class="hour">
+                                                    {{ event.time ?? 'à 20:00' }}
+                                                </div>
+                                                <div class="code-barre">
+                                                    <img src="{{ asset('vente-ticket/images/code1.png') }}">
+                                                </div>
+                                            </div>
+                                            <div class="col2">
+                                                <span class="bandeau">{{ event.categoryName ?? categoryName }}</span>
+                                                <h3>{{ event.title ?? 'Music on Sunday' }}</h3>
+                                                <div class="adresse">{{ event.location ?? 'Lieu : Analakely au Café de la Gare' }}</div>
+                                                <div class="tarif">{{ event.priceRange ?? 'Tarifs : 50.000MGA - 150.000MGA' }}</div>
+                                                <div class="blcBtn ">
+                                                    <a href="#" class="btn ticket">Acheter un ticket</a>
+                                                    <a href="{{ path('my_ticket_details', { id: event.id ?? loop.index }) }}" class="btn details">détails</a>
+                                                </div>
+                                            </div>
                                         </div>
-                                        <div class="hour">
-                                            à 20:00
-                                        </div>
-                                        <div class="code-barre">
-                                            <img src="{{ asset('vente-ticket/images/code1.png') }}">
+                                        <div class="blc-col2">
+                                            <div class="img">
+                                                <img src="{{ event.imageUrl ?? asset('vente-ticket/images/img1.png') }}" alt="ventes tickets">
+                                            </div>  
                                         </div>
                                     </div>
-                                    <div class="col2">
-                                        <span class="bandeau">Soirée live</span>
-                                        <h3>Music on Sunday</h3>
-                                        <div class="adresse">Lieu : Analakely au Café de la Gare</div>
-                                        <div class="tarif">Tarifs : 50.000MGA - 150.000MGA</div>
-                                        <div class="blcBtn ">
-                                            <a href="#" class="btn ticket">Acheter un ticket</a>
-                                            <a href="#" class="btn details">détails</a>
-
+                                </div>
+                                {% endfor %}
+                            </div>
+                        {% endfor %}
+                    {% else %}
+                        <h2 class="wow fadeIn" data-wow-delay="300ms">Tous les évènements</h2>
+                        <div class="lst-event">
+                            {% for i in 1..4 %}
+                            <div class="item  wow fadeInUp" data-wow-delay="300ms">
+                                <div class="inner">
+                                    {% if isAuthenticated %}
+                                    <button class="favorite-toggle" type="button" data-event-id="{{ i }}" title="Ajouter aux favoris">
+                                        <i class="fas fa-heart"></i>
+                                    </button>
+                                    {% endif %}
+                                    <div class="blc-col1">
+                                        <div class="col1">
+                                            <div class="date">
+                                                <span>Dimanche</span>
+                                                <strong>20</strong>
+                                                <span class="text-upper">juil. 2025</span>
+                                            </div>
+                                            <div class="hour">
+                                                à 20:00
+                                            </div>
+                                            <div class="code-barre">
+                                                <img src="{{ asset('vente-ticket/images/code1.png') }}">
+                                            </div>
                                         </div>
+                                        <div class="col2">
+                                            <span class="bandeau">Soirée live</span>
+                                            <h3>Music on Sunday</h3>
+                                            <div class="adresse">Lieu : Analakely au Café de la Gare</div>
+                                            <div class="tarif">Tarifs : 50.000MGA - 150.000MGA</div>
+                                            <div class="blcBtn ">
+                                                <a href="#" class="btn ticket">Acheter un ticket</a>
+                                                <a href="{{ path('my_ticket_details', { id: i }) }}" class="btn details">détails</a>
+
+                                            </div>
+                                        </div>
+                                        
+                                    </div>
+                                    <div class="blc-col2">
+                                        <div class="img">
+                                            <img src="{{ asset('vente-ticket/images/img1.png') }}" alt="ventes tickets">
+                                        </div>  
                                     </div>
                                     
                                 </div>
-                                <div class="blc-col2">
-                                    <div class="img">
-                                        <img src="{{ asset('vente-ticket/images/img1.png') }}" alt="ventes tickets">
-                                    </div>  
-                                </div>
-                                
                             </div>
+                            {% endfor %}
                         </div>
-                        {% endfor %}
-                    </div>
+                    {% endif %}
+
                     <div class="pagination">
                         <ul>
                             <li class="prev"><a href="#"></a></li>
@@ -179,6 +231,16 @@
         <script type="text/javascript" src="{{ asset('vente-ticket/js/slick.min.js') }}"></script>
         <script type="text/javascript" src="{{ asset('vente-ticket/js/jquery-ui.js') }}"></script>  
         <script type="text/javascript" src="{{ asset('vente-ticket/js/custom.js') }}"></script>
+        <script>
+            document.addEventListener('DOMContentLoaded', () => {
+                document.querySelectorAll('.favorite-toggle').forEach(btn => {
+                    btn.addEventListener('click', () => {
+                        btn.classList.toggle('is-active');
+                        btn.setAttribute('aria-pressed', btn.classList.contains('is-active'));
+                    });
+                });
+            });
+        </script>
 {% endblock %}
 
 

@@ -1,0 +1,574 @@
+{% extends 'base.html.twig' %}
+
+{% block title %}Panier - Vente tickets{% endblock %}
+
+{% block stylesheets %}
+    <link rel="stylesheet" type="text/css" href="{{ asset('vente-ticket/css/animate.min.css') }}">
+    <link rel="stylesheet" type="text/css" href="{{ asset('vente-ticket/css/slick.css') }}">
+    <link rel="stylesheet" type="text/css" href="{{ asset('vente-ticket/css/jquery-ui.css') }}">
+    <link rel="stylesheet" type="text/css" href="{{ asset('vente-ticket/css/main.css') }}">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <link rel="stylesheet" type="text/css" href="{{ asset('vente-ticket/css/cart.css') }}">
+{% endblock %}
+
+{% block hero %}{% endblock %}
+
+{% block body %}
+    <main>
+        <section class="sec-event all-event">
+            <div class="container">
+                <!-- TITRE CENTRÉ -->
+                <div class="cart-header wow fadeIn" data-wow-delay="300ms">
+                    <h2>Mon panier</h2>
+                    <p>Vérifiez vos billets avant de procéder au paiement</p>
+                </div>
+
+                {% if items is defined and items|length == 0 %}
+                    <div class="wow fadeInUp empty-cart" data-wow-delay="200ms">
+                        <div class="empty-cart-icon">
+                            <i class="fas fa-shopping-cart"></i>
+                        </div>
+                        <div class="empty-cart-title">Votre panier est vide</div>
+                        <p class="empty-cart-desc">Ajoutez des billets pour commencer votre réservation et vivre des expériences inoubliables</p>
+                        <a href="{{ path('events') }}" class="btn-checkout-all" style="text-decoration: none; width: fit-content; margin: 0 auto; padding: 12px 24px;">
+                            <i class="fas fa-calendar-alt"></i>
+                            Voir les évènements
+                        </a>
+                    </div>
+                {% else %}
+                <div class="wow fadeInUp cart-wrap" data-wow-delay="200ms">
+                    <div class="cart-items">
+                        <!-- SIMULATION DE PLUS D'ÉVÉNEMENTS POUR TESTER LA PAGINATION -->
+                        {% for i in 0..5 %}
+                        {% set itemIndex = i % items|length %}
+                        {% set item = items[itemIndex] %}
+                        <div class="cart-card" data-event-id="{{ item.event.id }}-{{ i }}">
+                            <!-- En-tête de la carte -->
+                            <div class="cart-card-header">
+                                <div class="cart-image">
+                                    <img src="{{ asset('vente-ticket/images/img1.png') }}" alt="{{ item.event.title }}">
+                                </div>
+                                <div class="cart-header-info">
+                                    <span class="category-badge">{{ item.event.category }}</span>
+                                    <h3>{{ item.event.title }} {% if i >= items|length %}(Copie {{ i - items|length + 1 }}){% endif %}</h3>
+                                    <div class="cart-meta">
+                                        <span><i class="fas fa-map-marker-alt"></i> {{ item.event.location }}</span>
+                                        <span><i class="fas fa-calendar"></i> {{ item.event.date|date('d M Y — H:i') }}</span>
+                                    </div>
+                                    
+                                    <!-- Timer par événement -->
+                                    <div class="event-timer">
+                                        <i class="fas fa-clock"></i>
+                                        <span>Expire dans:</span>
+                                        <span class="timer-value" id="timer-{{ item.event.id }}-{{ i }}">15:00</span>
+                                    </div>
+                                </div>
+                            </div>
+                            
+                            <!-- Corps de la carte -->
+                            <div class="cart-card-body">
+                                <!-- Section quantité -->
+                                <div class="quantity-section">
+                                    <div class="quantity-header">
+                                        <h4>Quantités des billets</h4>
+                                    </div>
+                                    
+                                    <!-- Quantité adultes -->
+                                    <div class="quantity-control">
+                                        <label><i class="fas fa-user"></i> Billets Adultes</label>
+                                        <div class="quantity-input-group">
+                                            <div class="numbers-row">
+                                                <button type="button" class="dec button" data-type="adult">-</button>
+                                                <input type="text" name="adult_qtt" value="{{ item.adultQuantity }}" class="qtt" data-price="{{ item.event.adultPrice }}" data-type="adult">
+                                                <button type="button" class="inc button" data-type="adult">+</button>
+                                            </div>
+                                            <div class="price-indicator">
+                                                {{ item.event.adultPrice|number_format(0, ',', ' ') }}MGA / unité
+                                            </div>
+                                        </div>
+                                    </div>
+                                    
+                                    <!-- Quantité enfants -->
+                                    <div class="quantity-control {% if not item.event.childPrice or item.event.childPrice == 0 %}disabled{% endif %}">
+                                        <label>
+                                            <i class="fas fa-child"></i> 
+                                            Billets Enfants
+                                            {% if not item.event.childPrice or item.event.childPrice == 0 %}
+                                            <span style="color: var(--danger); font-size: 10px; margin-left: 5px;">(Non disponible)</span>
+                                            {% endif %}
+                                        </label>
+                                        <div class="quantity-input-group">
+                                            <div class="numbers-row">
+                                                <button type="button" class="dec button {% if not item.event.childPrice or item.event.childPrice == 0 %}disabled{% endif %}" data-type="child">-</button>
+                                                <input type="text" name="child_qtt" value="{{ item.childQuantity }}" class="qtt {% if not item.event.childPrice or item.event.childPrice == 0 %}disabled{% endif %}" 
+                                                       data-price="{{ item.event.childPrice ? item.event.childPrice : 0 }}" 
+                                                       data-type="child"
+                                                       {% if not item.event.childPrice or item.event.childPrice == 0 %}disabled{% endif %}>
+                                                <button type="button" class="inc button {% if not item.event.childPrice or item.event.childPrice == 0 %}disabled{% endif %}" data-type="child">+</button>
+                                            </div>
+                                            <div class="price-indicator">
+                                                {% if item.event.childPrice and item.event.childPrice > 0 %}
+                                                    {{ item.event.childPrice|number_format(0, ',', ' ') }}MGA / unité
+                                                {% else %}
+                                                    Non disponible
+                                                {% endif %}
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+                                
+                                <!-- Résumé par événement -->
+                                <div class="event-summary">
+                                    <div class="summary-title">
+                                        <i class="fas fa-receipt"></i>
+                                        Résumé de commande
+                                    </div>
+                                    
+                                    <div class="summary-item">
+                                        <span class="adult-quantity">{{ item.adultQuantity }} billet(s) adulte</span>
+                                        <span class="adult-total">{{ (item.adultQuantity * item.event.adultPrice)|number_format(0, ',', ' ') }}MGA</span>
+                                    </div>
+                                    
+                                    <div class="summary-item">
+                                        <span class="child-quantity">{{ item.childQuantity }} billet(s) enfant</span>
+                                        <span class="child-total">
+                                            {% if item.event.childPrice and item.event.childPrice > 0 %}
+                                                {{ (item.childQuantity * item.event.childPrice)|number_format(0, ',', ' ') }}MGA
+                                            {% else %}
+                                                0MGA
+                                            {% endif %}
+                                        </span>
+                                    </div>
+                                    
+                                    <div class="summary-item">
+                                        <span>Frais de service</span>
+                                        <span>0MGA</span>
+                                    </div>
+                                    
+                                    <!-- TOTAL AMÉLIORÉ - PLUS COMPACT -->
+                                    <div class="summary-item total">
+                                        <span class="total-label">Total</span>
+                                        <span class="total-amount" id="subtotal-{{ item.event.id }}-{{ i }}">
+                                            {% set adultTotal = item.adultQuantity * item.event.adultPrice %}
+                                            {% set childTotal = (item.event.childPrice and item.event.childPrice > 0) ? item.childQuantity * item.event.childPrice : 0 %}
+                                            {{ (adultTotal + childTotal)|number_format(0, ',', ' ') }}MGA
+                                        </span>
+                                    </div>
+                                    
+                                    <div class="summary-actions">
+                                        <button class="btn-icon btn-remove remove-item" data-event-id="{{ item.event.id }}-{{ i }}" title="Retirer du panier">
+                                            <i class="fas fa-trash"></i>
+                                        </button>
+                                        <!-- ICÔNE VERTE POUR VALIDER -->
+                                        <button class="btn-icon btn-validate validate-event" data-event-id="{{ item.event.id }}-{{ i }}" title="Valider cet événement">
+                                            <i class="fas fa-check"></i>
+                                        </button>
+                                    </div>
+                                </div>
+                                
+                                <!-- Code promo -->
+                                <div class="promo-section">
+                                    <div class="cart-line-promo">
+                                        <input type="text" class="chp" placeholder="Entrez un code promo pour cet événement">
+                                        <button class="btn-promo apply-promo">
+                                            <i class="fas fa-tag"></i>
+                                            Appliquer
+                                        </button>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                        {% endfor %}
+                    </div>
+                    
+                    <!-- Actions globales -->
+                    <div class="global-actions wow fadeInUp" data-wow-delay="400ms">
+                        <a href="{{ path('events') }}" class="btn-continue">
+                            <i class="fas fa-arrow-left"></i>
+                            Continuer mes achats
+                        </a>
+                        <button class="btn-checkout-all">
+                            <i class="fas fa-lock"></i>
+                            Valider tout le panier
+                        </button>
+                    </div>
+                    
+                    <!-- PAGINATION - EN BAS (MAINTENANT VISIBLE AVEC 6 ÉVÉNEMENTS) -->
+                    {% set totalEvents = 6 %}
+                    {% set eventsPerPage = 4 %}
+                    {% set totalPages = (totalEvents / eventsPerPage)|round(0, 'ceil') %}
+                    
+                    {% if totalEvents > eventsPerPage %}
+                    <div class="pagination-container wow fadeInUp" data-wow-delay="500ms">
+                        <div class="pagination">
+                            <button class="page-btn prev disabled">
+                                <i class="fas fa-chevron-left"></i>
+                            </button>
+                            
+                            {% for i in 1..totalPages %}
+                                <button class="page-btn {% if i == 1 %}active{% endif %}" data-page="{{ i }}">
+                                    {{ i }}
+                                </button>
+                            {% endfor %}
+                            
+                            <button class="page-btn next {% if totalPages == 1 %}disabled{% endif %}">
+                                <i class="fas fa-chevron-right"></i>
+                            </button>
+                        </div>
+                    </div>
+                    {% endif %}
+                </div>
+                {% endif %}
+            </div>
+        </section>
+    </main>
+{% endblock %}
+
+{% block javascripts %}
+    <script type="text/javascript" src="{{ asset('vente-ticket/js/jquery.min.js') }}"></script>
+    <script type="text/javascript" src="{{ asset('vente-ticket/js/wow.js') }}"></script>
+    <script type="text/javascript" src="{{ asset('vente-ticket/js/slick.min.js') }}"></script>
+    <script type="text/javascript" src="{{ asset('vente-ticket/js/jquery-ui.js') }}"></script>  
+    <script type="text/javascript" src="{{ asset('vente-ticket/js/custom.js') }}"></script>
+<script>
+    // Timers individuels par événement
+    const eventTimers = {};
+    
+    function startEventTimer(eventId, minutes, seconds) {
+        let totalSeconds = minutes * 60 + seconds;
+        const timerElement = document.getElementById('timer-' + eventId);
+        
+        if (!timerElement) return;
+        
+        eventTimers[eventId] = setInterval(function() {
+            const mins = Math.floor(totalSeconds / 60);
+            const secs = totalSeconds % 60;
+            
+            timerElement.textContent = `${mins.toString().padStart(2, '0')}:${secs.toString().padStart(2, '0')}`;
+            
+            // Changement de couleur pour les dernières minutes
+            if (mins < 5) {
+                timerElement.parentElement.style.background = 'var(--danger)';
+            }
+            
+            if (totalSeconds <= 0) {
+                clearInterval(eventTimers[eventId]);
+                timerElement.textContent = '00:00';
+                showEventExpiredModal(eventId);
+            }
+            
+            totalSeconds--;
+        }, 1000);
+    }
+
+    function showEventExpiredModal(eventId) {
+        const card = document.querySelector(`[data-event-id="${eventId}"]`);
+        if (!card) return;
+        
+        card.style.opacity = '0.6';
+        card.style.pointerEvents = 'none';
+        
+        // Ajouter un badge "Expiré"
+        const expiredBadge = document.createElement('div');
+        expiredBadge.style.cssText = `
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            background: rgba(255, 112, 112, 0.95);
+            color: white;
+            padding: 10px 20px;
+            border-radius: 8px;
+            font-weight: 600;
+            z-index: 10;
+            font-size: 16px;
+        `;
+        expiredBadge.textContent = 'Temps écoulé';
+        card.style.position = 'relative';
+        card.appendChild(expiredBadge);
+    }
+
+    // Gestion des quantités avec calcul automatique
+    document.addEventListener('DOMContentLoaded', function() {
+        // Initialiser les gestionnaires d'événements
+        initQuantityHandlers();
+        initActionButtons();
+        initPagination();
+        
+        // Démarrer les timers pour chaque événement (15 minutes chacun)
+        document.querySelectorAll('.cart-card').forEach(card => {
+            const eventId = card.dataset.eventId;
+            startEventTimer(eventId, 15, 0);
+        });
+        
+        // Bouton de validation globale
+        document.querySelector('.btn-checkout-all').addEventListener('click', function() {
+            window.location.href = '{{ path("checkout_payment") }}';
+        });
+    });
+
+    function initQuantityHandlers() {
+        // Utilisation de la délégation d'événements avec stopImmediatePropagation
+        document.addEventListener('click', function(event) {
+            const button = event.target;
+            
+            // Vérifier si c'est un bouton + ou - et qu'il n'est pas désactivé
+            if (button.classList.contains('button') && 
+                (button.classList.contains('inc') || button.classList.contains('dec')) &&
+                !button.classList.contains('disabled')) {
+                
+                // EMPÊCHER LA PROPAGATION IMMÉDIATE POUR ÉVITER LE DOUBLE DÉCLENCHEMENT
+                event.stopImmediatePropagation();
+                event.preventDefault();
+                
+                const type = button.dataset.type;
+                const input = button.closest('.numbers-row').querySelector('.qtt[data-type="' + type + '"]');
+                
+                // Vérifier si l'input n'est pas désactivé
+                if (!input || input.disabled) return;
+                
+                let value = parseInt(input.value) || 0;
+                
+                if (button.classList.contains('dec')) {
+                    // Bouton - : diminuer de 1, minimum 0
+                    value = Math.max(0, value - 1);
+                } else {
+                    // Bouton + : augmenter de 1
+                    value = value + 1;
+                }
+                
+                // Mettre à jour la valeur de l'input
+                input.value = value;
+                
+                // Déclencher l'événement change pour forcer la mise à jour
+                const changeEvent = new Event('change', { bubbles: true });
+                input.dispatchEvent(changeEvent);
+            }
+        }, true); // Utiliser capture: true pour exécuter notre code en premier
+
+        // Gestion des changements manuels dans l'input
+        document.addEventListener('change', function(event) {
+            if (event.target.classList.contains('qtt') && !event.target.classList.contains('disabled')) {
+                const input = event.target;
+                let value = parseInt(input.value);
+                
+                if (isNaN(value) || value < 0) {
+                    input.value = 0;
+                    value = 0;
+                }
+                
+                // Mettre à jour le résumé
+                updateEventSummary(input.closest('.cart-card'));
+            }
+        });
+
+        // Nettoyer l'input pour n'accepter que des chiffres
+        document.addEventListener('input', function(event) {
+            if (event.target.classList.contains('qtt') && !event.target.classList.contains('disabled')) {
+                event.target.value = event.target.value.replace(/[^0-9]/g, '');
+            }
+        });
+    }
+
+    function initActionButtons() {
+        // Boutons retirer
+        document.querySelectorAll('.remove-item').forEach(button => {
+            button.addEventListener('click', function() {
+                const eventId = this.dataset.eventId;
+                const card = this.closest('.cart-card');
+                
+                // Arrêter le timer
+                if (eventTimers[eventId]) {
+                    clearInterval(eventTimers[eventId]);
+                }
+                
+                // Animation de suppression
+                card.style.transform = 'scale(0.8)';
+                card.style.opacity = '0';
+                
+                setTimeout(() => {
+                    card.remove();
+                    checkEmptyCart();
+                    updatePaginationDisplay();
+                }, 300);
+            });
+        });
+
+        // Boutons appliquer promo
+        document.querySelectorAll('.apply-promo').forEach(button => {
+            button.addEventListener('click', function() {
+                const input = this.previousElementSibling;
+                const code = input.value.trim();
+                
+                if (code) {
+                    this.innerHTML = '<i class="fas fa-spinner fa-spin"></i>';
+                    this.disabled = true;
+                    
+                    // Simulation d'appel API
+                    setTimeout(() => {
+                        this.innerHTML = '<i class="fas fa-check"></i> Appliqué';
+                        this.style.background = 'var(--success)';
+                        input.style.borderColor = 'var(--success)';
+                        input.disabled = true;
+                    }, 1000);
+                }
+            });
+        });
+
+        // Boutons valider événement
+        document.querySelectorAll('.validate-event').forEach(button => {
+            button.addEventListener('click', function() {
+                const eventId = this.dataset.eventId;
+                // Arrêter le timer
+                if (eventTimers[eventId]) {
+                    clearInterval(eventTimers[eventId]);
+                }
+                // Redirection vers la page de validation
+                window.location.href = '{{ path("checkout_payment") }}?event=' + eventId;
+            });
+        });
+    }
+
+    function initPagination() {
+        const pageButtons = document.querySelectorAll('.page-btn:not(.disabled)');
+        const eventsPerPage = 4;
+        let currentPage = 1;
+        
+        // Initialiser l'affichage de la pagination
+        updatePaginationDisplay(currentPage);
+        
+        pageButtons.forEach(btn => {
+            btn.addEventListener('click', function() {
+                if (this.classList.contains('disabled')) return;
+                
+                if (this.classList.contains('prev')) {
+                    if (currentPage > 1) {
+                        currentPage--;
+                    }
+                } else if (this.classList.contains('next')) {
+                    const totalEvents = document.querySelectorAll('.cart-card').length;
+                    const totalPages = Math.ceil(totalEvents / eventsPerPage);
+                    if (currentPage < totalPages) {
+                        currentPage++;
+                    }
+                } else {
+                    currentPage = parseInt(this.dataset.page);
+                }
+                
+                updatePaginationDisplay(currentPage);
+            });
+        });
+    }
+
+    function updatePaginationDisplay(page = 1) {
+        const events = document.querySelectorAll('.cart-card');
+        const eventsPerPage = 4;
+        const totalEvents = events.length;
+        const totalPages = Math.ceil(totalEvents / eventsPerPage);
+        
+        // Masquer tous les événements
+        events.forEach(event => {
+            event.style.display = 'none';
+        });
+        
+        // Afficher les événements de la page courante
+        const startIndex = (page - 1) * eventsPerPage;
+        const endIndex = startIndex + eventsPerPage;
+        
+        for (let i = startIndex; i < endIndex && i < totalEvents; i++) {
+            if (events[i]) {
+                events[i].style.display = 'flex';
+            }
+        }
+        
+        // Mettre à jour les boutons de pagination
+        const pageButtons = document.querySelectorAll('.page-btn');
+        pageButtons.forEach(btn => {
+            btn.classList.remove('active');
+            if (!btn.classList.contains('prev') && !btn.classList.contains('next')) {
+                if (parseInt(btn.dataset.page) === page) {
+                    btn.classList.add('active');
+                }
+            }
+        });
+        
+        // Mettre à jour les boutons précédent/suivant
+        const prevBtn = document.querySelector('.page-btn.prev');
+        const nextBtn = document.querySelector('.page-btn.next');
+        
+        if (prevBtn) {
+            if (page === 1) {
+                prevBtn.classList.add('disabled');
+            } else {
+                prevBtn.classList.remove('disabled');
+            }
+        }
+        
+        if (nextBtn) {
+            if (page === totalPages) {
+                nextBtn.classList.add('disabled');
+            } else {
+                nextBtn.classList.remove('disabled');
+            }
+        }
+    }
+
+    // FONCTION PRINCIPALE DE SYNCHRONISATION
+    function updateEventSummary(card) {
+        // Récupérer les inputs adultes et enfants
+        const adultInput = card.querySelector('.qtt[data-type="adult"]');
+        const childInput = card.querySelector('.qtt[data-type="child"]');
+        
+        // Récupérer les quantités actuelles
+        const adultQty = parseInt(adultInput.value) || 0;
+        const adultPrice = parseInt(adultInput.dataset.price) || 0;
+        const childQty = childInput.disabled ? 0 : (parseInt(childInput.value) || 0);
+        const childPrice = childInput.disabled ? 0 : (parseInt(childInput.dataset.price) || 0);
+        
+        // Calculer les totaux
+        const adultTotal = adultQty * adultPrice;
+        const childTotal = childQty * childPrice;
+        const subtotal = adultTotal + childTotal;
+        
+        // METTRE À JOUR LE RÉSUMÉ
+        const adultQuantityElement = card.querySelector('.adult-quantity');
+        const adultTotalElement = card.querySelector('.adult-total');
+        const childQuantityElement = card.querySelector('.child-quantity');
+        const childTotalElement = card.querySelector('.child-total');
+        const subtotalElement = card.querySelector('.total-amount');
+        
+        // Synchroniser les quantités dans le résumé
+        if (adultQuantityElement) {
+            adultQuantityElement.textContent = `${adultQty} billet(s) adulte`;
+        }
+        if (adultTotalElement) {
+            adultTotalElement.textContent = `${adultTotal.toLocaleString('fr-FR')}MGA`;
+        }
+        if (childQuantityElement) {
+            childQuantityElement.textContent = `${childQty} billet(s) enfant`;
+        }
+        if (childTotalElement) {
+            childTotalElement.textContent = `${childTotal.toLocaleString('fr-FR')}MGA`;
+        }
+        if (subtotalElement) {
+            subtotalElement.textContent = `${subtotal.toLocaleString('fr-FR')}MGA`;
+        }
+        
+        console.log('Synchronisation réussie:', {
+            inputAdulte: adultQty,
+            spanAdulte: adultQuantityElement?.textContent,
+            inputEnfant: childQty,
+            spanEnfant: childQuantityElement?.textContent
+        });
+    }
+
+    function checkEmptyCart() {
+        const items = document.querySelectorAll('.cart-card');
+        if (items.length === 0) {
+            setTimeout(() => {
+                window.location.reload();
+            }, 1000);
+        }
+    }
+</script>
+{% endblock %}

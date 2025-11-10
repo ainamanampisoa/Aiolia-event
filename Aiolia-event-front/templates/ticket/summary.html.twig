@@ -1,0 +1,21 @@
+{% extends 'base.html.twig' %}
+
+{% block title %}Récapitulatif commande - Vente tickets{% endblock %}
+
+{% block stylesheets %}
+        <link rel="stylesheet" href="{{ asset('vente-ticket/css/main.css') }}">
+{% endblock %}
+
+{% block body %}
+        <main class="pt-100 pb-100">
+            <div class="container">
+                <h2>Récapitulatif de votre commande</h2>
+                <div class="bg-beige" style="padding:40px 30px;">
+                    <p>Liste des billets sélectionnés, quantités, tarifs et total TTC.</p>
+                    <div class="blcBtn text-center" style="margin-top:20px;">
+                        <a href="{{ path('checkout_payment') }}" class="btn">Procéder au paiement</a>
+                    </div>
+                </div>
+            </div>
+        </main>
+{% endblock %}

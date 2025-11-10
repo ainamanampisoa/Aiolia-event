@@ -1,0 +1,173 @@
+{% extends 'base.html.twig' %}
+
+{% block title %}Notifications - Vente tickets{% endblock %}
+
+{% block stylesheets %}
+    <link rel="stylesheet" type="text/css" href="{{ asset('vente-ticket/css/animate.min.css') }}">
+    <link rel="stylesheet" type="text/css" href="{{ asset('vente-ticket/css/slick.css') }}">
+    <link rel="stylesheet" type="text/css" href="{{ asset('vente-ticket/css/jquery-ui.css') }}">
+    <link rel="stylesheet" type="text/css" href="{{ asset('vente-ticket/css/main.css') }}">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <link rel="stylesheet" type="text/css" href="{{ asset('vente-ticket/css/notifications.css') }}">
+{% endblock %}
+
+{% block hero %}{% endblock %}
+
+{% block body %}
+    {% set notifications = notifications|default([
+        {
+            id: 1,
+            title: 'Vos billets pour <span>Afro Jazz Experience</span> sont disponibles',
+            time: 'Il y a 5 minutes',
+            date: '07 novembre 2025 · 14:32',
+            type: 'ticket',
+            read: false,
+            description: 'Téléchargez vos billets et partagez-les avec vos invités avant l\'évènement de samedi.'
+        },
+        {
+            id: 2,
+            title: 'Nouvelle offre exclusive sur <span>Madagascar Fashion Night</span>',
+            time: 'Il y a 2 heures',
+            date: '07 novembre 2025 · 12:08',
+            type: 'offer',
+            read: false,
+            description: 'Profitez de -20 % sur vos billets VIP jusqu\'à ce soir minuit avec le code FASHION20.'
+        },
+        {
+            id: 3,
+            title: 'Rappel : Validation requise pour <span>Festival des Arts Urbains</span>',
+            time: 'Hier',
+            date: '06 novembre 2025 · 18:45',
+            type: 'reminder',
+            read: true,
+            description: 'Votre panier expire dans 12 heures. Validez vos billets pour garantir vos places.'
+        },
+        {
+            id: 4,
+            title: 'Confirmation : paiement reçu pour <span>Soirée Electro Rooftop</span>',
+            time: 'Il y a 3 jours',
+            date: '04 novembre 2025 · 09:22',
+            type: 'payment',
+            read: true,
+            description: 'Votre paiement est confirmé. Nous vous enverrons un rappel le jour de l\'évènement.'
+        }
+    ]) %}
+
+    <main class="notifications-wrapper">
+        <div class="container">
+            <div class="notifications-panel">
+                <div class="notifications-header">
+                    <div>
+                        <h2>Mes notifications</h2>
+                        <p>Retrouvez vos alertes, rappels et confirmations liées à vos évènements.</p>
+                    </div>
+                    <div class="notifications-actions">
+                        <button class="btn-outline" data-action="mark-read"><i class="fas fa-check"></i> Tout marquer comme lu</button>
+                        <button class="btn-solid" data-action="settings"><i class="fas fa-sliders-h"></i> Préférences</button>
+                    </div>
+                </div>
+
+                <div class="notifications-tabs">
+                    <button class="notifications-tab active" data-filter="all">Tous <span class="notifications-counter">{{ notifications|length }}</span></button>
+                    <button class="notifications-tab" data-filter="unread">Non lus <span class="notifications-counter">{{ notifications|filter(n => not n.read)|length }}</span></button>
+                    <button class="notifications-tab" data-filter="read">Archives <span class="notifications-counter">{{ notifications|filter(n => n.read)|length }}</span></button>
+                </div>
+
+                {% set hasNotifications = notifications|length > 0 %}
+                {% if hasNotifications %}
+                    <ul class="notifications-list">
+                        {% for notification in notifications %}
+                            <li class="notification-item {% if not notification.read %}is-unread{% endif %}" data-state="{{ notification.read ? 'read' : 'unread' }}">
+                                <div class="notification-icon">
+                                    {% if notification.type == 'ticket' %}
+                                        <i class="fas fa-ticket-alt"></i>
+                                    {% elseif notification.type == 'offer' %}
+                                        <i class="fas fa-gift"></i>
+                                    {% elseif notification.type == 'reminder' %}
+                                        <i class="fas fa-clock"></i>
+                                    {% else %}
+                                        <i class="fas fa-receipt"></i>
+                                    {% endif %}
+                                </div>
+                                <div class="notification-content">
+                                    <h3 class="notification-title">{{ notification.title|raw }}</h3>
+                                    <div class="notification-meta">
+                                        <span><i class="fas fa-calendar-check"></i> {{ notification.date }}</span>
+                                        <span><i class="fas fa-hourglass-half"></i> {{ notification.time }}</span>
+                                    </div>
+                                    <p>{{ notification.description }}</p>
+                                    <div class="notification-actions">
+                                        {% if not notification.read %}
+                                            <button data-action="mark-single" data-id="{{ notification.id }}">Marquer comme lu</button>
+                                        {% endif %}
+                                        <button data-action="view" data-id="{{ notification.id }}">Voir le détail</button>
+                                        <button data-action="archive" data-id="{{ notification.id }}">Archiver</button>
+                                    </div>
+                                </div>
+                            </li>
+                        {% endfor %}
+                    </ul>
+                {% else %}
+                    <div class="notifications-empty">
+                        <i class="fas fa-bell-slash"></i>
+                        <h3>Aucune notification pour le moment</h3>
+                        <p>Les nouvelles activités apparaîtront ici : validation de panier, billets disponibles, rappels d'évènements...</p>
+                        <button class="btn-solid" data-action="explore">Explorer les évènements</button>
+                    </div>
+                {% endif %}
+            </div>
+        </div>
+    </main>
+{% endblock %}
+
+{% block javascripts %}
+    <script>
+        document.addEventListener('DOMContentLoaded', () => {
+            const tabs = document.querySelectorAll('.notifications-tab');
+            const items = document.querySelectorAll('.notification-item');
+
+            tabs.forEach(tab => {
+                tab.addEventListener('click', () => {
+                    tabs.forEach(t => t.classList.remove('active'));
+                    tab.classList.add('active');
+                    const filter = tab.dataset.filter;
+
+                    items.forEach(item => {
+                        const state = item.dataset.state;
+                        if (filter === 'all') {
+                            item.style.display = 'flex';
+                        } else if (filter === 'unread') {
+                            item.style.display = state === 'unread' ? 'flex' : 'none';
+                        } else {
+                            item.style.display = state === 'read' ? 'flex' : 'none';
+                        }
+                    });
+                });
+            });
+
+            document.querySelectorAll('[data-action="mark-single"]').forEach(button => {
+                button.addEventListener('click', () => {
+                    const item = button.closest('.notification-item');
+                    if (!item) return;
+                    item.dataset.state = 'read';
+                    item.classList.remove('is-unread');
+                    button.remove();
+                });
+            });
+
+            const markAll = document.querySelector('[data-action="mark-read"]');
+            if (markAll) {
+                markAll.addEventListener('click', () => {
+                    items.forEach(item => {
+                        item.dataset.state = 'read';
+                        item.classList.remove('is-unread');
+                        const singleButton = item.querySelector('[data-action="mark-single"]');
+                        if (singleButton) {
+                            singleButton.remove();
+                        }
+                    });
+                });
+            }
+        });
+    </script>
+{% endblock %}

@@ -1,0 +1,68 @@
+/* Mes billets */
+
+.ticket-filters {
+    display: flex;
+    align-items: center;
+    gap: 16px;
+    margin: 22px 0 28px;
+}
+
+.ticket-filter-active {
+    background: #2ecc71;
+    border-color: #2ecc71;
+}
+
+.ticket-badge {
+    margin-left: auto;
+    background: linear-gradient(135deg, #2ecc71, #27ae60);
+    color: #ffffff;
+    border-radius: 999px;
+    padding: 6px 14px;
+    font-size: 12px;
+    font-weight: 700;
+    box-shadow: 0 8px 16px -12px rgba(39, 174, 96, 0.6);
+}
+
+.ticket-empty {
+    text-align: center;
+    padding: 48px 24px;
+    background: linear-gradient(180deg, rgba(249, 250, 252, 0.9), rgba(241, 245, 249, 0.95));
+    border-radius: 16px;
+    box-shadow: 0 20px 45px -30px rgba(15, 35, 74, 0.35);
+}
+
+.ticket-empty-title {
+    font-size: 18px;
+    font-weight: 600;
+    margin-bottom: 14px;
+    color: #1f2d3d;
+}
+
+.ticket-actions {
+    display: flex;
+    gap: 10px;
+    flex-wrap: wrap;
+}
+
+.ticket-actions .btn {
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+}
+
+.ticket-status {
+    margin-top: 10px;
+    color: #2ecc71;
+    font-weight: 600;
+}
+
+@media (max-width: 768px) {
+    .ticket-filters {
+        flex-wrap: wrap;
+        justify-content: center;
+    }
+
+    .ticket-badge {
+        margin-left: 0;
+    }
+}

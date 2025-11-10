@@ -5,46 +5,277 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>{% block title %}Aiolia Event{% endblock %}</title>
     {% block stylesheets %}{% endblock %}
+    <link rel="stylesheet" type="text/css" href="{{ asset('vente-ticket/css/sidebar.css') }}">
     <style>
         /* Uniform overlay across the full banner width */
         .txt-banner:after { width: 100% !important; }
+
+        .user-connected {
+            display: flex;
+            align-items: center;
+            gap: 18px;
+            margin-right: 0;
+        }
+
+        header .head .container {
+            display: flex;
+            flex-direction: column;
+            gap: 16px;
+        }
+
+        .head-top {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            gap: 24px;
+        }
+
+        .head-bottom {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 18px;
+            flex-wrap: wrap;
+        }
+
+        .head-guest {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            gap: 20px;
+            width: 100%;
+        }
+
+        .head-guest .guest-nav {
+            display: flex;
+            align-items: center;
+            gap: 18px;
+        }
+
+        .head-guest .guest-nav .menu ul {
+            display: flex;
+            align-items: center;
+            gap: 18px;
+            margin: 0;
+        }
+
+        .head-bottom .blcMenu {
+            display: flex;
+            align-items: center;
+            gap: 18px;
+            justify-content: center;
+        }
+
+        .menu ul {
+            display: flex;
+            align-items: center;
+            gap: 18px;
+            margin: 0;
+        }
+
+        .head-bottom > * {
+            display: flex;
+            align-items: center;
+            gap: 18px;
+        }
+
+        .user-connected-search {
+            position: relative;
+            display: flex;
+            align-items: center;
+            padding: 4px 0;
+            border-bottom: 2px solid rgba(16, 57, 140, 0.35);
+        }
+
+        .user-connected-search input[type="search"] {
+            border: none;
+            background: transparent;
+            outline: none;
+            font-size: 14px;
+            color: #1F2D3D;
+            min-width: 200px;
+            padding-right: 26px;
+        }
+
+        .user-connected-search input[type="search"]::placeholder {
+            color: rgba(31, 45, 61, 0.55);
+        }
+
+        .user-connected-search button {
+            position: absolute;
+            right: 0;
+            top: 50%;
+            transform: translateY(-50%);
+            border: none;
+            background: transparent;
+            cursor: pointer;
+            padding: 0;
+        }
+
+        .user-connected-search button svg {
+            width: 16px;
+            height: 16px;
+            stroke: #1049A0;
+            transition: stroke 0.2s ease;
+        }
+
+        .user-connected-search button:hover svg {
+            stroke: #0B3576;
+        }
+
+        .user-connected-link,
+        .user-connected-menu {
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            width: 40px;
+            height: 40px;
+            border-radius: 50%;
+            border: 1px solid rgba(31, 45, 61, 0.14);
+            background: linear-gradient(135deg, #ffffff, #f7f7f7);
+            color: #1F2D3D;
+            font-size: 15px;
+            text-decoration: none;
+            transition: all 0.2s ease;
+            box-shadow: 0 4px 10px rgba(0, 0, 0, 0.06);
+        }
+
+        .user-connected-link:hover,
+        .user-connected-menu:hover {
+            background: linear-gradient(135deg, #1F2D3D, #0F1C2D);
+            color: #ffffff;
+            border-color: rgba(31, 45, 61, 0.6);
+        }
+
+        .user-connected-link.profile-link {
+            padding: 0 16px;
+            border-radius: 999px;
+            width: auto;
+            font-weight: 600;
+            font-size: 13px;
+            gap: 10px;
+            box-shadow: 0 4px 12px rgba(31, 45, 61, 0.12);
+        }
+
+        .user-connected-link.profile-link::before {
+            content: '👤';
+        }
+
+        @media (max-width: 992px) {
+            header .head .container {
+                gap: 12px;
+            }
+
+            .head-bottom {
+                gap: 12px;
+                justify-content: center;
+            }
+
+            .head-guest {
+                flex-direction: column;
+                align-items: stretch;
+                gap: 12px;
+            }
+
+            .head-guest .guest-nav {
+                flex-wrap: wrap;
+                justify-content: space-between;
+            }
+
+            .user-connected-search {
+                width: 100%;
+            }
+
+            .user-connected-link,
+            .user-connected-menu {
+                width: 30px;
+                height: 30px;
+                font-size: 13px;
+            }
+        }
     </style>
 </head>
 <body>
+        {% set currentUser = app.session.get('user') %}
+        {% set isAuthenticated = currentUser is not null %}
+        {% set profileName = 'Profil' %}
+        {% if isAuthenticated and currentUser.username is defined and currentUser.username %}
+            {% set profileName = currentUser.username %}
+        {% elseif isAuthenticated and currentUser.email is defined and currentUser.email %}
+            {% set profileName = currentUser.email %}
+        {% endif %}
         <header>
             <div class="head">
-                <div class="container d-flex justify-content-between ">
-                    <a href="{{ path('home') }}" class="logo"><img src="{{ asset('vente-ticket/images/aiolia_event.png') }}" alt="Powered by"></a>
-                    <div class="blcMenu d-flex ">
-                        <div class="wrapMenuMobile">
-                            <div class="menuMobile">
-                                <div></div>
-                                
-                            </div>
+                <div class="container">
+                    {% if isAuthenticated %}
+                        <div class="head-top">
+                            <a href="{{ path('home') }}" class="logo"><img src="{{ asset('vente-ticket/images/aiolia_event.png') }}" alt="Powered by"></a>
+                            <form method="get" action="{{ path('events') }}" class="user-connected-search">
+                                <input type="search" name="q" placeholder="Rechercher un évènement">
+                                <button type="submit" title="Rechercher" aria-label="Rechercher">
+                                    <svg viewBox="0 0 24 24" fill="none" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                                        <circle cx="11" cy="11" r="7"></circle>
+                                        <line x1="16.65" y1="16.65" x2="21" y2="21"></line>
+                                    </svg>
+                                </button>
+                            </form>
                         </div>
+                        <div class="head-bottom">
+                            <div class="blcMenu d-flex ">
+                                <div class="wrapMenuMobile">
+                                    <div class="menuMobile">
+                                        <div></div>
+                                        
+                                    </div>
+                                </div>
 
-                        <nav class="menu">
-                            <ul>
-                                <li>
-                                    <a href="{{ path('events') }}" title="Evènements">évènements</a>
-                                </li>
-                                <li>
-                                    <a href="{{ path('become_organizer') }}" title="Devenir organisateur">devenir organisateur</a>
-                                </li>
-                                <li>
-                                    <a href="{{ path('contact') }}" title="Contact">contact</a>
-                                </li>
-                            </ul>
-                             <div class="login">
-                                <a href="{{ path('login') }}">se connecter</a>
+                                <nav class="menu">
+                                    <ul>
+                                        <li>
+                                            <a href="{{ path('events') }}" title="Evènements">évènements</a>
+                                        </li>
+                                        <li>
+                                            <a href="{{ path('become_organizer') }}" title="Devenir organisateur">devenir organisateur</a>
+                                        </li>
+                                        <li>
+                                            <a href="{{ path('contact') }}" title="Contact">contact</a>
+                                        </li>
+                                    </ul>
+                                </nav>
                             </div>
-                        </nav>
-                        
-                        <div class="panier">
-                            <a href="{{ path('cart') }}"></a>
-                            <span>02</span>
+                            <div class="user-connected">
+                                <a href="{{ path('notifications') }}" title="Notifications" class="user-connected-link">🔔</a>
+                                <a href="{{ path('profile_index') }}" title="Mon profil" class="user-connected-link profile-link">{{ profileName }}</a>
+                                <button type="button" title="Menu" class="user-connected-menu" aria-expanded="false" aria-controls="userSecondarySidebar">☰</button>
+                            </div>
+                            <div class="panier">
+                                <a href="{{ path('cart') }}"></a>
+                                <span>02</span>
+                            </div>
                         </div>
-                    </div>
+                    {% else %}
+                        <div class="head-guest">
+                            <a href="{{ path('home') }}" class="logo"><img src="{{ asset('vente-ticket/images/aiolia_event.png') }}" alt="Powered by"></a>
+                            <div class="guest-nav">
+                                <nav class="menu">
+                                    <ul>
+                                        <li>
+                                            <a href="{{ path('events') }}" title="Evènements">évènements</a>
+                                        </li>
+                                        <li>
+                                            <a href="{{ path('become_organizer') }}" title="Devenir organisateur">devenir organisateur</a>
+                                        </li>
+                                        <li>
+                                            <a href="{{ path('contact') }}" title="Contact">contact</a>
+                                        </li>
+                                    </ul>
+                                </nav>
+                                <div class="login">
+                                    <a href="{{ path('login') }}">se connecter</a>
+                                </div>
+                            </div>
+                        </div>
+                    {% endif %}
                 </div>
             </div>
 
@@ -82,6 +313,61 @@
             {% endblock %}
         </header>
 
+    {% if isAuthenticated %}
+    <div class="user-sidebar-overlay" id="userSidebarOverlay"></div>
+    <aside class="user-secondary-sidebar" id="userSecondarySidebar" aria-hidden="true">
+        <div class="user-sidebar-header">
+            <div>
+                <h3>Navigation rapide</h3>
+                <p>Retrouvez vos espaces personnels et outils.</p>
+            </div>
+            <button class="user-sidebar-close" type="button" aria-label="Fermer">×</button>
+        </div>
+        
+        <ul class="user-sidebar-nav">
+            <li><a href="{{ path('my_tickets') }}" class="nav-item-tickets">
+                <i class="fas fa-layer-group"></i>
+                <span>Mes billets</span>
+            </a></li>
+            <li><a href="{{ path('profile_history') }}" class="nav-item-history">
+                <i class="fas fa-shopping-bag"></i>
+                <span>Historique d'achat</span>
+            </a></li>
+            <li><a href="{{ path('profile_favorites') }}" class="nav-item-favorites">
+                <i class="fas fa-star"></i>
+                <span>Favoris</span>
+            </a></li>
+            <li><a href="{{ path('profile_search_history') }}" class="nav-item-search">
+                <i class="fas fa-search"></i>
+                <span>Historique de recherche</span>
+            </a></li>
+            <li><a href="{{ path('profile_stats') }}" class="nav-item-stats">
+                <i class="fas fa-chart-line"></i>
+                <span>Statistique personnelle</span>
+            </a></li>
+            <li><a href="{{ path('profile_financial') }}" class="nav-item-financial">
+                <i class="fas fa-file-invoice-dollar"></i>
+                <span>Historique financier détaillé</span>
+            </a></li>
+            <li><a href="{{ path('profile_calendar') }}" class="nav-item-calendar">
+                <i class="fas fa-calendar-alt"></i>
+                <span>Vue calendrier des évènements</span>
+            </a></li>
+            <li><a href="{{ path('profile_ticket_chance') }}" class="nav-item-chance">
+                <i class="fas fa-dice"></i>
+                <span>Ticket Chance</span>
+            </a></li>
+        </ul>
+        
+        <div class="user-sidebar-footer">
+            <a href="{{ path('logout') }}" class="user-sidebar-logout">
+                <i class="fas fa-sign-out-alt"></i>
+                <span>Se déconnecter</span>
+            </a>
+        </div>
+    </aside>
+    {% endif %}
+
     {% block body %}{% endblock %}
 
          <footer class="footer">
@@ -118,5 +404,53 @@
          </footer>
 
     {% block javascripts %}{% endblock %}
+
+    {% if isAuthenticated %}
+    <script>
+        document.addEventListener('DOMContentLoaded', () => {
+            const menuButton = document.querySelector('.user-connected-menu');
+            const sidebar = document.getElementById('userSecondarySidebar');
+            const overlay = document.getElementById('userSidebarOverlay');
+            const closeButton = sidebar ? sidebar.querySelector('.user-sidebar-close') : null;
+
+            if (!menuButton || !sidebar || !overlay) {
+                return;
+            }
+
+            const openSidebar = () => {
+                sidebar.classList.add('is-open');
+                overlay.classList.add('is-open');
+                sidebar.setAttribute('aria-hidden', 'false');
+                menuButton.setAttribute('aria-expanded', 'true');
+            };
+
+            const closeSidebar = () => {
+                sidebar.classList.remove('is-open');
+                overlay.classList.remove('is-open');
+                sidebar.setAttribute('aria-hidden', 'true');
+                menuButton.setAttribute('aria-expanded', 'false');
+            };
+
+            menuButton.addEventListener('click', () => {
+                if (sidebar.classList.contains('is-open')) {
+                    closeSidebar();
+                } else {
+                    openSidebar();
+                }
+            });
+
+            overlay.addEventListener('click', closeSidebar);
+            if (closeButton) {
+                closeButton.addEventListener('click', closeSidebar);
+            }
+
+            document.addEventListener('keyup', (event) => {
+                if (event.key === 'Escape' && sidebar.classList.contains('is-open')) {
+                    closeSidebar();
+                }
+            });
+        });
+    </script>
+    {% endif %}
 </body>
 </html>

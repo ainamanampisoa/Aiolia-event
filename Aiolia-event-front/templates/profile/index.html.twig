@@ -1,0 +1,140 @@
+{% extends 'base.html.twig' %}
+
+{% block title %}Profil - Vente tickets{% endblock %}
+
+{% block stylesheets %}
+    <link rel="stylesheet" type="text/css" href="{{ asset('vente-ticket/css/animate.min.css') }}">
+    <link rel="stylesheet" type="text/css" href="{{ asset('vente-ticket/css/slick.css') }}">
+    <link rel="stylesheet" type="text/css" href="{{ asset('vente-ticket/css/jquery-ui.css') }}">
+    <link rel="stylesheet" type="text/css" href="{{ asset('vente-ticket/css/main.css') }}">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <link rel="stylesheet" type="text/css" href="{{ asset('vente-ticket/css/profile.css') }}">
+{% endblock %}
+
+{% block hero %}{% endblock %}
+
+{% block body %}
+    {% set user = app.session.get('user') %}
+    {% set displayName = user and user.username ? user.username : 'Rachel Andrianina' %}
+    {% set displayMail = user and user.email ? user.email : 'rachel.andrianina@example.com' %}
+    {% set initial = displayName|slice(0, 1)|upper %}
+
+    <main class="profile-wrapper">
+        <div class="container">
+            <div class="profile-grid">
+                <aside class="profile-card wow fadeInLeft" data-wow-delay="150ms">
+                    <div>
+                        <div class="profile-avatar">{{ initial }}</div>
+                        <h2 class="profile-name">{{ displayName }}</h2>
+                        <div class="profile-email"><i class="fas fa-envelope"></i> {{ displayMail }}</div>
+                    </div>
+                    <div class="profile-tags">
+                        <span class="profile-tag"><i class="fas fa-crown"></i> Membre premium</span>
+                        <span class="profile-tag"><i class="fas fa-user-clock"></i> Depuis 2023</span>
+                    </div>
+                    <div class="profile-actions">
+                        <button class="profile-action">
+                            <span><i class="fas fa-user-edit"></i> Modifier mes informations</span>
+                            <i class="fas fa-chevron-right"></i>
+                        </button>
+                        <button class="profile-action">
+                            <span><i class="fas fa-lock"></i> Sécurité & mot de passe</span>
+                            <i class="fas fa-chevron-right"></i>
+                        </button>
+                        <button class="profile-action">
+                            <span><i class="fas fa-bell"></i> Préférences de notifications</span>
+                            <i class="fas fa-chevron-right"></i>
+                        </button>
+                    </div>
+                </aside>
+
+                <section class="profile-main wow fadeInRight" data-wow-delay="200ms">
+                    <div class="profile-section">
+                        <h3>Vue d'ensemble</h3>
+                        <div class="profile-stats">
+                            <div class="profile-stat">
+                                <span>Billets actifs</span>
+                                <strong>03</strong>
+                            </div>
+                            <div class="profile-stat">
+                                <span>Évènements favoris</span>
+                                <strong>12</strong>
+                            </div>
+                            <div class="profile-stat">
+                                <span>Panier en cours</span>
+                                <strong>02</strong>
+                            </div>
+                            <div class="profile-stat">
+                                <span>Points fidélité</span>
+                                <strong>1 250</strong>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="profile-section">
+                        <h3>Activités récentes</h3>
+                        <div class="profile-timeline">
+                            <div class="profile-timeline-item">
+                                <div class="timeline-icon"><i class="fas fa-ticket-alt"></i></div>
+                                <div class="timeline-content">
+                                    <h4>2 billets confirmés pour <strong>Afro Jazz Experience</strong></h4>
+                                    <div class="timeline-meta">07 novembre 2025 · Paiement réussi · Ref. #VTE-548211</div>
+                                </div>
+                            </div>
+                            <div class="profile-timeline-item">
+                                <div class="timeline-icon"><i class="fas fa-heart"></i></div>
+                                <div class="timeline-content">
+                                    <h4>Nouvel évènement favori : <strong>Madagascar Fashion Night</strong></h4>
+                                    <div class="timeline-meta">05 novembre 2025 · Favoris</div>
+                                </div>
+                            </div>
+                            <div class="profile-timeline-item">
+                                <div class="timeline-icon"><i class="fas fa-clock"></i></div>
+                                <div class="timeline-content">
+                                    <h4>Panier en attente pour <strong>Festival des Arts Urbains</strong></h4>
+                                    <div class="timeline-meta">04 novembre 2025 · Expire dans 8 heures</div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="profile-section">
+                        <h3>Accès rapide</h3>
+                        <div class="profile-grid-secondary">
+                            <a href="{{ path('my_tickets') }}" class="profile-card-link">
+                                <i class="fas fa-layer-group"></i>
+                                <strong>Mes billets</strong>
+                                <span>Suivez vos évènements confirmés et téléchargez vos tickets.</span>
+                            </a>
+                            <a href="{{ path('cart') }}" class="profile-card-link">
+                                <i class="fas fa-shopping-bag"></i>
+                                <strong>Mon panier</strong>
+                                <span>Validez vos réservations en attente et appliquez vos codes promo.</span>
+                            </a>
+                            <a href="{{ path('profile_history') }}" class="profile-card-link">
+                                <i class="fas fa-history"></i>
+                                <strong>Historique d'achats</strong>
+                                <span>Retrouvez vos achats passés, factures et reçus.</span>
+                            </a>
+                            <a href="{{ path('profile_wallet') }}" class="profile-card-link">
+                                <i class="fas fa-wallet"></i>
+                                <strong>Mon portefeuille</strong>
+                                <span>Consultez votre solde, vos coupons et vos avoirs disponibles.</span>
+                            </a>
+                            <a href="{{ path('profile_favorites') }}" class="profile-card-link">
+                                <i class="fas fa-star"></i>
+                                <strong>Évènements favoris</strong>
+                                <span>Gérez les évènements mis de côté pour ne rien manquer.</span>
+                            </a>
+                            <a href="{{ path('profile_settings') }}" class="profile-card-link">
+                                <i class="fas fa-cog"></i>
+                                <strong>Paramètres du compte</strong>
+                                <span>Mettre à jour vos informations et préférences de sécurité.</span>
+                            </a>
+                        </div>
+                    </div>
+                </section>
+            </div>
+        </div>
+    </main>
+{% endblock %}
