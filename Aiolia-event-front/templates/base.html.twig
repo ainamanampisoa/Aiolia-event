@@ -38,6 +38,27 @@
             flex-wrap: wrap;
         }
 
+        .head-guest {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            gap: 20px;
+            width: 100%;
+        }
+
+        .head-guest .guest-nav {
+            display: flex;
+            align-items: center;
+            gap: 18px;
+        }
+
+        .head-guest .guest-nav .menu ul {
+            display: flex;
+            align-items: center;
+            gap: 18px;
+            margin: 0;
+        }
+
         .head-bottom .blcMenu {
             display: flex;
             align-items: center;
@@ -150,8 +171,26 @@
                 justify-content: center;
             }
 
+            .head-guest {
+                flex-direction: column;
+                align-items: stretch;
+                gap: 12px;
+            }
+
+            .head-guest .guest-nav {
+                flex-wrap: wrap;
+                justify-content: space-between;
+            }
+
             .user-connected-search {
                 width: 100%;
+            }
+
+            .user-connected-link,
+            .user-connected-menu {
+                width: 30px;
+                height: 30px;
+                font-size: 13px;
             }
         }
     </style>
@@ -168,60 +207,75 @@
         <header>
             <div class="head">
                 <div class="container">
-                    <div class="head-top">
-                        <a href="{{ path('home') }}" class="logo"><img src="{{ asset('vente-ticket/images/aiolia_event.png') }}" alt="Powered by"></a>
-                        {% if isAuthenticated %}
-                        <form method="get" action="{{ path('events') }}" class="user-connected-search">
-                            <input type="search" name="q" placeholder="Rechercher un évènement">
-                            <button type="submit" title="Rechercher" aria-label="Rechercher">
-                                <svg viewBox="0 0 24 24" fill="none" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-                                    <circle cx="11" cy="11" r="7"></circle>
-                                    <line x1="16.65" y1="16.65" x2="21" y2="21"></line>
-                                </svg>
-                            </button>
-                        </form>
-                        {% endif %}
-                    </div>
-                    <div class="head-bottom">
-                        <div class="blcMenu d-flex ">
-                            <div class="wrapMenuMobile">
-                                <div class="menuMobile">
-                                    <div></div>
-                                    
+                    {% if isAuthenticated %}
+                        <div class="head-top">
+                            <a href="{{ path('home') }}" class="logo"><img src="{{ asset('vente-ticket/images/aiolia_event.png') }}" alt="Powered by"></a>
+                            <form method="get" action="{{ path('events') }}" class="user-connected-search">
+                                <input type="search" name="q" placeholder="Rechercher un évènement">
+                                <button type="submit" title="Rechercher" aria-label="Rechercher">
+                                    <svg viewBox="0 0 24 24" fill="none" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                                        <circle cx="11" cy="11" r="7"></circle>
+                                        <line x1="16.65" y1="16.65" x2="21" y2="21"></line>
+                                    </svg>
+                                </button>
+                            </form>
+                        </div>
+                        <div class="head-bottom">
+                            <div class="blcMenu d-flex ">
+                                <div class="wrapMenuMobile">
+                                    <div class="menuMobile">
+                                        <div></div>
+                                        
+                                    </div>
+                                </div>
+
+                                <nav class="menu">
+                                    <ul>
+                                        <li>
+                                            <a href="{{ path('events') }}" title="Evènements">évènements</a>
+                                        </li>
+                                        <li>
+                                            <a href="{{ path('become_organizer') }}" title="Devenir organisateur">devenir organisateur</a>
+                                        </li>
+                                        <li>
+                                            <a href="{{ path('contact') }}" title="Contact">contact</a>
+                                        </li>
+                                    </ul>
+                                </nav>
+                            </div>
+                            <div class="user-connected">
+                                <a href="{{ path('notifications') }}" title="Notifications" class="user-connected-link">🔔</a>
+                                <a href="{{ path('profile_index') }}" title="Mon profil" class="user-connected-link profile-link">{{ profileName }}</a>
+                                <button type="button" title="Menu" class="user-connected-menu" aria-expanded="false" aria-controls="userSecondarySidebar">☰</button>
+                            </div>
+                            <div class="panier">
+                                <a href="{{ path('cart') }}"></a>
+                                <span>02</span>
+                            </div>
+                        </div>
+                    {% else %}
+                        <div class="head-guest">
+                            <a href="{{ path('home') }}" class="logo"><img src="{{ asset('vente-ticket/images/aiolia_event.png') }}" alt="Powered by"></a>
+                            <div class="guest-nav">
+                                <nav class="menu">
+                                    <ul>
+                                        <li>
+                                            <a href="{{ path('events') }}" title="Evènements">évènements</a>
+                                        </li>
+                                        <li>
+                                            <a href="{{ path('become_organizer') }}" title="Devenir organisateur">devenir organisateur</a>
+                                        </li>
+                                        <li>
+                                            <a href="{{ path('contact') }}" title="Contact">contact</a>
+                                        </li>
+                                    </ul>
+                                </nav>
+                                <div class="login">
+                                    <a href="{{ path('login') }}">se connecter</a>
                                 </div>
                             </div>
-
-                            <nav class="menu">
-                                <ul>
-                                    <li>
-                                        <a href="{{ path('events') }}" title="Evènements">évènements</a>
-                                    </li>
-                                    <li>
-                                        <a href="{{ path('become_organizer') }}" title="Devenir organisateur">devenir organisateur</a>
-                                    </li>
-                                    <li>
-                                        <a href="{{ path('contact') }}" title="Contact">contact</a>
-                                    </li>
-                                </ul>
-                                 {% if not isAuthenticated %}
-                                     <div class="login">
-                                        <a href="{{ path('login') }}">se connecter</a>
-                                     </div>
-                                 {% endif %}
-                            </nav>
                         </div>
-                        {% if isAuthenticated %}
-                        <div class="user-connected">
-                            <a href="{{ path('notifications') }}" title="Notifications" class="user-connected-link">🔔</a>
-                            <a href="{{ path('profile_index') }}" title="Mon profil" class="user-connected-link profile-link">{{ profileName }}</a>
-                            <button type="button" title="Menu" class="user-connected-menu" aria-expanded="false" aria-controls="userSecondarySidebar">☰</button>
-                        </div>
-                        <div class="panier">
-                            <a href="{{ path('cart') }}"></a>
-                            <span>02</span>
-                        </div>
-                        {% endif %}
-                    </div>
+                    {% endif %}
                 </div>
             </div>
 
