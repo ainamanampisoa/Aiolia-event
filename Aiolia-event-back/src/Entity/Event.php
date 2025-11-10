@@ -7,128 +7,158 @@ use Doctrine\DBAL\Types\Types;
 use Doctrine\ORM\Mapping as ORM;
 
 #[ORM\Entity(repositoryClass: EventRepository::class)]
-#[ORM\Table(name: 'events')]
+#[ORM\Table(name: 'events', schema: 'aiolia')]
 #[ORM\HasLifecycleCallbacks]
 class Event
 {
-    #[ORM\Id]
-    #[ORM\GeneratedValue]
-    #[ORM\Column(type: Types::BIGINT)]
-    private ?int $id = null;
+    public const STATUS_DRAFT = 'draft';
+    public const STATUS_PUBLISHED = 'published';
+    public const STATUS_CANCELLED = 'cancelled';
+    public const STATUS_ARCHIVED = 'archived';
 
-    #[ORM\ManyToOne(targetEntity: User::class)]
-    #[ORM\JoinColumn(nullable: false, onDelete: 'RESTRICT')]
-    private ?User $organizer = null;
+    public const VISIBILITY_PUBLIC = 'public';
+    public const VISIBILITY_PRIVATE = 'private';
+    public const VISIBILITY_UNLISTED = 'unlisted';
+
+    #[ORM\Id]
+    #[ORM\Column(type: Types::GUID, unique: true)]
+    #[ORM\GeneratedValue(strategy: 'CUSTOM')]
+    #[ORM\CustomIdGenerator(class: 'App\Doctrine\UuidV4Generator')]
+    private ?string $id = null;
+
+    #[ORM\Column(name: 'organizer_id', type: Types::GUID)]
+    private ?string $organizerId = null;
 
     #[ORM\ManyToOne(targetEntity: EventCategory::class)]
-    #[ORM\JoinColumn(nullable: false)]
-    private ?EventCategory $category = null;
+    #[ORM\JoinColumn(name: 'primary_category_id', referencedColumnName: 'id', nullable: true, onDelete: 'SET NULL')]
+    private ?EventCategory $primaryCategory = null;
 
-    #[ORM\Column(length: 255)]
-    private ?string $title = null;
+    #[ORM\Column(name: 'venue_id', type: Types::GUID, nullable: true)]
+    private ?string $venueId = null;
 
-    #[ORM\Column(length: 255, unique: true)]
-    private ?string $slug = null;
+    #[ORM\Column(type: Types::STRING, length: 255, unique: true)]
+    private string $slug;
+
+    #[ORM\Column(type: Types::STRING, length: 255)]
+    private string $title;
+
+    #[ORM\Column(type: Types::STRING, length: 255, nullable: true)]
+    private ?string $subtitle = null;
+
+    #[ORM\Column(type: Types::TEXT, nullable: true)]
+    private ?string $summary = null;
 
     #[ORM\Column(type: Types::TEXT, nullable: true)]
     private ?string $description = null;
 
-    #[ORM\Column(length: 500, nullable: true)]
-    private ?string $shortDescription = null;
+    #[ORM\Column(name: 'cover_image_url', type: Types::TEXT, nullable: true)]
+    private ?string $coverImageUrl = null;
 
-    #[ORM\Column(length: 255, nullable: true)]
-    private ?string $location = null;
+    #[ORM\Column(type: Types::STRING, length: 20, options: ['default' => self::STATUS_DRAFT])]
+    private string $status = self::STATUS_DRAFT;
 
-    #[ORM\Column(type: Types::TEXT, nullable: true)]
-    private ?string $address = null;
-
-    #[ORM\Column(type: Types::DECIMAL, precision: 10, scale: 8, nullable: true)]
-    private ?string $latitude = null;
-
-    #[ORM\Column(type: Types::DECIMAL, precision: 11, scale: 8, nullable: true)]
-    private ?string $longitude = null;
-
-    #[ORM\Column(type: Types::DATETIME_MUTABLE)]
-    private ?\DateTimeInterface $startDate = null;
-
-    #[ORM\Column(type: Types::DATETIME_MUTABLE)]
-    private ?\DateTimeInterface $endDate = null;
-
-    #[ORM\Column(length: 50)]
-    private string $timezone = 'Indian/Antananarivo';
-
-    #[ORM\Column(length: 20)]
-    private string $status = 'draft';
-
-    #[ORM\Column]
-    private bool $isFeatured = false;
+    #[ORM\Column(type: Types::STRING, length: 20, options: ['default' => self::VISIBILITY_PUBLIC])]
+    private string $visibility = self::VISIBILITY_PUBLIC;
 
     #[ORM\Column(type: Types::INTEGER, nullable: true)]
-    private ?int $totalCapacity = null;
+    private ?int $capacity = null;
 
-    #[ORM\Column(type: Types::INTEGER)]
-    private int $viewsCount = 0;
+    #[ORM\Column(type: Types::STRING, length: 64, options: ['default' => 'Indian/Antananarivo'])]
+    private string $timezone = 'Indian/Antananarivo';
 
-    #[ORM\Column(type: Types::DATETIME_MUTABLE)]
+    #[ORM\Column(name: 'starts_at', type: Types::DATETIMETZ_MUTABLE)]
+    private \DateTimeInterface $startsAt;
+
+    #[ORM\Column(name: 'ends_at', type: Types::DATETIMETZ_MUTABLE)]
+    private \DateTimeInterface $endsAt;
+
+    #[ORM\Column(name: 'sales_starts_at', type: Types::DATETIMETZ_MUTABLE, nullable: true)]
+    private ?\DateTimeInterface $salesStartsAt = null;
+
+    #[ORM\Column(name: 'sales_ends_at', type: Types::DATETIMETZ_MUTABLE, nullable: true)]
+    private ?\DateTimeInterface $salesEndsAt = null;
+
+    #[ORM\Column(name: 'age_restriction', type: Types::STRING, length: 120, nullable: true)]
+    private ?string $ageRestriction = null;
+
+    #[ORM\Column(name: 'language_code', type: Types::STRING, length: 10, options: ['default' => 'fr-FR'])]
+    private string $languageCode = 'fr-FR';
+
+    #[ORM\Column(name: 'is_featured', type: Types::BOOLEAN, options: ['default' => false])]
+    private bool $isFeatured = false;
+
+    #[ORM\Column(name: 'is_highlighted', type: Types::BOOLEAN, options: ['default' => false])]
+    private bool $isHighlighted = false;
+
+    #[ORM\Column(name: 'created_at', type: Types::DATETIMETZ_MUTABLE)]
     private ?\DateTimeInterface $createdAt = null;
 
-    #[ORM\Column(type: Types::DATETIME_MUTABLE)]
+    #[ORM\Column(name: 'updated_at', type: Types::DATETIMETZ_MUTABLE)]
     private ?\DateTimeInterface $updatedAt = null;
-
-    #[ORM\Column(type: Types::DATETIME_MUTABLE, nullable: true)]
-    private ?\DateTimeInterface $publishedAt = null;
 
     public function __construct()
     {
-        $this->createdAt = new \DateTime();
-        $this->updatedAt = new \DateTime();
+        $now = new \DateTimeImmutable();
+        $this->createdAt = $now;
+        $this->updatedAt = $now;
+    }
+
+    #[ORM\PrePersist]
+    public function initializeTimestamps(): void
+    {
+        $now = new \DateTimeImmutable();
+        $this->createdAt ??= $now;
+        $this->updatedAt = $now;
     }
 
     #[ORM\PreUpdate]
-    public function setUpdatedAtValue(): void
+    public function touchUpdatedAt(): void
     {
-        $this->updatedAt = new \DateTime();
+        $this->updatedAt = new \DateTimeImmutable();
     }
 
-    public function getId(): ?int
+    public function getId(): ?string
     {
         return $this->id;
     }
 
-    public function getOrganizer(): ?User
+    public function getOrganizerId(): ?string
     {
-        return $this->organizer;
+        return $this->organizerId;
     }
 
-    public function setOrganizer(?User $organizer): static
+    public function setOrganizerId(?string $organizerId): static
     {
-        $this->organizer = $organizer;
+        $this->organizerId = $organizerId;
+
         return $this;
     }
 
-    public function getCategory(): ?EventCategory
+    public function getPrimaryCategory(): ?EventCategory
     {
-        return $this->category;
+        return $this->primaryCategory;
     }
 
-    public function setCategory(?EventCategory $category): static
+    public function setPrimaryCategory(?EventCategory $primaryCategory): static
     {
-        $this->category = $category;
+        $this->primaryCategory = $primaryCategory;
+
         return $this;
     }
 
-    public function getTitle(): ?string
+    public function getVenueId(): ?string
     {
-        return $this->title;
+        return $this->venueId;
     }
 
-    public function setTitle(string $title): static
+    public function setVenueId(?string $venueId): static
     {
-        $this->title = $title;
+        $this->venueId = $venueId;
+
         return $this;
     }
 
-    public function getSlug(): ?string
+    public function getSlug(): string
     {
         return $this->slug;
     }
@@ -136,6 +166,43 @@ class Event
     public function setSlug(string $slug): static
     {
         $this->slug = $slug;
+
+        return $this;
+    }
+
+    public function getTitle(): string
+    {
+        return $this->title;
+    }
+
+    public function setTitle(string $title): static
+    {
+        $this->title = $title;
+
+        return $this;
+    }
+
+    public function getSubtitle(): ?string
+    {
+        return $this->subtitle;
+    }
+
+    public function setSubtitle(?string $subtitle): static
+    {
+        $this->subtitle = $subtitle;
+
+        return $this;
+    }
+
+    public function getSummary(): ?string
+    {
+        return $this->summary;
+    }
+
+    public function setSummary(?string $summary): static
+    {
+        $this->summary = $summary;
+
         return $this;
     }
 
@@ -147,94 +214,19 @@ class Event
     public function setDescription(?string $description): static
     {
         $this->description = $description;
+
         return $this;
     }
 
-    public function getShortDescription(): ?string
+    public function getCoverImageUrl(): ?string
     {
-        return $this->shortDescription;
+        return $this->coverImageUrl;
     }
 
-    public function setShortDescription(?string $shortDescription): static
+    public function setCoverImageUrl(?string $coverImageUrl): static
     {
-        $this->shortDescription = $shortDescription;
-        return $this;
-    }
+        $this->coverImageUrl = $coverImageUrl;
 
-    public function getLocation(): ?string
-    {
-        return $this->location;
-    }
-
-    public function setLocation(?string $location): static
-    {
-        $this->location = $location;
-        return $this;
-    }
-
-    public function getAddress(): ?string
-    {
-        return $this->address;
-    }
-
-    public function setAddress(?string $address): static
-    {
-        $this->address = $address;
-        return $this;
-    }
-
-    public function getLatitude(): ?string
-    {
-        return $this->latitude;
-    }
-
-    public function setLatitude(?string $latitude): static
-    {
-        $this->latitude = $latitude;
-        return $this;
-    }
-
-    public function getLongitude(): ?string
-    {
-        return $this->longitude;
-    }
-
-    public function setLongitude(?string $longitude): static
-    {
-        $this->longitude = $longitude;
-        return $this;
-    }
-
-    public function getStartDate(): ?\DateTimeInterface
-    {
-        return $this->startDate;
-    }
-
-    public function setStartDate(\DateTimeInterface $startDate): static
-    {
-        $this->startDate = $startDate;
-        return $this;
-    }
-
-    public function getEndDate(): ?\DateTimeInterface
-    {
-        return $this->endDate;
-    }
-
-    public function setEndDate(\DateTimeInterface $endDate): static
-    {
-        $this->endDate = $endDate;
-        return $this;
-    }
-
-    public function getTimezone(): string
-    {
-        return $this->timezone;
-    }
-
-    public function setTimezone(string $timezone): static
-    {
-        $this->timezone = $timezone;
         return $this;
     }
 
@@ -246,6 +238,115 @@ class Event
     public function setStatus(string $status): static
     {
         $this->status = $status;
+
+        return $this;
+    }
+
+    public function getVisibility(): string
+    {
+        return $this->visibility;
+    }
+
+    public function setVisibility(string $visibility): static
+    {
+        $this->visibility = $visibility;
+
+        return $this;
+    }
+
+    public function getCapacity(): ?int
+    {
+        return $this->capacity;
+    }
+
+    public function setCapacity(?int $capacity): static
+    {
+        $this->capacity = $capacity;
+
+        return $this;
+    }
+
+    public function getTimezone(): string
+    {
+        return $this->timezone;
+    }
+
+    public function setTimezone(string $timezone): static
+    {
+        $this->timezone = $timezone;
+
+        return $this;
+    }
+
+    public function getStartsAt(): \DateTimeInterface
+    {
+        return $this->startsAt;
+    }
+
+    public function setStartsAt(\DateTimeInterface $startsAt): static
+    {
+        $this->startsAt = $startsAt;
+
+        return $this;
+    }
+
+    public function getEndsAt(): \DateTimeInterface
+    {
+        return $this->endsAt;
+    }
+
+    public function setEndsAt(\DateTimeInterface $endsAt): static
+    {
+        $this->endsAt = $endsAt;
+
+        return $this;
+    }
+
+    public function getSalesStartsAt(): ?\DateTimeInterface
+    {
+        return $this->salesStartsAt;
+    }
+
+    public function setSalesStartsAt(?\DateTimeInterface $salesStartsAt): static
+    {
+        $this->salesStartsAt = $salesStartsAt;
+
+        return $this;
+    }
+
+    public function getSalesEndsAt(): ?\DateTimeInterface
+    {
+        return $this->salesEndsAt;
+    }
+
+    public function setSalesEndsAt(?\DateTimeInterface $salesEndsAt): static
+    {
+        $this->salesEndsAt = $salesEndsAt;
+
+        return $this;
+    }
+
+    public function getAgeRestriction(): ?string
+    {
+        return $this->ageRestriction;
+    }
+
+    public function setAgeRestriction(?string $ageRestriction): static
+    {
+        $this->ageRestriction = $ageRestriction;
+
+        return $this;
+    }
+
+    public function getLanguageCode(): string
+    {
+        return $this->languageCode;
+    }
+
+    public function setLanguageCode(string $languageCode): static
+    {
+        $this->languageCode = $languageCode;
+
         return $this;
     }
 
@@ -257,34 +358,19 @@ class Event
     public function setIsFeatured(bool $isFeatured): static
     {
         $this->isFeatured = $isFeatured;
+
         return $this;
     }
 
-    public function getTotalCapacity(): ?int
+    public function isHighlighted(): bool
     {
-        return $this->totalCapacity;
+        return $this->isHighlighted;
     }
 
-    public function setTotalCapacity(?int $totalCapacity): static
+    public function setIsHighlighted(bool $isHighlighted): static
     {
-        $this->totalCapacity = $totalCapacity;
-        return $this;
-    }
+        $this->isHighlighted = $isHighlighted;
 
-    public function getViewsCount(): int
-    {
-        return $this->viewsCount;
-    }
-
-    public function setViewsCount(int $viewsCount): static
-    {
-        $this->viewsCount = $viewsCount;
-        return $this;
-    }
-
-    public function incrementViewsCount(): static
-    {
-        $this->viewsCount++;
         return $this;
     }
 
@@ -293,37 +379,23 @@ class Event
         return $this->createdAt;
     }
 
+    public function setCreatedAt(?\DateTimeInterface $createdAt): static
+    {
+        $this->createdAt = $createdAt;
+
+        return $this;
+    }
+
     public function getUpdatedAt(): ?\DateTimeInterface
     {
         return $this->updatedAt;
     }
 
-    public function getPublishedAt(): ?\DateTimeInterface
+    public function setUpdatedAt(?\DateTimeInterface $updatedAt): static
     {
-        return $this->publishedAt;
-    }
+        $this->updatedAt = $updatedAt;
 
-    public function setPublishedAt(?\DateTimeInterface $publishedAt): static
-    {
-        $this->publishedAt = $publishedAt;
         return $this;
-    }
-
-    public function publish(): static
-    {
-        $this->status = 'published';
-        $this->publishedAt = new \DateTime();
-        return $this;
-    }
-
-    public function isDraft(): bool
-    {
-        return $this->status === 'draft';
-    }
-
-    public function isPublished(): bool
-    {
-        return $this->status === 'published';
     }
 
     public function __toString(): string

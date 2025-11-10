@@ -58,7 +58,7 @@ CREATE SEQUENCE IF NOT EXISTS invoice_number_seq START WITH 100000;
 -- Tables coeur Utilisateurs & Rôles -------------------------------------------------
 
 CREATE TABLE users (
-    user_id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+    id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
     email CITEXT NOT NULL UNIQUE,
     password_hash TEXT NOT NULL,
     first_name TEXT NOT NULL,
@@ -84,23 +84,23 @@ CREATE TABLE users (
 );
 
 CREATE TABLE user_roles (
-    role_id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+    id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
     code TEXT NOT NULL UNIQUE,
     label TEXT NOT NULL,
     description TEXT
 );
 
 CREATE TABLE user_role_assignments (
-    user_id UUID NOT NULL REFERENCES users(user_id) ON DELETE CASCADE,
-    role_id UUID NOT NULL REFERENCES user_roles(role_id) ON DELETE CASCADE,
+    user_id UUID NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+    role_id UUID NOT NULL REFERENCES user_roles(id) ON DELETE CASCADE,
     assigned_at TIMESTAMPTZ NOT NULL DEFAULT now(),
-    assigned_by UUID REFERENCES users(user_id),
+    assigned_by UUID REFERENCES users(id),
     PRIMARY KEY (user_id, role_id)
 );
 
 CREATE TABLE organizer_profiles (
-    organizer_id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
-    user_id UUID NOT NULL UNIQUE REFERENCES users(user_id) ON DELETE CASCADE,
+    id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+    user_id UUID NOT NULL UNIQUE REFERENCES users(id) ON DELETE CASCADE,
     display_name TEXT NOT NULL,
     legal_name TEXT,
     tax_number TEXT,
@@ -116,12 +116,12 @@ CREATE TABLE organizer_profiles (
 );
 
 CREATE TABLE user_validation_requests (
-    validation_id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
-    user_id UUID NOT NULL REFERENCES users(user_id) ON DELETE CASCADE,
+    id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+    user_id UUID NOT NULL REFERENCES users(id) ON DELETE CASCADE,
     requested_at TIMESTAMPTZ NOT NULL DEFAULT now(),
     status TEXT NOT NULL DEFAULT 'pending'
         CHECK (status IN ('pending', 'approved', 'rejected', 'cancelled')),
-    reviewer_user_id UUID REFERENCES users(user_id),
+    reviewer_user_id UUID REFERENCES users(id),
     reviewed_at TIMESTAMPTZ,
     rejection_reason TEXT,
     additional_documents JSONB,
@@ -129,8 +129,8 @@ CREATE TABLE user_validation_requests (
 );
 
 CREATE TABLE user_preferences (
-    preference_id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
-    user_id UUID NOT NULL REFERENCES users(user_id) ON DELETE CASCADE,
+    id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+    user_id UUID NOT NULL REFERENCES users(id) ON DELETE CASCADE,
     preference_key TEXT NOT NULL,
     preference_value JSONB NOT NULL,
     updated_at TIMESTAMPTZ NOT NULL DEFAULT now(),
@@ -140,7 +140,7 @@ CREATE TABLE user_preferences (
 -- Tables de classification ----------------------------------------------------------
 
 CREATE TABLE event_categories (
-    category_id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+    id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
     slug TEXT NOT NULL UNIQUE,
     label TEXT NOT NULL,
     description TEXT,
@@ -151,17 +151,17 @@ CREATE TABLE event_categories (
 );
 
 CREATE TABLE user_statistics (
-    user_id UUID PRIMARY KEY REFERENCES users(user_id) ON DELETE CASCADE,
+    id UUID PRIMARY KEY REFERENCES users(id) ON DELETE CASCADE,
     events_attended_count INTEGER NOT NULL DEFAULT 0,
     tickets_owned_count INTEGER NOT NULL DEFAULT 0,
     lifetime_spend NUMERIC(14,2) NOT NULL DEFAULT 0,
-    favorite_category_id UUID REFERENCES event_categories(category_id),
+    favorite_category_id UUID REFERENCES event_categories(id),
     last_purchase_at TIMESTAMPTZ,
     updated_at TIMESTAMPTZ NOT NULL DEFAULT now()
 );
 
 CREATE TABLE event_tags (
-    tag_id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+    id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
     slug TEXT NOT NULL UNIQUE,
     label TEXT NOT NULL,
     created_at TIMESTAMPTZ NOT NULL DEFAULT now()
@@ -170,8 +170,8 @@ CREATE TABLE event_tags (
 -- Lieux & Événements ----------------------------------------------------------------
 
 CREATE TABLE venues (
-    venue_id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
-    organizer_id UUID REFERENCES organizer_profiles(organizer_id) ON DELETE SET NULL,
+    id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+    organizer_id UUID REFERENCES organizer_profiles(id) ON DELETE SET NULL,
     name TEXT NOT NULL,
     description TEXT,
     address_line1 TEXT,
@@ -188,10 +188,10 @@ CREATE TABLE venues (
 );
 
 CREATE TABLE events (
-    event_id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
-    organizer_id UUID NOT NULL REFERENCES organizer_profiles(organizer_id) ON DELETE CASCADE,
-    primary_category_id UUID REFERENCES event_categories(category_id),
-    venue_id UUID REFERENCES venues(venue_id),
+    id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+    organizer_id UUID NOT NULL REFERENCES organizer_profiles(id) ON DELETE CASCADE,
+    primary_category_id UUID REFERENCES event_categories(id),
+    venue_id UUID REFERENCES venues(id),
     slug TEXT NOT NULL UNIQUE,
     title TEXT NOT NULL,
     subtitle TEXT,
@@ -217,20 +217,20 @@ CREATE TABLE events (
 );
 
 CREATE TABLE event_category_links (
-    event_id UUID NOT NULL REFERENCES events(event_id) ON DELETE CASCADE,
-    category_id UUID NOT NULL REFERENCES event_categories(category_id),
+    event_id UUID NOT NULL REFERENCES events(id) ON DELETE CASCADE,
+    category_id UUID NOT NULL REFERENCES event_categories(id),
     PRIMARY KEY (event_id, category_id)
 );
 
 CREATE TABLE event_tag_links (
-    event_id UUID NOT NULL REFERENCES events(event_id) ON DELETE CASCADE,
-    tag_id UUID NOT NULL REFERENCES event_tags(tag_id),
+    event_id UUID NOT NULL REFERENCES events(id) ON DELETE CASCADE,
+    tag_id UUID NOT NULL REFERENCES event_tags(id),
     PRIMARY KEY (event_id, tag_id)
 );
 
 CREATE TABLE event_sessions (
-    session_id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
-    event_id UUID NOT NULL REFERENCES events(event_id) ON DELETE CASCADE,
+    id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+    event_id UUID NOT NULL REFERENCES events(id) ON DELETE CASCADE,
     title TEXT,
     starts_at TIMESTAMPTZ NOT NULL,
     ends_at TIMESTAMPTZ NOT NULL,
@@ -240,8 +240,8 @@ CREATE TABLE event_sessions (
 );
 
 CREATE TABLE event_media (
-    media_id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
-    event_id UUID NOT NULL REFERENCES events(event_id) ON DELETE CASCADE,
+    id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+    event_id UUID NOT NULL REFERENCES events(id) ON DELETE CASCADE,
     media_type TEXT NOT NULL CHECK (media_type IN ('image', 'video', 'document')),
     url TEXT NOT NULL,
     alt_text TEXT,
@@ -251,9 +251,9 @@ CREATE TABLE event_media (
 );
 
 CREATE TABLE event_audit_logs (
-    audit_id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
-    event_id UUID NOT NULL REFERENCES events(event_id) ON DELETE CASCADE,
-    actor_user_id UUID REFERENCES users(user_id),
+    id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+    event_id UUID NOT NULL REFERENCES events(id) ON DELETE CASCADE,
+    actor_user_id UUID REFERENCES users(id),
     action TEXT NOT NULL,
     payload JSONB,
     created_at TIMESTAMPTZ NOT NULL DEFAULT now()
@@ -262,9 +262,9 @@ CREATE TABLE event_audit_logs (
 -- Tickets & Commandes ----------------------------------------------------------------
 
 CREATE TABLE ticket_types (
-    ticket_type_id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
-    event_id UUID NOT NULL REFERENCES events(event_id) ON DELETE CASCADE,
-    session_id UUID REFERENCES event_sessions(session_id),
+    id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+    event_id UUID NOT NULL REFERENCES events(id) ON DELETE CASCADE,
+    session_id UUID REFERENCES event_sessions(id),
     name TEXT NOT NULL,
     description TEXT,
     currency currency_code NOT NULL DEFAULT 'MGA',
@@ -286,9 +286,9 @@ CREATE TABLE ticket_types (
 );
 
 CREATE TABLE ticket_price_history (
-    price_history_id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
-    ticket_type_id UUID NOT NULL REFERENCES ticket_types(ticket_type_id) ON DELETE CASCADE,
-    changed_by UUID REFERENCES users(user_id),
+    id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+    ticket_type_id UUID NOT NULL REFERENCES ticket_types(id) ON DELETE CASCADE,
+    changed_by UUID REFERENCES users(id),
     change_source TEXT NOT NULL DEFAULT 'manual'
         CHECK (change_source IN ('manual', 'rule', 'promotion', 'system')),
     previous_base_price NUMERIC(12,2),
@@ -303,8 +303,8 @@ CREATE TABLE ticket_price_history (
 );
 
 CREATE TABLE ticket_quota_groups (
-    quota_group_id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
-    event_id UUID NOT NULL REFERENCES events(event_id) ON DELETE CASCADE,
+    id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+    event_id UUID NOT NULL REFERENCES events(id) ON DELETE CASCADE,
     name TEXT NOT NULL,
     description TEXT,
     capacity_total INTEGER NOT NULL CHECK (capacity_total >= 0),
@@ -318,16 +318,16 @@ CREATE TABLE ticket_quota_groups (
 );
 
 CREATE TABLE ticket_quota_links (
-    quota_group_id UUID NOT NULL REFERENCES ticket_quota_groups(quota_group_id) ON DELETE CASCADE,
-    ticket_type_id UUID NOT NULL REFERENCES ticket_types(ticket_type_id) ON DELETE CASCADE,
+    quota_group_id UUID NOT NULL REFERENCES ticket_quota_groups(id) ON DELETE CASCADE,
+    ticket_type_id UUID NOT NULL REFERENCES ticket_types(id) ON DELETE CASCADE,
     weight INTEGER NOT NULL DEFAULT 1 CHECK (weight > 0),
     created_at TIMESTAMPTZ NOT NULL DEFAULT now(),
     PRIMARY KEY (quota_group_id, ticket_type_id)
 );
 
 CREATE TABLE ticket_pricing_rules (
-    pricing_rule_id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
-    ticket_type_id UUID NOT NULL REFERENCES ticket_types(ticket_type_id) ON DELETE CASCADE,
+    id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+    ticket_type_id UUID NOT NULL REFERENCES ticket_types(id) ON DELETE CASCADE,
     rule_type TEXT NOT NULL CHECK (rule_type IN ('tier', 'time_window', 'promo')),
     threshold_quantity INTEGER CHECK (threshold_quantity IS NULL OR threshold_quantity > 0),
     starts_at TIMESTAMPTZ,
@@ -339,8 +339,8 @@ CREATE TABLE ticket_pricing_rules (
 );
 
 CREATE TABLE carts (
-    cart_id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
-    user_id UUID REFERENCES users(user_id) ON DELETE SET NULL,
+    id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+    user_id UUID REFERENCES users(id) ON DELETE SET NULL,
     session_token TEXT UNIQUE,
     status TEXT NOT NULL DEFAULT 'active'
         CHECK (status IN ('active', 'converted', 'abandoned', 'expired')),
@@ -352,9 +352,9 @@ CREATE TABLE carts (
 );
 
 CREATE TABLE cart_items (
-    cart_item_id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
-    cart_id UUID NOT NULL REFERENCES carts(cart_id) ON DELETE CASCADE,
-    ticket_type_id UUID NOT NULL REFERENCES ticket_types(ticket_type_id),
+    id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+    cart_id UUID NOT NULL REFERENCES carts(id) ON DELETE CASCADE,
+    ticket_type_id UUID NOT NULL REFERENCES ticket_types(id),
     quantity INTEGER NOT NULL CHECK (quantity > 0),
     unit_price NUMERIC(12,2) NOT NULL CHECK (unit_price >= 0),
     total_price NUMERIC(12,2) NOT NULL CHECK (total_price >= 0),
@@ -364,9 +364,9 @@ CREATE TABLE cart_items (
 );
 
 CREATE TABLE orders (
-    order_id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
-    user_id UUID NOT NULL REFERENCES users(user_id) ON DELETE CASCADE,
-    cart_id UUID REFERENCES carts(cart_id),
+    id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+    user_id UUID NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+    cart_id UUID REFERENCES carts(id),
     status TEXT NOT NULL DEFAULT 'pending'
         CHECK (status IN ('pending', 'awaiting_payment', 'paid', 'cancelled', 'refunded', 'failed')),
     total_amount NUMERIC(12,2) NOT NULL CHECK (total_amount >= 0),
@@ -384,9 +384,9 @@ CREATE TABLE orders (
 );
 
 CREATE TABLE order_status_history (
-    history_id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
-    order_id UUID NOT NULL REFERENCES orders(order_id) ON DELETE CASCADE,
-    user_id UUID REFERENCES users(user_id),
+    id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+    order_id UUID NOT NULL REFERENCES orders(id) ON DELETE CASCADE,
+    user_id UUID REFERENCES users(id),
     status_from TEXT,
     status_to TEXT NOT NULL,
     amount_snapshot NUMERIC(12,2),
@@ -397,9 +397,9 @@ CREATE TABLE order_status_history (
 );
 
 CREATE TABLE order_items (
-    order_item_id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
-    order_id UUID NOT NULL REFERENCES orders(order_id) ON DELETE CASCADE,
-    ticket_type_id UUID NOT NULL REFERENCES ticket_types(ticket_type_id),
+    id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+    order_id UUID NOT NULL REFERENCES orders(id) ON DELETE CASCADE,
+    ticket_type_id UUID NOT NULL REFERENCES ticket_types(id),
     quantity INTEGER NOT NULL CHECK (quantity > 0),
     unit_price NUMERIC(12,2) NOT NULL CHECK (unit_price >= 0),
     service_fee_amount NUMERIC(12,2) NOT NULL DEFAULT 0 CHECK (service_fee_amount >= 0),
@@ -410,10 +410,10 @@ CREATE TABLE order_items (
 );
 
 CREATE TABLE tickets (
-    ticket_id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
-    order_item_id UUID NOT NULL REFERENCES order_items(order_item_id) ON DELETE CASCADE,
-    ticket_type_id UUID NOT NULL REFERENCES ticket_types(ticket_type_id),
-    owner_user_id UUID REFERENCES users(user_id),
+    id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+    order_item_id UUID NOT NULL REFERENCES order_items(id) ON DELETE CASCADE,
+    ticket_type_id UUID NOT NULL REFERENCES ticket_types(id),
+    owner_user_id UUID REFERENCES users(id),
     qr_code TEXT NOT NULL,
     qr_checksum TEXT,
     seat_label TEXT,
@@ -426,10 +426,10 @@ CREATE TABLE tickets (
 );
 
 CREATE TABLE ticket_transfers (
-    transfer_id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
-    ticket_id UUID NOT NULL REFERENCES tickets(ticket_id) ON DELETE CASCADE,
-    from_user_id UUID REFERENCES users(user_id),
-    to_user_id UUID REFERENCES users(user_id),
+    id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+    ticket_id UUID NOT NULL REFERENCES tickets(id) ON DELETE CASCADE,
+    from_user_id UUID REFERENCES users(id),
+    to_user_id UUID REFERENCES users(id),
     to_email CITEXT,
     status TEXT NOT NULL DEFAULT 'pending'
         CHECK (status IN ('pending', 'accepted', 'declined', 'cancelled')),
@@ -439,8 +439,8 @@ CREATE TABLE ticket_transfers (
 );
 
 CREATE TABLE payments (
-    payment_id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
-    order_id UUID NOT NULL REFERENCES orders(order_id) ON DELETE CASCADE,
+    id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+    order_id UUID NOT NULL REFERENCES orders(id) ON DELETE CASCADE,
     provider TEXT NOT NULL CHECK (provider IN ('orange', 'airtel', 'telma')),
     provider_reference TEXT,
     status TEXT NOT NULL DEFAULT 'initiated'
@@ -456,7 +456,7 @@ CREATE TABLE payments (
 -- Abonnements & Facturation --------------------------------------------------------
 
 CREATE TABLE subscription_plans (
-    plan_id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+    id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
     code TEXT NOT NULL UNIQUE,
     name TEXT NOT NULL,
     description TEXT,
@@ -473,9 +473,9 @@ CREATE TABLE subscription_plans (
 );
 
 CREATE TABLE organizer_subscriptions (
-    subscription_id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
-    organizer_id UUID NOT NULL REFERENCES organizer_profiles(organizer_id) ON DELETE CASCADE,
-    plan_id UUID NOT NULL REFERENCES subscription_plans(plan_id),
+    id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+    organizer_id UUID NOT NULL REFERENCES organizer_profiles(id) ON DELETE CASCADE,
+    plan_id UUID NOT NULL REFERENCES subscription_plans(id),
     status TEXT NOT NULL DEFAULT 'pending'
         CHECK (status IN ('pending', 'active', 'past_due', 'suspended', 'cancelled', 'expired')),
     starts_at TIMESTAMPTZ NOT NULL DEFAULT now(),
@@ -492,22 +492,22 @@ CREATE TABLE organizer_subscriptions (
 );
 
 CREATE TABLE organizer_subscription_status_history (
-    history_id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
-    subscription_id UUID NOT NULL REFERENCES organizer_subscriptions(subscription_id) ON DELETE CASCADE,
+    id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+    subscription_id UUID NOT NULL REFERENCES organizer_subscriptions(id) ON DELETE CASCADE,
     status_from TEXT,
     status_to TEXT NOT NULL,
     reason TEXT,
-    changed_by UUID REFERENCES users(user_id),
+    changed_by UUID REFERENCES users(id),
     metadata JSONB,
     changed_at TIMESTAMPTZ NOT NULL DEFAULT now()
 );
 
 CREATE TABLE invoices (
-    invoice_id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+    id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
     invoice_number TEXT NOT NULL UNIQUE DEFAULT LPAD(nextval('invoice_number_seq')::text, 8, '0'),
-    customer_id UUID NOT NULL REFERENCES users(user_id),
-    order_id UUID REFERENCES orders(order_id) ON DELETE SET NULL,
-    subscription_id UUID REFERENCES organizer_subscriptions(subscription_id) ON DELETE SET NULL,
+    customer_id UUID NOT NULL REFERENCES users(id),
+    order_id UUID REFERENCES orders(id) ON DELETE SET NULL,
+    subscription_id UUID REFERENCES organizer_subscriptions(id) ON DELETE SET NULL,
     currency currency_code NOT NULL DEFAULT 'MGA',
     subtotal_amount NUMERIC(12,2) NOT NULL DEFAULT 0 CHECK (subtotal_amount >= 0),
     tax_amount NUMERIC(12,2) NOT NULL DEFAULT 0 CHECK (tax_amount >= 0),
@@ -524,19 +524,19 @@ CREATE TABLE invoices (
 );
 
 CREATE TABLE invoice_status_history (
-    history_id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
-    invoice_id UUID NOT NULL REFERENCES invoices(invoice_id) ON DELETE CASCADE,
+    id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+    invoice_id UUID NOT NULL REFERENCES invoices(id) ON DELETE CASCADE,
     status_from TEXT,
     status_to TEXT NOT NULL,
     amount_snapshot NUMERIC(12,2),
-    changed_by UUID REFERENCES users(user_id),
+    changed_by UUID REFERENCES users(id),
     notes TEXT,
     changed_at TIMESTAMPTZ NOT NULL DEFAULT now()
 );
 
 CREATE TABLE payment_history (
-    history_id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
-    payment_id UUID NOT NULL REFERENCES payments(payment_id) ON DELETE CASCADE,
+    id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+    payment_id UUID NOT NULL REFERENCES payments(id) ON DELETE CASCADE,
     status_from TEXT,
     status_to TEXT NOT NULL,
     provider_reference TEXT,
@@ -548,8 +548,8 @@ CREATE TABLE payment_history (
 -- Portefeuille & Fidélité -----------------------------------------------------------
 
 CREATE TABLE wallets (
-    wallet_id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
-    user_id UUID NOT NULL UNIQUE REFERENCES users(user_id) ON DELETE CASCADE,
+    id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+    user_id UUID NOT NULL UNIQUE REFERENCES users(id) ON DELETE CASCADE,
     currency currency_code NOT NULL DEFAULT 'MGA',
     balance NUMERIC(14,2) NOT NULL DEFAULT 0,
     locked_balance NUMERIC(14,2) NOT NULL DEFAULT 0,
@@ -559,8 +559,8 @@ CREATE TABLE wallets (
 );
 
 CREATE TABLE wallet_transactions (
-    transaction_id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
-    wallet_id UUID NOT NULL REFERENCES wallets(wallet_id) ON DELETE CASCADE,
+    id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+    wallet_id UUID NOT NULL REFERENCES wallets(id) ON DELETE CASCADE,
     transaction_type TEXT NOT NULL
         CHECK (transaction_type IN ('credit', 'debit', 'points_credit', 'points_debit')),
     amount NUMERIC(14,2) NOT NULL DEFAULT 0,
@@ -577,7 +577,7 @@ CREATE TABLE wallet_transactions (
 -- Promotions & Codes ----------------------------------------------------------------
 
 CREATE TABLE promotions (
-    promotion_id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+    id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
     code TEXT NOT NULL UNIQUE,
     name TEXT NOT NULL,
     description TEXT,
@@ -597,17 +597,17 @@ CREATE TABLE promotions (
 );
 
 CREATE TABLE promotion_targets (
-    promotion_id UUID NOT NULL REFERENCES promotions(promotion_id) ON DELETE CASCADE,
-    event_id UUID REFERENCES events(event_id) ON DELETE CASCADE,
-    ticket_type_id UUID REFERENCES ticket_types(ticket_type_id) ON DELETE CASCADE,
+    promotion_id UUID NOT NULL REFERENCES promotions(id) ON DELETE CASCADE,
+    event_id UUID REFERENCES events(id) ON DELETE CASCADE,
+    ticket_type_id UUID REFERENCES ticket_types(id) ON DELETE CASCADE,
     PRIMARY KEY (promotion_id, event_id, ticket_type_id)
 );
 
 CREATE TABLE promotion_redemptions (
-    redemption_id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
-    promotion_id UUID NOT NULL REFERENCES promotions(promotion_id) ON DELETE CASCADE,
-    user_id UUID NOT NULL REFERENCES users(user_id) ON DELETE CASCADE,
-    order_id UUID NOT NULL REFERENCES orders(order_id) ON DELETE CASCADE,
+    id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+    promotion_id UUID NOT NULL REFERENCES promotions(id) ON DELETE CASCADE,
+    user_id UUID NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+    order_id UUID NOT NULL REFERENCES orders(id) ON DELETE CASCADE,
     discount_amount NUMERIC(12,2) NOT NULL DEFAULT 0,
     redeemed_at TIMESTAMPTZ NOT NULL DEFAULT now(),
     UNIQUE (promotion_id, user_id, order_id)
@@ -616,24 +616,24 @@ CREATE TABLE promotion_redemptions (
 -- Wishlist, Invitations, Social -----------------------------------------------------
 
 CREATE TABLE wishlists (
-    wishlist_id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
-    user_id UUID NOT NULL REFERENCES users(user_id) ON DELETE CASCADE,
+    id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+    user_id UUID NOT NULL REFERENCES users(id) ON DELETE CASCADE,
     title TEXT NOT NULL DEFAULT 'Favoris',
     is_default BOOLEAN NOT NULL DEFAULT FALSE,
     created_at TIMESTAMPTZ NOT NULL DEFAULT now()
 );
 
 CREATE TABLE wishlist_items (
-    wishlist_id UUID NOT NULL REFERENCES wishlists(wishlist_id) ON DELETE CASCADE,
-    event_id UUID NOT NULL REFERENCES events(event_id) ON DELETE CASCADE,
+    wishlist_id UUID NOT NULL REFERENCES wishlists(id) ON DELETE CASCADE,
+    event_id UUID NOT NULL REFERENCES events(id) ON DELETE CASCADE,
     added_at TIMESTAMPTZ NOT NULL DEFAULT now(),
     PRIMARY KEY (wishlist_id, event_id)
 );
 
 CREATE TABLE event_invitations (
-    invitation_id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
-    event_id UUID NOT NULL REFERENCES events(event_id) ON DELETE CASCADE,
-    sender_user_id UUID NOT NULL REFERENCES users(user_id) ON DELETE CASCADE,
+    id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+    event_id UUID NOT NULL REFERENCES events(id) ON DELETE CASCADE,
+    sender_user_id UUID NOT NULL REFERENCES users(id) ON DELETE CASCADE,
     recipient_email CITEXT NOT NULL,
     message TEXT,
     token TEXT NOT NULL UNIQUE,
@@ -645,9 +645,9 @@ CREATE TABLE event_invitations (
 );
 
 CREATE TABLE ticket_chance_entries (
-    entry_id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
-    user_id UUID NOT NULL REFERENCES users(user_id) ON DELETE CASCADE,
-    event_id UUID REFERENCES events(event_id) ON DELETE SET NULL,
+    id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+    user_id UUID NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+    event_id UUID REFERENCES events(id) ON DELETE SET NULL,
     prize_type TEXT NOT NULL CHECK (prize_type IN ('discount', 'free_ticket', 'points')),
     prize_value NUMERIC(12,2),
     points_awarded INTEGER,
@@ -658,8 +658,8 @@ CREATE TABLE ticket_chance_entries (
 );
 
 CREATE TABLE user_event_visibility (
-    user_id UUID NOT NULL REFERENCES users(user_id) ON DELETE CASCADE,
-    event_id UUID NOT NULL REFERENCES events(event_id) ON DELETE CASCADE,
+    user_id UUID NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+    event_id UUID NOT NULL REFERENCES events(id) ON DELETE CASCADE,
     visibility TEXT NOT NULL CHECK (visibility IN ('public', 'friends', 'private')),
     updated_at TIMESTAMPTZ NOT NULL DEFAULT now(),
     PRIMARY KEY (user_id, event_id)
@@ -668,13 +668,13 @@ CREATE TABLE user_event_visibility (
 -- Notifications ---------------------------------------------------------------------
 
 CREATE TABLE notification_channels (
-    channel_id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+    id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
     code TEXT NOT NULL UNIQUE,
     description TEXT
 );
 
 CREATE TABLE notification_templates (
-    template_id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+    id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
     code TEXT NOT NULL UNIQUE,
     channel_code TEXT NOT NULL,
     subject TEXT,
@@ -684,7 +684,7 @@ CREATE TABLE notification_templates (
 );
 
 CREATE TABLE user_notification_preferences (
-    user_id UUID NOT NULL REFERENCES users(user_id) ON DELETE CASCADE,
+    user_id UUID NOT NULL REFERENCES users(id) ON DELETE CASCADE,
     channel_code TEXT NOT NULL,
     enabled BOOLEAN NOT NULL DEFAULT TRUE,
     updated_at TIMESTAMPTZ NOT NULL DEFAULT now(),
@@ -692,8 +692,8 @@ CREATE TABLE user_notification_preferences (
 );
 
 CREATE TABLE notifications (
-    notification_id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
-    user_id UUID NOT NULL REFERENCES users(user_id) ON DELETE CASCADE,
+    id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+    user_id UUID NOT NULL REFERENCES users(id) ON DELETE CASCADE,
     channel_code TEXT NOT NULL,
     template_code TEXT,
     payload JSONB NOT NULL,
@@ -706,8 +706,8 @@ CREATE TABLE notifications (
 );
 
 CREATE TABLE notification_history (
-    history_id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
-    notification_id UUID NOT NULL REFERENCES notifications(notification_id) ON DELETE CASCADE,
+    id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+    notification_id UUID NOT NULL REFERENCES notifications(id) ON DELETE CASCADE,
     status TEXT NOT NULL,
     message TEXT,
     created_at TIMESTAMPTZ NOT NULL DEFAULT now()
@@ -716,9 +716,9 @@ CREATE TABLE notification_history (
 -- Rapports & Exports ----------------------------------------------------------------
 
 CREATE TABLE reports (
-    report_id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
-    organizer_id UUID REFERENCES organizer_profiles(organizer_id) ON DELETE CASCADE,
-    admin_user_id UUID REFERENCES users(user_id),
+    id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+    organizer_id UUID REFERENCES organizer_profiles(id) ON DELETE CASCADE,
+    admin_user_id UUID REFERENCES users(id),
     code TEXT NOT NULL,
     parameters JSONB,
     status TEXT NOT NULL DEFAULT 'pending'
@@ -729,8 +729,8 @@ CREATE TABLE reports (
 );
 
 CREATE TABLE audit_logs (
-    audit_id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
-    actor_user_id UUID REFERENCES users(user_id),
+    id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+    actor_user_id UUID REFERENCES users(id),
     scope TEXT NOT NULL,
     action TEXT NOT NULL,
     entity_type TEXT,
@@ -745,7 +745,7 @@ CREATE TABLE audit_logs (
 
 CREATE TABLE daily_sales_summary (
     summary_date DATE NOT NULL,
-    event_id UUID NOT NULL REFERENCES events(event_id) ON DELETE CASCADE,
+    event_id UUID NOT NULL REFERENCES events(id) ON DELETE CASCADE,
     tickets_sold INTEGER NOT NULL DEFAULT 0,
     gross_revenue NUMERIC(14,2) NOT NULL DEFAULT 0,
     net_revenue NUMERIC(14,2) NOT NULL DEFAULT 0,
@@ -753,8 +753,8 @@ CREATE TABLE daily_sales_summary (
 );
 
 CREATE TABLE user_search_history (
-    search_id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
-    user_id UUID REFERENCES users(user_id) ON DELETE CASCADE,
+    id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+    user_id UUID REFERENCES users(id) ON DELETE CASCADE,
     keywords TEXT NOT NULL,
     filters JSONB,
     created_at TIMESTAMPTZ NOT NULL DEFAULT now()

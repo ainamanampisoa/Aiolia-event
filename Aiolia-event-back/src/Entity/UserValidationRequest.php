@@ -7,47 +7,54 @@ use Doctrine\DBAL\Types\Types;
 use Doctrine\ORM\Mapping as ORM;
 
 #[ORM\Entity(repositoryClass: UserValidationRequestRepository::class)]
-#[ORM\Table(name: 'user_validation_requests')]
+#[ORM\Table(name: 'user_validation_requests', schema: 'aiolia')]
+#[ORM\HasLifecycleCallbacks]
 class UserValidationRequest
 {
+    public const STATUS_PENDING = 'pending';
+    public const STATUS_APPROVED = 'approved';
+    public const STATUS_REJECTED = 'rejected';
+    public const STATUS_CANCELLED = 'cancelled';
+
     #[ORM\Id]
-    #[ORM\GeneratedValue]
-    #[ORM\Column]
-    private ?int $id = null;
+    #[ORM\Column(type: Types::GUID, unique: true)]
+    #[ORM\GeneratedValue(strategy: 'CUSTOM')]
+    #[ORM\CustomIdGenerator(class: 'App\Doctrine\UuidV4Generator')]
+    private ?string $id = null;
 
     #[ORM\ManyToOne(targetEntity: User::class)]
-    #[ORM\JoinColumn(nullable: false)]
+    #[ORM\JoinColumn(name: 'user_id', nullable: false, onDelete: 'CASCADE')]
     private ?User $user = null;
 
-    #[ORM\Column(length: 50)]
-    private ?string $requestedRole = null;
+    #[ORM\Column(name: 'requested_at', type: Types::DATETIMETZ_MUTABLE)]
+    private ?\DateTimeInterface $requestedAt = null;
 
-    #[ORM\Column(length: 20)]
-    private string $status = 'pending'; // pending, approved, rejected
-
-    #[ORM\Column(type: Types::TEXT, nullable: true)]
-    private ?string $reason = null;
-
-    #[ORM\Column(type: Types::TEXT, nullable: true)]
-    private ?string $adminComment = null;
+    #[ORM\Column(type: Types::STRING, length: 20, options: ['default' => self::STATUS_PENDING])]
+    private string $status = self::STATUS_PENDING;
 
     #[ORM\ManyToOne(targetEntity: User::class)]
-    #[ORM\JoinColumn(name: 'validated_by', nullable: true)]
-    private ?User $validatedBy = null;
+    #[ORM\JoinColumn(name: 'reviewer_user_id', referencedColumnName: 'id', nullable: true, onDelete: 'SET NULL')]
+    private ?User $reviewer = null;
 
-    #[ORM\Column(type: Types::DATETIME_MUTABLE)]
-    private ?\DateTimeInterface $createdAt = null;
+    #[ORM\Column(name: 'reviewed_at', type: Types::DATETIMETZ_MUTABLE, nullable: true)]
+    private ?\DateTimeInterface $reviewedAt = null;
 
-    #[ORM\Column(type: Types::DATETIME_MUTABLE, nullable: true)]
-    private ?\DateTimeInterface $validatedAt = null;
+    #[ORM\Column(name: 'rejection_reason', type: Types::TEXT, nullable: true)]
+    private ?string $rejectionReason = null;
 
-    public function __construct()
+    #[ORM\Column(name: 'additional_documents', type: Types::JSON, nullable: true)]
+    private ?array $additionalDocuments = null;
+
+    #[ORM\Column(type: Types::JSON, nullable: true)]
+    private ?array $metadata = null;
+
+    #[ORM\PrePersist]
+    public function initializeRequestedAt(): void
     {
-        $this->createdAt = new \DateTime();
-        $this->status = 'pending';
+        $this->requestedAt ??= new \DateTimeImmutable();
     }
 
-    public function getId(): ?int
+    public function getId(): ?string
     {
         return $this->id;
     }
@@ -60,17 +67,19 @@ class UserValidationRequest
     public function setUser(?User $user): static
     {
         $this->user = $user;
+
         return $this;
     }
 
-    public function getRequestedRole(): ?string
+    public function getRequestedAt(): ?\DateTimeInterface
     {
-        return $this->requestedRole;
+        return $this->requestedAt;
     }
 
-    public function setRequestedRole(string $requestedRole): static
+    public function setRequestedAt(\DateTimeInterface $requestedAt): static
     {
-        $this->requestedRole = $requestedRole;
+        $this->requestedAt = $requestedAt;
+
         return $this;
     }
 
@@ -82,61 +91,67 @@ class UserValidationRequest
     public function setStatus(string $status): static
     {
         $this->status = $status;
+
         return $this;
     }
 
-    public function getReason(): ?string
+    public function getReviewer(): ?User
     {
-        return $this->reason;
+        return $this->reviewer;
     }
 
-    public function setReason(?string $reason): static
+    public function setReviewer(?User $reviewer): static
     {
-        $this->reason = $reason;
+        $this->reviewer = $reviewer;
+
         return $this;
     }
 
-    public function getAdminComment(): ?string
+    public function getReviewedAt(): ?\DateTimeInterface
     {
-        return $this->adminComment;
+        return $this->reviewedAt;
     }
 
-    public function setAdminComment(?string $adminComment): static
+    public function setReviewedAt(?\DateTimeInterface $reviewedAt): static
     {
-        $this->adminComment = $adminComment;
+        $this->reviewedAt = $reviewedAt;
+
         return $this;
     }
 
-    public function getValidatedBy(): ?User
+    public function getRejectionReason(): ?string
     {
-        return $this->validatedBy;
+        return $this->rejectionReason;
     }
 
-    public function setValidatedBy(?User $validatedBy): static
+    public function setRejectionReason(?string $rejectionReason): static
     {
-        $this->validatedBy = $validatedBy;
+        $this->rejectionReason = $rejectionReason;
+
         return $this;
     }
 
-    public function getCreatedAt(): ?\DateTimeInterface
+    public function getAdditionalDocuments(): ?array
     {
-        return $this->createdAt;
+        return $this->additionalDocuments;
     }
 
-    public function setCreatedAt(\DateTimeInterface $createdAt): static
+    public function setAdditionalDocuments(?array $additionalDocuments): static
     {
-        $this->createdAt = $createdAt;
+        $this->additionalDocuments = $additionalDocuments;
+
         return $this;
     }
 
-    public function getValidatedAt(): ?\DateTimeInterface
+    public function getMetadata(): ?array
     {
-        return $this->validatedAt;
+        return $this->metadata;
     }
 
-    public function setValidatedAt(?\DateTimeInterface $validatedAt): static
+    public function setMetadata(?array $metadata): static
     {
-        $this->validatedAt = $validatedAt;
+        $this->metadata = $metadata;
+
         return $this;
     }
 }

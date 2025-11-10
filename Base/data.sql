@@ -27,10 +27,10 @@ WITH new_users AS (
         SET
             status = EXCLUDED.status,
             updated_at = now()
-    RETURNING user_id, email
+    RETURNING id AS user_id, email
 ),
 organizer_role AS (
-    SELECT role_id
+    SELECT id AS role_id
     FROM user_roles
     WHERE code = 'organizer'
 )
@@ -56,7 +56,7 @@ INSERT INTO organizer_profiles (
     verification_status
 )
 SELECT
-    u.user_id,
+    u.id,
     CASE u.email
         WHEN 'valeafifaliana@gmail.com' THEN 'Valea Évènements'
         WHEN 'malalavalea@gmail.com'    THEN 'Malala Productions'
@@ -105,13 +105,13 @@ WITH admin_user AS (
             status = 'active',
             is_email_verified = TRUE,
             updated_at = now()
-    RETURNING user_id
+    RETURNING id AS user_id
 )
 INSERT INTO user_role_assignments (user_id, role_id, assigned_at, assigned_by)
 SELECT au.user_id, ur.role_id, now(), NULL
 FROM admin_user au
 CROSS JOIN LATERAL (
-    SELECT role_id FROM user_roles WHERE code = 'admin'
+    SELECT id AS role_id FROM user_roles WHERE code = 'admin'
 ) ur
 ON CONFLICT (user_id, role_id) DO NOTHING;
 
@@ -172,7 +172,7 @@ WITH upsert_plans AS (
             features = EXCLUDED.features,
             is_active = EXCLUDED.is_active,
             updated_at = now()
-    RETURNING plan_id, code
+    RETURNING id AS plan_id, code
 )
 SELECT 1;
 
@@ -181,17 +181,66 @@ SELECT 1;
 -- ============================================
 
 WITH plans AS (
-    SELECT code, plan_id FROM subscription_plans WHERE code IN ('STARTER', 'PREMIUM')
+    SELECT code, id AS plan_id FROM subscription_plans WHERE code IN ('STARTER', 'PREMIUM')
 ),
 organizers AS (
     SELECT
-        op.organizer_id,
+        op.id AS organizer_id,
         u.email
     FROM organizer_profiles op
-    JOIN users u ON u.user_id = op.user_id
+    JOIN users u ON u.id = op.user_id
     WHERE u.email IN ('valeafifaliana@gmail.com', 'malalavalea@gmail.com')
 ),
-insert_subscriptions AS (
+payload AS (
+    SELECT
+        org.organizer_id,
+        CASE org.email
+            WHEN 'valeafifaliana@gmail.com' THEN (SELECT plan_id FROM plans WHERE code = 'STARTER')
+            WHEN 'malalavalea@gmail.com' THEN (SELECT plan_id FROM plans WHERE code = 'PREMIUM')
+        END AS plan_id,
+        CASE org.email
+            WHEN 'valeafifaliana@gmail.com' THEN 'active'
+            ELSE 'past_due'
+        END AS status,
+        now() - INTERVAL '45 days' AS starts_at,
+        now() - INTERVAL '15 days' AS current_period_start,
+        CASE org.email
+            WHEN 'valeafifaliana@gmail.com' THEN now() + INTERVAL '15 days'
+            ELSE now() - INTERVAL '5 days'
+        END AS current_period_end,
+        CASE org.email
+            WHEN 'valeafifaliana@gmail.com' THEN now() + INTERVAL '15 days'
+            ELSE now() - INTERVAL '5 days'
+        END AS renewal_at,
+        CASE org.email
+            WHEN 'valeafifaliana@gmail.com' THEN NULL
+            ELSE now() - INTERVAL '10 days'
+        END AS trial_ends_at,
+        CASE org.email
+            WHEN 'valeafifaliana@gmail.com' THEN FALSE
+            ELSE TRUE
+        END AS cancel_at_period_end,
+        jsonb_build_object('import_source', 'test_seed') AS metadata
+    FROM organizers org
+),
+updated_subscriptions AS (
+    UPDATE organizer_subscriptions os
+    SET
+        plan_id = payload.plan_id,
+        status = payload.status,
+        starts_at = payload.starts_at,
+        current_period_start = payload.current_period_start,
+        current_period_end = payload.current_period_end,
+        renewal_at = payload.renewal_at,
+        trial_ends_at = payload.trial_ends_at,
+        cancel_at_period_end = payload.cancel_at_period_end,
+        metadata = payload.metadata,
+        updated_at = now()
+    FROM payload
+    WHERE os.organizer_id = payload.organizer_id
+    RETURNING os.id AS subscription_id, os.organizer_id, os.status
+),
+inserted_subscriptions AS (
     INSERT INTO organizer_subscriptions (
         organizer_id,
         plan_id,
@@ -205,47 +254,28 @@ insert_subscriptions AS (
         metadata
     )
     SELECT
-        org.organizer_id,
-        CASE org.email
-            WHEN 'valeafifaliana@gmail.com' THEN (SELECT plan_id FROM plans WHERE code = 'STARTER')
-            WHEN 'malalavalea@gmail.com' THEN (SELECT plan_id FROM plans WHERE code = 'PREMIUM')
-        END,
-        CASE org.email
-            WHEN 'valeafifaliana@gmail.com' THEN 'active'
-            ELSE 'past_due'
-        END,
-        now() - INTERVAL '45 days',
-        now() - INTERVAL '15 days',
-        CASE org.email
-            WHEN 'valeafifaliana@gmail.com' THEN now() + INTERVAL '15 days'
-            ELSE now() - INTERVAL '5 days'
-        END,
-        CASE org.email
-            WHEN 'valeafifaliana@gmail.com' THEN now() + INTERVAL '15 days'
-            ELSE now() - INTERVAL '5 days'
-        END,
-        CASE org.email
-            WHEN 'valeafifaliana@gmail.com' THEN NULL
-            ELSE now() - INTERVAL '10 days'
-        END,
-        CASE org.email
-            WHEN 'valeafifaliana@gmail.com' THEN FALSE
-            ELSE TRUE
-        END,
-        jsonb_build_object('import_source', 'test_seed')
-    FROM organizers org
-    ON CONFLICT (organizer_id) DO UPDATE
-        SET
-            plan_id = EXCLUDED.plan_id,
-            status = EXCLUDED.status,
-            current_period_start = EXCLUDED.current_period_start,
-            current_period_end = EXCLUDED.current_period_end,
-            renewal_at = EXCLUDED.renewal_at,
-            trial_ends_at = EXCLUDED.trial_ends_at,
-            cancel_at_period_end = EXCLUDED.cancel_at_period_end,
-            metadata = EXCLUDED.metadata,
-            updated_at = now()
-    RETURNING subscription_id, organizer_id, status
+        payload.organizer_id,
+        payload.plan_id,
+        payload.status,
+        payload.starts_at,
+        payload.current_period_start,
+        payload.current_period_end,
+        payload.renewal_at,
+        payload.trial_ends_at,
+        payload.cancel_at_period_end,
+        payload.metadata
+    FROM payload
+    WHERE NOT EXISTS (
+        SELECT 1
+        FROM organizer_subscriptions os
+        WHERE os.organizer_id = payload.organizer_id
+    )
+    RETURNING id AS subscription_id, organizer_id, status
+),
+upserted_subscriptions AS (
+    SELECT * FROM inserted_subscriptions
+    UNION ALL
+    SELECT * FROM updated_subscriptions
 )
 INSERT INTO organizer_subscription_status_history (
     subscription_id,
@@ -267,15 +297,15 @@ SELECT
     NULL,
     jsonb_build_object('source', 'seed'),
     now() - INTERVAL '1 day'
-FROM insert_subscriptions ins
+FROM upserted_subscriptions ins
 ON CONFLICT DO NOTHING;
 
 -- Ajout d'un changement de statut supplémentaire pour la souscription en retard
 WITH past_due_sub AS (
-    SELECT subscription_id
+    SELECT os.id AS subscription_id
     FROM organizer_subscriptions os
-    JOIN organizer_profiles op ON op.organizer_id = os.organizer_id
-    JOIN users u ON u.user_id = op.user_id
+    JOIN organizer_profiles op ON op.id = os.organizer_id
+    JOIN users u ON u.id = op.user_id
     WHERE u.email = 'malalavalea@gmail.com'
 )
 INSERT INTO organizer_subscription_status_history (
@@ -304,12 +334,12 @@ ON CONFLICT DO NOTHING;
 
 WITH subs AS (
     SELECT
-        os.subscription_id,
-        u.user_id AS organizer_user_id,
+        os.id AS subscription_id,
+        u.id AS organizer_user_id,
         u.email
     FROM organizer_subscriptions os
-    JOIN organizer_profiles op ON op.organizer_id = os.organizer_id
-    JOIN users u ON u.user_id = op.user_id
+    JOIN organizer_profiles op ON op.id = os.organizer_id
+    JOIN users u ON u.id = op.user_id
 ),
 insert_invoices AS (
     INSERT INTO invoices (
@@ -360,7 +390,7 @@ insert_invoices AS (
         jsonb_build_object('usage_period', to_char(now(), 'YYYY-MM'))
     FROM subs
     ON CONFLICT (invoice_number) DO NOTHING
-    RETURNING invoice_id, status, subscription_id
+    RETURNING id AS invoice_id, status, subscription_id
 )
 INSERT INTO invoice_status_history (
     invoice_id,

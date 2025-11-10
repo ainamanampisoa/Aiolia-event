@@ -7,63 +7,82 @@ use Doctrine\DBAL\Types\Types;
 use Doctrine\ORM\Mapping as ORM;
 
 #[ORM\Entity(repositoryClass: AuditLogRepository::class)]
-#[ORM\Table(name: 'audit_logs')]
-#[ORM\Index(name: 'idx_action', columns: ['action'])]
-#[ORM\Index(name: 'idx_created_at', columns: ['created_at'])]
+#[ORM\Table(name: 'audit_logs', schema: 'aiolia')]
+#[ORM\Index(name: 'idx_audit_logs_scope', columns: ['scope'])]
+#[ORM\Index(name: 'idx_audit_logs_created_at', columns: ['created_at'])]
+#[ORM\HasLifecycleCallbacks]
 class AuditLog
 {
     #[ORM\Id]
-    #[ORM\GeneratedValue]
-    #[ORM\Column]
-    private ?int $id = null;
+    #[ORM\Column(type: Types::GUID, unique: true)]
+    #[ORM\GeneratedValue(strategy: 'CUSTOM')]
+    #[ORM\CustomIdGenerator(class: 'App\Doctrine\UuidV4Generator')]
+    private ?string $id = null;
 
     #[ORM\ManyToOne(targetEntity: User::class)]
-    #[ORM\JoinColumn(name: 'performed_by', nullable: true)]
-    private ?User $performedBy = null;
+    #[ORM\JoinColumn(name: 'actor_user_id', referencedColumnName: 'id', nullable: true, onDelete: 'SET NULL')]
+    private ?User $actor = null;
 
-    #[ORM\Column(length: 100)]
-    private ?string $action = null;
+    #[ORM\Column(type: Types::STRING, length: 120)]
+    private string $scope;
 
-    #[ORM\Column(length: 100)]
+    #[ORM\Column(type: Types::STRING, length: 120)]
+    private string $action;
+
+    #[ORM\Column(name: 'entity_type', type: Types::STRING, length: 120, nullable: true)]
     private ?string $entityType = null;
 
-    #[ORM\Column(nullable: true)]
-    private ?int $entityId = null;
+    #[ORM\Column(name: 'entity_id', type: Types::GUID, nullable: true)]
+    private ?string $entityId = null;
 
     #[ORM\Column(type: Types::JSON, nullable: true)]
-    private ?array $details = null;
+    private ?array $changes = null;
 
-    #[ORM\Column(length: 45, nullable: true)]
+    #[ORM\Column(name: 'ip_address', type: Types::STRING, length: 64, nullable: true, columnDefinition: 'INET')]
     private ?string $ipAddress = null;
 
-    #[ORM\Column(length: 255, nullable: true)]
+    #[ORM\Column(name: 'user_agent', type: Types::TEXT, nullable: true)]
     private ?string $userAgent = null;
 
-    #[ORM\Column(type: Types::DATETIME_MUTABLE)]
+    #[ORM\Column(name: 'created_at', type: Types::DATETIMETZ_MUTABLE)]
     private ?\DateTimeInterface $createdAt = null;
 
-    public function __construct()
+    #[ORM\PrePersist]
+    public function stampCreatedAt(): void
     {
-        $this->createdAt = new \DateTime();
+        $this->createdAt ??= new \DateTimeImmutable();
     }
 
-    public function getId(): ?int
+    public function getId(): ?string
     {
         return $this->id;
     }
 
-    public function getPerformedBy(): ?User
+    public function getActor(): ?User
     {
-        return $this->performedBy;
+        return $this->actor;
     }
 
-    public function setPerformedBy(?User $performedBy): static
+    public function setActor(?User $actor): static
     {
-        $this->performedBy = $performedBy;
+        $this->actor = $actor;
+
         return $this;
     }
 
-    public function getAction(): ?string
+    public function getScope(): string
+    {
+        return $this->scope;
+    }
+
+    public function setScope(string $scope): static
+    {
+        $this->scope = $scope;
+
+        return $this;
+    }
+
+    public function getAction(): string
     {
         return $this->action;
     }
@@ -71,6 +90,7 @@ class AuditLog
     public function setAction(string $action): static
     {
         $this->action = $action;
+
         return $this;
     }
 
@@ -79,31 +99,34 @@ class AuditLog
         return $this->entityType;
     }
 
-    public function setEntityType(string $entityType): static
+    public function setEntityType(?string $entityType): static
     {
         $this->entityType = $entityType;
+
         return $this;
     }
 
-    public function getEntityId(): ?int
+    public function getEntityId(): ?string
     {
         return $this->entityId;
     }
 
-    public function setEntityId(?int $entityId): static
+    public function setEntityId(?string $entityId): static
     {
         $this->entityId = $entityId;
+
         return $this;
     }
 
-    public function getDetails(): ?array
+    public function getChanges(): ?array
     {
-        return $this->details;
+        return $this->changes;
     }
 
-    public function setDetails(?array $details): static
+    public function setChanges(?array $changes): static
     {
-        $this->details = $details;
+        $this->changes = $changes;
+
         return $this;
     }
 
@@ -115,6 +138,7 @@ class AuditLog
     public function setIpAddress(?string $ipAddress): static
     {
         $this->ipAddress = $ipAddress;
+
         return $this;
     }
 
@@ -126,6 +150,7 @@ class AuditLog
     public function setUserAgent(?string $userAgent): static
     {
         $this->userAgent = $userAgent;
+
         return $this;
     }
 
@@ -134,10 +159,10 @@ class AuditLog
         return $this->createdAt;
     }
 
-    public function setCreatedAt(\DateTimeInterface $createdAt): static
+    public function setCreatedAt(?\DateTimeInterface $createdAt): static
     {
         $this->createdAt = $createdAt;
+
         return $this;
     }
 }
-
