@@ -8,12 +8,12 @@
     <div class="dashboard-header">
         <div>
             <h1>📈 Statistiques</h1>
-            <p style="color: var(--gray-600); margin-top: 8px; font-size: 1rem;">
+            <p style="color: var(--text-secondary); margin-top: 8px; font-size: 1rem;">
                 Graphiques et analyses de performances
             </p>
         </div>
         <div class="header-actions">
-            <select style="padding: 10px 16px; border: 2px solid var(--gray-300); border-radius: 8px; font-size: 0.9rem; cursor: pointer;">
+            <select style="padding: 10px 16px; border: 2px solid var(--border-color); background: var(--bg-secondary); color: var(--text-primary); border-radius: 8px; font-size: 0.9rem; cursor: pointer;">
                 <option>7 derniers jours</option>
                 <option>30 derniers jours</option>
                 <option>3 derniers mois</option>
@@ -22,21 +22,38 @@
         </div>
     </div>
 
-    <!-- Graphiques des ventes -->
+    <!-- KPIs globaux -->
+    <div class="kpi-grid">
+        <div class="kpi-card">
+            <div class="kpi-label">Organisateurs</div>
+            <div class="kpi-value">{{ stats.counts.organizers ?? '57' }}</div>
+        </div>
+        <div class="kpi-card">
+            <div class="kpi-label">Utilisateurs</div>
+            <div class="kpi-value">{{ stats.counts.users ?? '2 345' }}</div>
+        </div>
+        <div class="kpi-card">
+            <div class="kpi-label">Abonnements actifs</div>
+            <div class="kpi-value">{{ stats.counts.active_subscriptions ?? '173' }}</div>
+        </div>
+        <div class="kpi-card">
+            <div class="kpi-label">Revenus abonnements</div>
+            <div class="kpi-value">{{ stats.organizers.subscription_revenue_total ?? '45 890 €' }}</div>
+        </div>
+    </div>
+
+    <!-- Graphiques abonnements / utilisateurs / organisateurs -->
     <div class="content-row" style="margin-bottom: 24px;">
         <div class="content-col">
             <div class="chart-card">
                 <div class="card-header">
-                    <h3>📊 Évolution des ventes</h3>
-                    <p style="color: var(--gray-600); font-size: 0.9rem; margin-top: 4px;">
-                        Nombre de billets vendus par jour
+                    <h3>📊 Évolution des abonnements</h3>
+                    <p style="color: var(--text-secondary); font-size: 0.9rem; margin-top: 4px;">
+                        Nombre d'abonnements actifs par jour
                     </p>
                 </div>
                 <div class="card-body">
-                    <div class="chart-placeholder" style="height: 300px;">
-                        <i class="fas fa-chart-line" style="font-size: 3rem; color: var(--accent);"></i>
-                        <p>Graphique linéaire (Chart.js)</p>
-                    </div>
+                    <canvas id="subsEvolutionChart" height="220"></canvas>
                 </div>
             </div>
         </div>
@@ -44,124 +61,49 @@
         <div class="content-col">
             <div class="chart-card">
                 <div class="card-header">
-                    <h3>💰 Revenus par catégorie</h3>
-                    <p style="color: var(--gray-600); font-size: 0.9rem; margin-top: 4px;">
-                        Répartition des revenus
+                    <h3>💰 Revenus des abonnements par plan</h3>
+                    <p style="color: var(--text-secondary); font-size: 0.9rem; margin-top: 4px;">
+                        Répartition par Basic / Pro / Entreprise
                     </p>
                 </div>
                 <div class="card-body">
-                    <div class="chart-placeholder" style="height: 300px;">
-                        <i class="fas fa-chart-pie" style="font-size: 3rem; color: var(--success);"></i>
-                        <p>Graphique circulaire (Chart.js)</p>
-                    </div>
+                    <canvas id="revenueByPlanChart" height="220"></canvas>
                 </div>
             </div>
         </div>
     </div>
 
-    <!-- Graphique comparatif -->
+    <!-- Top payeurs (barres) -->
     <div class="chart-card" style="margin-bottom: 24px;">
         <div class="card-header">
-            <h3>📊 Comparatif des événements</h3>
-            <p style="color: var(--gray-600); font-size: 0.9rem; margin-top: 4px;">
-                Performances de ventes par événement
+            <h3>🏆 Top payeurs (30 jours)</h3>
+            <p style="color: var(--text-secondary); font-size: 0.9rem; margin-top: 4px;">
+                Classement des meilleurs contributeurs
             </p>
         </div>
         <div class="card-body">
-            <div class="chart-placeholder" style="height: 400px;">
-                <i class="fas fa-chart-bar" style="font-size: 3rem; color: var(--warning);"></i>
-                <p>Graphique à barres (Chart.js)</p>
-            </div>
-        </div>
-    </div>
-
-    <!-- Statistiques par événement -->
-    <div class="chart-card">
-        <div class="card-header">
-            <h3>🎯 Performances par événement</h3>
-            <p style="color: var(--gray-600); font-size: 0.9rem; margin-top: 4px;">
-                Taux de conversion et engagement
-            </p>
-        </div>
-        <div class="card-body">
-            <div class="performance-grid">
-                <div class="performance-card">
-                    <div class="performance-header">
-                        <h4>🎸 Concert Rock Nation</h4>
-                        <span class="badge badge-success">85% rempli</span>
-                    </div>
-                    <div class="performance-stats">
-                        <div class="perf-stat">
-                            <div class="perf-label">Taux de conversion</div>
-                            <div class="perf-value">12.5%</div>
-                            <div class="perf-bar">
-                                <div class="perf-fill" style="width: 12.5%; background: var(--success);"></div>
-                            </div>
-                        </div>
-                        <div class="perf-stat">
-                            <div class="perf-label">Temps moyen de vente</div>
-                            <div class="perf-value">3.2 jours</div>
-                        </div>
-                        <div class="perf-stat">
-                            <div class="perf-label">Panier moyen</div>
-                            <div class="perf-value">48.63 €</div>
-                        </div>
-                    </div>
-                </div>
-
-                <div class="performance-card">
-                    <div class="performance-header">
-                        <h4>🎵 Festival Jazz Mada</h4>
-                        <span class="badge badge-warning">63% rempli</span>
-                    </div>
-                    <div class="performance-stats">
-                        <div class="perf-stat">
-                            <div class="perf-label">Taux de conversion</div>
-                            <div class="perf-value">9.8%</div>
-                            <div class="perf-bar">
-                                <div class="perf-fill" style="width: 9.8%; background: var(--warning);"></div>
-                            </div>
-                        </div>
-                        <div class="perf-stat">
-                            <div class="perf-label">Temps moyen de vente</div>
-                            <div class="perf-value">5.1 jours</div>
-                        </div>
-                        <div class="perf-stat">
-                            <div class="perf-label">Panier moyen</div>
-                            <div class="perf-value">47.20 €</div>
-                        </div>
-                    </div>
-                </div>
-
-                <div class="performance-card">
-                    <div class="performance-header">
-                        <h4>⚽ Match de Football</h4>
-                        <span class="badge badge-danger">100% complet</span>
-                    </div>
-                    <div class="performance-stats">
-                        <div class="perf-stat">
-                            <div class="perf-label">Taux de conversion</div>
-                            <div class="perf-value">18.3%</div>
-                            <div class="perf-bar">
-                                <div class="perf-fill" style="width: 18.3%; background: var(--danger);"></div>
-                            </div>
-                        </div>
-                        <div class="perf-stat">
-                            <div class="perf-label">Temps moyen de vente</div>
-                            <div class="perf-value">1.8 jours</div>
-                        </div>
-                        <div class="perf-stat">
-                            <div class="perf-label">Panier moyen</div>
-                            <div class="perf-value">50.00 €</div>
-                        </div>
-                    </div>
-                </div>
-            </div>
+            <canvas id="topPayersChart" height="280"></canvas>
         </div>
     </div>
 </div>
 
 <style>
+.kpi-grid {
+    display: grid;
+    grid-template-columns: repeat(4, 1fr);
+    gap: 12px;
+    margin: 12px 0 24px;
+}
+.kpi-card {
+    background: var(--bg-card);
+    border: 1px solid var(--border-color);
+    border-radius: var(--border-radius-md);
+    padding: 14px;
+}
+.kpi-label { font-size: 0.85rem; color: var(--text-secondary); }
+.kpi-value { font-size: 1.4rem; font-weight: var(--font-weight-bold); color: var(--text-primary); }
+@media (max-width: 1200px){ .kpi-grid { grid-template-columns: repeat(2, 1fr); } }
+@media (max-width: 768px){ .kpi-grid { grid-template-columns: 1fr; } }
 .content-row {
     display: grid;
     grid-template-columns: 1fr 1fr;
@@ -173,14 +115,14 @@
 }
 
 .chart-placeholder {
-    background: linear-gradient(135deg, var(--gray-50), var(--gray-100));
+    background: linear-gradient(135deg, var(--bg-secondary), var(--bg-primary));
     border-radius: var(--border-radius-md);
     display: flex;
     flex-direction: column;
     align-items: center;
     justify-content: center;
-    color: var(--gray-500);
-    border: 2px dashed var(--gray-300);
+    color: var(--text-secondary);
+    border: 2px dashed var(--border-color);
 }
 
 .chart-placeholder i {
@@ -200,10 +142,10 @@
 }
 
 .performance-card {
-    background: var(--gray-50);
+    background: var(--bg-card);
     border-radius: var(--border-radius-md);
     padding: 20px;
-    border: 1px solid var(--gray-200);
+    border: 1px solid var(--border-color);
     transition: var(--transition-base);
 }
 
@@ -218,13 +160,13 @@
     align-items: center;
     margin-bottom: 16px;
     padding-bottom: 12px;
-    border-bottom: 2px solid var(--gray-200);
+    border-bottom: 2px solid var(--border-light);
 }
 
 .performance-header h4 {
     font-size: 1.1rem;
     font-weight: var(--font-weight-semibold);
-    color: var(--primary);
+    color: var(--text-primary);
     margin: 0;
 }
 
@@ -257,27 +199,27 @@
 }
 
 .perf-stat {
-    background: white;
+    background: var(--bg-secondary);
     padding: 12px;
     border-radius: var(--border-radius-sm);
 }
 
 .perf-label {
     font-size: 0.8rem;
-    color: var(--gray-600);
+    color: var(--text-secondary);
     margin-bottom: 6px;
 }
 
 .perf-value {
     font-size: 1.3rem;
     font-weight: var(--font-weight-bold);
-    color: var(--primary);
+    color: var(--text-primary);
     margin-bottom: 8px;
 }
 
 .perf-bar {
     height: 6px;
-    background: var(--gray-200);
+    background: var(--border-light);
     border-radius: 3px;
     overflow: hidden;
 }
@@ -293,5 +235,60 @@
     }
 }
 </style>
+<script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.1/dist/chart.umd.min.js"></script>
+<script>
+function renderStatsCharts() {
+    // Courbe abonnements (line)
+    const subsEl = document.getElementById('subsEvolutionChart');
+    if (subsEl) {
+        if (subsEl._chartInstance) { try { subsEl._chartInstance.destroy(); } catch(e) {} }
+        const labels = {{ (stats.subscriptions.timeseries.labels ?? ['J-6','J-5','J-4','J-3','J-2','J-1','Aujourd\'hui'])|json_encode|raw }};
+        const values = {{ (stats.subscriptions.timeseries.values ?? [100, 120, 130, 110, 150, 160, 170])|json_encode|raw }};
+        const accent = (getComputedStyle(document.documentElement).getPropertyValue('--accent') || '#3498db').trim();
+        const textColor = getComputedStyle(document.documentElement).getPropertyValue('--text-secondary') || '#666';
+        const gridColor = 'rgba(128,128,128,0.2)';
+        subsEl._chartInstance = new Chart(subsEl.getContext('2d'), {
+            type: 'line',
+            data: { labels, datasets: [{ label: 'Abonnements actifs', data: values, tension: 0.35, fill: true, borderColor: accent, backgroundColor: accent + '33', pointRadius: 3, borderWidth: 2 }] },
+            options: { responsive: true, maintainAspectRatio: false, scales: { x: { grid: { color: gridColor }, ticks: { color: textColor } }, y: { beginAtZero: true, grid: { color: gridColor }, ticks: { color: textColor } } }, plugins: { legend: { labels: { color: textColor } } } }
+        });
+    }
+
+    // Donut revenus par plan (doughnut)
+    const planEl = document.getElementById('revenueByPlanChart');
+    if (planEl) {
+        if (planEl._chartInstance) { try { planEl._chartInstance.destroy(); } catch(e) {} }
+        const labels = {{ (stats.organizers.plans.labels ?? ['Basic','Pro','Entreprise'])|json_encode|raw }};
+        const values = {{ (stats.organizers.plans.revenue_values ?? [1200, 1950, 2392])|json_encode|raw }};
+        const accent = (getComputedStyle(document.documentElement).getPropertyValue('--accent') || '#3498db').trim();
+        const palette = [accent || '#3498db', '#9b59b6', '#e67e22', '#2ecc71', '#e74c3c'];
+        const textColor = getComputedStyle(document.documentElement).getPropertyValue('--text-secondary') || '#666';
+        planEl._chartInstance = new Chart(planEl.getContext('2d'), {
+            type: 'doughnut',
+            data: { labels, datasets: [{ data: values, backgroundColor: palette.slice(0, values.length), borderWidth: 1 }] },
+            options: { responsive: true, maintainAspectRatio: false, plugins: { legend: { labels: { color: textColor } }, tooltip: { callbacks: { label: (ctx) => { const v = ctx.raw ?? 0; return ' ' + v.toLocaleString('fr-FR') + ' \u20AC'; } } } } }
+        });
+    }
+
+    // Barres top payeurs (bar)
+    const topEl = document.getElementById('topPayersChart');
+    if (topEl) {
+        if (topEl._chartInstance) { try { topEl._chartInstance.destroy(); } catch(e) {} }
+        const labels = {{ (stats.organizers.top_payers_labels ?? ['Entreprise X','Org B','Org A'])|json_encode|raw }};
+        const values = {{ (stats.organizers.top_payers_values ?? [2392, 1985, 1249])|json_encode|raw }};
+        const accent = (getComputedStyle(document.documentElement).getPropertyValue('--accent') || '#3498db').trim();
+        const textColor = getComputedStyle(document.documentElement).getPropertyValue('--text-secondary') || '#666';
+        const gridColor = 'rgba(128,128,128,0.2)';
+        topEl._chartInstance = new Chart(topEl.getContext('2d'), {
+            type: 'bar',
+            data: { labels, datasets: [{ label: 'Total payé (\u20AC)', data: values, backgroundColor: accent + '88', borderColor: accent, borderWidth: 1 }] },
+            options: { responsive: true, maintainAspectRatio: false, scales: { x: { grid: { display: false }, ticks: { color: textColor } }, y: { beginAtZero: true, grid: { color: gridColor }, ticks: { color: textColor } } }, plugins: { legend: { labels: { color: textColor } }, tooltip: { callbacks: { label: (ctx) => { const v = ctx.parsed.y ?? 0; return ' ' + v.toLocaleString('fr-FR') + ' \u20AC'; } } } } }
+        });
+    }
+}
+
+document.addEventListener('DOMContentLoaded', renderStatsCharts);
+document.addEventListener('turbo:load', renderStatsCharts);
+</script>
 {% endblock %}
 

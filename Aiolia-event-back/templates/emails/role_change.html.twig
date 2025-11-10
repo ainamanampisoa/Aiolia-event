@@ -1,0 +1,87 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Changement de rôle - Aiolia Event</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            line-height: 1.6;
+            color: #333;
+            max-width: 600px;
+            margin: 0 auto;
+            padding: 20px;
+        }
+        .header {
+            background: linear-gradient(135deg, #3498db, #2980b9);
+            color: white;
+            padding: 30px;
+            text-align: center;
+            border-radius: 8px 8px 0 0;
+        }
+        .content {
+            background: #f9f9f9;
+            padding: 30px;
+            border-radius: 0 0 8px 8px;
+        }
+        .role-badge {
+            display: inline-block;
+            padding: 8px 16px;
+            border-radius: 20px;
+            font-weight: bold;
+            margin: 10px 5px;
+        }
+        .role-old {
+            background: #95a5a6;
+            color: white;
+        }
+        .role-new {
+            background: #3498db;
+            color: white;
+        }
+        .footer {
+            text-align: center;
+            margin-top: 30px;
+            padding-top: 20px;
+            border-top: 1px solid #ddd;
+            color: #777;
+            font-size: 12px;
+        }
+    </style>
+</head>
+<body>
+    <div class="header">
+        <h1>Aiolia Event</h1>
+        <p>Changement de rôle</p>
+    </div>
+    
+    <div class="content">
+        <p>Bonjour {{ user.firstName }},</p>
+        
+        <p>Le rôle de votre compte Aiolia Event a été modifié.</p>
+        
+        <div style="text-align: center; margin: 30px 0;">
+            <span class="role-badge role-old">{{ oldRole }}</span>
+            <span style="font-size: 24px; margin: 0 10px;">→</span>
+            <span class="role-badge role-new">{{ newRole }}</span>
+        </div>
+        
+        <p>Vous pouvez maintenant accéder aux fonctionnalités associées à votre nouveau rôle.</p>
+        
+        <p style="text-align: center; margin: 30px 0;">
+            <a href="{{ absolute_url(path('app_home')) }}" style="background: #3498db; color: white; padding: 12px 30px; text-decoration: none; border-radius: 5px; display: inline-block;">
+                Accéder à mon compte
+            </a>
+        </p>
+        
+        <p>Cordialement,<br>L'équipe Aiolia Event</p>
+    </div>
+    
+    <div class="footer">
+        <p>Cet email a été envoyé automatiquement. Merci de ne pas y répondre.</p>
+        <p>&copy; {{ "now"|date("Y") }} Aiolia Event. Tous droits réservés.</p>
+    </div>
+</body>
+</html>
+

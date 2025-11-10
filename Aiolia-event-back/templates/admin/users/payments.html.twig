@@ -1,0 +1,187 @@
+{% extends 'base.html.twig' %}
+
+{% block title %}Historique des paiements - {{ user.fullName }}{% endblock %}
+
+{% block stylesheets %}
+{{ parent() }}
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+<style>
+.payments-page {
+    background-color: var(--bg-primary);
+    min-height: calc(100vh - 80px);
+    padding: 1.25rem 0 1.75rem;
+}
+
+.payments-page .breadcrumb-horizontal {
+    display: flex;
+    align-items: center;
+    gap: 0.75rem;
+    font-size: 1rem;
+    font-weight: var(--font-weight-semibold);
+    color: var(--text-primary);
+    margin-bottom: 1.75rem;
+}
+
+.payments-page .breadcrumb-horizontal a {
+    color: var(--accent);
+    text-decoration: none;
+    transition: var(--transition-fast);
+}
+
+.payments-page .breadcrumb-horizontal a:hover {
+    color: var(--accent-light);
+}
+
+.payments-page .breadcrumb-active {
+    color: var(--primary);
+    font-weight: var(--font-weight-semibold);
+}
+
+.payments-page .card {
+    border: none;
+    border-radius: var(--border-radius-xl);
+    box-shadow: var(--shadow-lg);
+    overflow: hidden;
+}
+
+.payments-page .payments-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 1.25rem 1.5rem;
+    border-bottom: 1px solid var(--border-light);
+    background: var(--bg-secondary);
+}
+
+.payments-page .payments-header h5 {
+    margin: 0;
+    font-size: 1.4rem;
+    font-weight: var(--font-weight-semibold);
+    display: inline-flex;
+    align-items: center;
+    gap: 0.75rem;
+    color: var(--text-primary);
+}
+
+.payments-page .payments-header h5 i {
+    color: var(--accent);
+    font-size: 1.2rem;
+}
+
+.payments-page .payments-header .btn {
+    border-radius: var(--border-radius-md);
+    font-weight: var(--font-weight-semibold);
+}
+
+.payments-page .table thead th {
+    background: var(--bg-secondary);
+    border-bottom: 1px solid var(--border-color);
+    color: var(--text-primary);
+    font-weight: var(--font-weight-semibold);
+}
+
+.payments-page .table tbody td {
+    vertical-align: middle;
+    border-color: var(--border-color);
+}
+
+.payments-page .empty-state {
+    text-align: center;
+    padding: 3rem 1.5rem;
+    color: var(--text-secondary);
+}
+
+.payments-page .empty-state i {
+    font-size: 3rem;
+    color: var(--text-secondary);
+    opacity: 0.4;
+    margin-bottom: 1rem;
+}
+</style>
+{% endblock %}
+
+{% block body %}
+<div class="container-fluid payments-page">
+    <!-- Fil d'Ariane -->
+    <div class="row">
+        <div class="col-12">
+            <div class="breadcrumb-horizontal">
+                <a href="{{ path('admin_users_list') }}">Gestion des utilisateurs</a>
+                <span>/</span>
+                <a href="{{ path('admin_users_show', {id: user.id}) }}">{{ user.fullName }}</a>
+                <span>/</span>
+                <span class="breadcrumb-active">Historique des paiements</span>
+            </div>
+        </div>
+    </div>
+
+    <div class="row">
+        <div class="col-12">
+            <div class="card">
+                <div class="payments-header">
+                    <h5 class="mb-0">
+                        <i class="fas fa-receipt"></i>Historique des paiements · {{ user.fullName }}
+                    </h5>
+                    <a href="{{ path('admin_users_show', {id: user.id}) }}" class="btn btn-outline-primary btn-sm">
+                        <i class="fas fa-user"></i> Fiche utilisateur
+                    </a>
+                </div>
+                <div class="card-body">
+                    {% if payments is not empty %}
+                    <div class="table-responsive">
+                        <table class="table">
+                            <thead>
+                                <tr>
+                                    <th>Date</th>
+                                    <th>Montant</th>
+                                    <th>Méthode</th>
+                                    <th>Statut</th>
+                                    <th>Référence</th>
+                                    <th>Actions</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                {% for payment in payments %}
+                                <tr>
+                                    <td>{{ payment.createdAt|date('d/m/Y H:i') }}</td>
+                                    <td>{{ payment.amount }} {{ payment.currency }}</td>
+                                    <td>
+                                        <span class="badge bg-info">{{ payment.method }}</span>
+                                    </td>
+                                    <td>
+                                        {% if payment.status == 'paid' %}
+                                            <span class="badge bg-success">Payé</span>
+                                        {% elseif payment.status == 'pending' %}
+                                            <span class="badge bg-warning">En attente</span>
+                                        {% elseif payment.status == 'failed' %}
+                                            <span class="badge bg-danger">Échoué</span>
+                                        {% else %}
+                                            <span class="badge bg-secondary">{{ payment.status }}</span>
+                                        {% endif %}
+                                    </td>
+                                    <td>
+                                        <small class="text-muted">{{ payment.transactionId ?? '-' }}</small>
+                                    </td>
+                                    <td>
+                                        <a href="#" class="btn btn-sm btn-primary">
+                                            <i class="fas fa-eye"></i> Détails
+                                        </a>
+                                    </td>
+                                </tr>
+                                {% endfor %}
+                            </tbody>
+                        </table>
+                    </div>
+                    {% else %}
+                    <div class="empty-state">
+                        <i class="fas fa-receipt"></i>
+                        <p>Aucun paiement enregistré pour cet utilisateur</p>
+                    </div>
+                    {% endif %}
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+

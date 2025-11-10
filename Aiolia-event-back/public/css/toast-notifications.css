@@ -1,0 +1,68 @@
+/* ============================================
+   TOAST NOTIFICATIONS
+   ============================================ */
+
+   .toast-notification {
+    position: fixed;
+    bottom: 30px;
+    right: 30px;
+    background: var(--bg-secondary, #FFFFFF);
+    color: var(--text-primary, #0D1117);
+    padding: 16px 24px;
+    border-radius: 12px;
+    border: 1px solid var(--border-color, #D0D7DE);
+    box-shadow: 0 8px 24px var(--shadow, rgba(0, 0, 0, 0.1));
+    font-size: 14px;
+    font-weight: 500;
+    z-index: 10000;
+    opacity: 0;
+    transform: translateY(20px) scale(0.95);
+    transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+    pointer-events: none;
+    min-width: 250px;
+    max-width: 400px;
+}
+
+.toast-notification.show {
+    opacity: 1;
+    transform: translateY(0) scale(1);
+    pointer-events: auto;
+}
+
+/* Mode sombre */
+[data-theme="dark"] .toast-notification {
+    background: var(--bg-secondary, #161B22);
+    color: var(--text-primary, #C9D1D9);
+    border-color: var(--border-color, #30363D);
+    box-shadow: 0 8px 24px rgba(0, 0, 0, 0.4);
+}
+
+/* Animation de sortie */
+.toast-notification.hiding {
+    opacity: 0;
+    transform: translateY(20px) scale(0.95);
+}
+
+/* Icône optionnelle */
+.toast-notification::before {
+    content: '';
+    display: inline-block;
+    width: 4px;
+    height: 100%;
+    background: var(--accent, #3498DB);
+    position: absolute;
+    left: 0;
+    top: 0;
+    border-radius: 12px 0 0 12px;
+}
+
+/* Responsive */
+@media (max-width: 768px) {
+    .toast-notification {
+        bottom: 20px;
+        right: 20px;
+        left: 20px;
+        min-width: auto;
+        max-width: none;
+    }
+}

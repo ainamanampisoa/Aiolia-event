@@ -1,0 +1,283 @@
+{% extends 'base.html.twig' %}
+
+{% block title %}Événements créés - {{ user.fullName }}{% endblock %}
+
+{% block stylesheets %}
+{{ parent() }}
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+<style>
+.events-page {
+    background-color: var(--bg-primary);
+    min-height: calc(100vh - 80px);
+    padding: 1.25rem 0 1.75rem;
+}
+
+.events-page .breadcrumb-horizontal {
+    display: flex;
+    align-items: center;
+    gap: 0.75rem;
+    font-size: 1rem;
+    font-weight: var(--font-weight-semibold);
+    color: var(--text-primary);
+    margin-bottom: 1.75rem;
+}
+
+.events-page .breadcrumb-horizontal a {
+    color: var(--accent);
+    text-decoration: none;
+    transition: var(--transition-fast);
+}
+
+.events-page .breadcrumb-horizontal a:hover {
+    color: var(--accent-light);
+}
+
+.events-page .breadcrumb-active {
+    color: var(--primary);
+    font-weight: var(--font-weight-semibold);
+}
+
+.events-page .card {
+    border: none;
+    border-radius: var(--border-radius-xl);
+    box-shadow: var(--shadow-lg);
+    overflow: hidden;
+}
+
+.events-page .events-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 1.25rem 1.5rem;
+    border-bottom: 1px solid var(--border-light);
+    background: var(--bg-secondary);
+}
+
+.events-page .events-header h5 {
+    margin: 0;
+    font-size: 1.4rem;
+    font-weight: var(--font-weight-semibold);
+    display: inline-flex;
+    align-items: center;
+    gap: 0.75rem;
+    color: var(--text-primary);
+}
+
+.events-page .events-header h5 i {
+    color: var(--accent);
+    font-size: 1.2rem;
+}
+
+.events-page .events-header .btn {
+    border-radius: var(--border-radius-md);
+    font-weight: var(--font-weight-semibold);
+}
+
+.events-page .events-stats {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+    gap: 1rem;
+    margin-bottom: 1.75rem;
+}
+
+.events-page .event-stat-card {
+    background: var(--bg-secondary);
+    border: 1px solid var(--border-color);
+    border-radius: var(--border-radius-lg);
+    padding: 1.4rem 1.2rem;
+    text-align: center;
+    box-shadow: var(--shadow-sm);
+}
+
+.events-page .event-stat-card .number {
+    font-size: 1.85rem;
+    font-weight: var(--font-weight-bold);
+    color: var(--accent);
+    margin-bottom: 0.35rem;
+}
+
+.events-page .event-stat-card .label {
+    font-size: 0.9rem;
+    color: var(--text-secondary);
+}
+
+.events-page .table thead th {
+    background: var(--bg-secondary);
+    border-bottom: 1px solid var(--border-color);
+    color: var(--text-primary);
+    font-weight: var(--font-weight-semibold);
+}
+
+.events-page .table tbody td {
+    vertical-align: middle;
+    border-color: var(--border-color);
+}
+
+.events-page .empty-state {
+    text-align: center;
+    padding: 3rem 1.5rem;
+    color: var(--text-secondary);
+}
+
+.events-page .empty-state i {
+    font-size: 3rem;
+    color: var(--text-secondary);
+    opacity: 0.4;
+    margin-bottom: 1rem;
+}
+
+.events-page .pagination {
+    justify-content: center;
+    margin-top: 1.5rem;
+}
+
+.events-page .pagination .page-link {
+    border-radius: var(--border-radius-sm) !important;
+}
+</style>
+{% endblock %}
+
+{% block body %}
+<div class="container-fluid events-page">
+    <!-- Fil d'Ariane -->
+    <div class="row">
+        <div class="col-12">
+            <div class="breadcrumb-horizontal">
+                <a href="{{ path('admin_users_list') }}">Gestion des utilisateurs</a>
+                <span>/</span>
+                <a href="{{ path('admin_users_show', {id: user.id}) }}">{{ user.fullName }}</a>
+                <span>/</span>
+                <span class="breadcrumb-active">Événements créés</span>
+            </div>
+        </div>
+    </div>
+
+    <div class="row">
+        <div class="col-12">
+            <div class="card">
+                <div class="events-header">
+                    <h5 class="mb-0">
+                        <i class="fas fa-calendar-alt"></i>Événements créés · {{ user.fullName }}
+                    </h5>
+                    <a href="{{ path('admin_users_show', {id: user.id}) }}" class="btn btn-outline-primary btn-sm">
+                        <i class="fas fa-user"></i> Fiche utilisateur
+                    </a>
+                </div>
+                <div class="card-body">
+                    {% if eventsCount > 0 %}
+                    <div class="events-stats">
+                        <div class="event-stat-card">
+                            <div class="number">{{ eventsCount }}</div>
+                            <div class="label">Total d'événements</div>
+                        </div>
+                        <div class="event-stat-card">
+                            <div class="number">{{ publishedEventsCount }}</div>
+                            <div class="label">Événements publiés</div>
+                        </div>
+                    </div>
+
+                    <div class="table-responsive">
+                        <table class="table">
+                            <thead>
+                                <tr>
+                                    <th>Titre</th>
+                                    <th>Statut</th>
+                                    <th>Date de début</th>
+                                    <th>Lieu</th>
+                                    <th>Actions</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                {% for event in events %}
+                                <tr>
+                                    <td>
+                                        <strong>{{ event.title }}</strong>
+                                    </td>
+                                    <td>
+                                        {% if event.status == 'published' %}
+                                            <span class="badge bg-success">Publié</span>
+                                        {% elseif event.status == 'draft' %}
+                                            <span class="badge bg-secondary">Brouillon</span>
+                                        {% elseif event.status == 'ongoing' %}
+                                            <span class="badge bg-info">En cours</span>
+                                        {% elseif event.status == 'completed' %}
+                                            <span class="badge bg-primary">Terminé</span>
+                                        {% else %}
+                                            <span class="badge bg-danger">Annulé</span>
+                                        {% endif %}
+                                    </td>
+                                    <td>{{ event.startDate ? event.startDate|date('d/m/Y H:i') : '-' }}</td>
+                                    <td>{{ event.location ?? '-' }}</td>
+                                    <td>
+                                        <a href="{{ path('app_event_show', {id: event.id}) }}" class="btn btn-sm btn-primary">
+                                            <i class="fas fa-eye"></i> Voir
+                                        </a>
+                                    </td>
+                                </tr>
+                                {% endfor %}
+                            </tbody>
+                        </table>
+                    </div>
+
+                    <!-- Pagination -->
+                    {% if totalPages > 1 %}
+                    <nav aria-label="Pagination des événements">
+                        <ul class="pagination">
+                            {% if currentPage > 1 %}
+                            <li class="page-item">
+                                <a class="page-link" href="{{ path('admin_users_events', {id: user.id, page: currentPage - 1}) }}">
+                                    <i class="fas fa-chevron-left"></i> Précédent
+                                </a>
+                            </li>
+                            {% else %}
+                            <li class="page-item disabled">
+                                <span class="page-link"><i class="fas fa-chevron-left"></i> Précédent</span>
+                            </li>
+                            {% endif %}
+
+                            {% for page in 1..totalPages %}
+                                {% if page == currentPage %}
+                                <li class="page-item active">
+                                    <span class="page-link">{{ page }}</span>
+                                </li>
+                                {% elseif page == 1 or page == totalPages or (page >= currentPage - 1 and page <= currentPage + 1) %}
+                                <li class="page-item">
+                                    <a class="page-link" href="{{ path('admin_users_events', {id: user.id, page: page}) }}">{{ page }}</a>
+                                </li>
+                                {% elseif page == currentPage - 2 or page == currentPage + 2 %}
+                                <li class="page-item disabled">
+                                    <span class="page-link">...</span>
+                                </li>
+                                {% endif %}
+                            {% endfor %}
+
+                            {% if currentPage < totalPages %}
+                            <li class="page-item">
+                                <a class="page-link" href="{{ path('admin_users_events', {id: user.id, page: currentPage + 1}) }}">
+                                    Suivant <i class="fas fa-chevron-right"></i>
+                                </a>
+                            </li>
+                            {% else %}
+                            <li class="page-item disabled">
+                                <span class="page-link">Suivant <i class="fas fa-chevron-right"></i></span>
+                            </li>
+                            {% endif %}
+                        </ul>
+                    </nav>
+                    <div class="text-center mt-2">
+                        <small class="text-muted">Page {{ currentPage }} sur {{ totalPages }} ({{ eventsCount }} événement{{ eventsCount > 1 ? 's' : '' }})</small>
+                    </div>
+                    {% endif %}
+                    {% else %}
+                    <div class="empty-state">
+                        <i class="fas fa-calendar-times"></i>
+                        <p>Aucun événement créé</p>
+                    </div>
+                    {% endif %}
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+

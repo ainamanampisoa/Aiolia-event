@@ -32,5 +32,18 @@ class UserRepository extends ServiceEntityRepository implements PasswordUpgrader
         $this->getEntityManager()->persist($user);
         $this->getEntityManager()->flush();
     }
+
+    /**
+     * Retourne la liste des comptes en attente de validation.
+     */
+    public function findAccountsPendingValidation(): array
+    {
+        return $this->createQueryBuilder('u')
+            ->where('u.accountStatus = :status')
+            ->setParameter('status', 'pending_validation')
+            ->orderBy('u.createdAt', 'ASC')
+            ->getQuery()
+            ->getResult();
+    }
 }
 

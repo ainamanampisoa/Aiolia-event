@@ -1,172 +1,399 @@
 {% extends 'base.html.twig' %}
 
-{% block title %}Gestion des utilisateurs{% endblock %}
+{% block title %}Gestion des utilisateurs - Aiolia Event{% endblock %}
 
 {% block stylesheets %}
 {{ parent() }}
 <!-- Select2 CSS -->
 <link href="https://cdn.jsdelivr.net/npm/select2@4.1.0-rc.0/dist/css/select2.min.css" rel="stylesheet" />
+<!-- Font Awesome -->
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
 {% endblock %}
 
 {% block body %}
-<div class="container-fluid py-4">
-    <div class="row">
-        <div class="col-12">
-            <div class="card">
-                <div class="card-header">
-                    <h4 class="mb-0">
-                        <i class="fas fa-users"></i> Gestion des utilisateurs
-                    </h4>
-                </div>
-                <div class="card-body">
-                    {# Recherche multi-critères #}
-                    <div class="search-container">
-                        <form method="get" class="row g-3">
-                            <div class="col-md-4">
-                                <label class="form-label">
-                                    <i class="fas fa-search"></i> Recherche (nom, email)
-                                </label>
-                                <input type="text" 
-                                       name="search" 
-                                       class="search-input" 
-                                       value="{{ search }}" 
-                                       placeholder="Rechercher un utilisateur..."
-                                       id="searchInput">
-                            </div>
-                            
-                            <div class="col-md-2">
-                                <label class="form-label">
-                                    <i class="fas fa-user-tag"></i> Rôle
-                                </label>
-                                <select name="role" class="form-select">
-                                    <option value="">Tous les rôles</option>
-                                    <option value="user" {{ currentRole == 'user' ? 'selected' : '' }}>Utilisateur</option>
-                                    <option value="organizer" {{ currentRole == 'organizer' ? 'selected' : '' }}>Organisateur</option>
-                                    <option value="co_organizer" {{ currentRole == 'co_organizer' ? 'selected' : '' }}>Co-organisateur</option>
-                                    <option value="admin" {{ currentRole == 'admin' ? 'selected' : '' }}>Administrateur</option>
-                                </select>
-                            </div>
-                            
-                            <div class="col-md-2">
-                                <label class="form-label">
-                                    <i class="fas fa-toggle-on"></i> Statut
-                                </label>
-                                <select name="status" class="form-select">
-                                    <option value="">Tous les statuts</option>
-                                    <option value="active" {{ currentStatus == 'active' ? 'selected' : '' }}>Actif</option>
-                                    <option value="pending_validation" {{ currentStatus == 'pending_validation' ? 'selected' : '' }}>En attente</option>
-                                    <option value="rejected" {{ currentStatus == 'rejected' ? 'selected' : '' }}>Rejeté</option>
-                                    <option value="suspended" {{ currentStatus == 'suspended' ? 'selected' : '' }}>Suspendu</option>
-                                </select>
-                            </div>
-                            
-                            <div class="col-md-2">
-                                <label class="form-label">
-                                    <i class="fas fa-sort"></i> Trier par
-                                </label>
-                                <select name="sort" class="form-select">
-                                    <option value="created_at" {{ currentSort == 'created_at' ? 'selected' : '' }}>Date création</option>
-                                    <option value="email" {{ currentSort == 'email' ? 'selected' : '' }}>Email</option>
-                                    <option value="first_name" {{ currentSort == 'first_name' ? 'selected' : '' }}>Prénom</option>
-                                    <option value="last_name" {{ currentSort == 'last_name' ? 'selected' : '' }}>Nom</option>
-                                </select>
-                            </div>
-                            
-                            <div class="col-md-2">
-                                <label class="form-label">
-                                    <i class="fas fa-arrow-down-up-across-line"></i> Ordre
-                                </label>
-                                <select name="order" class="form-select">
-                                    <option value="DESC" {{ currentOrder == 'DESC' ? 'selected' : '' }}>Décroissant</option>
-                                    <option value="ASC" {{ currentOrder == 'ASC' ? 'selected' : '' }}>Croissant</option>
-                                </select>
-                            </div>
-                            
-                            <div class="col-12">
-                                <button type="submit" class="btn btn-primary">
-                                    <i class="fas fa-search"></i> Rechercher
-                                </button>
-                                <a href="{{ path('admin_users_list') }}" class="btn btn-secondary">
-                                    <i class="fas fa-redo"></i> Réinitialiser
-                                </a>
-                            </div>
-                        </form>
-                    </div>
+<div class="dashboard">
+    <!-- En-tête -->
+    <div class="dashboard-header">
+        <div>
+            <h1 data-i18n-fr="Gestion des utilisateurs" data-i18n-en="User management">Gestion des utilisateurs</h1>
+            <p class="dashboard-subtitle" data-i18n-fr="Gérez et administrez les comptes utilisateurs de votre plateforme" data-i18n-en="Manage and administer your platform user accounts">
+                Gérez et administrez les comptes utilisateurs de votre plateforme
+            </p>
+        </div>
+        <div class="header-actions">
+            <button class="btn btn-primary" onclick="exportUsers()">
+                <i class="fas fa-download"></i>
+                <span data-i18n-fr="Exporter" data-i18n-en="Export">Exporter</span>
+            </button>
+        </div>
+    </div>
 
-                    {# Résultats #}
-                    {% if users is empty %}
-                        <div class="alert alert-info text-center">
-                            <i class="fas fa-info-circle"></i>
-                            Aucun utilisateur trouvé
-                        </div>
-                    {% else %}
-                        <div class="mb-3">
-                            <span class="badge bg-primary">{{ users|length }} utilisateur(s) trouvé(s)</span>
-                        </div>
+    <!-- Cartes de statistiques rapides -->
+    <div class="stats-grid stats-grid-compact">
+        <div class="stat-card stat-card-compact">
+            <div class="stat-icon stat-icon-compact bg-primary">
+                <i class="fas fa-users"></i>
+            </div>
+            <div class="stat-content">
+                <h3>{{ stats.total|default(0) }}</h3>
+                <p data-i18n-fr="Utilisateurs totaux" data-i18n-en="Total users">Utilisateurs totaux</p>
+            </div>
+        </div>
 
-                        <div class="table-responsive">
-                            <table class="table table-hover">
-                                <thead>
-                                    <tr>
-                                        <th>ID</th>
-                                        <th>Nom complet</th>
-                                        <th>Email</th>
-                                        <th>Téléphone</th>
-                                        <th>Rôle</th>
-                                        <th>Statut</th>
-                                        <th>Date création</th>
-                                        <th>Actions</th>
-                                    </tr>
-                                </thead>
-                                <tbody>
-                                    {% for user in users %}
-                                        <tr>
-                                            <td>{{ user.id }}</td>
-                                            <td>
-                                                <strong>{{ user.fullName }}</strong>
-                                            </td>
-                                            <td>{{ user.email }}</td>
-                                            <td>{{ user.phone ?? '-' }}</td>
-                                            <td>
-                                                {% if user.role == 'admin' %}
-                                                    <span class="badge bg-danger">Administrateur</span>
-                                                {% elseif user.role == 'organizer' %}
-                                                    <span class="badge bg-primary">Organisateur</span>
-                                                {% elseif user.role == 'co_organizer' %}
-                                                    <span class="badge bg-info">Co-organisateur</span>
-                                                {% else %}
-                                                    <span class="badge bg-secondary">Utilisateur</span>
-                                                {% endif %}
-                                            </td>
-                                            <td>
-                                                {% if user.accountStatus == 'active' %}
-                                                    <span class="badge bg-success">Actif</span>
-                                                {% elseif user.accountStatus == 'pending_validation' %}
-                                                    <span class="badge bg-warning">En attente</span>
-                                                {% elseif user.accountStatus == 'rejected' %}
-                                                    <span class="badge bg-danger">Rejeté</span>
-                                                {% else %}
-                                                    <span class="badge bg-dark">Suspendu</span>
-                                                {% endif %}
-                                            </td>
-                                            <td>{{ user.createdAt|date('d/m/Y') }}</td>
-                                            <td>
-                                                <a href="{{ path('admin_users_show', {id: user.id}) }}" 
-                                                   class="btn btn-sm btn-outline-primary"
-                                                   title="Voir détails">
-                                                    <i class="fas fa-eye"></i>
-                                                </a>
-                                            </td>
-                                        </tr>
-                                    {% endfor %}
-                                </tbody>
-                            </table>
-                        </div>
-                    {% endif %}
-                </div>
+        <div class="stat-card stat-card-compact">
+            <div class="stat-icon stat-icon-compact bg-warning">
+                <i class="fas fa-clock"></i>
+            </div>
+            <div class="stat-content">
+                <h3>{{ stats.pending|default(0) }}</h3>
+                <p data-i18n-fr="En attente" data-i18n-en="Pending">En attente</p>
+            </div>
+        </div>
+
+        <div class="stat-card stat-card-compact">
+            <div class="stat-icon stat-icon-compact bg-success">
+                <i class="fas fa-check-circle"></i>
+            </div>
+            <div class="stat-content">
+                <h3>{{ stats.active|default(0) }}</h3>
+                <p data-i18n-fr="Utilisateurs actifs" data-i18n-en="Active users">Utilisateurs actifs</p>
+            </div>
+        </div>
+
+        <div class="stat-card stat-card-compact">
+            <div class="stat-icon stat-icon-compact bg-info">
+                <i class="fas fa-user-shield"></i>
+            </div>
+            <div class="stat-content">
+                <h3>{{ stats.organizers|default(0) }}</h3>
+                <p data-i18n-fr="Organisateurs" data-i18n-en="Organizers">Organisateurs</p>
             </div>
         </div>
     </div>
+
+    <!-- Recherche (séparée) -->
+    <div class="search-section">
+        <div class="search-header">
+            <h3 style="font-size: 1.1rem; color: var(--text-primary); margin: 0; display: flex; align-items: center; gap: 8px;">
+                <i class="fas fa-search"></i>
+                <span data-i18n-fr="Recherche multicritère" data-i18n-en="Multi-criteria search">Recherche multicritère</span>
+            </h3>
+            
+        </div>
+
+        <div class="search-form" id="searchFormUsers" aria-hidden="false">
+            <form method="get">
+                <div class="search-grid">
+                    <div class="search-field">
+                        <label data-i18n-fr="Recherche (Nom, Email, Téléphone)" data-i18n-en="Search (Name, Email, Phone)">Recherche (Nom, Email, Téléphone)</label>
+                        <input type="text" name="search" class="form-input" value="{{ search }}" placeholder="Rechercher par nom, email ou téléphone..." data-i18n-target="placeholder" data-i18n-fr="Rechercher par nom, email ou téléphone..." data-i18n-en="Search by name, email or phone...">
+                    </div>
+
+                    <div class="search-field">
+                        <label data-i18n-fr="Rôle" data-i18n-en="Role">Rôle</label>
+                        <select name="role" class="form-input">
+                            <option value="" data-i18n-fr="Tous les rôles" data-i18n-en="All roles">Tous les rôles</option>
+                            <option value="user" {{ currentRole == 'user' ? 'selected' : '' }} data-i18n-fr="Utilisateur" data-i18n-en="User">Utilisateur</option>
+                            <option value="organizer" {{ currentRole == 'organizer' ? 'selected' : '' }} data-i18n-fr="Organisateur" data-i18n-en="Organizer">Organisateur</option>
+                            <option value="admin" {{ currentRole == 'admin' ? 'selected' : '' }} data-i18n-fr="Administrateur" data-i18n-en="Administrator">Administrateur</option>
+                        </select>
+                    </div>
+
+                    <div class="search-field">
+                        <label data-i18n-fr="Statut" data-i18n-en="Status">Statut</label>
+                        <select name="status" class="form-input">
+                            <option value="" data-i18n-fr="Tous les statuts" data-i18n-en="All statuses">Tous les statuts</option>
+                            <option value="active" {{ currentStatus == 'active' ? 'selected' : '' }} data-i18n-fr="Actif" data-i18n-en="Active">Actif</option>
+                            <option value="pending_validation" {{ currentStatus == 'pending_validation' ? 'selected' : '' }} data-i18n-fr="En attente" data-i18n-en="Pending">En attente</option>
+                            <option value="rejected" {{ currentStatus == 'rejected' ? 'selected' : '' }} data-i18n-fr="Rejeté" data-i18n-en="Rejected">Rejeté</option>
+                            <option value="suspended" {{ currentStatus == 'suspended' ? 'selected' : '' }} data-i18n-fr="Suspendu" data-i18n-en="Suspended">Suspendu</option>
+                        </select>
+                    </div>
+
+                    <div class="search-field">
+                        <label data-i18n-fr="Trier par" data-i18n-en="Sort by">Trier par</label>
+                        <select name="sort" class="form-input">
+                            <option value="created_at" {{ currentSort == 'created_at' ? 'selected' : '' }} data-i18n-fr="Date création" data-i18n-en="Creation date">Date création</option>
+                            <option value="email" {{ currentSort == 'email' ? 'selected' : '' }} data-i18n-fr="Email" data-i18n-en="Email">Email</option>
+                            <option value="first_name" {{ currentSort == 'first_name' ? 'selected' : '' }} data-i18n-fr="Prénom" data-i18n-en="First name">Prénom</option>
+                            <option value="last_name" {{ currentSort == 'last_name' ? 'selected' : '' }} data-i18n-fr="Nom" data-i18n-en="Last name">Nom</option>
+                        </select>
+                    </div>
+
+                    <div class="search-field">
+                        <label data-i18n-fr="Ordre" data-i18n-en="Order">Ordre</label>
+                        <select name="order" class="form-input">
+                            <option value="DESC" {{ currentOrder == 'DESC' ? 'selected' : '' }} data-i18n-fr="Décroissant" data-i18n-en="Descending">Décroissant</option>
+                            <option value="ASC" {{ currentOrder == 'ASC' ? 'selected' : '' }} data-i18n-fr="Croissant" data-i18n-en="Ascending">Croissant</option>
+                        </select>
+                    </div>
+                </div>
+
+                <div class="search-actions">
+                    <button type="submit" class="btn btn-primary" style="background: var(--accent); color: var(--text-inverse); border: none; padding: 10px 24px; border-radius: 8px; cursor: pointer; font-weight: 600;">
+                        <i class="fas fa-search"></i>
+                        <span data-i18n-fr="Rechercher" data-i18n-en="Search">Rechercher</span>
+                    </button>
+                    <a href="{{ path('admin_users_list') }}" class="btn btn-secondary" style="background: var(--bg-secondary); color: var(--text-secondary); border: 2px solid var(--border-color); padding: 10px 24px; border-radius: 8px; cursor: pointer; font-weight: 600;">
+                        <i class="fas fa-redo"></i>
+                        <span data-i18n-fr="Réinitialiser" data-i18n-en="Reset">Réinitialiser</span>
+                    </a>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <!-- Carte principale -->
+    <div class="card">
+
+        <div class="card-body">
+            <!-- Tableau des utilisateurs -->
+            <div class="table-responsive">
+                <table class="table table-hover users-table" id="usersTable" data-show-url-base="{{ path('admin_users_show', {id: 0}) }}">
+                    <thead>
+                        <tr>
+                            <th class="select-column">
+                                <input type="checkbox" id="selectAll" class="form-check-input" aria-label="Select all" data-i18n-attributes="aria-label" data-i18n-attr-aria-label-fr="Tout sélectionner" data-i18n-attr-aria-label-en="Select all">
+                            </th>
+                            <th class="col-left" data-i18n-fr="Utilisateur" data-i18n-en="User">Utilisateur</th>
+                            <th class="col-left" data-i18n-fr="Contact" data-i18n-en="Contact">Contact</th>
+                            <th class="col-left" data-i18n-fr="Rôle" data-i18n-en="Role">Rôle</th>
+                            <th class="col-left" data-i18n-fr="Statut" data-i18n-en="Status">Statut</th>
+                            <th class="col-left" data-i18n-fr="Activité" data-i18n-en="Activity">Activité</th>
+                            <th class="actions-column col-center" data-i18n-fr="Actions" data-i18n-en="Actions">Actions</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% if users is empty %}
+                        <tr>
+                            <td colspan="7" class="text-center" style="padding: 40px;">
+                                <p style="color: var(--text-secondary);" data-i18n-fr="Aucun utilisateur trouvé" data-i18n-en="No users found">Aucun utilisateur trouvé</p>
+                            </td>
+                        </tr>
+                        {% else %}
+                        {% for user in users %}
+                        <tr data-user-id="{{ user.id }}">
+                            <td class="select-column">
+                                <input type="checkbox" class="form-check-input user-checkbox" value="{{ user.id }}">
+                            </td>
+                            <td class="col-left">
+                                <div class="user-info">
+                                    <div class="user-avatar-sm">
+                                        {% if user.photoUrl %}
+                                            <img src="{{ user.photoUrl }}" alt="{{ user.fullName }}" style="width: 100%; height: 100%; object-fit: cover; border-radius: 50%;">
+                                        {% else %}
+                                            <div class="user-avatar-initials-sm">
+                                                {{ user.firstName|first|upper }}{{ user.lastName|first|upper }}
+                                            </div>
+                                        {% endif %}
+                                    </div>
+                                    <div class="user-details">
+                                        <strong class="user-name">{{ user.fullName }}</strong>
+                                        <small class="user-id">ID: {{ user.id }}</small>
+                                    </div>
+                                </div>
+                            </td>
+                            <td class="col-left">
+                                <div class="contact-info">
+                                    <div class="email">
+                                        <i class="fas fa-envelope"></i>
+                                        {{ user.email }}
+                                    </div>
+                                    {% if user.phone %}
+                                    <div class="phone">
+                                        <i class="fas fa-phone"></i>
+                                        {{ user.phone }}
+                                    </div>
+                                    {% endif %}
+                                </div>
+                            </td>
+                            <td class="col-left">
+                                {% if user.role == 'admin' %}
+                                <span class="badge role-badge role-admin">
+                                    <i class="fas fa-crown"></i> <span data-i18n-fr="Admin" data-i18n-en="Admin">Admin</span>
+                                </span>
+                                {% elseif user.role == 'organizer' %}
+                                <span class="badge role-badge role-organizer">
+                                    <i class="fas fa-calendar-alt"></i> <span data-i18n-fr="Organisateur" data-i18n-en="Organizer">Organisateur</span>
+                                </span>
+                                {% else %}
+                                <span class="badge role-badge role-user">
+                                    <i class="fas fa-user"></i> <span data-i18n-fr="Utilisateur" data-i18n-en="User">Utilisateur</span>
+                                </span>
+                                {% endif %}
+                            </td>
+                            <td class="col-left">
+                                {% if user.accountStatus == 'active' or (user.accountStatus is empty and user.isActive) %}
+                                <span class="badge status-badge status-active">
+                                    <i class="fas fa-check-circle"></i> <span data-i18n-fr="Actif" data-i18n-en="Active">Actif</span>
+                                </span>
+                                {% elseif user.accountStatus == 'pending_validation' %}
+                                    <span class="badge status-badge status-pending">
+                                        <i class="fas fa-clock"></i> <span data-i18n-fr="En attente" data-i18n-en="Pending">En attente</span>
+                                </span>
+                                {% elseif user.accountStatus == 'rejected' %}
+                                <span class="badge status-badge status-rejected">
+                                    <i class="fas fa-times-circle"></i> <span data-i18n-fr="Rejeté" data-i18n-en="Rejected">Rejeté</span>
+                                </span>
+                                {% elseif user.accountStatus == 'suspended' %}
+                                    <span class="badge status-badge status-suspended">
+                                        <i class="fas fa-pause-circle"></i> <span data-i18n-fr="Suspendu" data-i18n-en="Suspended">Suspendu</span>
+                                </span>
+                                {% else %}
+                                <span class="badge status-badge status-active">
+                                    <i class="fas fa-check-circle"></i> <span data-i18n-fr="Actif" data-i18n-en="Active">Actif</span>
+                                </span>
+                                {% endif %}
+                            </td>
+                            <td class="col-left">
+                                <div class="activity-info">
+                                    <div class="created-date">
+                                        <small data-i18n-target="html" data-i18n-fr="Créé le {{ user.createdAt|date('d/m/Y') }}" data-i18n-en="Created on {{ user.createdAt|date('d/m/Y') }}">Créé le {{ user.createdAt|date('d/m/Y') }}</small>
+                                    </div>
+                                    <div class="last-login">
+                                        <small data-i18n-target="html" data-i18n-fr="Dernière activité&nbsp;: {{ user.lastLoginAt ? user.lastLoginAt|date('d/m/Y') : 'Jamais' }}" data-i18n-en="Last activity:&nbsp;{{ user.lastLoginAt ? user.lastLoginAt|date('d/m/Y') : 'Never' }}">Dernière activité: {{ user.lastLoginAt ? user.lastLoginAt|date('d/m/Y') : 'Jamais' }}</small>
+                                    </div>
+                                </div>
+                            </td>
+                            <td class="actions-column col-center">
+                                <div class="action-buttons">
+                                    <a href="{{ path('admin_users_show', {id: user.id}) }}" class="btn btn-action btn-view" title="Voir détails" data-bs-toggle="tooltip" data-i18n-attributes="title" data-i18n-attr-title-fr="Voir détails" data-i18n-attr-title-en="View details">
+                                        <i class="fas fa-eye"></i>
+                                    </a>
+                                    <a href="{{ path('admin_users_show', {id: user.id}) }}" 
+                                       class="btn btn-action btn-edit"
+                                            title="Modifier"
+                                       data-bs-toggle="tooltip"
+                                       data-i18n-attributes="title"
+                                       data-i18n-attr-title-fr="Modifier"
+                                       data-i18n-attr-title-en="Edit">
+                                        <i class="fas fa-edit"></i>
+                                    </a>
+                                    <form method="POST" action="{{ path('admin_users_toggle_status', {id: user.id}) }}" style="display: inline;" onsubmit="return handleStatusConfirm(this);" data-confirm-fr="Voulez-vous changer le statut de cet utilisateur ?" data-confirm-en="Do you want to change this user's status?">
+                                        <input type="hidden" name="_token" value="{{ csrf_token('toggle_status_' ~ user.id) }}">
+                                        <button type="submit" 
+                                                class="btn btn-action btn-status"
+                                            title="Changer statut"
+                                                data-bs-toggle="tooltip"
+                                                data-i18n-attributes="title"
+                                                data-i18n-attr-title-fr="Changer le statut"
+                                                data-i18n-attr-title-en="Change status">
+                                        <i class="fas fa-cog"></i>
+                                    </button>
+                                    </form>
+                                </div>
+                            </td>
+                        </tr>
+                        {% endfor %}
+                        {% endif %}
+                    </tbody>
+                </table>
+            </div>
+
+            <!-- Pagination -->
+            {% if totalPages > 1 %}
+            <div class="pagination-section">
+                <nav aria-label="Pagination">
+                    <ul class="pagination pagination-horizontal">
+                        <!-- Bouton Précédent -->
+                        <li class="page-item {{ currentPage == 1 ? 'disabled' : '' }}">
+                            <a class="page-link" 
+                               href="{{ path('admin_users_list', {
+                                   'page': currentPage - 1,
+                                   'search': search,
+                                   'role': currentRole,
+                                   'status': currentStatus,
+                                   'sort': currentSort,
+                                   'order': currentOrder
+                               }) }}" 
+                               aria-label="Précédent" data-i18n-attributes="aria-label" data-i18n-attr-aria-label-fr="Précédent" data-i18n-attr-aria-label-en="Previous">
+                                <i class="fas fa-chevron-left"></i>
+                            </a>
+                        </li>
+                        
+                        <!-- Pages numérotées -->
+                        {% set startPage = max(1, currentPage - 2) %}
+                        {% set endPage = min(totalPages, currentPage + 2) %}
+                        
+                        {% if startPage > 1 %}
+                        <li class="page-item">
+                                <a class="page-link" href="{{ path('admin_users_list', {
+                                    'page': 1,
+                                    'search': search,
+                                    'role': currentRole,
+                                    'status': currentStatus,
+                                    'sort': currentSort,
+                                    'order': currentOrder
+                                }) }}">1</a>
+                            </li>
+                            {% if startPage > 2 %}
+                                <li class="page-item disabled">
+                                    <span class="page-link" data-i18n-fr="..." data-i18n-en="...">...</span>
+                                </li>
+                            {% endif %}
+                        {% endif %}
+                        
+                        {% for p in startPage..endPage %}
+                            <li class="page-item {{ p == currentPage ? 'active' : '' }}">
+                                <a class="page-link" href="{{ path('admin_users_list', {
+                                    'page': p,
+                                    'search': search,
+                                    'role': currentRole,
+                                    'status': currentStatus,
+                                    'sort': currentSort,
+                                    'order': currentOrder
+                                }) }}">{{ p }}</a>
+                            </li>
+                        {% endfor %}
+                        
+                        {% if endPage < totalPages %}
+                            {% if endPage < totalPages - 1 %}
+                                <li class="page-item disabled">
+                                    <span class="page-link" data-i18n-fr="..." data-i18n-en="...">...</span>
+                                </li>
+                            {% endif %}
+                            <li class="page-item">
+                                <a class="page-link" href="{{ path('admin_users_list', {
+                                    'page': totalPages,
+                                    'search': search,
+                                    'role': currentRole,
+                                    'status': currentStatus,
+                                    'sort': currentSort,
+                                    'order': currentOrder
+                                }) }}">{{ totalPages }}</a>
+                            </li>
+                        {% endif %}
+                        
+                        <!-- Bouton Suivant -->
+                        <li class="page-item {{ currentPage == totalPages ? 'disabled' : '' }}">
+                            <a class="page-link" 
+                               href="{{ path('admin_users_list', {
+                                   'page': currentPage + 1,
+                                   'search': search,
+                                   'role': currentRole,
+                                   'status': currentStatus,
+                                   'sort': currentSort,
+                                   'order': currentOrder
+                               }) }}" 
+                               aria-label="Suivant" data-i18n-attributes="aria-label" data-i18n-attr-aria-label-fr="Suivant" data-i18n-attr-aria-label-en="Next">
+                                <i class="fas fa-chevron-right"></i>
+                            </a>
+                        </li>
+                    </ul>
+                </nav>
+                <div style="text-align: center; padding: 10px; color: var(--text-secondary); font-size: 0.9rem;">
+                    <small data-i18n-target="html" data-i18n-fr="Page {{ currentPage }} sur {{ totalPages }} - Affichage de {{ users|length }} utilisateur(s) sur {{ totalUsersFiltered }} total" data-i18n-en="Page {{ currentPage }} of {{ totalPages }} - Showing {{ users|length }} user(s) out of {{ totalUsersFiltered }} total">Page {{ currentPage }} sur {{ totalPages }} - Affichage de {{ users|length }} utilisateur(s) sur {{ totalUsersFiltered }} total</small>
+            </div>
+        </div>
+            {% elseif users|length > 0 %}
+            <div class="pagination-section">
+                <div style="text-align: center; padding: 20px; color: var(--text-secondary);">
+                    <small data-i18n-target="html" data-i18n-fr="Affichage de {{ users|length }} utilisateur(s)" data-i18n-en="Showing {{ users|length }} user(s)">Affichage de {{ users|length }} utilisateur(s)</small>
+    </div>
+      </div>
+            {% endif %}
+  </div>
+</div>
 </div>
 
 <!-- jQuery -->
@@ -175,31 +402,340 @@
 <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
 <!-- Select2 JS -->
 <script src="https://cdn.jsdelivr.net/npm/select2@4.1.0-rc.0/dist/js/select2.min.js"></script>
-<script>
-document.addEventListener('DOMContentLoaded', function() {
-    // Initialiser Select2 pour l'autocomplete
-    $('#searchInput').select2({
-        ajax: {
-            url: '{{ path('admin_users_autocomplete') }}',
-            dataType: 'json',
-            delay: 250,
-            data: function (params) {
-                return {
-                    q: params.term
-                };
-            },
-            processResults: function (data) {
-                return {
-                    results: data
-                };
-            },
-            cache: true
-        },
-        minimumInputLength: 2,
-        placeholder: 'Rechercher un utilisateur...',
-        allowClear: true
-    });
-});
-</script>
-{% endblock %}
 
+<script>
+(function registerAdminUsersTranslations() {
+    if (!window.languageManager) {
+        return;
+    }
+
+    window.languageManager.extendTranslations({
+        fr: {
+            'admin.users.export.no_selection': 'Veuillez sélectionner au moins un utilisateur à exporter.',
+            'admin.users.export.success': 'Export des utilisateurs : {list}',
+            'admin.users.stats.alert': 'Affichage des statistiques utilisateurs'
+        },
+        en: {
+            'admin.users.export.no_selection': 'Please select at least one user to export.',
+            'admin.users.export.success': 'Exporting users: {list}',
+            'admin.users.stats.alert': 'Displaying user statistics'
+        }
+    });
+})();
+
+function translateInline(key, fallback, params = {}) {
+    const manager = window.languageManager;
+    if (manager) {
+        const translation = manager.translate(key, params);
+        if (translation) {
+            return translation;
+        }
+    }
+    return fallback;
+}
+
+function handleStatusConfirm(form) {
+    const manager = window.languageManager;
+    const lang = manager ? manager.getLanguage() : 'fr';
+    const datasetKey = lang === 'en' ? 'confirmEn' : 'confirmFr';
+    const fallback = form.dataset.confirmFr || 'Voulez-vous changer le statut de cet utilisateur ?';
+    const message = form.dataset[datasetKey] || fallback;
+    return window.confirm(message);
+}
+
+// Init simple (sans toggle) : tooltips + sélection multiple
+function initUsersPage() {
+    // Initialiser les tooltips Bootstrap
+    var tooltipTriggerList = [].slice.call(document.querySelectorAll('[data-bs-toggle="tooltip"]'));
+    var tooltipList = tooltipTriggerList.map(function (tooltipTriggerEl) {
+        return new bootstrap.Tooltip(tooltipTriggerEl);
+    });
+
+    // Sélection multiple
+    const selectAll = document.getElementById('selectAll');
+    if (selectAll) {
+        selectAll.addEventListener('change', function() {
+            const checkboxes = document.querySelectorAll('.user-checkbox');
+            checkboxes.forEach(checkbox => {
+                checkbox.checked = this.checked;
+            });
+        });
+    }
+
+}
+// Fonction supprimée - Les détails utilisateur sont maintenant accessibles via la page dédiée
+
+function navigateToUserDetails(btn) {
+    const tr = btn.closest('tr');
+    if (!tr) return;
+    const userId = tr.getAttribute('data-user-id');
+    const table = document.getElementById('usersTable');
+    const base = table ? table.getAttribute('data-show-url-base') : null;
+    if (!userId || !base) return;
+    // Remplacer le dernier segment numérique (ex: /0) par l'ID réel
+    const url = base.replace(/\/(\d+)(?:\/?$)/, '/' + userId);
+    window.location.href = url;
+}
+
+document.addEventListener('DOMContentLoaded', initUsersPage);
+document.addEventListener('turbo:load', initUsersPage);
+document.addEventListener('turbo:render', initUsersPage);
+document.addEventListener('turbo:frame-load', initUsersPage);
+window.addEventListener('pageshow', initUsersPage);
+
+function toggleUserSelection() {
+    const checkboxes = document.querySelectorAll('.user-checkbox');
+    const selectAll = document.getElementById('selectAll');
+    
+    checkboxes.forEach(checkbox => {
+        checkbox.checked = false;
+    });
+    if (selectAll) {
+        selectAll.checked = false;
+    }
+    
+    const selectColumns = document.querySelectorAll('.select-column');
+    selectColumns.forEach(column => {
+        column.classList.toggle('visible');
+    });
+}
+
+function exportUsers() {
+    const selectedCheckboxes = document.querySelectorAll('.user-checkbox:checked');
+    const selectedUsers = Array.from(selectedCheckboxes).map(checkbox => checkbox.value);
+    
+    if (selectedUsers.length === 0) {
+        alert(translateInline('admin.users.export.no_selection', 'Veuillez sélectionner au moins un utilisateur à exporter.'));
+        return;
+    }
+    
+    alert(translateInline('admin.users.export.success', 'Export des utilisateurs : {list}', { list: selectedUsers.join(', ') }));
+}
+
+function showUserStats() {
+    alert(translateInline('admin.users.stats.alert', 'Affichage des statistiques utilisateurs'));
+}
+
+// Les actions sont maintenant gérées directement via les liens et formulaires HTML
+</script>
+
+<style>
+/* Harmonisation mode sombre pour recherche et tableaux */
+.search-section {
+    background: var(--bg-card);
+    border-radius: var(--border-radius-lg);
+    padding: 20px;
+    margin-bottom: 24px;
+    box-shadow: var(--shadow-md);
+    border: 1px solid var(--border-color);
+}
+
+.search-header { 
+    display: flex; 
+    justify-content: space-between; 
+    align-items: center; 
+}
+
+.btn-toggle-search { 
+    display: flex; 
+    align-items: center; 
+    gap: 8px; 
+    padding: 8px 16px; 
+    background: var(--bg-secondary); 
+    border: none; 
+    border-radius: var(--border-radius-md); 
+    cursor: pointer; 
+    font-size: 0.9rem; 
+    font-weight: var(--font-weight-medium); 
+    color: var(--text-secondary); 
+    transition: var(--transition-base); 
+}
+
+.btn-toggle-search:hover { 
+    background: var(--bg-primary); 
+}
+
+.btn-toggle-search i { 
+    transition: transform 0.3s ease; 
+}
+
+.btn-toggle-search.active i { 
+    transform: rotate(180deg); 
+}
+
+.search-form { 
+    margin-top: 20px; 
+    padding-top: 20px; 
+    border-top: 1px solid var(--border-light);
+    transition: all 0.3s ease;
+    display: block;
+}
+
+.search-grid { 
+    display: grid; 
+    grid-template-columns: repeat(4, 1fr); 
+    gap: 16px; 
+    margin-bottom: 20px; 
+}
+
+.search-field { 
+    display: flex; 
+    flex-direction: column; 
+}
+
+.search-field label { 
+    font-size: 0.85rem; 
+    font-weight: var(--font-weight-semibold); 
+    color: var(--text-primary); 
+    margin-bottom: 6px; 
+}
+
+@media (max-width: 1200px) { 
+    .search-grid { 
+        grid-template-columns: repeat(2, 1fr); 
+    } 
+}
+
+@media (max-width: 768px) { 
+    .search-grid { 
+        grid-template-columns: 1fr; 
+    } 
+}
+
+.form-input { 
+    padding: 10px 12px; 
+    border: 2px solid var(--border-color); 
+    border-radius: var(--border-radius-sm); 
+    font-size: 0.9rem; 
+    font-family: var(--font-family); 
+    transition: var(--transition-base); 
+    background: var(--bg-secondary); 
+    color: var(--text-primary); 
+}
+
+.form-input:focus { 
+    outline: none; 
+    border-color: var(--accent); 
+    box-shadow: 0 0 0 3px rgba(52, 152, 219, 0.1); 
+}
+
+.users-table thead {
+    background: var(--bg-secondary);
+}
+
+.users-table thead th {
+    color: var(--text-primary);
+    border-bottom: 2px solid var(--border-color);
+}
+
+.users-table tbody td {
+    border-bottom: 1px solid var(--border-light);
+}
+
+.users-table tbody tr:hover {
+    background: var(--bg-secondary);
+}
+
+/* Alignements colonnes */
+.col-left { text-align: left; }
+.col-center { text-align: center; }
+.col-right { text-align: right; }
+
+/* Cartes stats compactes */
+.stats-grid-compact { gap: 10px; margin-bottom: 16px; }
+.stat-card-compact { padding: 10px 12px; }
+.stat-icon-compact { width: 30px; height: 30px; font-size: 1rem; margin-bottom: 8px; }
+.stat-card-compact .stat-content h3 { font-size: 1.2rem; margin-bottom: 2px; line-height: 1.1; }
+
+.btn-outline-secondary {
+    background: var(--bg-secondary);
+    border: 2px solid var(--border-color);
+    color: var(--text-secondary);
+}
+
+/* Pagination horizontale */
+.pagination-section { 
+    display: flex; 
+    justify-content: center; 
+    margin-top: 20px; 
+}
+
+.pagination-horizontal { 
+    display: inline-flex; 
+    gap: 8px; 
+    align-items: center; 
+}
+
+ul.pagination, .pagination-horizontal { 
+    list-style: none; 
+    padding-left: 0; 
+    margin: 0; 
+}
+
+.pagination li { 
+    list-style: none; 
+}
+
+.pagination-horizontal .page-item .page-link { 
+    background: var(--bg-secondary); 
+    border: 1px solid var(--border-color); 
+    color: var(--text-primary); 
+    padding: 8px 14px; 
+    border-radius: var(--border-radius-sm); 
+}
+
+.pagination-horizontal .page-item.active .page-link { 
+    background: var(--accent); 
+    color: var(--text-inverse); 
+    border-color: var(--accent); 
+}
+
+.pagination-horizontal .page-item.disabled .page-link { 
+    opacity: 0.6; 
+    cursor: not-allowed; 
+}
+
+/* Masquer complètement la colonne de sélection (checkbox) */
+.users-table th.select-column,
+.users-table td.select-column {
+    display: none;
+}
+
+.users-table .user-checkbox,
+#selectAll { 
+    display: none; 
+}
+
+/* Styles pour les badges de statut et rôle */
+.action-buttons {
+    display: inline-flex;
+    gap: 8px;
+    align-items: center;
+}
+
+.action-buttons .btn-action {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 38px;
+    height: 38px;
+    border-radius: var(--border-radius-md);
+    border: 1px solid transparent;
+    background: linear-gradient(135deg, var(--accent), var(--accent-light));
+    color: var(--text-inverse) !important;
+    transition: var(--transition-base);
+    padding: 0;
+    box-shadow: var(--shadow-sm);
+}
+
+.action-buttons .btn-action:hover {
+    transform: translateY(-2px);
+    box-shadow: var(--shadow-md);
+}
+
+.action-buttons .btn-action i {
+    font-size: 1rem;
+    color: inherit;
+}
+</style>
+{% endblock %}

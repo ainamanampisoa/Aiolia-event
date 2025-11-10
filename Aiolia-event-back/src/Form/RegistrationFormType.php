@@ -94,7 +94,6 @@ class RegistrationFormType extends AbstractType
                 'choices' => [
                     'Utilisateur' => 'user',
                     'Organisateur' => 'organizer',
-                    'Co-organisateur' => 'co_organizer',
                 ],
                 'expanded' => true,
                 'data' => 'user',
@@ -103,13 +102,13 @@ class RegistrationFormType extends AbstractType
                 ],
             ])
             ->add('requestReason', TextareaType::class, [
-                'label' => 'Raison de la demande (si organisateur/co-organisateur)',
+                'label' => 'Raison de la demande (si organisateur)',
                 'mapped' => false,
                 'required' => false,
                 'attr' => [
                     'class' => 'form-control',
                     'rows' => 3,
-                    'placeholder' => 'Expliquez pourquoi vous souhaitez devenir organisateur ou co-organisateur...',
+                    'placeholder' => 'Expliquez pourquoi vous souhaitez devenir organisateur...',
                 ],
             ])
             ->add('agreeTerms', CheckboxType::class, [
