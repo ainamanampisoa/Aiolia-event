@@ -75,7 +75,7 @@ BEGIN
             changed_at
         )
         VALUES (
-            NEW.order_id,
+            NEW.id,
             v_actor,
             CASE WHEN TG_OP = 'INSERT' THEN NULL ELSE OLD.status END,
             NEW.status,
@@ -130,7 +130,7 @@ BEGIN
             balance = balance + amount_delta,
             points_balance = points_balance + points_delta,
             updated_at = now()
-        WHERE wallet_id = NEW.wallet_id;
+        WHERE id = NEW.wallet_id;
     END IF;
     RETURN NEW;
 END;
@@ -168,7 +168,7 @@ BEGIN
             balance = balance + amount_delta,
             points_balance = points_balance + points_delta,
             updated_at = now()
-        WHERE wallet_id = OLD.wallet_id;
+        WHERE id = OLD.wallet_id;
     END IF;
     RETURN NEW;
 END;
@@ -245,7 +245,7 @@ BEGIN
         changed_at
     )
     VALUES (
-        NEW.ticket_type_id,
+        NEW.id,
         v_actor,
         v_source,
         OLD.base_price,
@@ -291,13 +291,13 @@ BEGIN
 
     FOR rec IN
         SELECT
-            g.quota_group_id,
+            g.id AS quota_group_id,
             g.capacity_total,
             g.capacity_sold,
             g.enforce_limits,
             l.weight
         FROM ticket_quota_groups g
-        JOIN ticket_quota_links l ON l.quota_group_id = g.quota_group_id
+        JOIN ticket_quota_links l ON l.quota_group_id = g.id
         WHERE l.ticket_type_id = p_ticket_type_id
     LOOP
         v_new_sold := rec.capacity_sold + (rec.weight * p_delta);
@@ -319,7 +319,7 @@ BEGIN
         SET
             capacity_sold = v_new_sold,
             updated_at = now()
-        WHERE quota_group_id = rec.quota_group_id;
+        WHERE id = rec.quota_group_id;
     END LOOP;
 END;
 $$;
@@ -339,21 +339,22 @@ DECLARE
 BEGIN
     WITH base_data AS (
         SELECT
-            o.order_id,
+            o.id AS order_id,
             o.user_id,
             o.total_amount,
             o.discount_total,
             o.wallet_amount,
             o.confirmed_at,
-            t.ticket_id,
+            t.id AS ticket_id,
             t.status AS ticket_status,
-            tt.event_id,
+            tt.id AS ticket_type_id,
+            e.id AS event_id,
             e.primary_category_id
         FROM orders o
-        LEFT JOIN order_items oi ON oi.order_id = o.order_id
-        LEFT JOIN ticket_types tt ON tt.ticket_type_id = oi.ticket_type_id
-        LEFT JOIN tickets t ON t.order_item_id = oi.order_item_id
-        LEFT JOIN events e ON e.event_id = tt.event_id
+        LEFT JOIN order_items oi ON oi.order_id = o.id
+        LEFT JOIN ticket_types tt ON tt.id = oi.ticket_type_id
+        LEFT JOIN tickets t ON t.order_item_id = oi.id
+        LEFT JOIN events e ON e.id = tt.event_id
         WHERE o.user_id = p_user_id
           AND o.status IN ('paid', 'refunded')
     ), filtered_tickets AS (
@@ -396,11 +397,11 @@ BEGIN
         favorite_category_id = v_favorite_category,
         last_purchase_at = v_last_purchase,
         updated_at = now()
-    WHERE user_id = p_user_id;
+    WHERE id = p_user_id;
 
     IF NOT FOUND THEN
         INSERT INTO user_statistics (
-            user_id,
+            id,
             events_attended_count,
             tickets_owned_count,
             lifetime_spend,
@@ -467,7 +468,7 @@ LANGUAGE plpgsql
 AS $$
 BEGIN
     INSERT INTO notification_history (notification_id, status, message, created_at)
-    VALUES (NEW.notification_id, NEW.status, NULL, now());
+    VALUES (NEW.id, NEW.status, NULL, now());
     RETURN NEW;
 END;
 $$;
@@ -491,13 +492,13 @@ BEGIN
         IF OLD.status IN ('valid', 'used', 'transferred') THEN
             UPDATE ticket_types
             SET quantity_sold = GREATEST(quantity_sold - 1, 0)
-            WHERE ticket_type_id = OLD.ticket_type_id;
+            WHERE id = OLD.ticket_type_id;
             PERFORM adjust_ticket_quota_usage(OLD.ticket_type_id, -1);
         END IF;
         IF NEW.status IN ('valid', 'used', 'transferred') THEN
             UPDATE ticket_types
             SET quantity_sold = quantity_sold + 1
-            WHERE ticket_type_id = NEW.ticket_type_id;
+            WHERE id = NEW.ticket_type_id;
             PERFORM adjust_ticket_quota_usage(NEW.ticket_type_id, 1);
         END IF;
         RETURN NEW;
@@ -522,7 +523,7 @@ BEGIN
     IF v_delta <> 0 THEN
         UPDATE ticket_types
         SET quantity_sold = GREATEST(quantity_sold + v_delta, 0)
-        WHERE ticket_type_id = NEW.ticket_type_id;
+        WHERE id = NEW.ticket_type_id;
 
         PERFORM adjust_ticket_quota_usage(NEW.ticket_type_id, v_delta);
     END IF;

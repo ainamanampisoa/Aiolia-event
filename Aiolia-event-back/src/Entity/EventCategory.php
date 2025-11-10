@@ -7,57 +7,49 @@ use Doctrine\DBAL\Types\Types;
 use Doctrine\ORM\Mapping as ORM;
 
 #[ORM\Entity(repositoryClass: EventCategoryRepository::class)]
-#[ORM\Table(name: 'event_categories')]
+#[ORM\Table(name: 'event_categories', schema: 'aiolia')]
+#[ORM\HasLifecycleCallbacks]
 class EventCategory
 {
     #[ORM\Id]
-    #[ORM\GeneratedValue]
-    #[ORM\Column(type: Types::INTEGER)]
-    private ?int $id = null;
+    #[ORM\Column(type: Types::GUID, unique: true)]
+    #[ORM\GeneratedValue(strategy: 'CUSTOM')]
+    #[ORM\CustomIdGenerator(class: 'App\Doctrine\UuidV4Generator')]
+    private ?string $id = null;
 
-    #[ORM\Column(length: 100)]
-    private ?string $name = null;
+    #[ORM\Column(type: Types::STRING, length: 120, unique: true)]
+    private string $slug;
 
-    #[ORM\Column(length: 100, unique: true)]
-    private ?string $slug = null;
+    #[ORM\Column(type: Types::STRING, length: 255)]
+    private string $label;
 
     #[ORM\Column(type: Types::TEXT, nullable: true)]
     private ?string $description = null;
 
-    #[ORM\Column(length: 50, nullable: true)]
-    private ?string $icon = null;
+    #[ORM\Column(name: 'icon_name', type: Types::STRING, length: 120, nullable: true)]
+    private ?string $iconName = null;
 
-    #[ORM\Column]
+    #[ORM\Column(name: 'is_active', type: Types::BOOLEAN, options: ['default' => true])]
     private bool $isActive = true;
 
-    #[ORM\Column(type: Types::INTEGER)]
+    #[ORM\Column(name: 'display_order', type: Types::INTEGER, options: ['default' => 0])]
     private int $displayOrder = 0;
 
-    #[ORM\Column(type: Types::DATETIME_MUTABLE)]
+    #[ORM\Column(name: 'created_at', type: Types::DATETIMETZ_MUTABLE)]
     private ?\DateTimeInterface $createdAt = null;
 
-    public function __construct()
+    #[ORM\PrePersist]
+    public function initializeCreatedAt(): void
     {
-        $this->createdAt = new \DateTime();
+        $this->createdAt ??= new \DateTimeImmutable();
     }
 
-    public function getId(): ?int
+    public function getId(): ?string
     {
         return $this->id;
     }
 
-    public function getName(): ?string
-    {
-        return $this->name;
-    }
-
-    public function setName(string $name): static
-    {
-        $this->name = $name;
-        return $this;
-    }
-
-    public function getSlug(): ?string
+    public function getSlug(): string
     {
         return $this->slug;
     }
@@ -65,6 +57,19 @@ class EventCategory
     public function setSlug(string $slug): static
     {
         $this->slug = $slug;
+
+        return $this;
+    }
+
+    public function getLabel(): string
+    {
+        return $this->label;
+    }
+
+    public function setLabel(string $label): static
+    {
+        $this->label = $label;
+
         return $this;
     }
 
@@ -76,17 +81,19 @@ class EventCategory
     public function setDescription(?string $description): static
     {
         $this->description = $description;
+
         return $this;
     }
 
-    public function getIcon(): ?string
+    public function getIconName(): ?string
     {
-        return $this->icon;
+        return $this->iconName;
     }
 
-    public function setIcon(?string $icon): static
+    public function setIconName(?string $iconName): static
     {
-        $this->icon = $icon;
+        $this->iconName = $iconName;
+
         return $this;
     }
 
@@ -98,6 +105,7 @@ class EventCategory
     public function setIsActive(bool $isActive): static
     {
         $this->isActive = $isActive;
+
         return $this;
     }
 
@@ -109,6 +117,7 @@ class EventCategory
     public function setDisplayOrder(int $displayOrder): static
     {
         $this->displayOrder = $displayOrder;
+
         return $this;
     }
 
@@ -119,7 +128,7 @@ class EventCategory
 
     public function __toString(): string
     {
-        return $this->name ?? '';
+        return $this->label ?? '';
     }
 }
 

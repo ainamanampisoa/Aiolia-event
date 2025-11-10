@@ -80,10 +80,10 @@ WITH upsert_admin AS (
     DO UPDATE SET
         updated_at = now(),
         status = 'active'
-    RETURNING user_id
+    RETURNING id AS user_id
 )
 INSERT INTO user_role_assignments (user_id, role_id, assigned_at, assigned_by)
-SELECT upsert_admin.user_id, roles.role_id, now(), upsert_admin.user_id
+SELECT upsert_admin.user_id, roles.id AS role_id, now(), upsert_admin.user_id
 FROM upsert_admin
 JOIN user_roles AS roles ON roles.code = 'admin'
 ON CONFLICT (user_id, role_id) DO NOTHING;
@@ -91,7 +91,7 @@ ON CONFLICT (user_id, role_id) DO NOTHING;
 -- Portefeuille initial pour l’administrateur ---------------------------
 
 INSERT INTO wallets (user_id, currency, balance, points_balance)
-SELECT user_id, 'MGA', 0, 0
+SELECT id, 'MGA', 0, 0
 FROM users
 WHERE email = 'admin@aiolia-event.com'
 ON CONFLICT (user_id) DO NOTHING;
@@ -99,7 +99,7 @@ ON CONFLICT (user_id) DO NOTHING;
 -- Préférences de notification par défaut --------------------------------
 
 INSERT INTO user_notification_preferences (user_id, channel_code, enabled)
-SELECT u.user_id, c.code, TRUE
+SELECT u.id, c.code, TRUE
 FROM users u
 JOIN notification_channels c ON TRUE
 WHERE u.email = 'admin@aiolia-event.com'
@@ -132,7 +132,7 @@ WITH organizer_user AS (
     DO UPDATE SET
         updated_at = now(),
         status = 'active'
-    RETURNING user_id
+    RETURNING id AS user_id
 ),
 organizer_profile AS (
     INSERT INTO organizer_profiles (
@@ -162,11 +162,11 @@ organizer_profile AS (
     ON CONFLICT (user_id) DO UPDATE
         SET updated_at = now(),
             verification_status = 'verified'
-    RETURNING organizer_id, user_id
+    RETURNING id AS organizer_id, user_id
 ),
 assign_role AS (
     INSERT INTO user_role_assignments (user_id, role_id, assigned_at, assigned_by)
-    SELECT op.user_id, r.role_id, now(), (SELECT user_id FROM users WHERE email = 'admin@aiolia-event.com')
+    SELECT op.user_id, r.id AS role_id, now(), (SELECT id FROM users WHERE email = 'admin@aiolia-event.com')
     FROM organizer_profile op
     JOIN user_roles r ON r.code = 'organizer'
     ON CONFLICT (user_id, role_id) DO NOTHING
@@ -197,7 +197,7 @@ venue_insert AS (
         47.507905,
         5000
     FROM organizer_profile op
-    RETURNING venue_id, organizer_id
+    RETURNING id AS venue_id, organizer_id
 ),
 event_insert AS (
     INSERT INTO events (
@@ -223,7 +223,7 @@ event_insert AS (
     )
     SELECT
         v.organizer_id,
-        (SELECT category_id FROM event_categories WHERE slug = 'concert'),
+        (SELECT id FROM event_categories WHERE slug = 'concert'),
         v.venue_id,
         'aiolia-live-experience',
         'Aiolia Live Experience',
@@ -242,7 +242,7 @@ event_insert AS (
         'fr-FR',
         TRUE
     FROM venue_insert v
-    RETURNING event_id, organizer_id, starts_at, ends_at, sales_starts_at, sales_ends_at
+    RETURNING id AS event_id, organizer_id, starts_at, ends_at, sales_starts_at, sales_ends_at
 ),
 session_insert AS (
     INSERT INTO event_sessions (
@@ -261,7 +261,7 @@ session_insert AS (
         3500,
         NULL
     FROM event_insert e
-    RETURNING session_id, event_id
+    RETURNING id AS session_id, event_id
 )
 INSERT INTO ticket_types (
     event_id,
@@ -309,7 +309,7 @@ ON CONFLICT DO NOTHING;
 -- Quotas de billets ---------------------------------------------------------------
 
 WITH event_ref AS (
-    SELECT event_id, capacity
+    SELECT id AS event_id, capacity
     FROM events
     WHERE slug = 'aiolia-live-experience'
 ),
@@ -339,7 +339,7 @@ quota_global AS (
             per_user_limit = EXCLUDED.per_user_limit,
             description = EXCLUDED.description,
             updated_at = now()
-    RETURNING quota_group_id, event_id
+    RETURNING id AS quota_group_id, event_id
 ),
 quota_vip AS (
     INSERT INTO ticket_quota_groups (
@@ -367,10 +367,10 @@ quota_vip AS (
             per_user_limit = EXCLUDED.per_user_limit,
             description = EXCLUDED.description,
             updated_at = now()
-    RETURNING quota_group_id, event_id
+    RETURNING id AS quota_group_id, event_id
 )
 INSERT INTO ticket_quota_links (quota_group_id, ticket_type_id, weight)
-SELECT q.quota_group_id, tt.ticket_type_id,
+SELECT q.quota_group_id, tt.id AS ticket_type_id,
        CASE
            WHEN q.name = 'Quota global' THEN 1
            WHEN q.name = 'Quota premium' AND tt.name = 'Pass Backstage' THEN 2
@@ -402,7 +402,7 @@ INSERT INTO ticket_pricing_rules (
     metadata
 )
 SELECT
-    tt.ticket_type_id,
+    tt.id AS ticket_type_id,
     rules.rule_type,
     rules.threshold_quantity,
     rules.price,
@@ -411,7 +411,7 @@ SELECT
     rules.ends_at,
     rules.metadata
 FROM ticket_types tt
-JOIN events e ON e.event_id = tt.event_id
+JOIN events e ON e.id = tt.event_id
 CROSS JOIN LATERAL (
     VALUES
         ('tier', 300, 32000::NUMERIC, NULL::NUMERIC, NULL::TIMESTAMPTZ, NULL::TIMESTAMPTZ, jsonb_build_object('label', 'Super Early')),
@@ -456,23 +456,24 @@ VALUES (
 ON CONFLICT (code) DO NOTHING;
 
 INSERT INTO promotion_targets (promotion_id, event_id, ticket_type_id)
-SELECT p.promotion_id, e.event_id, NULL
+SELECT p.id AS promotion_id, e.id AS event_id, tt.id AS ticket_type_id
 FROM promotions p
 JOIN events e ON e.slug = 'aiolia-live-experience'
+JOIN ticket_types tt ON tt.event_id = e.id
 WHERE p.code = 'WELCOME10'
 ON CONFLICT DO NOTHING;
 
 -- Préférences front-office par défaut ---------------------------------------------
 
 INSERT INTO user_preferences (user_id, preference_key, preference_value)
-SELECT u.user_id, 'ui.theme', to_jsonb('dark'::text)
+SELECT u.id, 'ui.theme', to_jsonb('dark'::text)
 FROM users u
 WHERE u.email = 'admin@aiolia-event.com'
 ON CONFLICT (user_id, preference_key)
 DO UPDATE SET preference_value = EXCLUDED.preference_value, updated_at = now();
 
 INSERT INTO user_preferences (user_id, preference_key, preference_value)
-SELECT u.user_id, 'ui.theme', to_jsonb('dark'::text)
+SELECT u.id, 'ui.theme', to_jsonb('dark'::text)
 FROM users u
 WHERE u.email = 'organizer@aiolia-event.com'
 ON CONFLICT (user_id, preference_key)
@@ -494,20 +495,20 @@ SELECT
     op.user_id,
     now() - INTERVAL '2 days',
     'approved',
-    admin_user.user_id,
+    admin_user.id,
     now() - INTERVAL '1 day',
     NULL,
     jsonb_build_object('business_license', 'licence_orga.pdf'),
     jsonb_build_object('source', 'seed_data')
 FROM organizer_profiles op
-JOIN users organizer_user ON organizer_user.user_id = op.user_id
+JOIN users organizer_user ON organizer_user.id = op.user_id
 JOIN users admin_user ON admin_user.email = 'admin@aiolia-event.com'
 ON CONFLICT DO NOTHING;
 
 -- Statistiques utilisateur initiales -----------------------------------------------
 
-INSERT INTO user_statistics (user_id)
-SELECT user_id FROM users
-ON CONFLICT (user_id) DO NOTHING;
+INSERT INTO user_statistics (id)
+SELECT id FROM users
+ON CONFLICT (id) DO NOTHING;
 
 -- Fin du script d’amorçage ---------------------------------------------------------

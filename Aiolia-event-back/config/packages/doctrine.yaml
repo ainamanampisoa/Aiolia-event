@@ -8,6 +8,8 @@ doctrine:
 
         profiling_collect_backtrace: '%kernel.debug%'
         use_savepoints: true
+        types:
+            datetimetz: App\Doctrine\Type\DateTimeTzMicrosecondsType
         mapping_types:
             user_role: string
             oauth_provider: string

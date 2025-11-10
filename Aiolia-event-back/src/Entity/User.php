@@ -10,79 +10,113 @@ use Symfony\Component\Security\Core\User\PasswordAuthenticatedUserInterface;
 use Symfony\Component\Security\Core\User\UserInterface;
 
 #[ORM\Entity(repositoryClass: UserRepository::class)]
-#[ORM\Table(name: 'users')]
+#[ORM\Table(name: 'users', schema: 'aiolia')]
 #[ORM\HasLifecycleCallbacks]
 #[UniqueEntity(fields: ['email'], message: 'Un compte existe déjà avec cet email')]
 class User implements UserInterface, PasswordAuthenticatedUserInterface
 {
+    public const STATUS_PENDING = 'pending';
+    public const STATUS_ACTIVE = 'active';
+    public const STATUS_SUSPENDED = 'suspended';
+    public const STATUS_DELETED = 'deleted';
+
+    public const AUTH_PROVIDER_PASSWORD = 'password';
+    public const AUTH_PROVIDER_GOOGLE = 'google';
+    public const AUTH_PROVIDER_FACEBOOK = 'facebook';
+
+    public const TWO_FACTOR_TOTP = 'totp';
+    public const TWO_FACTOR_SMS = 'sms';
+
     #[ORM\Id]
-    #[ORM\GeneratedValue]
-    #[ORM\Column(type: Types::BIGINT)]
-    private ?int $id = null;
+    #[ORM\Column(type: Types::GUID, unique: true)]
+    #[ORM\GeneratedValue(strategy: 'CUSTOM')]
+    #[ORM\CustomIdGenerator(class: 'App\Doctrine\UuidV4Generator')]
+    private ?string $id = null;
 
-    #[ORM\Column(length: 255, unique: true)]
-    private ?string $email = null;
+    #[ORM\Column(length: 255, unique: true, columnDefinition: 'CITEXT NOT NULL')]
+    private string $email;
 
-    #[ORM\Column(length: 255)]
-    private ?string $passwordHash = null;
+    #[ORM\Column(name: 'password_hash', type: Types::TEXT)]
+    private string $passwordHash;
 
-    #[ORM\Column(length: 100, nullable: true)]
-    private ?string $firstName = null;
+    #[ORM\Column(name: 'first_name', type: Types::TEXT)]
+    private string $firstName;
 
-    #[ORM\Column(length: 100, nullable: true)]
+    #[ORM\Column(name: 'last_name', type: Types::TEXT, nullable: true)]
     private ?string $lastName = null;
 
-    #[ORM\Column(length: 20, nullable: true)]
+    #[ORM\Column(type: 'string', length: 20, nullable: true, columnDefinition: 'phone_e164')]
     private ?string $phone = null;
 
-    #[ORM\Column(length: 500, nullable: true)]
-    private ?string $photoUrl = null;
+    #[ORM\Column(name: 'country_code', type: Types::STRING, length: 2, nullable: true, options: ['fixed' => true])]
+    private ?string $countryCode = null;
 
-    #[ORM\Column(length: 20)]
-    private string $role = 'user';
+    #[ORM\Column(name: 'language_code', type: Types::STRING, length: 10, options: ['default' => 'fr-FR'])]
+    private string $languageCode = 'fr-FR';
 
-    #[ORM\Column]
-    private bool $emailVerified = false;
+    #[ORM\Column(type: Types::TEXT, options: ['default' => 'Indian/Antananarivo'])]
+    private string $timezone = 'Indian/Antananarivo';
 
-    #[ORM\Column(length: 20)]
-    private string $oauthProvider = 'local';
+    #[ORM\Column(name: 'avatar_url', type: Types::TEXT, nullable: true)]
+    private ?string $avatarUrl = null;
 
-    #[ORM\Column(length: 255, nullable: true)]
+    #[ORM\Column(type: Types::STRING, length: 20, options: ['default' => self::STATUS_PENDING])]
+    private string $status = self::STATUS_PENDING;
+
+    #[ORM\Column(name: 'auth_provider', type: Types::STRING, length: 20, options: ['default' => self::AUTH_PROVIDER_PASSWORD])]
+    private string $authProvider = self::AUTH_PROVIDER_PASSWORD;
+
+    #[ORM\Column(name: 'oauth_provider_id', type: Types::TEXT, nullable: true)]
     private ?string $oauthProviderId = null;
 
-    #[ORM\Column]
-    private bool $isActive = true;
+    #[ORM\Column(name: 'is_email_verified', type: Types::BOOLEAN, options: ['default' => false])]
+    private bool $isEmailVerified = false;
 
-    #[ORM\Column(name: 'account_status', length: 20)]
-    private string $accountStatus = 'active'; // active, pending_validation, rejected, suspended
+    #[ORM\Column(name: 'is_phone_verified', type: Types::BOOLEAN, options: ['default' => false])]
+    private bool $isPhoneVerified = false;
 
-    #[ORM\Column(type: Types::DATETIME_MUTABLE)]
+    #[ORM\Column(name: 'two_factor_type', type: Types::STRING, nullable: true)]
+    private ?string $twoFactorType = null;
+
+    #[ORM\Column(name: 'accepted_terms_at', type: Types::DATETIMETZ_MUTABLE, nullable: true)]
+    private ?\DateTimeInterface $acceptedTermsAt = null;
+
+    #[ORM\Column(name: 'created_at', type: Types::DATETIMETZ_MUTABLE)]
     private ?\DateTimeInterface $createdAt = null;
 
-    #[ORM\Column(type: Types::DATETIME_MUTABLE)]
+    #[ORM\Column(name: 'updated_at', type: Types::DATETIMETZ_MUTABLE)]
     private ?\DateTimeInterface $updatedAt = null;
 
-    #[ORM\Column(type: Types::DATETIME_MUTABLE, nullable: true)]
+    #[ORM\Column(name: 'last_login_at', type: Types::DATETIMETZ_MUTABLE, nullable: true)]
     private ?\DateTimeInterface $lastLoginAt = null;
 
     public function __construct()
     {
-        $this->createdAt = new \DateTime();
-        $this->updatedAt = new \DateTime();
+        $now = new \DateTimeImmutable();
+        $this->createdAt = $now;
+        $this->updatedAt = $now;
+    }
+
+    #[ORM\PrePersist]
+    public function initializeTimestamps(): void
+    {
+        $now = new \DateTimeImmutable();
+        $this->createdAt ??= $now;
+        $this->updatedAt = $now;
     }
 
     #[ORM\PreUpdate]
-    public function setUpdatedAtValue(): void
+    public function refreshUpdatedAt(): void
     {
-        $this->updatedAt = new \DateTime();
+        $this->updatedAt = new \DateTimeImmutable();
     }
 
-    public function getId(): ?int
+    public function getId(): ?string
     {
         return $this->id;
     }
 
-    public function getEmail(): ?string
+    public function getEmail(): string
     {
         return $this->email;
     }
@@ -90,10 +124,11 @@ class User implements UserInterface, PasswordAuthenticatedUserInterface
     public function setEmail(string $email): static
     {
         $this->email = $email;
+
         return $this;
     }
 
-    public function getPasswordHash(): ?string
+    public function getPasswordHash(): string
     {
         return $this->passwordHash;
     }
@@ -101,17 +136,24 @@ class User implements UserInterface, PasswordAuthenticatedUserInterface
     public function setPasswordHash(string $passwordHash): static
     {
         $this->passwordHash = $passwordHash;
+
         return $this;
     }
 
-    public function getFirstName(): ?string
+    public function getPassword(): string
+    {
+        return $this->passwordHash;
+    }
+
+    public function getFirstName(): string
     {
         return $this->firstName;
     }
 
-    public function setFirstName(?string $firstName): static
+    public function setFirstName(string $firstName): static
     {
         $this->firstName = $firstName;
+
         return $this;
     }
 
@@ -123,7 +165,13 @@ class User implements UserInterface, PasswordAuthenticatedUserInterface
     public function setLastName(?string $lastName): static
     {
         $this->lastName = $lastName;
+
         return $this;
+    }
+
+    public function getFullName(): string
+    {
+        return trim($this->firstName . ' ' . ($this->lastName ?? ''));
     }
 
     public function getPhone(): ?string
@@ -134,50 +182,79 @@ class User implements UserInterface, PasswordAuthenticatedUserInterface
     public function setPhone(?string $phone): static
     {
         $this->phone = $phone;
+
         return $this;
     }
 
-    public function getPhotoUrl(): ?string
+    public function getCountryCode(): ?string
     {
-        return $this->photoUrl;
+        return $this->countryCode;
     }
 
-    public function setPhotoUrl(?string $photoUrl): static
+    public function setCountryCode(?string $countryCode): static
     {
-        $this->photoUrl = $photoUrl;
+        $this->countryCode = $countryCode;
+
         return $this;
     }
 
-    public function getRole(): string
+    public function getLanguageCode(): string
     {
-        return $this->role;
+        return $this->languageCode;
     }
 
-    public function setRole(string $role): static
+    public function setLanguageCode(string $languageCode): static
     {
-        $this->role = $role;
+        $this->languageCode = $languageCode;
+
         return $this;
     }
 
-    public function isEmailVerified(): bool
+    public function getTimezone(): string
     {
-        return $this->emailVerified;
+        return $this->timezone;
     }
 
-    public function setEmailVerified(bool $emailVerified): static
+    public function setTimezone(string $timezone): static
     {
-        $this->emailVerified = $emailVerified;
+        $this->timezone = $timezone;
+
         return $this;
     }
 
-    public function getOauthProvider(): string
+    public function getAvatarUrl(): ?string
     {
-        return $this->oauthProvider;
+        return $this->avatarUrl;
     }
 
-    public function setOauthProvider(string $oauthProvider): static
+    public function setAvatarUrl(?string $avatarUrl): static
     {
-        $this->oauthProvider = $oauthProvider;
+        $this->avatarUrl = $avatarUrl;
+
+        return $this;
+    }
+
+    public function getStatus(): string
+    {
+        return $this->status;
+    }
+
+    public function setStatus(string $status): static
+    {
+        $this->status = $status;
+
+        return $this;
+    }
+
+    public function getAuthProvider(): string
+    {
+        return $this->authProvider;
+    }
+
+    public function setAuthProvider(string $authProvider): static
+    {
+        $this->authProvider = $authProvider;
+
         return $this;
     }
 
@@ -189,47 +266,56 @@ class User implements UserInterface, PasswordAuthenticatedUserInterface
     public function setOauthProviderId(?string $oauthProviderId): static
     {
         $this->oauthProviderId = $oauthProviderId;
+
         return $this;
     }
 
-    public function isActive(): bool
+    public function isEmailVerified(): bool
     {
-        return $this->isActive;
+        return $this->isEmailVerified;
     }
 
-    public function setIsActive(bool $isActive): static
+    public function setIsEmailVerified(bool $isEmailVerified): static
     {
-        $this->isActive = $isActive;
+        $this->isEmailVerified = $isEmailVerified;
+
         return $this;
     }
 
-    // Implémentation de UserInterface
-    public function getRoles(): array
+    public function isPhoneVerified(): bool
     {
-        $roles = ['ROLE_USER'];
-        
-        if ($this->role === 'admin') {
-            $roles[] = 'ROLE_ADMIN';
-        } elseif ($this->role === 'organizer') {
-            $roles[] = 'ROLE_ORGANIZER';
-        }
-        
-        return array_unique($roles);
+        return $this->isPhoneVerified;
     }
 
-    public function eraseCredentials(): void
+    public function setIsPhoneVerified(bool $isPhoneVerified): static
     {
-        // Si vous stockez des données sensibles temporaires sur l'utilisateur, effacez-les ici
+        $this->isPhoneVerified = $isPhoneVerified;
+
+        return $this;
     }
 
-    public function getUserIdentifier(): string
+    public function getTwoFactorType(): ?string
     {
-        return (string) $this->email;
+        return $this->twoFactorType;
     }
 
-    public function getPassword(): string
+    public function setTwoFactorType(?string $twoFactorType): static
     {
-        return $this->passwordHash;
+        $this->twoFactorType = $twoFactorType;
+
+        return $this;
+    }
+
+    public function getAcceptedTermsAt(): ?\DateTimeInterface
+    {
+        return $this->acceptedTermsAt;
+    }
+
+    public function setAcceptedTermsAt(?\DateTimeInterface $acceptedTermsAt): static
+    {
+        $this->acceptedTermsAt = $acceptedTermsAt;
+
+        return $this;
     }
 
     public function getCreatedAt(): ?\DateTimeInterface
@@ -237,9 +323,23 @@ class User implements UserInterface, PasswordAuthenticatedUserInterface
         return $this->createdAt;
     }
 
+    public function setCreatedAt(?\DateTimeInterface $createdAt): static
+    {
+        $this->createdAt = $createdAt;
+
+        return $this;
+    }
+
     public function getUpdatedAt(): ?\DateTimeInterface
     {
         return $this->updatedAt;
+    }
+
+    public function setUpdatedAt(?\DateTimeInterface $updatedAt): static
+    {
+        $this->updatedAt = $updatedAt;
+
+        return $this;
     }
 
     public function getLastLoginAt(): ?\DateTimeInterface
@@ -250,38 +350,23 @@ class User implements UserInterface, PasswordAuthenticatedUserInterface
     public function setLastLoginAt(?\DateTimeInterface $lastLoginAt): static
     {
         $this->lastLoginAt = $lastLoginAt;
+
         return $this;
     }
 
-    public function getFullName(): string
+    public function getUserIdentifier(): string
     {
-        return trim($this->firstName . ' ' . $this->lastName);
+        return $this->email;
     }
 
-    public function getAccountStatus(): string
+    public function getRoles(): array
     {
-        return $this->accountStatus;
+        return ['ROLE_USER'];
     }
 
-    public function setAccountStatus(string $accountStatus): static
+    public function eraseCredentials(): void
     {
-        $this->accountStatus = $accountStatus;
-        return $this;
-    }
-
-    public function isPendingValidation(): bool
-    {
-        return $this->accountStatus === 'pending_validation';
-    }
-
-    public function isRejected(): bool
-    {
-        return $this->accountStatus === 'rejected';
-    }
-
-    public function isSuspended(): bool
-    {
-        return $this->accountStatus === 'suspended';
+        // Rien à effacer pour l'instant
     }
 }
 
