@@ -244,8 +244,8 @@ Pour toute question ou problème, consultez :
 - Documentation Symfony : https://symfony.com/doc
 - Documentation Doctrine : https://www.doctrine-project.org/
 
-
-sudo cp /home/fifah/Documents/GitHub/Aiolia-event/Base/schema.sql /tmp/
+---------
+sudo cp /home/Documents/MyProject/Aiolia-event/Base/schema.sql /tmp/
 sudo chown postgres:postgres /tmp/schema.sql
 
 sudo -i -u postgres
@@ -255,3 +255,8 @@ psql
 
 
 psql -U aiolia_user -d aiolia_event -h 127.0.0.1 -p 5432
+
+-----------
+sudo cp /home/Documents/MyProject/Aiolia-event/Base/schema.sql /tmp/
+sudo chown postgres:postgres /tmp/schema.sql
+
