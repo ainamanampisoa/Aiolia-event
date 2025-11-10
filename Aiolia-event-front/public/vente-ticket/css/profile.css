@@ -228,7 +228,7 @@
 /* Bande colorée supprimée des stats */
 
 .profile-stat:nth-child(2) {
-    background: linear-gradient(135deg, #0AA06E 0%, #089461 100%);
+    background: linear-gradient(135deg, #3a7a65 0%, #6fc0a2 100%);
 }
 
 .profile-stat:nth-child(3) {
@@ -236,7 +236,7 @@
 }
 
 .profile-stat:nth-child(4) {
-    background: linear-gradient(135deg, #6C63FF 0%, #5A52D5 100%);
+    background: linear-gradient(135deg, #6a66a8 0%, #5A52D5 100%);
 }
 
 .profile-stat span {
