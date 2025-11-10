@@ -313,32 +313,60 @@
             {% endblock %}
         </header>
 
-        {% if isAuthenticated %}
-        <div class="user-sidebar-overlay" id="userSidebarOverlay"></div>
-        <aside class="user-secondary-sidebar" id="userSecondarySidebar" aria-hidden="true">
-            <button class="user-sidebar-close" type="button" aria-label="Fermer">×</button>
+    {% if isAuthenticated %}
+    <div class="user-sidebar-overlay" id="userSidebarOverlay"></div>
+    <aside class="user-secondary-sidebar" id="userSecondarySidebar" aria-hidden="true">
+        <div class="user-sidebar-header">
             <div>
                 <h3>Navigation rapide</h3>
                 <p>Retrouvez vos espaces personnels et outils.</p>
             </div>
-            <ul class="user-sidebar-nav">
-                <li><a href="{{ path('my_tickets') }}"><i class="fas fa-layer-group"></i> Mes billets</a></li>
-                <li><a href="{{ path('profile_history') }}"><i class="fas fa-shopping-bag"></i> Historique d'achat</a></li>
-                <li><a href="{{ path('profile_favorites') }}"><i class="fas fa-star"></i> Favoris</a></li>
-                <li><a href="{{ path('profile_search_history') }}"><i class="fas fa-search"></i> Historique de recherche</a></li>
-                <li><a href="{{ path('profile_stats') }}"><i class="fas fa-chart-line"></i> Statistique personnelle</a></li>
-                <li><a href="{{ path('profile_financial') }}"><i class="fas fa-file-invoice-dollar"></i> Historique financier détaillé</a></li>
-                <li><a href="{{ path('profile_calendar') }}"><i class="fas fa-calendar-alt"></i> Vue calendrier des évènements</a></li>
-                <li><a href="{{ path('profile_ticket_chance') }}"><i class="fas fa-dice"></i> Ticket Chance</a></li>
-            </ul>
-            <div class="user-sidebar-footer">
-                <a href="{{ path('logout') }}" class="user-sidebar-logout">
-                    <i class="fas fa-sign-out-alt"></i>
-                    Se déconnecter
-                </a>
-            </div>
-        </aside>
-        {% endif %}
+            <button class="user-sidebar-close" type="button" aria-label="Fermer">×</button>
+        </div>
+        
+        <ul class="user-sidebar-nav">
+            <li><a href="{{ path('my_tickets') }}" class="nav-item-tickets">
+                <i class="fas fa-layer-group"></i>
+                <span>Mes billets</span>
+            </a></li>
+            <li><a href="{{ path('profile_history') }}" class="nav-item-history">
+                <i class="fas fa-shopping-bag"></i>
+                <span>Historique d'achat</span>
+            </a></li>
+            <li><a href="{{ path('profile_favorites') }}" class="nav-item-favorites">
+                <i class="fas fa-star"></i>
+                <span>Favoris</span>
+            </a></li>
+            <li><a href="{{ path('profile_search_history') }}" class="nav-item-search">
+                <i class="fas fa-search"></i>
+                <span>Historique de recherche</span>
+            </a></li>
+            <li><a href="{{ path('profile_stats') }}" class="nav-item-stats">
+                <i class="fas fa-chart-line"></i>
+                <span>Statistique personnelle</span>
+            </a></li>
+            <li><a href="{{ path('profile_financial') }}" class="nav-item-financial">
+                <i class="fas fa-file-invoice-dollar"></i>
+                <span>Historique financier détaillé</span>
+            </a></li>
+            <li><a href="{{ path('profile_calendar') }}" class="nav-item-calendar">
+                <i class="fas fa-calendar-alt"></i>
+                <span>Vue calendrier des évènements</span>
+            </a></li>
+            <li><a href="{{ path('profile_ticket_chance') }}" class="nav-item-chance">
+                <i class="fas fa-dice"></i>
+                <span>Ticket Chance</span>
+            </a></li>
+        </ul>
+        
+        <div class="user-sidebar-footer">
+            <a href="{{ path('logout') }}" class="user-sidebar-logout">
+                <i class="fas fa-sign-out-alt"></i>
+                <span>Se déconnecter</span>
+            </a>
+        </div>
+    </aside>
+    {% endif %}
 
     {% block body %}{% endblock %}
 
