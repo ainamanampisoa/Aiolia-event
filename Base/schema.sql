@@ -71,7 +71,7 @@ CREATE TABLE users (
     status TEXT NOT NULL DEFAULT 'pending'
         CHECK (status IN ('pending', 'active', 'suspended', 'deleted')),
     auth_provider TEXT NOT NULL DEFAULT 'password'
-        CHECK (auth_provider IN ('password', 'google', 'facebook', 'apple', 'azure')),
+        CHECK (auth_provider IN ('password', 'google', 'facebook')),
     oauth_provider_id TEXT,
     is_email_verified BOOLEAN NOT NULL DEFAULT FALSE,
     is_phone_verified BOOLEAN NOT NULL DEFAULT FALSE,

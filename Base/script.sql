@@ -242,7 +242,7 @@ event_insert AS (
         'fr-FR',
         TRUE
     FROM venue_insert v
-    RETURNING event_id, organizer_id
+    RETURNING event_id, organizer_id, starts_at, ends_at, sales_starts_at, sales_ends_at
 ),
 session_insert AS (
     INSERT INTO event_sessions (
