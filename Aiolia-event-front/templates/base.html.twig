@@ -331,6 +331,12 @@
                 <li><a href="{{ path('profile_calendar') }}"><i class="fas fa-calendar-alt"></i> Vue calendrier des évènements</a></li>
                 <li><a href="{{ path('profile_ticket_chance') }}"><i class="fas fa-dice"></i> Ticket Chance</a></li>
             </ul>
+            <div class="user-sidebar-footer">
+                <a href="{{ path('logout') }}" class="user-sidebar-logout">
+                    <i class="fas fa-sign-out-alt"></i>
+                    Se déconnecter
+                </a>
+            </div>
         </aside>
         {% endif %}
 
