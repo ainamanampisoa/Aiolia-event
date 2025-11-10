@@ -4,9 +4,11 @@
 
 'use strict';
 
+// === Remplace/colle ceci dans ton fichier, en remplacement des méthodes correspondantes ===
+
 class ThemeManager {
     constructor() {
-        // Configuration
+        // Configuration (idem)
         this.config = {
             THEME_STORAGE_KEY: 'aiolia-theme',
             COLOR_STORAGE_KEY: 'aiolia-accent-color',
@@ -14,7 +16,7 @@ class ThemeManager {
             DEFAULT_COLOR: 'blue'
         };
 
-        // Couleurs disponibles
+        // Couleurs (idem)
         this.colors = {
             blue: '#3498DB',
             green: '#27AE60',
@@ -23,40 +25,62 @@ class ThemeManager {
             orange: '#F39C12'
         };
 
-        // Éléments DOM
+        // État
+        this.currentTheme = null;
+        this.isInitialized = false;
+
+        // Éléments DOM — garantir des références valides tout de suite
         this.elements = {
+            html: document.documentElement,
             body: document.body,
-            themeToggle: document.getElementById('themeToggle'),
-            darkModeToggle: document.getElementById('darkModeToggle'),
-            themeIcon: document.getElementById('themeIcon'),
-            colorOptions: document.querySelectorAll('.color-option')
+            themeToggle: null,
+            darkModeToggle: null,
+            themeIcon: null,
+            colorOptions: null
         };
+
+        // Observer pour détecter overrides externes (optionnel mais utile)
+        this.externalObserver = null;
+
+        // Notifications & animations
+        this.toastElement = null;
+        this.toastTimeout = null;
+        this.currentAccentColor = null;
 
         this.init();
     }
 
     init() {
-        console.log('🎨 Initialisation Theme Manager');
+        console.log('🎨 Initialisation Theme Manager (robuste)');
 
-        // Charger le thème sauvegardé
-        this.loadSavedTheme();
+        // Charger et appliquer le thème *en utilisant les éléments DOM natifs* (sécurisé)
+        this.loadAndApplyTheme();
 
-        // Charger la couleur sauvegardée
-        this.loadSavedColor();
+        // Attendre la DOM ready pour récupérer les contrôles interactifs
+        if (document.readyState === 'loading') {
+            document.addEventListener('DOMContentLoaded', () => {
+                this.initDOMElements();
+            });
+        } else {
+            this.initDOMElements();
+        }
 
-        // Initialiser les événements
-        this.initEvents();
-
-        console.log('✅ Theme Manager initialisé');
+        console.log('✅ Theme Manager initialisé (immediate theme:', this.currentTheme, ')');
     }
 
-    // ============================================
-    // GESTION DU THÈME CLAIR/SOMBRE
-    // ============================================
+    // ----------------------------
+    // Chargement + application
+    // ----------------------------
+    loadAndApplyTheme() {
+        // Priorité à ce qui est déjà posé dans le body/html par le framework (si présent)
+        const frameworkTheme = (document.body && document.body.getAttribute('data-theme')) ||
+                               (document.documentElement && document.documentElement.getAttribute('data-theme'));
 
-    loadSavedTheme() {
-        const savedTheme = this.getStoredTheme();
-        this.setTheme(savedTheme, false);
+        const savedTheme = frameworkTheme || this.getStoredTheme() || this.config.DEFAULT_THEME;
+        console.log('📖 loadAndApplyTheme -> frameworkTheme:', frameworkTheme, ' / stored:', this.getStoredTheme());
+        this.currentTheme = savedTheme;
+        // Appliquer immédiatement
+        this.applyThemeToDOM(savedTheme);
     }
 
     getStoredTheme() {
@@ -68,271 +92,418 @@ class ThemeManager {
         }
     }
 
-    setTheme(theme, animate = true) {
-        const isDark = theme === 'dark';
+    applyThemeToDOM(theme) {
+        // Utiliser toujours document.documentElement / document.body directement (plus fiable)
+        const html = document.documentElement;
+        const body = document.body;
 
-        // Appliquer le thème au body
-        if (isDark) {
-            this.elements.body.setAttribute('data-theme', 'dark');
+        if (!html || !body) {
+            console.warn('⚠️ applyThemeToDOM: document elements non disponibles');
+            return;
+        }
+
+        // Retirer ancien thème
+        html.removeAttribute('data-theme');
+        body.removeAttribute('data-theme');
+        html.classList.remove('dark-mode', 'light-mode');
+        body.classList.remove('dark-mode', 'light-mode');
+
+        // Appliquer le thème demandé
+        if (theme === 'dark') {
+            html.setAttribute('data-theme', 'dark');
+            body.setAttribute('data-theme', 'dark');
+            html.classList.add('dark-mode');
+            body.classList.add('dark-mode');
+            console.log('🌙 Mode sombre appliqué au DOM');
         } else {
-            this.elements.body.removeAttribute('data-theme');
+            html.setAttribute('data-theme', 'light');
+            body.setAttribute('data-theme', 'light');
+            html.classList.add('light-mode');
+            body.classList.add('light-mode');
+            console.log('☀️ Mode clair appliqué au DOM');
         }
 
-        // Mettre à jour les toggles
-        if (this.elements.darkModeToggle) {
-            this.elements.darkModeToggle.checked = isDark;
-        }
+        this.currentTheme = theme;
 
-        // Mettre à jour l'icône du header
-        if (this.elements.themeIcon) {
-            this.updateThemeIcon(isDark, animate);
-        }
+        // Petit délai d'animation / repaint puis dispatch
+        requestAnimationFrame(() => {
+            // Sauvegarde (au cas où cette méthode est appelée directement)
+            try { localStorage.setItem(this.config.THEME_STORAGE_KEY, theme); } catch(e) {}
 
-        // Sauvegarder
-        this.saveTheme(theme);
-
-        console.log(`🌓 Thème changé: ${theme}`);
+            // Émettre l'événement pour que d'autres scripts (header) mettent à jour l'icône
+            document.dispatchEvent(new CustomEvent('aiolia:theme-changed', { detail: { theme } }));
+            console.log('📣 aiolia:theme-changed dispatché ->', theme);
+        });
     }
 
-    updateThemeIcon(isDark, animate) {
-        const iconClass = isDark ? 'fa-moon' : 'fa-sun';
-        this.elements.themeIcon.className = `fas ${iconClass}`;
-
-        if (animate && this.elements.themeToggle) {
-            this.animateButton(this.elements.themeToggle);
+    // ----------------------------
+    // setTheme / toggle
+    // ----------------------------
+    setTheme(theme, showNotification = false) {
+        if (theme === this.currentTheme) {
+            console.log('⏭️ setTheme: thème déjà actif', theme);
+            return;
         }
+
+        console.log('🔄 setTheme', this.currentTheme, '→', theme);
+        this.applyThemeToDOM(theme);      // applique + dispatch
+        this.saveTheme(theme);
+        this.syncUIState();               // synchroniser bouton/icône
+        if (showNotification) {
+            const msg = theme === 'dark' ? 'Mode sombre activé 🌙' : 'Mode clair activé ☀️';
+            this.showNotification(msg);
+        }
+        // Animation si présent
+        if (this.elements.themeToggle) this.animateButton(this.elements.themeToggle);
     }
 
     toggleTheme() {
-        const currentTheme = this.getCurrentTheme();
-        const newTheme = currentTheme === 'dark' ? 'light' : 'dark';
+        const newTheme = this.currentTheme === 'dark' ? 'light' : 'dark';
         this.setTheme(newTheme, true);
-        this.showNotification(
-            newTheme === 'dark' ? 'Mode sombre activé 🌙' : 'Mode clair activé ☀️'
-        );
-    }
-
-    getCurrentTheme() {
-        return this.elements.body.getAttribute('data-theme') === 'dark' ? 'dark' : 'light';
     }
 
     saveTheme(theme) {
         try {
             localStorage.setItem(this.config.THEME_STORAGE_KEY, theme);
+            console.log('💾 Thème sauvegardé:', theme);
         } catch (e) {
             console.warn('Erreur sauvegarde thème:', e);
         }
     }
 
-    // ============================================
-    // GESTION DE LA COULEUR D'ACCENT
-    // ============================================
+    // ----------------------------
+    // DOM init + events
+    // ----------------------------
+    initDOMElements() {
+        // assigner éléments interactifs
+        this.elements.themeToggle = document.getElementById('themeToggle');
+        this.elements.darkModeToggle = document.getElementById('darkModeToggle');
+        this.elements.themeIcon = document.getElementById('themeIcon');
+        this.elements.colorOptions = document.querySelectorAll('.color-option');
 
-    loadSavedColor() {
-        const savedColor = this.getStoredColor();
-        this.setAccentColor(savedColor, false);
+        // marquer initialisé avant de brancher les handlers pour ne pas ignorer le premier changement volontaire
+        this.isInitialized = true;
+
+        // synchroniser état UI (icone + toggles) sans déclencher events
+        this.syncUIState();
+
+        // load color
+        this.loadSavedColor();
+
+        // initialiser events
+        this.initEvents();
+
+        // démarrer observer externe pour détecter overrides (si un autre script modifie data-theme)
+        this.initExternalObserver();
+
+        console.log('✅ Éléments DOM initialisés et events attachés');
     }
-
-    getStoredColor() {
-        try {
-            return localStorage.getItem(this.config.COLOR_STORAGE_KEY) || this.config.DEFAULT_COLOR;
-        } catch (e) {
-            console.warn('Erreur lecture couleur:', e);
-            return this.config.DEFAULT_COLOR;
-        }
-    }
-
-    setAccentColor(colorName, animate = true) {
-        const colorValue = this.colors[colorName];
-
-        if (!colorValue) {
-            console.warn(`Couleur inconnue: ${colorName}`);
-            return;
-        }
-
-        // Appliquer la couleur
-        document.documentElement.style.setProperty('--accent', colorValue);
-        document.documentElement.style.setProperty('--accent-light', this.lightenColor(colorValue));
-        document.documentElement.style.setProperty('--accent-dark', this.darkenColor(colorValue));
-
-        // Mettre à jour les boutons de sélection
-        this.updateColorButtons(colorName);
-
-        // Sauvegarder
-        this.saveColor(colorName);
-
-        if (animate) {
-            this.showNotification('Couleur du thème changée ! 🎨');
-        }
-
-        console.log(`🎨 Couleur d'accent changée: ${colorName}`);
-    }
-
-    updateColorButtons(activeColor) {
-        this.elements.colorOptions.forEach(option => {
-            const color = option.getAttribute('data-color');
-            if (color === activeColor) {
-                option.classList.add('active');
-            } else {
-                option.classList.remove('active');
-            }
-        });
-    }
-
-    saveColor(colorName) {
-        try {
-            localStorage.setItem(this.config.COLOR_STORAGE_KEY, colorName);
-        } catch (e) {
-            console.warn('Erreur sauvegarde couleur:', e);
-        }
-    }
-
-    // ============================================
-    // UTILITAIRES COULEUR
-    // ============================================
-
-    lightenColor(color, percent = 15) {
-        const num = parseInt(color.replace('#', ''), 16);
-        const amt = Math.round(2.55 * percent);
-        const R = (num >> 16) + amt;
-        const G = (num >> 8 & 0x00FF) + amt;
-        const B = (num & 0x0000FF) + amt;
-
-        return '#' + (
-            0x1000000 +
-            (R < 255 ? R < 1 ? 0 : R : 255) * 0x10000 +
-            (G < 255 ? G < 1 ? 0 : G : 255) * 0x100 +
-            (B < 255 ? B < 1 ? 0 : B : 255)
-        ).toString(16).slice(1);
-    }
-
-    darkenColor(color, percent = 15) {
-        const num = parseInt(color.replace('#', ''), 16);
-        const amt = Math.round(2.55 * percent);
-        const R = (num >> 16) - amt;
-        const G = (num >> 8 & 0x00FF) - amt;
-        const B = (num & 0x0000FF) - amt;
-
-        return '#' + (
-            0x1000000 +
-            (R > 0 ? R : 0) * 0x10000 +
-            (G > 0 ? G : 0) * 0x100 +
-            (B > 0 ? B : 0)
-        ).toString(16).slice(1);
-    }
-
-    // ============================================
-    // ÉVÉNEMENTS
-    // ============================================
 
     initEvents() {
-        // Toggle thème du header
+        // header button
         if (this.elements.themeToggle) {
-            this.elements.themeToggle.addEventListener('click', () => {
+            this.elements.themeToggle.addEventListener('click', (e) => {
+                e.preventDefault();
+                e.stopPropagation();
                 this.toggleTheme();
             });
         }
 
-        // Toggle mode sombre de la page paramètres
+        // settings toggle (checkbox)
         if (this.elements.darkModeToggle) {
             this.elements.darkModeToggle.addEventListener('change', (e) => {
+                if (!this.isInitialized) {
+                    console.log('⏭️ Ignorer change pendant init');
+                    return;
+                }
                 const newTheme = e.target.checked ? 'dark' : 'light';
-                this.setTheme(newTheme, true);
-                this.showNotification(
-                    newTheme === 'dark' ? 'Mode sombre activé 🌙' : 'Mode clair activé ☀️'
-                );
+                if (newTheme !== this.currentTheme) this.setTheme(newTheme, true);
             });
         }
 
-        // Sélecteurs de couleur
-        this.elements.colorOptions.forEach(option => {
-            option.addEventListener('click', () => {
-                const color = option.getAttribute('data-color');
-                this.setAccentColor(color, true);
+        // couleurs
+        if (this.elements.colorOptions) {
+            this.elements.colorOptions.forEach(opt => {
+                opt.addEventListener('click', () => {
+                    const c = opt.getAttribute('data-color');
+                    if (c) this.setAccentColor(c, true);
+                });
             });
-        });
+        }
 
-        // Raccourci clavier (Ctrl/Cmd + Shift + D pour Dark mode)
+        // keyboard shortcut
         document.addEventListener('keydown', (e) => {
             if ((e.ctrlKey || e.metaKey) && e.shiftKey && e.key === 'D') {
                 e.preventDefault();
                 this.toggleTheme();
             }
         });
-
-        console.log('📡 Événements du thème initialisés');
     }
 
-    // ============================================
-    // ANIMATIONS & NOTIFICATIONS
-    // ============================================
+    // Synchronisation UI (icone + checkbox)
+    syncUIState() {
+        const theme = this.currentTheme || this.getStoredTheme() || this.config.DEFAULT_THEME;
 
-    animateButton(button) {
-        button.style.transition = 'transform 0.3s ease';
-        button.style.transform = 'scale(1.2) rotate(360deg)';
+        // icon
+        if (this.elements.themeIcon) {
+            const iconClass = theme === 'dark' ? 'fa-moon' : 'fa-sun';
+            this.elements.themeIcon.classList.remove('fa-moon', 'fa-sun');
+            this.elements.themeIcon.classList.add('fas', iconClass);
+            this.elements.themeIcon.dataset.themeIcon = iconClass === 'fa-moon' ? 'moon' : 'sun';
+            console.log('🔄 Icône synchronisée ->', iconClass);
+        }
 
-        setTimeout(() => {
-            button.style.transform = 'scale(1) rotate(0deg)';
-        }, 300);
+        // checkbox toggle
+        if (this.elements.darkModeToggle) {
+            this.elements.darkModeToggle.checked = (theme === 'dark');
+            console.log('🔄 Toggle checkbox synchronisé ->', this.elements.darkModeToggle.checked);
+        }
+
+        // couleurs
+        const accentKey = this.currentAccentColor || this.getStoredAccentColor();
+        if (this.elements.colorOptions && accentKey) {
+            this.elements.colorOptions.forEach(option => {
+                const optionKey = option.getAttribute('data-color');
+                if (optionKey === accentKey) {
+                    option.classList.add('active');
+                } else {
+                    option.classList.remove('active');
+                }
+            });
+        }
     }
 
-    showNotification(message) {
-        // Vérifier si une notification existe déjà
-        const existingToast = document.querySelector('.toast-notification');
-        if (existingToast) {
-            existingToast.remove();
+    // ----------------------------
+    // External mutation observer
+    // ----------------------------
+    initExternalObserver() {
+        // Si déjà présent, skip
+        if (this.externalObserver) return;
+
+        const target = document.documentElement;
+        if (!target) return;
+
+        this.externalObserver = new MutationObserver(mutations => {
+            for (const m of mutations) {
+                if (m.type === 'attributes' && (m.attributeName === 'data-theme')) {
+                    const externalTheme = document.documentElement.getAttribute('data-theme') || document.body.getAttribute('data-theme');
+                    if (externalTheme && externalTheme !== this.currentTheme) {
+                        console.warn('⚠️ Theme overridden par un script externe ->', externalTheme);
+                        // Ré-synchroniser notre état sans écraser le choix externe,
+                        // mais on peut le prendre en compte :
+                        this.currentTheme = externalTheme;
+                        this.syncUIState();
+                        document.dispatchEvent(new CustomEvent('aiolia:theme-changed', { detail: { theme: externalTheme } }));
+                    }
+                }
+            }
+        });
+
+        this.externalObserver.observe(target, { attributes: true, attributeFilter: ['data-theme'] });
+        console.log('🔎 MutationObserver pour overrides externes activé');
+    }
+
+    // ... le reste des méthodes (couleurs, lighten/darken, notifications, animateButton, etc.) restent inchangées ...
+    // Assure-toi que saveTheme est appelé cohérent (applyThemeToDOM effectue un set localStorage en requestAnimationFrame).
+
+    // ----------------------------
+    // Couleurs d'accent
+    // ----------------------------
+    loadSavedColor() {
+        const storedKey = this.getStoredAccentColor();
+        this.applyAccentColor(storedKey, { persist: false });
+    }
+
+    getStoredAccentColor() {
+        try {
+            return localStorage.getItem(this.config.COLOR_STORAGE_KEY) || this.config.DEFAULT_COLOR;
+        } catch (error) {
+            console.warn('Erreur lecture couleur accent:', error);
+            return this.config.DEFAULT_COLOR;
+        }
+    }
+
+    saveAccentColor(colorKey) {
+        try {
+            localStorage.setItem(this.config.COLOR_STORAGE_KEY, colorKey);
+            console.log('💾 Couleur sauvegardée:', colorKey);
+        } catch (error) {
+            console.warn('Erreur sauvegarde couleur accent:', error);
+        }
+    }
+
+    setAccentColor(colorKey, showNotification = false) {
+        const appliedKey = this.applyAccentColor(colorKey);
+        if (!appliedKey) return;
+
+        this.saveAccentColor(appliedKey);
+        if (showNotification) {
+            const label = colorKey.charAt(0).toUpperCase() + colorKey.slice(1);
+            this.showNotification(`Couleur d'accent mise à jour : ${label} 🎨`);
+        }
+    }
+
+    applyAccentColor(colorKey, options = {}) {
+        if (!colorKey) {
+            colorKey = this.config.DEFAULT_COLOR;
+        }
+
+        const baseColor = this.colors[colorKey] || colorKey;
+        if (!baseColor) {
+            console.warn('Couleur inconnue, utilisation de la valeur par défaut');
+            return null;
+        }
+
+        const normalizedBase = this.normalizeHex(baseColor);
+        const accentLight = this.lightenColor(normalizedBase, 0.18);
+        const accentDark = this.darkenColor(normalizedBase, 0.16);
+
+        const root = document.documentElement;
+        root.style.setProperty('--accent', normalizedBase);
+        root.style.setProperty('--accent-light', accentLight);
+        root.style.setProperty('--accent-dark', accentDark);
+
+        this.currentAccentColor = colorKey;
+        this.syncUIState();
+
+        if (options.persist !== false) {
+            this.saveAccentColor(colorKey);
+        }
+
+        return colorKey;
+    }
+
+    normalizeHex(hex) {
+        if (!hex) return '#000000';
+        let value = hex.trim();
+        if (!value.startsWith('#')) {
+            value = `#${value}`;
+        }
+        if (value.length === 4) {
+            value = `#${value[1]}${value[1]}${value[2]}${value[2]}${value[3]}${value[3]}`;
+        }
+        return value.toUpperCase();
+    }
+
+    hexToRgb(hex) {
+        const normalized = this.normalizeHex(hex).replace('#', '');
+        const bigint = parseInt(normalized, 16);
+        return {
+            r: (bigint >> 16) & 255,
+            g: (bigint >> 8) & 255,
+            b: bigint & 255
+        };
+    }
+
+    rgbToHex({ r, g, b }) {
+        const toHex = (value) => {
+            const clamped = Math.max(0, Math.min(255, Math.round(value)));
+            return clamped.toString(16).padStart(2, '0');
+        };
+        return `#${toHex(r)}${toHex(g)}${toHex(b)}`.toUpperCase();
+    }
+
+    lightenColor(hex, amount = 0.2) {
+        const { r, g, b } = this.hexToRgb(hex);
+        return this.rgbToHex({
+            r: r + (255 - r) * amount,
+            g: g + (255 - g) * amount,
+            b: b + (255 - b) * amount
+        });
+    }
+
+    darkenColor(hex, amount = 0.2) {
+        const { r, g, b } = this.hexToRgb(hex);
+        return this.rgbToHex({
+            r: r * (1 - amount),
+            g: g * (1 - amount),
+            b: b * (1 - amount)
+        });
+    }
+
+    // ----------------------------
+    // Notifications & animations
+    // ----------------------------
+    ensureToastElement() {
+        if (this.toastElement && document.body.contains(this.toastElement)) {
+            return this.toastElement;
         }
 
         const toast = document.createElement('div');
         toast.className = 'toast-notification';
-        toast.textContent = message;
         document.body.appendChild(toast);
+        this.toastElement = toast;
+        return toast;
+    }
 
-        // Animation d'entrée
-        setTimeout(() => toast.classList.add('show'), 100);
+    showNotification(message, options = {}) {
+        const { duration = 3500 } = options;
+        const toast = this.ensureToastElement();
 
-        // Animation de sortie
+        toast.textContent = message;
+        toast.classList.add('show');
+
+        if (this.toastTimeout) {
+            clearTimeout(this.toastTimeout);
+        }
+
+        this.toastTimeout = setTimeout(() => {
+            this.hideNotification();
+        }, duration);
+    }
+
+    hideNotification() {
+        if (!this.toastElement) return;
+        this.toastElement.classList.remove('show');
+        this.toastElement.classList.add('hiding');
+
         setTimeout(() => {
-            toast.classList.remove('show');
-            setTimeout(() => toast.remove(), 300);
-        }, 3000);
+            if (this.toastElement) {
+                this.toastElement.classList.remove('hiding');
+            }
+        }, 300);
     }
 
-    // ============================================
-    // API PUBLIQUE
-    // ============================================
+    animateButton(button) {
+        if (!button) return;
+        button.classList.add('theme-toggle-anim');
+        setTimeout(() => {
+            button.classList.remove('theme-toggle-anim');
+        }, 350);
+    }
 
-    // Obtenir le thème actuel
+    // ----------------------------
+    // API publique
+    // ----------------------------
     getTheme() {
-        return this.getCurrentTheme();
+        return this.currentTheme || this.getStoredTheme();
     }
 
-    // Obtenir la couleur actuelle
-    getColor() {
-        return this.getStoredColor();
+    getAccentColor() {
+        return this.currentAccentColor || this.getStoredAccentColor();
     }
 
-    // Définir le thème programmatiquement
-    applyTheme(theme) {
-        if (theme === 'dark' || theme === 'light') {
-            this.setTheme(theme, false);
+    forceSync() {
+        console.log('🔁 Synchronisation forcée du ThemeManager');
+        this.loadAndApplyTheme();
+        this.syncUIState();
+        this.applyAccentColor(this.getStoredAccentColor(), { persist: false });
+    }
+
+    destroy() {
+        if (this.externalObserver) {
+            this.externalObserver.disconnect();
+            this.externalObserver = null;
         }
-    }
-
-    // Définir la couleur programmatiquement
-    applyColor(colorName) {
-        if (this.colors[colorName]) {
-            this.setAccentColor(colorName, false);
+        if (this.toastTimeout) {
+            clearTimeout(this.toastTimeout);
+            this.toastTimeout = null;
         }
-    }
-
-    // Réinitialiser aux valeurs par défaut
-    reset() {
-        this.setTheme(this.config.DEFAULT_THEME, false);
-        this.setAccentColor(this.config.DEFAULT_COLOR, false);
-        this.showNotification('Thème réinitialisé 🔄');
+        this.toastElement = null;
+        console.log('🧹 ThemeManager détruit');
     }
 }
+
 
 // ============================================
 // INITIALISATION AUTOMATIQUE
@@ -341,21 +512,28 @@ class ThemeManager {
 let themeManager;
 
 function initThemeManager() {
-    if (document.readyState === 'loading') {
-        document.addEventListener('DOMContentLoaded', () => {
-            themeManager = new ThemeManager();
-        });
-    } else {
+    // Créer une seule instance globale
+    if (!window.themeManager) {
         themeManager = new ThemeManager();
+        window.themeManager = themeManager;
+        window.ThemeManager = ThemeManager;
+        console.log('🎯 ThemeManager global créé');
+    } else {
+        // Si déjà existant, forcer la resynchronisation
+        console.log('🔄 ThemeManager existant, resynchronisation...');
+        window.themeManager.forceSync();
     }
 }
 
-// Initialiser
+// Initialiser au chargement
 initThemeManager();
 
-// Exposer globalement
-window.ThemeManager = ThemeManager;
-window.themeManager = themeManager;
+// Réinitialiser lors de la navigation (pour les SPA ou Turbo)
+window.addEventListener('load', () => {
+    if (window.themeManager && window.themeManager.isInitialized) {
+        window.themeManager.forceSync();
+    }
+});
 
 // Export pour modules
 if (typeof module !== 'undefined' && module.exports) {

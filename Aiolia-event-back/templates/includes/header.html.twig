@@ -4,20 +4,27 @@
             <i class="fas fa-bars"></i>
         </button>
         
-        <div class="header-search">
+        <form class="header-search" role="search" aria-label="Recherche">
+            <label class="sr-only" for="headerSearchInput" id="headerSearchLabel">Rechercher</label>
             <i class="fas fa-search"></i>
-            <input type="text" class="search-input" placeholder="Rechercher...">
-        </div>
+            <input
+                type="text"
+                id="headerSearchInput"
+                class="search-input"
+                placeholder="Rechercher des billets...">
+        </form>
     </div>
     
     <div class="header-right">
         <div class="header-actions">
             <button class="theme-toggle" id="themeToggle" aria-label="Basculer le thème">
-                <i class="fas fa-sun" id="themeIcon"></i>
+                <i class="fas fa-sun" id="themeIcon" data-theme-icon="sun"></i>
+                <span class="sr-only" id="themeToggleLabel">Basculer le thème</span>
             </button>
             
             <button class="notification-btn" aria-label="Notifications">
                 <i class="fas fa-bell"></i>
+                <span class="sr-only" id="notificationLabel">Notifications</span>
                 <span class="notification-badge">3</span>
                 <div class="notification-pulse"></div>
             </button>
@@ -64,24 +71,24 @@
                     
                     <a href="{{ path('app_profile_index') }}" class="dropdown-item" role="menuitem">
                         <i class="fas fa-user-circle"></i>
-                        <span>Mon Profil</span>
+                        <span data-i18n="layout.sidebar.profile"></span>
                     </a>
                     
                     <a href="{{ path('app_settings_index') }}" class="dropdown-item" role="menuitem">
                         <i class="fas fa-cog"></i>
-                        <span>Paramètres</span>
+                        <span data-i18n="layout.header.settings"></span>
                     </a>
                     
                     <a href="#" class="dropdown-item" role="menuitem">
                         <i class="fas fa-question-circle"></i>
-                        <span>Aide & Support</span>
+                        <span data-i18n="layout.header.help_support"></span>
                     </a>
                     
                     <div class="dropdown-divider"></div>
                     
                     <a href="{{ path('app_logout') }}" class="dropdown-item logout" role="menuitem">
                         <i class="fas fa-sign-out-alt"></i>
-                        <span>Déconnexion</span>
+                        <span data-i18n="layout.header.logout"></span>
                     </a>
                 </div>
             </div>
@@ -94,7 +101,74 @@
 // ============================================
 // HEADER INTERACTIONS
 // ============================================
+
+function applyHeaderTranslations() {
+    const manager = window.languageManager;
+    if (!manager) {
+        return;
+    }
+
+    const themeToggle = document.getElementById('themeToggle');
+    const themeLabelSpan = document.getElementById('themeToggleLabel');
+    const notifBtn = document.querySelector('.notification-btn');
+    const notifLabelSpan = document.getElementById('notificationLabel');
+    const searchInput = document.getElementById('headerSearchInput');
+    const searchLabel = document.getElementById('headerSearchLabel');
+
+    const themeLabel = manager.translate('layout.header.toggle_theme') || 'Basculer le thème';
+    const notifLabel = manager.translate('layout.header.notifications') || 'Notifications';
+    const searchLabelText = manager.translate('layout.header.search_label') || 'Rechercher';
+    const searchPlaceholder = manager.translate('layout.header.search_placeholder') || 'Rechercher des billets...';
+
+    if (themeToggle) {
+        themeToggle.setAttribute('aria-label', themeLabel);
+    }
+    if (themeLabelSpan) {
+        themeLabelSpan.textContent = themeLabel;
+    }
+    if (notifBtn) {
+        notifBtn.setAttribute('aria-label', notifLabel);
+    }
+    if (notifLabelSpan) {
+        notifLabelSpan.textContent = notifLabel;
+    }
+    if (searchLabel) {
+        searchLabel.textContent = searchLabelText;
+    }
+    if (searchInput) {
+        searchInput.setAttribute('placeholder', searchPlaceholder);
+    }
+}
+
 document.addEventListener('DOMContentLoaded', function() {
+    applyHeaderTranslations();
+    document.addEventListener('aiolia:language-changed', applyHeaderTranslations);
+
+    const themeToggle = document.getElementById('themeToggle');
+    const themeIcon = document.getElementById('themeIcon');
+    if (themeToggle && themeIcon) {
+        const updateIcon = () => {
+            const frameworkTheme = document.body.getAttribute('data-theme');
+            const managerTheme = window.themeManager ? window.themeManager.getTheme() : null;
+            const theme = managerTheme || (frameworkTheme === 'dark' ? 'dark' : 'light');
+            const iconClass = theme === 'dark' ? 'fa-moon' : 'fa-sun';
+            themeIcon.classList.remove('fa-moon', 'fa-sun');
+            themeIcon.classList.add('fas', iconClass);
+            themeIcon.dataset.themeIcon = iconClass === 'fa-moon' ? 'moon' : 'sun';
+        };
+
+        updateIcon();
+
+        if (window.themeManager) {
+            document.addEventListener('aiolia:theme-changed', () => {
+                requestAnimationFrame(updateIcon);
+            });
+        }
+
+        themeToggle.addEventListener('click', () => {
+            setTimeout(updateIcon, 0);
+        });
+    }
     
     // ============================================
     // USER DROPDOWN
@@ -235,34 +309,15 @@ document.addEventListener('DOMContentLoaded', function() {
     function showNotificationPanel() {
         // Placeholder pour le panneau de notifications
         // Vous pouvez créer un modal ou un dropdown pour afficher les notifications
-        alert('Panneau de notifications à implémenter');
+        const manager = window.languageManager;
+        const message = manager ? (manager.translate('layout.header.notifications_alert') || manager.getTranslation('layout.header.notifications_alert')) : 'Panneau de notifications à implémenter';
+        alert(message);
     }
     
     // ============================================
     // HEADER SCROLL BEHAVIOR
     // ============================================
     const header = document.querySelector('.admin-header');
-    let lastScroll = 0;
-    let scrollTimeout;
-    
-    if (header) {
-        window.addEventListener('scroll', function() {
-            clearTimeout(scrollTimeout);
-            
-            scrollTimeout = setTimeout(() => {
-                const currentScroll = window.pageYOffset;
-                
-                // Masquer header au scroll down (après 100px)
-                if (currentScroll > lastScroll && currentScroll > 100) {
-                    header.style.transform = 'translateY(-100%)';
-                } else {
-                    header.style.transform = 'translateY(0)';
-                }
-                
-                lastScroll = currentScroll;
-            }, 10);
-        });
-    }
     
     // ============================================
     // ANIMATIONS AU CHARGEMENT

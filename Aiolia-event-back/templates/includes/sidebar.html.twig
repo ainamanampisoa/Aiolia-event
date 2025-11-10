@@ -1,3 +1,12 @@
+{% set currentRoute = app.request.attributes.get('_route') %}
+{% set isDashboard = currentRoute starts with 'app_dashboard' %}
+{% set isReportsMain = currentRoute == 'app_reports_rapports' %}
+{% set isStats = currentRoute == 'app_reports_statistiques' %}
+{% set isUserManagement = currentRoute starts with 'admin_users' or currentRoute starts with 'admin_audit_' %}
+{% set isValidation = currentRoute starts with 'admin_validation' %}
+{% set isProfile = currentRoute starts with 'app_profile' %}
+{% set isSettings = currentRoute starts with 'app_settings' %}
+
 <aside class="admin-sidebar" id="adminSidebar">
     <div class="sidebar-header">
         <div class="sidebar-logo">
@@ -7,87 +16,87 @@
     
     <nav class="sidebar-nav" aria-label="Main navigation">
         <ul class="nav-menu">
-            <li class="nav-item active">
-                <a href="{{ path('app_dashboard') }}" class="nav-link" aria-current="page">
+            <li class="nav-item {{ isDashboard ? 'active' }}">
+                <a href="{{ path('app_dashboard') }}" class="nav-link {{ isDashboard ? 'active' }}" {% if isDashboard %}aria-current="page"{% endif %}>
                     <div class="nav-icon">
                         <i class="fas fa-tachometer-alt"></i>
                     </div>
-                    <span class="nav-text">Tableau Bord</span>
-                    <span class="nav-tooltip">Tableau Bord</span>
+                    <span class="nav-text" data-i18n="layout.sidebar.dashboard"></span>
+                    <span class="nav-tooltip" data-i18n="layout.sidebar.dashboard"></span>
                 </a>
             </li>
             
             <li class="nav-section">
-                <span class="nav-section-title">Analytics</span>
+                <span class="nav-section-title" data-i18n="layout.sidebar.analytics_section"></span>
             </li>
             
-            <li class="nav-item">
-                <a href="{{ path('app_reports_rapports') }}" class="nav-link">
+            <li class="nav-item {{ isReportsMain ? 'active' }}">
+                <a href="{{ path('app_reports_rapports') }}" class="nav-link {{ isReportsMain ? 'active' }}" {% if isReportsMain %}aria-current="page"{% endif %}>
                     <div class="nav-icon">
                         <i class="fas fa-chart-bar"></i>
                     </div>
-                    <span class="nav-text">Rapports Analytics</span>
-                    <span class="nav-tooltip">Rapports Analytics</span>
+                    <span class="nav-text" data-i18n="layout.sidebar.analytics_reports"></span>
+                    <span class="nav-tooltip" data-i18n="layout.sidebar.analytics_reports"></span>
                 </a>
             </li>
             
-            <li class="nav-item">
-                <a href="{{ path('app_reports_statistiques') }}" class="nav-link">
+            <li class="nav-item {{ isStats ? 'active' }}">
+                <a href="{{ path('app_reports_statistiques') }}" class="nav-link {{ isStats ? 'active' }}" {% if isStats %}aria-current="page"{% endif %}>
                     <div class="nav-icon">
                         <i class="fas fa-chart-line"></i>
                     </div>
-                    <span class="nav-text">Statistiques Données</span>
-                    <span class="nav-tooltip">Statistiques Données</span>
+                    <span class="nav-text" data-i18n="layout.sidebar.analytics_stats"></span>
+                    <span class="nav-tooltip" data-i18n="layout.sidebar.analytics_stats"></span>
                 </a>
             </li>
             
             {% if is_granted('ROLE_ADMIN') %}
             <li class="nav-section">
-                <span class="nav-section-title">Administration</span>
+                <span class="nav-section-title" data-i18n="layout.sidebar.admin_section"></span>
             </li>
             
-            <li class="nav-item">
-                <a href="{{ path('admin_users_list') }}" class="nav-link">
+            <li class="nav-item {{ isUserManagement ? 'active' }}">
+                <a href="{{ path('admin_users_list') }}" class="nav-link {{ isUserManagement ? 'active' }}" {% if isUserManagement %}aria-current="page"{% endif %}>
                     <div class="nav-icon">
                         <i class="fas fa-users-gear"></i>
                     </div>
-                    <span class="nav-text">Gestion Utilisateurs</span>
-                    <span class="nav-tooltip">Gestion Utilisateurs</span>
+                    <span class="nav-text" data-i18n="layout.sidebar.users"></span>
+                    <span class="nav-tooltip" data-i18n="layout.sidebar.users"></span>
                 </a>
             </li>
             
-            <li class="nav-item">
-                <a href="{{ path('admin_validation_pending') }}" class="nav-link">
+            <li class="nav-item {{ isValidation ? 'active' }}">
+                <a href="{{ path('admin_validation_pending') }}" class="nav-link {{ isValidation ? 'active' }}" {% if isValidation %}aria-current="page"{% endif %}>
                     <div class="nav-icon">
                         <i class="fas fa-user-check"></i>
                     </div>
-                    <span class="nav-text">Validation Comptes</span>
-                    <span class="nav-tooltip">Validation Comptes</span>
+                    <span class="nav-text" data-i18n="layout.sidebar.validation"></span>
+                    <span class="nav-tooltip" data-i18n="layout.sidebar.validation"></span>
                 </a>
             </li>
             {% endif %}
             
             <li class="nav-section">
-                <span class="nav-section-title">Compte</span>
+                <span class="nav-section-title" data-i18n="layout.sidebar.account_section"></span>
             </li>
             
-            <li class="nav-item">
-                <a href="{{ path('app_profile_index') }}" class="nav-link">
+            <li class="nav-item {{ isProfile ? 'active' }}">
+                <a href="{{ path('app_profile_index') }}" class="nav-link {{ isProfile ? 'active' }}" {% if isProfile %}aria-current="page"{% endif %}>
                     <div class="nav-icon">
                         <i class="fas fa-user-circle"></i>
                     </div>
-                    <span class="nav-text">Mon Profil</span>
-                    <span class="nav-tooltip">Mon Profil</span>
+                    <span class="nav-text" data-i18n="layout.sidebar.profile"></span>
+                    <span class="nav-tooltip" data-i18n="layout.sidebar.profile"></span>
                 </a>
             </li>
             
-            <li class="nav-item">
-                <a href="{{ path('app_settings_index') }}" class="nav-link">
+            <li class="nav-item {{ isSettings ? 'active' }}">
+                <a href="{{ path('app_settings_index') }}" class="nav-link {{ isSettings ? 'active' }}" {% if isSettings %}aria-current="page"{% endif %}>
                     <div class="nav-icon">
                         <i class="fas fa-sliders"></i>
                     </div>
-                    <span class="nav-text">Paramètres Système</span>
-                    <span class="nav-tooltip">Paramètres Système</span>
+                    <span class="nav-text" data-i18n="layout.sidebar.settings"></span>
+                    <span class="nav-tooltip" data-i18n="layout.sidebar.settings"></span>
                 </a>
             </li>
         </ul>

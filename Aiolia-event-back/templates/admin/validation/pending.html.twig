@@ -13,330 +13,174 @@
     <!-- En-tête -->
     <div class="dashboard-header">
         <div>
-            <h1>Validation des comptes</h1>
-            <p class="dashboard-subtitle">
+            <h1 data-i18n="validation.header.title">Validation des comptes</h1>
+            <p class="dashboard-subtitle" data-i18n="validation.header.subtitle">
                 Gérez les demandes de validation de rôle des utilisateurs
             </p>
         </div>
     </div>
 
-    <!-- Carte principale -->
-    <div class="card">
+    <!-- Statistiques validation -->
+    <section class="card stats-card">
         <div class="card-header">
-            <div class="card-header-content">
-                <div>
-                    <h4 class="mb-0">
-                        <i class="fas fa-user-check"></i> Demandes en attente
-                    </h4>
-                    <p class="card-subtitle">Approuvez ou rejetez les demandes de changement de rôle</p>
+            <h4 class="mb-0"><i class="fas fa-user-check"></i> <span data-i18n="validation.stats.summary.title">Résumé des comptes</span></h4>
+        </div>
+        <div class="card-body">
+            <div class="stats-grid stats-grid-compact validation-overview">
+                <div class="stat-card stat-card-compact">
+                    <div class="stat-icon stat-icon-compact bg-primary">
+                        <i class="fas fa-hourglass-half"></i>
+                    </div>
+                    <div class="stat-content">
+                        <h3>{{ pendingStats.total }}</h3>
+                        <p data-i18n="validation.stats.total_pending">Comptes en attente</p>
+                    </div>
                 </div>
-                <div class="card-header-actions">
-                    <span class="requests-count">{{ requests|length }} demande(s)</span>
+                <div class="stat-card stat-card-compact">
+                    <div class="stat-icon stat-icon-compact bg-info">
+                        <i class="fas fa-user-tie"></i>
+                    </div>
+                    <div class="stat-content">
+                        <h3>{{ pendingStats.organizer }}</h3>
+                        <p data-i18n="validation.stats.organizers">Organisateurs</p>
+                    </div>
+                </div>
+                <div class="stat-card stat-card-compact">
+                    <div class="stat-icon stat-icon-compact bg-success">
+                        <i class="fas fa-users"></i>
+                    </div>
+                    <div class="stat-content">
+                        <h3>{{ pendingStats.user }}</h3>
+                        <p data-i18n="validation.stats.users">Utilisateurs</p>
+                    </div>
                 </div>
             </div>
         </div>
+    </section>
 
+    <!-- Cartes comptes en attente -->
+    <section class="card pending-accounts">
+        <div class="card-header">
+            <div>
+                <h4 class="mb-0"><i class="fas fa-user-clock"></i> <span data-i18n="validation.pending.section.title">Comptes en attente de validation</span></h4>
+                <p class="card-subtitle" data-i18n="validation.pending.section.subtitle">Liste des comptes nécessitant une validation manuelle</p>
+            </div>
+        </div>
         <div class="card-body">
-            {% if requests is empty %}
-                <!-- État vide -->
+            {% if paginatedPendingAccounts is empty %}
                 <div class="empty-state">
                     <div class="empty-state-icon">
                         <i class="fas fa-check-double"></i>
                     </div>
-                    <h3>Aucune demande en attente</h3>
-                    <p>Toutes les demandes de validation ont été traitées.</p>
-                    <div class="empty-state-actions">
-                        <a href="{{ path('admin_users_list') }}" class="btn btn-primary">
-                            <i class="fas fa-users"></i> Voir tous les utilisateurs
-                        </a>
-                    </div>
+                    <h3 data-i18n="validation.pending.empty.title">Aucun compte en attente</h3>
+                    <p data-i18n="validation.pending.empty.subtitle">Tous les comptes ont été traités.</p>
                 </div>
             {% else %}
-                <!-- Filtres rapides -->
-                <div class="filters-section">
-                    <div class="filters-grid">
-                        <div class="filter-group">
-                            <label class="form-label">
-                                <i class="fas fa-filter"></i> Filtrer par rôle
-                            </label>
-                            <select class="form-select filter-select" id="roleFilter">
-                                <option value="all">Tous les rôles</option>
-                                <option value="organizer">Organisateur</option>
-                                <option value="co_organizer">Co-organisateur</option>
-                            </select>
-                        </div>
-                        <div class="filter-group">
-                            <label class="form-label">
-                                <i class="fas fa-sort"></i> Trier par
-                            </label>
-                            <select class="form-select filter-select" id="sortFilter">
-                                <option value="newest">Plus récent</option>
-                                <option value="oldest">Plus ancien</option>
-                                <option value="name">Nom</option>
-                            </select>
-                        </div>
-                    </div>
-                </div>
-
-                <!-- Liste des demandes en tableau -->
-                <div class="table-responsive">
-                    <table class="table table-hover requests-table">
-                        <thead>
+            <div class="table-responsive">
+                <table class="table table-hover pending-accounts-table">
+                    <thead>
+                        <tr>
+                            <th class="col-left" data-i18n="validation.table.headers.user">Utilisateur</th>
+                            <th class="col-center" data-i18n="validation.table.headers.role">Rôle demandé</th>
+                            <th class="col-center" data-i18n="validation.table.headers.status">Statut</th>
+                            <th class="col-center" data-i18n="validation.table.headers.submitted_at">Soumis le</th>
+                            <th class="col-center" data-i18n="validation.table.headers.actions">Actions</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for account in paginatedPendingAccounts %}
+                            {% set accountRequest = requestsByUserId[account.id]|default(null) %}
                             <tr>
-                                <th>Utilisateur</th>
-                                <th>Contact</th>
-                                <th>Rôle demandé</th>
-                                <th>Date demande</th>
-                                <th>Raison</th>
-                                <th class="actions-column">Actions</th>
-                            </tr>
-                        </thead>
-                        <tbody>
-                            {% for request in requests %}
-                                <tr class="request-row" data-role="{{ request.requestedRole }}" data-date="{{ request.createdAt|date('U') }}" data-name="{{ request.user.fullName|lower }}">
-                                    <td>
-                                        <div class="user-info">
-                                            <div class="user-avatar-sm">
-                                                {% if request.user.photoUrl %}
-                                                    <img src="{{ request.user.photoUrl }}" alt="{{ request.user.fullName }}">
-                                                {% else %}
-                                                    <div class="user-avatar-initials-sm">
-                                                        {{ request.user.firstName|first|upper }}{{ request.user.lastName|first|upper }}
-                                                    </div>
+                                <td class="col-left">
+                                    <div class="user-info">
+                                        <div class="user-details">
+                                            <strong class="user-name">{{ account.fullName }}</strong>
+                                            <div class="user-meta">
+                                                <span class="user-email">{{ account.email }}</span>
+                                                {% if account.phone %}
+                                                    <span class="user-phone">{{ account.phone }}</span>
                                                 {% endif %}
                                             </div>
-                                            <div class="user-details">
-                                                <strong class="user-name">{{ request.user.fullName }}</strong>
-                                                <div class="user-meta">
-                                                    <span class="user-email">{{ request.user.email }}</span>
-                                                    {% if request.user.phone %}
-                                                        <span class="user-phone">{{ request.user.phone }}</span>
-                                                    {% endif %}
-                                                </div>
-                                            </div>
                                         </div>
-                                    </td>
-                                    <td>
-                                        <div class="contact-info">
-                                            <div class="email">
-                                                <i class="fas fa-envelope"></i>
-                                                {{ request.user.email }}
-                                            </div>
-                                            {% if request.user.phone %}
-                                                <div class="phone">
-                                                    <i class="fas fa-phone"></i>
-                                                    {{ request.user.phone }}
-                                                </div>
-                                            {% endif %}
-                                        </div>
-                                    </td>
-                                    <td>
-                                        <span class="badge role-badge {{ request.requestedRole == 'organizer' ? 'role-organizer' : 'role-co-organizer' }}">
-                                            <i class="fas fa-{{ request.requestedRole == 'organizer' ? 'calendar-alt' : 'users' }}"></i>
-                                            {{ request.requestedRole == 'organizer' ? 'Organisateur' : 'Co-organisateur' }}
-                                        </span>
-                                    </td>
-                                    <td>
-                                        <div class="date-info">
-                                            <div class="request-date">
-                                                {{ request.createdAt|date('d/m/Y') }}
-                                            </div>
-                                            <div class="request-time">
-                                                {{ request.createdAt|date('H:i') }}
-                                            </div>
-                                        </div>
-                                    </td>
-                                    <td>
-                                        {% if request.reason %}
-                                            <div class="reason-preview">
-                                                <button class="btn-reason-preview" data-bs-toggle="modal" data-bs-target="#reasonModal{{ request.id }}">
-                                                    <i class="fas fa-comment"></i>
-                                                    Voir la raison
+                                    </div>
+                                </td>
+                                <td class="col-center">
+                                    {% if account.role == 'organizer' %}
+                                        <span class="badge role-badge role-organizer" data-i18n="validation.stats.organizers">Organisateurs</span>
+                                    {% else %}
+                                        <span class="badge role-badge role-user" data-i18n="validation.stats.users">Utilisateurs</span>
+                                    {% endif %}
+                                </td>
+                                <td class="col-center">
+                                    <span class="badge bg-warning text-dark" data-i18n="validation.table.status.pending">En attente</span>
+                                </td>
+                                <td class="col-center">{{ account.createdAt|date('d/m/Y') }}</td>
+                                <td class="col-center actions-cell">
+                                    <div class="action-tooltip">
+                                        <span class="tooltip-label" data-i18n="validation.table.button.view">Voir le profil</span>
+                                        <a href="{{ path('admin_users_show', {id: account.id}) }}" class="validation-action-pill pill-view">
+                                            <i class="fas fa-eye"></i><span data-i18n="validation.table.button.view">Voir le profil</span>
+                                        </a>
+                                    </div>
+                                    {% if accountRequest %}
+                                        <form method="post" action="{{ path('admin_validation_approve', {id: accountRequest.id}) }}" class="d-inline">
+                                            <input type="hidden" name="_token" value="{{ csrf_token('approve_request_' ~ accountRequest.id) }}">
+                                            <div class="action-tooltip">
+                                                <span class="tooltip-label" data-i18n="validation.table.button.approve">Approuver</span>
+                                                <button type="submit" class="validation-action-pill pill-approve">
+                                                    <i class="fas fa-check"></i><span data-i18n="validation.table.button.approve">Approuver</span>
                                                 </button>
                                             </div>
-                                        {% else %}
-                                            <span class="no-reason">
-                                                <i class="fas fa-info-circle"></i>
-                                                Aucune raison
-                                            </span>
-                                        {% endif %}
-                                    </td>
-                                    <td class="actions-column">
-                                        <div class="action-buttons">
-                                            <button class="btn btn-success btn-sm btn-approve" 
-                                                    data-bs-toggle="modal" 
-                                                    data-bs-target="#approveModal{{ request.id }}"
-                                                    title="Approuver la demande">
-                                                <i class="fas fa-check"></i>
-                                            </button>
-                                            <button class="btn btn-danger btn-sm btn-reject" 
-                                                    data-bs-toggle="modal" 
-                                                    data-bs-target="#rejectModal{{ request.id }}"
-                                                    title="Rejeter la demande">
-                                                <i class="fas fa-times"></i>
-                                            </button>
-                                            <a href="{{ path('admin_users_show', {id: request.user.id}) }}" 
-                                               class="btn btn-primary btn-sm btn-view"
-                                               title="Voir le profil">
-                                                <i class="fas fa-eye"></i>
-                                            </a>
-                                        </div>
-                                    </td>
-                                </tr>
-
-                                <!-- Modal pour voir la raison -->
-                                <div class="modal fade" id="reasonModal{{ request.id }}" tabindex="-1">
-                                    <div class="modal-dialog">
-                                        <div class="modal-content">
-                                            <div class="modal-header">
-                                                <h5 class="modal-title">
-                                                    <i class="fas fa-comment"></i> Raison de la demande
-                                                </h5>
-                                                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                                        </form>
+                                    {% else %}
+                                        <form method="post" action="{{ path('admin_users_toggle_status', {id: account.id}) }}" class="d-inline" onsubmit="return confirm('Activer le compte de {{ account.fullName }} ?');">
+                                            <input type="hidden" name="_token" value="{{ csrf_token('toggle_status_' ~ account.id) }}">
+                                            <div class="action-tooltip">
+                                                <span class="tooltip-label" data-i18n="validation.table.button.approve">Approuver</span>
+                                                <button type="submit" class="validation-action-pill pill-approve">
+                                                    <i class="fas fa-check"></i><span data-i18n="validation.table.button.approve">Approuver</span>
+                                                </button>
                                             </div>
-                                            <div class="modal-body">
-                                                <div class="reason-content">
-                                                    <p><strong>{{ request.user.fullName }}</strong> - {{ request.createdAt|date('d/m/Y à H:i') }}</p>
-                                                    <div class="reason-text">
-                                                        {{ request.reason }}
-                                                    </div>
-                                                </div>
-                                            </div>
-                                            <div class="modal-footer">
-                                                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Fermer</button>
-                                            </div>
-                                        </div>
-                                    </div>
-                                </div>
+                                        </form>
+                                    {% endif %}
+                                </td>
+                            </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+            {% if totalPages > 1 %}
+                <nav class="pagination-wrapper" aria-label="Pagination comptes en attente">
+                    <ul class="pagination">
+                        {% if currentPage > 1 %}
+                            <li class="page-item">
+                                <a class="page-link" href="{{ path('admin_validation_pending', {page: currentPage - 1}) }}" data-i18n="pagination.previous">Précédent</a>
+                            </li>
+                        {% else %}
+                            <li class="page-item disabled"><span class="page-link" data-i18n="pagination.previous">Précédent</span></li>
+                        {% endif %}
 
-                                <!-- Modal d'approbation -->
-                                <div class="modal fade" id="approveModal{{ request.id }}" tabindex="-1">
-                                    <div class="modal-dialog">
-                                        <div class="modal-content">
-                                            <div class="modal-header">
-                                                <div class="modal-header-content">
-                                                    <div class="modal-icon modal-icon-success">
-                                                        <i class="fas fa-check-circle"></i>
-                                                    </div>
-                                                    <div>
-                                                        <h5 class="modal-title">Approuver la demande</h5>
-                                                        <p class="modal-subtitle">Confirmez l'approbation du rôle</p>
-                                                    </div>
-                                                </div>
-                                                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
-                                            </div>
-                                            <form method="post" action="{{ path('admin_validation_approve', {id: request.id}) }}">
-                                                <div class="modal-body">
-                                                    <div class="approval-info">
-                                                        <div class="user-summary">
-                                                            <div class="user-avatar-sm">
-                                                                {% if request.user.photoUrl %}
-                                                                    <img src="{{ request.user.photoUrl }}" alt="{{ request.user.fullName }}">
-                                                                {% else %}
-                                                                    <div class="user-avatar-initials-sm">
-                                                                        {{ request.user.firstName|first|upper }}{{ request.user.lastName|first|upper }}
-                                                                    </div>
-                                                                {% endif %}
-                                                            </div>
-                                                            <div class="user-summary-details">
-                                                                <h6>{{ request.user.fullName }}</h6>
-                                                                <p>{{ request.user.email }}</p>
-                                                            </div>
-                                                        </div>
+                        {% for page in 1..totalPages %}
+                            {% if page == currentPage %}
+                                <li class="page-item active"><span class="page-link">{{ page }}</span></li>
+                            {% else %}
+                                <li class="page-item"><a class="page-link" href="{{ path('admin_validation_pending', {page: page}) }}">{{ page }}</a></li>
+                            {% endif %}
+                        {% endfor %}
 
-                                                        <div class="approval-message">
-                                                            <p>Vous êtes sur le point d'approuver la demande de <strong>{{ request.user.fullName }}</strong> pour le rôle de <strong>{{ request.requestedRole == 'organizer' ? 'Organisateur' : 'Co-organisateur' }}</strong>.</p>
-                                                        </div>
-
-                                                        <div class="form-group">
-                                                            <label class="form-label">
-                                                                <i class="fas fa-comment-dots"></i> Commentaire (optionnel)
-                                                            </label>
-                                                            <textarea name="comment" class="form-control" rows="3" 
-                                                                      placeholder="Ajoutez un commentaire pour l'utilisateur..."></textarea>
-                                                        </div>
-                                                    </div>
-                                                </div>
-                                                <div class="modal-footer">
-                                                    <button type="button" class="btn btn-outline-secondary" data-bs-dismiss="modal">
-                                                        Annuler
-                                                    </button>
-                                                    <button type="submit" class="btn btn-success">
-                                                        <i class="fas fa-check"></i> Approuver
-                                                    </button>
-                                                </div>
-                                            </form>
-                                        </div>
-                                    </div>
-                                </div>
-
-                                <!-- Modal de rejet -->
-                                <div class="modal fade" id="rejectModal{{ request.id }}" tabindex="-1">
-                                    <div class="modal-dialog">
-                                        <div class="modal-content">
-                                            <div class="modal-header">
-                                                <div class="modal-header-content">
-                                                    <div class="modal-icon modal-icon-danger">
-                                                        <i class="fas fa-times-circle"></i>
-                                                    </div>
-                                                    <div>
-                                                        <h5 class="modal-title">Rejeter la demande</h5>
-                                                        <p class="modal-subtitle">Indiquez la raison du rejet</p>
-                                                    </div>
-                                                </div>
-                                                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
-                                            </div>
-                                            <form method="post" action="{{ path('admin_validation_reject', {id: request.id}) }}">
-                                                <div class="modal-body">
-                                                    <div class="rejection-info">
-                                                        <div class="user-summary">
-                                                            <div class="user-avatar-sm">
-                                                                {% if request.user.photoUrl %}
-                                                                    <img src="{{ request.user.photoUrl }}" alt="{{ request.user.fullName }}">
-                                                                {% else %}
-                                                                    <div class="user-avatar-initials-sm">
-                                                                        {{ request.user.firstName|first|upper }}{{ request.user.lastName|first|upper }}
-                                                                    </div>
-                                                                {% endif %}
-                                                            </div>
-                                                            <div class="user-summary-details">
-                                                                <h6>{{ request.user.fullName }}</h6>
-                                                                <p>{{ request.user.email }}</p>
-                                                            </div>
-                                                        </div>
-
-                                                        <div class="rejection-message">
-                                                            <p>Vous êtes sur le point de rejeter la demande de <strong>{{ request.user.fullName }}</strong>.</p>
-                                                        </div>
-
-                                                        <div class="form-group">
-                                                            <label class="form-label required">
-                                                                <i class="fas fa-comment-exclamation"></i> Raison du rejet
-                                                            </label>
-                                                            <textarea name="comment" class="form-control" rows="3" required
-                                                                      placeholder="Expliquez pourquoi la demande est rejetée..."></textarea>
-                                                        </div>
-                                                    </div>
-                                                </div>
-                                                <div class="modal-footer">
-                                                    <button type="button" class="btn btn-outline-secondary" data-bs-dismiss="modal">
-                                                        Annuler
-                                                    </button>
-                                                    <button type="submit" class="btn btn-danger">
-                                                        <i class="fas fa-times"></i> Rejeter
-                                                    </button>
-                                                </div>
-                                            </form>
-                                        </div>
-                                    </div>
-                                </div>
-                            {% endfor %}
-                        </tbody>
-                    </table>
-                </div>
+                        {% if currentPage < totalPages %}
+                            <li class="page-item">
+                                <a class="page-link" href="{{ path('admin_validation_pending', {page: currentPage + 1}) }}" data-i18n="pagination.next">Suivant</a>
+                            </li>
+                        {% else %}
+                            <li class="page-item disabled"><span class="page-link" data-i18n="pagination.next">Suivant</span></li>
+                        {% endif %}
+                    </ul>
+                </nav>
+            {% endif %}
             {% endif %}
         </div>
-    </div>
+    </section>
 </div>
 
 <!-- Bootstrap JS -->
@@ -344,6 +188,21 @@
 
 <script>
 document.addEventListener('DOMContentLoaded', function() {
+    const updateValidationTitle = (retry = 0) => {
+        const manager = window.languageManager;
+        if (!manager) {
+            if (retry < 20) {
+                setTimeout(() => updateValidationTitle(retry + 1), 100);
+            }
+            return;
+        }
+        const translated = manager.translate('validation.meta.title') || 'Validation des comptes - Aiolia Event';
+        document.title = translated;
+    };
+
+    updateValidationTitle();
+    document.addEventListener('aiolia:language-changed', () => updateValidationTitle());
+
     // Initialiser les tooltips Bootstrap
     var tooltipTriggerList = [].slice.call(document.querySelectorAll('[title]'));
     var tooltipList = tooltipTriggerList.map(function (tooltipTriggerEl) {
@@ -403,7 +262,7 @@ function showValidationStats() {
 <style>
 /* Styles spécifiques à la validation */
 .dashboard-subtitle {
-    color: var(--gray-600);
+    color: var(--text-secondary);
     margin-top: 8px;
     font-size: 1rem;
 }
@@ -416,27 +275,209 @@ function showValidationStats() {
 }
 
 .card-subtitle {
-    color: var(--gray-600);
+    color: var(--text-secondary);
     font-size: 0.9rem;
     margin-top: 4px;
 }
 
 .requests-count {
-    background: var(--gray-100);
+    background: var(--bg-secondary);
     padding: 6px 12px;
     border-radius: 20px;
     font-size: 0.85rem;
     font-weight: 600;
-    color: var(--gray-700);
+    color: var(--text-secondary);
+}
+
+.validation-overview {
+    margin-bottom: 1.5rem;
+}
+
+.validation-overview.stats-grid-compact {
+    gap: 10px;
+    margin-bottom: 16px;
+}
+
+.validation-overview .stat-card-compact {
+    padding: 10px 12px;
+}
+
+.validation-overview .stat-icon-compact {
+    width: 30px;
+    height: 30px;
+    font-size: 1rem;
+    margin-bottom: 8px;
+}
+
+.validation-overview .stat-content h3 {
+    font-size: 1.2rem;
+    margin-bottom: 2px;
+    line-height: 1.1;
+}
+
+.pending-accounts-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    margin-bottom: 0.75rem;
+}
+
+.pending-accounts-table .col-left {
+    text-align: left;
+}
+
+.pending-accounts-table .col-center {
+    text-align: center;
+}
+
+.pending-accounts-table .col-right {
+    text-align: right;
+}
+
+.pending-accounts-table th {
+    font-weight: 600;
+    color: var(--text-primary);
+    border-bottom: 2px solid var(--border-color);
+}
+
+.pending-accounts-table td {
+    vertical-align: middle;
+}
+
+.pending-accounts-table .user-details {
+    display: flex;
+    flex-direction: column;
+    gap: 0.15rem;
+}
+
+.pending-accounts-table .user-id-badge {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.35rem;
+    background: rgba(52, 152, 219, 0.16);
+    color: var(--accent);
+    border-radius: 999px;
+    padding: 3px 9px;
+    font-size: 0.72rem;
+    font-weight: 600;
+}
+
+.pending-accounts-table .user-id-badge i {
+    font-size: 0.75rem;
+}
+
+.role-user {
+    background: rgba(108, 117, 125, 0.12);
+    color: #495057;
+    border: 1px solid rgba(108, 117, 125, 0.25);
+}
+
+.pending-accounts-table .actions-cell {
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    gap: 0.5rem;
+}
+
+.validation-action-pill {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.35rem;
+    padding: 8px 18px;
+    border-radius: 14px;
+    font-size: 0.85rem;
+    font-weight: 600;
+    border: 2px solid transparent;
+    text-decoration: none;
+}
+
+.validation-action-pill span {
+    margin: 0;
+}
+
+.validation-action-pill i {
+    font-size: 0.95rem;
+}
+
+.validation-action-pill.pill-view {
+    background: rgba(52, 152, 219, 0.15);
+    color: var(--accent);
+    border-color: rgba(52, 152, 219, 0.45);
+}
+
+.validation-action-pill.pill-approve {
+    background: rgba(46, 204, 113, 0.18);
+    color: #1d9a58;
+    border-color: rgba(46, 204, 113, 0.5);
+}
+
+.validation-action-pill:hover {
+    filter: brightness(0.95);
+}
+
+.action-tooltip {
+    display: inline-flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 0.35rem;
+    position: relative;
+}
+
+.tooltip-label {
+    position: absolute;
+    bottom: 100%;
+    transform: translateY(-8px);
+    background: rgba(15, 23, 42, 0.92);
+    color: #fff;
+    padding: 6px 12px;
+    border-radius: 8px;
+    font-size: 0.78rem;
+    font-weight: 500;
+    box-shadow: 0 6px 14px rgba(15, 23, 42, 0.25);
+    white-space: nowrap;
+    opacity: 0;
+    visibility: hidden;
+    transition: all 0.2s ease;
+    pointer-events: none;
+}
+
+.tooltip-label::after {
+    content: '';
+    position: absolute;
+    top: 100%;
+    left: 50%;
+    transform: translateX(-50%);
+    width: 0;
+    height: 0;
+    border-left: 6px solid transparent;
+    border-right: 6px solid transparent;
+    border-top: 6px solid rgba(15, 23, 42, 0.92);
+}
+
+.action-tooltip:hover .tooltip-label,
+.action-tooltip:focus-within .tooltip-label {
+    opacity: 1;
+    visibility: visible;
+    transform: translateY(-4px);
+}
+
+.pagination-wrapper {
+    display: flex;
+    justify-content: center;
+    margin-top: 1rem;
+}
+
+.pagination .page-link {
+    border-radius: var(--border-radius-sm) !important;
 }
 
 /* Filtres */
 .filters-section {
-    background: var(--gray-50);
+    background: var(--bg-card);
     border-radius: var(--border-radius-md);
     padding: 16px;
     margin-bottom: 20px;
-    border: 1px solid var(--gray-200);
+    border: 1px solid var(--border-color);
 }
 
 .filters-grid {
@@ -452,8 +493,8 @@ function showValidationStats() {
 
 .requests-table th {
     font-weight: 600;
-    color: var(--gray-700);
-    border-bottom: 2px solid var(--gray-300);
+    color: var(--text-primary);
+    border-bottom: 2px solid var(--border-color);
     padding: 12px 8px;
 }
 
@@ -502,7 +543,7 @@ function showValidationStats() {
 
 .user-name {
     font-weight: 600;
-    color: var(--gray-900);
+    color: var(--text-primary);
     font-size: 0.95rem;
     margin-bottom: 2px;
 }
@@ -515,7 +556,7 @@ function showValidationStats() {
 
 .user-email, .user-phone {
     font-size: 0.8rem;
-    color: var(--gray-600);
+    color: var(--text-secondary);
 }
 
 .contact-info {
@@ -532,7 +573,7 @@ function showValidationStats() {
 }
 
 .email i, .phone i {
-    color: var(--gray-500);
+    color: var(--text-secondary);
     width: 14px;
 }
 
@@ -564,12 +605,12 @@ function showValidationStats() {
 
 .request-date {
     font-weight: 600;
-    color: var(--gray-900);
+    color: var(--text-primary);
 }
 
 .request-time {
     font-size: 0.8rem;
-    color: var(--gray-600);
+    color: var(--text-secondary);
 }
 
 /* Raison */
@@ -578,9 +619,9 @@ function showValidationStats() {
 }
 
 .btn-reason-preview {
-    background: none;
-    border: 1px solid var(--gray-300);
-    color: var(--gray-700);
+    background: var(--bg-secondary);
+    border: 1px solid var(--border-color);
+    color: var(--text-secondary);
     padding: 6px 12px;
     border-radius: 6px;
     font-size: 0.8rem;
@@ -589,13 +630,13 @@ function showValidationStats() {
 }
 
 .btn-reason-preview:hover {
-    background: var(--gray-100);
+    background: var(--bg-primary);
     border-color: var(--accent);
     color: var(--accent);
 }
 
 .no-reason {
-    color: var(--gray-500);
+    color: var(--text-secondary);
     font-style: italic;
     font-size: 0.85rem;
 }
@@ -655,7 +696,7 @@ function showValidationStats() {
 }
 
 .modal-subtitle {
-    color: var(--gray-600);
+    color: var(--text-secondary);
     font-size: 0.9rem;
     margin: 0;
 }
@@ -666,12 +707,12 @@ function showValidationStats() {
     gap: 12px;
     margin-bottom: 16px;
     padding: 12px;
-    background: var(--gray-50);
+    background: var(--bg-secondary);
     border-radius: var(--border-radius-md);
 }
 
 .reason-content {
-    background: var(--gray-50);
+    background: var(--bg-secondary);
     padding: 16px;
     border-radius: var(--border-radius-md);
     border-left: 3px solid var(--accent);
@@ -680,7 +721,7 @@ function showValidationStats() {
 .reason-text {
     font-size: 0.9rem;
     line-height: 1.5;
-    color: var(--gray-700);
+    color: var(--text-secondary);
     margin: 0;
 }
 
@@ -692,17 +733,17 @@ function showValidationStats() {
 
 .empty-state-icon {
     font-size: 4rem;
-    color: var(--gray-400);
+    color: var(--text-secondary);
     margin-bottom: 20px;
 }
 
 .empty-state h3 {
-    color: var(--gray-700);
+    color: var(--text-primary);
     margin-bottom: 12px;
 }
 
 .empty-state p {
-    color: var(--gray-600);
+    color: var(--text-secondary);
     margin-bottom: 24px;
 }
 

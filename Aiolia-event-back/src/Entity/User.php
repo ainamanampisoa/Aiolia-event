@@ -53,7 +53,7 @@ class User implements UserInterface, PasswordAuthenticatedUserInterface
     #[ORM\Column]
     private bool $isActive = true;
 
-    #[ORM\Column(length: 20)]
+    #[ORM\Column(name: 'account_status', length: 20)]
     private string $accountStatus = 'active'; // active, pending_validation, rejected, suspended
 
     #[ORM\Column(type: Types::DATETIME_MUTABLE)]
@@ -212,8 +212,6 @@ class User implements UserInterface, PasswordAuthenticatedUserInterface
             $roles[] = 'ROLE_ADMIN';
         } elseif ($this->role === 'organizer') {
             $roles[] = 'ROLE_ORGANIZER';
-        } elseif ($this->role === 'co_organizer') {
-            $roles[] = 'ROLE_CO_ORGANIZER';
         }
         
         return array_unique($roles);

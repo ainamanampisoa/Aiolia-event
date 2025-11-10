@@ -7,16 +7,73 @@
     <!-- En-tête du dashboard -->
     <div class="dashboard-header">
         <div>
-            <h1>Tableau de bord</h1>
-            <p style="color: var(--gray-600); margin-top: 8px; font-size: 1rem;">
+            <h1 data-i18n-fr="Tableau de bord" data-i18n-en="Dashboard">Tableau de bord</h1>
+            <p
+                style="color: var(--text-secondary); margin-top: 8px; font-size: 1rem;"
+                data-i18n-target="html"
+                data-i18n-fr="Bienvenue, <strong>{{ app.user.firstName }} {{ app.user.lastName }}</strong> 👋"
+                data-i18n-en="Welcome, <strong>{{ app.user.firstName }} {{ app.user.lastName }}</strong> 👋"
+            >
                 Bienvenue, <strong>{{ app.user.firstName }} {{ app.user.lastName }}</strong> 👋
             </p>
         </div>
-        <div class="header-actions">
-            <button class="btn btn-primary" onclick="window.location.href='{{ path('app_event_new') }}'">
-                <i class="fas fa-plus"></i>
-                Nouvel événement
-            </button>
+    </div>
+
+    <!-- Bandeau plans (header) -->
+    <div class="plans-grid">
+        <div class="plan-card">
+            <div class="plan-icon" style="background: rgba(46, 204, 113, 0.15); color: var(--success);"><i class="fas fa-seedling"></i></div>
+            <div class="plan-content">
+                <div class="plan-title" data-i18n-fr="Plan Basic" data-i18n-en="Basic Plan">Plan Basic</div>
+                <div
+                    class="plan-metric"
+                    data-i18n-target="html"
+                    data-i18n-fr="{{ stats.organizers.plans.basic.count ?? '120' }} abonnements"
+                    data-i18n-en="{{ stats.organizers.plans.basic.count ?? '120' }} subscriptions"
+                >{{ stats.organizers.plans.basic.count ?? '120' }} abonnements</div>
+                <div
+                    class="plan-sub"
+                    data-i18n-target="html"
+                    data-i18n-fr="Recette&nbsp;: {{ stats.organizers.plans.basic.revenue ?? '1 200 €' }}"
+                    data-i18n-en="Revenue:&nbsp;{{ stats.organizers.plans.basic.revenue ?? '1 200 €' }}"
+                >Recette: {{ stats.organizers.plans.basic.revenue ?? '1 200 €' }}</div>
+            </div>
+        </div>
+        <div class="plan-card">
+            <div class="plan-icon" style="background: rgba(52, 152, 219, 0.15); color: var(--accent);"><i class="fas fa-rocket"></i></div>
+            <div class="plan-content">
+                <div class="plan-title" data-i18n-fr="Plan Pro" data-i18n-en="Pro Plan">Plan Pro</div>
+                <div
+                    class="plan-metric"
+                    data-i18n-target="html"
+                    data-i18n-fr="{{ stats.organizers.plans.pro.count ?? '65' }} abonnements"
+                    data-i18n-en="{{ stats.organizers.plans.pro.count ?? '65' }} subscriptions"
+                >{{ stats.organizers.plans.pro.count ?? '65' }} abonnements</div>
+                <div
+                    class="plan-sub"
+                    data-i18n-target="html"
+                    data-i18n-fr="Recette&nbsp;: {{ stats.organizers.plans.pro.revenue ?? '1 950 €' }}"
+                    data-i18n-en="Revenue:&nbsp;{{ stats.organizers.plans.pro.revenue ?? '1 950 €' }}"
+                >Recette: {{ stats.organizers.plans.pro.revenue ?? '1 950 €' }}</div>
+            </div>
+        </div>
+        <div class="plan-card">
+            <div class="plan-icon" style="background: rgba(155, 89, 182, 0.15); color: #9b59b6;"><i class="fas fa-building"></i></div>
+            <div class="plan-content">
+                <div class="plan-title" data-i18n-fr="Entreprise" data-i18n-en="Enterprise">Entreprise</div>
+                <div
+                    class="plan-metric"
+                    data-i18n-target="html"
+                    data-i18n-fr="{{ stats.organizers.plans.enterprise.count ?? '8' }} abonnements"
+                    data-i18n-en="{{ stats.organizers.plans.enterprise.count ?? '8' }} subscriptions"
+                >{{ stats.organizers.plans.enterprise.count ?? '8' }} abonnements</div>
+                <div
+                    class="plan-sub"
+                    data-i18n-target="html"
+                    data-i18n-fr="Recette&nbsp;: {{ stats.organizers.plans.enterprise.revenue ?? '2 392 €' }}"
+                    data-i18n-en="Revenue:&nbsp;{{ stats.organizers.plans.enterprise.revenue ?? '2 392 €' }}"
+                >Recette: {{ stats.organizers.plans.enterprise.revenue ?? '2 392 €' }}</div>
+            </div>
         </div>
     </div>
 
@@ -24,71 +81,245 @@
     <div class="stats-grid stats-grid-compact">
         <div class="stat-card stat-card-compact">
             <div class="stat-icon stat-icon-compact">
-                <i class="fas fa-calendar-alt"></i>
+                <i class="fas fa-user-shield"></i>
             </div>
             <div class="stat-content">
-                <h3>{{ stats.events.created_count ?? '24' }}</h3>
-                <p>Événements créés</p>
+                <h3>{{ stats.organizers.active_subscriptions ?? '42' }}</h3>
+                <p data-i18n-fr="Abonnements organisateurs actifs" data-i18n-en="Active organizer subscriptions">Abonnements organisateurs actifs</p>
             </div>
         </div>
 
-        <div class="stat-card stat-card-compact">
-            <div class="stat-icon stat-icon-compact">
-                <i class="fas fa-ticket-alt"></i>
-            </div>
-            <div class="stat-content">
-                <h3>{{ stats.tickets.sold_count ?? '1,248' }}</h3>
-                <p>Billets vendus</p>
-            </div>
-        </div>
+        
 
         <div class="stat-card stat-card-compact">
             <div class="stat-icon stat-icon-compact">
                 <i class="fas fa-euro-sign"></i>
             </div>
             <div class="stat-content">
-                <h3>{{ stats.revenue.total ?? '45,890' }} €</h3>
-                <p>Revenus totaux</p>
+                <h3>{{ stats.organizers.subscription_revenue_total ?? '45,890' }} €</h3>
+                <p data-i18n-fr="Revenus abonnements (organisateurs)" data-i18n-en="Subscription revenue (organizers)">Revenus abonnements (organisateurs)</p>
             </div>
         </div>
 
         <div class="stat-card stat-card-compact">
             <div class="stat-icon stat-icon-compact">
-                <i class="fas fa-users"></i>
+                <i class="fas fa-exclamation-circle"></i>
             </div>
             <div class="stat-content">
-                <h3>{{ stats.events.collaborated_count ?? '8' }}</h3>
-                <p>Collaborations actives</p>
+                <h3>{{ stats.organizers.overdue_subscriptions ?? '5' }}</h3>
+                <p data-i18n-fr="Abonnements en retard de paiement" data-i18n-en="Subscriptions overdue">Abonnements en retard de paiement</p>
+            </div>
+        </div>
+
+        
+        <!-- Top payeur (highlight) -->
+        <div class="stat-card stat-card-compact">
+            <div class="stat-icon stat-icon-compact">
+                <i class="fas fa-trophy"></i>
+            </div>
+            <div class="stat-content">
+                <h3>{{ (stats.organizers.top_payer.amount ?? '2 392') ~ ' €' }}</h3>
+                <p
+                    data-i18n-target="html"
+                    data-i18n-fr="Top payeur&nbsp;: {{ stats.organizers.top_payer.name ?? 'Entreprise X' }}"
+                    data-i18n-en="Top payer:&nbsp;{{ stats.organizers.top_payer.name ?? 'Entreprise X' }}"
+                >Top payeur: {{ stats.organizers.top_payer.name ?? 'Entreprise X' }}</p>
             </div>
         </div>
     </div>
 
     <!-- Graphique des ventes -->
     <div class="chart-card" style="margin-top: 24px;">
-        <div class="card-header" style="padding: 18px 20px;">
+            <div class="card-header" style="padding: 18px 20px;">
             <div style="display: flex; justify-content: space-between; align-items: center;">
                 <div>
-                    <h3 style="font-size: 1.1rem;">Ventes des 30 derniers jours</h3>
-                    <p style="color: var(--gray-600); font-size: 0.8rem; margin-top: 2px;">
-                        Évolution des ventes de billets
+                    <h3
+                        style="font-size: 1.1rem;"
+                        data-i18n-fr="Revenus des abonnements (30 jours)"
+                        data-i18n-en="Subscription revenues (30 days)"
+                    >Revenus des abonnements (30 jours)</h3>
+                        <p
+                            style="color: var(--text-secondary); font-size: 0.8rem; margin-top: 2px;"
+                            data-i18n-fr="Encaissements des abonnements des organisateurs"
+                            data-i18n-en="Organizer subscription collections"
+                        >
+                        Encaissements des abonnements des organisateurs
                     </p>
                 </div>
                 <div style="display: flex; gap: 8px;">
-                    <button class="filter-btn active" style="padding: 8px 16px; border: 2px solid var(--accent); background: var(--accent); color: white; border-radius: 8px; cursor: pointer; font-size: 0.85rem; font-weight: 600;">7 jours</button>
-                    <button class="filter-btn" style="padding: 8px 16px; border: 2px solid var(--gray-300); background: white; color: var(--gray-700); border-radius: 8px; cursor: pointer; font-size: 0.85rem;">30 jours</button>
+                        <button
+                            class="filter-btn active"
+                            style="padding: 8px 16px; border: 2px solid var(--accent); background: var(--accent); color: var(--text-inverse); border-radius: 8px; cursor: pointer; font-size: 0.85rem; font-weight: 600;"
+                            data-i18n-fr="7 jours"
+                            data-i18n-en="7 days"
+                        >7 jours</button>
+                        <button
+                            class="filter-btn"
+                            style="padding: 8px 16px; border: 2px solid var(--border-color); background: var(--bg-secondary); color: var(--text-secondary); border-radius: 8px; cursor: pointer; font-size: 0.85rem;"
+                            data-i18n-fr="30 jours"
+                            data-i18n-en="30 days"
+                        >30 jours</button>
                 </div>
             </div>
         </div>
         <div class="card-body">
-            <div class="chart-placeholder">
-                <i class="fas fa-chart-line"></i>
-                <p>Graphique des ventes (Chart.js)</p>
+            <canvas id="subsRevenueChart" height="110"></canvas>
+        </div>
+    </div>
+
+    <!-- Derniers paiements d'abonnement -->
+    <div class="card" style="margin-top: 24px;">
+        <div class="card-header" style="padding: 18px 20px; display: flex; justify-content: space-between; align-items: center;">
+            <div>
+                <h3
+                    style="font-size: 1.1rem;"
+                    data-i18n-fr="Derniers paiements d'abonnement"
+                    data-i18n-en="Latest subscription payments"
+                >Derniers paiements d'abonnement</h3>
+                <p
+                    style="color: var(--text-secondary); font-size: 0.8rem; margin-top: 2px;"
+                    data-i18n-fr="Flux des encaissements récents"
+                    data-i18n-en="Recent payment inflows"
+                >Flux des encaissements récents</p>
+            </div>
+            <a
+                href="#"
+                class="btn btn-outline-secondary"
+                style="padding: 8px 14px;"
+                data-i18n-fr="Voir tout"
+                data-i18n-en="View all"
+            >Voir tout</a>
+        </div>
+        <div class="card-body">
+            <div class="table-responsive">
+                <table class="table">
+                    <thead>
+                        <tr>
+                            <th class="col-left" data-i18n-fr="Organisateur" data-i18n-en="Organizer">Organisateur</th>
+                            <th class="col-left" data-i18n-fr="Abonnement" data-i18n-en="Subscription">Abonnement</th>
+                            <th class="col-right" data-i18n-fr="Montant" data-i18n-en="Amount">Montant</th>
+                            <th class="col-center" data-i18n-fr="Date" data-i18n-en="Date">Date</th>
+                            <th class="col-center" data-i18n-fr="Référence" data-i18n-en="Reference">Référence</th>
+                            <th class="col-center" data-i18n-fr="Statut" data-i18n-en="Status">Statut</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for p in (stats.organizers.last_subscription_payments ?? [
+                            {name: 'Org A', plan: 'Pro Mensuel', amount: '29,99 €', date: '05/11/2025', ref: 'PAY-001', status: 'Payé'},
+                            {name: 'Org B', plan: 'Pro Annuel', amount: '299,00 €', date: '03/11/2025', ref: 'PAY-002', status: 'Payé'},
+                            {name: 'Org C', plan: 'Basic Mensuel', amount: '9,99 €', date: '01/11/2025', ref: 'PAY-003', status: 'Payé'}
+                        ]) %}
+                        <tr>
+                            <td class="col-left">{{ p.name }}</td>
+                            <td class="col-left">{{ p.plan }}</td>
+                            <td class="col-right">{{ p.amount }}</td>
+                            <td class="col-center">{{ p.date }}</td>
+                            <td class="col-center">{{ p.ref }}</td>
+                            <td class="col-center">
+                                <span class="badge status-badge status-active"><i class="fas fa-check-circle"></i> {{ p.status }}</span>
+                            </td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+
+    <!-- Top payeurs -->
+    <div class="card" style="margin-top: 16px;">
+        <div class="card-header" style="padding: 18px 20px; display: flex; justify-content: space-between; align-items: center;">
+            <div>
+                <h3
+                    style="font-size: 1.1rem;"
+                    data-i18n-fr="Top payeurs (30 jours)"
+                    data-i18n-en="Top payers (30 days)"
+                >Top payeurs (30 jours)</h3>
+                <p
+                    style="color: var(--text-secondary); font-size: 0.8rem; margin-top: 2px;"
+                    data-i18n-fr="Classement des meilleurs contributeurs"
+                    data-i18n-en="Ranking of top contributors"
+                >Classement des meilleurs contributeurs</p>
+            </div>
+        </div>
+        <div class="card-body">
+            <div class="table-responsive">
+                <table class="table">
+                    <thead>
+                        <tr>
+                            <th class="col-center" data-i18n-fr="#" data-i18n-en="#">#</th>
+                            <th class="col-left" data-i18n-fr="Organisateur" data-i18n-en="Organizer">Organisateur</th>
+                            <th class="col-right" data-i18n-fr="Total payé" data-i18n-en="Total paid">Total payé</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for i, t in (stats.organizers.top_payers ?? [
+                            {name: 'Entreprise X', total: '2 392 €'},
+                            {name: 'Org B', total: '1 985 €'},
+                            {name: 'Org A', total: '1 249 €'}
+                        ]) %}
+                        <tr>
+                            <td class="col-center">{{ i + 1 }}</td>
+                            <td class="col-left">{{ t.name }}</td>
+                            <td class="col-right">{{ t.total }}</td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
             </div>
         </div>
     </div>
 </div>
 
 <style>
+/* Plans header */
+.plans-grid {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 12px;
+    margin: 16px 0 24px;
+}
+
+.plan-card {
+    display: flex;
+    gap: 12px;
+    align-items: center;
+    background: var(--bg-card);
+    border: 1px solid var(--border-color);
+    border-radius: var(--border-radius-md);
+    padding: 12px 14px;
+}
+
+.plan-icon {
+    width: 40px;
+    height: 40px;
+    border-radius: 10px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 1.1rem;
+}
+
+.plan-title {
+    font-size: 0.9rem;
+    color: var(--text-primary);
+    font-weight: var(--font-weight-semibold);
+}
+
+.plan-metric {
+    font-size: 1.1rem;
+    font-weight: var(--font-weight-bold);
+    color: var(--text-primary);
+}
+
+.plan-sub {
+    font-size: 0.8rem;
+    color: var(--text-secondary);
+}
+
+@media (max-width: 992px) {
+    .plans-grid { grid-template-columns: 1fr; }
+}
 /* Stats ultra-compactes */
 .stats-grid-compact {
     gap: 12px;
@@ -133,7 +364,7 @@
 }
 
 .quick-action-card {
-    background: var(--white);
+    background: var(--bg-card);
     border-radius: var(--border-radius-md);
     padding: 24px;
     text-align: center;
@@ -141,7 +372,7 @@
     transition: var(--transition-base);
     box-shadow: var(--shadow-md);
     text-decoration: none;
-    border: 1px solid var(--gray-200);
+    border: 1px solid var(--border-color);
 }
 
 .quick-actions-grid-compact .quick-action-card {
@@ -175,7 +406,7 @@
 .quick-action-card h4 {
     font-size: 1.1rem;
     font-weight: var(--font-weight-semibold);
-    color: var(--primary);
+    color: var(--text-primary);
     margin-bottom: 8px;
 }
 
@@ -187,12 +418,103 @@
 
 .quick-action-card p {
     font-size: 0.9rem;
-    color: var(--gray-600);
+    color: var(--text-secondary);
 }
 
 .quick-actions-grid-compact .quick-action-card p {
     font-size: 0.75rem;
     line-height: 1.4;
 }
+
+/* Alignements tables */
+.table th, .table td { vertical-align: middle; }
+.col-left { text-align: left; }
+.col-center { text-align: center; }
+.col-right { text-align: right; }
 </style>
+<script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.1/dist/chart.umd.min.js"></script>
+<script>
+document.addEventListener('DOMContentLoaded', renderSubsRevenueChart);
+document.addEventListener('turbo:load', renderSubsRevenueChart);
+function renderSubsRevenueChart() {
+    const canvas = document.getElementById('subsRevenueChart');
+    if (!canvas) return;
+    // Éviter de créer plusieurs instances si navigations Turbo
+    if (canvas._chartInstance) {
+        try { canvas._chartInstance.destroy(); } catch (e) {}
+        canvas._chartInstance = null;
+    }
+
+    const labels = {{ (stats.organizers.revenue_timeseries.labels ?? ['J-6','J-5','J-4','J-3','J-2','J-1','Aujourd\'hui'])|json_encode|raw }};
+    const datasetsInput = {{ (stats.organizers.revenue_timeseries.datasets ?? [
+        {label: 'Plan Basic', values: [80, 60, 70, 55, 90, 85, 110]},
+        {label: 'Plan Pro', values: [30, 25, 50, 20, 70, 60, 90]},
+        {label: 'Plan Entreprise', values: [10, 5, 30, 5, 40, 30, 20]}
+    ])|json_encode|raw }};
+
+    const isDark = getComputedStyle(document.documentElement).getPropertyValue('--bg-card');
+    const gridColor = 'rgba(128, 128, 128, 0.2)';
+    const textColor = getComputedStyle(document.documentElement).getPropertyValue('--text-secondary') || '#666';
+    const accent = (getComputedStyle(document.documentElement).getPropertyValue('--accent') || '#3498db').trim();
+    const palette = [
+        accent || '#3498db',
+        '#9b59b6',
+        '#e67e22',
+        '#2ecc71',
+        '#e74c3c'
+    ];
+
+    const datasets = (Array.isArray(datasetsInput) ? datasetsInput : [{ label: 'Revenus', values: datasetsInput?.values || [] }])
+        .slice(0, 5)
+        .map((ds, idx) => {
+            const color = palette[idx % palette.length];
+            return {
+                label: ds.label || `Série ${idx + 1}`,
+                data: ds.values || [],
+                tension: 0.35,
+                fill: true,
+                borderColor: color,
+                backgroundColor: color + '33',
+                pointRadius: 3,
+                pointHoverRadius: 5,
+                borderWidth: 2
+            };
+        });
+
+    const data = { labels, datasets };
+
+    const chart = new Chart(canvas.getContext('2d'), {
+        type: 'line',
+        data,
+        options: {
+            responsive: true,
+            maintainAspectRatio: false,
+            scales: {
+                x: {
+                    grid: { color: gridColor },
+                    ticks: { color: textColor }
+                },
+                y: {
+                    beginAtZero: true,
+                    grid: { color: gridColor },
+                    ticks: { color: textColor }
+                }
+            },
+            plugins: {
+                legend: { labels: { color: textColor } },
+                tooltip: {
+                    callbacks: {
+                        label: (ctx) => {
+                            const v = ctx.parsed.y ?? 0;
+                            return ' ' + v.toLocaleString('fr-FR') + ' \u20AC';
+                        }
+                    }
+                }
+            }
+        }
+    });
+
+    canvas._chartInstance = chart;
+}
+</script>
 {% endblock %}

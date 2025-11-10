@@ -306,12 +306,8 @@ class HeaderManager {
     handleScroll() {
         const currentScroll = window.pageYOffset;
         
-        // Masquer le header au scroll down (après le seuil)
-        if (currentScroll > this.lastScroll && currentScroll > this.config.SCROLL_THRESHOLD) {
-            this.hideHeader();
-        } else {
-            this.showHeader();
-        }
+        // Toujours afficher le header
+        this.showHeader();
         
         // Ajouter une classe si scrollé
         if (currentScroll > 0) {
@@ -324,7 +320,8 @@ class HeaderManager {
     }
     
     hideHeader() {
-        this.header.style.transform = 'translateY(-100%)';
+        // Désactivé : le header reste toujours visible
+        this.header.style.transform = 'translateY(0)';
     }
     
     showHeader() {

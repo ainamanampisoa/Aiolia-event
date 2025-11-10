@@ -4,188 +4,611 @@
 
 {% block stylesheets %}
 {{ parent() }}
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+<style>
+.user-details-page {
+    background-color: var(--bg-primary);
+    min-height: calc(100vh - 80px);
+    padding: 0.5rem 0;
+}
+
+.user-details-page .breadcrumb {
+    background: none;
+    padding: 0;
+    margin-bottom: 1rem;
+}
+
+.user-details-page .breadcrumb-item a {
+    color: var(--accent);
+    text-decoration: none;
+}
+
+.user-details-page .breadcrumb-item.active {
+    color: var(--text-secondary);
+}
+
+/* Carte profil utilisateur */
+.user-details-page .user-profile-card {
+    border: none;
+    border-radius: var(--border-radius-xl);
+    box-shadow: var(--shadow-lg);
+    overflow: hidden;
+    background: var(--bg-card);
+}
+
+.user-details-page .user-profile-card .card-header {
+    background: transparent;
+    color: var(--text-primary);
+    border: none;
+    padding: 0.5rem 0 0.25rem;
+}
+
+.user-details-page .user-profile-card .card-header h5 {
+    margin: 0;
+    font-weight: var(--font-weight-bold);
+    font-size: 1.6rem;
+    letter-spacing: -0.4px;
+    display: inline-flex;
+    align-items: center;
+    gap: 0.75rem;
+}
+
+.user-details-page .user-profile-card .card-header i {
+    color: var(--accent);
+    font-size: 1.4rem;
+}
+
+.user-details-page .user-profile-card .card-body {
+    padding: 1.25rem 1.35rem 1.5rem;
+    display: flex;
+    flex-direction: column;
+    gap: 1rem;
+}
+
+/* Avatar utilisateur */
+.user-details-page .user-summary {
+    display: flex;
+    align-items: center;
+    gap: 0.85rem;
+    font-size: 0.98rem;
+    color: var(--text-secondary);
+    flex-wrap: wrap;
+}
+
+.user-details-page .user-summary .user-summary-name {
+    font-size: 1.3rem;
+    font-weight: var(--font-weight-semibold);
+    color: var(--text-primary);
+}
+
+.user-details-page .user-summary i {
+    color: var(--accent);
+    margin-right: 0.4rem;
+}
+
+.user-details-page .user-summary-separator {
+    color: var(--border-dark);
+    margin: 0 0.5rem;
+    font-weight: var(--font-weight-medium);
+}
+
+/* Statistiques utilisateur */
+.user-details-page .user-stats {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.65rem;
+    border: 1px solid var(--border-color);
+    border-radius: var(--border-radius-lg);
+    padding: 0.8rem;
+    background: var(--bg-secondary);
+    margin-bottom: 1rem;
+}
+
+.user-details-page .stat-item {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.55rem;
+    padding: 0.55rem 0.85rem;
+    border-radius: var(--border-radius-md);
+    background: var(--bg-primary);
+    font-size: 0.92rem;
+    color: var(--text-primary);
+    border: 1px solid var(--border-color);
+    white-space: nowrap;
+}
+
+.user-details-page .stat-icon {
+    display: none;
+}
+
+.user-details-page .stat-label {
+    font-size: 0.82rem;
+    color: var(--text-secondary);
+    letter-spacing: 0.2px;
+    text-transform: uppercase;
+    font-weight: var(--font-weight-medium);
+}
+
+.user-details-page .stat-label::after {
+    content: ':';
+    margin-left: 0.25rem;
+    color: var(--border-dark);
+}
+
+.user-details-page .stat-value {
+    font-size: 0.98rem;
+    font-weight: var(--font-weight-semibold);
+}
+
+.user-details-page .stat-value i {
+    margin-right: 0.35rem;
+}
+
+.user-details-page .stat-badge {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.35rem;
+}
+
+/* Badges */
+.user-details-page .badge {
+    font-size: 0.8rem;
+    padding: 0.5rem 0.9rem;
+    border-radius: var(--border-radius-full);
+    font-weight: var(--font-weight-semibold);
+}
+
+.user-details-page .quick-links {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.75rem;
+    margin-bottom: 1.25rem;
+}
+
+.user-details-page .quick-link-card {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.5rem;
+    padding: 0.8rem 1rem;
+    background: var(--bg-secondary);
+    border: 1px solid var(--border-color);
+    border-radius: var(--border-radius-lg);
+    box-shadow: var(--shadow-sm);
+    transition: var(--transition-smooth);
+    color: var(--text-primary);
+    white-space: nowrap;
+}
+
+.user-details-page .quick-link-card:hover {
+    transform: translateY(-3px);
+    box-shadow: var(--shadow-md);
+}
+
+.user-details-page .quick-link-icon {
+    width: 32px;
+    height: 32px;
+    border-radius: var(--border-radius-md);
+    background: linear-gradient(135deg, var(--primary), var(--accent));
+    color: var(--text-inverse);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 0.95rem;
+}
+
+.user-details-page .quick-link-icon i {
+    margin-right: 0;
+}
+
+.user-details-page .quick-link-title {
+    font-size: 0.85rem;
+}
+
+.user-details-page .quick-link-desc {
+    display: none;
+}
+
+.user-details-page .badge.bg-success {
+    background: var(--success) !important;
+}
+
+.user-details-page .badge.bg-warning {
+    background: var(--warning) !important;
+}
+
+.user-details-page .badge.bg-danger {
+    background: var(--danger) !important;
+}
+
+.user-details-page .badge.bg-primary {
+    background: var(--accent) !important;
+}
+
+.user-details-page .badge.bg-secondary {
+    background: var(--secondary) !important;
+    color: var(--text-primary);
+}
+
+.user-details-page .badge.bg-dark {
+    background: var(--primary) !important;
+}
+
+/* Boutons */
+.user-details-page .btn {
+    border-radius: var(--border-radius-lg);
+    padding: 0.9rem 1.75rem;
+    font-weight: var(--font-weight-semibold);
+    font-size: 1.05rem;
+    transition: var(--transition-smooth);
+    border: none;
+}
+
+.user-details-page .btn-primary {
+    background: linear-gradient(135deg, var(--primary), var(--accent));
+    box-shadow: var(--shadow-md);
+}
+
+.user-details-page .btn-primary:hover {
+    transform: translateY(-3px);
+    box-shadow: var(--shadow-lg);
+}
+
+.user-details-page .breadcrumb-horizontal {
+    display: flex;
+    align-items: center;
+    gap: 0.75rem;
+    font-size: 1rem;
+    font-weight: var(--font-weight-semibold);
+    color: var(--text-primary);
+    margin-bottom: 2rem;
+    padding: 0.75rem 0;
+}
+
+.user-details-page .breadcrumb-horizontal a {
+    color: var(--accent);
+    text-decoration: none;
+    transition: var(--transition-fast);
+}
+
+.user-details-page .breadcrumb-horizontal a:hover {
+    color: var(--accent-light);
+}
+
+.user-details-page .breadcrumb-active {
+    color: var(--primary);
+    font-weight: var(--font-weight-semibold);
+}
+
+/* Section d'action principale */
+.user-details-page .action-section {
+    margin-top: auto;
+    padding-top: 2.25rem;
+    border-top: 1px solid var(--border-light);
+}
+
+/* Icônes de statut */
+.user-details-page .text-success {
+    color: var(--success) !important;
+    font-weight: var(--font-weight-semibold);
+}
+
+.user-details-page .text-danger {
+    color: var(--danger) !important;
+    font-weight: var(--font-weight-semibold);
+}
+
+.user-details-page .text-muted {
+    color: var(--text-muted) !important;
+}
+
+/* Responsive */
+@media (max-width: 1400px) {
+    .user-details-page .user-stats {
+        grid-template-columns: repeat(auto-fit, minmax(240px, 1fr));
+    }
+}
+
+@media (max-width: 1200px) {
+    .user-details-page .user-profile-card .card-body {
+        padding: 1.6rem;
+    }
+    
+    .user-details-page .user-stats {
+        flex-wrap: wrap;
+        justify-content: flex-start;
+    }
+}
+
+@media (max-width: 992px) {
+    
+    .user-details-page .user-profile-card .card-body {
+        padding: 1.6rem;
+    }
+    
+    .user-details-page .user-avatar,
+    .user-details-page .user-avatar-img {
+        width: 120px;
+        height: 120px;
+    }
+    
+    .user-details-page .avatar-initial {
+        font-size: 3rem;
+    }
+    
+    .user-details-page .user-name {
+        font-size: 1.75rem;
+    }
+    
+    .user-details-page .user-stats {
+        justify-content: space-between;
+        gap: 0.6rem;
+    }
+}
+
+@media (max-width: 768px) {
+    .user-details-page .user-profile-card .card-body {
+        padding: 1.5rem;
+    }
+    
+    .user-details-page .user-avatar,
+    .user-details-page .user-avatar-img {
+        width: 100px;
+        height: 100px;
+    }
+    
+    .user-details-page .avatar-initial {
+        font-size: 2.5rem;
+    }
+    
+    .user-details-page .user-name {
+        font-size: 1.5rem;
+    }
+    
+    .user-details-page .user-email {
+        font-size: 1rem;
+    }
+    
+    .user-details-page .user-stats {
+        flex-direction: column;
+        align-items: flex-start;
+        gap: 0.5rem;
+    }
+    
+    .user-details-page .stat-item {
+        width: 100%;
+        justify-content: space-between;
+    }
+    
+    .user-details-page .stat-icon {
+        display: none;
+    }
+    
+    .user-details-page .btn {
+        padding: 0.875rem 1.5rem;
+        font-size: 1rem;
+    }
+    
+    .user-details-page .quick-links {
+        flex-direction: column;
+        align-items: flex-start;
+    }
+    
+    .user-details-page .quick-link-card {
+        width: 100%;
+        justify-content: flex-start;
+        padding: 0.9rem 1rem;
+    }
+    
+    .user-details-page .quick-link-icon {
+        width: 32px;
+        height: 32px;
+        font-size: 0.9rem;
+    }
+}
+
+@media (max-width: 576px) {
+    .user-details-page .user-profile-card .card-body {
+        padding: 1.35rem;
+    }
+    
+    .user-details-page .user-profile-card .card-header {
+        padding: 1.5rem;
+    }
+    
+    .user-details-page .user-avatar,
+    .user-details-page .user-avatar-img {
+        width: 90px;
+        height: 90px;
+    }
+    
+    .user-details-page .avatar-initial {
+        font-size: 2.2rem;
+    }
+    
+    .user-details-page .user-name {
+        font-size: 1.3rem;
+    }
+    
+    .user-details-page .stat-item {
+        padding: 0.75rem 0.85rem;
+    }
+    
+    .user-details-page .stat-icon {
+        width: 44px;
+        height: 44px;
+        font-size: 1.1rem;
+    }
+    
+    .user-details-page .quick-link-card {
+        padding: 0.8rem 0.9rem;
+    }
+}
+</style>
+{% endblock %}
+
+{% block javascripts %}
+{{ parent() }}
+<script>
+function confirmToggleStatus(form) {
+    const manager = window.languageManager;
+    const lang = manager ? manager.getLanguage() : 'fr';
+    const isSuspended = (form.dataset.state || 'active') === 'suspended';
+    const prefix = isSuspended ? 'confirmActivate' : 'confirmSuspend';
+    const fallback = form.dataset.confirmSuspendFr || 'Suspendre ce compte ?';
+    const frMessage = isSuspended ? (form.dataset.confirmActivateFr || 'Activer ce compte ?') : (form.dataset.confirmSuspendFr || 'Suspendre ce compte ?');
+    const enMessage = isSuspended ? (form.dataset.confirmActivateEn || 'Activate this account?') : (form.dataset.confirmSuspendEn || 'Suspend this account?');
+    const message = lang === 'en' ? enMessage : frMessage;
+    return window.confirm(message || fallback);
+}
+</script>
 {% endblock %}
 
 {% block body %}
-<div class="container-fluid py-4">
+<div class="container-fluid py-3 user-details-page">
+    <!-- Fil d'Ariane -->
     <div class="row">
         <div class="col-12">
-            <nav aria-label="breadcrumb">
-                <ol class="breadcrumb">
-                    <li class="breadcrumb-item"><a href="{{ path('admin_users_list') }}">Utilisateurs</a></li>
-                    <li class="breadcrumb-item active">{{ user.fullName }}</li>
-                </ol>
-            </nav>
+            <div class="breadcrumb-horizontal">
+                <a href="{{ path('admin_users_list') }}" data-i18n-fr="Gestion des utilisateurs" data-i18n-en="User management">Gestion des utilisateurs</a>
+                <span>/</span>
+                <span class="breadcrumb-active">{{ user.fullName }}</span>
+            </div>
         </div>
     </div>
 
-    <div class="row">
-        <div class="col-md-4">
-            {# Informations utilisateur #}
-            <div class="card user-profile-card mb-4">
+    <div class="row justify-content-center">
+        <!-- Profil utilisateur -->
+        <div class="col-xxl-10 col-xl-11 col-12">
+            <div class="card user-profile-card">
                 <div class="card-header">
                     <h5 class="mb-0">
-                        <i class="fas fa-user"></i> Informations
+                        <i class="fas fa-user-shield me-3"></i>
+                        {% if user.role == 'admin' %}
+                            <span data-i18n-fr="Profil Administrateur" data-i18n-en="Administrator profile">Profil Administrateur</span>
+                        {% elseif user.role == 'organizer' %}
+                            <span data-i18n-fr="Profil Organisateur" data-i18n-en="Organizer profile">Profil Organisateur</span>
+                        {% else %}
+                            <span data-i18n-fr="Profil Utilisateur" data-i18n-en="User profile">Profil Utilisateur</span>
+                        {% endif %}
                     </h5>
                 </div>
                 <div class="card-body">
-                    <div class="text-center mb-4">
-                        <div class="user-avatar">
-                            <span class="avatar-initial">{{ user.firstName[0]|default('U') }}{{ user.lastName[0]|default('') }}</span>
-                        </div>
-                        <h4 class="mt-3 mb-1">{{ user.fullName }}</h4>
-                        <p class="text-muted mb-0">{{ user.email }}</p>
+                    <!-- Informations principales -->
+                    <div class="user-summary">
+                        <span class="user-summary-name">{{ user.fullName }}</span>
+                        <span class="user-summary-separator">•</span>
+                        <span><i class="fas fa-envelope"></i>{{ user.email }}</span>
+                        {% if user.phone %}
+                            <span class="user-summary-separator">•</span>
+                            <span><i class="fas fa-phone"></i>{{ user.phone }}</span>
+                        {% endif %}
                     </div>
 
+                    <!-- Statistiques détaillées -->
                     <div class="user-stats">
                         <div class="stat-item">
-                            <div class="stat-icon">
-                                <i class="fas fa-id-card"></i>
-                            </div>
-                            <div class="stat-content">
-                                <span class="stat-label">ID</span>
-                                <span class="stat-value">#{{ user.id }}</span>
-                            </div>
+                            <span class="stat-label" data-i18n-fr="Identifiant" data-i18n-en="Identifier">Identifiant</span>
+                            <span class="stat-value">#{{ user.id }}</span>
                         </div>
                         
                         <div class="stat-item">
-                            <div class="stat-icon">
-                                <i class="fas fa-phone"></i>
-                            </div>
-                            <div class="stat-content">
-                                <span class="stat-label">Téléphone</span>
-                                <span class="stat-value">{{ user.phone ?? 'Non renseigné' }}</span>
-                            </div>
+                            <span class="stat-label" data-i18n-fr="Niveau d'accès" data-i18n-en="Access level">Niveau d'accès</span>
+                            <span class="stat-value">
+                                {% if user.role == 'admin' %}
+                                    <span class="badge bg-danger stat-badge" data-i18n-fr="Administrateur" data-i18n-en="Administrator">Administrateur</span>
+                                {% elseif user.role == 'organizer' %}
+                                    <span class="badge bg-primary stat-badge" data-i18n-fr="Organisateur" data-i18n-en="Organizer">Organisateur</span>
+                                {% else %}
+                                    <span class="badge bg-secondary stat-badge" data-i18n-fr="Utilisateur" data-i18n-en="User">Utilisateur</span>
+                                {% endif %}
+                            </span>
                         </div>
                         
                         <div class="stat-item">
-                            <div class="stat-icon">
-                                <i class="fas fa-user-tag"></i>
-                            </div>
-                            <div class="stat-content">
-                                <span class="stat-label">Rôle</span>
-                                <span class="stat-value">
-                                    {% if user.role == 'admin' %}
-                                        <span class="badge bg-danger">Administrateur</span>
-                                    {% elseif user.role == 'organizer' %}
-                                        <span class="badge bg-primary">Organisateur</span>
-                                    {% elseif user.role == 'co_organizer' %}
-                                        <span class="badge bg-info">Co-organisateur</span>
-                                    {% else %}
-                                        <span class="badge bg-secondary">Utilisateur</span>
-                                    {% endif %}
-                                </span>
-                            </div>
+                            <span class="stat-label" data-i18n-fr="État du compte" data-i18n-en="Account status">État du compte</span>
+                            <span class="stat-value">
+                                {% if user.accountStatus == 'active' %}
+                                    <span class="badge bg-success stat-badge" data-i18n-fr="Actif" data-i18n-en="Active">Actif</span>
+                                {% elseif user.accountStatus == 'pending_validation' %}
+                                    <span class="badge bg-warning stat-badge" data-i18n-fr="En attente" data-i18n-en="Pending">En attente</span>
+                                {% elseif user.accountStatus == 'rejected' %}
+                                    <span class="badge bg-danger stat-badge" data-i18n-fr="Rejeté" data-i18n-en="Rejected">Rejeté</span>
+                                {% else %}
+                                    <span class="badge bg-dark stat-badge" data-i18n-fr="Suspendu" data-i18n-en="Suspended">Suspendu</span>
+                                {% endif %}
+                            </span>
                         </div>
                         
                         <div class="stat-item">
-                            <div class="stat-icon">
-                                <i class="fas fa-shield-alt"></i>
-                            </div>
-                            <div class="stat-content">
-                                <span class="stat-label">Statut</span>
-                                <span class="stat-value">
-                                    {% if user.accountStatus == 'active' %}
-                                        <span class="badge bg-success">Actif</span>
-                                    {% elseif user.accountStatus == 'pending_validation' %}
-                                        <span class="badge bg-warning">En attente</span>
-                                    {% elseif user.accountStatus == 'rejected' %}
-                                        <span class="badge bg-danger">Rejeté</span>
-                                    {% else %}
-                                        <span class="badge bg-dark">Suspendu</span>
-                                    {% endif %}
-                                </span>
-                            </div>
+                            <span class="stat-label" data-i18n-fr="Vérification email" data-i18n-en="Email verification">Vérification email</span>
+                            <span class="stat-value">
+                                {% if user.emailVerified %}
+                                    <span class="text-success stat-badge" data-i18n-fr="<i class='fas fa-check-circle me-1'></i>Confirmé" data-i18n-en="<i class='fas fa-check-circle me-1'></i>Confirmed" data-i18n-target="html"><i class="fas fa-check-circle me-1"></i>Confirmé</span>
+                                {% else %}
+                                    <span class="text-danger stat-badge" data-i18n-fr="<i class='fas fa-times-circle me-1'></i>En attente" data-i18n-en="<i class='fas fa-times-circle me-1'></i>Pending" data-i18n-target="html"><i class="fas fa-times-circle me-1"></i>En attente</span>
+                                {% endif %}
+                            </span>
                         </div>
                         
                         <div class="stat-item">
-                            <div class="stat-icon">
-                                <i class="fas fa-check-circle"></i>
-                            </div>
-                            <div class="stat-content">
-                                <span class="stat-label">Email vérifié</span>
-                                <span class="stat-value">
-                                    {% if user.emailVerified %}
-                                        <span class="text-success"><i class="fas fa-check"></i> Oui</span>
-                                    {% else %}
-                                        <span class="text-danger"><i class="fas fa-times"></i> Non</span>
-                                    {% endif %}
-                                </span>
-                            </div>
+                            <span class="stat-label" data-i18n-fr="Inscription" data-i18n-en="Registered">Inscription</span>
+                            <span class="stat-value" data-i18n-target="html" data-i18n-fr="{{ user.createdAt|date('d/m/Y') }}" data-i18n-en="{{ user.createdAt|date('d/m/Y') }}">{{ user.createdAt|date('d/m/Y') }}</span>
                         </div>
                         
                         <div class="stat-item">
-                            <div class="stat-icon">
-                                <i class="fas fa-calendar-plus"></i>
-                            </div>
-                            <div class="stat-content">
-                                <span class="stat-label">Date création</span>
-                                <span class="stat-value">{{ user.createdAt|date('d/m/Y H:i') }}</span>
-                            </div>
-                        </div>
-                        
-                        <div class="stat-item">
-                            <div class="stat-icon">
-                                <i class="fas fa-clock"></i>
-                            </div>
-                            <div class="stat-content">
-                                <span class="stat-label">Dernière connexion</span>
-                                <span class="stat-value">{{ user.lastLoginAt ? user.lastLoginAt|date('d/m/Y H:i') : 'Jamais' }}</span>
-                            </div>
+                            <span class="stat-label" data-i18n-fr="Dernière activité" data-i18n-en="Last activity">Dernière activité</span>
+                            <span class="stat-value">
+                                {% if user.lastLoginAt %}
+                                    <span data-i18n-target="html" data-i18n-fr="{{ user.lastLoginAt|date('d/m/Y à H:i') }}" data-i18n-en="{{ user.lastLoginAt|date('d/m/Y à H:i') }}">{{ user.lastLoginAt|date('d/m/Y à H:i') }}</span>
+                                {% else %}
+                                    <span class="text-muted" data-i18n-fr="Aucune connexion" data-i18n-en="No connection">Aucune connexion</span>
+                                {% endif %}
+                            </span>
                         </div>
                     </div>
-                </div>
-            </div>
 
-        </div>
+                    {% if user.role == 'organizer' %}
+                        <!-- Liens rapides -->
+                        <div class="quick-links">
+                            <a href="{{ path('admin_users_payments', {id: user.id}) }}" class="quick-link-card">
+                                <div class="quick-link-icon"><i class="fas fa-receipt"></i></div>
+                                <div class="quick-link-content">
+                                    <span class="quick-link-title" data-i18n-fr="Historique des paiements" data-i18n-en="Payment history">Historique des paiements</span>
+                                </div>
+                            </a>
+                            <a href="{{ path('admin_users_events', {id: user.id}) }}" class="quick-link-card">
+                                <div class="quick-link-icon"><i class="fas fa-calendar-check"></i></div>
+                                <div class="quick-link-content">
+                                    <span class="quick-link-title" data-i18n-fr="Participations aux événements" data-i18n-en="Event participation">Participations aux événements</span>
+                                </div>
+                            </a>
+                        </div>
+                    {% endif %}
 
-        <div class="col-md-8">
-            {# Informations supplémentaires #}
-            <div class="card info-card">
-                <div class="card-header">
-                    <h5 class="mb-0">
-                        <i class="fas fa-info-circle"></i> Informations supplémentaires
-                    </h5>
-                </div>
-                <div class="card-body">
-                    <div class="alert info-alert">
-                        <i class="fas fa-info-circle"></i>
-                        <strong>Gestion des utilisateurs</strong><br>
-                        Cette page vous permet de gérer les informations et les actions liées à cet utilisateur. 
-                        Vous pouvez modifier son rôle, suspendre ou activer son compte, et effectuer d'autres actions administratives.
-                    </div>
-                    
-                    <div class="row">
-                        <div class="col-md-6">
-                            <div class="info-box">
-                                <div class="info-icon">
-                                    <i class="fas fa-calendar-alt"></i>
-                                </div>
-                                <div class="info-content">
-                                    <h6>Date d'inscription</h6>
-                                    <p class="mb-0">{{ user.createdAt|date('d F Y à H:i') }}</p>
-                                </div>
-                            </div>
-                        </div>
-                        <div class="col-md-6">
-                            <div class="info-box">
-                                <div class="info-icon">
-                                    <i class="fas fa-clock"></i>
-                                </div>
-                                <div class="info-content">
-                                    <h6>Dernière activité</h6>
-                                    <p class="mb-0">{{ user.lastLoginAt ? user.lastLoginAt|date('d F Y à H:i') : 'Jamais connecté' }}</p>
-                                </div>
-                            </div>
-                        </div>
+                    <!-- Action principale -->
+                    <div class="action-section">
+                        {% set isSuspended = user.accountStatus == 'suspended' %}
+                        <form method="POST" action="{{ path('admin_users_toggle_status', {id: user.id}) }}" 
+                              onsubmit="return confirmToggleStatus(this);"
+                              data-confirm-activate-fr="Activer ce compte ?"
+                              data-confirm-activate-en="Activate this account?"
+                              data-confirm-suspend-fr="Suspendre ce compte ?"
+                              data-confirm-suspend-en="Suspend this account?"
+                              data-state="{{ isSuspended ? 'suspended' : 'active' }}">
+                            <input type="hidden" name="_token" value="{{ csrf_token('toggle_status_' ~ user.id) }}">
+                            <button type="submit" class="btn btn-primary w-100 py-3">
+                                <i class="fas fa-{{ user.accountStatus == 'suspended' ? 'play' : 'pause' }} me-3"></i>
+                                {% if isSuspended %}
+                                    <span data-i18n-fr="Activer le compte" data-i18n-en="Activate account">Activer le compte</span>
+                                {% else %}
+                                    <span data-i18n-fr="Suspendre le compte" data-i18n-en="Suspend account">Suspendre le compte</span>
+                                {% endif %}
+                            </button>
+                        </form>
                     </div>
                 </div>
             </div>
         </div>
     </div>
 </div>
-
-<!-- Bootstrap JS -->
-<script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
 {% endblock %}
-

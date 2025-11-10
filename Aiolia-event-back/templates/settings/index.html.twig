@@ -261,10 +261,8 @@
     <!-- En-tête -->
     <div class="dashboard-header">
         <div>
-            <h1>⚙️ Paramètres</h1>
-            <p style="color: var(--text-secondary); margin-top: 8px; font-size: 1rem;">
-                Personnalisez votre expérience Aiolia Event
-            </p>
+            <h1 data-i18n="settings.title"></h1>
+            <p data-i18n="settings.subtitle" style="color: var(--text-secondary); margin-top: 8px; font-size: 1rem;"></p>
         </div>
     </div>
 
@@ -275,8 +273,8 @@
                 <i class="fas fa-palette"></i>
             </div>
             <div>
-                <h2>Apparence</h2>
-                <p>Personnalisez l'interface selon vos préférences</p>
+                <h2 data-i18n="settings.sections.appearance.title"></h2>
+                <p data-i18n="settings.sections.appearance.description"></p>
             </div>
         </div>
 
@@ -288,8 +286,8 @@
                         <i class="fas fa-moon"></i>
                     </div>
                     <div class="setting-text">
-                        <h3>Mode sombre</h3>
-                        <p>Activez le thème sombre pour réduire la fatigue oculaire</p>
+                        <h3 data-i18n="settings.controls.dark_mode.title"></h3>
+                        <p data-i18n="settings.controls.dark_mode.description"></p>
                     </div>
                 </div>
                 <div class="setting-control">
@@ -307,17 +305,17 @@
                         <i class="fas fa-paint-brush"></i>
                     </div>
                     <div class="setting-text">
-                        <h3>Thème de couleur</h3>
-                        <p>Choisissez votre couleur d'accentuation</p>
+                        <h3 data-i18n="settings.controls.color_theme.title"></h3>
+                        <p data-i18n="settings.controls.color_theme.description"></p>
                     </div>
                 </div>
                 <div class="setting-control">
                     <div class="color-picker">
-                        <button class="color-option active" style="background: #3498DB;" data-color="blue" aria-label="Bleu"></button>
-                        <button class="color-option" style="background: #27AE60;" data-color="green" aria-label="Vert"></button>
-                        <button class="color-option" style="background: #9B59B6;" data-color="purple" aria-label="Violet"></button>
-                        <button class="color-option" style="background: #E74C3C;" data-color="red" aria-label="Rouge"></button>
-                        <button class="color-option" style="background: #F39C12;" data-color="orange" aria-label="Orange"></button>
+                        <button class="color-option active" style="background: #3498DB;" data-color="blue" data-i18n-attributes="aria-label" data-i18n-attr-aria-label-key="settings.colors.blue"></button>
+                        <button class="color-option" style="background: #27AE60;" data-color="green" data-i18n-attributes="aria-label" data-i18n-attr-aria-label-key="settings.colors.green"></button>
+                        <button class="color-option" style="background: #9B59B6;" data-color="purple" data-i18n-attributes="aria-label" data-i18n-attr-aria-label-key="settings.colors.purple"></button>
+                        <button class="color-option" style="background: #E74C3C;" data-color="red" data-i18n-attributes="aria-label" data-i18n-attr-aria-label-key="settings.colors.red"></button>
+                        <button class="color-option" style="background: #F39C12;" data-color="orange" data-i18n-attributes="aria-label" data-i18n-attr-aria-label-key="settings.colors.orange"></button>
                     </div>
                 </div>
             </div>
@@ -331,8 +329,8 @@
                 <i class="fas fa-globe"></i>
             </div>
             <div>
-                <h2>Langue et région</h2>
-                <p>Configurez votre langue et format régional</p>
+                <h2 data-i18n="settings.sections.locale.title"></h2>
+                <p data-i18n="settings.sections.locale.description"></p>
             </div>
         </div>
 
@@ -344,15 +342,14 @@
                         <i class="fas fa-language"></i>
                     </div>
                     <div class="setting-text">
-                        <h3>Langue de l'interface</h3>
-                        <p>Choisissez la langue d'affichage de l'application</p>
+                        <h3 data-i18n="settings.controls.language.title"></h3>
+                        <p data-i18n="settings.controls.language.description"></p>
                     </div>
                 </div>
                 <div class="setting-control">
                     <select class="setting-select" id="languageSelect">
-                        <option value="fr" selected>🇫🇷 Français</option>
-                        <option value="en">🇬🇧 English</option>
-                        <option value="mg">🇲🇬 Malagasy</option>
+                        <option value="fr" data-i18n="settings.controls.language.option.fr"></option>
+                        <option value="en" data-i18n="settings.controls.language.option.en"></option>
                     </select>
                 </div>
             </div>
@@ -364,15 +361,15 @@
                         <i class="fas fa-euro-sign"></i>
                     </div>
                     <div class="setting-text">
-                        <h3>Devise</h3>
-                        <p>Monnaie d'affichage des prix</p>
+                        <h3 data-i18n="settings.controls.currency.title"></h3>
+                        <p data-i18n="settings.controls.currency.description"></p>
                     </div>
                 </div>
                 <div class="setting-control">
                     <select class="setting-select" id="currencySelect">
-                        <option value="eur" selected>€ Euro (EUR)</option>
-                        <option value="mga">Ar Ariary (MGA)</option>
-                        <option value="usd">$ Dollar (USD)</option>
+                        <option value="eur" data-i18n="settings.controls.currency.option.eur"></option>
+                        <option value="mga" data-i18n="settings.controls.currency.option.mga"></option>
+                        <option value="usd" data-i18n="settings.controls.currency.option.usd"></option>
                     </select>
                 </div>
             </div>
@@ -384,7 +381,6 @@
 
 {% block javascripts %}
     {{ parent() }}
-    <script src="{{ asset('js/theme-manager.js') }}"></script>
     
     <script>
         // Gestion de la langue
@@ -392,20 +388,43 @@
             const languageSelect = document.getElementById('languageSelect');
             
             if (languageSelect) {
-                // Charger la langue sauvegardée
-                const savedLanguage = localStorage.getItem('aiolia-language') || 'fr';
+                const manager = window.languageManager;
+                const savedLanguage = manager ? manager.getLanguage() : (localStorage.getItem('aiolia-language') || 'fr');
                 languageSelect.value = savedLanguage;
-                
+
+                if (manager) {
+                    manager.onLanguageChange(({ current }) => {
+                        languageSelect.value = current;
+                    });
+                }
+
                 languageSelect.addEventListener('change', function() {
-                    localStorage.setItem('aiolia-language', this.value);
-                    const languages = {
-                        'fr': 'Français',
-                        'en': 'English',
-                        'mg': 'Malagasy'
-                    };
-                    
-                    if (window.themeManager) {
-                        window.themeManager.showNotification(`Langue changée : ${languages[this.value]} 🌍`);
+                    const newLang = this.value;
+
+                    if (manager) {
+                        const appliedLang = manager.setLanguage(newLang);
+                        if (this.value !== appliedLang) {
+                            this.value = appliedLang;
+                        }
+
+                        const label = manager.getTranslation(`settings.controls.language.option.${appliedLang}`) 
+                            || manager.getTranslation(`app.language.name.${appliedLang}`)
+                            || appliedLang.toUpperCase();
+
+                        if (window.themeManager) {
+                            const message = manager.translate('settings.toast.language', { language: label });
+                            window.themeManager.showNotification(message);
+                        }
+                    } else {
+                        localStorage.setItem('aiolia-language', newLang);
+                        const fallbackLabels = {
+                            fr: 'Français',
+                            en: 'English'
+                        };
+
+                        if (window.themeManager) {
+                            window.themeManager.showNotification(`Langue changée : ${fallbackLabels[newLang] || newLang.toUpperCase()} 🌍`);
+                        }
                     }
                 });
             }
@@ -420,14 +439,13 @@
                 
                 currencySelect.addEventListener('change', function() {
                     localStorage.setItem('aiolia-currency', this.value);
-                    const currencies = {
-                        'eur': 'Euro (€)',
-                        'mga': 'Ariary (Ar)',
-                        'usd': 'Dollar ($)'
-                    };
-                    
+                    const manager = window.languageManager;
+                    const currencyKey = `settings.controls.currency.option.${this.value}`;
+                    const label = manager ? (manager.getTranslation(currencyKey) || this.options[this.selectedIndex].textContent.trim()) : this.options[this.selectedIndex].textContent.trim();
+
                     if (window.themeManager) {
-                        window.themeManager.showNotification(`Devise changée : ${currencies[this.value]} 💱`);
+                        const message = manager ? manager.translate('settings.toast.currency', { currency: label }) : `Devise changée : ${label} 💱`;
+                        window.themeManager.showNotification(message);
                     }
                 });
             }

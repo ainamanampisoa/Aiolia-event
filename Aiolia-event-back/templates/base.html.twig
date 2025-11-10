@@ -3,10 +3,67 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="color-scheme" content="dark light">
+    
+    <script>
+        // Script de pré-chargement du thème (évite le flash et synchronise l'état)
+        (function() {
+            try {
+                // Désactiver transitions temporairement
+                document.documentElement.classList.add('no-transition');
+                
+                // Lire le thème sauvegardé
+                var savedTheme = localStorage.getItem('aiolia-theme') || 'light';
+                console.log('🚀 Pré-chargement thème:', savedTheme);
+                
+                // Appliquer immédiatement au HTML et BODY
+                if (savedTheme === 'dark') {
+                    document.documentElement.setAttribute('data-theme', 'dark');
+                    document.documentElement.classList.add('dark-mode');
+                    // Marquer que le body doit aussi avoir l'attribut
+                    document.addEventListener('DOMContentLoaded', function() {
+                        document.body.setAttribute('data-theme', 'dark');
+                        document.body.classList.add('dark-mode');
+                    });
+                } else {
+                    document.documentElement.removeAttribute('data-theme');
+                    document.documentElement.classList.remove('dark-mode');
+                    document.documentElement.classList.add('light-mode');
+                    document.addEventListener('DOMContentLoaded', function() {
+                        document.body.removeAttribute('data-theme');
+                        document.body.classList.remove('dark-mode');
+                        document.body.classList.add('light-mode');
+                    });
+                }
+                
+                // Style inline pour éviter le flash
+                var style = document.createElement('style');
+                style.textContent = '.no-transition, .no-transition * { transition: none !important; }';
+                document.head.appendChild(style);
+                
+                // Réactiver les transitions après chargement
+                var enableTransitions = function() {
+                    setTimeout(function() {
+                        document.documentElement.classList.remove('no-transition');
+                        console.log('✅ Transitions réactivées');
+                    }, 150);
+                };
+                
+                if (document.readyState === 'loading') {
+                    document.addEventListener('DOMContentLoaded', enableTransitions);
+                } else {
+                    enableTransitions();
+                }
+            } catch(e) {
+                console.warn('❌ Erreur pré-chargement thème:', e);
+            }
+        })();
+    </script>
+    
     <title>{% block title %}Aiolia Event - Dashboard{% endblock %}</title>
     <link rel="icon" type="image/svg+xml" href="{{ asset('images/favicon.svg') }}">
     <link rel="stylesheet" href="{{ asset('css/app.css') }}?v=2.0">
-    <link rel="stylesheet" href="{{ asset('css/components.css') }}?v=1.0">
+    <link rel="stylesheet" href="{{ asset('css/components.css') }}?v=1.1">
     <link href="https://fonts.googleapis.com/css2?family=Rubik:wght@300;400;500;600;700&display=swap" rel="stylesheet">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
     {% block stylesheets %}{% endblock %}
@@ -28,9 +85,11 @@
     <!-- Footer -->
     {% include 'includes/footer.html.twig' %}
     
-        <script src="{{ asset('js/admin.js') }}?v=2.1"></script>
-        <script src="{{ asset('js/header-interactions.js') }}?v=1.0"></script>
-        <script src="{{ asset('js/theme-manager.js') }}?v=1.0"></script>
+    <!-- Scripts JS -->
+    <script src="{{ asset('js/theme-manager.js') }}?v=2.0"></script>
+    <script src="{{ asset('js/language-manager.js') }}?v=1.0"></script>
+    <script src="{{ asset('js/header-interactions.js') }}?v=1.1"></script>
+    <script src="{{ asset('js/admin.js') }}?v=2.1"></script>
     {% block javascripts %}{% endblock %}
 </body>
 </html>

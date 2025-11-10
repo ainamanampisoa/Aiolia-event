@@ -1,3 +1,7 @@
+:root.light-mode,
+body.light-mode {
+    /* Cette classe explicite permet au JS d’appliquer le thème clair sans reload */
+}
 /* ============================================
    VARIABLES CSS - SYSTÈME DE DESIGN AMÉLIORÉ
    ============================================ */
@@ -110,6 +114,7 @@
 /* ============================================
    MODE SOMBRE AMÉLIORÉ
    ============================================ */
+:root.dark-mode,
 [data-theme="dark"] {
     --bg-primary: #0D1117;
     --bg-secondary: #161B22;
@@ -457,6 +462,18 @@ a:hover {
     color: var(--accent);
     transform: translateY(-2px);
     box-shadow: var(--shadow-md);
+}
+
+.sr-only {
+    position: absolute !important;
+    width: 1px !important;
+    height: 1px !important;
+    padding: 0 !important;
+    margin: -1px !important;
+    overflow: hidden !important;
+    clip: rect(0, 0, 0, 0) !important;
+    white-space: nowrap !important;
+    border: 0 !important;
 }
 
 .notification-btn:hover i {
