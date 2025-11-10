@@ -1,23 +1,59 @@
--- Aiolia Event Platform - Schéma relationnel
+-- ============================================
+-- AIOLIA EVENT PLATFORM - SCHEMA POSTGRESQL
 -- Génération : 2025-11-10
--- Ce fichier crée l’ensemble des tables, contraintes et index nécessaires
--- pour couvrir les fonctionnalités Front-Office et Back-Office de la plateforme.
+-- ============================================
 
+-- ============================================
+-- 1️⃣ SUPPRESSION ET CREATION DE L'UTILISATEUR ET DE LA BASE
+-- ============================================
+
+-- À exécuter depuis une connexion admin (ex: postgres)
+DROP DATABASE IF EXISTS aiolia_event;
+DROP ROLE IF EXISTS aiolia_user;
+
+CREATE ROLE aiolia_user WITH
+    LOGIN
+    PASSWORD 'aiolia2025'
+    CREATEDB
+    NOSUPERUSER
+    NOCREATEROLE;
+
+CREATE DATABASE aiolia_event
+    WITH 
+        OWNER = aiolia_user
+        ENCODING = 'UTF8'
+        LC_COLLATE = 'fr_FR.UTF-8'
+        LC_CTYPE = 'fr_FR.UTF-8'
+        TEMPLATE = template0;
+
+-- ============================================
+-- 2️⃣ CONNEXION À LA BASE
+-- ============================================
+\c aiolia_event;
+
+-- ============================================
+-- 3️⃣ EXTENSIONS ET SCHEMA
+-- ============================================
 CREATE EXTENSION IF NOT EXISTS "pgcrypto";
 CREATE EXTENSION IF NOT EXISTS citext;
 
-CREATE SCHEMA IF NOT EXISTS aiolia;
+CREATE SCHEMA IF NOT EXISTS aiolia AUTHORIZATION aiolia_user;
 SET search_path TO aiolia, public;
 
--- Domaines réutilisables
+-- ============================================
+-- 4️⃣ DOMAINES
+-- ============================================
 CREATE DOMAIN currency_code AS CHAR(3)
   CHECK (VALUE ~ '^[A-Z]{3}$');
 
 CREATE DOMAIN phone_e164 AS VARCHAR(20)
   CHECK (VALUE ~ '^\+\d{6,18}$');
 
--- Séquences
+-- ============================================
+-- 5️⃣ SÉQUENCES
+-- ============================================
 CREATE SEQUENCE IF NOT EXISTS invoice_number_seq START WITH 100000;
+
 
 -- Tables coeur Utilisateurs & Rôles -------------------------------------------------
 
@@ -89,8 +125,7 @@ CREATE TABLE user_validation_requests (
     reviewed_at TIMESTAMPTZ,
     rejection_reason TEXT,
     additional_documents JSONB,
-    metadata JSONB,
-    UNIQUE (user_id, status) WHERE (status = 'pending')
+    metadata JSONB
 );
 
 CREATE TABLE user_preferences (
@@ -400,8 +435,7 @@ CREATE TABLE ticket_transfers (
         CHECK (status IN ('pending', 'accepted', 'declined', 'cancelled')),
     token TEXT NOT NULL,
     expires_at TIMESTAMPTZ,
-    created_at TIMESTAMPTZ NOT NULL DEFAULT now(),
-    UNIQUE (ticket_id, status) WHERE (status = 'pending')
+    created_at TIMESTAMPTZ NOT NULL DEFAULT now()
 );
 
 CREATE TABLE payments (
@@ -494,8 +528,7 @@ CREATE TABLE wishlists (
     user_id UUID NOT NULL REFERENCES users(user_id) ON DELETE CASCADE,
     title TEXT NOT NULL DEFAULT 'Favoris',
     is_default BOOLEAN NOT NULL DEFAULT FALSE,
-    created_at TIMESTAMPTZ NOT NULL DEFAULT now(),
-    UNIQUE (user_id, is_default) WHERE (is_default)
+    created_at TIMESTAMPTZ NOT NULL DEFAULT now()
 );
 
 CREATE TABLE wishlist_items (
@@ -654,6 +687,9 @@ CREATE INDEX idx_ticket_quota_groups_event ON ticket_quota_groups(event_id);
 CREATE INDEX idx_ticket_quota_links_ticket ON ticket_quota_links(ticket_type_id);
 CREATE INDEX idx_promotion_targets_event ON promotion_targets(event_id);
 CREATE INDEX idx_daily_sales_event_date ON daily_sales_summary(event_id, summary_date);
+CREATE UNIQUE INDEX uq_user_validation_requests_pending ON user_validation_requests(user_id) WHERE status = 'pending';
+CREATE UNIQUE INDEX uq_ticket_transfers_pending ON ticket_transfers(ticket_id) WHERE status = 'pending';
+CREATE UNIQUE INDEX uq_wishlists_default ON wishlists(user_id) WHERE is_default;
 
 -- Contraintes supplémentaires -------------------------------------------------------
 
