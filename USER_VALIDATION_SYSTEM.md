@@ -270,7 +270,7 @@ psql -d aiolia_event
 sudo cp ~/Documents/MyProject/Aiolia-event/Base/schema.sql /tmp/
 sudo chown postgres:postgres /tmp/schema.sql
 
-sudo cp ~/Documents/MyProject/Aiolia-event/Base/script.sql /tmp/
-sudo chown postgres:postgres /tmp/script.sql
+sudo cp ~/Documents/MyProject/Aiolia-event/Base/mydata.sql /tmp/
+sudo chown postgres:postgres /tmp/mydata.sql
 
-\i /tmp/script.sql
+\i /tmp/mydata.sql
