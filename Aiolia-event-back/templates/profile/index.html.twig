@@ -21,11 +21,14 @@
             <div class="profile-card">
                 <div class="profile-header">
                     <div class="profile-avatar-large">
-                        {% if app.user.photoUrl %}
-                            <img src="{{ app.user.photoUrl }}" alt="Photo">
+                        {% set avatarUrl = app.user.avatarUrl %}
+                        {% set userInitials = app.user.photoUrl %}
+
+                        {% if avatarUrl %}
+                            <img src="{{ avatarUrl }}" alt="Photo de {{ app.user.firstName }} {{ app.user.lastName }}">
                         {% else %}
                             <div class="avatar-large-initials">
-                                {{ app.user.firstName|first|upper }}{{ app.user.lastName|first|upper }}
+                                {{ userInitials ?: (app.user.email|first|upper) }}
                             </div>
                         {% endif %}
                     </div>

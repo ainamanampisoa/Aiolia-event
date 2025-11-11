@@ -14,9 +14,8 @@ use Doctrine\ORM\Mapping as ORM;
 class AuditLog
 {
     #[ORM\Id]
-    #[ORM\Column(type: Types::GUID, unique: true)]
-    #[ORM\GeneratedValue(strategy: 'CUSTOM')]
-    #[ORM\CustomIdGenerator(class: 'App\Doctrine\UuidV4Generator')]
+    #[ORM\GeneratedValue]
+    #[ORM\Column(type: Types::BIGINT)]
     private ?string $id = null;
 
     #[ORM\ManyToOne(targetEntity: User::class)]
@@ -32,7 +31,7 @@ class AuditLog
     #[ORM\Column(name: 'entity_type', type: Types::STRING, length: 120, nullable: true)]
     private ?string $entityType = null;
 
-    #[ORM\Column(name: 'entity_id', type: Types::GUID, nullable: true)]
+    #[ORM\Column(name: 'entity_id', type: Types::BIGINT, nullable: true)]
     private ?string $entityId = null;
 
     #[ORM\Column(type: Types::JSON, nullable: true)]

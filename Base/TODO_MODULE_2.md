@@ -12,10 +12,10 @@
 # ✅ Suivi Module 2 – Organisateur
 
 ## Sprint 1 – Connexion & Profils
-- [ ] Authentification sécurisée côté organisateur
-- [ ] Gestion du profil (nom, email, téléphone, photo)
-- [ ] Support multi-langue pour l’espace organisateur
-- [ ] Préférence de mode sombre / clair enregistrée dans le profil
+- [x] Authentification sécurisée côté organisateur
+- [x] Gestion du profil (nom, email, téléphone, photo)
+- [ ] Support multi-langue pour l’espace organisateur et admin
+- [x] Préférence de mode sombre / clair enregistrée dans le profil
 
 ## Sprint 2 – Gestion des événements & médias
 - [ ] Création / modification / suppression d’événements riches (texte, images, vidéos)

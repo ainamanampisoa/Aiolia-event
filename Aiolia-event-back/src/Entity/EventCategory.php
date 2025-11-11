@@ -12,9 +12,8 @@ use Doctrine\ORM\Mapping as ORM;
 class EventCategory
 {
     #[ORM\Id]
-    #[ORM\Column(type: Types::GUID, unique: true)]
-    #[ORM\GeneratedValue(strategy: 'CUSTOM')]
-    #[ORM\CustomIdGenerator(class: 'App\Doctrine\UuidV4Generator')]
+    #[ORM\GeneratedValue]
+    #[ORM\Column(type: Types::BIGINT)]
     private ?string $id = null;
 
     #[ORM\Column(type: Types::STRING, length: 120, unique: true)]

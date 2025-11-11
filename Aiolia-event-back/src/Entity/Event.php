@@ -21,19 +21,18 @@ class Event
     public const VISIBILITY_UNLISTED = 'unlisted';
 
     #[ORM\Id]
-    #[ORM\Column(type: Types::GUID, unique: true)]
-    #[ORM\GeneratedValue(strategy: 'CUSTOM')]
-    #[ORM\CustomIdGenerator(class: 'App\Doctrine\UuidV4Generator')]
+    #[ORM\GeneratedValue]
+    #[ORM\Column(type: Types::BIGINT)]
     private ?string $id = null;
 
-    #[ORM\Column(name: 'organizer_id', type: Types::GUID)]
+    #[ORM\Column(name: 'organizer_id', type: Types::BIGINT)]
     private ?string $organizerId = null;
 
     #[ORM\ManyToOne(targetEntity: EventCategory::class)]
     #[ORM\JoinColumn(name: 'primary_category_id', referencedColumnName: 'id', nullable: true, onDelete: 'SET NULL')]
     private ?EventCategory $primaryCategory = null;
 
-    #[ORM\Column(name: 'venue_id', type: Types::GUID, nullable: true)]
+    #[ORM\Column(name: 'venue_id', type: Types::BIGINT, nullable: true)]
     private ?string $venueId = null;
 
     #[ORM\Column(type: Types::STRING, length: 255, unique: true)]

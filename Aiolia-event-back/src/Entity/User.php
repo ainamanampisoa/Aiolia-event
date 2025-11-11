@@ -2,7 +2,11 @@
 
 namespace App\Entity;
 
+use App\Enum\Role as UserRoleEnum;
+use App\Entity\Role;
 use App\Repository\UserRepository;
+use Doctrine\Common\Collections\ArrayCollection;
+use Doctrine\Common\Collections\Collection;
 use Doctrine\DBAL\Types\Types;
 use Doctrine\ORM\Mapping as ORM;
 use Symfony\Bridge\Doctrine\Validator\Constraints\UniqueEntity;
@@ -10,9 +14,11 @@ use Symfony\Component\Security\Core\User\PasswordAuthenticatedUserInterface;
 use Symfony\Component\Security\Core\User\UserInterface;
 
 #[ORM\Entity(repositoryClass: UserRepository::class)]
-#[ORM\Table(name: 'users', schema: 'aiolia')]
+#[ORM\Table(name: 'users', schema: 'aiolia', uniqueConstraints: [
+    new ORM\UniqueConstraint(name: 'uniq_users_fullname', columns: ['first_name', 'last_name'])
+])]
 #[ORM\HasLifecycleCallbacks]
-#[UniqueEntity(fields: ['email'], message: 'Un compte existe déjà avec cet email')]
+#[UniqueEntity(fields: ['firstName', 'lastName'], message: 'Un compte existe déjà avec ce prénom et ce nom')]
 class User implements UserInterface, PasswordAuthenticatedUserInterface
 {
     public const STATUS_PENDING = 'pending';
@@ -28,12 +34,11 @@ class User implements UserInterface, PasswordAuthenticatedUserInterface
     public const TWO_FACTOR_SMS = 'sms';
 
     #[ORM\Id]
-    #[ORM\Column(type: Types::GUID, unique: true)]
-    #[ORM\GeneratedValue(strategy: 'CUSTOM')]
-    #[ORM\CustomIdGenerator(class: 'App\Doctrine\UuidV4Generator')]
+    #[ORM\GeneratedValue]
+    #[ORM\Column(type: Types::BIGINT)]
     private ?string $id = null;
 
-    #[ORM\Column(length: 255, unique: true, columnDefinition: 'CITEXT NOT NULL')]
+    #[ORM\Column(length: 255, columnDefinition: 'CITEXT NOT NULL')]
     private string $email;
 
     #[ORM\Column(name: 'password_hash', type: Types::TEXT)]
@@ -59,6 +64,12 @@ class User implements UserInterface, PasswordAuthenticatedUserInterface
 
     #[ORM\Column(name: 'avatar_url', type: Types::TEXT, nullable: true)]
     private ?string $avatarUrl = null;
+
+    #[ORM\ManyToMany(targetEntity: Role::class, inversedBy: 'users')]
+    #[ORM\JoinTable(name: 'user_role_assignments', schema: 'aiolia')]
+    #[ORM\JoinColumn(name: 'user_id', referencedColumnName: 'id')]
+    #[ORM\InverseJoinColumn(name: 'role_id', referencedColumnName: 'id')]
+    private Collection $roles;
 
     #[ORM\Column(type: Types::STRING, length: 20, options: ['default' => self::STATUS_PENDING])]
     private string $status = self::STATUS_PENDING;
@@ -95,6 +106,7 @@ class User implements UserInterface, PasswordAuthenticatedUserInterface
         $now = new \DateTimeImmutable();
         $this->createdAt = $now;
         $this->updatedAt = $now;
+        $this->roles = new ArrayCollection();
     }
 
     #[ORM\PrePersist]
@@ -234,6 +246,83 @@ class User implements UserInterface, PasswordAuthenticatedUserInterface
         return $this;
     }
 
+    public function getPhotoUrl(): string
+    {
+        if (!empty($this->avatarUrl)) {
+            return $this->avatarUrl;
+        }
+
+        $initials = '';
+
+        if (!empty($this->firstName)) {
+            $initials .= mb_substr($this->firstName, 0, 1);
+        }
+
+        if (!empty($this->lastName)) {
+            $initials .= mb_substr($this->lastName, 0, 1);
+        }
+
+        if ($initials === '' && !empty($this->email)) {
+            $initials = mb_substr($this->email, 0, 1);
+        }
+
+        return mb_strtoupper($initials);
+    }
+
+    public function getRole(): string
+    {
+        foreach ($this->roles as $role) {
+            return $role->getCode();
+        }
+
+        return UserRoleEnum::USER;
+    }
+
+    public function setRole(Role $role): static
+    {
+        foreach ($this->roles->toArray() as $existingRole) {
+            if ($existingRole !== $role) {
+                $this->roles->removeElement($existingRole);
+                $existingRole->removeUser($this);
+            }
+        }
+
+        if (!$this->roles->contains($role)) {
+            $this->roles->add($role);
+        }
+
+        $role->addUser($this);
+
+        return $this;
+    }
+
+    public function addRole(Role $role): static
+    {
+        if (!$this->roles->contains($role)) {
+            $this->roles->add($role);
+            $role->addUser($this);
+        }
+
+        return $this;
+    }
+
+    public function removeRole(Role $role): static
+    {
+        if ($this->roles->removeElement($role)) {
+            $role->removeUser($this);
+        }
+
+        return $this;
+    }
+
+    /**
+     * @return Collection<int, Role>
+     */
+    public function getRoleEntities(): Collection
+    {
+        return $this->roles;
+    }
+
     public function getStatus(): string
     {
         return $this->status;
@@ -242,8 +331,46 @@ class User implements UserInterface, PasswordAuthenticatedUserInterface
     public function setStatus(string $status): static
     {
         $this->status = $status;
+        return $this;
+    }
+
+    public function getAccountStatus(): string
+    {
+        return $this->mapStatusToAccountStatus($this->status);
+    }
+
+    public function setAccountStatus(string $accountStatus): static
+    {
+        $normalized = strtolower(trim($accountStatus));
+        $this->status = $this->mapAccountStatusToStatus($normalized);
 
         return $this;
+    }
+
+    public function isActive(): bool
+    {
+        return $this->status === self::STATUS_ACTIVE;
+    }
+
+    private function mapAccountStatusToStatus(string $accountStatus): string
+    {
+        return match ($accountStatus) {
+            'active' => self::STATUS_ACTIVE,
+            'suspended' => self::STATUS_SUSPENDED,
+            'rejected' => self::STATUS_SUSPENDED,
+            'deleted' => self::STATUS_DELETED,
+            default => self::STATUS_PENDING,
+        };
+    }
+
+    private function mapStatusToAccountStatus(string $status): string
+    {
+        return match ($status) {
+            self::STATUS_ACTIVE => 'active',
+            self::STATUS_SUSPENDED => 'suspended',
+            self::STATUS_DELETED => 'deleted',
+            default => 'pending_validation',
+        };
     }
 
     public function getAuthProvider(): string
@@ -361,7 +488,25 @@ class User implements UserInterface, PasswordAuthenticatedUserInterface
 
     public function getRoles(): array
     {
-        return ['ROLE_USER'];
+        if ($this->roles->isEmpty()) {
+            return UserRoleEnum::toSecurityRoles(UserRoleEnum::USER);
+        }
+
+        $securityRoles = [];
+
+        foreach ($this->roles as $role) {
+            $code = $role->getCode();
+
+            if (UserRoleEnum::isValid($code)) {
+                $securityRoles = array_merge($securityRoles, UserRoleEnum::toSecurityRoles($code));
+            } else {
+                $securityRoles[] = 'ROLE_USER';
+            }
+        }
+
+        $securityRoles[] = 'ROLE_USER';
+
+        return array_values(array_unique($securityRoles));
     }
 
     public function eraseCredentials(): void

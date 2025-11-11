@@ -3,6 +3,7 @@
 namespace App\Controller\Admin;
 
 use App\Entity\User;
+use App\Repository\RoleRepository;
 use App\Repository\UserRepository;
 use App\Repository\AuditLogRepository;
 use App\Repository\EventRepository;
@@ -26,6 +27,7 @@ class UserManagementController extends AbstractController
         private AuditLogRepository $auditLogRepository,
         private EventRepository $eventRepository,
         private AuditLogService $auditLogService,
+        private RoleRepository $roleRepository,
         private UserNotificationService $notificationService
     ) {
     }
@@ -49,7 +51,7 @@ class UserManagementController extends AbstractController
 
         // Construction de la requête pour compter le total (avec filtres)
         $countQb = $this->userRepository->createQueryBuilder('u')
-            ->select('COUNT(u.id)');
+            ->select('COUNT(DISTINCT u.id)');
 
         // Construction de la requête pour récupérer les utilisateurs (avec filtres)
         $qb = $this->userRepository->createQueryBuilder('u');
@@ -70,11 +72,16 @@ class UserManagementController extends AbstractController
         }
 
         // Filtre par rôle
-        if ($role && in_array($role, ['user', 'organizer', 'admin'])) {
-            $qb->andWhere('u.role = :role')
+        if ($role && in_array($role, ['user', 'organizer', 'co_organizer', 'admin'], true)) {
+            $qb->innerJoin('u.roles', 'roleFilter')
+               ->andWhere('roleFilter.code = :role')
                ->setParameter('role', $role);
-            $countQb->andWhere('u.role = :role')
+
+            $countQb->innerJoin('u.roles', 'roleFilterCount')
+                    ->andWhere('roleFilterCount.code = :role')
                     ->setParameter('role', $role);
+
+            $qb->distinct();
         }
 
         // Filtre par statut
@@ -127,8 +134,9 @@ class UserManagementController extends AbstractController
 
         // Organisateurs
         $organizers = (int) $this->userRepository->createQueryBuilder('u')
-            ->select('COUNT(u.id)')
-            ->where('u.role = :role')
+            ->select('COUNT(DISTINCT u.id)')
+            ->innerJoin('u.roles', 'roleStats')
+            ->where('roleStats.code = :role')
             ->setParameter('role', 'organizer')
             ->getQuery()
             ->getSingleScalarResult();
@@ -233,13 +241,20 @@ class UserManagementController extends AbstractController
         }
 
         $newRole = $request->request->get('role');
-        if (!in_array($newRole, ['user', 'organizer', 'admin'])) {
+        if (!in_array($newRole, ['user', 'organizer', 'co_organizer', 'admin'], true)) {
             $this->addFlash('error', 'Rôle invalide');
             return $this->redirectToRoute('admin_users_show', ['id' => $id]);
         }
 
+        $roleEntity = $this->roleRepository->findOneByCode($newRole);
+
+        if (!$roleEntity) {
+            $this->addFlash('error', 'Rôle introuvable');
+            return $this->redirectToRoute('admin_users_show', ['id' => $id]);
+        }
+
         $oldRole = $user->getRole();
-        $user->setRole($newRole);
+        $user->setRole($roleEntity);
         $this->entityManager->flush();
 
         // Logger l'action
@@ -479,6 +494,7 @@ class UserManagementController extends AbstractController
     {
         return match($role) {
             'organizer' => 'Organisateur',
+            'co_organizer' => 'Co-organisateur',
             'admin' => 'Administrateur',
             default => 'Utilisateur',
         };

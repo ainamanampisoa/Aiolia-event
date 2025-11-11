@@ -3,6 +3,7 @@
 namespace App\Command;
 
 use App\Entity\User;
+use App\Repository\RoleRepository;
 use Doctrine\ORM\EntityManagerInterface;
 use Symfony\Component\Console\Attribute\AsCommand;
 use Symfony\Component\Console\Command\Command;
@@ -19,7 +20,8 @@ class CreateTestUsersCommand extends Command
 {
     public function __construct(
         private EntityManagerInterface $entityManager,
-        private UserPasswordHasherInterface $passwordHasher
+        private UserPasswordHasherInterface $passwordHasher,
+        private RoleRepository $roleRepository
     ) {
         parent::__construct();
     }
@@ -34,7 +36,7 @@ class CreateTestUsersCommand extends Command
                 'password' => 'admin123',
                 'firstName' => 'Admin',
                 'lastName' => 'System',
-                'phone' => '+261 34 12 345 67',
+                'phone' => '+261341234567',
                 'role' => 'admin',
                 'emailVerified' => true,
             ],
@@ -43,7 +45,7 @@ class CreateTestUsersCommand extends Command
                 'password' => 'organizer123',
                 'firstName' => 'Jean',
                 'lastName' => 'Dupont',
-                'phone' => '+261 33 23 456 78',
+                'phone' => '+261332345678',
                 'role' => 'organizer',
                 'emailVerified' => true,
             ],
@@ -52,7 +54,7 @@ class CreateTestUsersCommand extends Command
                 'password' => 'user123',
                 'firstName' => 'Marie',
                 'lastName' => 'Martin',
-                'phone' => '+261 32 34 567 89',
+                'phone' => '+261323456789',
                 'role' => 'user',
                 'emailVerified' => true,
             ],
@@ -61,60 +63,56 @@ class CreateTestUsersCommand extends Command
                 'password' => 'test123',
                 'firstName' => 'Test',
                 'lastName' => 'User',
-                'phone' => '+261 34 45 678 90',
+                'phone' => '+261344567890',
                 'role' => 'user',
                 'emailVerified' => false,
-            ],
-            [
-                'email' => 'coorganizer@aiolia.mg',
-                'password' => 'coorg123',
-                'firstName' => 'Pierre',
-                'lastName' => 'Bernard',
-                'phone' => '+261 33 56 789 01',
-                'role' => 'co_organizer',
-                'emailVerified' => true,
             ],
         ];
 
         $io->title('Création des utilisateurs de test');
 
+        $roleCache = [];
+
         foreach ($testUsers as $userData) {
             // Vérifier si l'utilisateur existe déjà
-            $existingUser = $this->entityManager
+            $user = $this->entityManager
                 ->getRepository(User::class)
                 ->findOneBy(['email' => $userData['email']]);
 
-            if ($existingUser) {
-                $io->warning(sprintf('L\'utilisateur %s existe déjà, ignoré.', $userData['email']));
-                continue;
+            $isNewUser = $user === null;
+
+            if ($isNewUser) {
+                $user = new User();
+                $user->setEmail($userData['email']);
+                $io->success(sprintf('Utilisateur créé: %s (%s) - Mot de passe: %s', $userData['email'], $userData['role'], $userData['password']));
+            } else {
+                $io->note(sprintf('Utilisateur %s mis à jour avec les nouvelles informations de test.', $userData['email']));
             }
 
-            // Créer le nouvel utilisateur
-            $user = new User();
-            $user->setEmail($userData['email']);
             $user->setFirstName($userData['firstName']);
             $user->setLastName($userData['lastName']);
             $user->setPhone($userData['phone']);
-            $user->setRole($userData['role']);
-            $user->setEmailVerified($userData['emailVerified']);
-            
-            // Hasher le mot de passe
+
+            if (!isset($roleCache[$userData['role']])) {
+                $roleCache[$userData['role']] = $this->roleRepository->getByCode($userData['role']);
+            }
+
+            $user->setRole($roleCache[$userData['role']]);
+            $user->setIsEmailVerified($userData['emailVerified']);
+            $user->setAccountStatus('active');
+
+            // Hasher le mot de passe (réinitialise aussi les comptes existants)
             $hashedPassword = $this->passwordHasher->hashPassword($user, $userData['password']);
             $user->setPasswordHash($hashedPassword);
 
-            $this->entityManager->persist($user);
-
-            $io->success(sprintf(
-                'Utilisateur créé: %s (%s) - Mot de passe: %s',
-                $userData['email'],
-                $userData['role'],
-                $userData['password']
-            ));
+            if ($isNewUser) {
+                $this->entityManager->persist($user);
+            }
         }
 
         $this->entityManager->flush();
 
-        $io->success('Tous les utilisateurs de test ont été créés !');
+        $io->success('Les utilisateurs de test ont été créés ou mis à jour !');
         
         $io->section('Informations de connexion :');
         $io->table(

@@ -245,13 +245,21 @@ Pour toute question ou problème, consultez :
 - Documentation Doctrine : https://www.doctrine-project.org/
 
 ---------
-sudo cp /home/Documents/MyProject/Aiolia-event/Base/schema.sql /tmp/
+sudo cp /home/fifah/Documents/GitHub/Aiolia-event/Base/schema.sql /tmp/schema.sql
 sudo chown postgres:postgres /tmp/schema.sql
+
+sudo cp /home/fifah/Documents/GitHub/Aiolia-event/Base/logic.sql /tmp/logic.sql
+sudo chown postgres:postgres /tmp/logic.sql
+
+sudo cp /home/fifah/Documents/GitHub/Aiolia-event/Base/test_data.sql /tmp/test_data.sql
+sudo chown postgres:postgres /tmp/test_data.sql
 
 sudo -i -u postgres
 psql
 
 \i /tmp/schema.sql
+\i /tmp/logic.sql
+\i /tmp/test_data.sql
 
 
 psql -U aiolia_user -d aiolia_event -h 127.0.0.1 -p 5432

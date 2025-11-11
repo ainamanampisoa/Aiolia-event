@@ -17,13 +17,12 @@ class UserValidationRequest
     public const STATUS_CANCELLED = 'cancelled';
 
     #[ORM\Id]
-    #[ORM\Column(type: Types::GUID, unique: true)]
-    #[ORM\GeneratedValue(strategy: 'CUSTOM')]
-    #[ORM\CustomIdGenerator(class: 'App\Doctrine\UuidV4Generator')]
+    #[ORM\GeneratedValue]
+    #[ORM\Column(type: Types::BIGINT)]
     private ?string $id = null;
 
     #[ORM\ManyToOne(targetEntity: User::class)]
-    #[ORM\JoinColumn(name: 'user_id', nullable: false, onDelete: 'CASCADE')]
+    #[ORM\JoinColumn(name: 'user_id', nullable: false)]
     private ?User $user = null;
 
     #[ORM\Column(name: 'requested_at', type: Types::DATETIMETZ_MUTABLE)]
@@ -150,6 +149,40 @@ class UserValidationRequest
 
     public function setMetadata(?array $metadata): static
     {
+        $this->metadata = $metadata;
+
+        return $this;
+    }
+
+    public function getRequestedRole(): ?string
+    {
+        return $this->metadata['requested_role'] ?? null;
+    }
+
+    public function setRequestedRole(string $requestedRole): static
+    {
+        $metadata = $this->metadata ?? [];
+        $metadata['requested_role'] = strtolower(trim($requestedRole));
+        $this->metadata = $metadata;
+
+        return $this;
+    }
+
+    public function getReason(): ?string
+    {
+        return $this->metadata['request_reason'] ?? null;
+    }
+
+    public function setReason(?string $reason): static
+    {
+        $metadata = $this->metadata ?? [];
+
+        if ($reason === null || $reason === '') {
+            unset($metadata['request_reason']);
+        } else {
+            $metadata['request_reason'] = $reason;
+        }
+
         $this->metadata = $metadata;
 
         return $this;

@@ -223,10 +223,13 @@
                             {% endif %}
 
                             <div class="form-group">
-                                <label for="inputEmail">Email <span>*</span></label>
-                                <input type="email" value="{{ last_username }}" name="email" id="inputEmail" 
-                                       class="form-control" autocomplete="email" required autofocus 
-                                       placeholder="votre@email.com">
+                                <label for="identifierField">Email ou Prénom Nom <span>*</span></label>
+                                <input type="text" value="{{ last_identifier }}" name="identifier" id="identifierField"
+                                       class="form-control" required autofocus
+                                       placeholder="ex: admin@aiolia.mg ou Jean Dupont">
+                                <small class="form-text text-muted">
+                                    Saisissez votre email ou votre prénom suivi de votre nom.
+                                </small>
                             </div>
 
                             <div class="form-group">

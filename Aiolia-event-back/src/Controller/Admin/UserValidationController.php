@@ -2,6 +2,7 @@
 
 namespace App\Controller\Admin;
 
+use App\Repository\RoleRepository;
 use App\Repository\UserRepository;
 use App\Repository\UserValidationRequestRepository;
 use App\Service\AuditLogService;
@@ -21,6 +22,7 @@ class UserValidationController extends AbstractController
         private EntityManagerInterface $entityManager,
         private UserValidationRequestRepository $validationRequestRepository,
         private UserRepository $userRepository,
+        private RoleRepository $roleRepository,
         private AuditLogService $auditLogService,
         private UserNotificationService $notificationService
     ) {
@@ -107,8 +109,15 @@ class UserValidationController extends AbstractController
         $requestedRole = $validationRequest->getRequestedRole();
 
         // Mettre à jour le rôle de l'utilisateur
+        $roleEntity = $this->roleRepository->findOneByCode($requestedRole);
+
+        if (!$roleEntity) {
+            $this->addFlash('error', sprintf('Rôle demandé invalide : %s', $requestedRole));
+            return $this->redirectToRoute('admin_validation_pending');
+        }
+
         $oldRole = $user->getRole();
-        $user->setRole($requestedRole);
+        $user->setRole($roleEntity);
         $user->setAccountStatus('active');
 
         // Mettre à jour la demande

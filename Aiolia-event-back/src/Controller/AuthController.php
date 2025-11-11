@@ -5,6 +5,7 @@ namespace App\Controller;
 use App\Entity\User;
 use App\Entity\UserValidationRequest;
 use App\Form\RegistrationFormType;
+use App\Repository\RoleRepository;
 use App\Service\AuditLogService;
 use App\Service\UserStatsService;
 use Doctrine\ORM\EntityManagerInterface;
@@ -28,11 +29,10 @@ class AuthController extends AbstractController
         // Récupérer l'erreur de connexion s'il y en a une
         $error = $authenticationUtils->getLastAuthenticationError();
         
-        // Dernier nom d'utilisateur saisi
-        $lastUsername = $authenticationUtils->getLastUsername();
+        $lastIdentifier = $authenticationUtils->getLastUsername();
 
         return $this->render('security/login.html.twig', [
-            'last_username' => $lastUsername,
+            'last_identifier' => $lastIdentifier,
             'error' => $error,
         ]);
     }
@@ -42,7 +42,8 @@ class AuthController extends AbstractController
         Request $request,
         UserPasswordHasherInterface $userPasswordHasher,
         EntityManagerInterface $entityManager,
-        AuditLogService $auditLogService
+        AuditLogService $auditLogService,
+        RoleRepository $roleRepository
     ): Response {
         // Si l'utilisateur est déjà connecté, rediriger vers le dashboard
         if ($this->getUser()) {
@@ -65,11 +66,17 @@ class AuthController extends AbstractController
                 )
             );
 
+            $defaultRole = $roleRepository->findOneByCode('user');
+
+            if (!$defaultRole) {
+                throw new \RuntimeException('Le rôle "user" est introuvable. Veuillez vérifier la configuration des rôles.');
+            }
+
             // Déterminer le statut du compte selon le rôle demandé
             if (in_array($requestedRole, ['organizer', 'co_organizer'])) {
                 // Si l'utilisateur demande à être organisateur ou co-organisateur
                 // Le compte est en attente de validation
-                $user->setRole('user'); // Rôle temporaire
+                $user->setRole($defaultRole); // Rôle temporaire
                 $user->setAccountStatus('pending_validation');
                 
                 // Créer une demande de validation
@@ -86,7 +93,7 @@ class AuthController extends AbstractController
                     ' a été envoyée. Vous recevrez une notification une fois que votre compte sera validé par un administrateur.';
             } else {
                 // Utilisateur normal - compte actif immédiatement
-                $user->setRole('user');
+                $user->setRole($defaultRole);
                 $user->setAccountStatus('active');
                 $message = 'Votre compte a été créé avec succès ! Vous pouvez maintenant vous connecter.';
             }
@@ -176,4 +183,9 @@ class AuthController extends AbstractController
         ]);
     }
 
+    /**
+     * Découpe un identifiant "Prénom Nom" en deux parties.
+     *
+     * @return array{0: string, 1: string}
+     */
 }

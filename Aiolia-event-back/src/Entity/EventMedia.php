@@ -16,13 +16,12 @@ class EventMedia
     public const TYPE_DOCUMENT = 'document';
 
     #[ORM\Id]
-    #[ORM\Column(type: Types::GUID, unique: true)]
-    #[ORM\GeneratedValue(strategy: 'CUSTOM')]
-    #[ORM\CustomIdGenerator(class: 'App\Doctrine\UuidV4Generator')]
+    #[ORM\GeneratedValue]
+    #[ORM\Column(type: Types::BIGINT)]
     private ?string $id = null;
 
     #[ORM\ManyToOne(targetEntity: Event::class)]
-    #[ORM\JoinColumn(name: 'event_id', nullable: false, onDelete: 'CASCADE')]
+    #[ORM\JoinColumn(name: 'event_id', nullable: false)]
     private ?Event $event = null;
 
     #[ORM\Column(name: 'media_type', type: Types::STRING, length: 20)]
