@@ -157,8 +157,95 @@
             box-shadow: 0 4px 12px rgba(31, 45, 61, 0.12);
         }
 
-        .user-connected-link.profile-link::before {
-            content: '👤';
+        /* Icônes personnalisées */
+        .icon-notifications, .icon-profile, .icon-menu {
+            display: inline-block;
+            width: 20px;
+            height: 20px;
+            background-size: contain;
+            background-repeat: no-repeat;
+            background-position: center;
+        }
+
+        .icon-notifications {
+            background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%231F2D3D' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9'/%3E%3Cpath d='M13.73 21a2 2 0 0 1-3.46 0'/%3E%3C/svg%3E");
+        }
+
+        .user-connected-link:hover .icon-notifications {
+            background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%23ffffff' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9'/%3E%3Cpath d='M13.73 21a2 2 0 0 1-3.46 0'/%3E%3C/svg%3E");
+        }
+
+        .icon-profile {
+            background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%231F2D3D' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2'/%3E%3Ccircle cx='12' cy='7' r='4'/%3E%3C/svg%3E");
+        }
+
+        .user-connected-link:hover .icon-profile {
+            background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%23ffffff' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2'/%3E%3Ccircle cx='12' cy='7' r='4'/%3E%3C/svg%3E");
+        }
+
+        .icon-menu {
+            background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%231F2D3D' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3E%3Cline x1='3' y1='12' x2='21' y2='12'/%3E%3Cline x1='3' y1='6' x2='21' y2='6'/%3E%3Cline x1='3' y1='18' x2='21' y2='18'/%3E%3C/svg%3E");
+        }
+
+        .user-connected-menu:hover .icon-menu {
+            background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%23ffffff' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3E%3Cline x1='3' y1='12' x2='21' y2='12'/%3E%3Cline x1='3' y1='6' x2='21' y2='6'/%3E%3Cline x1='3' y1='18' x2='21' y2='18'/%3E%3C/svg%3E");
+        }
+
+        .panier {
+            position: relative;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+
+        .panier a {
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            width: 40px;
+            height: 40px;
+            border-radius: 50%;
+            border: 1px solid rgba(31, 45, 61, 0.14);
+            background: linear-gradient(135deg, #ffffff, #f7f7f7);
+            transition: all 0.2s ease;
+            box-shadow: 0 4px 10px rgba(0, 0, 0, 0.06);
+            text-decoration: none;
+        }
+
+        .panier a:hover {
+            background: linear-gradient(135deg, #1F2D3D, #0F1C2D);
+            border-color: rgba(31, 45, 61, 0.6);
+        }
+
+        .panier a::before {
+            content: '';
+            display: inline-block;
+            width: 20px;
+            height: 20px;
+            background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%231F2D3D' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3E%3Ccircle cx='9' cy='21' r='1'/%3E%3Ccircle cx='20' cy='21' r='1'/%3E%3Cpath d='M1 1h4l2.68 13.39a2 2 0 0 0 2 1.61h9.72a2 2 0 0 0 2-1.61L23 6H6'/%3E%3C/svg%3E");
+            background-size: contain;
+            background-repeat: no-repeat;
+            background-position: center;
+        }
+
+        .panier a:hover::before {
+            background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%23ffffff' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3E%3Ccircle cx='9' cy='21' r='1'/%3E%3Ccircle cx='20' cy='21' r='1'/%3E%3Cpath d='M1 1h4l2.68 13.39a2 2 0 0 0 2 1.61h9.72a2 2 0 0 0 2-1.61L23 6H6'/%3E%3C/svg%3E");
+        }
+
+        .panier span {
+            position: absolute;
+            top: -5px;
+            right: -5px;
+            background:rgb(230, 50, 50);
+            color: white;
+            border-radius: 50%;
+            width: 18px;
+            height: 18px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 11px;
+            font-weight: bold;
         }
 
         @media (max-width: 992px) {
@@ -191,6 +278,21 @@
                 width: 30px;
                 height: 30px;
                 font-size: 13px;
+            }
+
+            .icon-notifications, .icon-profile, .icon-menu {
+                width: 16px;
+                height: 16px;
+            }
+
+            .panier a {
+                width: 30px;
+                height: 30px;
+            }
+
+            .panier a::before {
+                width: 16px;
+                height: 16px;
             }
         }
     </style>
@@ -244,9 +346,16 @@
                                 </nav>
                             </div>
                             <div class="user-connected">
-                                <a href="{{ path('notifications') }}" title="Notifications" class="user-connected-link">🔔</a>
-                                <a href="{{ path('profile_index') }}" title="Mon profil" class="user-connected-link profile-link">{{ profileName }}</a>
-                                <button type="button" title="Menu" class="user-connected-menu" aria-expanded="false" aria-controls="userSecondarySidebar">☰</button>
+                                <a href="{{ path('notifications') }}" title="Notifications" class="user-connected-link">
+                                    <span class="icon-notifications"></span>
+                                </a>
+                                <a href="{{ path('profile_index') }}" title="Mon profil" class="user-connected-link profile-link">
+                                    <span class="icon-profile"></span>
+                                    {{ profileName }}
+                                </a>
+                                <button type="button" title="Menu" class="user-connected-menu" aria-expanded="false" aria-controls="userSecondarySidebar">
+                                    <span class="icon-menu"></span>
+                                </button>
                             </div>
                             <div class="panier">
                                 <a href="{{ path('cart') }}"></a>
@@ -352,6 +461,10 @@
             <li><a href="{{ path('profile_calendar') }}" class="nav-item-calendar">
                 <i class="fas fa-calendar-alt"></i>
                 <span>Vue calendrier des évènements</span>
+            </a></li>
+            <li><a href="{{ path('profile_settings') }}" class="nav-item-settings">
+                <i class="fas fa-sliders-h"></i>
+                <span>Paramètres</span>
             </a></li>
             <li><a href="{{ path('profile_ticket_chance') }}" class="nav-item-chance">
                 <i class="fas fa-dice"></i>

@@ -14,7 +14,7 @@
     left: 0;
     right: 0;
     height: 4px;
-    background: linear-gradient(90deg, #1F2D3D 0%, #0AA06E 50%, #FF6B35 100%);
+    background: linear-gradient(90deg, #1F2D3D 0%, #06073f 50%, #bebcbb 100%);
 }
 
 .notifications-panel {
@@ -168,7 +168,7 @@
 }
 
 .notifications-counter {
-    background: linear-gradient(135deg, #1F2D3D 0%, #0AA06E 100%);
+    background: linear-gradient(135deg, #6b8097 0%, #18a777 100%);
     color: #ffffff;
     font-size: 11px;
     font-weight: 700;

@@ -264,7 +264,13 @@ psql
 
 psql -U aiolia_user -d aiolia_event -h 127.0.0.1 -p 5432
 
+psql -d aiolia_event
+
 -----------
-sudo cp /home/Documents/MyProject/Aiolia-event/Base/schema.sql /tmp/
+sudo cp ~/Documents/MyProject/Aiolia-event/Base/schema.sql /tmp/
 sudo chown postgres:postgres /tmp/schema.sql
 
+sudo cp ~/Documents/MyProject/Aiolia-event/Base/script.sql /tmp/
+sudo chown postgres:postgres /tmp/script.sql
+
+\i /tmp/script.sql
