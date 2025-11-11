@@ -15,6 +15,9 @@
                 <div class="container">
                     <h2 class="text-center">Se connecter</h2>
                     <div class="blc-login bg-beige">
+                        {% for message in app.flashes('success') %}
+                            <p class="msg-success alert-auto-dismiss">{{ message }}</p>
+                        {% endfor %}
                         <form method="post" action="{{ path('login') }}">
                             {% if error %}
                                 <p class="msg-error">{{ error }}</p>
@@ -41,7 +44,6 @@
                                 <input type="submit" class="btn-submit login" name="" value="se connecter">
                                 <a href="{{ path('register') }}" class="link-form">Créer un nouveau compte</a>
                             </div>
-                            <p class="info-test">Identifiants de test : <strong>demo@venteticket.mg</strong> / <strong>demo123</strong></p>
                         </form>
                     </div>
                 </div>

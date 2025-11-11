@@ -47,17 +47,27 @@ class AuthService
             throw new \InvalidArgumentException('Cette adresse email est déjà utilisée.');
         }
 
+        if (null !== $phone && '' !== $phone && !preg_match('/^\+\d{6,18}$/', $phone)) {
+            throw new \InvalidArgumentException('Le numéro de téléphone doit être au format international (ex : +261320000000).');
+        }
+
         $user = (new User())
             ->setEmail($email)
+            ->setLoginIdentifier($payload['login_identifier'] ?? $email)
+            ->setLoginMethod('password')
             ->setFirstName($firstName)
-            ->setLastName($lastName)
-            ->setIsActive(true)
-            ->setRoles($payload['roles'] ?? ['ROLE_USER'])
+            ->setLastName($lastName !== '' ? $lastName : null)
+            ->setPhone($phone ?: null)
+            ->setCountryCode($payload['country_code'] ?? 'MG')
+            ->setLanguageCode($payload['language_code'] ?? 'fr-FR')
+            ->setTimezone($payload['timezone'] ?? 'Indian/Antananarivo')
+            ->setRole($payload['role'] ?? 'user')
+            ->setStatus('active')
+            ->setAuthProvider('password')
+            ->setIsEmailVerified(false)
+            ->setIsPhoneVerified(false)
+            ->setAcceptedTermsAt(new \DateTimeImmutable())
             ->setUpdatedAt(new \DateTimeImmutable());
-
-        if (null !== $phone && '' !== $phone) {
-            $user->setPhone($phone);
-        }
 
         $hashedPassword = $this->passwordHasher->hashPassword($user, $password);
         $user->setPassword($hashedPassword);
@@ -93,7 +103,7 @@ class AuthService
             throw new \InvalidArgumentException('Identifiants invalides.');
         }
 
-        $user->setUpdatedAt(new \DateTimeImmutable());
+        $user->markAsLoggedIn();
         $this->entityManager->flush();
 
         return $this->buildAuthPayload($user, $userAgent, $ipAddress);
@@ -123,10 +133,16 @@ class AuthService
         if (null === $user) {
             $user = (new User())
                 ->setEmail($email)
+                ->setLoginIdentifier($payload['login_identifier'] ?? $email)
+                ->setLoginMethod($provider)
                 ->setFirstName($firstName ?: 'Invité')
                 ->setLastName($lastName ?: ucfirst($provider))
-                ->setIsActive(true)
-                ->setRoles(['ROLE_USER'])
+                ->setRole('user')
+                ->setStatus('active')
+                ->setAuthProvider($provider)
+                ->setIsEmailVerified((bool) ($payload['email_verified'] ?? false))
+                ->setIsPhoneVerified(false)
+                ->setAcceptedTermsAt(new \DateTimeImmutable())
                 ->setUpdatedAt(new \DateTimeImmutable());
 
             $randomPassword = bin2hex(random_bytes(16));
@@ -146,7 +162,7 @@ class AuthService
             throw new \InvalidArgumentException('Votre compte est inactif. Contactez le support.');
         }
 
-        $user->setUpdatedAt(new \DateTimeImmutable());
+        $user->markAsLoggedIn();
         $this->entityManager->flush();
 
         return $this->buildAuthPayload($user, $userAgent, $ipAddress, [
@@ -213,6 +229,7 @@ class AuthService
                     throw new \InvalidArgumentException('Cette adresse email est déjà utilisée.');
                 }
                 $user->setEmail($newEmail);
+                $user->setLoginIdentifier($newEmail);
                 $hasUpdates = true;
             }
         }
@@ -313,8 +330,11 @@ class AuthService
             'first_name' => $user->getFirstName(),
             'last_name' => $user->getLastName(),
             'full_name' => $user->getFullName(),
+            'role' => $user->getRole(),
             'roles' => $user->getRoles(),
-            'loyalty_points' => $user->getLoyaltyPoints(),
+            'status' => $user->getStatus(),
+            'language_code' => $user->getLanguageCode(),
+            'timezone' => $user->getTimezone(),
             'is_active' => $user->isActive(),
         ];
     }

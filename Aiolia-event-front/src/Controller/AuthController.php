@@ -4,6 +4,7 @@ namespace App\Controller;
 
 use App\Entity\User;
 use App\Service\Security\AuthService;
+use Psr\Log\LoggerInterface;
 use Symfony\Bundle\FrameworkBundle\Controller\AbstractController;
 use Symfony\Component\HttpFoundation\JsonResponse;
 use Symfony\Component\HttpFoundation\Request;
@@ -13,7 +14,8 @@ use Symfony\Component\Routing\Annotation\Route;
 class AuthController extends AbstractController
 {
     public function __construct(
-        private readonly AuthService $authService
+        private readonly AuthService $authService,
+        private readonly LoggerInterface $logger
     ) {
     }
 
@@ -64,10 +66,98 @@ class AuthController extends AbstractController
         ]);
     }
 
-    #[Route('/register', name: 'register')]
-    public function registerPage(): Response
+    #[Route('/register', name: 'register', methods: ['GET', 'POST'])]
+    public function registerPage(Request $request): Response
     {
-        return $this->render('auth/register.html.twig');
+        $session = $request->getSession();
+        $errors = [];
+        $formData = [
+            'first_name' => '',
+            'last_name' => '',
+            'email' => '',
+            'phone' => '',
+        ];
+
+        if ($request->isMethod('POST')) {
+            $formData['first_name'] = trim((string) $request->request->get('first_name'));
+            $formData['last_name'] = trim((string) $request->request->get('last_name'));
+            $formData['email'] = trim((string) $request->request->get('email'));
+            $formData['phone'] = trim((string) $request->request->get('phone'));
+            $password = (string) $request->request->get('password');
+            $passwordConfirmation = (string) $request->request->get('password_confirmation');
+
+            if ('' === $formData['first_name']) {
+                $errors[] = 'Le prénom est obligatoire.';
+            }
+
+            if ('' === $formData['last_name']) {
+                $errors[] = 'Le nom est obligatoire.';
+            }
+
+            if ('' === $formData['email']) {
+                $errors[] = 'L\'adresse email est obligatoire.';
+            }
+
+            if ('' === $password) {
+                $errors[] = 'Le mot de passe est obligatoire.';
+            } elseif (strlen($password) < 8) {
+                $errors[] = 'Le mot de passe doit comporter au moins 8 caractères.';
+            }
+
+            if ($password !== $passwordConfirmation) {
+                $errors[] = 'La confirmation du mot de passe ne correspond pas.';
+            }
+
+            if ('' !== $formData['phone'] && !preg_match('/^\+\d{6,18}$/', $formData['phone'])) {
+                $errors[] = 'Le numéro de téléphone doit être au format international (ex : +261320000000).';
+            }
+
+            if (0 === count($errors)) {
+                try {
+                    $result = $this->authService->register(
+                        [
+                            'first_name' => $formData['first_name'],
+                            'last_name' => $formData['last_name'],
+                            'email' => $formData['email'],
+                            'phone' => $formData['phone'],
+                            'password' => $password,
+                        ],
+                        $request->headers->get('User-Agent'),
+                        $request->getClientIp()
+                    );
+
+                    $session->set('user', [
+                        'id' => $result['user']['id'],
+                        'email' => $result['user']['email'],
+                        'username' => $result['user']['full_name'],
+                        'profile' => $result['user'],
+                        'tokens' => $result['tokens'],
+                    ]);
+
+                    $this->addFlash('success', 'Inscription réussie ! Vous pouvez vous connecter avec vos identifiants.');
+
+                    return $this->redirectToRoute('login');
+                } catch (\InvalidArgumentException $exception) {
+                    $errors[] = $exception->getMessage();
+                } catch (\Throwable $exception) {
+                    $this->logger->error(
+                        sprintf('Erreur inscription utilisateur: %s', $exception->getMessage()),
+                        [
+                            'exception' => $exception,
+                            'payload' => [
+                                'email' => $formData['email'],
+                            ],
+                        ]
+                    );
+                    $errors[] = 'Une erreur est survenue lors de la création du compte.';
+                }
+            }
+        }
+
+        return $this->render('auth/register.html.twig', [
+            'errors' => $errors,
+            'form_data' => $formData,
+        ]);
     }
 
     #[Route('/forgot-password', name: 'forgot_password')]

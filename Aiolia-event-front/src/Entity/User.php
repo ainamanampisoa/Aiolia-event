@@ -3,85 +3,94 @@
 namespace App\Entity;
 
 use App\Repository\UserRepository;
-use Doctrine\Common\Collections\ArrayCollection;
-use Doctrine\Common\Collections\Collection;
 use Doctrine\ORM\Mapping as ORM;
 use Symfony\Component\Security\Core\User\PasswordAuthenticatedUserInterface;
 use Symfony\Component\Security\Core\User\UserInterface;
 use Symfony\Component\Validator\Constraints as Assert;
 
 #[ORM\Entity(repositoryClass: UserRepository::class)]
-#[ORM\Table(name: 'users')]
-#[ORM\UniqueConstraint(name: 'UNIQ_IDENTIFIER_EMAIL', fields: ['email'])]
+#[ORM\Table(name: 'users', schema: 'aiolia')]
 class User implements UserInterface, PasswordAuthenticatedUserInterface
 {
     #[ORM\Id]
     #[ORM\GeneratedValue]
-    #[ORM\Column]
+    #[ORM\Column(type: 'bigint')]
     private ?int $id = null;
 
-    #[ORM\Column(length: 180)]
+    #[ORM\Column(type: 'string', length: 180, unique: true)]
     #[Assert\NotBlank]
     #[Assert\Email]
     private ?string $email = null;
 
-    /**
-     * @var list<string> The user roles
-     */
-    #[ORM\Column]
-    private array $roles = [];
+    #[ORM\Column(name: 'login_identifier', type: 'string', length: 255)]
+    private ?string $loginIdentifier = null;
 
-    /**
-     * @var string The hashed password
-     */
-    #[ORM\Column]
-    private ?string $password = null;
+    #[ORM\Column(name: 'login_method', type: 'string', length: 50)]
+    private string $loginMethod = 'password';
 
-    #[ORM\Column(length: 100)]
+    #[ORM\Column(name: 'password_hash', type: 'string', length: 255, nullable: true)]
+    private ?string $passwordHash = null;
+
+    #[ORM\Column(name: 'first_name', type: 'string', length: 100)]
     #[Assert\NotBlank]
-    #[Assert\Length(min: 2, max: 100)]
     private ?string $firstName = null;
 
-    #[ORM\Column(length: 100)]
-    #[Assert\NotBlank]
-    #[Assert\Length(min: 2, max: 100)]
+    #[ORM\Column(name: 'last_name', type: 'string', length: 100, nullable: true)]
     private ?string $lastName = null;
 
-    #[ORM\Column(length: 20, nullable: true)]
-    #[Assert\Length(max: 20)]
+    #[ORM\Column(name: 'phone', type: 'string', length: 20, nullable: true)]
     private ?string $phone = null;
 
-    #[ORM\Column(length: 255, nullable: true)]
-    private ?string $profilePicture = null;
+    #[ORM\Column(name: 'country_code', type: 'string', length: 2, nullable: true)]
+    private ?string $countryCode = null;
 
-    #[ORM\Column]
-    private ?\DateTimeImmutable $createdAt = null;
+    #[ORM\Column(name: 'language_code', type: 'string', length: 10)]
+    private string $languageCode = 'fr-FR';
 
-    #[ORM\Column]
-    private ?\DateTimeImmutable $updatedAt = null;
+    #[ORM\Column(name: 'timezone', type: 'string', length: 150)]
+    private string $timezone = 'Indian/Antananarivo';
 
-    #[ORM\Column]
-    private bool $isActive = true;
+    #[ORM\Column(name: 'avatar_url', type: 'text', nullable: true)]
+    private ?string $avatarUrl = null;
 
-    #[ORM\Column]
-    private int $loyaltyPoints = 0;
+    #[ORM\Column(name: 'role', type: 'string', length: 20)]
+    private string $role = 'user';
 
-    #[ORM\OneToMany(targetEntity: Event::class, mappedBy: 'organizer')]
-    private Collection $organizedEvents;
+    #[ORM\Column(name: 'status', type: 'string', length: 20)]
+    private string $status = 'active';
 
-    #[ORM\OneToMany(targetEntity: Ticket::class, mappedBy: 'user')]
-    private Collection $tickets;
+    #[ORM\Column(name: 'auth_provider', type: 'string', length: 50)]
+    private string $authProvider = 'password';
 
-    #[ORM\OneToMany(targetEntity: EventFavorite::class, mappedBy: 'user')]
-    private Collection $favorites;
+    #[ORM\Column(name: 'oauth_provider_id', type: 'string', length: 255, nullable: true)]
+    private ?string $oauthProviderId = null;
+
+    #[ORM\Column(name: 'is_email_verified', type: 'boolean')]
+    private bool $isEmailVerified = false;
+
+    #[ORM\Column(name: 'is_phone_verified', type: 'boolean')]
+    private bool $isPhoneVerified = false;
+
+    #[ORM\Column(name: 'two_factor_type', type: 'string', length: 100, nullable: true)]
+    private ?string $twoFactorType = null;
+
+    #[ORM\Column(name: 'accepted_terms_at', type: 'datetimetz_immutable', nullable: true)]
+    private ?\DateTimeImmutable $acceptedTermsAt = null;
+
+    #[ORM\Column(name: 'created_at', type: 'datetimetz_immutable')]
+    private \DateTimeImmutable $createdAt;
+
+    #[ORM\Column(name: 'updated_at', type: 'datetimetz_immutable')]
+    private \DateTimeImmutable $updatedAt;
+
+    #[ORM\Column(name: 'last_login_at', type: 'datetimetz_immutable', nullable: true)]
+    private ?\DateTimeImmutable $lastLoginAt = null;
 
     public function __construct()
     {
-        $this->organizedEvents = new ArrayCollection();
-        $this->tickets = new ArrayCollection();
-        $this->favorites = new ArrayCollection();
-        $this->createdAt = new \DateTimeImmutable();
-        $this->updatedAt = new \DateTimeImmutable();
+        $now = new \DateTimeImmutable();
+        $this->createdAt = $now;
+        $this->updatedAt = $now;
     }
 
     public function getId(): ?int
@@ -94,64 +103,43 @@ class User implements UserInterface, PasswordAuthenticatedUserInterface
         return $this->email;
     }
 
-    public function setEmail(string $email): static
+    public function setEmail(string $email): self
     {
-        $this->email = $email;
+        $this->email = strtolower($email);
         return $this;
     }
 
-    /**
-     * A visual identifier that represents this user.
-     *
-     * @see UserInterface
-     */
-    public function getUserIdentifier(): string
+    public function getLoginIdentifier(): ?string
     {
-        return (string) $this->email;
+        return $this->loginIdentifier;
     }
 
-    /**
-     * @see UserInterface
-     * @return list<string>
-     */
-    public function getRoles(): array
+    public function setLoginIdentifier(string $loginIdentifier): self
     {
-        $roles = $this->roles;
-        // guarantee every user at least has ROLE_USER
-        $roles[] = 'ROLE_USER';
-
-        return array_unique($roles);
-    }
-
-    /**
-     * @param list<string> $roles
-     */
-    public function setRoles(array $roles): static
-    {
-        $this->roles = $roles;
+        $this->loginIdentifier = $loginIdentifier;
         return $this;
     }
 
-    /**
-     * @see PasswordAuthenticatedUserInterface
-     */
+    public function getLoginMethod(): string
+    {
+        return $this->loginMethod;
+    }
+
+    public function setLoginMethod(string $loginMethod): self
+    {
+        $this->loginMethod = $loginMethod;
+        return $this;
+    }
+
     public function getPassword(): ?string
     {
-        return $this->password;
+        return $this->passwordHash;
     }
 
-    public function setPassword(string $password): static
+    public function setPassword(string $hashedPassword): self
     {
-        $this->password = $password;
+        $this->passwordHash = $hashedPassword;
         return $this;
-    }
-
-    /**
-     * @see UserInterface
-     */
-    public function eraseCredentials(): void
-    {
-        // If you store any temporary, sensitive data on the user, clear it here
     }
 
     public function getFirstName(): ?string
@@ -159,7 +147,7 @@ class User implements UserInterface, PasswordAuthenticatedUserInterface
         return $this->firstName;
     }
 
-    public function setFirstName(string $firstName): static
+    public function setFirstName(string $firstName): self
     {
         $this->firstName = $firstName;
         return $this;
@@ -170,7 +158,7 @@ class User implements UserInterface, PasswordAuthenticatedUserInterface
         return $this->lastName;
     }
 
-    public function setLastName(string $lastName): static
+    public function setLastName(?string $lastName): self
     {
         $this->lastName = $lastName;
         return $this;
@@ -181,171 +169,210 @@ class User implements UserInterface, PasswordAuthenticatedUserInterface
         return $this->phone;
     }
 
-    public function setPhone(?string $phone): static
+    public function setPhone(?string $phone): self
     {
         $this->phone = $phone;
         return $this;
     }
 
-    public function getProfilePicture(): ?string
+    public function getCountryCode(): ?string
     {
-        return $this->profilePicture;
+        return $this->countryCode;
     }
 
-    public function setProfilePicture(?string $profilePicture): static
+    public function setCountryCode(?string $countryCode): self
     {
-        $this->profilePicture = $profilePicture;
+        $this->countryCode = $countryCode;
         return $this;
     }
 
-    public function getCreatedAt(): ?\DateTimeImmutable
+    public function getLanguageCode(): string
+    {
+        return $this->languageCode;
+    }
+
+    public function setLanguageCode(string $languageCode): self
+    {
+        $this->languageCode = $languageCode;
+        return $this;
+    }
+
+    public function getTimezone(): string
+    {
+        return $this->timezone;
+    }
+
+    public function setTimezone(string $timezone): self
+    {
+        $this->timezone = $timezone;
+        return $this;
+    }
+
+    public function getAvatarUrl(): ?string
+    {
+        return $this->avatarUrl;
+    }
+
+    public function setAvatarUrl(?string $avatarUrl): self
+    {
+        $this->avatarUrl = $avatarUrl;
+        return $this;
+    }
+
+    public function getRole(): string
+    {
+        return $this->role;
+    }
+
+    public function setRole(string $role): self
+    {
+        $this->role = $role;
+        return $this;
+    }
+
+    public function getStatus(): string
+    {
+        return $this->status;
+    }
+
+    public function setStatus(string $status): self
+    {
+        $this->status = $status;
+        return $this;
+    }
+
+    public function getAuthProvider(): string
+    {
+        return $this->authProvider;
+    }
+
+    public function setAuthProvider(string $authProvider): self
+    {
+        $this->authProvider = $authProvider;
+        return $this;
+    }
+
+    public function getOauthProviderId(): ?string
+    {
+        return $this->oauthProviderId;
+    }
+
+    public function setOauthProviderId(?string $oauthProviderId): self
+    {
+        $this->oauthProviderId = $oauthProviderId;
+        return $this;
+    }
+
+    public function isEmailVerified(): bool
+    {
+        return $this->isEmailVerified;
+    }
+
+    public function setIsEmailVerified(bool $isEmailVerified): self
+    {
+        $this->isEmailVerified = $isEmailVerified;
+        return $this;
+    }
+
+    public function isPhoneVerified(): bool
+    {
+        return $this->isPhoneVerified;
+    }
+
+    public function setIsPhoneVerified(bool $isPhoneVerified): self
+    {
+        $this->isPhoneVerified = $isPhoneVerified;
+        return $this;
+    }
+
+    public function getTwoFactorType(): ?string
+    {
+        return $this->twoFactorType;
+    }
+
+    public function setTwoFactorType(?string $twoFactorType): self
+    {
+        $this->twoFactorType = $twoFactorType;
+        return $this;
+    }
+
+    public function getAcceptedTermsAt(): ?\DateTimeImmutable
+    {
+        return $this->acceptedTermsAt;
+    }
+
+    public function setAcceptedTermsAt(?\DateTimeImmutable $acceptedTermsAt): self
+    {
+        $this->acceptedTermsAt = $acceptedTermsAt;
+        return $this;
+    }
+
+    public function getCreatedAt(): \DateTimeImmutable
     {
         return $this->createdAt;
     }
 
-    public function setCreatedAt(\DateTimeImmutable $createdAt): static
+    public function setCreatedAt(\DateTimeImmutable $createdAt): self
     {
         $this->createdAt = $createdAt;
         return $this;
     }
 
-    public function getUpdatedAt(): ?\DateTimeImmutable
+    public function getUpdatedAt(): \DateTimeImmutable
     {
         return $this->updatedAt;
     }
 
-    public function setUpdatedAt(\DateTimeImmutable $updatedAt): static
+    public function setUpdatedAt(\DateTimeImmutable $updatedAt): self
     {
         $this->updatedAt = $updatedAt;
         return $this;
     }
 
-    public function isActive(): bool
+    public function getLastLoginAt(): ?\DateTimeImmutable
     {
-        return $this->isActive;
+        return $this->lastLoginAt;
     }
 
-    public function setIsActive(bool $isActive): static
+    public function setLastLoginAt(?\DateTimeImmutable $lastLoginAt): self
     {
-        $this->isActive = $isActive;
-        return $this;
-    }
-
-    public function getLoyaltyPoints(): int
-    {
-        return $this->loyaltyPoints;
-    }
-
-    public function setLoyaltyPoints(int $loyaltyPoints): static
-    {
-        $this->loyaltyPoints = $loyaltyPoints;
-        return $this;
-    }
-
-    public function addLoyaltyPoints(int $points): static
-    {
-        $this->loyaltyPoints += $points;
-        return $this;
-    }
-
-    /**
-     * @return Collection<int, Event>
-     */
-    public function getOrganizedEvents(): Collection
-    {
-        return $this->organizedEvents;
-    }
-
-    public function addOrganizedEvent(Event $organizedEvent): static
-    {
-        if (!$this->organizedEvents->contains($organizedEvent)) {
-            $this->organizedEvents->add($organizedEvent);
-            $organizedEvent->setOrganizer($this);
-        }
-
-        return $this;
-    }
-
-    public function removeOrganizedEvent(Event $organizedEvent): static
-    {
-        if ($this->organizedEvents->removeElement($organizedEvent)) {
-            // set the owning side to null (unless already changed)
-            if ($organizedEvent->getOrganizer() === $this) {
-                $organizedEvent->setOrganizer(null);
-            }
-        }
-
-        return $this;
-    }
-
-    /**
-     * @return Collection<int, Ticket>
-     */
-    public function getTickets(): Collection
-    {
-        return $this->tickets;
-    }
-
-    public function addTicket(Ticket $ticket): static
-    {
-        if (!$this->tickets->contains($ticket)) {
-            $this->tickets->add($ticket);
-            $ticket->setUser($this);
-        }
-
-        return $this;
-    }
-
-    public function removeTicket(Ticket $ticket): static
-    {
-        if ($this->tickets->removeElement($ticket)) {
-            // set the owning side to null (unless already changed)
-            if ($ticket->getUser() === $this) {
-                $ticket->setUser(null);
-            }
-        }
-
-        return $this;
-    }
-
-    /**
-     * @return Collection<int, EventFavorite>
-     */
-    public function getFavorites(): Collection
-    {
-        return $this->favorites;
-    }
-
-    public function addFavorite(EventFavorite $favorite): static
-    {
-        if (!$this->favorites->contains($favorite)) {
-            $this->favorites->add($favorite);
-            $favorite->setUser($this);
-        }
-
-        return $this;
-    }
-
-    public function removeFavorite(EventFavorite $favorite): static
-    {
-        if ($this->favorites->removeElement($favorite)) {
-            // set the owning side to null (unless already changed)
-            if ($favorite->getUser() === $this) {
-                $favorite->setUser(null);
-            }
-        }
-
+        $this->lastLoginAt = $lastLoginAt;
         return $this;
     }
 
     public function getFullName(): string
     {
-        return $this->firstName . ' ' . $this->lastName;
+        return trim(sprintf('%s %s', $this->firstName ?? '', $this->lastName ?? ''));
     }
 
-    public function hasRole(string $role): bool
+    public function getUserIdentifier(): string
     {
-        return in_array($role, $this->getRoles());
+        return $this->email ?? (string) $this->loginIdentifier;
+    }
+
+    public function getRoles(): array
+    {
+        return match ($this->role) {
+            'admin' => ['ROLE_ADMIN', 'ROLE_USER'],
+            'organizer' => ['ROLE_ORGANIZER', 'ROLE_USER'],
+            default => ['ROLE_USER'],
+        };
+    }
+
+    public function eraseCredentials(): void
+    {
+        // nothing to erase
+    }
+
+    public function markAsLoggedIn(): void
+    {
+        $this->lastLoginAt = new \DateTimeImmutable();
+        $this->updatedAt = new \DateTimeImmutable();
+    }
+
+    public function isActive(): bool
+    {
+        return $this->status === 'active';
     }
 }
 

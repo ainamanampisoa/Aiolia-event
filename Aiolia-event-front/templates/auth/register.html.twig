@@ -15,26 +15,43 @@
                 <div class="container">
                     <h2 class="text-center">Créer un compte</h2>
                     <div class="blc-login bg-beige">
-                        <form>
+                        {% if errors is defined and errors %}
+                            <div class="msg-error alert-auto-dismiss">
+                                <ul>
+                                    {% for error in errors %}
+                                        <li>{{ error }}</li>
+                                    {% endfor %}
+                                </ul>
+                            </div>
+                        {% endif %}
+                        <form method="post" action="{{ path('register') }}">
                             <div class="blc-chp">
-                                <label>Votre nom complet</label>
-                                <input type="text" class="form-control">
+                                <label>Votre prénom</label>
+                                <input type="text" name="first_name" class="form-control" value="{{ form_data.first_name|default('') }}" required>
+                            </div>
+                            <div class="blc-chp">
+                                <label>Votre nom</label>
+                                <input type="text" name="last_name" class="form-control" value="{{ form_data.last_name|default('') }}" required>
                             </div>
                             <div class="blc-chp">
                                 <label>Votre adresse email</label>
-                                <input type="email" class="form-control">
+                                <input type="email" name="email" class="form-control" value="{{ form_data.email|default('') }}" required>
+                            </div>
+                            <div class="blc-chp">
+                                <label>Numéro de téléphone (optionnel)</label>
+                                <input type="text" name="phone" class="form-control" value="{{ form_data.phone|default('') }}">
                             </div>
                             <div class="blc-chp">
                                 <label>Mot de passe</label>
                                 <div class="blc-password">
-                                    <input type="password" class="form-control" placeholder="****">
+                                    <input type="password" name="password" class="form-control" placeholder="****" required>
                                     <span class="material-symbols-rounded pointer toggle-password"></span>
                                 </div>
                             </div>
                             <div class="blc-chp">
                                 <label>Confirmer le mot de passe</label>
                                 <div class="blc-password">
-                                    <input type="password" class="form-control" placeholder="****">
+                                    <input type="password" name="password_confirmation" class="form-control" placeholder="****" required>
                                     <span class="material-symbols-rounded pointer toggle-password"></span>
                                 </div>
                             </div>

@@ -1,3 +1,31 @@
+.alert-auto-dismiss {
+    border: 1px solid #ff5a5a;
+    background: rgba(255, 90, 90, 0.1);
+    color: #b30000;
+    padding: 15px 20px;
+    margin-bottom: 20px;
+    border-radius: 6px;
+    animation: fadeOutAlert 0s ease-in 6s forwards;
+}
+
+.alert-auto-dismiss ul {
+    margin: 0;
+    padding-left: 20px;
+}
+
+.alert-auto-dismiss li {
+    margin-bottom: 5px;
+}
+
+@keyframes fadeOutAlert {
+    to {
+        visibility: hidden;
+        opacity: 0;
+        height: 0;
+        margin: 0;
+        padding: 0;
+    }
+}
 /* IMPORT FONTS */
 
 @font-face {
