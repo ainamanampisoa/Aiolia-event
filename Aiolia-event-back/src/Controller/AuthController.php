@@ -4,8 +4,8 @@ namespace App\Controller;
 
 use App\Entity\User;
 use App\Entity\UserValidationRequest;
+use App\Enum\Role as UserRoleEnum;
 use App\Form\RegistrationFormType;
-use App\Repository\RoleRepository;
 use App\Service\AuditLogService;
 use App\Service\UserStatsService;
 use Doctrine\ORM\EntityManagerInterface;
@@ -42,8 +42,7 @@ class AuthController extends AbstractController
         Request $request,
         UserPasswordHasherInterface $userPasswordHasher,
         EntityManagerInterface $entityManager,
-        AuditLogService $auditLogService,
-        RoleRepository $roleRepository
+        AuditLogService $auditLogService
     ): Response {
         // Si l'utilisateur est déjà connecté, rediriger vers le dashboard
         if ($this->getUser()) {
@@ -66,17 +65,11 @@ class AuthController extends AbstractController
                 )
             );
 
-            $defaultRole = $roleRepository->findOneByCode('user');
-
-            if (!$defaultRole) {
-                throw new \RuntimeException('Le rôle "user" est introuvable. Veuillez vérifier la configuration des rôles.');
-            }
-
             // Déterminer le statut du compte selon le rôle demandé
             if (in_array($requestedRole, ['organizer', 'co_organizer'])) {
                 // Si l'utilisateur demande à être organisateur ou co-organisateur
                 // Le compte est en attente de validation
-                $user->setRole($defaultRole); // Rôle temporaire
+                $user->setRole(UserRoleEnum::USER); // Rôle temporaire
                 $user->setAccountStatus('pending_validation');
                 
                 // Créer une demande de validation
@@ -93,10 +86,13 @@ class AuthController extends AbstractController
                     ' a été envoyée. Vous recevrez une notification une fois que votre compte sera validé par un administrateur.';
             } else {
                 // Utilisateur normal - compte actif immédiatement
-                $user->setRole($defaultRole);
+                $user->setRole(UserRoleEnum::USER);
                 $user->setAccountStatus('active');
                 $message = 'Votre compte a été créé avec succès ! Vous pouvez maintenant vous connecter.';
             }
+
+            $user->setLoginIdentifier($user->getEmail());
+            $user->setLoginMethod(User::AUTH_PROVIDER_PASSWORD);
 
             // Sauvegarder l'utilisateur
             $entityManager->persist($user);

@@ -90,8 +90,8 @@ class UserRepository extends ServiceEntityRepository implements PasswordUpgrader
     public function findAccountsPendingValidation(): array
     {
         return $this->createQueryBuilder('u')
-            ->where('u.accountStatus = :status')
-            ->setParameter('status', 'pending_validation')
+            ->where('u.status = :status')
+            ->setParameter('status', User::STATUS_PENDING)
             ->orderBy('u.createdAt', 'ASC')
             ->getQuery()
             ->getResult();

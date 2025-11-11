@@ -3,7 +3,7 @@
 namespace App\Controller\Admin;
 
 use App\Entity\User;
-use App\Repository\RoleRepository;
+use App\Enum\Role as UserRoleEnum;
 use App\Repository\UserRepository;
 use App\Repository\AuditLogRepository;
 use App\Repository\EventRepository;
@@ -27,7 +27,6 @@ class UserManagementController extends AbstractController
         private AuditLogRepository $auditLogRepository,
         private EventRepository $eventRepository,
         private AuditLogService $auditLogService,
-        private RoleRepository $roleRepository,
         private UserNotificationService $notificationService
     ) {
     }
@@ -72,24 +71,21 @@ class UserManagementController extends AbstractController
         }
 
         // Filtre par rôle
-        if ($role && in_array($role, ['user', 'organizer', 'co_organizer', 'admin'], true)) {
-            $qb->innerJoin('u.roles', 'roleFilter')
-               ->andWhere('roleFilter.code = :role')
+        if ($role && in_array($role, UserRoleEnum::all(), true)) {
+            $qb->andWhere('u.role = :role')
                ->setParameter('role', $role);
 
-            $countQb->innerJoin('u.roles', 'roleFilterCount')
-                    ->andWhere('roleFilterCount.code = :role')
+            $countQb->andWhere('u.role = :role')
                     ->setParameter('role', $role);
-
-            $qb->distinct();
         }
 
         // Filtre par statut
         if ($status && in_array($status, ['active', 'pending_validation', 'rejected', 'suspended'])) {
-            $qb->andWhere('u.accountStatus = :status')
-               ->setParameter('status', $status);
-            $countQb->andWhere('u.accountStatus = :status')
-                    ->setParameter('status', $status);
+            $databaseStatus = User::accountStatusToDatabaseStatus($status);
+            $qb->andWhere('u.status = :status')
+               ->setParameter('status', $databaseStatus);
+            $countQb->andWhere('u.status = :status')
+                    ->setParameter('status', $databaseStatus);
         }
 
         // Tri par défaut : date de création décroissante (plus récents en premier)
@@ -119,25 +115,24 @@ class UserManagementController extends AbstractController
         // Utilisateurs en attente
         $pendingUsers = (int) $this->userRepository->createQueryBuilder('u')
             ->select('COUNT(u.id)')
-            ->where('u.accountStatus = :status')
-            ->setParameter('status', 'pending_validation')
+            ->where('u.status = :status')
+            ->setParameter('status', User::STATUS_PENDING)
             ->getQuery()
             ->getSingleScalarResult();
 
         // Utilisateurs actifs
         $activeUsers = (int) $this->userRepository->createQueryBuilder('u')
             ->select('COUNT(u.id)')
-            ->where('u.accountStatus = :status')
-            ->setParameter('status', 'active')
+            ->where('u.status = :status')
+            ->setParameter('status', User::STATUS_ACTIVE)
             ->getQuery()
             ->getSingleScalarResult();
 
         // Organisateurs
         $organizers = (int) $this->userRepository->createQueryBuilder('u')
             ->select('COUNT(DISTINCT u.id)')
-            ->innerJoin('u.roles', 'roleStats')
-            ->where('roleStats.code = :role')
-            ->setParameter('role', 'organizer')
+            ->where('u.role = :role')
+            ->setParameter('role', UserRoleEnum::ORGANIZER)
             ->getQuery()
             ->getSingleScalarResult();
 
@@ -241,20 +236,13 @@ class UserManagementController extends AbstractController
         }
 
         $newRole = $request->request->get('role');
-        if (!in_array($newRole, ['user', 'organizer', 'co_organizer', 'admin'], true)) {
+        if (!in_array($newRole, UserRoleEnum::all(), true)) {
             $this->addFlash('error', 'Rôle invalide');
             return $this->redirectToRoute('admin_users_show', ['id' => $id]);
         }
 
-        $roleEntity = $this->roleRepository->findOneByCode($newRole);
-
-        if (!$roleEntity) {
-            $this->addFlash('error', 'Rôle introuvable');
-            return $this->redirectToRoute('admin_users_show', ['id' => $id]);
-        }
-
         $oldRole = $user->getRole();
-        $user->setRole($roleEntity);
+        $user->setRole($newRole);
         $this->entityManager->flush();
 
         // Logger l'action
@@ -458,7 +446,7 @@ class UserManagementController extends AbstractController
             throw $this->createNotFoundException('Utilisateur non trouvé');
         }
 
-        if ($user->getRole() !== 'organizer') {
+        if ($user->getRole() !== UserRoleEnum::ORGANIZER) {
             $this->addFlash('warning', 'Cet utilisateur n\'est pas un organisateur');
             return $this->redirectToRoute('admin_users_show', ['id' => $id]);
         }

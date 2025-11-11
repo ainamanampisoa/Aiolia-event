@@ -3,7 +3,7 @@
 namespace App\Command;
 
 use App\Entity\User;
-use App\Repository\RoleRepository;
+use App\Enum\Role as UserRoleEnum;
 use Doctrine\ORM\EntityManagerInterface;
 use Symfony\Component\Console\Attribute\AsCommand;
 use Symfony\Component\Console\Command\Command;
@@ -20,8 +20,7 @@ class CreateTestUsersCommand extends Command
 {
     public function __construct(
         private EntityManagerInterface $entityManager,
-        private UserPasswordHasherInterface $passwordHasher,
-        private RoleRepository $roleRepository
+        private UserPasswordHasherInterface $passwordHasher
     ) {
         parent::__construct();
     }
@@ -71,8 +70,6 @@ class CreateTestUsersCommand extends Command
 
         $io->title('Création des utilisateurs de test');
 
-        $roleCache = [];
-
         foreach ($testUsers as $userData) {
             // Vérifier si l'utilisateur existe déjà
             $user = $this->entityManager
@@ -84,6 +81,8 @@ class CreateTestUsersCommand extends Command
             if ($isNewUser) {
                 $user = new User();
                 $user->setEmail($userData['email']);
+                $user->setLoginIdentifier($userData['email']);
+                $user->setLoginMethod(User::AUTH_PROVIDER_PASSWORD);
                 $io->success(sprintf('Utilisateur créé: %s (%s) - Mot de passe: %s', $userData['email'], $userData['role'], $userData['password']));
             } else {
                 $io->note(sprintf('Utilisateur %s mis à jour avec les nouvelles informations de test.', $userData['email']));
@@ -93,11 +92,13 @@ class CreateTestUsersCommand extends Command
             $user->setLastName($userData['lastName']);
             $user->setPhone($userData['phone']);
 
-            if (!isset($roleCache[$userData['role']])) {
-                $roleCache[$userData['role']] = $this->roleRepository->getByCode($userData['role']);
+            $roleCode = UserRoleEnum::normalize($userData['role']);
+            if (!UserRoleEnum::isValid($roleCode)) {
+                $io->warning(sprintf('Rôle "%s" invalide, remplacement par "user".', $userData['role']));
+                $roleCode = UserRoleEnum::USER;
             }
 
-            $user->setRole($roleCache[$userData['role']]);
+            $user->setRole($roleCode);
             $user->setIsEmailVerified($userData['emailVerified']);
             $user->setAccountStatus('active');
 

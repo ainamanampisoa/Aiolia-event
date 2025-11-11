@@ -3,10 +3,7 @@
 namespace App\Entity;
 
 use App\Enum\Role as UserRoleEnum;
-use App\Entity\Role;
 use App\Repository\UserRepository;
-use Doctrine\Common\Collections\ArrayCollection;
-use Doctrine\Common\Collections\Collection;
 use Doctrine\DBAL\Types\Types;
 use Doctrine\ORM\Mapping as ORM;
 use Symfony\Bridge\Doctrine\Validator\Constraints\UniqueEntity;
@@ -15,7 +12,8 @@ use Symfony\Component\Security\Core\User\UserInterface;
 
 #[ORM\Entity(repositoryClass: UserRepository::class)]
 #[ORM\Table(name: 'users', schema: 'aiolia', uniqueConstraints: [
-    new ORM\UniqueConstraint(name: 'uniq_users_fullname', columns: ['first_name', 'last_name'])
+    new ORM\UniqueConstraint(name: 'uniq_users_fullname', columns: ['first_name', 'last_name']),
+    new ORM\UniqueConstraint(name: 'uq_users_login', columns: ['login_identifier', 'login_method'])
 ])]
 #[ORM\HasLifecycleCallbacks]
 #[UniqueEntity(fields: ['firstName', 'lastName'], message: 'Un compte existe déjà avec ce prénom et ce nom')]
@@ -38,8 +36,14 @@ class User implements UserInterface, PasswordAuthenticatedUserInterface
     #[ORM\Column(type: Types::BIGINT)]
     private ?string $id = null;
 
-    #[ORM\Column(length: 255, columnDefinition: 'CITEXT NOT NULL')]
+    #[ORM\Column(length: 255, columnDefinition: 'CITEXT')]
     private string $email;
+
+    #[ORM\Column(name: 'login_identifier', type: Types::STRING, length: 255)]
+    private string $loginIdentifier;
+
+    #[ORM\Column(name: 'login_method', type: Types::STRING, length: 20, options: ['default' => self::AUTH_PROVIDER_PASSWORD])]
+    private string $loginMethod = self::AUTH_PROVIDER_PASSWORD;
 
     #[ORM\Column(name: 'password_hash', type: Types::TEXT)]
     private string $passwordHash;
@@ -65,13 +69,10 @@ class User implements UserInterface, PasswordAuthenticatedUserInterface
     #[ORM\Column(name: 'avatar_url', type: Types::TEXT, nullable: true)]
     private ?string $avatarUrl = null;
 
-    #[ORM\ManyToMany(targetEntity: Role::class, inversedBy: 'users')]
-    #[ORM\JoinTable(name: 'user_role_assignments', schema: 'aiolia')]
-    #[ORM\JoinColumn(name: 'user_id', referencedColumnName: 'id')]
-    #[ORM\InverseJoinColumn(name: 'role_id', referencedColumnName: 'id')]
-    private Collection $roles;
+    #[ORM\Column(name: 'role', type: Types::STRING, length: 20, options: ['default' => UserRoleEnum::USER], columnDefinition: "user_role_enum NOT NULL DEFAULT 'user'")]
+    private string $role = UserRoleEnum::USER;
 
-    #[ORM\Column(type: Types::STRING, length: 20, options: ['default' => self::STATUS_PENDING])]
+    #[ORM\Column(name: 'status', type: Types::STRING, length: 20, options: ['default' => self::STATUS_PENDING], columnDefinition: "user_status_enum NOT NULL DEFAULT 'pending'")]
     private string $status = self::STATUS_PENDING;
 
     #[ORM\Column(name: 'auth_provider', type: Types::STRING, length: 20, options: ['default' => self::AUTH_PROVIDER_PASSWORD])]
@@ -106,7 +107,7 @@ class User implements UserInterface, PasswordAuthenticatedUserInterface
         $now = new \DateTimeImmutable();
         $this->createdAt = $now;
         $this->updatedAt = $now;
-        $this->roles = new ArrayCollection();
+        $this->loginIdentifier = '';
     }
 
     #[ORM\PrePersist]
@@ -136,6 +137,34 @@ class User implements UserInterface, PasswordAuthenticatedUserInterface
     public function setEmail(string $email): static
     {
         $this->email = $email;
+
+        if ($this->loginIdentifier === '') {
+            $this->setLoginIdentifier($email);
+        }
+
+        return $this;
+    }
+
+    public function getLoginIdentifier(): string
+    {
+        return $this->loginIdentifier;
+    }
+
+    public function setLoginIdentifier(string $loginIdentifier): static
+    {
+        $this->loginIdentifier = trim($loginIdentifier);
+
+        return $this;
+    }
+
+    public function getLoginMethod(): string
+    {
+        return $this->loginMethod;
+    }
+
+    public function setLoginMethod(string $loginMethod): static
+    {
+        $this->loginMethod = strtolower(trim($loginMethod)) ?: self::AUTH_PROVIDER_PASSWORD;
 
         return $this;
     }
@@ -271,56 +300,16 @@ class User implements UserInterface, PasswordAuthenticatedUserInterface
 
     public function getRole(): string
     {
-        foreach ($this->roles as $role) {
-            return $role->getCode();
-        }
-
-        return UserRoleEnum::USER;
+        return $this->role;
     }
 
-    public function setRole(Role $role): static
+    public function setRole(string $role): static
     {
-        foreach ($this->roles->toArray() as $existingRole) {
-            if ($existingRole !== $role) {
-                $this->roles->removeElement($existingRole);
-                $existingRole->removeUser($this);
-            }
-        }
-
-        if (!$this->roles->contains($role)) {
-            $this->roles->add($role);
-        }
-
-        $role->addUser($this);
+        $normalized = UserRoleEnum::normalize($role);
+        UserRoleEnum::assertValid($normalized);
+        $this->role = $normalized;
 
         return $this;
-    }
-
-    public function addRole(Role $role): static
-    {
-        if (!$this->roles->contains($role)) {
-            $this->roles->add($role);
-            $role->addUser($this);
-        }
-
-        return $this;
-    }
-
-    public function removeRole(Role $role): static
-    {
-        if ($this->roles->removeElement($role)) {
-            $role->removeUser($this);
-        }
-
-        return $this;
-    }
-
-    /**
-     * @return Collection<int, Role>
-     */
-    public function getRoleEntities(): Collection
-    {
-        return $this->roles;
     }
 
     public function getStatus(): string
@@ -336,13 +325,12 @@ class User implements UserInterface, PasswordAuthenticatedUserInterface
 
     public function getAccountStatus(): string
     {
-        return $this->mapStatusToAccountStatus($this->status);
+        return self::databaseStatusToAccountStatus($this->status);
     }
 
     public function setAccountStatus(string $accountStatus): static
     {
-        $normalized = strtolower(trim($accountStatus));
-        $this->status = $this->mapAccountStatusToStatus($normalized);
+        $this->status = self::accountStatusToDatabaseStatus($accountStatus);
 
         return $this;
     }
@@ -352,9 +340,11 @@ class User implements UserInterface, PasswordAuthenticatedUserInterface
         return $this->status === self::STATUS_ACTIVE;
     }
 
-    private function mapAccountStatusToStatus(string $accountStatus): string
+    public static function accountStatusToDatabaseStatus(string $accountStatus): string
     {
-        return match ($accountStatus) {
+        $normalized = strtolower(trim($accountStatus));
+
+        return match ($normalized) {
             'active' => self::STATUS_ACTIVE,
             'suspended' => self::STATUS_SUSPENDED,
             'rejected' => self::STATUS_SUSPENDED,
@@ -363,9 +353,9 @@ class User implements UserInterface, PasswordAuthenticatedUserInterface
         };
     }
 
-    private function mapStatusToAccountStatus(string $status): string
+    public static function databaseStatusToAccountStatus(string $status): string
     {
-        return match ($status) {
+        return match (strtolower($status)) {
             self::STATUS_ACTIVE => 'active',
             self::STATUS_SUSPENDED => 'suspended',
             self::STATUS_DELETED => 'deleted',
@@ -488,25 +478,11 @@ class User implements UserInterface, PasswordAuthenticatedUserInterface
 
     public function getRoles(): array
     {
-        if ($this->roles->isEmpty()) {
-            return UserRoleEnum::toSecurityRoles(UserRoleEnum::USER);
+        if (!UserRoleEnum::isValid($this->role)) {
+            return ['ROLE_USER'];
         }
 
-        $securityRoles = [];
-
-        foreach ($this->roles as $role) {
-            $code = $role->getCode();
-
-            if (UserRoleEnum::isValid($code)) {
-                $securityRoles = array_merge($securityRoles, UserRoleEnum::toSecurityRoles($code));
-            } else {
-                $securityRoles[] = 'ROLE_USER';
-            }
-        }
-
-        $securityRoles[] = 'ROLE_USER';
-
-        return array_values(array_unique($securityRoles));
+        return array_values(array_unique(UserRoleEnum::toSecurityRoles($this->role)));
     }
 
     public function eraseCredentials(): void
