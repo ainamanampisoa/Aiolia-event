@@ -53,6 +53,10 @@ class AuthController extends AbstractController
                     'profile' => $result['user'],
                     'tokens' => $result['tokens'],
                 ]);
+                  $this->logger->debug('AuthController register: session populated', [
+                      'session_keys' => array_keys($session->all()),
+                      'session_user' => $session->get('user'),
+                  ]);
 
                 return $this->redirectToRoute('home');
             } catch (\Throwable $exception) {
@@ -133,6 +137,10 @@ class AuthController extends AbstractController
                         'profile' => $result['user'],
                         'tokens' => $result['tokens'],
                     ]);
+                  $this->logger->debug('AuthController login: session populated', [
+                      'session_keys' => array_keys($session->all()),
+                      'session_user' => $session->get('user'),
+                  ]);
 
                     $this->addFlash('success', 'Inscription réussie ! Vous pouvez vous connecter avec vos identifiants.');
 

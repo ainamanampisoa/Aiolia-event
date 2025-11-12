@@ -12,8 +12,8 @@
 {% endblock %}
 
 {% block body %}
-        {% set currentUser = app.session.get('user') %}
-        {% set isAuthenticated = currentUser is not null %}
+        {% set sessionUser = sessionUser ?? null %}
+        {% set isAuthenticated = (isAuthenticated ?? false) or (sessionUser is iterable and sessionUser.id is defined) %}
         <main>
             <section class="sec-filtre">
                 <div class="container">
@@ -176,9 +176,10 @@
                                                         Tarifs : non communiqué
                                                     {% endif %}
                                                 </div>
+                                                {% set event_url = (isAuthenticated ?? false) ? path('event_details', { id: event.id }) : path('login') %}
                                                 <div class="blcBtn ">
-                                                    <a href="{{ path('login') }}" class="btn ticket">Acheter un ticket</a>
-                                                    <a href="{{ path('event_details', { id: event.id }) }}" class="btn details">détails</a>
+                                                    <a href="{{ event_url }}" class="btn ticket">Acheter un ticket</a>
+                                                    <a href="{{ event_url }}" class="btn details">détails</a>
                                                 </div>
                                             </div>
                                         </div>

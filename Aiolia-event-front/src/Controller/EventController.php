@@ -3,6 +3,7 @@
 namespace App\Controller;
 
 use Doctrine\DBAL\Connection;
+use Psr\Log\LoggerInterface;
 use Symfony\Bundle\FrameworkBundle\Controller\AbstractController;
 use Symfony\Component\HttpFoundation\JsonResponse;
 use Symfony\Component\HttpFoundation\Request;
@@ -12,13 +13,27 @@ use Symfony\Component\Routing\Annotation\Route;
 class EventController extends AbstractController
 {
     public function __construct(
-        private readonly Connection $connection
+        private readonly Connection $connection,
+        private readonly LoggerInterface $logger
     ) {
     }
 
     #[Route('/events', name: 'events')]
     public function listEvents(Request $request): Response
     {
+        $session = $request->getSession();
+        if (!$session->isStarted()) {
+            $session->start();
+        }
+        $sessionUser = $session->get('user');
+        $isAuthenticated = is_array($sessionUser) && isset($sessionUser['id']);
+        $this->logger->debug('EventController session check', [
+            'session_started' => $session->isStarted(),
+            'session_keys' => array_keys($session->all()),
+            'session_user' => $sessionUser,
+            'is_authenticated_flag' => $isAuthenticated,
+        ]);
+
         $events = $this->fetchEvents();
         $groupedEvents = $this->groupEventsByCategory($events);
         $categories = $this->fetchCategories();
@@ -30,6 +45,8 @@ class EventController extends AbstractController
             'categories' => $categories,
             'locations' => $locations,
             'price_bounds' => $priceBounds,
+            'isAuthenticated' => $isAuthenticated,
+            'sessionUser' => $sessionUser,
         ]);
     }
 
