@@ -4,6 +4,7 @@ namespace App\Controller;
 
 use Doctrine\DBAL\Connection;
 use Symfony\Bundle\FrameworkBundle\Controller\AbstractController;
+use Symfony\Component\HttpFoundation\Request;
 use Symfony\Component\HttpFoundation\Response;
 use Symfony\Component\Routing\Annotation\Route;
 
@@ -15,14 +16,24 @@ class HomeController extends AbstractController
     }
 
     #[Route('/', name: 'home')]
-    public function index(): Response
+    public function index(Request $request): Response
     {
+        $session = $request->getSession();
+        if (!$session->isStarted()) {
+            $session->start();
+        }
+
+        $sessionUser = $session->get('user');
+        $isAuthenticated = is_array($sessionUser) && isset($sessionUser['id']);
+
         $events = $this->fetchUpcomingEvents();
         $stats = $this->fetchHeadlineStats();
 
         return $this->render('home/index.html.twig', [
             'events' => $events,
             'stats' => $stats,
+            'isAuthenticated' => $isAuthenticated,
+            'sessionUser' => $sessionUser,
         ]);
     }
 

@@ -10,6 +10,8 @@
 {% endblock %}
 
 {% block body %}
+        {% set sessionUser = sessionUser ?? null %}
+        {% set isAuthenticated = isAuthenticated ?? (sessionUser is iterable and sessionUser.id is defined) %}
         <main>
 
             <section class="sec-event">
@@ -22,6 +24,7 @@
                                 {% set imagePath = event.image_url
                                     ? (event.image_url starts with 'http' ? event.image_url : asset(event.image_url|trim('/')))
                                     : asset('vente-ticket/images/img1.png') %}
+                                {% set event_url = isAuthenticated ? path('event_details', { id: event.id }) : path('login') %}
                                 <div class="item wow fadeInUp" data-wow-delay="300ms">
                             <div class="inner">
                                 <div class="blc-col1">
@@ -75,8 +78,8 @@
                                                     {% endif %}
                                                 </div>
                                                 <div class="blcBtn">
-                                                    <a href="{{ path('login') }}" class="btn ticket">Acheter un ticket</a>
-                                                    <a href="{{ path('login') }}" class="btn details">détails</a>
+                                                    <a href="{{ event_url }}" class="btn ticket">Acheter un ticket</a>
+                                                    <a href="{{ event_url }}" class="btn details">détails</a>
                                                 </div>
                                     </div>
                                     
@@ -161,6 +164,7 @@
                                     {% if events is not empty %}
                                         {% for event in events|slice(0, 4) %}
                                             {% set startsAt = event.starts_at %}
+                                            {% set event_url = isAuthenticated ? path('event_details', { id: event.id }) : path('login') %}
                                     <div class="item">
                                         <div class="inner d-flex justify-content-between align-items-center">
                                             <div class="left">
@@ -175,7 +179,7 @@
                                                                 {{ startsAt|date('H\\hi') }}
                                                             {% endif %}
                                                 </div>
-                                                        <a href="{{ path('login') }}" class="link"></a>
+                                                        <a href="{{ event_url }}" class="link"></a>
                                             </div>
                                                 </div>
                                             </div>
