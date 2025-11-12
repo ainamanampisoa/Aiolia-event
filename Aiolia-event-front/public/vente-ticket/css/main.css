@@ -20,6 +20,17 @@
     color: #1e7e34;
 }
 
+.ui-datepicker td.has-event a {
+    background: var(--green);
+    color: var(--white);
+    border-radius: 50%;
+}
+
+.ui-datepicker td.has-event a:hover {
+    background: #9a966f;
+    color: var(--white);
+}
+
 .alert-auto-dismiss ul {
     margin: 0;
     padding-left: 20px;

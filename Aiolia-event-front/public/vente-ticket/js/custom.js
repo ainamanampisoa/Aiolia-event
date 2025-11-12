@@ -18,12 +18,37 @@ jQuery(document).ready(function($) {
 
 
 	
-$( "#datepicker" ).datepicker({
+var highlightedDates = {};
+if (Array.isArray(window.AIOLIA_EVENT_DATES)) {
+    window.AIOLIA_EVENT_DATES.forEach(function(item) {
+        if (!item || !item.date) {
+            return;
+        }
+        if (!highlightedDates[item.date]) {
+            highlightedDates[item.date] = [];
+        }
+        highlightedDates[item.date].push(item.title || 'Événement');
+    });
+}
+
+function formatDateToIso(dateObj) {
+    var month = (dateObj.getMonth() + 1).toString().padStart(2, '0');
+    var day = dateObj.getDate().toString().padStart(2, '0');
+    return dateObj.getFullYear() + '-' + month + '-' + day;
+}
+
+$("#datepicker").datepicker({
     dayNamesMin: [ "D", "L", "M", "M", "J", "V", "S" ],
     monthNames: [ "Janvier", "Février", "Mars", "Avril", "Mai", "Juin",
             "Juillet", "Août", "Septembre", "Octobre", "Novembre", "Décembre" ],
-
- 
+    beforeShowDay: function(date) {
+        var iso = formatDateToIso(date);
+        if (highlightedDates[iso]) {
+            var tooltip = highlightedDates[iso].join(', ');
+            return [true, 'has-event', tooltip];
+        }
+        return [true, '', ''];
+    }
 });
 
 $( function() {
