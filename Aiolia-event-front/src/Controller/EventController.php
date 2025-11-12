@@ -51,42 +51,53 @@ class EventController extends AbstractController
     }
 
     #[Route('/events/{id}', name: 'event_details')]
-    public function showEvent(int $id): Response
+    public function showEvent(int $id, Request $request): Response
     {
-        // TODO: Récupérer l'événement depuis la base de données
-        $event = [
-            'id' => $id,
-            'title' => 'Music on Sunday',
-            'description' => '<p>Lorem ipsum dolor sit amet, consectetur adipiscing elit. Sed do eiusmod tempor incididunt ut labore et dolore magna aliqua. Ut enim ad minim veniam, quis nostrud exercitation ullamco laboris nisi ut aliquip ex ea commodo consequat.</p><p>Duis aute irure dolor in reprehenderit in voluptate velit esse cillum dolore eu fugiat nulla pariatur. Excepteur sint occaecat cupidatat non proident, sunt in culpa qui officia deserunt mollit anim id est laborum.</p>',
-            'category' => ['name' => 'Soirée live'],
-            'startDate' => new \DateTime('2025-07-20 20:00:00'),
-            'location' => 'Analakely au Café de la Gare',
-            'minPrice' => 50000,
-            'maxPrice' => 150000,
-            'image' => null,
-            'organizer' => ['firstName' => 'Jean', 'lastName' => 'Dupont'],
-            'ticketCategories' => [
-                [
-                    'id' => 1, 
-                    'name' => 'Offre VIP', 
-                    'price' => 150000, 
-                    'description' => 'Accès VIP avec boissons incluses',
-                    'availableTickets' => 50
-                ],
-                [
-                    'id' => 2, 
-                    'name' => 'Standard', 
-                    'price' => 50000, 
-                    'description' => 'Accès standard',
-                    'availableTickets' => 200
-                ]
-            ],
-            'totalTicketsSold' => 75,
-            'maxCapacity' => 250
-        ];
+        $session = $request->getSession();
+        if (!$session->isStarted()) {
+            $session->start();
+        }
+
+        $sessionUser = $session->get('user');
+        $isAuthenticated = is_array($sessionUser) && isset($sessionUser['id']);
+
+        if (!$isAuthenticated) {
+            $this->addFlash('error', 'Veuillez vous connecter pour consulter le détail d’un évènement.');
+
+            return $this->redirectToRoute('login');
+        }
+
+        $event = $this->fetchEventDetails($id);
+
+        if (null === $event) {
+            throw $this->createNotFoundException('Évènement introuvable.');
+        }
+
+        $ticketTypes = $this->fetchTicketTypes($id);
+        $tags = $this->fetchEventTags($id);
+
+        $priceMin = null;
+        $priceMax = null;
+        if (!empty($ticketTypes)) {
+            $prices = array_column($ticketTypes, 'base_price');
+            $priceMin = (float) min($prices);
+            $priceMax = (float) max($prices);
+        } elseif (null !== $event['min_price']) {
+            $priceMin = $event['min_price'];
+            $priceMax = $event['max_price'];
+        }
+
+        $event['ticket_types'] = $ticketTypes;
+        $event['tags'] = $tags;
+        $event['price_min'] = $priceMin;
+        $event['price_max'] = $priceMax;
+
+        $similarEvents = $this->fetchSimilarEvents($event['category_slug'], $event['id']);
 
         return $this->render('event/details.html.twig', [
             'event' => $event,
+            'similar_events' => $similarEvents,
+            'sessionUser' => $sessionUser,
         ]);
     }
 
@@ -343,5 +354,242 @@ class EventController extends AbstractController
             'min' => (float) ($row['min_price'] ?? 0),
             'max' => (float) ($row['max_price'] ?? 0),
         ];
+    }
+
+    /**
+     * @return array<string, mixed>|null
+     */
+    private function fetchEventDetails(int $id): ?array
+    {
+        $sql = <<<SQL
+            SELECT
+                e.id,
+                e.slug,
+                e.title,
+                e.subtitle,
+                e.summary,
+                e.description,
+                e.venue_name,
+                e.venue_address,
+                e.city,
+                e.region,
+                e.country_code,
+                e.starts_at,
+                e.ends_at,
+                e.capacity,
+                e.language_code,
+                e.latitude,
+                e.longitude,
+                e.timezone,
+                e.created_at,
+                cat.label AS category_label,
+                cat.slug AS category_slug,
+                media.url AS image_url,
+                media.alt_text AS image_alt,
+                pricing.min_price,
+                pricing.max_price
+            FROM aiolia.events e
+            LEFT JOIN LATERAL (
+                SELECT c.slug, c.label
+                FROM aiolia.event_category_links cl
+                JOIN aiolia.event_categories c ON c.id = cl.category_id
+                WHERE cl.event_id = e.id
+                ORDER BY c.display_order ASC, c.label ASC
+                LIMIT 1
+            ) AS cat ON TRUE
+            LEFT JOIN LATERAL (
+                SELECT m.url, m.alt_text
+                FROM aiolia.event_media m
+                WHERE m.event_id = e.id
+                  AND m.is_public IS TRUE
+                ORDER BY m.display_order ASC, m.id ASC
+                LIMIT 1
+            ) AS media ON TRUE
+            LEFT JOIN LATERAL (
+                SELECT
+                    MIN(tt.base_price) AS min_price,
+                    MAX(tt.base_price) AS max_price
+                FROM aiolia.ticket_types tt
+                WHERE tt.event_id = e.id
+            ) AS pricing ON TRUE
+            WHERE e.id = :id
+            LIMIT 1
+        SQL;
+
+        $row = $this->connection->executeQuery($sql, ['id' => $id])->fetchAssociative();
+
+        if (false === $row) {
+            return null;
+        }
+
+        $startsAt = isset($row['starts_at']) ? new \DateTimeImmutable($row['starts_at']) : null;
+        $endsAt = isset($row['ends_at']) ? new \DateTimeImmutable($row['ends_at']) : null;
+
+        return [
+            'id' => (int) $row['id'],
+            'slug' => $row['slug'],
+            'title' => $row['title'],
+            'subtitle' => $row['subtitle'],
+            'summary' => $row['summary'],
+            'description' => $row['description'] ?? $row['summary'],
+            'venue_name' => $row['venue_name'],
+            'venue_address' => $row['venue_address'],
+            'city' => $row['city'],
+            'region' => $row['region'],
+            'country_code' => $row['country_code'],
+            'starts_at' => $startsAt,
+            'ends_at' => $endsAt,
+            'capacity' => isset($row['capacity']) ? (int) $row['capacity'] : null,
+            'language_code' => $row['language_code'],
+            'latitude' => isset($row['latitude']) ? (float) $row['latitude'] : null,
+            'longitude' => isset($row['longitude']) ? (float) $row['longitude'] : null,
+            'timezone' => $row['timezone'],
+            'created_at' => new \DateTimeImmutable($row['created_at']),
+            'category_label' => $row['category_label'] ?? 'Évènement',
+            'category_slug' => $row['category_slug'],
+            'image_url' => $row['image_url'],
+            'image_alt' => $row['image_alt'] ?? $row['title'],
+            'min_price' => null !== $row['min_price'] ? (float) $row['min_price'] : null,
+            'max_price' => null !== $row['max_price'] ? (float) $row['max_price'] : null,
+        ];
+    }
+
+    /**
+     * @return array<int, array<string, mixed>>
+     */
+    private function fetchTicketTypes(int $eventId): array
+    {
+        $sql = <<<SQL
+            SELECT
+                tt.id,
+                tt.name,
+                tt.description,
+                tt.currency,
+                tt.base_price,
+                tt.service_fee,
+                tt.vat_rate,
+                tt.min_per_order,
+                tt.max_per_order,
+                inv.total_quantity,
+                inv.reserved_quantity,
+                inv.sold_quantity
+            FROM aiolia.ticket_types tt
+            LEFT JOIN aiolia.ticket_inventory inv ON inv.ticket_type_id = tt.id
+            WHERE tt.event_id = :event_id
+            ORDER BY tt.base_price ASC NULLS LAST, tt.name ASC
+        SQL;
+
+        $rows = $this->connection->executeQuery($sql, ['event_id' => $eventId])->fetchAllAssociative();
+
+        return array_map(static function (array $row): array {
+            $total = isset($row['total_quantity']) ? (int) $row['total_quantity'] : null;
+            $sold = isset($row['sold_quantity']) ? (int) $row['sold_quantity'] : 0;
+            $reserved = isset($row['reserved_quantity']) ? (int) $row['reserved_quantity'] : 0;
+            $available = null;
+            if (null !== $total) {
+                $available = max($total - $sold - $reserved, 0);
+            }
+
+            return [
+                'id' => (int) $row['id'],
+                'name' => $row['name'],
+                'description' => $row['description'],
+                'currency' => $row['currency'],
+                'base_price' => (float) $row['base_price'],
+                'service_fee' => isset($row['service_fee']) ? (float) $row['service_fee'] : null,
+                'vat_rate' => isset($row['vat_rate']) ? (float) $row['vat_rate'] : null,
+                'min_per_order' => isset($row['min_per_order']) ? (int) $row['min_per_order'] : null,
+                'max_per_order' => isset($row['max_per_order']) ? (int) $row['max_per_order'] : null,
+                'available' => $available,
+                'total_quantity' => $total,
+                'sold_quantity' => $sold,
+                'reserved_quantity' => $reserved,
+            ];
+        }, $rows);
+    }
+
+    /**
+     * @return array<int, string>
+     */
+    private function fetchEventTags(int $eventId): array
+    {
+        $sql = <<<SQL
+            SELECT t.label
+            FROM aiolia.event_tag_links tl
+            JOIN aiolia.event_tags t ON t.id = tl.tag_id
+            WHERE tl.event_id = :event_id
+            ORDER BY t.label ASC
+        SQL;
+
+        return $this->connection
+            ->executeQuery($sql, ['event_id' => $eventId])
+            ->fetchFirstColumn();
+    }
+
+    /**
+     * @return array<int, array<string, mixed>>
+     */
+    private function fetchSimilarEvents(?string $categorySlug, int $excludeId): array
+    {
+        $sql = <<<SQL
+            SELECT
+                e.id,
+                e.slug,
+                e.title,
+                e.venue_name,
+                e.city,
+                e.starts_at,
+                cat.label AS category_label,
+                media.url AS image_url
+            FROM aiolia.events e
+            LEFT JOIN LATERAL (
+                SELECT c.slug, c.label
+                FROM aiolia.event_category_links cl
+                JOIN aiolia.event_categories c ON c.id = cl.category_id
+                WHERE cl.event_id = e.id
+                ORDER BY c.display_order ASC, c.label ASC
+                LIMIT 1
+            ) AS cat ON TRUE
+            LEFT JOIN LATERAL (
+                SELECT m.url
+                FROM aiolia.event_media m
+                WHERE m.event_id = e.id
+                  AND m.is_public IS TRUE
+                ORDER BY m.display_order ASC, m.id ASC
+                LIMIT 1
+            ) AS media ON TRUE
+            WHERE e.status = 'published'
+              AND e.visibility = 'public'
+              AND e.id <> :exclude_id
+        SQL;
+
+        $parameters = ['exclude_id' => $excludeId];
+        $types = ['exclude_id' => \PDO::PARAM_INT];
+
+        $whereClause = '';
+        if (null !== $categorySlug && '' !== $categorySlug) {
+            $whereClause = ' AND cat.slug = :category_slug';
+            $parameters['category_slug'] = $categorySlug;
+            $types['category_slug'] = \PDO::PARAM_STR;
+        }
+
+        $sql .= $whereClause . ' ORDER BY e.starts_at ASC NULLS LAST, e.created_at DESC LIMIT 4';
+
+        $rows = $this->connection->executeQuery($sql, $parameters, $types)->fetchAllAssociative();
+
+        return array_map(static function (array $row): array {
+            $startsAt = isset($row['starts_at']) ? new \DateTimeImmutable($row['starts_at']) : null;
+
+            return [
+                'id' => (int) $row['id'],
+                'slug' => $row['slug'],
+                'title' => $row['title'],
+                'category_label' => $row['category_label'] ?? 'Évènement',
+                'venue_name' => $row['venue_name'],
+                'city' => $row['city'],
+                'starts_at' => $startsAt,
+                'image_url' => $row['image_url'],
+            ];
+        }, $rows);
     }
 }

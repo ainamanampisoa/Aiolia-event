@@ -9,39 +9,84 @@
         <link rel="stylesheet" type="text/css" href="{{ asset('vente-ticket/css/main.css') }}">
 {% endblock %}
 
+{% block hero %}{% endblock %}
+
 {% block body %}
+        {% set startsAt = event.starts_at %}
+        {% set endsAt = event.ends_at %}
+        {% set imagePath = event.image_url
+            ? (event.image_url starts with 'http' ? event.image_url : asset(event.image_url|trim('/')))
+            : asset('vente-ticket/images/img1.png') %}
+        {% set priceMin = event.price_min %}
+        {% set priceMax = event.price_max %}
         <main>
             <section class="sec-event-details">
                 <div class="container">
                     <div class="inner-details">
-                        <h2 class="wow fadeIn" data-wow-delay="300ms">Jazz Style Music on Sunday evening event</h2>
+                        <h2 class="wow fadeIn" data-wow-delay="300ms">{{ event.title }}</h2>
+                        {% if event.subtitle %}
+                            <p class="event-subtitle wow fadeIn" data-wow-delay="350ms">{{ event.subtitle }}</p>
+                        {% endif %}
                         <div class="lst-event wow fadeInUp" data-wow-delay="300ms">
                             <div class="item ">
                                 <div class="inner">
                                     <div class="blc-col2">
                                         <div class="img">
-                                            <img src="{{ asset('vente-ticket/images/img1.png') }}" alt="ventes tickets">
+                                            <img src="{{ imagePath }}" alt="{{ event.image_alt|default(event.title) }}">
                                         </div>  
                                     </div>
                                     <div class="blc-col1">
                                         <div class="col1">
                                             <div class="date">
-                                                <span>Dimanche</span>
-                                                <strong>20</strong>
-                                                <span class="text-upper">juil. 2025</span>
+                                                {% if startsAt %}
+                                                    <span>{{ startsAt|date('l', timezone=event.timezone)|capitalize }}</span>
+                                                    <strong>{{ startsAt|date('d', timezone=event.timezone) }}</strong>
+                                                    <span class="text-upper">{{ startsAt|date('M Y', timezone=event.timezone)|upper }}</span>
+                                                {% else %}
+                                                    <span>Date à confirmer</span>
+                                                {% endif %}
                                             </div>
                                             <div class="hour">
-                                                à 20:00
+                                                {% if startsAt %}
+                                                    de {{ startsAt|date('H\\hi', timezone=event.timezone) }}
+                                                    {% if endsAt %}
+                                                        {% if endsAt|date('Y-m-d', timezone=event.timezone) == startsAt|date('Y-m-d', timezone=event.timezone) %}
+                                                            à {{ endsAt|date('H\\hi', timezone=event.timezone) }}
+                                                        {% else %}
+                                                            au {{ endsAt|date('d/m/Y H\\hi', timezone=event.timezone) }}
+                                                        {% endif %}
+                                                    {% endif %}
+                                                {% else %}
+                                                    Horaire à confirmer
+                                                {% endif %}
                                             </div>
                                             <div class="code-barre">
                                                 <img src="{{ asset('vente-ticket/images/code1.png') }}">
                                             </div>
                                         </div>
                                         <div class="col2">
-                                            <span class="bandeau">Soirée live</span>
-                                            <div class="adresse">Lieu : Analakely au Café de la Gare</div>
-                                            <div class="tarif">Tarifs : 50.000MGA - 150.000MGA</div>
-                                            <div class="capacite">Capacité : 320 personnes max.</div>
+                                            <span class="bandeau">{{ event.category_label }}</span>
+                                            <div class="adresse">
+                                                {% if event.venue_name %}{{ event.venue_name }}{% endif %}
+                                                {% if event.city %}
+                                                    {% if event.venue_name %}, {% endif %}
+                                                    {{ event.city }}
+                                                {% endif %}
+                                            </div>
+                                            <div class="tarif">
+                                                {% if priceMin is not null %}
+                                                    {% if priceMax is not null and priceMax > priceMin %}
+                                                        Tarifs : {{ priceMin|number_format(0, '.', ' ') }} {{ event.ticket_types[0].currency|default('MGA') }} - {{ priceMax|number_format(0, '.', ' ') }} {{ event.ticket_types[0].currency|default('MGA') }}
+                                                    {% else %}
+                                                        Tarif : {{ priceMin|number_format(0, '.', ' ') }} {{ event.ticket_types[0].currency|default('MGA') }}
+                                                    {% endif %}
+                                                {% else %}
+                                                    Tarifs : non communiqué
+                                                {% endif %}
+                                            </div>
+                        {% if event.capacity %}
+                                            <div class="capacite">Capacité : {{ event.capacity }} personnes max.</div>
+                        {% endif %}
 
                                             <div id="timer">
                                               <div id="days"><div></div></div>
@@ -57,41 +102,36 @@
                                     
                                     <div class="blc-col3">
                                         <h3>Option sur le ticket</h3>
-                                        <div class="type">
-                                            <form>
-                                                <div class="blc-select">
-                                                    <label>Type de ticket</label>
-                                                    <select>
-                                                        <option>Offre VIP</option>
-                                                        <option>lorem ipsum</option>
-
-                                                    </select>
-                                                </div>
-                                                <div class="blc-nbr d-flex">
-                                                    <div class="col">
-                                                        <label>Adulte</label>
-                                                        <div class="numbers-row">
-                                                            <div class="dec button"><span>-</span></div>
-                                                            <input type="text" name="qtt" id="qtt" value="1" class="qtt">
-                                                            <div class="inc button"><span>+</span></div>    
-                                                        </div>
-                                                    </div>
-                                                    <div class="col">
-                                                        <label>Enfant <span class="info"><img src="{{ asset('vente-ticket/images/info.png') }}"><div class="tooltip">Un ticket est requis pour les enfants de plus de 10 ans</div></span></label>
-                                                        <div class="numbers-row">
-                                                            <div class="dec button"><span>-</span></div>
-                                                            <input type="text" name="qtt" id="qtt" value="1" class="qtt">
-                                                            <div class="inc button"><span>+</span></div>    
-                                                        </div>
-                                                    </div>
-                                                    <div class="col btn-ok">
-                                                        <button class="btn ok">OK</button>
-                                                    </div>
-
-
-                                                </div>
-                                            </form>
-                                        </div>
+                                        {% if event.ticket_types %}
+                                            <div class="type">
+                                                <ul class="ticket-options">
+                                                    {% for ticket in event.ticket_types %}
+                                                        <li>
+                                                            <div class="ticket-header">
+                                                                <strong>{{ ticket.name }}</strong>
+                                                                <span class="ticket-price">{{ ticket.base_price|number_format(0, '.', ' ') }} {{ ticket.currency }}</span>
+                                                            </div>
+                                                            {% if ticket.description %}
+                                                                <p class="ticket-desc">{{ ticket.description }}</p>
+                                                            {% endif %}
+                                                            <div class="ticket-meta">
+                                                                {% if ticket.min_per_order %}
+                                                                    <span>Min/commande : {{ ticket.min_per_order }}</span>
+                                                                {% endif %}
+                                                                {% if ticket.max_per_order %}
+                                                                    <span>Max/commande : {{ ticket.max_per_order }}</span>
+                                                                {% endif %}
+                                                                {% if ticket.available is not null %}
+                                                                    <span>Disponibles : {{ ticket.available }}</span>
+                                                                {% endif %}
+                                                            </div>
+                                                        </li>
+                                                    {% endfor %}
+                                                </ul>
+                                            </div>
+                                        {% else %}
+                                            <p>Les options de billetterie seront bientôt disponibles.</p>
+                                        {% endif %}
                                     </div>
                                 </div>
                                 <div class="blc-paiement">
@@ -101,12 +141,6 @@
                                     <div class="blc-right">
                                         <span>Modes de paiement :</span>
                                         <ul>
-                                            <li>
-                                                <a href="#"><img src="{{ asset('vente-ticket/images/mastercard.png') }}" alt="Mastercard"></a>
-                                            </li>
-                                            <li>
-                                                <a href="#"><img src="{{ asset('vente-ticket/images/visa.png') }}" alt="Visa"></a>
-                                            </li>
                                             <li>
                                                 <a href="#"><img src="{{ asset('vente-ticket/images/m-vola.png') }}" alt="M-vola"></a>
                                             </li>
@@ -125,35 +159,42 @@
                         <div class="blc-text wow fadeInUp" data-wow-delay="300ms">
                             <h3>Description de l'évènement</h3>
                             <div class="text">
-                                <p>Sed ut perspiciatis unde omnis iste natus error sit voluptatem accusantium doloremque laudantium, totam rem aperiam, eaque ipsa quae ab illo inventore veritatis et quasi architecto beatae vitae dicta sunt explicabo. Nemo enim ipsam voluptatem quia voluptas sit aspernatur aut odit aut fugit, sed quia consequuntur magni dolores eos qui ratione voluptatem sequi nesciunt. Neque porro quisquam est, qui dolorem ipsum quia dolor sit amet, consectetur, adipisci velit, sed quia non numquam eius modi tempora incidunt ut labore et dolore magnam aliquam quaerat voluptatem.</p>
+                                {% if event.description %}
+                                    <p>{{ event.description|raw }}</p>
+                                {% elseif event.summary %}
+                                    <p>{{ event.summary }}</p>
+                                {% else %}
+                                    <p>Aucune description détaillée n’est disponible pour le moment.</p>
+                                {% endif %}
                             </div>
-                            <div class="lst-hack">
-                                <ul class="d-flex">
-                                    <li>#jazz</li>
-                                    <li>#cafédelagare</li>
-                                    <li>#live</li>
-                                    <li>#soirée</li>
-                                </ul>
-                            </div>
+                            {% if event.tags %}
+                                <div class="lst-hack">
+                                    <ul class="d-flex">
+                                        {% for tag in event.tags %}
+                                            <li>#{{ tag|lower|replace({' ':'-'}) }}</li>
+                                        {% endfor %}
+                                    </ul>
+                                </div>
+                            {% endif %}
 
                         </div>
 
-                        <div class="blc-video wow fadeInUp" data-wow-delay="300ms">
-                            <h3>Vidéo de présentation de l'évènement</h3>
-                            <div class="video-container">
-                              <video id="video1" width="1506" height="750" poster="{{ asset('vente-ticket/images/poster.jpg') }}">
-                                <source src="{{ asset('vente-ticket/video/video.mp4') }}" type="video/mp4">   
-                              </video>
-                              <button class="play-btn" data-video="video1"></button>
+                        {% if event.latitude and event.longitude %}
+                            <div class="blc-map wow fadeInUp" data-wow-delay="300ms">
+                                <h3>Lieu de l'évènement</h3>
+                                <div class="map">
+                                    <iframe
+                                        width="600"
+                                        height="450"
+                                        style="border:0;"
+                                        loading="lazy"
+                                        allowfullscreen
+                                        referrerpolicy="no-referrer-when-downgrade"
+                                        src="https://maps.google.com/maps?q={{ event.latitude }},{{ event.longitude }}&z=15&output=embed">
+                                    </iframe>
+                                </div>
                             </div>
-                        </div>
-
-                        <div class="blc-map wow fadeInUp" data-wow-delay="300ms">
-                            <h3>Lieu de l'évènement</h3>
-                            <div class="map">
-                                <iframe src="https://www.google.com/maps/embed?pb=!1m18!1m12!1m3!1d7549.281261584579!2d47.52111267994531!3d-18.90301741478975!2m3!1f0!2f0!3f0!3m2!1i1024!2i768!4f13.1!3m3!1m2!1s0x21f07e02f859da69%3A0x71d77dd98fe324ac!2sGrand%20Caf%C3%A9%20de%20la%20Gare!5e0!3m2!1sfr!2smg!4v1754476892148!5m2!1sfr!2smg" width="600" height="450" style="border:0;" allowfullscreen="" loading="lazy" referrerpolicy="no-referrer-when-downgrade"></iframe>
-                            </div>
-                        </div>
+                        {% endif %}
                     </div>
                 </div>
             </section>
@@ -161,84 +202,65 @@
             <section class="sec-event all-event">
                 <div class="container">
                     <h2 class="wow fadeIn" data-wow-delay="300ms">Evènements similaires</h2>
-                    <div class="lst-event">
-                        {% for i in 1..2 %}
-                        <div class="item  wow fadeInUp" data-wow-delay="300ms">
-                            <div class="inner">
-                                <div class="blc-col1">
-                                    <div class="col1">
-                                        <div class="date">
-                                            <span>Dimanche</span>
-                                            <strong>20</strong>
-                                            <span class="text-upper">juil. 2025</span>
-                                        </div>
-                                        <div class="hour">
-                                            à 20:00
-                                        </div>
-                                        <div class="code-barre">
-                                            <img src="{{ asset('vente-ticket/images/code1.png') }}">
-                                        </div>
-                                    </div>
-                                    <div class="col2">
-                                        <span class="bandeau">Soirée live</span>
-                                        <h3>Music on Sunday</h3>
-                                        <div class="adresse">Lieu : Analakely au Café de la Gare</div>
-                                        <div class="tarif">Tarifs : 50.000MGA - 150.000MGA</div>
-                                        <div class="blcBtn ">
-                                            <a href="#" class="btn ticket">Acheter un ticket</a>
-                                            <a href="#" class="btn details">détails</a>
-
-                                        </div>
-                                    </div>
-                                    
-                                </div>
-                                <div class="blc-col2">
-                                    <div class="img">
-                                        <img src="{{ asset('vente-ticket/images/img1.png') }}" alt="ventes tickets">
-                                    </div>  
-                                </div>
-                                <div class="blc-col3">
-                                    <h3>Option sur le ticket</h3>
-                                    <div class="type">
-                                        <form>
-                                            <div class="blc-select">
-                                                <label>Type de ticket</label>
-                                                <select>
-                                                    <option>Offre VIP</option>
-                                                    <option>lorem ipsum</option>
-
-                                                </select>
+                    {% if similar_events is not empty %}
+                        <div class="lst-event">
+                            {% for similar in similar_events %}
+                                {% set similarStart = similar.starts_at %}
+                                {% set similarImage = similar.image_url
+                                    ? (similar.image_url starts with 'http' ? similar.image_url : asset(similar.image_url|trim('/')))
+                                    : asset('vente-ticket/images/img1.png') %}
+                                <div class="item  wow fadeInUp" data-wow-delay="300ms">
+                                    <div class="inner">
+                                        <div class="blc-col1">
+                                            <div class="col1">
+                                                <div class="date">
+                                                    {% if similarStart %}
+                                                        <span>{{ similarStart|date('l')|capitalize }}</span>
+                                                        <strong>{{ similarStart|date('d') }}</strong>
+                                                        <span class="text-upper">{{ similarStart|date('M Y')|upper }}</span>
+                                                    {% else %}
+                                                        <span>À venir</span>
+                                                    {% endif %}
+                                                </div>
+                                                <div class="hour">
+                                                    {% if similarStart %}
+                                                        à {{ similarStart|date('H\\hi') }}
+                                                    {% else %}
+                                                        Horaire à confirmer
+                                                    {% endif %}
+                                                </div>
+                                                <div class="code-barre">
+                                                    <img src="{{ asset('vente-ticket/images/code1.png') }}">
+                                                </div>
                                             </div>
-                                            <div class="blc-nbr d-flex">
-                                                <div class="col">
-                                                    <label>Adulte</label>
-                                                    <div class="numbers-row">
-                                                        <div class="dec button"><span>-</span></div>
-                                                        <input type="text" name="qtt" id="qtt" value="1" class="qtt">
-                                                        <div class="inc button"><span>+</span></div>    
-                                                    </div>
+                                            <div class="col2">
+                                                <span class="bandeau">{{ similar.category_label }}</span>
+                                                <h3>{{ similar.title }}</h3>
+                                                <div class="adresse">
+                                                    {% if similar.venue_name %}{{ similar.venue_name }}{% endif %}
+                                                    {% if similar.city %}
+                                                        {% if similar.venue_name %}, {% endif %}
+                                                        {{ similar.city }}
+                                                    {% endif %}
                                                 </div>
-                                                <div class="col">
-                                                    <label>Enfant <span class="info"><img src="{{ asset('vente-ticket/images/info.png') }}"><div class="tooltip">Un ticket est requis pour les enfants de plus de 10 ans</div></span></label>
-                                                    <div class="numbers-row">
-                                                        <div class="dec button"><span>-</span></div>
-                                                        <input type="text" name="qtt" id="qtt" value="1" class="qtt">
-                                                        <div class="inc button"><span>+</span></div>    
-                                                    </div>
+                                                <div class="blcBtn ">
+                                                    <a href="{{ path('event_details', { id: similar.id }) }}" class="btn ticket">Acheter un ticket</a>
+                                                    <a href="{{ path('event_details', { id: similar.id }) }}" class="btn details">détails</a>
                                                 </div>
-                                                <div class="col btn-ok">
-                                                    <button class="btn ok">OK</button>
-                                                </div>
-
-
                                             </div>
-                                        </form>
+                                        </div>
+                                        <div class="blc-col2">
+                                            <div class="img">
+                                                <img src="{{ similarImage }}" alt="{{ similar.title }}">
+                                            </div>  
+                                        </div>
                                     </div>
                                 </div>
-                            </div>
+                            {% endfor %}
                         </div>
-                        {% endfor %}
-                    </div>
+                    {% else %}
+                        <p class="text-center">Aucun évènement similaire pour le moment.</p>
+                    {% endif %}
                     
 
                     
@@ -252,6 +274,11 @@
         <script type="text/javascript" src="{{ asset('vente-ticket/js/wow.js') }}"></script>
         <script type="text/javascript" src="{{ asset('vente-ticket/js/slick.min.js') }}"></script>
         <script type="text/javascript" src="{{ asset('vente-ticket/js/jquery-ui.js') }}"></script>  
+        {% if event.starts_at is defined and event.starts_at %}
+            <script>
+                window.AIOLIA_EVENT_START = '{{ event.starts_at|date('Y-m-d H:i:s') }}';
+            </script>
+        {% endif %}
         <script type="text/javascript" src="{{ asset('vente-ticket/js/custom.js') }}"></script>
 {% endblock %}
 
