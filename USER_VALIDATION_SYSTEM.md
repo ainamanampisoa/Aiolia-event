@@ -274,3 +274,5 @@ sudo cp ~/Documents/MyProject/Aiolia-event/Base/mydata.sql /tmp/
 sudo chown postgres:postgres /tmp/mydata.sql
 
 \i /tmp/mydata.sql
+
+psql -h localhost -U aiolia_user -d aiolia_event -f /home/aina/Documents/MyProject/Aiolia-event/Base/mydata.sql

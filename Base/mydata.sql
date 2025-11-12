@@ -75,9 +75,15 @@ ON CONFLICT (user_id) DO NOTHING;
 -- Abonnement organisateur (plan STARTER)
 -- -------------------------------------------------------------------
 WITH organizer AS (
-    SELECT id FROM organizer_profiles WHERE user_id = (
-        SELECT id FROM users WHERE email = 'admin@aiolia.com'
-    )
+    SELECT op.id
+    FROM organizer_profiles op
+    ORDER BY CASE
+        WHEN op.user_id = (
+            SELECT id FROM users WHERE email = 'admin@aiolia.com'
+        ) THEN 0
+        ELSE 1
+    END
+    LIMIT 1
 ),
 plan AS (
     SELECT id FROM subscription_plans WHERE code = 'STARTER'
@@ -102,14 +108,20 @@ WHERE NOT EXISTS (
 );
 
 -- -------------------------------------------------------------------
--- Événement de démonstration + rattachements
+-- Événements de démonstration + rattachements (2 entrées)
 -- -------------------------------------------------------------------
 WITH organizer AS (
-    SELECT id FROM organizer_profiles WHERE user_id = (
-        SELECT id FROM users WHERE email = 'admin@aiolia.com'
-    )
+    SELECT op.id
+    FROM organizer_profiles op
+    ORDER BY CASE
+        WHEN op.user_id = (
+            SELECT id FROM users WHERE email = 'admin@aiolia.com'
+        ) THEN 0
+        ELSE 1
+    END
+    LIMIT 1
 ),
-evt AS (
+event_insert AS (
     INSERT INTO events (
         organizer_profile_id, slug, title, subtitle, summary,
         description, visibility, status, timezone,
@@ -118,136 +130,284 @@ evt AS (
         sales_starts_at, sales_ends_at,
         capacity, language_code, is_featured, is_highlighted
     )
-    SELECT
-        organizer.id,
-        'concert-demo',
-        'Concert de démonstration',
-        'Live showcase',
-        'Un événement de test visible sur le front.',
-        'Cet événement illustre le parcours complet billetterie + commande.',
-        'public',
-        'published',
-        'Indian/Antananarivo',
-        'Palais des Sports',
-        'Rue du Stade',
-        'Antananarivo',
-        'Analamanga',
-        'MG',
-        -18.87919,
-        47.50791,
-        now() + INTERVAL '30 days',
-        now() + INTERVAL '30 days' + INTERVAL '3 hours',
-        now(),
-        now() + INTERVAL '25 days',
-        500,
-        'fr-FR',
-        TRUE,
-        FALSE
+    SELECT organizer.id,
+           data.slug,
+           data.title,
+           data.subtitle,
+           data.summary,
+           data.description,
+           data.visibility::event_visibility_enum,
+           data.status::event_status_enum,
+           data.timezone,
+           data.venue_name,
+           data.venue_address,
+           data.city,
+           data.region,
+           data.country_code,
+           data.latitude,
+           data.longitude,
+           data.starts_at,
+           data.ends_at,
+           data.sales_starts_at,
+           data.sales_ends_at,
+           data.capacity,
+           data.language_code,
+           data.is_featured,
+           data.is_highlighted
     FROM organizer
+    CROSS JOIN (
+        VALUES
+            (
+                'concert-music-sunday',
+                'Music on Sunday',
+                'Live showcase',
+                'Un concert acoustique intimiste pour démarrer la semaine.',
+                'Soirée musicale dédiée aux artistes montants de la scène locale.',
+                'public',
+                'published',
+                'Indian/Antananarivo',
+                'Café de la Gare',
+                'Rue du Stade',
+                'Antananarivo',
+                'Analamanga',
+                'MG',
+                -18.9082,
+                47.5257,
+                now() + INTERVAL '15 days',
+                now() + INTERVAL '15 days' + INTERVAL '3 hours',
+                now() + INTERVAL '1 day',
+                now() + INTERVAL '14 days',
+                350,
+                'fr-FR',
+                TRUE,
+                FALSE
+            ),
+            (
+                'business-connect-mada',
+                'Business Connect Mada',
+                'Rencontres & networking',
+                'Un cocktail pour connecter les entrepreneurs malgaches.',
+                'Événement thématique pour échanger sur les tendances startup et financement.',
+                'public',
+                'published',
+                'Indian/Antananarivo',
+                'Le Dôme by SmartOne',
+                'Immeuble Atrium, Galaxy Andraharo',
+                'Antananarivo',
+                'Analamanga',
+                'MG',
+                -18.8549,
+                47.5203,
+                now() + INTERVAL '28 days',
+                now() + INTERVAL '28 days' + INTERVAL '4 hours',
+                now() + INTERVAL '5 days',
+                now() + INTERVAL '26 days',
+                220,
+                'fr-FR',
+                FALSE,
+                TRUE
+            )
+    ) AS data (
+        slug, title, subtitle, summary,
+        description, visibility, status, timezone,
+        venue_name, venue_address, city, region, country_code,
+        latitude, longitude, starts_at, ends_at,
+        sales_starts_at, sales_ends_at,
+        capacity, language_code, is_featured, is_highlighted
+    )
     ON CONFLICT (slug) DO UPDATE
         SET title = EXCLUDED.title,
             subtitle = EXCLUDED.subtitle,
             summary = EXCLUDED.summary,
             description = EXCLUDED.description,
+            venue_name = EXCLUDED.venue_name,
+            venue_address = EXCLUDED.venue_address,
+            city = EXCLUDED.city,
+            region = EXCLUDED.region,
+            country_code = EXCLUDED.country_code,
+            latitude = EXCLUDED.latitude,
+            longitude = EXCLUDED.longitude,
+            starts_at = EXCLUDED.starts_at,
+            ends_at = EXCLUDED.ends_at,
+            sales_starts_at = EXCLUDED.sales_starts_at,
+            sales_ends_at = EXCLUDED.sales_ends_at,
+            capacity = EXCLUDED.capacity,
             updated_at = now()
-    RETURNING id
+    RETURNING id, slug
 )
 INSERT INTO event_category_links (event_id, category_id)
-SELECT evt.id, cat.id
-FROM evt
-JOIN event_categories cat ON cat.slug = 'concert'
+SELECT evt.id,
+       cat.id
+FROM event_insert evt
+JOIN event_categories cat ON cat.slug = CASE evt.slug
+    WHEN 'business-connect-mada' THEN 'business'
+    ELSE 'concert'
+END
 ON CONFLICT DO NOTHING;
 
+WITH evt AS (
+    SELECT id, slug FROM events WHERE slug IN ('concert-music-sunday', 'business-connect-mada')
+)
 INSERT INTO event_tag_links (event_id, tag_id)
-SELECT ev.id, tag.id
-FROM events ev
-JOIN event_tags tag ON tag.slug = 'live'
-WHERE ev.slug = 'concert-demo'
+SELECT evt.id,
+       tag.id
+FROM evt
+JOIN event_tags tag ON tag.slug = CASE evt.slug
+    WHEN 'business-connect-mada' THEN 'networking'
+    ELSE 'live'
+END
 ON CONFLICT DO NOTHING;
 
+WITH evt AS (
+    SELECT id, slug FROM events WHERE slug IN ('concert-music-sunday', 'business-connect-mada')
+)
 INSERT INTO event_media (
     event_id, media_type, url, alt_text,
     display_order, is_public
 )
-SELECT ev.id,
+SELECT evt.id,
        'image',
-       'https://cdn.aiolia.mg/demo/concert-demo.jpg',
-       'Affiche officielle du concert de démonstration',
+       CASE evt.slug
+           WHEN 'business-connect-mada' THEN '/vente-ticket/images/img2.png'
+           ELSE '/vente-ticket/images/img1.png'
+       END,
+       CASE evt.slug
+           WHEN 'business-connect-mada' THEN 'Affiche Business Connect Madagascar'
+           ELSE 'Affiche Music on Sunday'
+       END,
        1,
        TRUE
-FROM events ev
-WHERE ev.slug = 'concert-demo'
+FROM evt
 ON CONFLICT DO NOTHING;
 
+WITH evt AS (
+    SELECT id, slug, starts_at FROM events WHERE slug IN ('concert-music-sunday', 'business-connect-mada')
+)
 INSERT INTO event_sessions (
     event_id, title, description,
     starts_at, ends_at, capacity, location_override
 )
-SELECT ev.id,
-       'Ouverture des portes',
-       'Accueil des participants et contrôle des billets.',
-       ev.starts_at - INTERVAL '1 hour',
-       ev.starts_at,
-       500,
-       'Hall principal'
-FROM events ev
-WHERE ev.slug = 'concert-demo'
-  AND NOT EXISTS (
-        SELECT 1 FROM event_sessions es
-        WHERE es.event_id = ev.id AND es.title = 'Ouverture des portes'
-    );
+SELECT evt.id,
+       CASE evt.slug
+           WHEN 'business-connect-mada' THEN 'Session networking & pitch'
+           ELSE 'Ouverture des portes'
+       END,
+       CASE evt.slug
+           WHEN 'business-connect-mada' THEN 'Rencontres thématiques en petits groupes et prises de contact.'
+           ELSE 'Accueil des participants et contrôle des billets.'
+       END,
+       evt.starts_at - INTERVAL '1 hour',
+       evt.starts_at,
+       CASE evt.slug
+           WHEN 'business-connect-mada' THEN 220
+           ELSE 350
+       END,
+       CASE evt.slug
+           WHEN 'business-connect-mada' THEN 'Hall principal & rooftop'
+           ELSE 'Hall principal'
+       END
+FROM evt
+WHERE NOT EXISTS (
+    SELECT 1
+    FROM event_sessions es
+    WHERE es.event_id = evt.id
+      AND es.title = CASE evt.slug
+           WHEN 'business-connect-mada' THEN 'Session networking & pitch'
+           ELSE 'Ouverture des portes'
+       END
+);
 
--- -------------------------------------------------------------------
--- Billetterie de l’événement démo
--- -------------------------------------------------------------------
+WITH evt AS (
+    SELECT id, slug, sales_starts_at, sales_ends_at FROM events WHERE slug IN ('concert-music-sunday', 'business-connect-mada')
+)
 INSERT INTO ticket_types (
     event_id, name, description, currency,
     base_price, service_fee, vat_rate,
     sales_start, sales_end, min_per_order, max_per_order
 )
-SELECT ev.id,
-       'Pass Standard',
-       'Accès libre à l’ensemble du concert.',
+SELECT evt.id,
+       CASE evt.slug
+           WHEN 'business-connect-mada' THEN 'Pass Networking'
+           ELSE 'Pass Concert'
+       END,
+       CASE evt.slug
+           WHEN 'business-connect-mada' THEN 'Accès complet à la soirée networking, cocktail inclus.'
+           ELSE 'Accès libre à l’ensemble de la soirée musicale.'
+       END,
        'MGA',
-       80000,
-       4000,
+       CASE evt.slug
+           WHEN 'business-connect-mada' THEN 120000
+           ELSE 80000
+       END,
+       CASE evt.slug
+           WHEN 'business-connect-mada' THEN 6000
+           ELSE 4000
+       END,
        20,
-       ev.sales_starts_at,
-       ev.sales_ends_at,
+       evt.sales_starts_at,
+       evt.sales_ends_at,
        1,
-       4
-FROM events ev
-WHERE ev.slug = 'concert-demo'
-  AND NOT EXISTS (
-        SELECT 1 FROM ticket_types tt
-        WHERE tt.event_id = ev.id AND tt.name = 'Pass Standard'
-    );
+       CASE evt.slug
+           WHEN 'business-connect-mada' THEN 2
+           ELSE 4
+       END
+FROM evt
+WHERE NOT EXISTS (
+    SELECT 1
+    FROM ticket_types tt
+    WHERE tt.event_id = evt.id
+      AND tt.name = CASE evt.slug
+           WHEN 'business-connect-mada' THEN 'Pass Networking'
+           ELSE 'Pass Concert'
+       END
+);
 
+WITH tt AS (
+    SELECT tt.id, ev.slug
+    FROM ticket_types tt
+    JOIN events ev ON ev.id = tt.event_id
+    WHERE ev.slug IN ('concert-music-sunday', 'business-connect-mada')
+)
 INSERT INTO ticket_inventory (
     ticket_type_id, total_quantity, reserved_quantity, sold_quantity
 )
-SELECT tt.id, 500, 0, 0
-FROM ticket_types tt
-JOIN events ev ON ev.id = tt.event_id
-WHERE ev.slug = 'concert-demo'
+SELECT tt.id,
+       CASE tt.slug
+           WHEN 'business-connect-mada' THEN 220
+           ELSE 350
+       END,
+       0,
+       0
+FROM tt
 ON CONFLICT (ticket_type_id) DO NOTHING;
 
+WITH tt AS (
+    SELECT tt.id, ev.slug, ev.sales_starts_at
+    FROM ticket_types tt
+    JOIN events ev ON ev.id = tt.event_id
+    WHERE ev.slug IN ('concert-music-sunday', 'business-connect-mada')
+)
 INSERT INTO pricing_rules (
     ticket_type_id, rule_type, threshold_value, value, starts_at, ends_at
 )
 SELECT tt.id,
        'tier',
-       100,
-       75000,
-       ev.sales_starts_at,
-       ev.sales_starts_at + INTERVAL '10 days'
-FROM ticket_types tt
-JOIN events ev ON ev.id = tt.event_id
-WHERE ev.slug = 'concert-demo'
-  AND NOT EXISTS (
-        SELECT 1 FROM pricing_rules pr
-        WHERE pr.ticket_type_id = tt.id
-    );
+       CASE tt.slug
+           WHEN 'business-connect-mada' THEN 50
+           ELSE 100
+       END,
+       CASE tt.slug
+           WHEN 'business-connect-mada' THEN 100000
+           ELSE 75000
+       END,
+       tt.sales_starts_at,
+       tt.sales_starts_at + INTERVAL '7 days'
+FROM tt
+WHERE NOT EXISTS (
+    SELECT 1
+    FROM pricing_rules pr
+    WHERE pr.ticket_type_id = tt.id
+);
 
 -- -------------------------------------------------------------------
 -- Code promotionnel de test
