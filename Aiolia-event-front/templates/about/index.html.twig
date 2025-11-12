@@ -1,74 +1,77 @@
 {% extends 'base.html.twig' %}
 
-{% block title %}A propos - Vente tickets{% endblock %}
+{% block title %}À propos - Aiolia-event{% endblock %}
 
 {% block stylesheets %}
-        <link rel="stylesheet" type="text/css" href="{{ asset('vente-ticket/css/animate.min.css') }}">
-        <link rel="stylesheet" type="text/css" href="{{ asset('vente-ticket/css/slick.css') }}">
-        <link rel="stylesheet" type="text/css" href="{{ asset('vente-ticket/css/jquery-ui.css') }}">
-        <link rel="stylesheet" type="text/css" href="{{ asset('vente-ticket/css/main.css') }}">
+    <link rel="stylesheet" type="text/css" href="{{ asset('vente-ticket/css/animate.min.css') }}">
+    <link rel="stylesheet" type="text/css" href="{{ asset('vente-ticket/css/slick.css') }}">
+    <link rel="stylesheet" type="text/css" href="{{ asset('vente-ticket/css/jquery-ui.css') }}">
+    <link rel="stylesheet" type="text/css" href="{{ asset('vente-ticket/css/main.css') }}">
 {% endblock %}
 
 {% block body %}
-        <main>
-            <section class="sec-apropos">
-                <div class="container">
-                    <div class="modular-texte">
-                        <div class="col blc-left">
-                            <div class="texte">
-                                <h2>A propos</h2>
-                                <p>Lorem ipsum dolor sit amet, consectetur adipiscing elit, sed do eiusmod tempor incididunt ut labore et dolore magna aliqua. Ut enim ad minim veniam, quis nostrud exercitation ullamco laboris nisi ut aliquip ex ea commodo consequat. Duis aute irure dolor in reprehenderit in voluptate velit esse cillum dolore eu fugiat nulla pariatur. Excepteur sint occaecat cupidatat non proident, sunt in culpa qui officia deserunt mollit anim id est laborum.</p>
-                                <p>Lorem ipsum dolor sit amet, <strong>consectetur adipiscing elit</strong>, sed do eiusmod tempor incididunt ut labore et dolore magna aliqua. Ut enim ad minim veniam, quis nostrud exercitation ullamco laboris nisi ut aliquip ex ea commodo consequat. Duis aute irure dolor in reprehenderit in voluptate velit esse cillum dolore eu fugiat nulla pariatur.</p>
-                                <div class="espace"></div>
-                                <h3>Titre h3</h3>
-                                <p>Lorem ipsum dolor sit amet, consectetur adipiscing elit, sed do eiusmod tempor incididunt ut labore et dolore magna aliqua. Ut enim ad minim veniam, quis nostrud exercitation ullamco laboris nisi ut aliquip ex ea commodo consequat. Duis aute irure dolor in reprehenderit in voluptate velit esse cillum dolore eu fugiat nulla.</p>
+<main>
+    <section class="sec-apropos">
+        <div class="container">
+            <div class="modular-texte">
+                <div class="col blc-left">
+                    <div class="texte">
+                        <h2>À propos</h2>
+                        <p><strong>Aiolia-event</strong> est une plateforme malgache dédiée à la promotion, à la gestion et à la vente de billets pour tous types d’événements : concerts, festivals, conférences, expositions, soirées, et bien plus encore. Nous connectons les organisateurs et le public à travers une solution simple, rapide et sécurisée.</p>
+
+                        <p>Que vous soyez <strong>organisateur</strong> souhaitant promouvoir votre événement, ou <strong>participant</strong> à la recherche d’activités culturelles et festives, <strong>Aiolia-event</strong> vous facilite la vie. Publiez, découvrez, réservez et profitez d’une expérience fluide, où que vous soyez à Madagascar.</p>
+
+                        <div class="espace"></div>
+
+                        <h3>Notre mission</h3>
+                        <p>Chez <strong>Aiolia-event</strong>, nous croyons au dynamisme et au potentiel de la scène culturelle et événementielle malgache. Notre mission est de soutenir les organisateurs locaux en leur offrant des outils accessibles et performants, tout en permettant au public de vivre pleinement chaque événement. Ensemble, faisons rayonner la créativité et la culture à Madagascar.</p>
+                    </div>
+                </div>
+
+                <div class="col blc-right">
+                    <div class="img">
+                        <img src="{{ asset('vente-ticket/images/img-apropos.jpg') }}" alt="À propos de Aiolia-event">
+                    </div>
+                    <div class="lstAtout d-flex" id="counter">
+                        <div class="item">
+                            <div class="inner">
+                                <div class="ico">
+                                    <img src="{{ asset('vente-ticket/images/ico4.svg') }}" alt="">
+                                </div>
+                                <strong class="count percent" data-count="4893">4893</strong>
+                                <span>Événements <br>créés</span>
                             </div>
                         </div>
-                        <div class="col blc-right">
-                            <div class="img">
-                                <img src="{{ asset('vente-ticket/images/img-apropos.jpg') }}">
+                        <div class="item">
+                            <div class="inner">
+                                <div class="ico">
+                                    <img src="{{ asset('vente-ticket/images/ico5.svg') }}" alt="">
+                                </div>
+                                <strong class="count percent" data-count="85360">85360</strong>
+                                <span>Tickets <br>vendus</span>
                             </div>
-                            <div class="lstAtout d-flex" id="counter" >
-                               <div class="item">
-                                   <div class="inner">
-                                       <div class="ico">
-                                           <img src="{{ asset('vente-ticket/images/ico4.svg') }}">
-                                       </div>
-                                        <strong class="count percent" data-count="4893">4893</strong>
-                                        <span>Evènements <br>crées</span>
-                                   </div>
-                               </div>
-                               <div class="item">
-                                   <div class="inner">
-                                       <div class="ico">
-                                           <img src="{{ asset('vente-ticket/images/ico5.svg') }}">
-                                       </div>
-                                        <strong class="count percent" data-count="85360">85360</strong>
-                                        <span>Tickets <br>vendus</span>
-                                   </div>
-                               </div>
-                               <div class="item">
-                                   <div class="inner">
-                                       <div class="ico">
-                                           <img src="{{ asset('vente-ticket/images/ico6.svg') }}">
-                                       </div>
-                                        <strong class="count percent" data-count="2320">2320</strong>
-                                        <span>Organisateurs <br>inscrits</span>
-                                   </div>
-                               </div>
-
-                           </div>
+                        </div>
+                        <div class="item">
+                            <div class="inner">
+                                <div class="ico">
+                                    <img src="{{ asset('vente-ticket/images/ico6.svg') }}" alt="">
+                                </div>
+                                <strong class="count percent" data-count="2320">2320</strong>
+                                <span>Organisateurs <br>inscrits</span>
+                            </div>
                         </div>
                     </div>
                 </div>
-            </section>
-        </main>
+            </div>
+        </div>
+    </section>
+</main>
 {% endblock %}
 
 {% block javascripts %}
-        <script type="text/javascript" src="{{ asset('vente-ticket/js/jquery.min.js') }}"></script>
-        <script type="text/javascript" src="{{ asset('vente-ticket/js/wow.js') }}"></script>
-        <script type="text/javascript" src="{{ asset('vente-ticket/js/slick.min.js') }}"></script>
-        <script type="text/javascript" src="{{ asset('vente-ticket/js/jquery-ui.js') }}"></script>  
-        <script type="text/javascript" src="{{ asset('vente-ticket/js/custom.js') }}"></script>
+    <script type="text/javascript" src="{{ asset('vente-ticket/js/jquery.min.js') }}"></script>
+    <script type="text/javascript" src="{{ asset('vente-ticket/js/wow.js') }}"></script>
+    <script type="text/javascript" src="{{ asset('vente-ticket/js/slick.min.js') }}"></script>
+    <script type="text/javascript" src="{{ asset('vente-ticket/js/jquery-ui.js') }}"></script>  
+    <script type="text/javascript" src="{{ asset('vente-ticket/js/custom.js') }}"></script>
 {% endblock %}
