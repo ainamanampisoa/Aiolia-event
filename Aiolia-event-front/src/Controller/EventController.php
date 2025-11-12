@@ -2,6 +2,7 @@
 
 namespace App\Controller;
 
+use Doctrine\DBAL\Connection;
 use Symfony\Bundle\FrameworkBundle\Controller\AbstractController;
 use Symfony\Component\HttpFoundation\JsonResponse;
 use Symfony\Component\HttpFoundation\Request;
@@ -10,50 +11,25 @@ use Symfony\Component\Routing\Annotation\Route;
 
 class EventController extends AbstractController
 {
+    public function __construct(
+        private readonly Connection $connection
+    ) {
+    }
+
     #[Route('/events', name: 'events')]
     public function listEvents(Request $request): Response
     {
-        // TODO: Récupérer les événements depuis la base de données avec filtres
-        $events = [
-            [
-                'id' => 1,
-                'title' => 'Music on Sunday',
-                'category' => ['name' => 'Soirée live'],
-                'startDate' => new \DateTime('2025-07-20 20:00:00'),
-                'location' => 'Analakely au Café de la Gare',
-                'minPrice' => 50000,
-                'maxPrice' => 150000,
-                'image' => null,
-            ],
-            [
-                'id' => 2,
-                'title' => 'Concert Jazz',
-                'category' => ['name' => 'Concert'],
-                'startDate' => new \DateTime('2025-08-15 19:30:00'),
-                'location' => 'Théâtre Municipal',
-                'minPrice' => 30000,
-                'maxPrice' => 80000,
-                'image' => null,
-            ]
-        ];
-
-        $categories = [
-            ['id' => 1, 'name' => 'Concert'],
-            ['id' => 2, 'name' => 'Sport'],
-            ['id' => 3, 'name' => 'Conférence'],
-            ['id' => 4, 'name' => 'Théâtre'],
-            ['id' => 5, 'name' => 'Festival'],
-            ['id' => 6, 'name' => 'Exposition'],
-            ['id' => 7, 'name' => 'Formation'],
-            ['id' => 8, 'name' => 'Autre']
-        ];
-
-        $locations = ['Antananarivo', 'Toamasina', 'Antsirabe', 'Mahajanga', 'Fianarantsoa'];
+        $events = $this->fetchEvents();
+        $groupedEvents = $this->groupEventsByCategory($events);
+        $categories = $this->fetchCategories();
+        $locations = $this->fetchLocations();
+        $priceBounds = $this->fetchPriceBounds();
 
         return $this->render('event/list.html.twig', [
-            'events' => $events,
+            'groupedEvents' => $groupedEvents,
             'categories' => $categories,
             'locations' => $locations,
+            'price_bounds' => $priceBounds,
         ]);
     }
 
@@ -199,5 +175,156 @@ class EventController extends AbstractController
                 'Autre'
             ]
         ]);
+    }
+
+    /**
+     * @return array<int, array<string, mixed>>
+     */
+    private function fetchEvents(): array
+    {
+        $sql = <<<SQL
+            SELECT
+                e.id,
+                e.slug,
+                e.title,
+                e.subtitle,
+                e.summary,
+                e.venue_name,
+                e.venue_address,
+                e.city,
+                e.country_code,
+                e.starts_at,
+                e.ends_at,
+                cat.label AS category_label,
+                media.url AS image_url,
+                pricing.min_price,
+                pricing.max_price
+            FROM aiolia.events e
+            LEFT JOIN LATERAL (
+                SELECT c.label
+                FROM aiolia.event_category_links cl
+                JOIN aiolia.event_categories c ON c.id = cl.category_id
+                WHERE cl.event_id = e.id
+                ORDER BY c.display_order ASC, c.label ASC
+                LIMIT 1
+            ) AS cat ON TRUE
+            LEFT JOIN LATERAL (
+                SELECT m.url
+                FROM aiolia.event_media m
+                WHERE m.event_id = e.id
+                  AND m.is_public IS TRUE
+                ORDER BY m.display_order ASC, m.id ASC
+                LIMIT 1
+            ) AS media ON TRUE
+            LEFT JOIN LATERAL (
+                SELECT
+                    MIN(tt.base_price) AS min_price,
+                    MAX(tt.base_price) AS max_price
+                FROM aiolia.ticket_types tt
+                WHERE tt.event_id = e.id
+            ) AS pricing ON TRUE
+            WHERE e.status = 'published'
+              AND e.visibility = 'public'
+            ORDER BY e.starts_at ASC NULLS LAST, e.title ASC
+        SQL;
+
+        $rows = $this->connection->executeQuery($sql)->fetchAllAssociative();
+
+        return array_map(static function (array $row): array {
+            $startsAt = isset($row['starts_at']) ? new \DateTimeImmutable($row['starts_at']) : null;
+            $endsAt = isset($row['ends_at']) ? new \DateTimeImmutable($row['ends_at']) : null;
+
+            return [
+                'id' => (int) $row['id'],
+                'slug' => $row['slug'],
+                'title' => $row['title'],
+                'subtitle' => $row['subtitle'],
+                'summary' => $row['summary'],
+                'venue_name' => $row['venue_name'],
+                'venue_address' => $row['venue_address'],
+                'city' => $row['city'],
+                'country_code' => $row['country_code'],
+                'category_label' => $row['category_label'] ?? 'Événement',
+                'image_url' => $row['image_url'],
+                'starts_at' => $startsAt,
+                'ends_at' => $endsAt,
+                'min_price' => null !== $row['min_price'] ? (float) $row['min_price'] : null,
+                'max_price' => null !== $row['max_price'] ? (float) $row['max_price'] : null,
+            ];
+        }, $rows);
+    }
+
+    /**
+     * @param array<int, array<string, mixed>> $events
+     * @return array<string, array<int, array<string, mixed>>>
+     */
+    private function groupEventsByCategory(array $events): array
+    {
+        $grouped = [];
+
+        foreach ($events as $event) {
+            $label = $event['category_label'] ?? 'Autres';
+            $grouped[$label][] = $event;
+        }
+
+        ksort($grouped, SORT_NATURAL | SORT_FLAG_CASE);
+
+        return $grouped;
+    }
+
+    /**
+     * @return array<int, array<string, string>>
+     */
+    private function fetchCategories(): array
+    {
+        $sql = <<<SQL
+            SELECT slug, label
+            FROM aiolia.event_categories
+            ORDER BY display_order ASC, label ASC
+        SQL;
+
+        $rows = $this->connection->executeQuery($sql)->fetchAllAssociative();
+
+        return array_map(static fn (array $row): array => [
+            'slug' => $row['slug'],
+            'label' => $row['label'],
+        ], $rows);
+    }
+
+    /**
+     * @return string[]
+     */
+    private function fetchLocations(): array
+    {
+        $sql = <<<SQL
+            SELECT DISTINCT city
+            FROM aiolia.events
+            WHERE city IS NOT NULL AND city <> ''
+            ORDER BY city ASC
+        SQL;
+
+        $rows = $this->connection->executeQuery($sql)->fetchFirstColumn();
+
+        return array_map(static fn ($city) => (string) $city, $rows);
+    }
+
+    /**
+     * @return array{min: float, max: float}
+     */
+    private function fetchPriceBounds(): array
+    {
+        $sql = <<<SQL
+            SELECT
+                COALESCE(MIN(tt.base_price), 0) AS min_price,
+                COALESCE(MAX(tt.base_price), 0) AS max_price
+            FROM aiolia.ticket_types tt
+        SQL;
+
+        $row = $this->connection->executeQuery($sql)->fetchAssociative() ?: [];
+
+        return [
+            'min' => (float) ($row['min_price'] ?? 0),
+            'max' => (float) ($row['max_price'] ?? 0),
+        ];
     }
 }

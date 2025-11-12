@@ -24,18 +24,22 @@
                                 <div class="blc-chp">
                                     <label>Type d'évènement</label>
                                     <select>
-                                        <option>Soirée live</option>
-                                        <option>Soirée live1</option>
+                                        <option value="">Tous les types</option>
+                                        {% for category in categories %}
+                                            <option value="{{ category.slug }}">{{ category.label }}</option>
+                                        {% endfor %}
                                     </select>
                                 </div>
 
                                 <div class="blc-chp">
                                     <label for="amount">Prix</label>
-                                    <input type="text" id="amount" readonly="" >
-                                    <div id="slider-range"></div>
+                                    <input type="text" id="amount" readonly value="" >
+                                    <div id="slider-range"
+                                         data-min="{{ price_bounds.min }}"
+                                         data-max="{{ price_bounds.max }}"></div>
                                     <div class="blc-prix">
-                                        <span class="min">5.000MGA</span>
-                                        <span class="max">1.000.000MGA</span>
+                                        <span class="min">{{ price_bounds.min|number_format(0, '.', ' ') }} MGA</span>
+                                        <span class="max">{{ price_bounds.max|number_format(0, '.', ' ') }} MGA</span>
 
                                     </div>
                                 </div>
@@ -45,8 +49,10 @@
                                 <div class="blc-chp">
                                     <label>Localité</label>
                                     <select>
-                                        <option>Antananarivo</option>
-                                        <option>Toamasina</option>
+                                        <option value="">Toutes les villes</option>
+                                        {% for city in locations %}
+                                            <option value="{{ city }}">{{ city }}</option>
+                                        {% endfor %}
                                     </select>
                                 </div>
                                  <div class="blc-chp">
@@ -112,45 +118,73 @@
             <section class="sec-event all-event">
                 <div class="container">
                     {% if groupedEvents is defined and groupedEvents %}
-                        {% for categoryName, events in groupedEvents %}
+                                {% for categoryName, eventsByCategory in groupedEvents %}
                             <h2 class="wow fadeIn" data-wow-delay="300ms">{{ categoryName }}</h2>
                             <div class="lst-event">
-                                {% for event in events %}
+                                {% for event in eventsByCategory %}
+                                {% set startsAt = event.starts_at %}
+                                {% set imagePath = event.image_url
+                                    ? (event.image_url starts with 'http' ? event.image_url : asset(event.image_url|trim('/')))
+                                    : asset('vente-ticket/images/img1.png') %}
                                 <div class="item  wow fadeInUp" data-wow-delay="300ms">
                                     <div class="inner">
                                         {% if isAuthenticated %}
-                                        <button class="favorite-toggle {% if event.isFavorite is defined and event.isFavorite %}is-active{% endif %}" type="button" data-event-id="{{ event.id ?? loop.index }}" title="Ajouter aux favoris">
+                                        <button class="favorite-toggle {% if event.isFavorite is defined and event.isFavorite %}is-active{% endif %}" type="button" data-event-id="{{ event.id }}" title="Ajouter aux favoris">
                                             <i class="fas fa-heart"></i>
                                         </button>
                                         {% endif %}
                                         <div class="blc-col1">
                                             <div class="col1">
                                                 <div class="date">
-                                                    <span>{{ event.weekday ?? 'Dimanche' }}</span>
-                                                    <strong>{{ event.day ?? '20' }}</strong>
-                                                    <span class="text-upper">{{ event.monthYear ?? 'juil. 2025' }}</span>
+                                                    {% if startsAt %}
+                                                        <span>{{ startsAt|date('l')|capitalize }}</span>
+                                                        <strong>{{ startsAt|date('d') }}</strong>
+                                                        <span class="text-upper">{{ startsAt|date('M Y')|upper }}</span>
+                                                    {% else %}
+                                                        <span>À venir</span>
+                                                    {% endif %}
                                                 </div>
                                                 <div class="hour">
-                                                    {{ event.time ?? 'à 20:00' }}
+                                                    {% if startsAt %}
+                                                        à {{ startsAt|date('H\\hi') }}
+                                                    {% else %}
+                                                        Horaire à confirmer
+                                                    {% endif %}
                                                 </div>
                                                 <div class="code-barre">
                                                     <img src="{{ asset('vente-ticket/images/code1.png') }}">
                                                 </div>
                                             </div>
                                             <div class="col2">
-                                                <span class="bandeau">{{ event.categoryName ?? categoryName }}</span>
-                                                <h3>{{ event.title ?? 'Music on Sunday' }}</h3>
-                                                <div class="adresse">{{ event.location ?? 'Lieu : Analakely au Café de la Gare' }}</div>
-                                                <div class="tarif">{{ event.priceRange ?? 'Tarifs : 50.000MGA - 150.000MGA' }}</div>
+                                                <span class="bandeau">{{ event.category_label ?? categoryName }}</span>
+                                                <h3>{{ event.title }}</h3>
+                                                <div class="adresse">
+                                                    {% if event.venue_name %}{{ event.venue_name }}{% endif %}
+                                                    {% if event.city %}
+                                                        {% if event.venue_name %}, {% endif %}
+                                                        {{ event.city }}
+                                                    {% endif %}
+                                                </div>
+                                                <div class="tarif">
+                                                    {% if event.min_price is not null %}
+                                                        {% if event.max_price is not null and event.max_price > event.min_price %}
+                                                            Tarifs : {{ event.min_price|number_format(0, '.', ' ') }} MGA - {{ event.max_price|number_format(0, '.', ' ') }} MGA
+                                                        {% else %}
+                                                            Tarif : {{ event.min_price|number_format(0, '.', ' ') }} MGA
+                                                        {% endif %}
+                                                    {% else %}
+                                                        Tarifs : non communiqué
+                                                    {% endif %}
+                                                </div>
                                                 <div class="blcBtn ">
-                                                    <a href="#" class="btn ticket">Acheter un ticket</a>
-                                                    <a href="{{ path('my_ticket_details', { id: event.id ?? loop.index }) }}" class="btn details">détails</a>
+                                                    <a href="{{ path('login') }}" class="btn ticket">Acheter un ticket</a>
+                                                    <a href="{{ path('event_details', { id: event.id }) }}" class="btn details">détails</a>
                                                 </div>
                                             </div>
                                         </div>
                                         <div class="blc-col2">
                                             <div class="img">
-                                                <img src="{{ event.imageUrl ?? asset('vente-ticket/images/img1.png') }}" alt="ventes tickets">
+                                                <img src="{{ imagePath }}" alt="{{ event.title }}">
                                             </div>  
                                         </div>
                                     </div>
@@ -160,52 +194,7 @@
                         {% endfor %}
                     {% else %}
                         <h2 class="wow fadeIn" data-wow-delay="300ms">Tous les évènements</h2>
-                        <div class="lst-event">
-                            {% for i in 1..4 %}
-                            <div class="item  wow fadeInUp" data-wow-delay="300ms">
-                                <div class="inner">
-                                    {% if isAuthenticated %}
-                                    <button class="favorite-toggle" type="button" data-event-id="{{ i }}" title="Ajouter aux favoris">
-                                        <i class="fas fa-heart"></i>
-                                    </button>
-                                    {% endif %}
-                                    <div class="blc-col1">
-                                        <div class="col1">
-                                            <div class="date">
-                                                <span>Dimanche</span>
-                                                <strong>20</strong>
-                                                <span class="text-upper">juil. 2025</span>
-                                            </div>
-                                            <div class="hour">
-                                                à 20:00
-                                            </div>
-                                            <div class="code-barre">
-                                                <img src="{{ asset('vente-ticket/images/code1.png') }}">
-                                            </div>
-                                        </div>
-                                        <div class="col2">
-                                            <span class="bandeau">Soirée live</span>
-                                            <h3>Music on Sunday</h3>
-                                            <div class="adresse">Lieu : Analakely au Café de la Gare</div>
-                                            <div class="tarif">Tarifs : 50.000MGA - 150.000MGA</div>
-                                            <div class="blcBtn ">
-                                                <a href="#" class="btn ticket">Acheter un ticket</a>
-                                                <a href="{{ path('my_ticket_details', { id: i }) }}" class="btn details">détails</a>
-
-                                            </div>
-                                        </div>
-                                        
-                                    </div>
-                                    <div class="blc-col2">
-                                        <div class="img">
-                                            <img src="{{ asset('vente-ticket/images/img1.png') }}" alt="ventes tickets">
-                                        </div>  
-                                    </div>
-                                    
-                                </div>
-                            </div>
-                            {% endfor %}
-                        </div>
+                        <p class="text-center">Aucun événement disponible pour le moment.</p>
                     {% endif %}
 
                     <div class="pagination">

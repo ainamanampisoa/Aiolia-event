@@ -90,17 +90,28 @@ $( function() {
   } );
 
 $( function() {
-    $( "#slider-range" ).slider({
-      range: true,
-      min: 5000,
-      max: 1000000,
-      values: [ 5000, 300000 ],
-      slide: function( event, ui ) {
-        $( "#amount" ).val( ui.values[ 0 ] + "MGA" + " - " + ui.values[ 1 ] + "MGA"  );
+    var $slider = $( "#slider-range" );
+    if ($slider.length) {
+      var min = parseFloat($slider.data('min')) || 0;
+      var max = parseFloat($slider.data('max')) || 0;
+      if (max <= min) {
+        max = min + 1;
       }
-    });
-    $( "#amount" ).val($( "#slider-range" ).slider( "values", 0 ) + "MGA"
-      + " - " + $( "#slider-range" ).slider( "values", 1 ) + "MGA"  );
+      var startValues = [min, max];
+      $slider.slider({
+        range: true,
+        min: min,
+        max: max,
+        values: startValues,
+        slide: function( event, ui ) {
+          $( "#amount" ).val( ui.values[ 0 ].toLocaleString('fr-FR') + " MGA - " + ui.values[ 1 ].toLocaleString('fr-FR') + " MGA"  );
+        }
+      });
+      $( "#amount" ).val(
+        $slider.slider( "values", 0 ).toLocaleString('fr-FR') + " MGA - " +
+        $slider.slider( "values", 1 ).toLocaleString('fr-FR') + " MGA"
+      );
+    }
   } );
 
 
