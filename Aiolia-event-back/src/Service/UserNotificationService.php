@@ -84,7 +84,7 @@ class UserNotificationService
     /**
      * Envoie une notification lors du rejet d'une demande de validation
      */
-    public function sendValidationRejectedNotification(User $user, string $requestedRole, string $reason): void
+    public function sendValidationRejectedNotification(User $user, string $requestedRole, ?string $reason = null): void
     {
         $roleLabels = [
             'organizer' => 'Organisateur',

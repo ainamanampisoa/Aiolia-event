@@ -3,16 +3,24 @@
 namespace App\Controller;
 
 use App\Entity\User;
+use App\Service\CloudinaryService;
 use Doctrine\ORM\EntityManagerInterface;
 use Symfony\Bundle\FrameworkBundle\Controller\AbstractController;
 use Symfony\Component\HttpFoundation\Request;
 use Symfony\Component\HttpFoundation\Response;
 use Symfony\Component\Routing\Attribute\Route;
 use Symfony\Component\PasswordHasher\Hasher\UserPasswordHasherInterface;
+use Symfony\Component\String\Slugger\SluggerInterface;
 
 #[Route('/profile')]
 class ProfileController extends AbstractController
 {
+    #[Route('/test/cloudinary', name: 'app_profile_cloudinary_test', methods: ['GET'])]
+    public function testCloudinary(CloudinaryService $cloudinaryService): Response
+    {
+        return $this->json($cloudinaryService->testConnection());
+    }
+
     #[Route('', name: 'app_profile_index')]
     public function index(): Response
     {
@@ -76,12 +84,61 @@ class ProfileController extends AbstractController
     }
 
     #[Route('/photo', name: 'app_profile_photo', methods: ['POST'])]
-    public function uploadPhoto(Request $request, EntityManagerInterface $em): Response
+    public function uploadPhoto(
+        Request $request,
+        EntityManagerInterface $em,
+        CloudinaryService $cloudinaryService,
+        SluggerInterface $slugger
+    ): Response
     {
         $this->denyAccessUnlessGranted('IS_AUTHENTICATED_REMEMBERED');
 
-        // TODO: Implémenter l'upload de photo avec Cloudinary
-        
+        if (!$this->isCsrfTokenValid('profile_photo_upload', (string) $request->request->get('_token'))) {
+            $this->addFlash('error', 'Le jeton CSRF est invalide.');
+            return $this->redirectToRoute('app_profile_index');
+        }
+
+        /** @var User $user */
+        $user = $this->getUser();
+        $uploadedFile = $request->files->get('avatar');
+
+        if (!$uploadedFile) {
+            $this->addFlash('error', 'Aucun fichier sélectionné.');
+            return $this->redirectToRoute('app_profile_index');
+        }
+
+        if (!$cloudinaryService->isValidImageType($uploadedFile)) {
+            $this->addFlash('error', 'Format de fichier non supporté. Veuillez choisir une image JPG, PNG, GIF ou WEBP.');
+            return $this->redirectToRoute('app_profile_index');
+        }
+
+        $displayName = trim(sprintf('%s %s', (string) $user->getFirstName(), (string) $user->getLastName()));
+        if ($displayName === '') {
+            $displayName = $user->getEmail() ?? 'profil';
+        }
+
+        $slug = $slugger->slug($displayName)->lower()->toString();
+        $suffix = time();
+
+        if (!$cloudinaryService->isConfigured()) {
+            $this->addFlash('error', 'Cloudinary n\'est pas configuré. Veuillez ajouter vos identifiants.');
+            return $this->redirectToRoute('app_profile_index');
+        }
+
+        $uploadResult = $cloudinaryService->uploadImage($uploadedFile, 'users/avatars', [
+            'public_id' => sprintf('%s-%d', $slug, $suffix),
+            'overwrite' => true,
+            'invalidate' => true,
+        ]);
+
+        if (!$uploadResult['success']) {
+            $this->addFlash('error', $uploadResult['error'] ?? 'Erreur lors de l\'envoi de l\'image.');
+            return $this->redirectToRoute('app_profile_index');
+        }
+
+        $user->setAvatarUrl($uploadResult['url']);
+        $em->flush();
+
         $this->addFlash('success', 'Photo mise à jour avec succès !');
         return $this->redirectToRoute('app_profile_index');
     }

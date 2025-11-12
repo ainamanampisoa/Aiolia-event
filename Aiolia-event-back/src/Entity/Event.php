@@ -25,8 +25,9 @@ class Event
     #[ORM\Column(type: Types::BIGINT)]
     private ?string $id = null;
 
-    #[ORM\Column(name: 'organizer_id', type: Types::BIGINT)]
-    private ?string $organizerId = null;
+    #[ORM\ManyToOne(targetEntity: User::class)]
+    #[ORM\JoinColumn(name: 'organizer_id', referencedColumnName: 'id', nullable: true, onDelete: 'SET NULL')]
+    private ?User $organizer = null;
 
     #[ORM\ManyToOne(targetEntity: EventCategory::class)]
     #[ORM\JoinColumn(name: 'primary_category_id', referencedColumnName: 'id', nullable: true, onDelete: 'SET NULL')]
@@ -121,14 +122,14 @@ class Event
         return $this->id;
     }
 
-    public function getOrganizerId(): ?string
+    public function getOrganizer(): ?User
     {
-        return $this->organizerId;
+        return $this->organizer;
     }
 
-    public function setOrganizerId(?string $organizerId): static
+    public function setOrganizer(?User $organizer): static
     {
-        $this->organizerId = $organizerId;
+        $this->organizer = $organizer;
 
         return $this;
     }
