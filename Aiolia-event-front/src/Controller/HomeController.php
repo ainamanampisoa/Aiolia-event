@@ -18,9 +18,11 @@ class HomeController extends AbstractController
     public function index(): Response
     {
         $events = $this->fetchUpcomingEvents();
+        $stats = $this->fetchHeadlineStats();
 
         return $this->render('home/index.html.twig', [
             'events' => $events,
+            'stats' => $stats,
         ]);
     }
 
@@ -100,5 +102,26 @@ class HomeController extends AbstractController
                 'max_price' => null !== $row['max_price'] ? (float) $row['max_price'] : null,
             ];
         }, $rows);
+    }
+
+    /**
+     * @return array<string, float|int>
+     */
+    private function fetchHeadlineStats(): array
+    {
+        $sql = <<<SQL
+            SELECT
+                (SELECT COUNT(*) FROM aiolia.events) AS total_events,
+                (SELECT COALESCE(SUM(sold_quantity), 0) FROM aiolia.ticket_inventory) AS tickets_sold,
+                (SELECT COUNT(*) FROM aiolia.organizer_profiles) AS organizers
+        SQL;
+
+        $row = $this->connection->executeQuery($sql)->fetchAssociative() ?: [];
+
+        return [
+            'total_events' => (int) ($row['total_events'] ?? 0),
+            'tickets_sold' => (int) ($row['tickets_sold'] ?? 0),
+            'organizers' => (int) ($row['organizers'] ?? 0),
+        ];
     }
 }

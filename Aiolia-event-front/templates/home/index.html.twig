@@ -23,10 +23,10 @@
                                     ? (event.image_url starts with 'http' ? event.image_url : asset(event.image_url|trim('/')))
                                     : asset('vente-ticket/images/img1.png') %}
                                 <div class="item wow fadeInUp" data-wow-delay="300ms">
-                                    <div class="inner">
-                                        <div class="blc-col1">
-                                            <div class="col1">
-                                                <div class="date">
+                            <div class="inner">
+                                <div class="blc-col1">
+                                    <div class="col1">
+                                        <div class="date">
                                                     {% if startsAt %}
                                                         <span>{{ startsAt|date('l')|capitalize }}</span>
                                                         <strong>{{ startsAt|date('d') }}</strong>
@@ -44,9 +44,9 @@
                                                 </div>
                                                 <div class="code-barre">
                                                     <img src="{{ asset('vente-ticket/images/code1.png') }}" alt="Code barre">
-                                                </div>
-                                            </div>
-                                            <div class="col2">
+                                        </div>
+                                    </div>
+                                    <div class="col2">
                                                 <span class="bandeau">
                                                     {{ event.category_label is not empty ? event.category_label : 'Événement' }}
                                                 </span>
@@ -78,14 +78,14 @@
                                                     <a href="{{ path('login') }}" class="btn ticket">Acheter un ticket</a>
                                                     <a href="{{ path('login') }}" class="btn details">détails</a>
                                                 </div>
-                                            </div>
-
-                                        </div>
-                                        <div class="blc-col2">
-                                            <div class="img">
+                                    </div>
+                                    
+                                </div>
+                                <div class="blc-col2">
+                                    <div class="img">
                                                 <img src="{{ imagePath }}" alt="{{ event.title }}">
-                                            </div>  
-                                        </div>
+                                                    </div>
+                                                </div>
                                     </div>
                                 </div>
                             {% endfor %}
@@ -161,22 +161,22 @@
                                     {% if events is not empty %}
                                         {% for event in events|slice(0, 4) %}
                                             {% set startsAt = event.starts_at %}
-                                            <div class="item">
-                                                <div class="inner d-flex justify-content-between align-items-center">
-                                                    <div class="left">
+                                    <div class="item">
+                                        <div class="inner d-flex justify-content-between align-items-center">
+                                            <div class="left">
                                                         <h4>{{ event.title }}</h4>
                                                         {% if startsAt %}
                                                             <span class="date">{{ startsAt|date('d F Y') }}</span>
                                                         {% endif %}
-                                                    </div>
-                                                    <div class="right">
-                                                        <div class="hour">
+                                            </div>
+                                            <div class="right">
+                                                <div class="hour">
                                                             {% if startsAt %}
                                                                 {{ startsAt|date('H\\hi') }}
                                                             {% endif %}
-                                                        </div>
+                                                </div>
                                                         <a href="{{ path('login') }}" class="link"></a>
-                                                    </div>
+                                            </div>
                                                 </div>
                                             </div>
                                         {% endfor %}
@@ -219,7 +219,7 @@
                                    <div class="ico">
                                        <img src="{{ asset('vente-ticket/images/ico4.svg') }}">
                                    </div>
-                                    <strong class="count percent" data-count="4893">4893</strong>
+                                    <strong class="count percent" data-count="{{ stats.total_events ?? 0 }}">{{ (stats.total_events ?? 0)|number_format(0, '.', ' ') }}</strong>
                                     <span>Evènements <br>crées</span>
                                </div>
                            </div>
@@ -228,7 +228,7 @@
                                    <div class="ico">
                                        <img src="{{ asset('vente-ticket/images/ico5.svg') }}">
                                    </div>
-                                    <strong class="count percent" data-count="85360">85360</strong>
+                                    <strong class="count percent" data-count="{{ stats.tickets_sold ?? 0 }}">{{ (stats.tickets_sold ?? 0)|number_format(0, '.', ' ') }}</strong>
                                     <span>Tickets <br>vendus</span>
                                </div>
                            </div>
@@ -237,7 +237,7 @@
                                    <div class="ico">
                                        <img src="{{ asset('vente-ticket/images/ico6.svg') }}">
                                    </div>
-                                    <strong class="count percent" data-count="2320">2320</strong>
+                                    <strong class="count percent" data-count="{{ stats.organizers ?? 0 }}">{{ (stats.organizers ?? 0)|number_format(0, '.', ' ') }}</strong>
                                     <span>Organisateurs <br>inscrits</span>
                                </div>
                            </div>
