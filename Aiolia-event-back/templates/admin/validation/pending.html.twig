@@ -89,10 +89,35 @@
                     </thead>
                     <tbody>
                         {% for account in paginatedPendingAccounts %}
-                            {% set accountRequest = requestsByUserId[account.id]|default(null) %}
                             <tr>
                                 <td class="col-left">
                                     <div class="user-info">
+                                        {% set avatarInitials = '' %}
+                                        {% if account.fullName %}
+                                            {% set nameParts = account.fullName|trim|split(' ')|filter(v => v is not empty) %}
+                                            {% if nameParts|length > 0 %}
+                                                {% set avatarInitials = nameParts|first|slice(0, 1) %}
+                                                {% if nameParts|length > 1 %}
+                                                    {% set avatarInitials = avatarInitials ~ nameParts|last|slice(0, 1) %}
+                                                {% elseif nameParts|first|length > 1 %}
+                                                    {% set avatarInitials = avatarInitials ~ nameParts|first|slice(1, 1) %}
+                                                {% endif %}
+                                            {% endif %}
+                                        {% endif %}
+                                        {% if avatarInitials is empty and account.email %}
+                                            {% set localPart = account.email|split('@')|first %}
+                                            {% if localPart|length >= 2 %}
+                                                {% set avatarInitials = localPart|slice(0, 2) %}
+                                            {% else %}
+                                                {% set avatarInitials = localPart|slice(0, 1) %}
+                                            {% endif %}
+                                        {% endif %}
+                                        {% if avatarInitials is empty %}
+                                            {% set avatarInitials = 'AA' %}
+                                        {% endif %}
+                                        <div class="user-avatar-sm">
+                                            <span>{{ avatarInitials|upper }}</span>
+                                        </div>
                                         <div class="user-details">
                                             <strong class="user-name">{{ account.fullName }}</strong>
                                             <div class="user-meta">
@@ -116,33 +141,21 @@
                                 </td>
                                 <td class="col-center">{{ account.createdAt|date('d/m/Y') }}</td>
                                 <td class="col-center actions-cell">
-                                    <div class="action-tooltip">
-                                        <span class="tooltip-label" data-i18n="validation.table.button.view">Voir le profil</span>
-                                        <a href="{{ path('admin_users_show', {id: account.id}) }}" class="validation-action-pill pill-view">
-                                            <i class="fas fa-eye"></i><span data-i18n="validation.table.button.view">Voir le profil</span>
-                                        </a>
-                                    </div>
-                                    {% if accountRequest %}
-                                        <form method="post" action="{{ path('admin_validation_approve', {id: accountRequest.id}) }}" class="d-inline">
-                                            <input type="hidden" name="_token" value="{{ csrf_token('approve_request_' ~ accountRequest.id) }}">
-                                            <div class="action-tooltip">
-                                                <span class="tooltip-label" data-i18n="validation.table.button.approve">Approuver</span>
-                                                <button type="submit" class="validation-action-pill pill-approve">
-                                                    <i class="fas fa-check"></i><span data-i18n="validation.table.button.approve">Approuver</span>
-                                                </button>
-                                            </div>
-                                        </form>
-                                    {% else %}
-                                        <form method="post" action="{{ path('admin_users_toggle_status', {id: account.id}) }}" class="d-inline" onsubmit="return confirm('Activer le compte de {{ account.fullName }} ?');">
-                                            <input type="hidden" name="_token" value="{{ csrf_token('toggle_status_' ~ account.id) }}">
-                                            <div class="action-tooltip">
-                                                <span class="tooltip-label" data-i18n="validation.table.button.approve">Approuver</span>
-                                                <button type="submit" class="validation-action-pill pill-approve">
-                                                    <i class="fas fa-check"></i><span data-i18n="validation.table.button.approve">Approuver</span>
-                                                </button>
-                                            </div>
-                                        </form>
-                                    {% endif %}
+                                    <a href="{{ path('admin_users_show', {id: account.id}) }}" class="validation-action-pill pill-view">
+                                        <i class="fas fa-eye"></i><span data-i18n="validation.table.button.view">Voir le profil</span>
+                                    </a>
+                                    <form method="post" action="{{ path('admin_validation_approve', {id: account.id}) }}" class="d-inline" onsubmit="return confirm('Approuver le compte de {{ account.fullName }} ?');">
+                                        <input type="hidden" name="_token" value="{{ csrf_token('approve_user_' ~ account.id) }}">
+                                        <button type="submit" class="validation-action-pill pill-approve">
+                                            <i class="fas fa-check"></i><span data-i18n="validation.table.button.approve">Approuver</span>
+                                        </button>
+                                    </form>
+                                    <form method="post" action="{{ path('admin_validation_reject', {id: account.id}) }}" class="d-inline" onsubmit="return confirm('Rejeter le compte de {{ account.fullName }} ?');">
+                                        <input type="hidden" name="_token" value="{{ csrf_token('reject_user_' ~ account.id) }}">
+                                        <button type="submit" class="validation-action-pill pill-reject">
+                                            <i class="fas fa-times"></i><span data-i18n="validation.table.button.reject">Rejeter</span>
+                                        </button>
+                                    </form>
                                 </td>
                             </tr>
                         {% endfor %}
@@ -150,33 +163,70 @@
                 </table>
             </div>
             {% if totalPages > 1 %}
+                {% set maxPagesToShow = 5 %}
+                {% set startPage = currentPage - 2 %}
+                {% if startPage < 1 %}
+                    {% set startPage = 1 %}
+                {% endif %}
+                {% set endPage = startPage + maxPagesToShow - 1 %}
+                {% if endPage > totalPages %}
+                    {% set endPage = totalPages %}
+                {% endif %}
+                {% set startPage = endPage - maxPagesToShow + 1 %}
+                {% if startPage < 1 %}
+                    {% set startPage = 1 %}
+                {% endif %}
+
                 <nav class="pagination-wrapper" aria-label="Pagination comptes en attente">
-                    <ul class="pagination">
-                        {% if currentPage > 1 %}
+                    <ul class="pagination pagination-rounded">
+                        <li class="page-item {{ currentPage == 1 ? 'disabled' }}">
+                            {% if currentPage == 1 %}
+                                <span class="page-link" aria-disabled="true" data-i18n="pagination.previous">Précédent</span>
+                            {% else %}
+                                <a class="page-link" href="{{ path('admin_validation_pending', {page: currentPage - 1}) }}" rel="prev" data-i18n="pagination.previous">Précédent</a>
+                            {% endif %}
+                        </li>
+
+                        {% if startPage > 1 %}
                             <li class="page-item">
-                                <a class="page-link" href="{{ path('admin_validation_pending', {page: currentPage - 1}) }}" data-i18n="pagination.previous">Précédent</a>
+                                <a class="page-link" href="{{ path('admin_validation_pending', {page: 1}) }}">1</a>
                             </li>
-                        {% else %}
-                            <li class="page-item disabled"><span class="page-link" data-i18n="pagination.previous">Précédent</span></li>
+                            {% if startPage > 2 %}
+                                <li class="page-item ellipsis" aria-hidden="true"><span class="page-link">…</span></li>
+                            {% endif %}
                         {% endif %}
 
-                        {% for page in 1..totalPages %}
-                            {% if page == currentPage %}
-                                <li class="page-item active"><span class="page-link">{{ page }}</span></li>
-                            {% else %}
-                                <li class="page-item"><a class="page-link" href="{{ path('admin_validation_pending', {page: page}) }}">{{ page }}</a></li>
-                            {% endif %}
+                        {% for page in startPage..endPage %}
+                            <li class="page-item {{ page == currentPage ? 'active' }}">
+                                {% if page == currentPage %}
+                                    <span class="page-link" aria-current="page">{{ page }}</span>
+                                {% else %}
+                                    <a class="page-link" href="{{ path('admin_validation_pending', {page: page}) }}">{{ page }}</a>
+                                {% endif %}
+                            </li>
                         {% endfor %}
 
-                        {% if currentPage < totalPages %}
+                        {% if endPage < totalPages %}
+                            {% if endPage < totalPages - 1 %}
+                                <li class="page-item ellipsis" aria-hidden="true"><span class="page-link">…</span></li>
+                            {% endif %}
                             <li class="page-item">
-                                <a class="page-link" href="{{ path('admin_validation_pending', {page: currentPage + 1}) }}" data-i18n="pagination.next">Suivant</a>
+                                <a class="page-link" href="{{ path('admin_validation_pending', {page: totalPages}) }}">{{ totalPages }}</a>
                             </li>
-                        {% else %}
-                            <li class="page-item disabled"><span class="page-link" data-i18n="pagination.next">Suivant</span></li>
                         {% endif %}
+
+                        <li class="page-item {{ currentPage == totalPages ? 'disabled' }}">
+                            {% if currentPage == totalPages %}
+                                <span class="page-link" aria-disabled="true" data-i18n="pagination.next">Suivant</span>
+                            {% else %}
+                                <a class="page-link" href="{{ path('admin_validation_pending', {page: currentPage + 1}) }}" rel="next" data-i18n="pagination.next">Suivant</a>
+                            {% endif %}
+                        </li>
                     </ul>
                 </nav>
+                <div class="pagination-summary">
+                    <small data-i18n-target="html" data-i18n-fr="Page {{ currentPage }} sur {{ totalPages }} - Affichage de {{ paginatedPendingAccounts|length }} compte(s) sur {{ pendingStats.total|default(paginatedPendingAccounts|length) }} total" data-i18n-en="Page {{ currentPage }} of {{ totalPages }} - Showing {{ paginatedPendingAccounts|length }} account(s) out of {{ pendingStats.total|default(paginatedPendingAccounts|length) }} total">Page {{ currentPage }} sur {{ totalPages }} - Affichage de {{ paginatedPendingAccounts|length }} compte(s) sur {{ pendingStats.total|default(paginatedPendingAccounts|length) }} total</small>
+                </div>
             {% endif %}
             {% endif %}
         </div>
@@ -214,13 +264,17 @@ document.addEventListener('DOMContentLoaded', function() {
     const sortFilter = document.getElementById('sortFilter');
     const requestRows = document.querySelectorAll('.request-row');
 
-    roleFilter.addEventListener('change', function() {
-        filterRequests(this.value);
-    });
+    if (roleFilter) {
+        roleFilter.addEventListener('change', function() {
+            filterRequests(this.value);
+        });
+    }
 
-    sortFilter.addEventListener('change', function() {
-        sortRequests(this.value);
-    });
+    if (sortFilter) {
+        sortFilter.addEventListener('change', function() {
+            sortRequests(this.value);
+        });
+    }
 
     function filterRequests(role) {
         requestRows.forEach(row => {
@@ -234,6 +288,9 @@ document.addEventListener('DOMContentLoaded', function() {
 
     function sortRequests(criteria) {
         const tbody = document.querySelector('.requests-table tbody');
+        if (!tbody) {
+            return;
+        }
         const rows = Array.from(requestRows).filter(row => row.style.display !== 'none');
         
         rows.sort((a, b) => {
@@ -411,54 +468,14 @@ function showValidationStats() {
     border-color: rgba(46, 204, 113, 0.5);
 }
 
+.validation-action-pill.pill-reject {
+    background: rgba(231, 76, 60, 0.18);
+    color: #c0392b;
+    border-color: rgba(231, 76, 60, 0.45);
+}
+
 .validation-action-pill:hover {
     filter: brightness(0.95);
-}
-
-.action-tooltip {
-    display: inline-flex;
-    flex-direction: column;
-    align-items: center;
-    gap: 0.35rem;
-    position: relative;
-}
-
-.tooltip-label {
-    position: absolute;
-    bottom: 100%;
-    transform: translateY(-8px);
-    background: rgba(15, 23, 42, 0.92);
-    color: #fff;
-    padding: 6px 12px;
-    border-radius: 8px;
-    font-size: 0.78rem;
-    font-weight: 500;
-    box-shadow: 0 6px 14px rgba(15, 23, 42, 0.25);
-    white-space: nowrap;
-    opacity: 0;
-    visibility: hidden;
-    transition: all 0.2s ease;
-    pointer-events: none;
-}
-
-.tooltip-label::after {
-    content: '';
-    position: absolute;
-    top: 100%;
-    left: 50%;
-    transform: translateX(-50%);
-    width: 0;
-    height: 0;
-    border-left: 6px solid transparent;
-    border-right: 6px solid transparent;
-    border-top: 6px solid rgba(15, 23, 42, 0.92);
-}
-
-.action-tooltip:hover .tooltip-label,
-.action-tooltip:focus-within .tooltip-label {
-    opacity: 1;
-    visibility: visible;
-    transform: translateY(-4px);
 }
 
 .pagination-wrapper {
@@ -467,8 +484,56 @@ function showValidationStats() {
     margin-top: 1rem;
 }
 
+.pagination {
+    list-style: none;
+    padding: 0;
+    margin: 0;
+    display: inline-flex;
+    align-items: center;
+    gap: 0.35rem;
+}
+
+.pagination-rounded .page-link {
+    border-radius: 999px !important;
+}
+
+.pagination .page-item.disabled .page-link {
+    pointer-events: none;
+    opacity: 0.5;
+}
+
+.pagination .page-item.active .page-link {
+    background: var(--accent);
+    border-color: var(--accent);
+    color: #fff;
+    font-weight: 600;
+}
+
 .pagination .page-link {
-    border-radius: var(--border-radius-sm) !important;
+    border-radius: var(--border-radius-sm);
+    border: 1px solid var(--border-color);
+    padding: 6px 14px;
+    color: var(--text-secondary);
+    background: var(--bg-secondary);
+    transition: all 0.2s ease;
+}
+
+.pagination .page-link:hover {
+    color: var(--accent);
+    border-color: var(--accent);
+}
+
+.pagination .ellipsis .page-link {
+    border: none;
+    background: transparent;
+    color: var(--text-secondary);
+}
+
+.pagination-summary {
+    text-align: center;
+    margin-top: 0.75rem;
+    color: var(--text-secondary);
+    font-size: 0.9rem;
 }
 
 /* Filtres */
@@ -513,27 +578,14 @@ function showValidationStats() {
     width: 40px;
     height: 40px;
     border-radius: 50%;
-    overflow: hidden;
-    flex-shrink: 0;
-}
-
-.user-avatar-sm img {
-    width: 100%;
-    height: 100%;
-    object-fit: cover;
-}
-
-.user-avatar-initials-sm {
-    width: 40px;
-    height: 40px;
-    border-radius: 50%;
-    background: linear-gradient(135deg, var(--accent), var(--accent-light));
-    color: white;
+    background: linear-gradient(135deg, #2f80ed, #56ccf2);
+    color: #fff;
     display: flex;
     align-items: center;
     justify-content: center;
     font-weight: 600;
     font-size: 0.9rem;
+    flex-shrink: 0;
 }
 
 .user-details {

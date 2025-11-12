@@ -3,7 +3,6 @@
 namespace App\Service;
 
 use Cloudinary\Cloudinary;
-use Cloudinary\Configuration\Configuration;
 use Symfony\Component\DependencyInjection\ParameterBag\ParameterBagInterface;
 use Symfony\Component\HttpFoundation\File\UploadedFile;
 
@@ -22,24 +21,26 @@ class CloudinaryService
     private function getCloudinary(): Cloudinary
     {
         if ($this->cloudinary === null) {
-            // Récupérer les credentials depuis les variables d'environnement
-            $cloudName = $_ENV['CLOUDINARY_CLOUD_NAME'] ?? 'demo';
-            $apiKey = $_ENV['CLOUDINARY_API_KEY'] ?? '';
-            $apiSecret = $_ENV['CLOUDINARY_API_SECRET'] ?? '';
+            $cloudName = $this->getEnvValue('CLOUDINARY_CLOUD_NAME');
+            $apiKey = $this->getEnvValue('CLOUDINARY_API_KEY');
+            $apiSecret = $this->getEnvValue('CLOUDINARY_API_SECRET');
 
-            // Configuration de Cloudinary
-            Configuration::instance([
+            if (!$cloudName || !$apiKey || !$apiSecret) {
+                throw new \RuntimeException('Cloudinary credentials are missing in environment variables.');
+            }
+
+            $config = [
                 'cloud' => [
                     'cloud_name' => $cloudName,
                     'api_key' => $apiKey,
                     'api_secret' => $apiSecret,
                 ],
                 'url' => [
-                    'secure' => true
-                ]
-            ]);
+                    'secure' => true,
+                ],
+            ];
 
-            $this->cloudinary = new Cloudinary();
+            $this->cloudinary = new Cloudinary($config);
         }
 
         return $this->cloudinary;
@@ -50,34 +51,38 @@ class CloudinaryService
      */
     public function isConfigured(): bool
     {
-        return !empty($_ENV['CLOUDINARY_CLOUD_NAME']) 
-            && !empty($_ENV['CLOUDINARY_API_KEY']) 
-            && !empty($_ENV['CLOUDINARY_API_SECRET']);
+        return $this->getEnvValue('CLOUDINARY_CLOUD_NAME') &&
+               $this->getEnvValue('CLOUDINARY_API_KEY') &&
+               $this->getEnvValue('CLOUDINARY_API_SECRET');
     }
 
     /**
-     * Upload une image sur Cloudinary
+     * Upload une image
      */
-    public function uploadImage(UploadedFile $file, string $folder = 'events'): array
+    public function uploadImage(UploadedFile $file, string $folder = 'events', array $options = []): array
     {
         if (!$this->isConfigured()) {
             return [
                 'success' => false,
-                'error' => 'Cloudinary n\'est pas configuré. Veuillez ajouter vos credentials dans .env.local',
+                'error' => 'Cloudinary n\'est pas configuré. Veuillez ajouter vos identifiants dans .env.local',
             ];
         }
 
         try {
+            $defaultOptions = [
+                'folder' => $folder,
+                'resource_type' => 'image',
+                'transformation' => [
+                    'quality' => 'auto',
+                    'fetch_format' => 'auto',
+                ],
+            ];
+
+            $uploadOptions = array_replace_recursive($defaultOptions, $options);
+
             $result = $this->getCloudinary()->uploadApi()->upload(
                 $file->getPathname(),
-                [
-                    'folder' => $folder,
-                    'resource_type' => 'image',
-                    'transformation' => [
-                        'quality' => 'auto',
-                        'fetch_format' => 'auto'
-                    ]
-                ]
+                $uploadOptions
             );
 
             return [
@@ -98,7 +103,7 @@ class CloudinaryService
     }
 
     /**
-     * Upload une vidéo sur Cloudinary
+     * Upload une vidéo
      */
     public function uploadVideo(UploadedFile $file, string $folder = 'events/videos'): array
     {
@@ -115,7 +120,7 @@ class CloudinaryService
                 [
                     'folder' => $folder,
                     'resource_type' => 'video',
-                    'chunk_size' => 6000000, // 6MB chunks
+                    'chunk_size' => 6000000,
                 ]
             );
 
@@ -136,7 +141,7 @@ class CloudinaryService
     }
 
     /**
-     * Upload un fichier (PDF, etc.) sur Cloudinary
+     * Upload un fichier (PDF, etc.)
      */
     public function uploadFile(UploadedFile $file, string $folder = 'events/documents'): array
     {
@@ -172,7 +177,7 @@ class CloudinaryService
     }
 
     /**
-     * Supprime un fichier de Cloudinary
+     * Supprime un fichier
      */
     public function deleteFile(string $publicId, string $resourceType = 'image'): bool
     {
@@ -187,110 +192,94 @@ class CloudinaryService
     }
 
     /**
-     * Génère une URL optimisée avec transformations
+     * Test de connectivité
      */
-    public function getOptimizedUrl(
-        string $publicId,
-        int $width = 0,
-        int $height = 0,
-        string $crop = 'fill'
-    ): string {
-        $transformations = [];
+    public function testConnection(): array
+    {
+        $cloudName = $this->getEnvValue('CLOUDINARY_CLOUD_NAME');
+        $apiKey = $this->getEnvValue('CLOUDINARY_API_KEY');
+        $apiSecret = $this->getEnvValue('CLOUDINARY_API_SECRET');
 
-        if ($width) {
-            $transformations['width'] = $width;
+        if (!$cloudName || !$apiKey || !$apiSecret) {
+            return [
+                'success' => false,
+                'message' => 'Invalid configuration: one or more credentials are missing.',
+                'env' => [
+                    'CLOUDINARY_CLOUD_NAME' => $cloudName,
+                    'CLOUDINARY_API_KEY' => $apiKey,
+                    'CLOUDINARY_API_SECRET' => $apiSecret,
+                ]
+            ];
         }
-
-        if ($height) {
-            $transformations['height'] = $height;
-        }
-
-        if ($width || $height) {
-            $transformations['crop'] = $crop;
-        }
-
-        $transformations['quality'] = 'auto';
-        $transformations['fetch_format'] = 'auto';
 
         try {
-            return $this->getCloudinary()->image($publicId)->toUrl($transformations);
-        } catch (\Exception $e) {
-            // En cas d'erreur, retourner l'URL de base
-            return "https://res.cloudinary.com/" . $_ENV['CLOUDINARY_CLOUD_NAME'] . "/image/upload/" . $publicId;
+            $this->getCloudinary()->adminApi()->ping();
+
+            return [
+                'success' => true,
+                'message' => 'Cloudinary configuration is valid.',
+                'env' => [
+                    'CLOUDINARY_CLOUD_NAME' => $cloudName,
+                    'CLOUDINARY_API_KEY' => $apiKey,
+                    'CLOUDINARY_API_SECRET' => $apiSecret,
+                ]
+            ];
+        } catch (\Throwable $e) {
+            return [
+                'success' => false,
+                'message' => $e->getMessage(),
+                'env' => [
+                    'CLOUDINARY_CLOUD_NAME' => $cloudName,
+                    'CLOUDINARY_API_KEY' => $apiKey,
+                    'CLOUDINARY_API_SECRET' => $apiSecret,
+                ]
+            ];
         }
     }
 
     /**
-     * Génère une URL de thumbnail
+     * Récupère la valeur d'une variable d'environnement
      */
-    public function getThumbnailUrl(string $publicId, int $size = 200): string
+    private function getEnvValue(string $key): ?string
     {
-        return $this->getOptimizedUrl($publicId, $size, $size, 'thumb');
-    }
+        $parameterKey = sprintf('env(%s)', $key);
 
-    /**
-     * Récupère les informations d'un fichier
-     */
-    public function getFileInfo(string $publicId, string $resourceType = 'image'): ?array
-    {
-        try {
-            $result = $this->getCloudinary()->adminApi()->asset($publicId, [
-                'resource_type' => $resourceType,
-            ]);
-            return $result->getArrayCopy();
-        } catch (\Exception $e) {
+        if ($this->params->has($parameterKey)) {
+            $value = $this->params->get($parameterKey);
+
+            if (is_array($value)) {
+                $value = $value[0] ?? null;
+            }
+
+            if (is_string($value) && $value !== '') {
+                return $value;
+            }
+        }
+
+        $value = $_ENV[$key] ?? $_SERVER[$key] ?? getenv($key);
+
+        if ($value === false || $value === '') {
             return null;
         }
+
+        return $value;
     }
 
     /**
-     * Liste tous les fichiers d'un dossier
-     */
-    public function listFiles(string $folder, string $resourceType = 'image', int $maxResults = 100): array
-    {
-        try {
-            $result = $this->getCloudinary()->adminApi()->assets([
-                'type' => 'upload',
-                'prefix' => $folder,
-                'resource_type' => $resourceType,
-                'max_results' => $maxResults,
-            ]);
-
-            return $result['resources'] ?? [];
-        } catch (\Exception $e) {
-            return [];
-        }
-    }
-
-    /**
-     * Crée un dossier sur Cloudinary
-     */
-    public function createFolder(string $path): bool
-    {
-        try {
-            $this->getCloudinary()->adminApi()->createFolder($path);
-            return true;
-        } catch (\Exception $e) {
-            return false;
-        }
-    }
-
-    /**
-     * Valide le type de fichier
+     * Valide les types d'images autorisés
      */
     public function isValidImageType(UploadedFile $file): bool
     {
         $allowedTypes = ['image/jpeg', 'image/png', 'image/gif', 'image/webp'];
-        return in_array($file->getMimeType(), $allowedTypes);
+        return in_array($file->getMimeType(), $allowedTypes, true);
     }
 
     /**
-     * Valide le type de vidéo
+     * Valide les types de vidéos autorisés
      */
     public function isValidVideoType(UploadedFile $file): bool
     {
         $allowedTypes = ['video/mp4', 'video/mpeg', 'video/quicktime', 'video/webm'];
-        return in_array($file->getMimeType(), $allowedTypes);
+        return in_array($file->getMimeType(), $allowedTypes, true);
     }
 }
-
