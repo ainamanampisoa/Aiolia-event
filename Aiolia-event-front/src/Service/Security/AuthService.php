@@ -95,6 +95,14 @@ class AuthService
             throw new \InvalidArgumentException('Identifiants invalides.');
         }
 
+        if ($user->getRole() !== 'user') {
+            throw new \InvalidArgumentException('Veuillez utiliser l’espace organisateur pour vous connecter.');
+        }
+
+        if ($user->getRole() !== 'user') {
+            throw new \InvalidArgumentException('Ce mode de connexion est réservé aux comptes utilisateur.');
+        }
+
         if (!$user->isActive()) {
             throw new \InvalidArgumentException('Votre compte est inactif. Contactez le support.');
         }
