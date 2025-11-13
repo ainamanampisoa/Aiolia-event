@@ -46,8 +46,6 @@ class UserValidationController extends AbstractController
         $paginatedPendingAccounts = array_slice($pendingAccounts, $offset, $perPage);
 
         $pendingOrganizers = array_filter($pendingAccounts, static fn(User $user) => $user->getRole() === UserRoleEnum::ORGANIZER);
-        $pendingUsers = array_filter($pendingAccounts, static fn(User $user) => $user->getRole() === UserRoleEnum::USER);
-        $pendingCoOrganizers = array_filter($pendingAccounts, static fn(User $user) => $user->getRole() === UserRoleEnum::CO_ORGANIZER);
         $pendingSimpleUsers = array_filter($pendingAccounts, static fn(User $user) => $user->getRole() === UserRoleEnum::USER);
 
         return $this->render('admin/validation/pending.html.twig', [
@@ -56,7 +54,6 @@ class UserValidationController extends AbstractController
             'pendingStats' => [
                 'total' => count($pendingAccounts),
                 'organizer' => count($pendingOrganizers),
-                'co_organizer' => count($pendingCoOrganizers),
                 'user' => count($pendingSimpleUsers),
             ],
             'currentPage' => $page,

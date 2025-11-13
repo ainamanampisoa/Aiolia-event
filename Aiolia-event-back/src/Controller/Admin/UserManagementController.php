@@ -482,7 +482,6 @@ class UserManagementController extends AbstractController
     {
         return match($role) {
             'organizer' => 'Organisateur',
-            'co_organizer' => 'Co-organisateur',
             'admin' => 'Administrateur',
             default => 'Utilisateur',
         };

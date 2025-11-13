@@ -6,13 +6,11 @@ final class Role
 {
     public const USER = 'user';
     public const ORGANIZER = 'organizer';
-    public const CO_ORGANIZER = 'co_organizer';
     public const ADMIN = 'admin';
 
     private const SECURITY_MAP = [
         self::USER => 'ROLE_USER',
         self::ORGANIZER => 'ROLE_ORGANIZER',
-        self::CO_ORGANIZER => 'ROLE_CO_ORGANIZER',
         self::ADMIN => 'ROLE_ADMIN',
     ];
 

@@ -2,7 +2,7 @@
 
 ## Vue d'ensemble
 
-Ce système permet de gérer les demandes d'inscription en tant qu'organisateur ou co-organisateur. Les administrateurs doivent valider ces demandes avant que les utilisateurs puissent obtenir les rôles correspondants.
+Ce système permet de gérer les demandes d'inscription en tant qu'organisateur. Les administrateurs doivent valider ces demandes avant que les utilisateurs puissent obtenir ce rôle.
 
 ## Fonctionnalités
 
@@ -10,7 +10,6 @@ Ce système permet de gérer les demandes d'inscription en tant qu'organisateur 
 - Les utilisateurs peuvent s'inscrire en choisissant leur type de compte :
   - **Utilisateur** : Compte activé immédiatement
   - **Organisateur** : Nécessite une validation admin
-  - **Co-organisateur** : Nécessite une validation admin
 
 - Pour les rôles nécessitant une validation, l'utilisateur doit fournir une raison.
 
@@ -86,7 +85,7 @@ Nouveau champ ajouté :
 ```sql
 - id
 - user_id (FK users)
-- requested_role ('organizer' ou 'co_organizer')
+- requested_role ('organizer')
 - status ('pending', 'approved', 'rejected')
 - reason (texte fourni par l'utilisateur)
 - admin_comment (commentaire de l'admin)
@@ -148,7 +147,7 @@ php bin/console debug:router | grep admin
 1. **S'inscrire** : Aller sur `/register`
 2. **Choisir le type de compte** :
    - Utilisateur : Accès immédiat
-   - Organisateur/Co-organisateur : Fournir une raison et attendre la validation
+   - Organisateur : Fournir une raison et attendre la validation
 
 3. **Se connecter** : Aller sur `/login`
    - Si le compte est en attente, un message informatif s'affiche
@@ -208,7 +207,6 @@ Pour créer des endpoints API pour le frontend React :
 'choices' => [
     'Utilisateur' => 'user',
     'Organisateur' => 'organizer',
-    'Co-organisateur' => 'co_organizer',
     // Ajouter d'autres rôles ici
 ],
 ```
