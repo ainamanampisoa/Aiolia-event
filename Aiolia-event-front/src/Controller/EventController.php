@@ -73,7 +73,14 @@ class EventController extends AbstractController
             throw $this->createNotFoundException('Évènement introuvable.');
         }
 
-        $ticketTypes = $this->fetchTicketTypes($id);
+        $rawTicketTypes = $this->fetchTicketTypes($id);
+        $ticketTypes = array_values(array_filter($rawTicketTypes, static function (array $ticket): bool {
+            if (!array_key_exists('is_available', $ticket)) {
+                return true;
+            }
+
+            return true === $ticket['is_available'];
+        }));
         $tags = $this->fetchEventTags($id);
 
         $priceMin = null;
@@ -88,6 +95,7 @@ class EventController extends AbstractController
         }
 
         $event['ticket_types'] = $ticketTypes;
+        $event['ticket_types_all'] = $rawTicketTypes;
         $event['tags'] = $tags;
         $event['price_min'] = $priceMin;
         $event['price_max'] = $priceMax;
@@ -99,13 +107,6 @@ class EventController extends AbstractController
             'similar_events' => $similarEvents,
             'sessionUser' => $sessionUser,
         ]);
-    }
-
-    #[Route('/event-detail', name: 'event_detail_static')]
-    public function showEventDetailStatic(): Response
-    {
-        // Rend la page de détails statique (copie fidèle du HTML)
-        return $this->render('event/details.html.twig');
     }
 
     #[Route('/api/events', name: 'api_events_list', methods: ['GET'])]
@@ -504,6 +505,7 @@ class EventController extends AbstractController
                 'total_quantity' => $total,
                 'sold_quantity' => $sold,
                 'reserved_quantity' => $reserved,
+                'is_available' => null === $available || $available > 0,
             ];
         }, $rows);
     }
