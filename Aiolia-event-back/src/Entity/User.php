@@ -19,10 +19,9 @@ use Symfony\Component\Security\Core\User\UserInterface;
 #[UniqueEntity(fields: ['firstName', 'lastName'], message: 'Un compte existe déjà avec ce prénom et ce nom')]
 class User implements UserInterface, PasswordAuthenticatedUserInterface
 {
-    public const STATUS_PENDING = 'pending';
-    public const STATUS_ACTIVE = 'active';
-    public const STATUS_SUSPENDED = 'suspended';
-    public const STATUS_DELETED = 'deleted';
+    public const STATUS_DELETED = -1;
+    public const STATUS_PENDING = 0;
+    public const STATUS_ACTIVE = 1;
 
     public const AUTH_PROVIDER_PASSWORD = 'password';
     public const AUTH_PROVIDER_GOOGLE = 'google';
@@ -54,7 +53,7 @@ class User implements UserInterface, PasswordAuthenticatedUserInterface
     #[ORM\Column(name: 'last_name', type: Types::TEXT, nullable: true)]
     private ?string $lastName = null;
 
-    #[ORM\Column(type: 'string', length: 20, nullable: true, columnDefinition: 'phone_e164')]
+    #[ORM\Column(type: Types::TEXT, nullable: true)]
     private ?string $phone = null;
 
     #[ORM\Column(name: 'country_code', type: Types::STRING, length: 2, nullable: true, options: ['fixed' => true])]
@@ -72,8 +71,8 @@ class User implements UserInterface, PasswordAuthenticatedUserInterface
     #[ORM\Column(name: 'role', type: Types::STRING, length: 20, options: ['default' => UserRoleEnum::USER], columnDefinition: "user_role_enum NOT NULL DEFAULT 'user'")]
     private string $role = UserRoleEnum::USER;
 
-    #[ORM\Column(name: 'status', type: Types::STRING, length: 20, options: ['default' => self::STATUS_PENDING], columnDefinition: "user_status_enum NOT NULL DEFAULT 'pending'")]
-    private string $status = self::STATUS_PENDING;
+    #[ORM\Column(name: 'status', type: Types::SMALLINT, options: ['default' => self::STATUS_PENDING])]
+    private int|string $status = self::STATUS_PENDING;
 
     #[ORM\Column(name: 'auth_provider', type: Types::STRING, length: 20, options: ['default' => self::AUTH_PROVIDER_PASSWORD])]
     private string $authProvider = self::AUTH_PROVIDER_PASSWORD;
@@ -312,14 +311,18 @@ class User implements UserInterface, PasswordAuthenticatedUserInterface
         return $this;
     }
 
-    public function getStatus(): string
+    public function getStatus(): int
     {
-        return $this->status;
+        return (int) $this->status;
     }
 
-    public function setStatus(string $status): static
+    public function setStatus(int|string $status): static
     {
-        $this->status = $status;
+        if (is_string($status) && !is_numeric($status)) {
+            $status = self::accountStatusToDatabaseStatus($status);
+        }
+
+        $this->status = (int) $status;
         return $this;
     }
 
@@ -337,28 +340,37 @@ class User implements UserInterface, PasswordAuthenticatedUserInterface
 
     public function isActive(): bool
     {
-        return $this->status === self::STATUS_ACTIVE;
+        return $this->getStatus() === self::STATUS_ACTIVE;
     }
 
-    public static function accountStatusToDatabaseStatus(string $accountStatus): string
+    public static function accountStatusToDatabaseStatus(string $accountStatus): int
     {
         $normalized = strtolower(trim($accountStatus));
 
         return match ($normalized) {
             'active' => self::STATUS_ACTIVE,
-            'suspended' => self::STATUS_SUSPENDED,
-            'rejected' => self::STATUS_SUSPENDED,
-            'deleted' => self::STATUS_DELETED,
+            'pending', 'pending_validation', 'inactive', 'suspended' => self::STATUS_PENDING,
+            'rejected', 'deleted' => self::STATUS_DELETED,
             default => self::STATUS_PENDING,
         };
     }
 
-    public static function databaseStatusToAccountStatus(string $status): string
+    public static function databaseStatusToAccountStatus(int|string $status): string
     {
-        return match (strtolower($status)) {
+        if (is_string($status) && !is_numeric($status)) {
+            $normalized = strtolower(trim($status));
+            return match ($normalized) {
+                'active' => 'active',
+                'rejected', 'deleted' => 'rejected',
+                default => 'pending_validation',
+            };
+        }
+
+        $value = (int) $status;
+
+        return match ($value) {
             self::STATUS_ACTIVE => 'active',
-            self::STATUS_SUSPENDED => 'suspended',
-            self::STATUS_DELETED => 'deleted',
+            self::STATUS_DELETED => 'rejected',
             default => 'pending_validation',
         };
     }

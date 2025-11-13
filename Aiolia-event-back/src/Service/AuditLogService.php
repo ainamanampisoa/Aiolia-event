@@ -26,11 +26,12 @@ class AuditLogService
         ?User $performedBy = null
     ): void {
         $auditLog = new AuditLog();
+        $auditLog->setScope(explode('.', $action, 2)[0] ?? 'general');
         $auditLog->setAction($action);
         $auditLog->setEntityType($entityType);
         $auditLog->setEntityId($entityId);
-        $auditLog->setDetails($details);
-        $auditLog->setPerformedBy($performedBy);
+        $auditLog->setChanges($details);
+        $auditLog->setActor($performedBy);
 
         // Récupérer les informations de la requête
         $request = $this->requestStack->getCurrentRequest();

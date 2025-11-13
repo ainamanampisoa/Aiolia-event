@@ -36,6 +36,7 @@ class ProfileController extends AbstractController
     {
         $this->denyAccessUnlessGranted('IS_AUTHENTICATED_REMEMBERED');
 
+        /** @var User $user */
         $user = $this->getUser();
 
         if ($request->isMethod('POST')) {
@@ -60,8 +61,9 @@ class ProfileController extends AbstractController
         UserPasswordHasherInterface $passwordHasher,
         EntityManagerInterface $em
     ): Response {
-        $this->denyAccessUnlessGranted('IS_AUTHENTICATED_FULLY');
+        $this->denyAccessUnlessGranted('IS_AUTHENTICATED_REMEMBERED');
 
+        /** @var User $user */
         $user = $this->getUser();
 
         if ($request->isMethod('POST')) {

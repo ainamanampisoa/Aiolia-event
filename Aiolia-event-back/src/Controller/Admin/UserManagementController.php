@@ -80,7 +80,7 @@ class UserManagementController extends AbstractController
         }
 
         // Filtre par statut
-        if ($status && in_array($status, ['active', 'pending_validation', 'rejected', 'suspended'])) {
+        if ($status && in_array($status, ['active', 'pending_validation', 'rejected'], true)) {
             $databaseStatus = User::accountStatusToDatabaseStatus($status);
             $qb->andWhere('u.status = :status')
                ->setParameter('status', $databaseStatus);
@@ -290,7 +290,7 @@ class UserManagementController extends AbstractController
         }
 
         $oldStatus = $user->getAccountStatus();
-        $newStatus = $user->getAccountStatus() === 'suspended' ? 'active' : 'suspended';
+        $newStatus = $user->getAccountStatus() === 'pending_validation' ? 'active' : 'pending_validation';
         $user->setAccountStatus($newStatus);
         $this->entityManager->flush();
 
@@ -300,7 +300,7 @@ class UserManagementController extends AbstractController
             'User',
             $user->getId(),
             [
-                'action' => $newStatus === 'suspended' ? 'suspended' : 'activated',
+                'action' => $newStatus === 'pending_validation' ? 'disabled' : 'activated',
             ],
             $this->getUser()
         );
@@ -311,7 +311,7 @@ class UserManagementController extends AbstractController
         $this->addFlash('success', sprintf(
             'Compte de %s %s',
             $user->getFullName(),
-            $newStatus === 'suspended' ? 'suspendu' : 'activé'
+            $newStatus === 'pending_validation' ? 'désactivé' : 'activé'
         ));
 
         return $this->redirectToRoute('admin_users_show', ['id' => $id]);

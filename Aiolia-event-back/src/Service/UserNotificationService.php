@@ -24,7 +24,6 @@ class UserNotificationService
             'active' => 'actif',
             'pending_validation' => 'en attente de validation',
             'rejected' => 'rejeté',
-            'suspended' => 'suspendu',
         ];
 
         $oldStatusLabel = $statusLabels[$oldStatus] ?? $oldStatus;

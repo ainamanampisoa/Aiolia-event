@@ -6,11 +6,12 @@
 <div class="dashboard">
     <div class="dashboard-header">
         <div>
-            <h1>✏️ Modifier mon profil</h1>
+            <h1 data-i18n="profile.edit.header.title">✏️ Modifier mon profil</h1>
         </div>
         <div class="header-actions">
             <a href="{{ path('app_profile_index') }}" class="btn" style="background: var(--bg-secondary); color: var(--text-secondary); border: 2px solid var(--border-color); padding: 12px 20px; border-radius: 8px; text-decoration: none; font-weight: 600;">
-                <i class="fas fa-arrow-left"></i> Retour
+                <i class="fas fa-arrow-left"></i>
+                <span data-i18n="profile.edit.actions.back">Retour</span>
             </a>
         </div>
     </div>
@@ -19,20 +20,29 @@
         <div class="form-section">
             <div class="form-grid">
                 <div class="form-group">
-                    <label>Prénom <span class="required">*</span></label>
+                    <label>
+                        <span data-i18n="profile.edit.form.first_name.label">Prénom</span>
+                        <span class="required">*</span>
+                    </label>
                     <input type="text" name="first_name" class="form-control" value="{{ app.user.firstName }}" required>
                 </div>
                 <div class="form-group">
-                    <label>Nom <span class="required">*</span></label>
+                    <label>
+                        <span data-i18n="profile.edit.form.last_name.label">Nom</span>
+                        <span class="required">*</span>
+                    </label>
                     <input type="text" name="last_name" class="form-control" value="{{ app.user.lastName }}" required>
                 </div>
                 <div class="form-group span-2">
-                    <label>Email <span class="required">*</span></label>
+                    <label>
+                        <span data-i18n="profile.edit.form.email.label">Email</span>
+                        <span class="required">*</span>
+                    </label>
                     <input type="email" name="email" class="form-control" value="{{ app.user.email }}" readonly>
-                    <small class="form-help">L'email ne peut pas être modifié</small>
+                    <small class="form-help" data-i18n="profile.edit.form.email.help">L'email ne peut pas être modifié</small>
                 </div>
                 <div class="form-group">
-                    <label>Téléphone</label>
+                    <label data-i18n="profile.edit.form.phone.label">Téléphone</label>
                     <input type="tel" name="phone" class="form-control" value="{{ app.user.phone }}">
                 </div>
             </div>
@@ -40,9 +50,12 @@
 
         <div class="form-actions">
             <button type="submit" class="btn btn-primary" style="background: var(--accent); color: var(--text-inverse); border: none; padding: 14px 32px; border-radius: 10px; font-weight: 600;">
-                <i class="fas fa-check"></i> Enregistrer
+                <i class="fas fa-check"></i>
+                <span data-i18n="profile.edit.form.submit">Enregistrer</span>
             </button>
-            <a href="{{ path('app_profile_index') }}" class="btn" style="color: var(--text-secondary); text-decoration: none; padding: 14px 24px;">Annuler</a>
+            <a href="{{ path('app_profile_index') }}" class="btn" style="color: var(--text-secondary); text-decoration: none; padding: 14px 24px;">
+                <span data-i18n="profile.edit.form.cancel">Annuler</span>
+            </a>
         </div>
     </form>
 </div>
@@ -119,5 +132,25 @@
     border: 1px solid var(--border-color);
 }
 </style>
+<script>
+(function () {
+    const updateProfileEditTitle = () => {
+        if (!window.languageManager) {
+            return false;
+        }
+        document.title = window.languageManager.translate('profile.edit.meta.title');
+        return true;
+    };
+
+    const ensureProfileEditTitle = () => {
+        if (!updateProfileEditTitle()) {
+            window.setTimeout(ensureProfileEditTitle, 100);
+        }
+    };
+
+    document.addEventListener('DOMContentLoaded', ensureProfileEditTitle);
+    document.addEventListener('aiolia:language-changed', updateProfileEditTitle);
+})();
+</script>
 {% endblock %}
 

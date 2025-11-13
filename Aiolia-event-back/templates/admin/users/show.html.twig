@@ -452,13 +452,16 @@
 function confirmToggleStatus(form) {
     const manager = window.languageManager;
     const lang = manager ? manager.getLanguage() : 'fr';
-    const isSuspended = (form.dataset.state || 'active') === 'suspended';
-    const prefix = isSuspended ? 'confirmActivate' : 'confirmSuspend';
-    const fallback = form.dataset.confirmSuspendFr || 'Suspendre ce compte ?';
-    const frMessage = isSuspended ? (form.dataset.confirmActivateFr || 'Activer ce compte ?') : (form.dataset.confirmSuspendFr || 'Suspendre ce compte ?');
-    const enMessage = isSuspended ? (form.dataset.confirmActivateEn || 'Activate this account?') : (form.dataset.confirmSuspendEn || 'Suspend this account?');
+    const currentState = form.dataset.state || 'active';
+    const isInactive = currentState !== 'active';
+    const frMessage = isInactive
+        ? (form.dataset.confirmActivateFr || 'Activer ce compte ?')
+        : (form.dataset.confirmDeactivateFr || 'Mettre ce compte en attente ?');
+    const enMessage = isInactive
+        ? (form.dataset.confirmActivateEn || 'Activate this account?')
+        : (form.dataset.confirmDeactivateEn || 'Disable this account?');
     const message = lang === 'en' ? enMessage : frMessage;
-    return window.confirm(message || fallback);
+    return window.confirm(message);
 }
 </script>
 {% endblock %}
@@ -534,7 +537,7 @@ function confirmToggleStatus(form) {
                                 {% elseif user.accountStatus == 'rejected' %}
                                     <span class="badge bg-danger stat-badge" data-i18n-fr="Rejeté" data-i18n-en="Rejected">Rejeté</span>
                                 {% else %}
-                                    <span class="badge bg-dark stat-badge" data-i18n-fr="Suspendu" data-i18n-en="Suspended">Suspendu</span>
+                                    <span class="badge bg-dark stat-badge" data-i18n-fr="Inactif" data-i18n-en="Inactive">Inactif</span>
                                 {% endif %}
                             </span>
                         </div>
@@ -587,21 +590,21 @@ function confirmToggleStatus(form) {
 
                     <!-- Action principale -->
                     <div class="action-section">
-                        {% set isSuspended = user.accountStatus == 'suspended' %}
+                        {% set isPending = user.accountStatus == 'pending_validation' %}
                         <form method="POST" action="{{ path('admin_users_toggle_status', {id: user.id}) }}" 
                               onsubmit="return confirmToggleStatus(this);"
                               data-confirm-activate-fr="Activer ce compte ?"
                               data-confirm-activate-en="Activate this account?"
-                              data-confirm-suspend-fr="Suspendre ce compte ?"
-                              data-confirm-suspend-en="Suspend this account?"
-                              data-state="{{ isSuspended ? 'suspended' : 'active' }}">
+                              data-confirm-deactivate-fr="Mettre ce compte en attente ?"
+                              data-confirm-deactivate-en="Disable this account?"
+                              data-state="{{ isPending ? 'pending_validation' : 'active' }}">
                             <input type="hidden" name="_token" value="{{ csrf_token('toggle_status_' ~ user.id) }}">
                             <button type="submit" class="btn btn-primary w-100 py-3">
-                                <i class="fas fa-{{ user.accountStatus == 'suspended' ? 'play' : 'pause' }} me-3"></i>
-                                {% if isSuspended %}
+                                <i class="fas fa-{{ isPending ? 'play' : 'pause' }} me-3"></i>
+                                {% if isPending %}
                                     <span data-i18n-fr="Activer le compte" data-i18n-en="Activate account">Activer le compte</span>
                                 {% else %}
-                                    <span data-i18n-fr="Suspendre le compte" data-i18n-en="Suspend account">Suspendre le compte</span>
+                                    <span data-i18n-fr="Mettre le compte en attente" data-i18n-en="Set account to pending">Mettre le compte en attente</span>
                                 {% endif %}
                             </button>
                         </form>
