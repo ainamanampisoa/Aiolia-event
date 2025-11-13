@@ -217,15 +217,20 @@
                         </div> #}
 
                         <!-- Login Form -->
-                        <form method="post" class="auth-form">
+                        <form method="post" class="auth-form" autocomplete="off">
                             {% if error %}
                                 <div class="alert alert-danger">{{ error.messageKey|trans(error.messageData, 'security') }}</div>
                             {% endif %}
 
+                            <div style="position:absolute; opacity:0; height:0; width:0; pointer-events:none;">
+                                <input type="text" name="identifier" id="hiddenIdentifier" autocomplete="username" tabindex="-1">
+                                <input type="password" name="password" id="hiddenPassword" autocomplete="new-password" tabindex="-1">
+                            </div>
+
                             <div class="form-group">
                                 <label for="identifierField">Email ou Prénom Nom <span>*</span></label>
-                                <input type="text" value="{{ last_identifier }}" name="identifier" id="identifierField"
-                                       class="form-control" required autofocus
+                                <input type="text" name="identifier_visible" id="identifierField"
+                                       class="form-control" required autocomplete="off" autofocus
                                        placeholder="ex: admin@aiolia.mg ou Jean Dupont">
                                 <small class="form-text text-muted">
                                     Saisissez votre email ou votre prénom suivi de votre nom.
@@ -235,8 +240,8 @@
                             <div class="form-group">
                                 <label for="inputPassword">Mot de passe <span>*</span></label>
                                 <div class="password-input">
-                                    <input type="password" name="password" id="inputPassword" 
-                                           class="form-control" autocomplete="current-password" required 
+                                    <input type="password" name="password_visible" id="inputPassword" 
+                                           class="form-control" autocomplete="off" required 
                                            placeholder="Votre mot de passe">
                                     <button type="button" class="toggle-password" id="togglePassword">
                                         <i class="far fa-eye"></i>
@@ -270,6 +275,37 @@
     <script>
         // Toggle password visibility
         document.addEventListener('DOMContentLoaded', function() {
+            const identifierField = document.querySelector('#identifierField');
+            const passwordField = document.querySelector('#inputPassword');
+            const hiddenIdentifier = document.querySelector('#hiddenIdentifier');
+            const hiddenPassword = document.querySelector('#hiddenPassword');
+            const loginForm = document.querySelector('.auth-form');
+
+            const clearFields = () => {
+                if (identifierField) {
+                    identifierField.value = '';
+                }
+                if (passwordField) {
+                    passwordField.value = '';
+                }
+            };
+
+            clearFields();
+            setTimeout(clearFields, 150);
+            setTimeout(clearFields, 400);
+            window.addEventListener('pageshow', clearFields);
+
+            if (loginForm) {
+                loginForm.addEventListener('submit', function() {
+                    if (identifierField && hiddenIdentifier) {
+                        hiddenIdentifier.value = identifierField.value;
+                    }
+                    if (passwordField && hiddenPassword) {
+                        hiddenPassword.value = passwordField.value;
+                    }
+                });
+            }
+
             const togglePassword = document.querySelector('#togglePassword');
             const password = document.querySelector('#inputPassword');
             const icon = togglePassword.querySelector('i');

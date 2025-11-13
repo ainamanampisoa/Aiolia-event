@@ -95,6 +95,25 @@ class UserValidationController extends AbstractController
         $user->setRole($targetRole);
         $user->setAccountStatus('active');
 
+        // Envoyer une notification par email
+        $emailSent = $this->notificationService->sendValidationApprovedNotification(
+            $user,
+            $user->getRole(),
+            $comment
+        );
+
+        if (!$emailSent) {
+            $user->setRole($oldRole);
+            $user->setAccountStatus($oldStatus);
+
+            $this->addFlash('error', sprintf(
+                'Échec de l\'envoi de l\'email de validation pour %s. Aucune modification n\'a été enregistrée.',
+                $user->getFullName()
+            ));
+
+            return $this->redirectToRoute('admin_validation_pending');
+        }
+
         $this->entityManager->flush();
 
         // Logger l'action
@@ -110,13 +129,6 @@ class UserValidationController extends AbstractController
                 'comment' => $comment,
             ],
             $this->getUser()
-        );
-
-        // Envoyer une notification par email
-        $this->notificationService->sendValidationApprovedNotification(
-            $user,
-            $user->getRole(),
-            $comment
         );
 
         $this->addFlash('success', sprintf(
