@@ -32,7 +32,6 @@ SET search_path TO aiolia, public;
 -- Types énumérés
 -- ============================================================
 CREATE TYPE user_role_enum               AS ENUM ('admin', 'organizer', 'user');
-CREATE TYPE user_status_enum             AS ENUM ('pending', 'active', 'suspended', 'deleted');
 CREATE TYPE auth_provider_enum           AS ENUM ('password', 'google', 'facebook');
 CREATE TYPE event_status_enum            AS ENUM ('draft', 'published', 'cancelled', 'archived');
 CREATE TYPE event_visibility_enum        AS ENUM ('public', 'private', 'unlisted');
@@ -84,13 +83,13 @@ CREATE TABLE IF NOT EXISTS users (
     password_hash TEXT NOT NULL,
     first_name TEXT NOT NULL,
     last_name TEXT,
-    phone phone_e164,
+    phone TEXT,
     country_code CHAR(2),
     language_code VARCHAR(10) NOT NULL DEFAULT 'fr-FR',
     timezone TEXT NOT NULL DEFAULT 'Indian/Antananarivo',
     avatar_url TEXT,
     role user_role_enum NOT NULL DEFAULT 'user',
-    status user_status_enum NOT NULL DEFAULT 'pending',
+    status SMALLINT NOT NULL DEFAULT 0 CHECK (status IN (-1, 0, 1)),
     auth_provider VARCHAR(20) NOT NULL DEFAULT 'password',
     oauth_provider_id TEXT,
     is_email_verified BOOLEAN NOT NULL DEFAULT FALSE,

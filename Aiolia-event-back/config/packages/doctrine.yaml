@@ -12,7 +12,6 @@ doctrine:
             datetimetz: App\Doctrine\Type\DateTimeTzMicrosecondsType
         mapping_types:
             user_role_enum: string
-            user_status_enum: string
             auth_provider_enum: string
             event_status_enum: string
             event_visibility_enum: string

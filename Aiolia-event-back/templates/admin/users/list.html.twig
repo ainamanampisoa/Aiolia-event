@@ -106,7 +106,6 @@
                             <option value="active" {{ currentStatus == 'active' ? 'selected' : '' }} data-i18n-fr="Actif" data-i18n-en="Active">Actif</option>
                             <option value="pending_validation" {{ currentStatus == 'pending_validation' ? 'selected' : '' }} data-i18n-fr="En attente" data-i18n-en="Pending">En attente</option>
                             <option value="rejected" {{ currentStatus == 'rejected' ? 'selected' : '' }} data-i18n-fr="Rejeté" data-i18n-en="Rejected">Rejeté</option>
-                            <option value="suspended" {{ currentStatus == 'suspended' ? 'selected' : '' }} data-i18n-fr="Suspendu" data-i18n-en="Suspended">Suspendu</option>
                         </select>
                     </div>
 
@@ -250,10 +249,8 @@
                                     <span class="badge status-badge status-pending" data-i18n-fr="En attente" data-i18n-en="Pending">En attente</span>
                                 {% elseif user.accountStatus == 'rejected' %}
                                     <span class="badge status-badge status-rejected" data-i18n-fr="Rejeté" data-i18n-en="Rejected">Rejeté</span>
-                                {% elseif user.accountStatus == 'suspended' %}
-                                    <span class="badge status-badge status-suspended" data-i18n-fr="Suspendu" data-i18n-en="Suspended">Suspendu</span>
                                 {% else %}
-                                    <span class="badge status-badge status-active" data-i18n-fr="Actif" data-i18n-en="Active">Actif</span>
+                                    <span class="badge status-badge status-inactive" data-i18n-fr="Inactif" data-i18n-en="Inactive">Inactif</span>
                                 {% endif %}
                             </td>
                             <td class="col-center">
@@ -858,7 +855,7 @@ function showUserStats() {
     color: #a91f2d;
 }
 
-.status-suspended {
+.status-inactive {
     background: rgba(108, 117, 125, 0.2);
     color: #495057;
 }

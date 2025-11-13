@@ -144,13 +144,13 @@
                                     <a href="{{ path('admin_users_show', {id: account.id}) }}" class="validation-action-pill pill-view">
                                         <i class="fas fa-eye"></i><span data-i18n="validation.table.button.view">Voir le profil</span>
                                     </a>
-                                    <form method="post" action="{{ path('admin_validation_approve', {id: account.id}) }}" class="d-inline" onsubmit="return confirm('Approuver le compte de {{ account.fullName }} ?');">
+                                    <form method="post" action="{{ path('admin_validation_approve', {id: account.id}) }}" class="d-inline js-validation-approve" data-user-name="{{ account.fullName|e('html_attr') }}">
                                         <input type="hidden" name="_token" value="{{ csrf_token('approve_user_' ~ account.id) }}">
                                         <button type="submit" class="validation-action-pill pill-approve">
                                             <i class="fas fa-check"></i><span data-i18n="validation.table.button.approve">Approuver</span>
                                         </button>
                                     </form>
-                                    <form method="post" action="{{ path('admin_validation_reject', {id: account.id}) }}" class="d-inline" onsubmit="return confirm('Rejeter le compte de {{ account.fullName }} ?');">
+                                    <form method="post" action="{{ path('admin_validation_reject', {id: account.id}) }}" class="d-inline js-validation-reject" data-user-name="{{ account.fullName|e('html_attr') }}">
                                         <input type="hidden" name="_token" value="{{ csrf_token('reject_user_' ~ account.id) }}">
                                         <button type="submit" class="validation-action-pill pill-reject">
                                             <i class="fas fa-times"></i><span data-i18n="validation.table.button.reject">Rejeter</span>
@@ -309,11 +309,60 @@ document.addEventListener('DOMContentLoaded', function() {
         // Réorganiser les lignes
         rows.forEach(row => tbody.appendChild(row));
     }
-});
+    const registerConfirmationHandlers = () => {
+        const approvalForms = document.querySelectorAll('.js-validation-approve');
+        const rejectionForms = document.querySelectorAll('.js-validation-reject');
 
-function showValidationStats() {
-    alert('Affichage des statistiques de validation');
-}
+        const buildApproveMessage = (name) => {
+            const manager = window.languageManager;
+            const template = manager ? manager.translate('validation.confirm.approve') : null;
+            return template ? template.replace('{name}', name) : `Approuver le compte de ${name} ?`;
+        };
+
+        const buildRejectMessage = (name) => {
+            const manager = window.languageManager;
+            const template = manager ? manager.translate('validation.confirm.reject') : null;
+            return template ? template.replace('{name}', name) : `Rejeter le compte de ${name} ?`;
+        };
+
+        const attachDialog = (forms, messageBuilder, confirmLabelKey, theme) => {
+            forms.forEach((form) => {
+                form.addEventListener('submit', async function (event) {
+                    if (!window.aioliaConfirm) {
+                        return;
+                    }
+
+                    event.preventDefault();
+
+                    const userName = form.dataset.userName || '';
+                    const manager = window.languageManager;
+                    const title = manager ? manager.translate('validation.confirm.title') : 'Confirmer l\'action';
+                    const confirmText = manager ? manager.translate(confirmLabelKey) : 'Confirmer';
+                    const cancelText = manager ? manager.translate('validation.confirm.cancel') : 'Annuler';
+
+                    const confirmed = await window.aioliaConfirm({
+                        title,
+                        message: messageBuilder(userName),
+                        confirmText,
+                        cancelText,
+                        theme
+                    });
+
+                    if (confirmed) {
+                        form.submit();
+                    }
+                });
+            });
+        };
+
+        attachDialog(approvalForms, buildApproveMessage, 'validation.confirm.approve.button', 'success');
+        attachDialog(rejectionForms, buildRejectMessage, 'validation.confirm.reject.button', 'danger');
+    };
+
+    registerConfirmationHandlers();
+
+    document.addEventListener('aiolia:language-changed', registerConfirmationHandlers);
+});
 </script>
 
 <style>

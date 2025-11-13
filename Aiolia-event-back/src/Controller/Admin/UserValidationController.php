@@ -32,10 +32,7 @@ class UserValidationController extends AbstractController
     #[Route('/pending', name: 'admin_validation_pending')]
     public function pending(Request $request): Response
     {
-        $pendingAccounts = array_values(array_filter(
-            $this->userRepository->findAccountsPendingValidation(),
-            static fn(User $user): bool => in_array($user->getRole(), [UserRoleEnum::ORGANIZER, UserRoleEnum::USER], true)
-        ));
+        $pendingAccounts = array_values($this->userRepository->findAccountsPendingValidation());
 
         $perPage = 5;
         $totalAccounts = count($pendingAccounts);
@@ -48,8 +45,10 @@ class UserValidationController extends AbstractController
         $offset = ($page - 1) * $perPage;
         $paginatedPendingAccounts = array_slice($pendingAccounts, $offset, $perPage);
 
-        $pendingOrganizers = array_filter($pendingAccounts, static fn($user) => $user->getRole() === 'organizer');
-        $pendingUsers = array_filter($pendingAccounts, static fn($user) => $user->getRole() === 'user');
+        $pendingOrganizers = array_filter($pendingAccounts, static fn(User $user) => $user->getRole() === UserRoleEnum::ORGANIZER);
+        $pendingUsers = array_filter($pendingAccounts, static fn(User $user) => $user->getRole() === UserRoleEnum::USER);
+        $pendingCoOrganizers = array_filter($pendingAccounts, static fn(User $user) => $user->getRole() === UserRoleEnum::CO_ORGANIZER);
+        $pendingSimpleUsers = array_filter($pendingAccounts, static fn(User $user) => $user->getRole() === UserRoleEnum::USER);
 
         return $this->render('admin/validation/pending.html.twig', [
             'pendingAccounts' => $pendingAccounts,
@@ -57,7 +56,8 @@ class UserValidationController extends AbstractController
             'pendingStats' => [
                 'total' => count($pendingAccounts),
                 'organizer' => count($pendingOrganizers),
-                'user' => count($pendingUsers),
+                'co_organizer' => count($pendingCoOrganizers),
+                'user' => count($pendingSimpleUsers),
             ],
             'currentPage' => $page,
             'totalPages' => $totalPages,

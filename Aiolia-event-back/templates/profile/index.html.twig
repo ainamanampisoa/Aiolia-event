@@ -7,8 +7,8 @@
     <!-- En-tête -->
     <div class="dashboard-header">
         <div>
-            <h1>👤 Mon profil</h1>
-            <p style="color: var(--text-secondary); margin-top: 8px; font-size: 1rem;">
+            <h1 data-i18n="profile.header.title">👤 Mon profil</h1>
+            <p data-i18n="profile.header.subtitle" style="color: var(--text-secondary); margin-top: 8px; font-size: 1rem;">
                 Gérez vos informations personnelles
             </p>
         </div>
@@ -25,13 +25,20 @@
                         {% set userInitials = app.user.photoUrl %}
 
                         {% if avatarUrl %}
-                            <img src="{{ avatarUrl }}" alt="Photo de {{ app.user.firstName }} {{ app.user.lastName }}">
+                            <img src="{{ avatarUrl }}"
+                                 data-i18n-attributes="alt"
+                                 data-i18n-attr-alt-key="profile.avatar.alt"
+                                 data-i18n-params="{{ {'firstName': app.user.firstName, 'lastName': app.user.lastName}|json_encode|e('html_attr') }}"
+                                 alt="Photo de {{ app.user.firstName }} {{ app.user.lastName }}">
                         {% else %}
                             <div class="avatar-large-initials">
                                 {{ userInitials ?: (app.user.email|first|upper) }}
                             </div>
                         {% endif %}
-                        <label for="avatarUpload" class="avatar-edit-trigger" title="Changer la photo de profil">
+                        <label for="avatarUpload"
+                               class="avatar-edit-trigger"
+                               title="Changer la photo de profil"
+                               aria-label="Changer la photo de profil">
                             <i class="fas fa-camera"></i>
                         </label>
                         <input type="file" id="avatarUpload" name="avatar" accept="image/*" class="avatar-file-input">
@@ -46,7 +53,7 @@
                     <div class="detail-row">
                         <div class="detail-label">
                             <i class="fas fa-envelope"></i>
-                            Email
+                            <span data-i18n="profile.details.email">Email</span>
                         </div>
                         <div class="detail-value">{{ app.user.email }}</div>
                     </div>
@@ -54,15 +61,21 @@
                     <div class="detail-row">
                         <div class="detail-label">
                             <i class="fas fa-phone"></i>
-                            Téléphone
+                            <span data-i18n="profile.details.phone">Téléphone</span>
                         </div>
-                        <div class="detail-value">{{ app.user.phone ?? 'Non renseigné' }}</div>
+                        <div class="detail-value">
+                            {% if app.user.phone %}
+                                {{ app.user.phone }}
+                            {% else %}
+                                <span data-i18n="profile.details.phone.unset">Non renseigné</span>
+                            {% endif %}
+                        </div>
                     </div>
 
                     <div class="detail-row">
                         <div class="detail-label">
                             <i class="fas fa-user-tag"></i>
-                            Rôle
+                            <span data-i18n="profile.details.role">Rôle</span>
                         </div>
                         <div class="detail-value">{{ app.user.role|capitalize }}</div>
                     </div>
@@ -70,7 +83,7 @@
                     <div class="detail-row">
                         <div class="detail-label">
                             <i class="fas fa-calendar"></i>
-                            Membre depuis
+                            <span data-i18n="profile.details.member_since">Membre depuis</span>
                         </div>
                         <div class="detail-value">{{ app.user.createdAt|date('d F Y') }}</div>
                     </div>
@@ -78,7 +91,7 @@
                     <div class="detail-row">
                         <div class="detail-label">
                             <i class="fas fa-clock"></i>
-                            Dernière connexion
+                            <span data-i18n="profile.details.last_login">Dernière connexion</span>
                         </div>
                         <div class="detail-value">{{ app.user.lastLoginAt|date('d F Y à H:i') }}</div>
                     </div>
@@ -93,16 +106,16 @@
             <div class="actions-card">
                  <div class="card-title">
                     <i class="fas fa-cog"></i>
-                    Paramètres du compte
+                    <span data-i18n="profile.sidebar.account_settings">Paramètres du compte</span>
                 </div>
                 <div class="actions-list">
                     <a href="{{ path('app_profile_edit') }}" class="action-link">
                         <i class="fas fa-edit"></i>
-                        Modifier le profil
+                        <span data-i18n="profile.sidebar.edit_profile">Modifier le profil</span>
                     </a>
                     <a href="{{ path('app_profile_password') }}" class="action-link">
                         <i class="fas fa-key"></i>
-                        Changer le mot de passe
+                        <span data-i18n="profile.sidebar.change_password">Changer le mot de passe</span>
                     </a>
                 </div>
             </div>
@@ -414,23 +427,63 @@
 </style>
 
 <script>
-document.addEventListener('DOMContentLoaded', function () {
-    const fileInput = document.getElementById('avatarUpload');
-    const form = document.getElementById('avatarUploadForm');
+(function () {
+    const updateProfileTitle = () => {
+        if (!window.languageManager) {
+            return false;
+        }
+        document.title = window.languageManager.translate('profile.meta.title');
+        return true;
+    };
 
-    if (!fileInput || !form) {
-        return;
-    }
+    const updateAvatarTriggerLabels = () => {
+        if (!window.languageManager) {
+            return;
+        }
+        const trigger = document.querySelector('.avatar-edit-trigger');
+        if (!trigger) {
+            return;
+        }
+        const label = window.languageManager.translate('profile.avatar.change');
+        trigger.setAttribute('title', label);
+        trigger.setAttribute('aria-label', label);
+    };
 
-    fileInput.addEventListener('change', function () {
-        if (!fileInput.files || fileInput.files.length === 0) {
+    const initAvatarUpload = () => {
+        const fileInput = document.getElementById('avatarUpload');
+        const form = document.getElementById('avatarUploadForm');
+
+        if (!fileInput || !form) {
             return;
         }
 
-        form.classList.add('uploading');
-        form.submit();
+        fileInput.addEventListener('change', function () {
+            if (!fileInput.files || fileInput.files.length === 0) {
+                return;
+            }
+
+            form.classList.add('uploading');
+            form.submit();
+        });
+    };
+
+    const ensureProfileTitle = () => {
+        if (!updateProfileTitle()) {
+            window.setTimeout(ensureProfileTitle, 100);
+        }
+    };
+
+    document.addEventListener('DOMContentLoaded', function () {
+        ensureProfileTitle();
+        updateAvatarTriggerLabels();
+        initAvatarUpload();
     });
-});
+
+    document.addEventListener('aiolia:language-changed', function () {
+        updateProfileTitle();
+        updateAvatarTriggerLabels();
+    });
+})();
 </script>
 {% endblock %}
 
