@@ -228,7 +228,7 @@ WITH organizer_ranked AS (
     FROM organizer_profiles op
 )
 INSERT INTO organizer_subscriptions (
-    organizer_id,
+    organizer_profile_id,
     plan_id,
     status,
     starts_at,
@@ -268,13 +268,13 @@ FROM organizer_ranked orr;
 WITH subscription_context AS (
     SELECT
         os.id AS subscription_id,
-        os.organizer_id,
+        os.organizer_profile_id,
         os.plan_id,
         op.user_id,
         sp.price,
         sp.vat_rate
     FROM organizer_subscriptions os
-    JOIN organizer_profiles op ON op.id = os.organizer_id
+    JOIN organizer_profiles op ON op.id = os.organizer_profile_id
     JOIN subscription_plans sp ON sp.id = os.plan_id
 ),
 invoice_source AS (

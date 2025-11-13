@@ -59,7 +59,8 @@ COMMENT ON VIEW aiolia.vw_event_sales_summary IS
 CREATE OR REPLACE VIEW aiolia.vw_subscription_payment_summary AS
 SELECT
     si.subscription_id,
-    os.organizer_id,
+    os.organizer_profile_id,
+    op.user_id AS organizer_user_id,
     op.organization_type,
     op.verification_status,
     si.customer_id,
@@ -68,7 +69,7 @@ SELECT
     sp.paid_at
 FROM subscription_invoices si
 LEFT JOIN organizer_subscriptions os ON os.id = si.subscription_id
-LEFT JOIN organizer_profiles op ON op.id = os.organizer_id
+LEFT JOIN organizer_profiles op ON op.id = os.organizer_profile_id
 LEFT JOIN subscription_payments sp ON sp.invoice_id = si.id;
 
 COMMENT ON VIEW aiolia.vw_subscription_payment_summary IS
@@ -101,7 +102,8 @@ SELECT
     sp.id AS payment_id,
     si.invoice_number,
     si.subscription_id,
-    os.organizer_id,
+    os.organizer_profile_id,
+    op.user_id AS organizer_user_id,
     op.organization_type,
     op.verification_status,
     sp.provider,
@@ -116,7 +118,7 @@ SELECT
 FROM subscription_payments sp
 LEFT JOIN subscription_invoices si ON si.id = sp.invoice_id
 LEFT JOIN organizer_subscriptions os ON os.id = si.subscription_id
-LEFT JOIN organizer_profiles op ON op.id = os.organizer_id
+LEFT JOIN organizer_profiles op ON op.id = os.organizer_profile_id
 LEFT JOIN subscription_payment_history sph ON sph.payment_id = sp.id;
 
 COMMENT ON VIEW aiolia.vw_subscription_payments_detailed IS
@@ -142,7 +144,8 @@ CREATE OR REPLACE VIEW aiolia.vw_subscription_invoices_overdue AS
 SELECT
     si.invoice_number,
     si.subscription_id,
-    os.organizer_id,
+    os.organizer_profile_id,
+    op.user_id AS organizer_user_id,
     op.organization_type,
     op.verification_status,
     si.total_amount,
@@ -151,7 +154,7 @@ SELECT
     si.status
 FROM subscription_invoices si
 LEFT JOIN organizer_subscriptions os ON os.id = si.subscription_id
-LEFT JOIN organizer_profiles op ON op.id = os.organizer_id
+LEFT JOIN organizer_profiles op ON op.id = os.organizer_profile_id
 WHERE si.status IN ('issued', 'overdue')
    OR (si.status = 'draft' AND si.due_at IS NOT NULL AND si.due_at < now());
 
@@ -166,7 +169,8 @@ SELECT
     sii.id AS item_id,
     si.invoice_number,
     si.subscription_id,
-    os.organizer_id,
+    os.organizer_profile_id,
+    op.user_id AS organizer_user_id,
     op.organization_type,
     op.verification_status,
     sii.plan_id,
@@ -179,7 +183,7 @@ SELECT
 FROM subscription_invoice_items sii
 JOIN subscription_invoices si ON si.id = sii.invoice_id
 LEFT JOIN organizer_subscriptions os ON os.id = si.subscription_id
-LEFT JOIN organizer_profiles op ON op.id = os.organizer_id
+LEFT JOIN organizer_profiles op ON op.id = os.organizer_profile_id
 LEFT JOIN subscription_plans sp ON sp.id = sii.plan_id;
 
 COMMENT ON VIEW aiolia.vw_subscription_invoice_items IS
