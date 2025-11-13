@@ -25,8 +25,16 @@ class AuthController extends AbstractController
         $session = $request->getSession();
         $error = null;
         $lastEmail = '';
+        $successMessage = null;
 
-        if ($session->has('user')) {
+        if ($session->has('registration_success')) {
+            $data = $session->get('registration_success');
+            if (is_array($data)) {
+                $successMessage = $data['message'] ?? null;
+                $lastEmail = $data['email'] ?? $lastEmail;
+            }
+            $session->remove('registration_success');
+        } elseif ($session->has('user')) {
             $sessionUser = $session->get('user');
             if (is_array($sessionUser)) {
                 $lastEmail = $sessionUser['email'] ?? ($sessionUser['profile']['email'] ?? '');
@@ -67,6 +75,7 @@ class AuthController extends AbstractController
         return $this->render('auth/login.html.twig', [
             'last_email' => $lastEmail,
             'error' => $error,
+            'success_message' => $successMessage,
         ]);
     }
 
@@ -130,19 +139,10 @@ class AuthController extends AbstractController
                         $request->getClientIp()
                     );
 
-                    $session->set('user', [
-                        'id' => $result['user']['id'],
+                    $session->set('registration_success', [
                         'email' => $result['user']['email'],
-                        'username' => $result['user']['full_name'],
-                        'profile' => $result['user'],
-                        'tokens' => $result['tokens'],
+                        'message' => 'Inscription réussie ! Vous pouvez vous connecter avec vos identifiants.',
                     ]);
-                  $this->logger->debug('AuthController login: session populated', [
-                      'session_keys' => array_keys($session->all()),
-                      'session_user' => $session->get('user'),
-                  ]);
-
-                    $this->addFlash('success', 'Inscription réussie ! Vous pouvez vous connecter avec vos identifiants.');
 
                     return $this->redirectToRoute('login');
                 } catch (\InvalidArgumentException $exception) {

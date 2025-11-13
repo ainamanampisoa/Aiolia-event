@@ -18,6 +18,9 @@
                         {% for message in app.flashes('success') %}
                             <p class="msg-success alert-auto-dismiss">{{ message }}</p>
                         {% endfor %}
+                        {% if success_message is defined and success_message %}
+                            <p class="msg-success alert-auto-dismiss">{{ success_message }}</p>
+                        {% endif %}
                         <form method="post" action="{{ path('login') }}">
                             {% if error %}
                                 <p class="msg-error">{{ error }}</p>
