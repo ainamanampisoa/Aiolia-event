@@ -62,7 +62,7 @@ class AuthService
             ->setLanguageCode($payload['language_code'] ?? 'fr-FR')
             ->setTimezone($payload['timezone'] ?? 'Indian/Antananarivo')
             ->setRole($payload['role'] ?? 'user')
-            ->setStatus('active')
+            ->setStatus(User::STATUS_ACTIVE)
             ->setAuthProvider('password')
             ->setIsEmailVerified(false)
             ->setIsPhoneVerified(false)
@@ -138,7 +138,7 @@ class AuthService
                 ->setFirstName($firstName ?: 'Invité')
                 ->setLastName($lastName ?: ucfirst($provider))
                 ->setRole('user')
-                ->setStatus('active')
+                ->setStatus(User::STATUS_ACTIVE)
                 ->setAuthProvider($provider)
                 ->setIsEmailVerified((bool) ($payload['email_verified'] ?? false))
                 ->setIsPhoneVerified(false)
@@ -332,7 +332,8 @@ class AuthService
             'full_name' => $user->getFullName(),
             'role' => $user->getRole(),
             'roles' => $user->getRoles(),
-            'status' => $user->getStatus(),
+            'status' => $user->getStatusLabel(),
+            'status_code' => $user->getStatus(),
             'language_code' => $user->getLanguageCode(),
             'timezone' => $user->getTimezone(),
             'is_active' => $user->isActive(),

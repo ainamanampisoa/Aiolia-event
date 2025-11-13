@@ -47,7 +47,7 @@ class UserRepository extends ServiceEntityRepository implements PasswordUpgrader
     {
         return $this->createQueryBuilder('u')
             ->andWhere('u.status = :status')
-            ->setParameter('status', 'active')
+            ->setParameter('status', User::STATUS_ACTIVE)
             ->orderBy('u.createdAt', 'DESC')
             ->getQuery()
             ->getResult();

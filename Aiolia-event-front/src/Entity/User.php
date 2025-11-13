@@ -56,8 +56,12 @@ class User implements UserInterface, PasswordAuthenticatedUserInterface
     #[ORM\Column(name: 'role', type: 'string', length: 20)]
     private string $role = 'user';
 
-    #[ORM\Column(name: 'status', type: 'string', length: 20)]
-    private string $status = 'active';
+    public const STATUS_SUSPENDED = -1;
+    public const STATUS_INACTIVE = 0;
+    public const STATUS_ACTIVE = 1;
+
+    #[ORM\Column(name: 'status', type: 'smallint')]
+    private int $status = self::STATUS_INACTIVE;
 
     #[ORM\Column(name: 'auth_provider', type: 'string', length: 50)]
     private string $authProvider = 'password';
@@ -230,15 +234,40 @@ class User implements UserInterface, PasswordAuthenticatedUserInterface
         return $this;
     }
 
-    public function getStatus(): string
+    public function getStatus(): int
     {
         return $this->status;
     }
 
-    public function setStatus(string $status): self
+    /**
+     * @param int|string $status
+     */
+    public function setStatus(int|string $status): self
     {
+        if (is_string($status)) {
+            $status = match (strtolower($status)) {
+                'active', 'actif' => self::STATUS_ACTIVE,
+                'inactive', 'inactif', 'pending', 'en_attente' => self::STATUS_INACTIVE,
+                'suspended', 'suspendu', 'blocked', 'bloque' => self::STATUS_SUSPENDED,
+                default => self::STATUS_INACTIVE,
+            };
+        }
+
+        if (!in_array($status, [self::STATUS_SUSPENDED, self::STATUS_INACTIVE, self::STATUS_ACTIVE], true)) {
+            throw new \InvalidArgumentException(sprintf('Statut utilisateur invalide : %s', (string) $status));
+        }
+
         $this->status = $status;
         return $this;
+    }
+
+    public function getStatusLabel(): string
+    {
+        return match ($this->status) {
+            self::STATUS_ACTIVE => 'active',
+            self::STATUS_SUSPENDED => 'suspended',
+            default => 'inactive',
+        };
     }
 
     public function getAuthProvider(): string
@@ -372,7 +401,7 @@ class User implements UserInterface, PasswordAuthenticatedUserInterface
 
     public function isActive(): bool
     {
-        return $this->status === 'active';
+        return $this->status === self::STATUS_ACTIVE;
     }
 }
 

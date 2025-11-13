@@ -66,16 +66,30 @@
                                         </div>
                                         <div class="col2">
                                             <span class="bandeau">{{ event.category_label|default('Évènement') }}</span>
-                                            <div class="adresse">
-                                                Lieu :
-                                                {% if event.venue_name %}
-                                                    {{ event.venue_name }}
-                                                {% endif %}
-                                                {% if event.city %}
-                                                    {% if event.venue_name %}, {% endif %}
-                                                    {{ event.city }}
-                                                {% endif %}
-                                            </div>
+                                            {% set location_parts = [] %}
+                                            {% if event.venue_name %}
+                                                {% set location_parts = location_parts|merge([event.venue_name]) %}
+                                            {% endif %}
+                                            {% if event.space_name %}
+                                                {% set location_parts = location_parts|merge([event.space_name]) %}
+                                            {% endif %}
+                                            {% if event.city %}
+                                                {% set location_parts = location_parts|merge([event.city]) %}
+                                            {% endif %}
+                                            {% if event.region %}
+                                                {% set location_parts = location_parts|merge([event.region]) %}
+                                            {% endif %}
+                                            {% if event.country_code %}
+                                                {% set location_parts = location_parts|merge([event.country_code]) %}
+                                            {% endif %}
+                                            {% if location_parts is not empty %}
+                                                <div class="adresse">
+                                                    Lieu : {{ location_parts|join(', ') }}
+                                                </div>
+                                            {% endif %}
+                                            {% if event.venue_address %}
+                                                <div class="adresseline">Adresse : {{ event.venue_address }}</div>
+                                            {% endif %}
                                             <div class="tarif">
                                                 {% if priceMin is not null %}
                                                     {% if priceMax is not null and priceMax > priceMin %}
@@ -268,13 +282,16 @@
                                             <div class="col2">
                                                 <span class="bandeau">{{ similar.category_label|default('Évènement') }}</span>
                                                 <h3>{{ similar.title }}</h3>
-                                                <div class="adresse">
-                                                    {% if similar.venue_name %}{{ similar.venue_name }}{% endif %}
-                                                    {% if similar.city %}
-                                                        {% if similar.venue_name %}, {% endif %}
-                                                        {{ similar.city }}
-                                                    {% endif %}
-                                                </div>
+                                                {% set similar_location = [] %}
+                                                {% if similar.venue_name %}
+                                                    {% set similar_location = similar_location|merge([similar.venue_name]) %}
+                                                {% endif %}
+                                                {% if similar.city %}
+                                                    {% set similar_location = similar_location|merge([similar.city]) %}
+                                                {% endif %}
+                                                {% if similar_location is not empty %}
+                                                    <div class="adresse">{{ similar_location|join(', ') }}</div>
+                                                {% endif %}
                                                 <div class="blcBtn">
                                                     <a href="{{ path('event_details', { id: similar.id }) }}" class="btn ticket">Acheter un ticket</a>
                                                     <a href="{{ path('event_details', { id: similar.id }) }}" class="btn details">détails</a>

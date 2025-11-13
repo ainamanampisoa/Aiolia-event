@@ -54,16 +54,22 @@
                                                     {{ event.category_label is not empty ? event.category_label : 'Événement' }}
                                                 </span>
                                                 <h3>{{ event.title }}</h3>
-                                                {% if event.venue_name or event.city %}
+                                                {% set location_parts = [] %}
+                                                {% if event.venue_name %}
+                                                    {% set location_parts = location_parts|merge([event.venue_name]) %}
+                                                {% endif %}
+                                                {% if event.city %}
+                                                    {% set location_parts = location_parts|merge([event.city]) %}
+                                                {% endif %}
+                                                {% if event.region %}
+                                                    {% set location_parts = location_parts|merge([event.region]) %}
+                                                {% endif %}
+                                                {% if event.country_code %}
+                                                    {% set location_parts = location_parts|merge([event.country_code]) %}
+                                                {% endif %}
+                                                {% if location_parts is not empty %}
                                                     <div class="adresse">
-                                                        Lieu :
-                                                        {% if event.venue_name %}
-                                                            {{ event.venue_name }}
-                                                        {% endif %}
-                                                        {% if event.city %}
-                                                            {% if event.venue_name %}, {% endif %}
-                                                            {{ event.city }}
-                                                        {% endif %}
+                                                        Lieu : {{ location_parts|join(', ') }}
                                                     </div>
                                                 {% endif %}
                                                 <div class="tarif">

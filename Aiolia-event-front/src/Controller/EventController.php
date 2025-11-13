@@ -218,17 +218,22 @@ class EventController extends AbstractController
                 e.title,
                 e.subtitle,
                 e.summary,
-                e.venue_name,
-                e.venue_address,
-                e.city,
-                e.country_code,
+                COALESCE(e.location_override->>'venue_name', v.name) AS venue_name,
+                COALESCE(e.location_override->>'address', NULLIF(CONCAT_WS(', ', v.address_line1, v.address_line2), '')) AS venue_address,
+                COALESCE(e.location_override->>'city', v.city) AS city,
+                COALESCE(e.location_override->>'region', v.region) AS region,
+                COALESCE(e.location_override->>'country', v.country_code) AS country_code,
+                v.latitude,
+                v.longitude,
                 e.starts_at,
                 e.ends_at,
-                cat.label AS category_label,
-                media.url AS image_url,
+                COALESCE(primary_cat.label, cat.label) AS category_label,
+                COALESCE(media.url, e.cover_image_url) AS image_url,
                 pricing.min_price,
                 pricing.max_price
             FROM aiolia.events e
+            LEFT JOIN aiolia.venues v ON v.id = e.venue_id
+            LEFT JOIN aiolia.event_categories primary_cat ON primary_cat.id = e.primary_category_id
             LEFT JOIN LATERAL (
                 SELECT c.label
                 FROM aiolia.event_category_links cl
@@ -272,6 +277,7 @@ class EventController extends AbstractController
                 'venue_name' => $row['venue_name'],
                 'venue_address' => $row['venue_address'],
                 'city' => $row['city'],
+                'region' => $row['region'],
                 'country_code' => $row['country_code'],
                 'category_label' => $row['category_label'] ?? 'Événement',
                 'image_url' => $row['image_url'],
@@ -279,6 +285,8 @@ class EventController extends AbstractController
                 'ends_at' => $endsAt,
                 'min_price' => null !== $row['min_price'] ? (float) $row['min_price'] : null,
                 'max_price' => null !== $row['max_price'] ? (float) $row['max_price'] : null,
+                'latitude' => isset($row['latitude']) ? (float) $row['latitude'] : null,
+                'longitude' => isset($row['longitude']) ? (float) $row['longitude'] : null,
             ];
         }, $rows);
     }
@@ -326,9 +334,11 @@ class EventController extends AbstractController
     private function fetchLocations(): array
     {
         $sql = <<<SQL
-            SELECT DISTINCT city
-            FROM aiolia.events
-            WHERE city IS NOT NULL AND city <> ''
+            SELECT DISTINCT COALESCE(e.location_override->>'city', v.city) AS city
+            FROM aiolia.events e
+            LEFT JOIN aiolia.venues v ON v.id = e.venue_id
+            WHERE COALESCE(e.location_override->>'city', v.city) IS NOT NULL
+              AND COALESCE(e.location_override->>'city', v.city) <> ''
             ORDER BY city ASC
         SQL;
 
@@ -370,26 +380,36 @@ class EventController extends AbstractController
                 e.subtitle,
                 e.summary,
                 e.description,
-                e.venue_name,
-                e.venue_address,
-                e.city,
-                e.region,
-                e.country_code,
+                e.event_format,
+                e.timezone,
                 e.starts_at,
                 e.ends_at,
+                e.sales_starts_at,
+                e.sales_ends_at,
                 e.capacity,
                 e.language_code,
-                e.latitude,
-                e.longitude,
-                e.timezone,
+                e.location_override,
                 e.created_at,
-                cat.label AS category_label,
-                cat.slug AS category_slug,
-                media.url AS image_url,
+                COALESCE(primary_cat.label, cat.label) AS category_label,
+                COALESCE(primary_cat.slug, cat.slug) AS category_slug,
+                COALESCE(media.url, e.cover_image_url) AS image_url,
                 media.alt_text AS image_alt,
                 pricing.min_price,
-                pricing.max_price
+                pricing.max_price,
+                v.name AS venue_name_fallback,
+                v.address_line1,
+                v.address_line2,
+                v.city AS venue_city,
+                v.region AS venue_region,
+                v.country_code AS venue_country,
+                v.latitude,
+                v.longitude,
+                v.capacity AS venue_capacity,
+                vs.name AS space_name
             FROM aiolia.events e
+            LEFT JOIN aiolia.venues v ON v.id = e.venue_id
+            LEFT JOIN aiolia.venue_spaces vs ON vs.id = e.main_space_id
+            LEFT JOIN aiolia.event_categories primary_cat ON primary_cat.id = e.primary_category_id
             LEFT JOIN LATERAL (
                 SELECT c.slug, c.label
                 FROM aiolia.event_category_links cl
@@ -425,6 +445,32 @@ class EventController extends AbstractController
 
         $startsAt = isset($row['starts_at']) ? new \DateTimeImmutable($row['starts_at']) : null;
         $endsAt = isset($row['ends_at']) ? new \DateTimeImmutable($row['ends_at']) : null;
+        $salesStartsAt = isset($row['sales_starts_at']) ? new \DateTimeImmutable($row['sales_starts_at']) : null;
+        $salesEndsAt = isset($row['sales_ends_at']) ? new \DateTimeImmutable($row['sales_ends_at']) : null;
+        $createdAt = isset($row['created_at']) ? new \DateTimeImmutable($row['created_at']) : null;
+
+        $override = [];
+        if (!empty($row['location_override'])) {
+            $decoded = json_decode($row['location_override'], true);
+            if (is_array($decoded)) {
+                $override = $decoded;
+            }
+        }
+
+        $venueName = $override['venue_name'] ?? $row['venue_name_fallback'];
+        $venueAddress = $override['address'] ?? trim(preg_replace('/\s+/', ' ', implode(' ', array_filter([$row['address_line1'], $row['address_line2']]))));
+        if ('' === $venueAddress) {
+            $venueAddress = null;
+        }
+        $city = $override['city'] ?? $row['venue_city'];
+        $region = $override['region'] ?? $row['venue_region'];
+        $countryCode = $override['country'] ?? $row['venue_country'];
+        $latitude = isset($override['latitude'])
+            ? (float) $override['latitude']
+            : (isset($row['latitude']) ? (float) $row['latitude'] : null);
+        $longitude = isset($override['longitude'])
+            ? (float) $override['longitude']
+            : (isset($row['longitude']) ? (float) $row['longitude'] : null);
 
         return [
             'id' => (int) $row['id'],
@@ -433,25 +479,34 @@ class EventController extends AbstractController
             'subtitle' => $row['subtitle'],
             'summary' => $row['summary'],
             'description' => $row['description'] ?? $row['summary'],
-            'venue_name' => $row['venue_name'],
-            'venue_address' => $row['venue_address'],
-            'city' => $row['city'],
-            'region' => $row['region'],
-            'country_code' => $row['country_code'],
+            'event_format' => $row['event_format'],
             'starts_at' => $startsAt,
             'ends_at' => $endsAt,
+            'sales_starts_at' => $salesStartsAt,
+            'sales_ends_at' => $salesEndsAt,
             'capacity' => isset($row['capacity']) ? (int) $row['capacity'] : null,
             'language_code' => $row['language_code'],
-            'latitude' => isset($row['latitude']) ? (float) $row['latitude'] : null,
-            'longitude' => isset($row['longitude']) ? (float) $row['longitude'] : null,
             'timezone' => $row['timezone'],
-            'created_at' => new \DateTimeImmutable($row['created_at']),
+            'created_at' => $createdAt,
             'category_label' => $row['category_label'] ?? 'Évènement',
             'category_slug' => $row['category_slug'],
             'image_url' => $row['image_url'],
             'image_alt' => $row['image_alt'] ?? $row['title'],
             'min_price' => null !== $row['min_price'] ? (float) $row['min_price'] : null,
             'max_price' => null !== $row['max_price'] ? (float) $row['max_price'] : null,
+            'venue_name' => $venueName,
+            'venue_address' => $venueAddress,
+            'city' => $city,
+            'region' => $region,
+            'country_code' => $countryCode,
+            'latitude' => $latitude,
+            'longitude' => $longitude,
+            'space_name' => $row['space_name'],
+            'venue_capacity' => isset($row['venue_capacity']) ? (int) $row['venue_capacity'] : null,
+            'venue_raw' => [
+                'address_line1' => $row['address_line1'],
+                'address_line2' => $row['address_line2'],
+            ],
         ];
     }
 
@@ -538,12 +593,14 @@ class EventController extends AbstractController
                 e.id,
                 e.slug,
                 e.title,
-                e.venue_name,
-                e.city,
+                COALESCE(e.location_override->>'venue_name', v.name) AS venue_name,
+                COALESCE(e.location_override->>'city', v.city) AS city,
                 e.starts_at,
-                cat.label AS category_label,
-                media.url AS image_url
+                COALESCE(primary_cat.label, cat.label) AS category_label,
+                COALESCE(media.url, e.cover_image_url) AS image_url
             FROM aiolia.events e
+            LEFT JOIN aiolia.venues v ON v.id = e.venue_id
+            LEFT JOIN aiolia.event_categories primary_cat ON primary_cat.id = e.primary_category_id
             LEFT JOIN LATERAL (
                 SELECT c.slug, c.label
                 FROM aiolia.event_category_links cl
@@ -570,7 +627,7 @@ class EventController extends AbstractController
 
         $whereClause = '';
         if (null !== $categorySlug && '' !== $categorySlug) {
-            $whereClause = ' AND cat.slug = :category_slug';
+            $whereClause = ' AND COALESCE(primary_cat.slug, cat.slug) = :category_slug';
             $parameters['category_slug'] = $categorySlug;
             $types['category_slug'] = \PDO::PARAM_STR;
         }

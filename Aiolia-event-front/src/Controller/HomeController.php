@@ -49,17 +49,22 @@ class HomeController extends AbstractController
                 e.title,
                 COALESCE(e.subtitle, '') AS subtitle,
                 COALESCE(e.summary, '') AS summary,
-                e.venue_name,
-                e.venue_address,
-                e.city,
-                e.country_code,
+                COALESCE(e.location_override->>'venue_name', v.name) AS venue_name,
+                COALESCE(e.location_override->>'address', NULLIF(CONCAT_WS(', ', v.address_line1, v.address_line2), '')) AS venue_address,
+                COALESCE(e.location_override->>'city', v.city) AS city,
+                COALESCE(e.location_override->>'region', v.region) AS region,
+                COALESCE(e.location_override->>'country', v.country_code) AS country_code,
+                v.latitude,
+                v.longitude,
                 e.starts_at,
                 e.ends_at,
-                cat.label AS category_label,
-                media.url AS image_url,
+                COALESCE(primary_cat.label, cat.label) AS category_label,
+                COALESCE(media.url, e.cover_image_url) AS image_url,
                 pricing.min_price,
                 pricing.max_price
             FROM aiolia.events e
+            LEFT JOIN aiolia.venues v ON v.id = e.venue_id
+            LEFT JOIN aiolia.event_categories primary_cat ON primary_cat.id = e.primary_category_id
             LEFT JOIN LATERAL (
                 SELECT c.label
                 FROM aiolia.event_category_links cl
@@ -104,6 +109,7 @@ class HomeController extends AbstractController
                 'venue_name' => $row['venue_name'],
                 'venue_address' => $row['venue_address'],
                 'city' => $row['city'],
+                'region' => $row['region'],
                 'country_code' => $row['country_code'],
                 'category_label' => $row['category_label'],
                 'image_url' => $row['image_url'],
@@ -111,6 +117,8 @@ class HomeController extends AbstractController
                 'ends_at' => $endsAt,
                 'min_price' => null !== $row['min_price'] ? (float) $row['min_price'] : null,
                 'max_price' => null !== $row['max_price'] ? (float) $row['max_price'] : null,
+                'latitude' => isset($row['latitude']) ? (float) $row['latitude'] : null,
+                'longitude' => isset($row['longitude']) ? (float) $row['longitude'] : null,
             ];
         }, $rows);
     }
