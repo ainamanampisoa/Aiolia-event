@@ -111,7 +111,9 @@ WHERE NOT EXISTS (
 -- Événements de démonstration + rattachements (2 entrées)
 -- -------------------------------------------------------------------
 WITH organizer AS (
-    SELECT op.id
+    SELECT
+        op.id AS organizer_profile_id,
+        op.user_id
     FROM organizer_profiles op
     ORDER BY CASE
         WHEN op.user_id = (
@@ -121,117 +123,300 @@ WITH organizer AS (
     END
     LIMIT 1
 ),
+venue_data AS (
+    SELECT *
+    FROM (VALUES
+        (
+            'cafe-de-la-gare',
+            'Café de la Gare',
+            'Salle iconique du centre-ville pour concerts intimistes.',
+            'Rue du Stade',
+            NULL,
+            'Antananarivo',
+            'Analamanga',
+            '101',
+            'MG',
+            -18.908200,
+            47.525700,
+            'Indian/Antananarivo',
+            400
+        ),
+        (
+            'le-dome-smartone',
+            'Le Dôme by SmartOne',
+            'Espace moderne pensé pour les événements corporate et networking.',
+            'Immeuble Atrium, Galaxy Andraharo',
+            NULL,
+            'Antananarivo',
+            'Analamanga',
+            '101',
+            'MG',
+            -18.854900,
+            47.520300,
+            'Indian/Antananarivo',
+            250
+        )
+    ) AS v (
+        slug,
+        name,
+        description,
+        address_line1,
+        address_line2,
+        city,
+        region,
+        postal_code,
+        country_code,
+        latitude,
+        longitude,
+        timezone,
+        capacity
+    )
+),
+venue_insert AS (
+    INSERT INTO venues (
+        organizer_id,
+        name,
+        slug,
+        description,
+        address_line1,
+        address_line2,
+        city,
+        region,
+        postal_code,
+        country_code,
+        latitude,
+        longitude,
+        timezone,
+        capacity
+    )
+    SELECT
+        organizer.organizer_profile_id,
+        vd.name,
+        vd.slug,
+        vd.description,
+        vd.address_line1,
+        vd.address_line2,
+        vd.city,
+        vd.region,
+        vd.postal_code,
+        vd.country_code,
+        vd.latitude,
+        vd.longitude,
+        vd.timezone,
+        vd.capacity
+    FROM organizer
+    CROSS JOIN venue_data vd
+    ON CONFLICT (slug) DO UPDATE
+        SET name = EXCLUDED.name,
+            description = EXCLUDED.description,
+            address_line1 = EXCLUDED.address_line1,
+            address_line2 = EXCLUDED.address_line2,
+            city = EXCLUDED.city,
+            region = EXCLUDED.region,
+            postal_code = EXCLUDED.postal_code,
+            country_code = EXCLUDED.country_code,
+            latitude = EXCLUDED.latitude,
+            longitude = EXCLUDED.longitude,
+            timezone = EXCLUDED.timezone,
+            capacity = EXCLUDED.capacity,
+            updated_at = now()
+    RETURNING id, slug
+),
+space_defs AS (
+    SELECT *
+    FROM (VALUES
+        (
+            'cafe-de-la-gare',
+            'Salle principale',
+            'Espace central pour concerts acoustiques et showcases.',
+            350
+        ),
+        (
+            'le-dome-smartone',
+            'Espace conférence',
+            'Salle modulable pour networking, pitchs et ateliers.',
+            220
+        )
+    ) AS sd (venue_slug, space_name, description, capacity)
+),
+space_insert AS (
+    INSERT INTO venue_spaces (venue_id, name, description, capacity, is_default)
+    SELECT
+        v.id,
+        sd.space_name,
+        sd.description,
+        sd.capacity,
+        TRUE
+    FROM space_defs sd
+    JOIN venue_insert v ON v.slug = sd.venue_slug
+    WHERE NOT EXISTS (
+        SELECT 1
+        FROM venue_spaces vs
+        WHERE vs.venue_id = v.id
+          AND vs.name = sd.space_name
+    )
+),
+space_lookup AS (
+    SELECT
+        v.slug AS venue_slug,
+        sd.space_name,
+        vs.id AS space_id
+    FROM venue_insert v
+    JOIN space_defs sd ON sd.venue_slug = v.slug
+    JOIN venue_spaces vs ON vs.venue_id = v.id AND vs.name = sd.space_name
+),
+event_data AS (
+    SELECT *
+    FROM (VALUES
+        (
+            'concert-music-sunday',
+            'Music on Sunday',
+            'Live showcase',
+            'Un concert acoustique intimiste pour démarrer la semaine.',
+            'Soirée musicale dédiée aux artistes montants de la scène locale.',
+            'public',
+            'published',
+            'in_person',
+            'Indian/Antananarivo',
+            now() + INTERVAL '15 days',
+            now() + INTERVAL '15 days' + INTERVAL '3 hours',
+            now() + INTERVAL '1 day',
+            now() + INTERVAL '14 days',
+            350,
+            'fr-FR',
+            TRUE,
+            FALSE,
+            'concert',
+            '/vente-ticket/images/img1.png',
+            'cafe-de-la-gare',
+            'Salle principale',
+            '{"venue_name":"Café de la Gare","address":"Rue du Stade","city":"Antananarivo","region":"Analamanga","country":"MG"}'::jsonb
+        ),
+        (
+            'business-connect-mada',
+            'Business Connect Mada',
+            'Rencontres & networking',
+            'Un cocktail pour connecter les entrepreneurs malgaches.',
+            'Événement thématique pour échanger sur les tendances startup et financement.',
+            'public',
+            'published',
+            'in_person',
+            'Indian/Antananarivo',
+            now() + INTERVAL '28 days',
+            now() + INTERVAL '28 days' + INTERVAL '4 hours',
+            now() + INTERVAL '5 days',
+            now() + INTERVAL '26 days',
+            220,
+            'fr-FR',
+            FALSE,
+            TRUE,
+            'business',
+            '/vente-ticket/images/img2.png',
+            'le-dome-smartone',
+            'Espace conférence',
+            '{"venue_name":"Le Dôme by SmartOne","address":"Immeuble Atrium, Galaxy Andraharo","city":"Antananarivo","region":"Analamanga","country":"MG"}'::jsonb
+        )
+    ) AS data (
+        slug,
+        title,
+        subtitle,
+        summary,
+        description,
+        visibility,
+        status,
+        event_format,
+        timezone,
+        starts_at,
+        ends_at,
+        sales_starts_at,
+        sales_ends_at,
+        capacity,
+        language_code,
+        is_featured,
+        is_highlighted,
+        category_slug,
+        cover_image_url,
+        venue_slug,
+        space_name,
+        location_override
+    )
+),
 event_insert AS (
     INSERT INTO events (
-        organizer_profile_id, slug, title, subtitle, summary,
-        description, visibility, status, timezone,
-        venue_name, venue_address, city, region, country_code,
-        latitude, longitude, starts_at, ends_at,
-        sales_starts_at, sales_ends_at,
-        capacity, language_code, is_featured, is_highlighted
+        organizer_id,
+        primary_category_id,
+        venue_id,
+        main_space_id,
+        slug,
+        title,
+        subtitle,
+        summary,
+        description,
+        visibility,
+        status,
+        event_format,
+        timezone,
+        capacity,
+        language_code,
+        is_featured,
+        is_highlighted,
+        starts_at,
+        ends_at,
+        sales_starts_at,
+        sales_ends_at,
+        location_override,
+        cover_image_url
     )
-    SELECT organizer.id,
-           data.slug,
-           data.title,
-           data.subtitle,
-           data.summary,
-           data.description,
-           data.visibility::event_visibility_enum,
-           data.status::event_status_enum,
-           data.timezone,
-           data.venue_name,
-           data.venue_address,
-           data.city,
-           data.region,
-           data.country_code,
-           data.latitude,
-           data.longitude,
-           data.starts_at,
-           data.ends_at,
-           data.sales_starts_at,
-           data.sales_ends_at,
-           data.capacity,
-           data.language_code,
-           data.is_featured,
-           data.is_highlighted
+    SELECT
+        organizer.user_id,
+        cat.id,
+        v.id,
+        sl.space_id,
+        data.slug,
+        data.title,
+        data.subtitle,
+        data.summary,
+        data.description,
+        data.visibility::event_visibility_enum,
+        data.status::event_status_enum,
+        data.event_format,
+        data.timezone,
+        data.capacity,
+        data.language_code,
+        data.is_featured,
+        data.is_highlighted,
+        data.starts_at,
+        data.ends_at,
+        data.sales_starts_at,
+        data.sales_ends_at,
+        data.location_override,
+        data.cover_image_url
     FROM organizer
-    CROSS JOIN (
-        VALUES
-            (
-                'concert-music-sunday',
-                'Music on Sunday',
-                'Live showcase',
-                'Un concert acoustique intimiste pour démarrer la semaine.',
-                'Soirée musicale dédiée aux artistes montants de la scène locale.',
-                'public',
-                'published',
-                'Indian/Antananarivo',
-                'Café de la Gare',
-                'Rue du Stade',
-                'Antananarivo',
-                'Analamanga',
-                'MG',
-                -18.9082,
-                47.5257,
-                now() + INTERVAL '15 days',
-                now() + INTERVAL '15 days' + INTERVAL '3 hours',
-                now() + INTERVAL '1 day',
-                now() + INTERVAL '14 days',
-                350,
-                'fr-FR',
-                TRUE,
-                FALSE
-            ),
-            (
-                'business-connect-mada',
-                'Business Connect Mada',
-                'Rencontres & networking',
-                'Un cocktail pour connecter les entrepreneurs malgaches.',
-                'Événement thématique pour échanger sur les tendances startup et financement.',
-                'public',
-                'published',
-                'Indian/Antananarivo',
-                'Le Dôme by SmartOne',
-                'Immeuble Atrium, Galaxy Andraharo',
-                'Antananarivo',
-                'Analamanga',
-                'MG',
-                -18.8549,
-                47.5203,
-                now() + INTERVAL '28 days',
-                now() + INTERVAL '28 days' + INTERVAL '4 hours',
-                now() + INTERVAL '5 days',
-                now() + INTERVAL '26 days',
-                220,
-                'fr-FR',
-                FALSE,
-                TRUE
-            )
-    ) AS data (
-        slug, title, subtitle, summary,
-        description, visibility, status, timezone,
-        venue_name, venue_address, city, region, country_code,
-        latitude, longitude, starts_at, ends_at,
-        sales_starts_at, sales_ends_at,
-        capacity, language_code, is_featured, is_highlighted
-    )
+    CROSS JOIN event_data data
+    LEFT JOIN event_categories cat ON cat.slug = data.category_slug
+    JOIN venue_insert v ON v.slug = data.venue_slug
+    LEFT JOIN space_lookup sl
+        ON sl.venue_slug = data.venue_slug
+       AND sl.space_name = data.space_name
     ON CONFLICT (slug) DO UPDATE
         SET title = EXCLUDED.title,
             subtitle = EXCLUDED.subtitle,
             summary = EXCLUDED.summary,
             description = EXCLUDED.description,
-            venue_name = EXCLUDED.venue_name,
-            venue_address = EXCLUDED.venue_address,
-            city = EXCLUDED.city,
-            region = EXCLUDED.region,
-            country_code = EXCLUDED.country_code,
-            latitude = EXCLUDED.latitude,
-            longitude = EXCLUDED.longitude,
+            visibility = EXCLUDED.visibility,
+            status = EXCLUDED.status,
+            event_format = EXCLUDED.event_format,
+            timezone = EXCLUDED.timezone,
+            capacity = EXCLUDED.capacity,
+            primary_category_id = EXCLUDED.primary_category_id,
+            venue_id = EXCLUDED.venue_id,
+            main_space_id = EXCLUDED.main_space_id,
             starts_at = EXCLUDED.starts_at,
             ends_at = EXCLUDED.ends_at,
             sales_starts_at = EXCLUDED.sales_starts_at,
             sales_ends_at = EXCLUDED.sales_ends_at,
-            capacity = EXCLUDED.capacity,
+            location_override = EXCLUDED.location_override,
+            cover_image_url = EXCLUDED.cover_image_url,
             updated_at = now()
     RETURNING id, slug
 )
