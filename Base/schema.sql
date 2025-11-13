@@ -272,6 +272,8 @@ CREATE TABLE IF NOT EXISTS events (
     capacity INTEGER,
     timezone VARCHAR(64) NOT NULL DEFAULT 'Indian/Antananarivo',
     venue_id BIGINT,
+    latitude NUMERIC(9,6),
+    longitude NUMERIC(9,6),
     starts_at TIMESTAMPTZ NOT NULL,
     ends_at TIMESTAMPTZ NOT NULL,
     sales_starts_at TIMESTAMPTZ,
