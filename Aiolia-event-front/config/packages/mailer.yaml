@@ -1,3 +1,7 @@
 framework:
     mailer:
         dsn: '%env(MAILER_DSN)%'
+        envelope:
+            sender: 'ainatynieainatiana@gmail.com'
+        headers:
+            From: 'Aiolia Event <ainatynieainatiana@gmail.com>'

@@ -1,0 +1,22 @@
+<!DOCTYPE html>
+<html lang="fr">
+  <body style="font-family: Arial, sans-serif; color: #1F2D3D; line-height: 1.5;">
+    <h2 style="color:#1049A0;">Bienvenue sur Aiolia Event&nbsp;!</h2>
+    <p>Bonjour {{ user.firstName|default('') }} {{ user.lastName|default('') }},</p>
+    <p>
+      Votre compte utilisateur vient d&rsquo;&ecirc;tre cr&eacute;&eacute; avec succ&egrave;s.
+      Vous pouvez maintenant vous connecter pour explorer les &eacute;vènements, r&eacute;server vos billets
+      et suivre vos commandes.
+    </p>
+    <p>
+      <strong>Adresse de connexion :</strong> {{ user.email }}<br>
+      <strong>Acc&egrave;s :</strong> <a href="{{ login_url }}">Se connecter</a>
+    </p>
+    <p>
+      Si vous n&rsquo;&ecirc;tes pas &agrave; l&rsquo;origine de cette inscription, vous pouvez ignorer ce message
+      ou contacter notre support.
+    </p>
+    <p>Cordialement,<br>L&rsquo;&eacute;quipe Aiolia Event</p>
+  </body>
+</html>
+

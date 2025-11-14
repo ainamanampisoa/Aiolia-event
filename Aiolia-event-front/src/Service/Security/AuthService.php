@@ -4,6 +4,7 @@ namespace App\Service\Security;
 
 use App\Entity\User;
 use App\Repository\UserRepository;
+use App\Service\Notification\UserMailer;
 use Doctrine\ORM\EntityManagerInterface;
 use Symfony\Component\PasswordHasher\Hasher\UserPasswordHasherInterface;
 use Symfony\Component\Validator\Validator\ValidatorInterface;
@@ -15,7 +16,8 @@ class AuthService
         private readonly UserPasswordHasherInterface $passwordHasher,
         private readonly ValidatorInterface $validator,
         private readonly EntityManagerInterface $entityManager,
-        private readonly AuthTokenService $authTokenService
+        private readonly AuthTokenService $authTokenService,
+        private readonly UserMailer $userMailer
     ) {
     }
 
@@ -79,6 +81,8 @@ class AuthService
 
         $this->entityManager->persist($user);
         $this->entityManager->flush();
+
+        $this->userMailer->sendRegistrationSuccess($user);
 
         return $this->buildAuthPayload($user, $userAgent, $ipAddress);
     }
