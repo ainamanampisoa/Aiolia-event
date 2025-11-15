@@ -71,19 +71,24 @@ class InvoiceEmailService
     /**
      * Envoie une facture d'abonnement par email
      */
-    public function sendSubscriptionInvoice(SubscriptionInvoice $invoice): bool
+    public function sendSubscriptionInvoice(SubscriptionInvoice $invoice, bool $isOverdueNotification = false): bool
     {
         try {
             $customer = $invoice->getCustomer();
             
+            $subject = $isOverdueNotification 
+                ? sprintf('URGENT - Facture d\'abonnement %s en retard de paiement - Aiolia Event', $invoice->getInvoiceNumber())
+                : sprintf('Facture d\'abonnement %s - Aiolia Event', $invoice->getInvoiceNumber());
+            
             $email = (new TemplatedEmail())
                 ->from(new Address($this->fromAddress, $this->fromName ?? 'Aiolia Event'))
                 ->to($customer->getEmail())
-                ->subject(sprintf('Facture d\'abonnement %s - Aiolia Event', $invoice->getInvoiceNumber()))
+                ->subject($subject)
                 ->htmlTemplate('emails/invoice_subscription.html.twig')
                 ->context([
                     'invoice' => $invoice,
                     'customer' => $customer,
+                    'isOverdueNotification' => $isOverdueNotification,
                 ]);
 
             // Générer le PDF et l'attacher
@@ -94,9 +99,13 @@ class InvoiceEmailService
             $this->mailer->send($email);
 
             if ($this->logger) {
-                $this->logger->info('Facture d\'abonnement envoyée par email', [
+                $logMessage = $isOverdueNotification 
+                    ? 'Notification de retard de paiement envoyée par email'
+                    : 'Facture d\'abonnement envoyée par email';
+                $this->logger->info($logMessage, [
                     'invoice_number' => $invoice->getInvoiceNumber(),
                     'customer_email' => $customer->getEmail(),
+                    'invoice_status' => $invoice->getStatus(),
                 ]);
             }
 

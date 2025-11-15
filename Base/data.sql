@@ -145,7 +145,7 @@ SELECT
 FROM users u;
 
 -- ------------------------------------------------------------
--- 2. Plans d'abonnement
+-- 2. Plans d'abonnement (un plan par type d'organisateur)
 -- ------------------------------------------------------------
 INSERT INTO subscription_plans (
     id,
@@ -162,9 +162,10 @@ INSERT INTO subscription_plans (
     created_at,
     updated_at
 ) VALUES
-    (1, 'STARTER', 'Starter Organisateur', 'Plan de base pour petits organisateurs', 'monthly', 1, 'MGA', 240000, 20, '{"events_limit":5,"support":"email"}', TRUE, '2024-01-01', '2025-02-01'),
-    (2, 'GROWTH', 'Croissance Organisateur', 'Plan intermédiaire', 'monthly', 1, 'MGA', 360000, 20, '{"events_limit":12,"support":"chat"}', TRUE, '2024-01-01', '2025-02-01'),
-    (3, 'PRO', 'Pro Organisateur', 'Plan avancé pour organisateurs établis', 'monthly', 1, 'MGA', 520000, 20, '{"events_limit":"unlimited","support":"dedicated"}', TRUE, '2024-01-01', '2025-02-01');
+    (1, 'INDIVIDUAL', 'Plan Individuel', 'Abonnement mensuel pour organisateurs individuels', 'monthly', 1, 'MGA', 150000, 20, '{"events_limit":3,"support":"email"}', TRUE, '2024-01-01', '2025-02-01'),
+    (2, 'COMPANY', 'Plan Entreprise', 'Abonnement mensuel pour entreprises', 'monthly', 1, 'MGA', 350000, 20, '{"events_limit":15,"support":"chat"}', TRUE, '2024-01-01', '2025-02-01'),
+    (3, 'NON_PROFIT', 'Plan Association', 'Abonnement mensuel pour associations à but non lucratif', 'monthly', 1, 'MGA', 180000, 20, '{"events_limit":8,"support":"email"}', TRUE, '2024-01-01', '2025-02-01'),
+    (4, 'COLLECTIVE', 'Plan Collectif', 'Abonnement mensuel pour collectifs', 'monthly', 1, 'MGA', 220000, 20, '{"events_limit":10,"support":"chat"}', TRUE, '2024-01-01', '2025-02-01');
 
 -- ------------------------------------------------------------
 -- 3. Profils organisateurs & abonnements
@@ -203,7 +204,12 @@ SELECT
     u.phone,
     CONCAT('https://organizer', LPAD(ob.rn::text, 2, '0'), '.aiolia.test'),
     CONCAT('Biographie de démonstration pour organisateur ', ob.rn),
-    CASE WHEN ob.rn <= 4 THEN 'company'::organizer_type_enum ELSE 'individual'::organizer_type_enum END,
+    CASE 
+        WHEN ob.rn <= 3 THEN 'company'::organizer_type_enum
+        WHEN ob.rn <= 6 THEN 'individual'::organizer_type_enum
+        WHEN ob.rn <= 8 THEN 'non_profit'::organizer_type_enum
+        ELSE 'collective'::organizer_type_enum
+    END,
     CONCAT('RC-', 52000 + ob.rn),
     CASE WHEN ob.rn <= 4 THEN '50-100' ELSE '1-10' END,
     CASE
@@ -220,10 +226,12 @@ FROM organizer_base ob
 JOIN users u ON u.id = ob.user_id;
 
 -- Abonnements des organisateurs (un abonnement par organisateur)
+-- Chaque organisateur est assigné au plan correspondant à son organization_type
 WITH organizer_ranked AS (
     SELECT
         op.id AS organizer_profile_id,
         op.user_id,
+        op.organization_type,
         ROW_NUMBER() OVER (ORDER BY op.id) AS rn
     FROM organizer_profiles op
 )
@@ -243,7 +251,13 @@ INSERT INTO organizer_subscriptions (
 )
 SELECT
     orr.organizer_profile_id,
-    ((orr.rn - 1) % 3) + 1,
+    CASE 
+        WHEN orr.organization_type = 'individual' THEN 1
+        WHEN orr.organization_type = 'company' THEN 2
+        WHEN orr.organization_type = 'non_profit' THEN 3
+        WHEN orr.organization_type = 'collective' THEN 4
+        ELSE 1 -- Par défaut individual si type non reconnu
+    END,
     CASE
         WHEN orr.rn <= 5 THEN 'active'::subscription_status_enum
         WHEN orr.rn = 6 THEN 'pending'::subscription_status_enum
@@ -257,7 +271,10 @@ SELECT
     date_trunc('month', now() + INTERVAL '30 days'),
     (orr.rn >= 8),
     CASE WHEN orr.rn = 10 THEN now() - INTERVAL '30 days' ELSE NULL END,
-    jsonb_build_object('admin_note', CONCAT('Abonnement de test #', orr.rn)),
+    jsonb_build_object(
+        'admin_note', CONCAT('Abonnement de test #', orr.rn),
+        'organization_type', orr.organization_type
+    ),
     now() - INTERVAL '360 days',
     now()
 FROM organizer_ranked orr;

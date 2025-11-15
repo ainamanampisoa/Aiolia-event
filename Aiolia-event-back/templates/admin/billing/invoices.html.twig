@@ -118,15 +118,23 @@
                         <tr>
                             <th class="col-left" data-i18n-fr="Numéro" data-i18n-en="Number">Numéro</th>
                             <th class="col-left" data-i18n-fr="Client" data-i18n-en="Customer">Client</th>
+                            <th class="col-center" data-i18n-fr="Type Organisateur" data-i18n-en="Organizer Type">Type Organisateur</th>
                             <th class="col-right" data-i18n-fr="Montant" data-i18n-en="Amount">Montant</th>
                             <th class="col-center" data-i18n-fr="Statut" data-i18n-en="Status">Statut</th>
-                            <th class="col-center" data-i18n-fr="Date" data-i18n-en="Date">Date</th>
+                            <th class="col-center" data-i18n-fr="Période" data-i18n-en="Period">Période</th>
                             <th class="col-center actions-header" data-i18n-fr="Actions" data-i18n-en="Actions">Actions</th>
                         </tr>
                     </thead>
                     <tbody>
                         {% if allInvoices|length > 0 %}
                             {% for invoice in allInvoices %}
+                                {% set isSubscription = false %}
+                                {% if invoice.invoiceType is defined and invoice.invoiceType == 'subscription' %}
+                                    {% set isSubscription = true %}
+                                {% elseif invoice.getInvoiceType() == 'subscription' %}
+                                    {% set isSubscription = true %}
+                                {% endif %}
+                                {% set organizerType = isSubscription ? (organizerTypes[invoice.id] ?? null) : null %}
                                 <tr>
                                     <td class="col-left">
                                         <span style="color: var(--text-primary); font-size: 0.95rem; font-weight: var(--font-weight-medium);">{{ invoice.invoiceNumber }}</span>
@@ -143,6 +151,21 @@
                                             </div>
                                         </div>
                                     </td>
+                                    <td class="col-center">
+                                        {% if organizerType %}
+                                            {% set typeLabels = {
+                                                'individual': {'fr': 'Individuel', 'en': 'Individual'},
+                                                'company': {'fr': 'Entreprise', 'en': 'Company'},
+                                                'non_profit': {'fr': 'Association', 'en': 'Non-Profit'},
+                                                'collective': {'fr': 'Collectif', 'en': 'Collective'}
+                                            } %}
+                                            <span class="organizer-type-badge" data-i18n-fr="{{ typeLabels[organizerType].fr }}" data-i18n-en="{{ typeLabels[organizerType].en }}">
+                                                {{ typeLabels[organizerType].fr }}
+                                            </span>
+                                        {% else %}
+                                            <span class="text-muted" data-i18n-fr="N/A" data-i18n-en="N/A">N/A</span>
+                                        {% endif %}
+                                    </td>
                                     <td class="col-right">
                                         <span style="color: var(--text-primary); font-size: 1rem; font-weight: var(--font-weight-medium);">{{ invoice.totalAmount|number_format(0, ',', ' ') }} {{ invoice.currency }}</span>
                                     </td>
@@ -152,7 +175,15 @@
                                         {% elseif invoice.status == 'issued' or invoice.status == 'draft' %}
                                             <span class="badge status-badge status-pending" data-i18n-fr="En attente" data-i18n-en="Pending">En attente</span>
                                         {% elseif invoice.status == 'overdue' %}
-                                            <span class="badge status-badge status-rejected" data-i18n-fr="En retard" data-i18n-en="Overdue">En retard</span>
+                                            {% set daysOverdue = invoice.getDaysOverdue() %}
+                                            <div style="display: flex; flex-direction: column; align-items: center; gap: 6px;">
+                                                <span class="badge status-badge status-rejected" data-i18n-fr="En retard" data-i18n-en="Overdue">En retard</span>
+                                                {% if daysOverdue is not null %}
+                                                    <span class="days-overdue-indicator" data-i18n-fr="{{ daysOverdue }} j. de retard" data-i18n-en="{{ daysOverdue }}d overdue">
+                                                        <i class="fas fa-clock" style="font-size: 0.7rem;"></i> {{ daysOverdue }}j
+                                                    </span>
+                                                {% endif %}
+                                            </div>
                                         {% elseif invoice.status == 'void' or invoice.status == 'refunded' %}
                                             <span class="badge status-badge status-inactive" data-i18n-fr="Annulée" data-i18n-en="Cancelled">Annulée</span>
                                         {% else %}
@@ -161,7 +192,25 @@
                                     </td>
                                     <td class="col-center">
                                         <div class="date-info">
-                                            <span class="date-primary">{{ invoice.issuedAt|date('d/m/Y') }}</span>
+                                            {% set monthNames = {
+                                                '1': {'fr': 'Janvier', 'en': 'January'},
+                                                '2': {'fr': 'Février', 'en': 'February'},
+                                                '3': {'fr': 'Mars', 'en': 'March'},
+                                                '4': {'fr': 'Avril', 'en': 'April'},
+                                                '5': {'fr': 'Mai', 'en': 'May'},
+                                                '6': {'fr': 'Juin', 'en': 'June'},
+                                                '7': {'fr': 'Juillet', 'en': 'July'},
+                                                '8': {'fr': 'Août', 'en': 'August'},
+                                                '9': {'fr': 'Septembre', 'en': 'September'},
+                                                '10': {'fr': 'Octobre', 'en': 'October'},
+                                                '11': {'fr': 'Novembre', 'en': 'November'},
+                                                '12': {'fr': 'Décembre', 'en': 'December'}
+                                            } %}
+                                            {% set month = invoice.issuedAt|date('n') %}
+                                            {% set year = invoice.issuedAt|date('Y') %}
+                                            <span class="date-primary" data-i18n-fr="{{ monthNames[month].fr }} {{ year }}" data-i18n-en="{{ monthNames[month].en }} {{ year }}">
+                                                {{ monthNames[month].fr }} {{ year }}
+                                            </span>
                                         </div>
                                     </td>
                                     <td class="col-center actions-cell">
@@ -185,7 +234,7 @@
                             {% endfor %}
                         {% else %}
                             <tr>
-                                <td colspan="6" class="text-center" style="padding: 40px;">
+                                <td colspan="7" class="text-center" style="padding: 40px;">
                                     <i class="fas fa-inbox" style="font-size: 3rem; color: var(--text-secondary); margin-bottom: 1rem;"></i>
                                     <p style="color: var(--text-secondary);" data-i18n-fr="Aucune facture trouvée" data-i18n-en="No invoices found">Aucune facture trouvée</p>
                                 </td>
@@ -650,6 +699,32 @@
     background: var(--bg-secondary);
     color: var(--text-secondary);
     border: 1px solid var(--border-color);
+}
+
+.organizer-type-badge {
+    font-size: 0.78rem;
+    padding: 6px 12px;
+    border-radius: var(--border-radius-sm);
+    font-weight: var(--font-weight-medium);
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    white-space: nowrap;
+    background: linear-gradient(135deg, var(--accent-light), var(--accent));
+    color: var(--text-inverse);
+    box-shadow: var(--shadow-xs);
+}
+
+.days-overdue-indicator {
+    font-size: 0.75rem;
+    color: var(--danger-color);
+    font-weight: var(--font-weight-medium);
+    display: inline-flex;
+    align-items: center;
+    gap: 4px;
+    padding: 3px 8px;
+    background: rgba(220, 53, 69, 0.1);
+    border-radius: var(--border-radius-sm);
 }
 
 .status-badge {

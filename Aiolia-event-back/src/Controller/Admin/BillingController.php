@@ -89,6 +89,13 @@ class BillingController extends AbstractController
             return $b->getCreatedAt() <=> $a->getCreatedAt();
         });
         
+        // Récupérer les types d'organisateurs pour les factures d'abonnement
+        $organizerTypes = [];
+        $subscriptionInvoicesOnly = array_filter($allInvoices, fn($inv) => $inv instanceof SubscriptionInvoice);
+        if (!empty($subscriptionInvoicesOnly)) {
+            $organizerTypes = $this->subscriptionInvoiceRepository->getOrganizerTypesForInvoices($subscriptionInvoicesOnly);
+        }
+        
         // Appliquer la pagination : limiter à 7 résultats par page
         $totalInvoices = count($allInvoices);
         $allInvoices = array_slice($allInvoices, ($page - 1) * $perPage, $perPage);
@@ -107,6 +114,7 @@ class BillingController extends AbstractController
             'ticketInvoices' => $ticketInvoices,
             'subscriptionInvoices' => $subscriptionInvoices,
             'allInvoices' => $allInvoices,
+            'organizerTypes' => $organizerTypes,
             'stats' => $stats,
             'currentStatus' => $status,
             'currentSearch' => $search,
@@ -149,9 +157,13 @@ class BillingController extends AbstractController
             return $this->redirectToRoute('admin_billing_invoices');
         }
 
+        // Récupérer le type d'organisateur
+        $organizerType = $this->subscriptionInvoiceRepository->getOrganizerTypeForInvoice($invoice);
+
         return $this->render('admin/billing/invoice_show.html.twig', [
             'invoice' => $invoice,
             'type' => 'subscription',
+            'organizerType' => $organizerType,
         ]);
     }
 
@@ -226,6 +238,33 @@ class BillingController extends AbstractController
             $this->addFlash('success', sprintf('Facture %s envoyée avec succès', $invoice->getInvoiceNumber()));
         } else {
             $this->addFlash('error', 'Erreur lors de l\'envoi de la facture');
+        }
+
+        return $this->redirectToRoute('admin_billing_subscription_invoice_show', ['id' => $id]);
+    }
+
+    /**
+     * Envoyer un email de notification à l'organisateur pour une facture en retard
+     */
+    #[Route('/subscription-invoice/{id}/notify', name: 'admin_billing_subscription_invoice_notify', methods: ['POST'], requirements: ['id' => '\d+'])]
+    public function notifyOrganizerAboutOverdueInvoice(string $id): Response
+    {
+        $invoice = $this->subscriptionInvoiceRepository->find($id);
+
+        if (!$invoice instanceof SubscriptionInvoice) {
+            $this->addFlash('error', 'Facture introuvable');
+            return $this->redirectToRoute('admin_billing_invoices');
+        }
+
+        // Envoyer un email de notification spécial pour les factures en retard
+        if ($this->emailService->sendSubscriptionInvoice($invoice, true)) {
+            $daysOverdue = $invoice->getDaysOverdue();
+            $message = $daysOverdue !== null 
+                ? sprintf('Signalement de retard envoyé à l\'organisateur pour la facture %s (%d jour(s) de retard)', $invoice->getInvoiceNumber(), $daysOverdue)
+                : sprintf('Signalement de retard envoyé à l\'organisateur pour la facture %s', $invoice->getInvoiceNumber());
+            $this->addFlash('success', $message);
+        } else {
+            $this->addFlash('error', 'Erreur lors de l\'envoi du signalement de retard');
         }
 
         return $this->redirectToRoute('admin_billing_subscription_invoice_show', ['id' => $id]);

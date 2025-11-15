@@ -258,5 +258,79 @@ class SubscriptionInvoice
     {
         return 'subscription';
     }
+
+    /**
+     * Émet la facture (passe de draft à issued) si elle est prête à être envoyée
+     * Une facture est prête si elle a un numéro, un client, un montant et une date d'échéance
+     */
+    public function issue(): self
+    {
+        if ($this->status === self::STATUS_DRAFT) {
+            // Vérifier que la facture est complète avant de l'émettre
+            if ($this->invoiceNumber 
+                && $this->customer 
+                && (float) $this->totalAmount > 0
+                && $this->dueAt !== null
+            ) {
+                $this->status = self::STATUS_ISSUED;
+                $this->issuedAt = new \DateTimeImmutable();
+            }
+        }
+        
+        return $this;
+    }
+
+    /**
+     * Marque la facture comme payée et met à jour la date de paiement
+     */
+    public function markAsPaid(): self
+    {
+        if ($this->status !== self::STATUS_PAID) {
+            $this->status = self::STATUS_PAID;
+            $this->paidAt = new \DateTimeImmutable();
+        }
+        
+        return $this;
+    }
+
+    /**
+     * Calcule le nombre de jours de retard d'une facture
+     * Retourne null si la facture n'est pas en retard ou si elle est payée
+     */
+    public function getDaysOverdue(?\DateTimeInterface $currentDate = null): ?int
+    {
+        // Si la facture est payée, elle n'est pas en retard
+        if ($this->isPaid()) {
+            return null;
+        }
+
+        // Si la facture n'est pas en retard, retourner null
+        if ($this->status !== self::STATUS_OVERDUE) {
+            return null;
+        }
+
+        $dueDate = $this->getDueAt();
+        if (!$dueDate) {
+            return null;
+        }
+
+        $now = $currentDate ?? new \DateTimeImmutable();
+        
+        // Si la date actuelle est après la date d'échéance
+        if ($now > $dueDate) {
+            $diff = $now->diff($dueDate);
+            return (int) $diff->days;
+        }
+
+        return null;
+    }
+
+    /**
+     * Vérifie si la facture est en retard
+     */
+    public function isOverdue(?\DateTimeInterface $currentDate = null): bool
+    {
+        return $this->getDaysOverdue($currentDate) !== null;
+    }
 }
 

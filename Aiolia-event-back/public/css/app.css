@@ -1050,10 +1050,16 @@ a:hover {
     border-right: 4px solid var(--gray-900);
 }
 
-.sidebar-collapsed .nav-item:hover .nav-tooltip {
+.admin-sidebar.sidebar-collapsed .nav-item:hover .nav-tooltip,
+body.sidebar-collapsed .admin-sidebar .nav-item:hover .nav-tooltip {
     opacity: 1;
     visibility: visible;
     left: calc(100% + 1.25rem);
+}
+
+.admin-sidebar.sidebar-collapsed .nav-item .nav-tooltip,
+body.sidebar-collapsed .admin-sidebar .nav-item .nav-tooltip {
+    display: block;
 }
 
 .sidebar-footer {
@@ -1127,8 +1133,14 @@ a:hover {
 .admin-sidebar.sidebar-collapsed .nav-text,
 .admin-sidebar.sidebar-collapsed .nav-badge,
 .admin-sidebar.sidebar-collapsed .nav-section-title,
-.admin-sidebar.sidebar-collapsed .help-text {
-    display: none;
+.admin-sidebar.sidebar-collapsed .help-text,
+body.sidebar-collapsed .admin-sidebar .nav-text,
+body.sidebar-collapsed .admin-sidebar .nav-badge,
+body.sidebar-collapsed .admin-sidebar .nav-section-title,
+body.sidebar-collapsed .admin-sidebar .help-text {
+    display: none !important;
+    opacity: 0;
+    visibility: hidden;
 }
 
 .admin-sidebar.sidebar-collapsed .sidebar-logo {

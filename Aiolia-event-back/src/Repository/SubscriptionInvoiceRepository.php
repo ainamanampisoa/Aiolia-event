@@ -117,5 +117,53 @@ class SubscriptionInvoiceRepository extends ServiceEntityRepository
             ->getQuery()
             ->getOneOrNullResult();
     }
+
+    /**
+     * Récupère le type d'organisateur pour une facture d'abonnement
+     * Retourne null si la facture est une facture de billet ou si le type n'est pas trouvé
+     */
+    public function getOrganizerTypeForInvoice(SubscriptionInvoice $invoice): ?string
+    {
+        $connection = $this->getEntityManager()->getConnection();
+        
+        $sql = "
+            SELECT op.organization_type
+            FROM aiolia.subscription_invoices si
+            INNER JOIN aiolia.organizer_subscriptions os ON os.id = si.subscription_id
+            INNER JOIN aiolia.organizer_profiles op ON op.id = os.organizer_profile_id
+            WHERE si.id = :invoice_id
+        ";
+        
+        $result = $connection->fetchOne($sql, ['invoice_id' => $invoice->getId()]);
+        
+        return $result !== false ? $result : null;
+    }
+
+    /**
+     * Récupère les types d'organisateurs pour plusieurs factures
+     * Retourne un array avec invoice_id => organizer_type
+     */
+    public function getOrganizerTypesForInvoices(array $invoices): array
+    {
+        if (empty($invoices)) {
+            return [];
+        }
+        
+        $invoiceIds = array_map(fn($invoice) => $invoice->getId(), $invoices);
+        $connection = $this->getEntityManager()->getConnection();
+        
+        $placeholders = implode(',', array_fill(0, count($invoiceIds), '?'));
+        $sql = "
+            SELECT si.id, op.organization_type
+            FROM aiolia.subscription_invoices si
+            INNER JOIN aiolia.organizer_subscriptions os ON os.id = si.subscription_id
+            INNER JOIN aiolia.organizer_profiles op ON op.id = os.organizer_profile_id
+            WHERE si.id IN ($placeholders)
+        ";
+        
+        $results = $connection->fetchAllKeyValue($sql, $invoiceIds);
+        
+        return $results;
+    }
 }
 
