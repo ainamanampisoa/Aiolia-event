@@ -72,11 +72,20 @@ class UserManagementController extends AbstractController
 
         // Filtre par rôle
         if ($role && in_array($role, UserRoleEnum::all(), true)) {
+            // Si un rôle est sélectionné, filtrer par ce rôle
             $qb->andWhere('u.role = :role')
                ->setParameter('role', $role);
 
             $countQb->andWhere('u.role = :role')
                     ->setParameter('role', $role);
+        } else {
+            // Par défaut (sans filtre de rôle), exclure les users
+            // Afficher uniquement les admins et organisateurs
+            $qb->andWhere('u.role IN (:allowedRoles)')
+               ->setParameter('allowedRoles', [UserRoleEnum::ADMIN, UserRoleEnum::ORGANIZER]);
+
+            $countQb->andWhere('u.role IN (:allowedRoles)')
+                    ->setParameter('allowedRoles', [UserRoleEnum::ADMIN, UserRoleEnum::ORGANIZER]);
         }
 
         // Filtre par statut

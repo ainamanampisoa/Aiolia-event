@@ -1,0 +1,207 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Facture {{ invoice.invoiceNumber }} - Aiolia Event</title>
+    <style>
+        body {
+            margin: 0;
+            padding: 0;
+            background: #f4f6f8;
+            font-family: 'Segoe UI', Arial, sans-serif;
+            color: #232c33;
+        }
+        .email-wrapper {
+            width: 100%;
+            padding: 24px 12px;
+            box-sizing: border-box;
+        }
+        .email-card {
+            max-width: 640px;
+            margin: 0 auto;
+            background: #ffffff;
+            border-radius: 16px;
+            overflow: hidden;
+            box-shadow: 0 12px 32px rgba(20, 57, 49, 0.08);
+        }
+        .email-header {
+            background: linear-gradient(135deg, #1F2D3D, #2C3E50 50%, #3498DB);
+            padding: 36px 32px;
+            text-align: center;
+            color: #ffffff;
+        }
+        .email-header h1 {
+            margin: 0;
+            font-size: 26px;
+            letter-spacing: 0.4px;
+        }
+        .email-body {
+            padding: 36px 32px;
+            background: #f9fbfa;
+        }
+        .invoice-details {
+            background: #ffffff;
+            border-radius: 14px;
+            padding: 24px;
+            margin: 24px 0;
+            border: 1px solid rgba(31, 138, 91, 0.15);
+        }
+        .invoice-details h2 {
+            margin: 0 0 16px;
+            font-size: 20px;
+            color: #1F2D3D;
+        }
+        .invoice-info {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 16px;
+            margin-bottom: 20px;
+        }
+        .invoice-info-item {
+            font-size: 14px;
+        }
+        .invoice-info-item strong {
+            display: block;
+            color: #5c6b73;
+            margin-bottom: 4px;
+        }
+        .invoice-amounts {
+            margin-top: 24px;
+            padding-top: 24px;
+            border-top: 2px solid #e0e6ea;
+        }
+        .amount-row {
+            display: flex;
+            justify-content: space-between;
+            padding: 8px 0;
+            font-size: 14px;
+        }
+        .amount-row.total {
+            font-size: 18px;
+            font-weight: bold;
+            padding-top: 16px;
+            border-top: 2px solid #1F2D3D;
+            margin-top: 8px;
+        }
+        .cta {
+            text-align: center;
+            margin: 40px 0 16px;
+        }
+        .cta a {
+            display: inline-block;
+            padding: 14px 40px;
+            background: linear-gradient(135deg, #1F2D3D, #3498DB);
+            color: #ffffff;
+            text-decoration: none;
+            font-weight: 600;
+            border-radius: 999px;
+            letter-spacing: 0.3px;
+            box-shadow: 0 14px 24px rgba(52, 152, 219, 0.25);
+        }
+        .footer {
+            padding: 28px 32px;
+            text-align: center;
+            font-size: 13px;
+            color: #5c6b73;
+            background: #ffffff;
+        }
+        .footer p {
+            margin: 6px 0;
+        }
+        @media only screen and (max-width: 600px) {
+            .email-card {
+                border-radius: 0;
+            }
+            .email-header,
+            .email-body,
+            .footer {
+                padding: 28px 20px;
+            }
+            .invoice-info {
+                grid-template-columns: 1fr;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="email-wrapper">
+        <div class="email-card">
+            <div class="email-header">
+                <h1>📄 Votre facture</h1>
+                <p style="margin-top: 10px; opacity: 0.9; font-size: 15px;">
+                    Facture N° {{ invoice.invoiceNumber }}
+                </p>
+            </div>
+
+            <div class="email-body">
+                <p style="font-size: 16px; line-height: 1.7;">
+                    Bonjour {{ customer.firstName }},<br>
+                    Vous trouverez ci-joint votre facture pour l'achat de billet(s) d'événement.
+                </p>
+
+                <div class="invoice-details">
+                    <h2>Détails de la facture</h2>
+                    <div class="invoice-info">
+                        <div class="invoice-info-item">
+                            <strong>Numéro de facture</strong>
+                            {{ invoice.invoiceNumber }}
+                        </div>
+                        <div class="invoice-info-item">
+                            <strong>Date d'émission</strong>
+                            {{ invoice.issuedAt|date('d/m/Y') }}
+                        </div>
+                        <div class="invoice-info-item">
+                            <strong>Type</strong>
+                            Facture de billet
+                        </div>
+                        <div class="invoice-info-item">
+                            <strong>Statut</strong>
+                            {% if invoice.status == 'paid' %}
+                                Payée
+                            {% elseif invoice.status == 'issued' %}
+                                Émise
+                            {% else %}
+                                {{ invoice.status }}
+                            {% endif %}
+                        </div>
+                    </div>
+
+                    <div class="invoice-amounts">
+                        <div class="amount-row">
+                            <span>Sous-total HT:</span>
+                            <span>{{ invoice.subtotalAmount|number_format(0, ',', ' ') }} {{ invoice.currency }}</span>
+                        </div>
+                        <div class="amount-row">
+                            <span>TVA (20%):</span>
+                            <span>{{ invoice.taxAmount|number_format(0, ',', ' ') }} {{ invoice.currency }}</span>
+                        </div>
+                        <div class="amount-row total">
+                            <span>Total TTC:</span>
+                            <span>{{ invoice.totalAmount|number_format(0, ',', ' ') }} {{ invoice.currency }}</span>
+                        </div>
+                    </div>
+                </div>
+
+                <p style="font-size: 15px; line-height: 1.7; color: #304047;">
+                    Vous pouvez télécharger votre facture au format PDF depuis votre espace client.
+                </p>
+
+                <div class="cta">
+                    <a href="{{ absolute_url(path('app_profile_index')) }}">Accéder à mon espace</a>
+                </div>
+
+                <p style="font-size: 14px; color: #5c6b73; text-align: center;">
+                    Besoin d'aide ? Contactez notre support à <a href="mailto:support@aiolia-event.com" style="color: #1f8a5b; text-decoration: none;">support@aiolia-event.com</a>.
+                </p>
+            </div>
+
+            <div class="footer">
+                <p>Cet e-mail a été envoyé automatiquement. Merci de ne pas répondre directement.</p>
+                <p>&copy; {{ "now"|date("Y") }} Aiolia Event – Tous droits réservés.</p>
+            </div>
+        </div>
+    </div>
+</body>
+</html>
+

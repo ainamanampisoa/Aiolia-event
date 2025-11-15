@@ -104,12 +104,31 @@ class EventRepository extends ServiceEntityRepository
      */
     public function findByOrganizer(User $organizer): array
     {
-        return $this->createQueryBuilder('e')
-            ->andWhere('e.organizer = :organizer')
-            ->setParameter('organizer', $organizer)
-            ->orderBy('e.createdAt', 'DESC')
-            ->getQuery()
-            ->getResult();
+        // Utilisation d'une requête SQL native car organizer_profile_id référence organizer_profiles
+        // qui a un user_id référençant users
+        $conn = $this->getEntityManager()->getConnection();
+        $sql = '
+            SELECT e.id FROM aiolia.events e
+            INNER JOIN aiolia.organizer_profiles op ON e.organizer_profile_id = op.id
+            WHERE op.user_id = :userId
+            ORDER BY e.created_at DESC
+        ';
+        
+        $result = $conn->executeQuery($sql, ['userId' => $organizer->getId()]);
+        $eventIds = $result->fetchFirstColumn();
+        
+        // Convertir les IDs en entités Event et charger l'organizer
+        $events = [];
+        foreach ($eventIds as $eventId) {
+            $event = $this->find($eventId);
+            if ($event) {
+                // Définir l'organizer dans l'entité pour éviter les chargements supplémentaires
+                $event->setOrganizer($organizer);
+                $events[] = $event;
+            }
+        }
+        
+        return $events;
     }
 
     /**
@@ -155,7 +174,7 @@ class EventRepository extends ServiceEntityRepository
         return [
             'tickets_sold' => 0,
             'revenue' => 0,
-            'views' => $event->getViewsCount(),
+            'views' => 0,
         ];
     }
 }

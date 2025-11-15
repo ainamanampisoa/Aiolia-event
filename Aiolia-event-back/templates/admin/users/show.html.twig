@@ -9,7 +9,7 @@
 .user-details-page {
     background-color: var(--bg-primary);
     min-height: calc(100vh - 80px);
-    padding: 0.5rem 0;
+    padding: 1.5rem 0;
 }
 
 .user-details-page .breadcrumb {
@@ -29,25 +29,26 @@
 
 /* Carte profil utilisateur */
 .user-details-page .user-profile-card {
-    border: none;
+    border: 1px solid var(--border-color);
     border-radius: var(--border-radius-xl);
-    box-shadow: var(--shadow-lg);
+    box-shadow: var(--shadow-md);
     overflow: hidden;
     background: var(--bg-card);
+    margin-bottom: 1.5rem;
 }
 
 .user-details-page .user-profile-card .card-header {
-    background: transparent;
+    background: linear-gradient(135deg, var(--bg-secondary), var(--bg-primary));
     color: var(--text-primary);
-    border: none;
-    padding: 0.5rem 0 0.25rem;
+    border-bottom: 2px solid var(--border-color);
+    padding: 1.5rem 2rem;
 }
 
 .user-details-page .user-profile-card .card-header h5 {
     margin: 0;
     font-weight: var(--font-weight-bold);
-    font-size: 1.6rem;
-    letter-spacing: -0.4px;
+    font-size: 1.5rem;
+    letter-spacing: -0.3px;
     display: inline-flex;
     align-items: center;
     gap: 0.75rem;
@@ -55,99 +56,214 @@
 
 .user-details-page .user-profile-card .card-header i {
     color: var(--accent);
-    font-size: 1.4rem;
+    font-size: 1.3rem;
 }
 
 .user-details-page .user-profile-card .card-body {
-    padding: 1.25rem 1.35rem 1.5rem;
+    padding: 2rem;
+    display: flex;
+    flex-direction: column;
+    gap: 1.5rem;
+}
+
+/* Section principale avec avatar */
+.user-details-page .user-header-section {
+    display: flex;
+    align-items: center;
+    gap: 2.5rem;
+    padding: 2rem;
+    background: var(--bg-secondary);
+    border-radius: var(--border-radius-lg);
+    margin-bottom: 2rem;
+    border: 1px solid var(--border-color);
+}
+
+.user-details-page .user-avatar-wrapper {
+    flex-shrink: 0;
+    position: relative;
+}
+
+.user-details-page .user-avatar {
+    width: 100px;
+    height: 100px;
+    border-radius: 50%;
+    overflow: hidden;
+    background: linear-gradient(135deg, var(--accent), var(--primary));
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    border: 3px solid var(--bg-card);
+    box-shadow: var(--shadow-sm);
+}
+
+.user-details-page .user-avatar img {
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+}
+
+.user-details-page .user-avatar-initials {
+    font-size: 2rem;
+    font-weight: var(--font-weight-bold);
+    color: var(--text-inverse);
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+}
+
+.user-details-page .user-info-main {
+    flex: 1;
     display: flex;
     flex-direction: column;
     gap: 1rem;
 }
 
-/* Avatar utilisateur */
 .user-details-page .user-summary {
     display: flex;
-    align-items: center;
-    gap: 0.85rem;
-    font-size: 0.98rem;
-    color: var(--text-secondary);
-    flex-wrap: wrap;
+    flex-direction: column;
+    gap: 0.75rem;
 }
 
 .user-details-page .user-summary .user-summary-name {
-    font-size: 1.3rem;
-    font-weight: var(--font-weight-semibold);
+    font-size: 1.5rem;
+    font-weight: var(--font-weight-bold);
     color: var(--text-primary);
+    margin: 0;
+    line-height: 1.3;
 }
 
-.user-details-page .user-summary i {
+.user-details-page .user-contact-info {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 1.5rem;
+    font-size: 0.9rem;
+    color: var(--text-secondary);
+}
+
+.user-details-page .user-contact-item {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    padding: 0.5rem 0;
+}
+
+.user-details-page .user-contact-item i {
     color: var(--accent);
-    margin-right: 0.4rem;
+    font-size: 0.85rem;
+    width: 16px;
+    text-align: center;
+    opacity: 0.8;
 }
 
-.user-details-page .user-summary-separator {
-    color: var(--border-dark);
-    margin: 0 0.5rem;
+.user-details-page .user-contact-item span {
+    color: var(--text-primary);
     font-weight: var(--font-weight-medium);
 }
 
 /* Statistiques utilisateur */
-.user-details-page .user-stats {
+.user-details-page .stats-section {
+    margin-top: 1rem;
+}
+
+.user-details-page .stats-section-title {
+    font-size: 1.1rem;
+    font-weight: var(--font-weight-semibold);
+    color: var(--text-primary);
+    margin-bottom: 1.5rem;
+    padding-bottom: 0.75rem;
+    border-bottom: 2px solid var(--border-color);
     display: flex;
-    flex-wrap: wrap;
-    gap: 0.65rem;
-    border: 1px solid var(--border-color);
-    border-radius: var(--border-radius-lg);
-    padding: 0.8rem;
-    background: var(--bg-secondary);
-    margin-bottom: 1rem;
+    align-items: center;
+    gap: 0.75rem;
+}
+
+.user-details-page .stats-section-title i {
+    color: var(--accent);
+    font-size: 1rem;
+}
+
+.user-details-page .user-stats {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+    gap: 1.25rem;
 }
 
 .user-details-page .stat-item {
-    display: inline-flex;
-    align-items: center;
-    gap: 0.55rem;
-    padding: 0.55rem 0.85rem;
-    border-radius: var(--border-radius-md);
-    background: var(--bg-primary);
-    font-size: 0.92rem;
-    color: var(--text-primary);
+    display: flex;
+    align-items: flex-start;
+    gap: 1rem;
+    padding: 1.5rem;
+    border-radius: var(--border-radius-lg);
+    background: var(--bg-card);
     border: 1px solid var(--border-color);
-    white-space: nowrap;
+    transition: var(--transition-base);
 }
 
-.user-details-page .stat-icon {
-    display: none;
+.user-details-page .stat-item:hover {
+    border-color: var(--accent);
+    box-shadow: var(--shadow-sm);
+    background: var(--bg-secondary);
+}
+
+.user-details-page .stat-icon-wrapper {
+    flex-shrink: 0;
+    width: 48px;
+    height: 48px;
+    border-radius: var(--border-radius-md);
+    background: var(--bg-secondary);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    border: 1px solid var(--border-color);
+}
+
+.user-details-page .stat-icon-wrapper i {
+    font-size: 1.1rem;
+    color: var(--accent);
+}
+
+.user-details-page .stat-content {
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+    gap: 0.5rem;
+    min-width: 0;
 }
 
 .user-details-page .stat-label {
-    font-size: 0.82rem;
+    font-size: 0.75rem;
     color: var(--text-secondary);
-    letter-spacing: 0.2px;
+    letter-spacing: 0.5px;
     text-transform: uppercase;
     font-weight: var(--font-weight-medium);
-}
-
-.user-details-page .stat-label::after {
-    content: ':';
-    margin-left: 0.25rem;
-    color: var(--border-dark);
+    margin: 0;
+    line-height: 1.2;
 }
 
 .user-details-page .stat-value {
-    font-size: 0.98rem;
+    font-size: 1rem;
     font-weight: var(--font-weight-semibold);
+    color: var(--text-primary);
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    margin: 0;
+    line-height: 1.4;
+    flex-wrap: wrap;
 }
 
 .user-details-page .stat-value i {
-    margin-right: 0.35rem;
+    font-size: 0.85rem;
 }
 
 .user-details-page .stat-badge {
     display: inline-flex;
     align-items: center;
     gap: 0.35rem;
+    padding: 0.35rem 0.75rem;
+    border-radius: var(--border-radius-sm);
+    font-size: 0.8rem;
+    font-weight: var(--font-weight-semibold);
+    white-space: nowrap;
 }
 
 /* Badges */
@@ -158,55 +274,6 @@
     font-weight: var(--font-weight-semibold);
 }
 
-.user-details-page .quick-links {
-    display: flex;
-    flex-wrap: wrap;
-    gap: 0.75rem;
-    margin-bottom: 1.25rem;
-}
-
-.user-details-page .quick-link-card {
-    display: inline-flex;
-    align-items: center;
-    gap: 0.5rem;
-    padding: 0.8rem 1rem;
-    background: var(--bg-secondary);
-    border: 1px solid var(--border-color);
-    border-radius: var(--border-radius-lg);
-    box-shadow: var(--shadow-sm);
-    transition: var(--transition-smooth);
-    color: var(--text-primary);
-    white-space: nowrap;
-}
-
-.user-details-page .quick-link-card:hover {
-    transform: translateY(-3px);
-    box-shadow: var(--shadow-md);
-}
-
-.user-details-page .quick-link-icon {
-    width: 32px;
-    height: 32px;
-    border-radius: var(--border-radius-md);
-    background: linear-gradient(135deg, var(--primary), var(--accent));
-    color: var(--text-inverse);
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    font-size: 0.95rem;
-}
-
-.user-details-page .quick-link-icon i {
-    margin-right: 0;
-}
-
-.user-details-page .quick-link-title {
-    font-size: 0.85rem;
-}
-
-.user-details-page .quick-link-desc {
-    display: none;
-}
 
 .user-details-page .badge.bg-success {
     background: var(--success) !important;
@@ -233,25 +300,6 @@
     background: var(--primary) !important;
 }
 
-/* Boutons */
-.user-details-page .btn {
-    border-radius: var(--border-radius-lg);
-    padding: 0.9rem 1.75rem;
-    font-weight: var(--font-weight-semibold);
-    font-size: 1.05rem;
-    transition: var(--transition-smooth);
-    border: none;
-}
-
-.user-details-page .btn-primary {
-    background: linear-gradient(135deg, var(--primary), var(--accent));
-    box-shadow: var(--shadow-md);
-}
-
-.user-details-page .btn-primary:hover {
-    transform: translateY(-3px);
-    box-shadow: var(--shadow-lg);
-}
 
 .user-details-page .breadcrumb-horizontal {
     display: flex;
@@ -279,12 +327,6 @@
     font-weight: var(--font-weight-semibold);
 }
 
-/* Section d'action principale */
-.user-details-page .action-section {
-    margin-top: auto;
-    padding-top: 2.25rem;
-    border-top: 1px solid var(--border-light);
-}
 
 /* Icônes de statut */
 .user-details-page .text-success {
@@ -302,145 +344,164 @@
 }
 
 /* Responsive */
-@media (max-width: 1400px) {
-    .user-details-page .user-stats {
-        grid-template-columns: repeat(auto-fit, minmax(240px, 1fr));
-    }
-}
-
 @media (max-width: 1200px) {
     .user-details-page .user-profile-card .card-body {
-        padding: 1.6rem;
+        padding: 1.75rem;
+    }
+    
+    .user-details-page .user-header-section {
+        gap: 2rem;
+        padding: 1.75rem;
     }
     
     .user-details-page .user-stats {
-        flex-wrap: wrap;
-        justify-content: flex-start;
+        grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
     }
 }
 
 @media (max-width: 992px) {
-    
-    .user-details-page .user-profile-card .card-body {
-        padding: 1.6rem;
-    }
-    
-    .user-details-page .user-avatar,
-    .user-details-page .user-avatar-img {
-        width: 120px;
-        height: 120px;
-    }
-    
-    .user-details-page .avatar-initial {
-        font-size: 3rem;
-    }
-    
-    .user-details-page .user-name {
-        font-size: 1.75rem;
-    }
-    
-    .user-details-page .user-stats {
-        justify-content: space-between;
-        gap: 0.6rem;
-    }
-}
-
-@media (max-width: 768px) {
     .user-details-page .user-profile-card .card-body {
         padding: 1.5rem;
     }
     
-    .user-details-page .user-avatar,
-    .user-details-page .user-avatar-img {
-        width: 100px;
-        height: 100px;
+    .user-details-page .user-header-section {
+        gap: 1.5rem;
+        padding: 1.5rem;
     }
     
-    .user-details-page .avatar-initial {
-        font-size: 2.5rem;
+    .user-details-page .user-avatar {
+        width: 90px;
+        height: 90px;
     }
     
-    .user-details-page .user-name {
-        font-size: 1.5rem;
+    .user-details-page .user-avatar-initials {
+        font-size: 1.75rem;
     }
     
-    .user-details-page .user-email {
-        font-size: 1rem;
+    .user-details-page .user-summary .user-summary-name {
+        font-size: 1.35rem;
     }
     
     .user-details-page .user-stats {
-        flex-direction: column;
-        align-items: flex-start;
-        gap: 0.5rem;
+        grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+        gap: 1rem;
     }
     
     .user-details-page .stat-item {
-        width: 100%;
-        justify-content: space-between;
+        padding: 1.25rem;
+    }
+}
+
+@media (max-width: 768px) {
+    .user-details-page {
+        padding: 1rem 0;
     }
     
-    .user-details-page .stat-icon {
-        display: none;
+    .user-details-page .user-profile-card .card-body {
+        padding: 1.25rem;
     }
     
-    .user-details-page .btn {
-        padding: 0.875rem 1.5rem;
-        font-size: 1rem;
+    .user-details-page .user-profile-card .card-header {
+        padding: 1.25rem 1.5rem;
     }
     
-    .user-details-page .quick-links {
+    .user-details-page .user-header-section {
         flex-direction: column;
-        align-items: flex-start;
+        align-items: center;
+        text-align: center;
+        gap: 1.5rem;
+        padding: 1.5rem;
     }
     
-    .user-details-page .quick-link-card {
+    .user-details-page .user-info-main {
+        align-items: center;
         width: 100%;
-        justify-content: flex-start;
-        padding: 0.9rem 1rem;
     }
     
-    .user-details-page .quick-link-icon {
-        width: 32px;
-        height: 32px;
-        font-size: 0.9rem;
+    .user-details-page .user-contact-info {
+        flex-direction: column;
+        gap: 0.75rem;
+        align-items: center;
+    }
+    
+    .user-details-page .user-avatar {
+        width: 85px;
+        height: 85px;
+    }
+    
+    .user-details-page .user-avatar-initials {
+        font-size: 1.6rem;
+    }
+    
+    .user-details-page .user-summary .user-summary-name {
+        font-size: 1.25rem;
+    }
+    
+    .user-details-page .user-stats {
+        grid-template-columns: 1fr;
+        gap: 1rem;
+    }
+    
+    .user-details-page .stat-item {
+        padding: 1.25rem;
+    }
+    
+    .user-details-page .stat-icon-wrapper {
+        width: 44px;
+        height: 44px;
+    }
+    
+    .user-details-page .stat-icon-wrapper i {
+        font-size: 1rem;
     }
 }
 
 @media (max-width: 576px) {
     .user-details-page .user-profile-card .card-body {
-        padding: 1.35rem;
+        padding: 1rem;
     }
     
     .user-details-page .user-profile-card .card-header {
-        padding: 1.5rem;
+        padding: 1rem 1.25rem;
     }
     
-    .user-details-page .user-avatar,
-    .user-details-page .user-avatar-img {
-        width: 90px;
-        height: 90px;
+    .user-details-page .user-profile-card .card-header h5 {
+        font-size: 1.25rem;
     }
     
-    .user-details-page .avatar-initial {
-        font-size: 2.2rem;
+    .user-details-page .user-header-section {
+        padding: 1.25rem;
     }
     
-    .user-details-page .user-name {
-        font-size: 1.3rem;
+    .user-details-page .user-avatar {
+        width: 75px;
+        height: 75px;
+    }
+    
+    .user-details-page .user-avatar-initials {
+        font-size: 1.4rem;
+    }
+    
+    .user-details-page .user-summary .user-summary-name {
+        font-size: 1.15rem;
     }
     
     .user-details-page .stat-item {
-        padding: 0.75rem 0.85rem;
+        padding: 1rem;
+        gap: 0.75rem;
     }
     
-    .user-details-page .stat-icon {
-        width: 44px;
-        height: 44px;
-        font-size: 1.1rem;
+    .user-details-page .stat-icon-wrapper {
+        width: 40px;
+        height: 40px;
     }
     
-    .user-details-page .quick-link-card {
-        padding: 0.8rem 0.9rem;
+    .user-details-page .stat-icon-wrapper i {
+        font-size: 0.95rem;
+    }
+    
+    .user-details-page .stats-section-title {
+        font-size: 1rem;
     }
 }
 </style>
@@ -448,22 +509,6 @@
 
 {% block javascripts %}
 {{ parent() }}
-<script>
-function confirmToggleStatus(form) {
-    const manager = window.languageManager;
-    const lang = manager ? manager.getLanguage() : 'fr';
-    const currentState = form.dataset.state || 'active';
-    const isInactive = currentState !== 'active';
-    const frMessage = isInactive
-        ? (form.dataset.confirmActivateFr || 'Activer ce compte ?')
-        : (form.dataset.confirmDeactivateFr || 'Mettre ce compte en attente ?');
-    const enMessage = isInactive
-        ? (form.dataset.confirmActivateEn || 'Activate this account?')
-        : (form.dataset.confirmDeactivateEn || 'Disable this account?');
-    const message = lang === 'en' ? enMessage : frMessage;
-    return window.confirm(message);
-}
-</script>
 {% endblock %}
 
 {% block body %}
@@ -496,119 +541,180 @@ function confirmToggleStatus(form) {
                     </h5>
                 </div>
                 <div class="card-body">
-                    <!-- Informations principales -->
-                    <div class="user-summary">
-                        <span class="user-summary-name">{{ user.fullName }}</span>
-                        <span class="user-summary-separator">•</span>
-                        <span><i class="fas fa-envelope"></i>{{ user.email }}</span>
-                        {% if user.phone %}
-                            <span class="user-summary-separator">•</span>
-                            <span><i class="fas fa-phone"></i>{{ user.phone }}</span>
-                        {% endif %}
+                    <!-- Section principale avec avatar -->
+                    <div class="user-header-section">
+                        <div class="user-avatar-wrapper">
+                            <div class="user-avatar">
+                                {% set avatarUrl = user.photoUrl %}
+                                {% if avatarUrl is empty %}
+                                    {% set avatarUrl = null %}
+                                {% elseif avatarUrl matches '/^https?:\\/\\//' %}
+                                    {% if avatarUrl starts with 'https://cdn.aiolia.test/avatars/' %}
+                                        {% set avatarUrl = null %}
+                                    {% endif %}
+                                {% else %}
+                                    {% set avatarUrl = null %}
+                                {% endif %}
+                                
+                                {% if avatarUrl %}
+                                    <img src="{{ avatarUrl }}" alt="{{ user.fullName }}">
+                                {% else %}
+                                    {% set initials = '' %}
+                                    {% if user.firstName %}
+                                        {% set initials = user.firstName|slice(0, 1) %}
+                                        {% if user.lastName %}
+                                            {% set initials = initials ~ user.lastName|slice(0, 1) %}
+                                        {% elseif user.firstName|length > 1 %}
+                                            {% set initials = initials ~ user.firstName|slice(1, 1) %}
+                                        {% endif %}
+                                    {% elseif user.fullName %}
+                                        {% set nameParts = user.fullName|trim|split(' ')|filter(v => v is not empty) %}
+                                        {% if nameParts|length > 0 %}
+                                            {% set initials = nameParts|first|slice(0, 1) %}
+                                            {% if nameParts|length > 1 %}
+                                                {% set initials = initials ~ nameParts|last|slice(0, 1) %}
+                                            {% elseif nameParts|first|length > 1 %}
+                                                {% set initials = initials ~ nameParts|first|slice(1, 1) %}
+                                            {% endif %}
+                                        {% endif %}
+                                    {% endif %}
+
+                                    {% if initials is empty and user.email %}
+                                        {% set localPart = user.email|split('@')|first %}
+                                        {% if localPart|length >= 2 %}
+                                            {% set initials = localPart|slice(0, 2) %}
+                                        {% else %}
+                                            {% set initials = localPart|slice(0, 1) ~ '?' %}
+                                        {% endif %}
+                                    {% endif %}
+
+                                    {% if initials is empty %}
+                                        {% set initials = 'AA' %}
+                                    {% endif %}
+
+                                    <div class="user-avatar-initials">{{ initials|upper }}</div>
+                                {% endif %}
+                            </div>
+                        </div>
+                        
+                        <div class="user-info-main">
+                            <div class="user-summary">
+                                <h2 class="user-summary-name">{{ user.fullName }}</h2>
+                                <div class="user-contact-info">
+                                    <div class="user-contact-item">
+                                        <i class="fas fa-envelope"></i>
+                                        <span>{{ user.email }}</span>
+                                    </div>
+                                    {% if user.phone %}
+                                        <div class="user-contact-item">
+                                            <i class="fas fa-phone"></i>
+                                            <span>{{ user.phone }}</span>
+                                        </div>
+                                    {% endif %}
+                                </div>
+                            </div>
+                        </div>
                     </div>
 
                     <!-- Statistiques détaillées -->
-                    <div class="user-stats">
-                        <div class="stat-item">
-                            <span class="stat-label" data-i18n-fr="Identifiant" data-i18n-en="Identifier">Identifiant</span>
-                            <span class="stat-value">#{{ user.id }}</span>
-                        </div>
-                        
-                        <div class="stat-item">
-                            <span class="stat-label" data-i18n-fr="Niveau d'accès" data-i18n-en="Access level">Niveau d'accès</span>
-                            <span class="stat-value">
-                                {% if user.role == 'admin' %}
-                                    <span class="badge bg-danger stat-badge" data-i18n-fr="Administrateur" data-i18n-en="Administrator">Administrateur</span>
-                                {% elseif user.role == 'organizer' %}
-                                    <span class="badge bg-primary stat-badge" data-i18n-fr="Organisateur" data-i18n-en="Organizer">Organisateur</span>
-                                {% else %}
-                                    <span class="badge bg-secondary stat-badge" data-i18n-fr="Utilisateur" data-i18n-en="User">Utilisateur</span>
-                                {% endif %}
-                            </span>
-                        </div>
-                        
-                        <div class="stat-item">
-                            <span class="stat-label" data-i18n-fr="État du compte" data-i18n-en="Account status">État du compte</span>
-                            <span class="stat-value">
-                                {% if user.accountStatus == 'active' %}
-                                    <span class="badge bg-success stat-badge" data-i18n-fr="Actif" data-i18n-en="Active">Actif</span>
-                                {% elseif user.accountStatus == 'pending_validation' %}
-                                    <span class="badge bg-warning stat-badge" data-i18n-fr="En attente" data-i18n-en="Pending">En attente</span>
-                                {% elseif user.accountStatus == 'rejected' %}
-                                    <span class="badge bg-danger stat-badge" data-i18n-fr="Rejeté" data-i18n-en="Rejected">Rejeté</span>
-                                {% else %}
-                                    <span class="badge bg-dark stat-badge" data-i18n-fr="Inactif" data-i18n-en="Inactive">Inactif</span>
-                                {% endif %}
-                            </span>
-                        </div>
-                        
-                        <div class="stat-item">
-                            <span class="stat-label" data-i18n-fr="Vérification email" data-i18n-en="Email verification">Vérification email</span>
-                            <span class="stat-value">
-                                {% if user.emailVerified %}
-                                    <span class="text-success stat-badge" data-i18n-fr="<i class='fas fa-check-circle me-1'></i>Confirmé" data-i18n-en="<i class='fas fa-check-circle me-1'></i>Confirmed" data-i18n-target="html"><i class="fas fa-check-circle me-1"></i>Confirmé</span>
-                                {% else %}
-                                    <span class="text-danger stat-badge" data-i18n-fr="<i class='fas fa-times-circle me-1'></i>En attente" data-i18n-en="<i class='fas fa-times-circle me-1'></i>Pending" data-i18n-target="html"><i class="fas fa-times-circle me-1"></i>En attente</span>
-                                {% endif %}
-                            </span>
-                        </div>
-                        
-                        <div class="stat-item">
-                            <span class="stat-label" data-i18n-fr="Inscription" data-i18n-en="Registered">Inscription</span>
-                            <span class="stat-value" data-i18n-target="html" data-i18n-fr="{{ user.createdAt|date('d/m/Y') }}" data-i18n-en="{{ user.createdAt|date('d/m/Y') }}">{{ user.createdAt|date('d/m/Y') }}</span>
-                        </div>
-                        
-                        <div class="stat-item">
-                            <span class="stat-label" data-i18n-fr="Dernière activité" data-i18n-en="Last activity">Dernière activité</span>
-                            <span class="stat-value">
-                                {% if user.lastLoginAt %}
-                                    <span data-i18n-target="html" data-i18n-fr="{{ user.lastLoginAt|date('d/m/Y à H:i') }}" data-i18n-en="{{ user.lastLoginAt|date('d/m/Y à H:i') }}">{{ user.lastLoginAt|date('d/m/Y à H:i') }}</span>
-                                {% else %}
-                                    <span class="text-muted" data-i18n-fr="Aucune connexion" data-i18n-en="No connection">Aucune connexion</span>
-                                {% endif %}
-                            </span>
+                    <div class="stats-section">
+                        <h3 class="stats-section-title">
+                            <i class="fas fa-chart-line"></i>
+                            <span data-i18n-fr="Informations détaillées" data-i18n-en="Detailed information">Informations détaillées</span>
+                        </h3>
+                        <div class="user-stats">
+                            <div class="stat-item">
+                                <div class="stat-icon-wrapper">
+                                    <i class="fas fa-hashtag"></i>
+                                </div>
+                                <div class="stat-content">
+                                    <div class="stat-label" data-i18n-fr="Identifiant" data-i18n-en="Identifier">Identifiant</div>
+                                    <div class="stat-value">#{{ user.id }}</div>
+                                </div>
+                            </div>
+                            
+                            <div class="stat-item">
+                                <div class="stat-icon-wrapper">
+                                    <i class="fas fa-user-tag"></i>
+                                </div>
+                                <div class="stat-content">
+                                    <div class="stat-label" data-i18n-fr="Niveau d'accès" data-i18n-en="Access level">Niveau d'accès</div>
+                                    <div class="stat-value">
+                                        {% if user.role == 'admin' %}
+                                            <span class="badge bg-danger stat-badge" data-i18n-fr="Administrateur" data-i18n-en="Administrator">Administrateur</span>
+                                        {% elseif user.role == 'organizer' %}
+                                            <span class="badge bg-primary stat-badge" data-i18n-fr="Organisateur" data-i18n-en="Organizer">Organisateur</span>
+                                        {% else %}
+                                            <span class="badge bg-secondary stat-badge" data-i18n-fr="Utilisateur" data-i18n-en="User">Utilisateur</span>
+                                        {% endif %}
+                                    </div>
+                                </div>
+                            </div>
+                            
+                            <div class="stat-item">
+                                <div class="stat-icon-wrapper">
+                                    <i class="fas fa-circle-check"></i>
+                                </div>
+                                <div class="stat-content">
+                                    <div class="stat-label" data-i18n-fr="État du compte" data-i18n-en="Account status">État du compte</div>
+                                    <div class="stat-value">
+                                        {% if user.accountStatus == 'active' %}
+                                            <span class="badge bg-success stat-badge" data-i18n-fr="Actif" data-i18n-en="Active">Actif</span>
+                                        {% elseif user.accountStatus == 'pending_validation' %}
+                                            <span class="badge bg-warning stat-badge" data-i18n-fr="En attente" data-i18n-en="Pending">En attente</span>
+                                        {% elseif user.accountStatus == 'rejected' %}
+                                            <span class="badge bg-danger stat-badge" data-i18n-fr="Rejeté" data-i18n-en="Rejected">Rejeté</span>
+                                        {% else %}
+                                            <span class="badge bg-dark stat-badge" data-i18n-fr="Inactif" data-i18n-en="Inactive">Inactif</span>
+                                        {% endif %}
+                                    </div>
+                                </div>
+                            </div>
+                            
+                            <div class="stat-item">
+                                <div class="stat-icon-wrapper">
+                                    <i class="fas fa-envelope-circle-check"></i>
+                                </div>
+                                <div class="stat-content">
+                                    <div class="stat-label" data-i18n-fr="Vérification email" data-i18n-en="Email verification">Vérification email</div>
+                                    <div class="stat-value">
+                                        {% if user.emailVerified %}
+                                            <span class="text-success" data-i18n-fr="<i class='fas fa-check-circle'></i> Confirmé" data-i18n-en="<i class='fas fa-check-circle'></i> Confirmed" data-i18n-target="html"><i class="fas fa-check-circle"></i> Confirmé</span>
+                                        {% else %}
+                                            <span class="text-danger" data-i18n-fr="<i class='fas fa-times-circle'></i> En attente" data-i18n-en="<i class='fas fa-times-circle'></i> Pending" data-i18n-target="html"><i class="fas fa-times-circle"></i> En attente</span>
+                                        {% endif %}
+                                    </div>
+                                </div>
+                            </div>
+                            
+                            <div class="stat-item">
+                                <div class="stat-icon-wrapper">
+                                    <i class="fas fa-calendar-plus"></i>
+                                </div>
+                                <div class="stat-content">
+                                    <div class="stat-label" data-i18n-fr="Date d'inscription" data-i18n-en="Registration date">Date d'inscription</div>
+                                    <div class="stat-value" data-i18n-target="html" data-i18n-fr="{{ user.createdAt|date('d/m/Y') }}" data-i18n-en="{{ user.createdAt|date('d/m/Y') }}">{{ user.createdAt|date('d/m/Y') }}</div>
+                                </div>
+                            </div>
+                            
+                            <div class="stat-item">
+                                <div class="stat-icon-wrapper">
+                                    <i class="fas fa-clock"></i>
+                                </div>
+                                <div class="stat-content">
+                                    <div class="stat-label" data-i18n-fr="Dernière activité" data-i18n-en="Last activity">Dernière activité</div>
+                                    <div class="stat-value">
+                                        {% if user.lastLoginAt %}
+                                            <span data-i18n-target="html" data-i18n-fr="{{ user.lastLoginAt|date('d/m/Y à H:i') }}" data-i18n-en="{{ user.lastLoginAt|date('d/m/Y à H:i') }}">{{ user.lastLoginAt|date('d/m/Y à H:i') }}</span>
+                                        {% else %}
+                                            <span class="text-muted" data-i18n-fr="Aucune connexion" data-i18n-en="No connection">Aucune connexion</span>
+                                        {% endif %}
+                                    </div>
+                                </div>
+                            </div>
                         </div>
                     </div>
 
-                    {% if user.role == 'organizer' %}
-                        <!-- Liens rapides -->
-                        <div class="quick-links">
-                            <a href="{{ path('admin_users_payments', {id: user.id}) }}" class="quick-link-card">
-                                <div class="quick-link-icon"><i class="fas fa-receipt"></i></div>
-                                <div class="quick-link-content">
-                                    <span class="quick-link-title" data-i18n-fr="Historique des paiements" data-i18n-en="Payment history">Historique des paiements</span>
-                                </div>
-                            </a>
-                            <a href="{{ path('admin_users_events', {id: user.id}) }}" class="quick-link-card">
-                                <div class="quick-link-icon"><i class="fas fa-calendar-check"></i></div>
-                                <div class="quick-link-content">
-                                    <span class="quick-link-title" data-i18n-fr="Participations aux événements" data-i18n-en="Event participation">Participations aux événements</span>
-                                </div>
-                            </a>
-                        </div>
-                    {% endif %}
-
-                    <!-- Action principale -->
-                    <div class="action-section">
-                        {% set isPending = user.accountStatus == 'pending_validation' %}
-                        <form method="POST" action="{{ path('admin_users_toggle_status', {id: user.id}) }}" 
-                              onsubmit="return confirmToggleStatus(this);"
-                              data-confirm-activate-fr="Activer ce compte ?"
-                              data-confirm-activate-en="Activate this account?"
-                              data-confirm-deactivate-fr="Mettre ce compte en attente ?"
-                              data-confirm-deactivate-en="Disable this account?"
-                              data-state="{{ isPending ? 'pending_validation' : 'active' }}">
-                            <input type="hidden" name="_token" value="{{ csrf_token('toggle_status_' ~ user.id) }}">
-                            <button type="submit" class="btn btn-primary w-100 py-3">
-                                <i class="fas fa-{{ isPending ? 'play' : 'pause' }} me-3"></i>
-                                {% if isPending %}
-                                    <span data-i18n-fr="Activer le compte" data-i18n-en="Activate account">Activer le compte</span>
-                                {% else %}
-                                    <span data-i18n-fr="Mettre le compte en attente" data-i18n-en="Set account to pending">Mettre le compte en attente</span>
-                                {% endif %}
-                            </button>
-                        </form>
-                    </div>
                 </div>
             </div>
         </div>

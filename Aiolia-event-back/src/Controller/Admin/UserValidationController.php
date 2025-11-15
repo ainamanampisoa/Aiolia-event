@@ -137,6 +137,12 @@ class UserValidationController extends AbstractController
             $this->getRoleLabel($user->getRole())
         ));
 
+        // Rediriger vers la liste des utilisateurs si on vient de là
+        $referer = $request->headers->get('referer');
+        if ($referer && str_contains($referer, '/admin/users')) {
+            return $this->redirectToRoute('admin_users_list');
+        }
+
         return $this->redirectToRoute('admin_validation_pending');
     }
 
@@ -193,6 +199,12 @@ class UserValidationController extends AbstractController
             'Demande rejetée : %s',
             $user->getFullName()
         ));
+
+        // Rediriger vers la liste des utilisateurs si on vient de là
+        $referer = $request->headers->get('referer');
+        if ($referer && str_contains($referer, '/admin/users')) {
+            return $this->redirectToRoute('admin_users_list');
+        }
 
         return $this->redirectToRoute('admin_validation_pending');
     }

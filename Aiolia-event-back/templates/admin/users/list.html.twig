@@ -20,12 +20,6 @@
                 Gérez et administrez les comptes utilisateurs de votre plateforme
             </p>
         </div>
-        <div class="header-actions">
-            <button class="btn btn-primary" onclick="exportUsers()">
-                <i class="fas fa-download"></i>
-                <span data-i18n-fr="Exporter" data-i18n-en="Export">Exporter</span>
-            </button>
-        </div>
     </div>
 
     <!-- Cartes de statistiques rapides -->
@@ -129,11 +123,11 @@
                 </div>
 
                 <div class="search-actions">
-                    <button type="submit" class="btn btn-primary" style="background: var(--accent); color: var(--text-inverse); border: none; padding: 10px 24px; border-radius: 8px; cursor: pointer; font-weight: 600;">
+                    <button type="submit" class="btn btn-primary" style="background: var(--accent); color: var(--text-inverse); border: none; padding: 10px 24px; border-radius: 8px; cursor: pointer; font-weight: 500;">
                         <i class="fas fa-search"></i>
                         <span data-i18n-fr="Rechercher" data-i18n-en="Search">Rechercher</span>
                     </button>
-                    <a href="{{ path('admin_users_list') }}" class="btn btn-secondary" style="background: var(--bg-secondary); color: var(--text-secondary); border: 2px solid var(--border-color); padding: 10px 24px; border-radius: 8px; cursor: pointer; font-weight: 600;">
+                    <a href="{{ path('admin_users_list') }}" class="btn btn-secondary" style="background: var(--bg-secondary); color: var(--text-secondary); border: 2px solid var(--border-color); padding: 10px 24px; border-radius: 8px; cursor: pointer; font-weight: 500;">
                         <i class="fas fa-redo"></i>
                         <span data-i18n-fr="Réinitialiser" data-i18n-en="Reset">Réinitialiser</span>
                     </a>
@@ -223,11 +217,15 @@
                                         {% endif %}
                                     </div>
                                     <div class="user-details">
-                                        <strong class="user-name">{{ user.fullName }}</strong>
+                                        <span class="user-name">{{ user.fullName }}</span>
                                         <div class="user-meta">
-                                            <span class="user-email">{{ user.email }}</span>
+                                            <span class="user-email">
+                                                <i class="fas fa-envelope"></i>{{ user.email }}
+                                            </span>
                                             {% if user.phone %}
-                                                <span class="user-phone">{{ user.phone }}</span>
+                                                <span class="user-phone">
+                                                    <i class="fas fa-phone"></i>{{ user.phone }}
+                                                </span>
                                             {% endif %}
                                         </div>
                                     </div>
@@ -259,18 +257,63 @@
                                 </div>
                             </td>
                             <td class="col-center actions-cell">
-                                <a href="{{ path('admin_users_show', {id: user.id}) }}" class="validation-action-pill pill-view">
-                                    <i class="fas fa-eye"></i><span data-i18n-fr="Voir le profil" data-i18n-en="View profile">Voir le profil</span>
-                                </a>
-                                <a href="{{ path('admin_users_show', {id: user.id}) }}" class="validation-action-pill pill-approve">
-                                    <i class="fas fa-edit"></i><span data-i18n-fr="Modifier" data-i18n-en="Edit">Modifier</span>
-                                </a>
-                                <form method="POST" action="{{ path('admin_users_toggle_status', {id: user.id}) }}" class="d-inline" onsubmit="return handleStatusConfirm(this);" data-confirm-fr="Voulez-vous changer le statut de cet utilisateur ?" data-confirm-en="Do you want to change this user's status?">
-                                    <input type="hidden" name="_token" value="{{ csrf_token('toggle_status_' ~ user.id) }}">
-                                    <button type="submit" class="validation-action-pill pill-reject">
-                                        <i class="fas fa-sync"></i><span data-i18n-fr="Statut" data-i18n-en="Status">Statut</span>
-                                    </button>
-                                </form>
+                                {% set isPendingOrganizer = user.role == 'organizer' and user.accountStatus == 'pending_validation' %}
+                                {% if isPendingOrganizer %}
+                                    {# Organisateurs en attente de validation : Approuver/Rejeter #}
+                                    <a href="{{ path('admin_users_show', {id: user.id}) }}" class="validation-action-pill pill-view">
+                                        <i class="fas fa-eye"></i><span data-i18n-fr="Voir le profil" data-i18n-en="View profile">Voir le profil</span>
+                                    </a>
+                                    <form method="POST" action="{{ path('admin_validation_approve', {id: user.id}) }}" class="d-inline" onsubmit="return confirmApprove(this);" data-confirm-fr="Approuver la demande de cet organisateur ?" data-confirm-en="Approve this organizer's request?">
+                                        <input type="hidden" name="_token" value="{{ csrf_token('approve_user_' ~ user.id) }}">
+                                        <button type="submit" class="validation-action-pill pill-approve">
+                                            <i class="fas fa-check-circle"></i><span data-i18n-fr="Approuver" data-i18n-en="Approve">Approuver</span>
+                                        </button>
+                                    </form>
+                                    <form method="POST" action="{{ path('admin_validation_reject', {id: user.id}) }}" class="d-inline" onsubmit="return confirmReject(this);" data-confirm-fr="Rejeter la demande de cet organisateur ?" data-confirm-en="Reject this organizer's request?">
+                                        <input type="hidden" name="_token" value="{{ csrf_token('reject_user_' ~ user.id) }}">
+                                        <button type="submit" class="validation-action-pill pill-reject">
+                                            <i class="fas fa-times-circle"></i><span data-i18n-fr="Rejeter" data-i18n-en="Reject">Rejeter</span>
+                                        </button>
+                                    </form>
+                                {% else %}
+                                    {% set isActive = user.accountStatus == 'active' or (user.accountStatus is empty and user.isActive) %}
+                                    {% if isActive %}
+                                        {# 3 boutons selon le rôle pour les comptes actifs #}
+                                        {% if user.role == 'organizer' %}
+                                            {# Organisateur : Voir profil, Paiements, Événements #}
+                                            <a href="{{ path('admin_users_show', {id: user.id}) }}" class="validation-action-pill pill-view">
+                                                <i class="fas fa-eye"></i><span data-i18n-fr="Voir le profil" data-i18n-en="View profile">Voir le profil</span>
+                                            </a>
+                                            <a href="{{ path('admin_users_payments', {id: user.id}) }}" class="validation-action-pill pill-payments" title="Voir l'historique des paiements">
+                                                <i class="fas fa-credit-card"></i><span data-i18n-fr="Paiements" data-i18n-en="Payments">Paiements</span>
+                                            </a>
+                                            <a href="{{ path('admin_users_events', {id: user.id}) }}" class="validation-action-pill pill-events">
+                                                <i class="fas fa-calendar-alt"></i><span data-i18n-fr="Événements" data-i18n-en="Events">Événements</span>
+                                            </a>
+                                        {% elseif user.role == 'admin' %}
+                                            {# Admin : Voir profil, Activité, Info #}
+                                            <a href="{{ path('admin_users_show', {id: user.id}) }}" class="validation-action-pill pill-view">
+                                                <i class="fas fa-eye"></i><span data-i18n-fr="Voir le profil" data-i18n-en="View profile">Voir le profil</span>
+                                            </a>
+                                            <a href="{{ path('admin_users_show', {id: user.id}) }}" class="validation-action-pill pill-activity" title="Voir l'historique d'activité et les logs d'audit">
+                                                <i class="fas fa-history"></i><span data-i18n-fr="Activité" data-i18n-en="Activity">Activité</span>
+                                            </a>
+                                            <a href="{{ path('admin_users_info', {id: user.id}) }}" class="validation-action-pill pill-info">
+                                                <i class="fas fa-info-circle"></i><span data-i18n-fr="Informations" data-i18n-en="Information">Informations</span>
+                                            </a>
+                                        {% else %}
+                                            {# User : Voir profil uniquement #}
+                                            <a href="{{ path('admin_users_show', {id: user.id}) }}" class="validation-action-pill pill-view">
+                                                <i class="fas fa-eye"></i><span data-i18n-fr="Voir le profil" data-i18n-en="View profile">Voir le profil</span>
+                                            </a>
+                                        {% endif %}
+                                    {% else %}
+                                        {# Comptes non actifs : seulement Voir profil #}
+                                        <a href="{{ path('admin_users_show', {id: user.id}) }}" class="validation-action-pill pill-view">
+                                            <i class="fas fa-eye"></i><span data-i18n-fr="Voir le profil" data-i18n-en="View profile">Voir le profil</span>
+                                        </a>
+                                    {% endif %}
+                                {% endif %}
                             </td>
                         </tr>
                         {% endfor %}
@@ -438,6 +481,24 @@ function handleStatusConfirm(form) {
     return window.confirm(message);
 }
 
+function confirmApprove(form) {
+    const manager = window.languageManager;
+    const lang = manager ? manager.getLanguage() : 'fr';
+    const datasetKey = lang === 'en' ? 'confirmEn' : 'confirmFr';
+    const fallback = form.dataset.confirmFr || 'Approuver la demande de cet organisateur ?';
+    const message = form.dataset[datasetKey] || fallback;
+    return window.confirm(message);
+}
+
+function confirmReject(form) {
+    const manager = window.languageManager;
+    const lang = manager ? manager.getLanguage() : 'fr';
+    const datasetKey = lang === 'en' ? 'confirmEn' : 'confirmFr';
+    const fallback = form.dataset.confirmFr || 'Rejeter la demande de cet organisateur ?';
+    const message = form.dataset[datasetKey] || fallback;
+    return window.confirm(message);
+}
+
 // Init simple (sans toggle) : tooltips + sélection multiple
 function initUsersPage() {
     // Initialiser les tooltips Bootstrap
@@ -580,7 +641,7 @@ function showUserStats() {
 
 .search-field label { 
     font-size: 0.85rem; 
-    font-weight: var(--font-weight-semibold); 
+    font-weight: var(--font-weight-medium); 
     color: var(--text-primary); 
     margin-bottom: 6px; 
 }
@@ -615,30 +676,48 @@ function showUserStats() {
 }
 
 .validation-card {
-    border: 1px solid rgba(211, 218, 230, 0.8);
-    border-radius: 16px;
-    box-shadow: 0 10px 30px rgba(15, 23, 42, 0.08);
+    border: 1px solid var(--border-color);
+    border-radius: var(--border-radius-lg);
+    box-shadow: var(--shadow-sm);
+    overflow: hidden;
+    background: var(--bg-card);
+}
+
+.validation-table {
+    width: 100%;
+    border-collapse: separate;
+    border-spacing: 0;
+    background: var(--bg-card);
 }
 
 .validation-table thead {
-    background: #f8fbff;
+    background: var(--bg-secondary);
+    position: sticky;
+    top: 0;
+    z-index: 10;
 }
 
 .validation-table thead th {
     color: var(--text-primary);
-    border-bottom: 2px solid rgba(206, 212, 224, 0.65);
-    font-weight: 600;
+    border-bottom: 1px solid var(--border-color);
+    font-weight: var(--font-weight-medium);
     text-transform: uppercase;
     font-size: 0.82rem;
     letter-spacing: 0.02em;
+    padding: 16px 20px;
+    white-space: nowrap;
 }
 
 .validation-table tbody td {
     border-bottom: none;
+    padding: 18px 20px;
+    vertical-align: middle;
+    background: var(--bg-card);
 }
 
 .validation-table tbody tr {
-    border-bottom: 1px solid rgba(206, 212, 224, 0.35);
+    border-bottom: 1px solid var(--border-color);
+    transition: all 0.2s ease;
 }
 
 .validation-table tbody tr:last-child {
@@ -646,7 +725,9 @@ function showUserStats() {
 }
 
 .validation-table tbody tr:hover {
-    background: rgba(236, 244, 255, 0.45);
+    background: var(--gray-50);
+    transform: none;
+    box-shadow: none;
 }
 
 /* Alignements colonnes */
@@ -740,12 +821,13 @@ function showUserStats() {
 .users-table .user-info {
     display: flex;
     align-items: center;
-    gap: 12px;
+    gap: 14px;
+    min-width: 0;
 }
 
 .users-table .user-avatar-sm {
-    width: 40px;
-    height: 40px;
+    width: 48px;
+    height: 48px;
     border-radius: 50%;
     overflow: hidden;
     flex-shrink: 0;
@@ -753,8 +835,15 @@ function showUserStats() {
     display: flex;
     align-items: center;
     justify-content: center;
-    font-weight: 600;
-    color: var(--accent);
+    font-weight: var(--font-weight-medium);
+    color: var(--text-primary);
+    box-shadow: var(--shadow-xs);
+    border: 1px solid var(--border-color);
+    transition: var(--transition-base);
+}
+
+.users-table tbody tr:hover .user-avatar-sm {
+    transform: none;
 }
 
 .users-table .user-avatar-sm img {
@@ -764,113 +853,153 @@ function showUserStats() {
 }
 
 .users-table .user-avatar-initials-sm {
-    width: 40px;
-    height: 40px;
+    width: 48px;
+    height: 48px;
     border-radius: 50%;
-    background: linear-gradient(135deg, #2f80ed, #56ccf2);
-    color: #fff;
+    background: var(--bg-secondary);
+    color: var(--text-primary);
+    border: 1px solid var(--border-color);
     display: flex;
     align-items: center;
     justify-content: center;
-    font-weight: 600;
+    font-weight: var(--font-weight-medium);
     font-size: 0.9rem;
+    box-shadow: var(--shadow-xs);
 }
 
 .users-table .user-details {
     display: flex;
     flex-direction: column;
-    gap: 0.1rem;
+    gap: 4px;
+    min-width: 0;
+    flex: 1;
 }
 
 .users-table .user-name {
     color: var(--text-primary);
-    font-size: 0.95rem;
+    font-size: 1rem;
+    font-weight: var(--font-weight-medium);
     margin: 0;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
 }
 
 .users-table .user-meta {
     display: flex;
     flex-direction: column;
-    gap: 2px;
+    gap: 3px;
     color: var(--text-secondary);
-    font-size: 0.8rem;
+    font-size: 0.82rem;
 }
 
 .users-table .user-email,
 .users-table .user-phone {
     color: var(--text-secondary);
+    display: flex;
+    align-items: center;
+    gap: 6px;
+}
+
+.users-table .user-email i,
+.users-table .user-phone i {
+    font-size: 0.75rem;
+    opacity: 0.6;
+    width: 14px;
+    text-align: center;
+    color: var(--text-secondary);
 }
 
 .role-badge {
-    font-size: 0.75rem;
-    padding: 6px 10px;
-    border-radius: 12px;
-    font-weight: 600;
+    font-size: 0.78rem;
+    padding: 6px 12px;
+    border-radius: var(--border-radius-sm);
+    font-weight: var(--font-weight-medium);
     display: inline-flex;
     align-items: center;
     gap: 6px;
+    white-space: nowrap;
+    transition: var(--transition-base);
+    box-shadow: var(--shadow-xs);
+}
+
+.role-badge:hover {
+    transform: none;
+    box-shadow: var(--shadow-sm);
 }
 
 .role-organizer {
-    background: rgba(52, 152, 219, 0.1);
-    color: #3498db;
-    border: 1px solid rgba(52, 152, 219, 0.2);
+    background: var(--bg-secondary);
+    color: var(--text-secondary);
+    border: 1px solid var(--border-color);
 }
 
 .role-user {
-    background: rgba(108, 117, 125, 0.12);
-    color: #495057;
-    border: 1px solid rgba(108, 117, 125, 0.25);
+    background: var(--bg-secondary);
+    color: var(--text-secondary);
+    border: 1px solid var(--border-color);
 }
 
 .role-admin {
-    background: rgba(23, 162, 184, 0.12);
-    color: #0f7280;
-    border: 1px solid rgba(23, 162, 184, 0.2);
+    background: var(--bg-secondary);
+    color: var(--text-primary);
+    border: 1px solid var(--border-color);
 }
 
 .status-badge {
-    font-size: 0.75rem;
+    font-size: 0.78rem;
     padding: 6px 12px;
-    border-radius: 8px;
-    font-weight: 600;
+    border-radius: var(--border-radius-sm);
+    font-weight: var(--font-weight-medium);
     display: inline-flex;
     align-items: center;
     gap: 6px;
-    border: 0;
+    white-space: nowrap;
+    transition: var(--transition-base);
+    box-shadow: var(--shadow-xs);
+}
+
+.status-badge:hover {
+    transform: none;
+    box-shadow: var(--shadow-sm);
 }
 
 .status-active {
-    background: rgba(40, 167, 69, 0.18);
-    color: #1e7e34;
+    background: var(--bg-secondary);
+    color: var(--success);
+    border: 1px solid var(--border-color);
 }
 
 .status-pending {
-    background: #ffc107;
-    color: #513c02;
+    background: var(--bg-secondary);
+    color: var(--warning);
+    border: 1px solid var(--border-color);
 }
 
 .status-rejected {
-    background: rgba(220, 53, 69, 0.22);
-    color: #a91f2d;
+    background: var(--bg-secondary);
+    color: var(--danger);
+    border: 1px solid var(--border-color);
 }
 
 .status-inactive {
-    background: rgba(108, 117, 125, 0.2);
-    color: #495057;
+    background: var(--bg-secondary);
+    color: var(--text-muted);
+    border: 1px solid var(--border-color);
 }
 
 .date-info {
     display: flex;
     flex-direction: column;
-    gap: 2px;
-    font-size: 0.8rem;
+    gap: 4px;
+    font-size: 0.85rem;
     color: var(--text-secondary);
 }
 
 .date-primary {
-    font-weight: 600;
+    font-weight: var(--font-weight-medium);
     color: var(--text-primary);
+    font-size: 0.9rem;
 }
 
 .actions-header {
@@ -883,45 +1012,357 @@ function showUserStats() {
     justify-content: center;
     gap: 0.5rem;
     border-bottom: none;
+    flex-wrap: wrap;
+    min-width: 200px;
+    padding: 12px 8px;
+    vertical-align: middle;
+}
+
+.actions-cell > * {
+    display: inline-flex;
+    align-items: center;
+    vertical-align: middle;
 }
 
 .validation-action-pill {
     display: inline-flex;
     align-items: center;
-    gap: 0.35rem;
-    padding: 8px 18px;
-    border-radius: 8px;
+    justify-content: center;
+    gap: 0.5rem;
+    padding: 10px 16px;
+    min-height: 38px;
+    height: 38px;
+    max-height: 38px;
+    border-radius: var(--border-radius-sm);
     font-size: 0.85rem;
-    font-weight: 600;
-    border: 1px solid transparent;
+    font-weight: var(--font-weight-medium);
+    border: 1px solid var(--border-color);
     text-decoration: none;
-    transition: all 0.2s ease;
+    transition: var(--transition-base);
+    white-space: nowrap;
+    box-shadow: var(--shadow-xs);
+    line-height: 1;
+    vertical-align: middle;
+    box-sizing: border-box;
+    flex-shrink: 0;
 }
 
 .validation-action-pill i {
-    font-size: 0.9rem;
+    font-size: 0.875rem;
+    width: 14px;
+    text-align: center;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    flex-shrink: 0;
+    line-height: 1;
+}
+
+.validation-action-pill span {
+    display: inline-flex;
+    align-items: center;
+    line-height: 1;
+    white-space: nowrap;
 }
 
 .validation-action-pill.pill-view {
-    background: rgba(19, 118, 235, 0.12);
-    color: #1466e0;
-    border-color: rgba(19, 118, 235, 0.4);
+    background: var(--bg-secondary);
+    color: var(--accent);
+    border-color: var(--border-color);
+}
+
+.validation-action-pill.pill-view:hover {
+    background: var(--bg-primary);
+    border-color: var(--accent);
+    color: var(--accent);
+    transform: none;
+    box-shadow: none;
 }
 
 .validation-action-pill.pill-approve {
-    background: rgba(38, 202, 109, 0.14);
-    color: #1b9954;
-    border-color: rgba(38, 202, 109, 0.45);
+    background: var(--bg-secondary);
+    color: var(--success);
+    border-color: var(--border-color);
+}
+
+.validation-action-pill.pill-approve:hover {
+    background: var(--bg-primary);
+    border-color: var(--success);
+    color: var(--success);
+    transform: none;
+    box-shadow: none;
 }
 
 .validation-action-pill.pill-reject {
-    background: rgba(230, 57, 70, 0.14);
-    color: #b23840;
-    border-color: rgba(230, 57, 70, 0.45);
+    background: var(--bg-secondary);
+    color: var(--danger);
+    border-color: var(--border-color);
+}
+
+.validation-action-pill.pill-reject:hover {
+    background: var(--bg-primary);
+    border-color: var(--danger);
+    color: var(--danger);
+    transform: none;
+    box-shadow: none;
+}
+
+.validation-action-pill.pill-info {
+    background: var(--bg-secondary);
+    color: var(--text-secondary);
+    border-color: var(--border-color);
+}
+
+.validation-action-pill.pill-info:hover {
+    background: var(--bg-primary);
+    border-color: var(--accent);
+    color: var(--accent);
+    transform: none;
+    box-shadow: none;
+}
+
+.validation-action-pill.pill-events {
+    background: var(--bg-secondary);
+    color: var(--text-secondary);
+    border-color: var(--border-color);
+}
+
+.validation-action-pill.pill-events:hover {
+    background: var(--bg-primary);
+    border-color: var(--accent);
+    color: var(--accent);
+    transform: none;
+    box-shadow: none;
+}
+
+.validation-action-pill.pill-payments {
+    background: var(--bg-secondary);
+    color: var(--text-secondary);
+    border-color: var(--border-color);
+}
+
+.validation-action-pill.pill-payments:hover {
+    background: var(--bg-primary);
+    border-color: var(--accent);
+    color: var(--accent);
+    transform: none;
+    box-shadow: none;
+}
+
+.validation-action-pill.pill-activity {
+    background: var(--bg-secondary);
+    color: var(--text-secondary);
+    border-color: var(--border-color);
+}
+
+.validation-action-pill.pill-activity:hover {
+    background: var(--bg-primary);
+    border-color: var(--accent);
+    color: var(--accent);
+    transform: none;
+    box-shadow: none;
+}
+
+.validation-action-pill.pill-tickets {
+    background: var(--bg-secondary);
+    color: var(--text-secondary);
+    border-color: var(--border-color);
+}
+
+.validation-action-pill.pill-tickets:hover {
+    background: var(--bg-primary);
+    border-color: var(--accent);
+    color: var(--accent);
+    transform: none;
+    box-shadow: none;
 }
 
 .validation-action-pill:hover {
-    filter: brightness(0.95);
+    filter: none;
+    transform: none;
+    box-shadow: none;
+}
+
+/* S'assurer que les boutons dans les formulaires héritent des mêmes styles */
+.actions-cell form,
+.actions-cell form.d-inline {
+    display: inline-flex !important;
+    align-items: center;
+    margin: 0;
+    padding: 0;
+    vertical-align: middle;
+    line-height: 0;
+    height: auto;
+}
+
+.actions-cell form .validation-action-pill {
+    margin: 0;
+    display: inline-flex;
+}
+
+.actions-cell button.validation-action-pill {
+    cursor: pointer;
+    font-family: inherit;
+    border: 1px solid var(--border-color);
+    background: none;
+    box-sizing: border-box;
+}
+
+.actions-cell button.validation-action-pill:focus {
+    outline: none;
+    box-shadow: 0 0 0 3px rgba(52, 152, 219, 0.1);
+}
+
+/* S'assurer que tous les liens sont alignés de la même manière */
+.actions-cell a.validation-action-pill {
+    display: inline-flex;
+}
+
+/* Responsive pour tablettes */
+@media (max-width: 992px) {
+    .validation-table thead th,
+    .validation-table tbody td {
+        padding: 14px 16px;
+        font-size: 0.9rem;
+    }
+    
+    .users-table .user-avatar-sm,
+    .users-table .user-avatar-initials-sm {
+        width: 44px;
+        height: 44px;
+        font-size: 0.95rem;
+    }
+    
+    .users-table .user-name {
+        font-size: 0.95rem;
+    }
+    
+    .validation-action-pill {
+        padding: 9px 14px;
+        min-height: 36px;
+        height: 36px;
+        max-height: 36px;
+        font-size: 0.8rem;
+    }
+    
+    .validation-action-pill i {
+        font-size: 0.8rem;
+        width: 13px;
+    }
+    
+    .actions-cell {
+        gap: 0.5rem;
+        min-width: 180px;
+        padding: 10px 6px;
+    }
+    
+    .actions-cell form {
+        display: inline-flex;
+        align-items: center;
+    }
+}
+
+/* Responsive pour mobiles */
+@media (max-width: 768px) {
+    .validation-table {
+        font-size: 0.85rem;
+    }
+    
+    .validation-table thead th {
+        padding: 12px 10px;
+        font-size: 0.75rem;
+    }
+    
+    .validation-table tbody td {
+        padding: 12px 10px;
+    }
+    
+    .users-table .user-info {
+        gap: 10px;
+    }
+    
+    .users-table .user-avatar-sm,
+    .users-table .user-avatar-initials-sm {
+        width: 40px;
+        height: 40px;
+        font-size: 0.9rem;
+    }
+    
+    .users-table .user-name {
+        font-size: 0.9rem;
+    }
+    
+    .users-table .user-meta {
+        font-size: 0.75rem;
+    }
+    
+    .role-badge,
+    .status-badge {
+        font-size: 0.7rem;
+        padding: 5px 10px;
+    }
+    
+    .date-info {
+        font-size: 0.75rem;
+    }
+    
+    .date-primary {
+        font-size: 0.8rem;
+    }
+    
+    .actions-cell {
+        flex-direction: column;
+        gap: 0.5rem;
+        align-items: stretch;
+        min-width: auto;
+        padding: 10px 4px;
+    }
+    
+    .validation-action-pill {
+        width: 100%;
+        justify-content: center;
+        padding: 10px 14px;
+        min-height: 38px;
+        height: 38px;
+        max-height: 38px;
+        font-size: 0.8rem;
+    }
+    
+    .validation-action-pill i {
+        font-size: 0.8rem;
+        width: 13px;
+    }
+    
+    .actions-cell form {
+        display: inline-flex;
+        align-items: center;
+        width: 100%;
+    }
+}
+
+/* Amélioration du scroll horizontal pour tablettes */
+.table-responsive {
+    overflow-x: auto;
+    -webkit-overflow-scrolling: touch;
+    border-radius: 12px;
+}
+
+.table-responsive::-webkit-scrollbar {
+    height: 8px;
+}
+
+.table-responsive::-webkit-scrollbar-track {
+    background: var(--bg-secondary);
+    border-radius: 4px;
+}
+
+.table-responsive::-webkit-scrollbar-thumb {
+    background: var(--border-color);
+    border-radius: 4px;
+}
+
+.table-responsive::-webkit-scrollbar-thumb:hover {
+    background: var(--text-secondary);
 }
 </style>
 {% endblock %}

@@ -3,7 +3,7 @@
 {% set isReportsMain = currentRoute == 'app_reports_rapports' %}
 {% set isStats = currentRoute == 'app_reports_statistiques' %}
 {% set isUserManagement = currentRoute starts with 'admin_users' or currentRoute starts with 'admin_audit_' %}
-{% set isValidation = currentRoute starts with 'admin_validation' %}
+{% set isBilling = currentRoute starts with 'admin_billing' %}
 {% set isProfile = currentRoute starts with 'app_profile' %}
 {% set isSettings = currentRoute starts with 'app_settings' %}
 
@@ -65,13 +65,13 @@
                 </a>
             </li>
             
-            <li class="nav-item {{ isValidation ? 'active' }}">
-                <a href="{{ path('admin_validation_pending') }}" class="nav-link {{ isValidation ? 'active' }}" {% if isValidation %}aria-current="page"{% endif %}>
+            <li class="nav-item {{ isBilling ? 'active' }}">
+                <a href="{{ path('admin_billing_invoices') }}" class="nav-link {{ isBilling ? 'active' }}" {% if isBilling %}aria-current="page"{% endif %}>
                     <div class="nav-icon">
-                        <i class="fas fa-user-check"></i>
+                        <i class="fas fa-file-invoice-dollar"></i>
                     </div>
-                    <span class="nav-text" data-i18n="layout.sidebar.validation"></span>
-                    <span class="nav-tooltip" data-i18n="layout.sidebar.validation"></span>
+                    <span class="nav-text" data-i18n="layout.sidebar.billing">Facturation & Paiement</span>
+                    <span class="nav-tooltip" data-i18n="layout.sidebar.billing">Facturation & Paiement</span>
                 </a>
             </li>
             {% endif %}

@@ -25,8 +25,9 @@ class Event
     #[ORM\Column(type: Types::BIGINT)]
     private ?string $id = null;
 
-    #[ORM\ManyToOne(targetEntity: User::class)]
-    #[ORM\JoinColumn(name: 'organizer_id', referencedColumnName: 'id', nullable: true, onDelete: 'SET NULL')]
+    #[ORM\Column(name: 'organizer_profile_id', type: Types::BIGINT, nullable: true)]
+    private ?string $organizerProfileId = null;
+    
     private ?User $organizer = null;
 
     #[ORM\ManyToOne(targetEntity: EventCategory::class)]
@@ -122,6 +123,19 @@ class Event
         return $this->id;
     }
 
+    public function getOrganizerProfileId(): ?string
+    {
+        return $this->organizerProfileId;
+    }
+
+    public function setOrganizerProfileId(?string $organizerProfileId): static
+    {
+        $this->organizerProfileId = $organizerProfileId;
+        $this->organizer = null; // Réinitialiser le cache
+
+        return $this;
+    }
+
     public function getOrganizer(): ?User
     {
         return $this->organizer;
@@ -129,6 +143,8 @@ class Event
 
     public function setOrganizer(?User $organizer): static
     {
+        // Cette méthode est gardée pour la compatibilité mais ne modifie pas la base de données directement
+        // Pour modifier l'organizer, il faut utiliser setOrganizerProfileId via organizer_profiles
         $this->organizer = $organizer;
 
         return $this;
