@@ -11,7 +11,7 @@ use Symfony\Component\Console\Style\SymfonyStyle;
 
 #[AsCommand(
     name: 'app:mark-overdue-invoices',
-    description: 'Marque les factures non payées comme en retard (à exécuter entre le 10ème et 15ème jour du mois)',
+    description: 'Marque les factures non payées comme en retard (à exécuter à partir du 10ème jour du mois - date limite de paiement)',
 )]
 class MarkOverdueInvoicesCommand extends Command
 {
@@ -28,10 +28,10 @@ class MarkOverdueInvoicesCommand extends Command
         $today = new \DateTimeImmutable();
         $dayOfMonth = (int) $today->format('d');
 
-        // Vérifier si on est entre le 10ème et 15ème jour du mois
-        if ($dayOfMonth < 10 || $dayOfMonth > 15) {
+        // Vérifier si on est après le 10ème jour du mois (date limite de paiement)
+        if ($dayOfMonth < 10) {
             $io->warning(sprintf(
-                'Cette commande doit être exécutée entre le 10ème et 15ème jour du mois. Aujourd\'hui est le jour %d.',
+                'Cette commande doit être exécutée à partir du 10ème jour du mois (date limite de paiement). Aujourd\'hui est le jour %d.',
                 $dayOfMonth
             ));
             

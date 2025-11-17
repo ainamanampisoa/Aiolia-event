@@ -295,7 +295,12 @@ class SubscriptionInvoice
 
     /**
      * Calcule le nombre de jours de retard d'une facture
+     * Le retard est calculé à partir du 10ème jour du mois (date limite de paiement)
      * Retourne null si la facture n'est pas en retard ou si elle est payée
+     * 
+     * Règles:
+     * - Le 10ème jour du mois = date limite de paiement
+     * - Le retard est calculé à partir du 10ème jour (pas de la date d'échéance)
      */
     public function getDaysOverdue(?\DateTimeInterface $currentDate = null): ?int
     {
@@ -309,19 +314,28 @@ class SubscriptionInvoice
             return null;
         }
 
-        $dueDate = $this->getDueAt();
-        if (!$dueDate) {
-            return null;
-        }
-
         $now = $currentDate ?? new \DateTimeImmutable();
         
-        // Si la date actuelle est après la date d'échéance
-        if ($now > $dueDate) {
-            $diff = $now->diff($dueDate);
-            return (int) $diff->days;
+        // Calculer le 10ème jour du mois de la facture (date limite de paiement)
+        $invoiceMonth = (int) $this->issuedAt->format('n');
+        $invoiceYear = (int) $this->issuedAt->format('Y');
+        $paymentDeadline = new \DateTimeImmutable(sprintf('%d-%d-10 23:59:59', $invoiceYear, $invoiceMonth));
+        
+        // Calculer les jours de retard uniquement si on est après le 10ème jour du mois
+        // et que nous sommes encore dans le même mois
+        $currentMonth = (int) $now->format('n');
+        $currentYear = (int) $now->format('Y');
+        $currentDay = (int) $now->format('d');
+        
+        // Vérifier qu'on est dans le même mois et après le 10ème jour
+        if ($currentMonth === $invoiceMonth && $currentYear === $invoiceYear && $currentDay > 10) {
+            // Le retard est calculé à partir du 10ème jour
+            // Si on est le 12ème jour et non payé, retard = 12 - 10 = 2 jours
+            $daysOverdue = $currentDay - 10;
+            return max(0, $daysOverdue);
         }
-
+        
+        // Si on est dans un mois suivant ou avant le 10ème jour, retourner null
         return null;
     }
 

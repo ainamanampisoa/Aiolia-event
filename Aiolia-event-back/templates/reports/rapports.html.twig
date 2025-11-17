@@ -13,11 +13,60 @@
             </p>
         </div>
         <div class="header-actions">
+            <form method="get" action="{{ path('app_reports_rapports') }}" style="display: flex; gap: 10px; align-items: flex-end; flex-wrap: wrap; margin-right: 10px;">
+                <div style="display: flex; flex-direction: column; gap: 4px;">
+                    <label style="font-size: 0.85rem; color: var(--text-secondary);">Mois</label>
+                    <select 
+                        name="month" 
+                        style="padding: 8px 12px; border: 2px solid var(--border-color); background: var(--bg-secondary); color: var(--text-primary); border-radius: 8px; font-size: 0.9rem; min-width: 140px;"
+                    >
+                        <option value="">-- Tous les mois --</option>
+                        <option value="1" {{ currentMonth == '1' ? 'selected' : '' }}>Janvier</option>
+                        <option value="2" {{ currentMonth == '2' ? 'selected' : '' }}>Février</option>
+                        <option value="3" {{ currentMonth == '3' ? 'selected' : '' }}>Mars</option>
+                        <option value="4" {{ currentMonth == '4' ? 'selected' : '' }}>Avril</option>
+                        <option value="5" {{ currentMonth == '5' ? 'selected' : '' }}>Mai</option>
+                        <option value="6" {{ currentMonth == '6' ? 'selected' : '' }}>Juin</option>
+                        <option value="7" {{ currentMonth == '7' ? 'selected' : '' }}>Juillet</option>
+                        <option value="8" {{ currentMonth == '8' ? 'selected' : '' }}>Août</option>
+                        <option value="9" {{ currentMonth == '9' ? 'selected' : '' }}>Septembre</option>
+                        <option value="10" {{ currentMonth == '10' ? 'selected' : '' }}>Octobre</option>
+                        <option value="11" {{ currentMonth == '11' ? 'selected' : '' }}>Novembre</option>
+                        <option value="12" {{ currentMonth == '12' ? 'selected' : '' }}>Décembre</option>
+                    </select>
+                </div>
+                <div style="display: flex; flex-direction: column; gap: 4px;">
+                    <label style="font-size: 0.85rem; color: var(--text-secondary);">Année</label>
+                    <select 
+                        name="year" 
+                        style="padding: 8px 12px; border: 2px solid var(--border-color); background: var(--bg-secondary); color: var(--text-primary); border-radius: 8px; font-size: 0.9rem; min-width: 120px;"
+                    >
+                        <option value="">-- Toutes les années --</option>
+                        {% set currentYear = "now"|date("Y")|number_format(0, '', '') %}
+                        {% for i in -1..5 %}
+                            {% set year = currentYear - i %}
+                            <option value="{{ year }}" {{ currentYear == year ? 'selected' : '' }}>{{ year }}</option>
+                        {% endfor %}
+                    </select>
+                </div>
+                <div style="display: flex; flex-direction: column; gap: 4px; margin-top: 20px;">
+                    <button type="submit" class="btn btn-primary" style="padding: 8px 20px; border-radius: 8px; font-size: 0.9rem;">
+                        <i class="fas fa-filter"></i> Filtrer
+                    </button>
+                </div>
+                {% if currentMonth or currentYear %}
+                <div style="display: flex; flex-direction: column; gap: 4px; margin-top: 20px;">
+                    <a href="{{ path('app_reports_rapports') }}" class="btn btn-secondary" style="padding: 8px 20px; border-radius: 8px; font-size: 0.9rem; text-decoration: none;">
+                        <i class="fas fa-times"></i> Réinitialiser
+                    </a>
+                </div>
+                {% endif %}
+            </form>
             <button class="btn" style="background: var(--success); color: white; border: none; padding: 12px 24px; border-radius: var(--border-radius-md); cursor: pointer; font-weight: 600; margin-right: 10px;">
                 <i class="fas fa-file-pdf"></i>
                 <span data-i18n="reports.actions.export_pdf">Exporter PDF</span>
             </button>
-            <button class="btn" style="background: var(--accent); color: white; border: none; padding: 12px 24px; border-radius: var(--border-radius-md); cursor: pointer; font-weight: 600;">
+            <button class="btn" style="background: #3498DB !important; color: white; border: none; padding: 12px 24px; border-radius: var(--border-radius-md); cursor: pointer; font-weight: 600;">
                 <i class="fas fa-file-csv"></i>
                 <span data-i18n="reports.actions.export_csv">Exporter CSV</span>
             </button>
@@ -25,20 +74,48 @@
     </div>
 
     <!-- KPIs globaux -->
-    <div class="kpi-grid">
-        <div class="kpi-card">
-            <div class="kpi-label" data-i18n="reports.kpi.organizers">Organisateurs</div>
-            <div class="kpi-value">{{ stats.counts.organizers ?? '57' }}</div>
+    <div class="stats-grid stats-grid-compact">
+        <div class="stat-card stat-card-compact">
+            <div class="stat-icon stat-icon-compact bg-primary">
+                <i class="fas fa-user-tie"></i>
+            </div>
+            <div class="stat-content">
+                <h3>{{ stats.counts.organizers ?? 0 }}</h3>
+                <p data-i18n="reports.kpi.organizers">Organisateurs</p>
+            </div>
         </div>
-        <div class="kpi-card">
+        <div class="stat-card stat-card-compact">
+            <div class="stat-icon stat-icon-compact bg-success">
+                <i class="fas fa-file-invoice-dollar"></i>
+            </div>
+            <div class="stat-content">
+                <h3>{{ stats.counts.paid_invoices ?? 0 }}</h3>
+                <p data-i18n="reports.kpi.paid_invoices">Factures payées</p>
+            </div>
+        </div>
+        <div class="stat-card stat-card-compact" style="display: none;">
             <div class="kpi-label" data-i18n="reports.kpi.users">Utilisateurs</div>
             <div class="kpi-value">{{ stats.counts.users ?? '2 345' }}</div>
         </div>
-        <div class="kpi-card">
-            <div class="kpi-label" data-i18n="reports.kpi.active_subscriptions">Abonnements actifs</div>
-            <div class="kpi-value">{{ stats.counts.active_subscriptions ?? '173' }}</div>
+        <div class="stat-card stat-card-compact">
+            <div class="stat-icon stat-icon-compact bg-warning">
+                <i class="fas fa-sync-alt"></i>
+            </div>
+            <div class="stat-content">
+                <h3>{{ stats.counts.active_subscriptions ?? 0 }}</h3>
+                <p data-i18n="reports.kpi.active_subscriptions">Abonnements actifs</p>
+            </div>
         </div>
-        <div class="kpi-card">
+        <div class="stat-card stat-card-compact">
+            <div class="stat-icon stat-icon-compact bg-info">
+                <i class="fas fa-money-bill-wave"></i>
+            </div>
+            <div class="stat-content">
+                <h3>{{ (stats.organizers.subscription_revenue_total ?? 0)|number_format(0, ',', ' ') }}</h3>
+                <p data-i18n="reports.kpi.subscription_revenue">Revenus abonnements (MGA)</p>
+            </div>
+        </div>
+        <div class="stat-card stat-card-compact" style="display: none;">
             <div class="kpi-label" data-i18n="reports.kpi.subscription_revenue">Revenus abonnements</div>
             <div class="kpi-value">{{ stats.organizers.subscription_revenue_total ?? '45 890 €' }}</div>
         </div>
@@ -59,28 +136,28 @@
                         <i class="fas fa-money-bill-wave" style="color: var(--success); margin-right: 8px;"></i>
                         <span data-i18n="reports.stats.gross_revenue">Revenus bruts</span>
                     </div>
-                    <div class="stat-value-lg">45,890 €</div>
+                    <div class="stat-value-lg">{{ stats.tax.gross_revenue|number_format(0, ',', ' ') }} MGA</div>
                 </div>
                 <div class="stat-row">
                     <div class="stat-label">
                         <i class="fas fa-percentage" style="color: var(--warning); margin-right: 8px;"></i>
-                        <span data-i18n="reports.stats.vat">TVA (18%)</span>
+                        <span data-i18n="reports.stats.vat">TVA ({{ (stats.tax.vat_rate * 100)|number_format(0) }}%)</span>
                     </div>
-                    <div class="stat-value-lg">8,260 €</div>
+                    <div class="stat-value-lg">{{ stats.tax.vat|number_format(0, ',', ' ') }} MGA</div>
                 </div>
                 <div class="stat-row">
                     <div class="stat-label">
                         <i class="fas fa-hand-holding-usd" style="color: var(--info); margin-right: 8px;"></i>
-                        <span data-i18n="reports.stats.platform_commission">Commissions plateforme (5%)</span>
+                        <span data-i18n="reports.stats.platform_commission">Commissions plateforme ({{ (stats.tax.commission_rate * 100)|number_format(0) }}%)</span>
                     </div>
-                    <div class="stat-value-lg">2,294 €</div>
+                    <div class="stat-value-lg">{{ stats.tax.platform_commission|number_format(0, ',', ' ') }} MGA</div>
                 </div>
                 <div class="stat-row stat-row-total">
                     <div class="stat-label">
                         <i class="fas fa-wallet" style="color: var(--primary); margin-right: 8px;"></i>
                         <strong data-i18n="reports.stats.net_revenue">Revenus nets</strong>
                     </div>
-                    <div class="stat-value-lg"><strong>35,336 €</strong></div>
+                    <div class="stat-value-lg"><strong>{{ stats.tax.net_revenue|number_format(0, ',', ' ') }} MGA</strong></div>
                 </div>
             </div>
         </div>
@@ -201,7 +278,7 @@
                         </select>
                     </div>
                 </div>
-                <button class="btn" style="background: var(--accent); color: white; padding: 12px 32px; border: none; border-radius: 8px; cursor: pointer; font-weight: 600; margin-top: 10px;">
+                <button class="btn" style="background: #3498DB !important; color: white; padding: 12px 32px; border: none; border-radius: 8px; cursor: pointer; font-weight: 600; margin-top: 10px;">
                     <i class="fas fa-file-export"></i> <span data-i18n="reports.actions.generate">Générer le rapport</span>
                 </button>
             </div>
@@ -230,22 +307,112 @@ document.addEventListener('DOMContentLoaded', function() {
 </script>
 
 <style>
-.kpi-grid {
+.stats-grid {
     display: grid;
     grid-template-columns: repeat(4, 1fr);
-    gap: 12px;
+    gap: 16px;
     margin: 12px 0 24px;
 }
-.kpi-card {
+
+.stats-grid-compact {
+    grid-template-columns: repeat(4, 1fr);
+}
+
+.stat-card {
     background: var(--bg-card);
     border: 1px solid var(--border-color);
     border-radius: var(--border-radius-md);
-    padding: 14px;
+    padding: 16px;
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    transition: transform 0.2s ease, box-shadow 0.2s ease;
 }
-.kpi-label { font-size: 0.85rem; color: var(--text-secondary); }
-.kpi-value { font-size: 1.4rem; font-weight: var(--font-weight-bold); color: var(--text-primary); }
-@media (max-width: 1200px){ .kpi-grid { grid-template-columns: repeat(2, 1fr); } }
-@media (max-width: 768px){ .kpi-grid { grid-template-columns: 1fr; } }
+
+.stat-card:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+}
+
+.stat-card-compact {
+    padding: 10px 12px;
+}
+
+.stat-icon {
+    width: 48px;
+    height: 48px;
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 1.2rem;
+    color: white;
+    flex-shrink: 0;
+}
+
+.stat-icon-compact {
+    width: 40px;
+    height: 40px;
+    font-size: 1rem;
+}
+
+.bg-primary {
+    background: linear-gradient(135deg, #3498DB, #5DADE2);
+}
+
+.bg-success {
+    background: linear-gradient(135deg, #27AE60, #2ECC71);
+}
+
+.bg-warning {
+    background: linear-gradient(135deg, #F39C12, #E67E22);
+}
+
+.bg-info {
+    background: linear-gradient(135deg, #17A2B8, #138496);
+}
+
+.stat-content {
+    flex: 1;
+    min-width: 0;
+}
+
+.stat-content h3 {
+    font-size: 1.4rem;
+    font-weight: var(--font-weight-bold);
+    color: var(--text-primary);
+    margin: 0 0 4px 0;
+    line-height: 1.2;
+}
+
+.stat-card-compact .stat-content h3 {
+    font-size: 1.2rem;
+    margin-bottom: 2px;
+    line-height: 1.1;
+}
+
+.stat-content p {
+    font-size: 0.85rem;
+    color: var(--text-secondary);
+    margin: 0;
+    line-height: 1.3;
+}
+
+.stat-card-compact .stat-content p {
+    font-size: 0.8rem;
+}
+
+@media (max-width: 1200px) {
+    .stats-grid-compact {
+        grid-template-columns: repeat(2, 1fr);
+    }
+}
+
+@media (max-width: 768px) {
+    .stats-grid-compact {
+        grid-template-columns: 1fr;
+    }
+}
 .stats-details {
     display: flex;
     flex-direction: column;
@@ -342,7 +509,7 @@ document.addEventListener('DOMContentLoaded', function() {
 .btn-report {
     width: 100%;
     padding: 10px;
-    background: var(--accent);
+    background: #3498DB !important;
     color: white;
     border: none;
     border-radius: var(--border-radius-sm);
@@ -352,7 +519,7 @@ document.addEventListener('DOMContentLoaded', function() {
 }
 
 .btn-report:hover {
-    background: var(--accent-light);
+    background: #5DADE2 !important;
 }
 
 .custom-report-form {

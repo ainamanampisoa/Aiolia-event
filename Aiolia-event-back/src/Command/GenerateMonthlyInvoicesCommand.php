@@ -12,7 +12,7 @@ use Symfony\Component\Console\Style\SymfonyStyle;
 
 #[AsCommand(
     name: 'app:generate-monthly-invoices',
-    description: 'Génère automatiquement les factures mensuelles pour les organisateurs (à exécuter les 5 derniers jours du mois)',
+    description: 'Génère automatiquement les factures mensuelles pour les organisateurs (à exécuter les 7 derniers jours du mois)',
 )]
 class GenerateMonthlyInvoicesCommand extends Command
 {
@@ -30,11 +30,11 @@ class GenerateMonthlyInvoicesCommand extends Command
         $dayOfMonth = (int) $today->format('d');
         $daysInMonth = (int) $today->format('t'); // Nombre de jours dans le mois
 
-        // Vérifier si on est dans les 5 derniers jours du mois
-        if ($dayOfMonth < ($daysInMonth - 4)) {
+        // Vérifier si on est dans les 7 derniers jours du mois
+        if ($dayOfMonth < ($daysInMonth - 6)) {
             $io->warning(sprintf(
-                'Cette commande doit être exécutée pendant les 5 derniers jours du mois (du %d au %d). Aujourd\'hui est le jour %d.',
-                $daysInMonth - 4,
+                'Cette commande doit être exécutée pendant les 7 derniers jours du mois (du %d au %d). Aujourd\'hui est le jour %d.',
+                $daysInMonth - 6,
                 $daysInMonth,
                 $dayOfMonth
             ));

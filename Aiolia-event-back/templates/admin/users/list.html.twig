@@ -123,7 +123,7 @@
                 </div>
 
                 <div class="search-actions">
-                    <button type="submit" class="btn btn-primary" style="background: var(--accent); color: var(--text-inverse); border: none; padding: 10px 24px; border-radius: 8px; cursor: pointer; font-weight: 500;">
+                    <button type="submit" class="btn btn-primary" style="background: #3498DB !important; color: var(--text-inverse); border: none; padding: 10px 24px; border-radius: 8px; cursor: pointer; font-weight: 500;">
                         <i class="fas fa-search"></i>
                         <span data-i18n-fr="Rechercher" data-i18n-en="Search">Rechercher</span>
                     </button>
@@ -426,7 +426,7 @@
             {% elseif users|length > 0 %}
                 <div class="pagination-wrapper">
                     <div class="pagination-summary">
-                        <small data-i18n-target="html" data-i18n-fr="Affichage de {{ users|length }} utilisateur(s)" data-i18n-en="Showing {{ users|length }} user(s)">Affichage de {{ users|length }} utilisateur(s)</small>
+                        <small data-i18n-target="html" data-i18n-fr="Affichage de {{ users|length }} utilisateur(s) sur {{ totalUsersFiltered }} total" data-i18n-en="Showing {{ users|length }} user(s) of {{ totalUsersFiltered }} total">Affichage de {{ users|length }} utilisateur(s) sur {{ totalUsersFiltered }} total</small>
                     </div>
                 </div>
             {% endif %}
@@ -837,9 +837,9 @@ function showUserStats() {
     justify-content: center;
     font-weight: var(--font-weight-medium);
     color: var(--text-primary);
-    box-shadow: var(--shadow-xs);
-    border: 1px solid var(--border-color);
-    transition: var(--transition-base);
+    box-shadow: var(--shadow-sm);
+    border: 2px solid var(--bg-secondary);
+    transition: var(--transition-smooth);
 }
 
 .users-table tbody tr:hover .user-avatar-sm {
@@ -850,21 +850,25 @@ function showUserStats() {
     width: 100%;
     height: 100%;
     object-fit: cover;
+    border-radius: 50%;
+    border: 2px solid var(--bg-secondary);
+    box-shadow: var(--shadow-sm);
 }
 
 .users-table .user-avatar-initials-sm {
     width: 48px;
     height: 48px;
     border-radius: 50%;
-    background: var(--bg-secondary);
-    color: var(--text-primary);
-    border: 1px solid var(--border-color);
+    background: linear-gradient(135deg, var(--accent), var(--accent-light));
+    color: var(--white);
+    border: 2px solid var(--bg-secondary);
     display: flex;
     align-items: center;
     justify-content: center;
-    font-weight: var(--font-weight-medium);
-    font-size: 0.9rem;
-    box-shadow: var(--shadow-xs);
+    font-weight: var(--font-weight-bold);
+    font-size: 1.1rem;
+    box-shadow: var(--shadow-sm);
+    transition: var(--transition-smooth);
 }
 
 .users-table .user-details {

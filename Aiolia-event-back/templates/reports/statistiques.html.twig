@@ -13,12 +13,55 @@
             </p>
         </div>
         <div class="header-actions">
-            <select style="padding: 10px 16px; border: 2px solid var(--border-color); background: var(--bg-secondary); color: var(--text-primary); border-radius: 8px; font-size: 0.9rem; cursor: pointer;">
-                <option>7 derniers jours</option>
-                <option>30 derniers jours</option>
-                <option>3 derniers mois</option>
-                <option>Cette année</option>
-            </select>
+            <form method="get" action="{{ path('app_reports_statistiques') }}" style="display: flex; gap: 10px; align-items: flex-end; flex-wrap: wrap;">
+                <div style="display: flex; flex-direction: column; gap: 4px;">
+                    <label style="font-size: 0.85rem; color: var(--text-secondary);">Mois</label>
+                    <select 
+                        name="month" 
+                        style="padding: 8px 12px; border: 2px solid var(--border-color); background: var(--bg-secondary); color: var(--text-primary); border-radius: 8px; font-size: 0.9rem; min-width: 140px;"
+                    >
+                        <option value="">-- Tous les mois --</option>
+                        <option value="1" {{ currentMonth == '1' ? 'selected' : '' }}>Janvier</option>
+                        <option value="2" {{ currentMonth == '2' ? 'selected' : '' }}>Février</option>
+                        <option value="3" {{ currentMonth == '3' ? 'selected' : '' }}>Mars</option>
+                        <option value="4" {{ currentMonth == '4' ? 'selected' : '' }}>Avril</option>
+                        <option value="5" {{ currentMonth == '5' ? 'selected' : '' }}>Mai</option>
+                        <option value="6" {{ currentMonth == '6' ? 'selected' : '' }}>Juin</option>
+                        <option value="7" {{ currentMonth == '7' ? 'selected' : '' }}>Juillet</option>
+                        <option value="8" {{ currentMonth == '8' ? 'selected' : '' }}>Août</option>
+                        <option value="9" {{ currentMonth == '9' ? 'selected' : '' }}>Septembre</option>
+                        <option value="10" {{ currentMonth == '10' ? 'selected' : '' }}>Octobre</option>
+                        <option value="11" {{ currentMonth == '11' ? 'selected' : '' }}>Novembre</option>
+                        <option value="12" {{ currentMonth == '12' ? 'selected' : '' }}>Décembre</option>
+                    </select>
+                </div>
+                <div style="display: flex; flex-direction: column; gap: 4px;">
+                    <label style="font-size: 0.85rem; color: var(--text-secondary);">Année</label>
+                    <select 
+                        name="year" 
+                        style="padding: 8px 12px; border: 2px solid var(--border-color); background: var(--bg-secondary); color: var(--text-primary); border-radius: 8px; font-size: 0.9rem; min-width: 120px;"
+                    >
+                        <option value="">-- Toutes les années --</option>
+                        {% set currentYear = "now"|date("Y")|number_format(0, '', '') %}
+                        {% for i in -1..5 %}
+                            {% set year = currentYear - i %}
+                            <option value="{{ year }}" {{ currentYear == year ? 'selected' : '' }}>{{ year }}</option>
+                        {% endfor %}
+                    </select>
+                </div>
+                <div style="display: flex; flex-direction: column; gap: 4px; margin-top: 20px;">
+                    <button type="submit" class="btn btn-primary" style="padding: 8px 20px; border-radius: 8px; font-size: 0.9rem;">
+                        <i class="fas fa-filter"></i> Filtrer
+                    </button>
+                </div>
+                {% if currentMonth or currentYear %}
+                <div style="display: flex; flex-direction: column; gap: 4px; margin-top: 20px;">
+                    <a href="{{ path('app_reports_statistiques') }}" class="btn btn-secondary" style="padding: 8px 20px; border-radius: 8px; font-size: 0.9rem; text-decoration: none;">
+                        <i class="fas fa-times"></i> Réinitialiser
+                    </a>
+                </div>
+                {% endif %}
+            </form>
         </div>
     </div>
 
@@ -49,7 +92,7 @@
                 <div class="card-header">
                     <h3>📊 Évolution des abonnements</h3>
                     <p style="color: var(--text-secondary); font-size: 0.9rem; margin-top: 4px;">
-                        Nombre d'abonnements actifs par jour
+                        Nombre d'abonnements actifs par mois
                     </p>
                 </div>
                 <div class="card-body">
@@ -76,7 +119,7 @@
     <!-- Top payeurs (barres) -->
     <div class="chart-card" style="margin-bottom: 24px;">
         <div class="card-header">
-            <h3>🏆 Top payeurs (30 jours)</h3>
+            <h3>🏆 Top payeurs{% if currentMonth or currentYear %}{% set monthNames = {1: 'Janvier', 2: 'Février', 3: 'Mars', 4: 'Avril', 5: 'Mai', 6: 'Juin', 7: 'Juillet', 8: 'Août', 9: 'Septembre', 10: 'Octobre', 11: 'Novembre', 12: 'Décembre'} %} ({% if currentMonth and currentYear %}{{ monthNames[currentMonth] }} {{ currentYear }}{% elseif currentMonth %}{{ monthNames[currentMonth] }}{% elseif currentYear %}{{ currentYear }}{% endif %}){% else %} (12 derniers mois){% endif %}</h3>
             <p style="color: var(--text-secondary); font-size: 0.9rem; margin-top: 4px;">
                 Classement des meilleurs contributeurs
             </p>
@@ -266,7 +309,7 @@ function renderStatsCharts() {
         planEl._chartInstance = new Chart(planEl.getContext('2d'), {
             type: 'doughnut',
             data: { labels, datasets: [{ data: values, backgroundColor: palette.slice(0, values.length), borderWidth: 1 }] },
-            options: { responsive: true, maintainAspectRatio: false, plugins: { legend: { labels: { color: textColor } }, tooltip: { callbacks: { label: (ctx) => { const v = ctx.raw ?? 0; return ' ' + v.toLocaleString('fr-FR') + ' \u20AC'; } } } } }
+            options: { responsive: true, maintainAspectRatio: false, plugins: { legend: { labels: { color: textColor } }, tooltip: { callbacks: { label: (ctx) => { const v = ctx.raw ?? 0; return ' ' + v.toLocaleString('fr-FR') + ' MGA'; } } } } }
         });
     }
 
@@ -281,8 +324,8 @@ function renderStatsCharts() {
         const gridColor = 'rgba(128,128,128,0.2)';
         topEl._chartInstance = new Chart(topEl.getContext('2d'), {
             type: 'bar',
-            data: { labels, datasets: [{ label: 'Total payé (\u20AC)', data: values, backgroundColor: accent + '88', borderColor: accent, borderWidth: 1 }] },
-            options: { responsive: true, maintainAspectRatio: false, scales: { x: { grid: { display: false }, ticks: { color: textColor } }, y: { beginAtZero: true, grid: { color: gridColor }, ticks: { color: textColor } } }, plugins: { legend: { labels: { color: textColor } }, tooltip: { callbacks: { label: (ctx) => { const v = ctx.parsed.y ?? 0; return ' ' + v.toLocaleString('fr-FR') + ' \u20AC'; } } } } }
+            data: { labels, datasets: [{ label: 'Total payé (MGA)', data: values, backgroundColor: accent + '88', borderColor: accent, borderWidth: 1 }] },
+            options: { responsive: true, maintainAspectRatio: false, scales: { x: { grid: { display: false }, ticks: { color: textColor } }, y: { beginAtZero: true, grid: { color: gridColor }, ticks: { color: textColor } } }, plugins: { legend: { labels: { color: textColor } }, tooltip: { callbacks: { label: (ctx) => { const v = ctx.parsed.y ?? 0; return ' ' + v.toLocaleString('fr-FR') + ' MGA'; } } } } }
         });
     }
 }

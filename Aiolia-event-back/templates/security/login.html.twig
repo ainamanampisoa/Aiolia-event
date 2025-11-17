@@ -219,7 +219,31 @@
                         <!-- Login Form -->
                         <form method="post" class="auth-form" autocomplete="off">
                             {% if error %}
-                                <div class="alert alert-danger">{{ error.messageKey|trans(error.messageData, 'security') }}</div>
+                                <div class="alert alert-danger subscription-error">
+                                    <div class="error-header">
+                                        <i class="fas fa-exclamation-triangle"></i>
+                                        <strong>Accès refusé</strong>
+                                    </div>
+                                    <div class="error-message">
+                                        {{ error.messageKey|trans(error.messageData, 'security') }}
+                                    </div>
+                                    {% if 'ne pouvez pas vous connecter' in error.messageKey|trans(error.messageData, 'security')|lower or 'facture' in error.messageKey|trans(error.messageData, 'security')|lower or 'suspendu' in error.messageKey|trans(error.messageData, 'security')|lower %}
+                                        <div class="error-info">
+                                            <p><strong>Règle d'abonnement :</strong></p>
+                                            <ul>
+                                                <li>Si vous ne payez pas la facture d'un mois, vous ne pouvez pas vous connecter <strong>pour ce mois précis</strong></li>
+                                                <li>Vous pouvez faire une pause dans votre activité et vous reconnecter plus tard</li>
+                                                <li>Pour vous reconnecter un mois donné, vous devez avoir payé la facture de <strong>ce mois-là</strong></li>
+                                                <li>Vous pouvez régler votre abonnement dans les <strong>5 derniers jours du mois précédent</strong> ou dans les <strong>5 premiers jours du mois courant</strong></li>
+                                                <li><strong>Exemple :</strong> Si votre dernière connexion était en septembre (payé) et que vous n'avez pas payé octobre/novembre, vous ne pouvez pas vous connecter en octobre ni en novembre. Mais si vous payez en décembre, vous pouvez vous reconnecter en décembre même si octobre/novembre ne sont pas payés.</li>
+                                            </ul>
+                                            <p class="contact-info">
+                                                <i class="fas fa-envelope"></i>
+                                                Pour toute question, contactez l'administration.
+                                            </p>
+                                        </div>
+                                    {% endif %}
+                                </div>
                             {% endif %}
 
                             <div style="position:absolute; opacity:0; height:0; width:0; pointer-events:none;">

@@ -93,7 +93,7 @@
 }
 
 .aiolia-dialog-btn-confirm {
-    background: var(--accent, #2563eb);
+    background: #3498DB !important;
     color: var(--text-inverse, #fff);
 }
 

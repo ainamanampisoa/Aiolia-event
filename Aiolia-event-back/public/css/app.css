@@ -1260,16 +1260,52 @@ body.sidebar-collapsed .admin-main {
 }
 
 .btn-primary {
-    background: linear-gradient(135deg, var(--accent), var(--accent-light));
+    background: linear-gradient(135deg, #3498DB, #5DADE2) !important;
     color: var(--white);
-    border-color: var(--accent);
+    border-color: #3498DB !important;
     box-shadow: 0 4px 12px rgba(52, 152, 219, 0.3);
 }
 
 .btn-primary:hover {
-    background: linear-gradient(135deg, var(--accent-light), var(--accent));
+    background: linear-gradient(135deg, #5DADE2, #3498DB) !important;
     transform: translateY(-2px);
     box-shadow: 0 6px 20px rgba(52, 152, 219, 0.4);
+    border-color: #3498DB !important;
+}
+
+/* Forcer les couleurs fixes pour tous les boutons principaux, même avec styles inline */
+button.btn-primary,
+a.btn-primary,
+input[type="submit"].btn-primary,
+input[type="button"].btn-primary {
+    background: linear-gradient(135deg, #3498DB, #5DADE2) !important;
+    border-color: #3498DB !important;
+}
+
+button.btn-primary:hover,
+a.btn-primary:hover,
+input[type="submit"].btn-primary:hover,
+input[type="button"].btn-primary:hover {
+    background: linear-gradient(135deg, #5DADE2, #3498DB) !important;
+    border-color: #3498DB !important;
+}
+
+/* Forcer les couleurs fixes pour les boutons génériques .btn sans classe de couleur spécifique */
+button.btn:not(.btn-secondary):not(.btn-success):not(.btn-danger):not(.btn-warning):not(.btn-info):not(.btn-outline-primary):not(.btn-outline-secondary),
+a.btn:not(.btn-secondary):not(.btn-success):not(.btn-danger):not(.btn-warning):not(.btn-info):not(.btn-outline-primary):not(.btn-outline-secondary),
+input[type="submit"].btn:not(.btn-secondary):not(.btn-success):not(.btn-danger):not(.btn-warning):not(.btn-info):not(.btn-outline-primary):not(.btn-outline-secondary),
+input[type="button"].btn:not(.btn-secondary):not(.btn-success):not(.btn-danger):not(.btn-warning):not(.btn-info):not(.btn-outline-primary):not(.btn-outline-secondary) {
+    background: linear-gradient(135deg, #3498DB, #5DADE2) !important;
+    border-color: #3498DB !important;
+    color: white !important;
+}
+
+button.btn:not(.btn-secondary):not(.btn-success):not(.btn-danger):not(.btn-warning):not(.btn-info):not(.btn-outline-primary):not(.btn-outline-secondary):hover,
+a.btn:not(.btn-secondary):not(.btn-success):not(.btn-danger):not(.btn-warning):not(.btn-info):not(.btn-outline-primary):not(.btn-outline-secondary):hover,
+input[type="submit"].btn:not(.btn-secondary):not(.btn-success):not(.btn-danger):not(.btn-warning):not(.btn-info):not(.btn-outline-primary):not(.btn-outline-secondary):hover,
+input[type="button"].btn:not(.btn-secondary):not(.btn-success):not(.btn-danger):not(.btn-warning):not(.btn-info):not(.btn-outline-primary):not(.btn-outline-secondary):hover {
+    background: linear-gradient(135deg, #5DADE2, #3498DB) !important;
+    border-color: #3498DB !important;
 }
 
 .btn-secondary {

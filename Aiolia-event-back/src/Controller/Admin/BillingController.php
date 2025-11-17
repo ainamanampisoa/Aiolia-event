@@ -83,21 +83,23 @@ class BillingController extends AbstractController
         );
         $subscriptionTotal = $this->subscriptionInvoiceRepository->countWithFilters($status, $search, $dateFromObj, $dateToObj);
 
+        // Calculer le total AVANT la pagination (utiliser les totaux des repositories)
+        $totalInvoices = $ticketTotal + $subscriptionTotal;
+        
         // Fusionner et trier par date
         $allInvoices = array_merge($ticketInvoices, $subscriptionInvoices);
         usort($allInvoices, function ($a, $b) {
             return $b->getCreatedAt() <=> $a->getCreatedAt();
         });
         
-        // Récupérer les types d'organisateurs pour les factures d'abonnement
-        $organizerTypes = [];
+        // Récupérer les tiers des plans d'abonnement pour les factures d'abonnement
+        $planTiers = [];
         $subscriptionInvoicesOnly = array_filter($allInvoices, fn($inv) => $inv instanceof SubscriptionInvoice);
         if (!empty($subscriptionInvoicesOnly)) {
-            $organizerTypes = $this->subscriptionInvoiceRepository->getOrganizerTypesForInvoices($subscriptionInvoicesOnly);
+            $planTiers = $this->subscriptionInvoiceRepository->getPlanTiersForInvoices($subscriptionInvoicesOnly);
         }
         
         // Appliquer la pagination : limiter à 7 résultats par page
-        $totalInvoices = count($allInvoices);
         $allInvoices = array_slice($allInvoices, ($page - 1) * $perPage, $perPage);
 
         // Statistiques basées sur les filtres appliqués
@@ -114,7 +116,7 @@ class BillingController extends AbstractController
             'ticketInvoices' => $ticketInvoices,
             'subscriptionInvoices' => $subscriptionInvoices,
             'allInvoices' => $allInvoices,
-            'organizerTypes' => $organizerTypes,
+            'planTiers' => $planTiers,
             'stats' => $stats,
             'currentStatus' => $status,
             'currentSearch' => $search,
@@ -122,6 +124,7 @@ class BillingController extends AbstractController
             'currentDateTo' => $dateTo,
             'currentPage' => $page,
             'totalPages' => max(1, (int) ceil($totalInvoices / $perPage)),
+            'totalInvoices' => $totalInvoices,
         ]);
     }
 
@@ -157,13 +160,13 @@ class BillingController extends AbstractController
             return $this->redirectToRoute('admin_billing_invoices');
         }
 
-        // Récupérer le type d'organisateur
-        $organizerType = $this->subscriptionInvoiceRepository->getOrganizerTypeForInvoice($invoice);
+        // Récupérer le tier du plan d'abonnement
+        $planTier = $this->subscriptionInvoiceRepository->getPlanTierForInvoice($invoice);
 
         return $this->render('admin/billing/invoice_show.html.twig', [
             'invoice' => $invoice,
             'type' => 'subscription',
-            'organizerType' => $organizerType,
+            'planTier' => $planTier,
         ]);
     }
 

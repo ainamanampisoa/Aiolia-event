@@ -119,18 +119,18 @@ class SubscriptionInvoiceRepository extends ServiceEntityRepository
     }
 
     /**
-     * Récupère le type d'organisateur pour une facture d'abonnement
-     * Retourne null si la facture est une facture de billet ou si le type n'est pas trouvé
+     * Récupère le tier du plan d'abonnement pour une facture d'abonnement
+     * Retourne null si le tier n'est pas trouvé
      */
-    public function getOrganizerTypeForInvoice(SubscriptionInvoice $invoice): ?string
+    public function getPlanTierForInvoice(SubscriptionInvoice $invoice): ?string
     {
         $connection = $this->getEntityManager()->getConnection();
         
         $sql = "
-            SELECT op.organization_type
+            SELECT sp.tier
             FROM aiolia.subscription_invoices si
             INNER JOIN aiolia.organizer_subscriptions os ON os.id = si.subscription_id
-            INNER JOIN aiolia.organizer_profiles op ON op.id = os.organizer_profile_id
+            INNER JOIN aiolia.subscription_plans sp ON sp.id = os.plan_id
             WHERE si.id = :invoice_id
         ";
         
@@ -140,10 +140,10 @@ class SubscriptionInvoiceRepository extends ServiceEntityRepository
     }
 
     /**
-     * Récupère les types d'organisateurs pour plusieurs factures
-     * Retourne un array avec invoice_id => organizer_type
+     * Récupère les tiers des plans d'abonnement pour plusieurs factures
+     * Retourne un array avec invoice_id => plan_tier
      */
-    public function getOrganizerTypesForInvoices(array $invoices): array
+    public function getPlanTiersForInvoices(array $invoices): array
     {
         if (empty($invoices)) {
             return [];
@@ -154,16 +154,32 @@ class SubscriptionInvoiceRepository extends ServiceEntityRepository
         
         $placeholders = implode(',', array_fill(0, count($invoiceIds), '?'));
         $sql = "
-            SELECT si.id, op.organization_type
+            SELECT si.id, sp.tier
             FROM aiolia.subscription_invoices si
             INNER JOIN aiolia.organizer_subscriptions os ON os.id = si.subscription_id
-            INNER JOIN aiolia.organizer_profiles op ON op.id = os.organizer_profile_id
+            INNER JOIN aiolia.subscription_plans sp ON sp.id = os.plan_id
             WHERE si.id IN ($placeholders)
         ";
         
         $results = $connection->fetchAllKeyValue($sql, $invoiceIds);
         
         return $results;
+    }
+
+    /**
+     * @deprecated Utiliser getPlanTierForInvoice() à la place
+     */
+    public function getOrganizerTypeForInvoice(SubscriptionInvoice $invoice): ?string
+    {
+        return $this->getPlanTierForInvoice($invoice);
+    }
+
+    /**
+     * @deprecated Utiliser getPlanTiersForInvoices() à la place
+     */
+    public function getOrganizerTypesForInvoices(array $invoices): array
+    {
+        return $this->getPlanTiersForInvoices($invoices);
     }
 }
 

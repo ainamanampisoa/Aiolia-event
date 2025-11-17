@@ -118,7 +118,7 @@
                         <tr>
                             <th class="col-left" data-i18n-fr="Numéro" data-i18n-en="Number">Numéro</th>
                             <th class="col-left" data-i18n-fr="Client" data-i18n-en="Customer">Client</th>
-                            <th class="col-center" data-i18n-fr="Type Organisateur" data-i18n-en="Organizer Type">Type Organisateur</th>
+                            <th class="col-center" data-i18n-fr="Offre" data-i18n-en="Plan">Offre</th>
                             <th class="col-right" data-i18n-fr="Montant" data-i18n-en="Amount">Montant</th>
                             <th class="col-center" data-i18n-fr="Statut" data-i18n-en="Status">Statut</th>
                             <th class="col-center" data-i18n-fr="Période" data-i18n-en="Period">Période</th>
@@ -134,7 +134,7 @@
                                 {% elseif invoice.getInvoiceType() == 'subscription' %}
                                     {% set isSubscription = true %}
                                 {% endif %}
-                                {% set organizerType = isSubscription ? (organizerTypes[invoice.id] ?? null) : null %}
+                                {% set planTier = isSubscription ? (planTiers[invoice.id] ?? null) : null %}
                                 <tr>
                                     <td class="col-left">
                                         <span style="color: var(--text-primary); font-size: 0.95rem; font-weight: var(--font-weight-medium);">{{ invoice.invoiceNumber }}</span>
@@ -152,18 +152,19 @@
                                         </div>
                                     </td>
                                     <td class="col-center">
-                                        {% if organizerType %}
-                                            {% set typeLabels = {
-                                                'individual': {'fr': 'Individuel', 'en': 'Individual'},
-                                                'company': {'fr': 'Entreprise', 'en': 'Company'},
-                                                'non_profit': {'fr': 'Association', 'en': 'Non-Profit'},
-                                                'collective': {'fr': 'Collectif', 'en': 'Collective'}
+                                        {% if planTier %}
+                                            {% set tierLabels = {
+                                                'basic': {'fr': 'Basic', 'en': 'Basic', 'icon': 'tag'},
+                                                'pro': {'fr': 'Pro', 'en': 'Pro', 'icon': 'star'},
+                                                'enterprise': {'fr': 'Enterprise', 'en': 'Enterprise', 'icon': 'crown'}
                                             } %}
-                                            <span class="organizer-type-badge" data-i18n-fr="{{ typeLabels[organizerType].fr }}" data-i18n-en="{{ typeLabels[organizerType].en }}">
-                                                {{ typeLabels[organizerType].fr }}
+                                            {% set tierLabel = tierLabels[planTier] ?? {'fr': planTier|upper, 'en': planTier|upper, 'icon': 'tag'} %}
+                                            <span class="plan-tier-badge plan-tier-{{ planTier }}" data-i18n-fr="{{ tierLabel.fr }}" data-i18n-en="{{ tierLabel.en }}" title="{{ tierLabel.fr }}">
+                                                <i class="fas fa-{{ tierLabel.icon }}"></i>
+                                                <span class="tier-name">{{ tierLabel.fr }}</span>
                                             </span>
                                         {% else %}
-                                            <span class="text-muted" data-i18n-fr="N/A" data-i18n-en="N/A">N/A</span>
+                                            <span class="text-muted" data-i18n-fr="N/A" data-i18n-en="N/A">-</span>
                                         {% endif %}
                                     </td>
                                     <td class="col-right">
@@ -184,8 +185,10 @@
                                                     </span>
                                                 {% endif %}
                                             </div>
-                                        {% elseif invoice.status == 'void' or invoice.status == 'refunded' %}
+                                        {% elseif invoice.status == 'void' %}
                                             <span class="badge status-badge status-inactive" data-i18n-fr="Annulée" data-i18n-en="Cancelled">Annulée</span>
+                                        {% elseif invoice.status == 'refunded' %}
+                                            <span class="badge status-badge status-refunded" data-i18n-fr="Remboursée" data-i18n-en="Refunded">Remboursée</span>
                                         {% else %}
                                             <span class="badge status-badge status-inactive">{{ invoice.status }}</span>
                                         {% endif %}
@@ -234,7 +237,7 @@
                             {% endfor %}
                         {% else %}
                             <tr>
-                                <td colspan="7" class="text-center" style="padding: 40px;">
+                                <td colspan="8" class="text-center" style="padding: 40px;">
                                     <i class="fas fa-inbox" style="font-size: 3rem; color: var(--text-secondary); margin-bottom: 1rem;"></i>
                                     <p style="color: var(--text-secondary);" data-i18n-fr="Aucune facture trouvée" data-i18n-en="No invoices found">Aucune facture trouvée</p>
                                 </td>
@@ -338,12 +341,12 @@
                     </ul>
                 </div>
                 <div class="pagination-summary">
-                    <small data-i18n-target="html" data-i18n-fr="Page {{ currentPage }} sur {{ totalPages }} - Affichage de {{ allInvoices|length }} facture(s)" data-i18n-en="Page {{ currentPage }} of {{ totalPages }} - Showing {{ allInvoices|length }} invoice(s)">Page {{ currentPage }} sur {{ totalPages }} - Affichage de {{ allInvoices|length }} facture(s)</small>
+                    <small data-i18n-target="html" data-i18n-fr="Page {{ currentPage }} sur {{ totalPages }} - Affichage de {{ allInvoices|length }} facture(s) sur {{ totalInvoices|default(0) }} total" data-i18n-en="Page {{ currentPage }} of {{ totalPages }} - Showing {{ allInvoices|length }} invoice(s) of {{ totalInvoices|default(0) }} total">Page {{ currentPage }} sur {{ totalPages }} - Affichage de {{ allInvoices|length }} facture(s) sur {{ totalInvoices|default(0) }} total</small>
                 </div>
             {% elseif allInvoices|length > 0 %}
                 <div class="pagination-wrapper">
                     <div class="pagination-summary">
-                        <small data-i18n-target="html" data-i18n-fr="Affichage de {{ allInvoices|length }} facture(s)" data-i18n-en="Showing {{ allInvoices|length }} invoice(s)">Affichage de {{ allInvoices|length }} facture(s)</small>
+                        <small data-i18n-target="html" data-i18n-fr="Affichage de {{ allInvoices|length }} facture(s) sur {{ totalInvoices|default(0) }} total" data-i18n-en="Showing {{ allInvoices|length }} invoice(s) of {{ totalInvoices|default(0) }} total">Affichage de {{ allInvoices|length }} facture(s) sur {{ totalInvoices|default(0) }} total</small>
                     </div>
                 </div>
             {% endif %}
@@ -499,13 +502,13 @@
 }
 
 .btn-search {
-    background: linear-gradient(135deg, var(--accent), var(--accent-light));
+    background: linear-gradient(135deg, #3498DB, #5DADE2) !important;
     color: var(--text-inverse);
     box-shadow: var(--shadow-sm);
 }
 
 .btn-search:hover {
-    background: linear-gradient(135deg, var(--accent-light), var(--accent));
+    background: linear-gradient(135deg, #5DADE2, #3498DB) !important;
     transform: translateY(-1px);
     box-shadow: var(--shadow-md);
 }
@@ -701,18 +704,66 @@
     border: 1px solid var(--border-color);
 }
 
-.organizer-type-badge {
-    font-size: 0.78rem;
+.plan-tier-badge {
+    font-size: 0.75rem;
     padding: 6px 12px;
-    border-radius: var(--border-radius-sm);
-    font-weight: var(--font-weight-medium);
+    border-radius: var(--border-radius-md);
+    font-weight: var(--font-weight-semibold);
     display: inline-flex;
     align-items: center;
     gap: 6px;
     white-space: nowrap;
-    background: linear-gradient(135deg, var(--accent-light), var(--accent));
-    color: var(--text-inverse);
     box-shadow: var(--shadow-xs);
+    transition: var(--transition-base);
+    border: 1px solid transparent;
+}
+
+.plan-tier-badge .tier-name {
+    font-weight: var(--font-weight-medium);
+    letter-spacing: 0.3px;
+}
+
+.plan-tier-badge i {
+    font-size: 0.75rem;
+    opacity: 0.95;
+}
+
+.plan-tier-basic {
+    background: linear-gradient(135deg, #3498DB, #2980B9);
+    color: white;
+    border-color: rgba(52, 152, 219, 0.3);
+}
+
+.plan-tier-basic:hover {
+    background: linear-gradient(135deg, #2980B9, #21618C);
+    box-shadow: 0 2px 8px rgba(52, 152, 219, 0.3);
+}
+
+.plan-tier-pro {
+    background: linear-gradient(135deg, #9B59B6, #8E44AD);
+    color: white;
+    border-color: rgba(155, 89, 182, 0.3);
+}
+
+.plan-tier-pro:hover {
+    background: linear-gradient(135deg, #8E44AD, #7D3C98);
+    box-shadow: 0 2px 8px rgba(155, 89, 182, 0.3);
+}
+
+.plan-tier-enterprise {
+    background: linear-gradient(135deg, #F39C12, #E67E22);
+    color: white;
+    border-color: rgba(243, 156, 18, 0.3);
+}
+
+.plan-tier-enterprise:hover {
+    background: linear-gradient(135deg, #E67E22, #D35400);
+    box-shadow: 0 2px 8px rgba(243, 156, 18, 0.3);
+}
+
+.plan-tier-badge:hover {
+    transform: translateY(-1px);
+    box-shadow: var(--shadow-md);
 }
 
 .days-overdue-indicator {
@@ -767,6 +818,13 @@
     background: var(--bg-secondary);
     color: var(--text-muted);
     border: 1px solid var(--border-color);
+}
+
+.status-refunded {
+    background: linear-gradient(135deg, rgba(139, 69, 19, 0.1), rgba(160, 82, 45, 0.05));
+    color: #8B4513;
+    border: 1px solid rgba(139, 69, 19, 0.3);
+    font-weight: var(--font-weight-semibold);
 }
 
 .date-info {

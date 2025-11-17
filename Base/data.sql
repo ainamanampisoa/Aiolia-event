@@ -145,27 +145,31 @@ SELECT
 FROM users u;
 
 -- ------------------------------------------------------------
--- 2. Plans d'abonnement (un plan par type d'organisateur)
+-- 2. Plans d'abonnement (3 offres : Basic, Pro, Enterprise)
+--    Les organisateurs peuvent choisir n'importe quelle offre
+--    indépendamment de leur organization_type
 -- ------------------------------------------------------------
 INSERT INTO subscription_plans (
     id,
     code,
     name,
     description,
+    tier,
     billing_period,
     period_count,
     currency,
     price,
     vat_rate,
     features,
+    display_order,
+    is_popular,
     is_active,
     created_at,
     updated_at
 ) VALUES
-    (1, 'INDIVIDUAL', 'Plan Individuel', 'Abonnement mensuel pour organisateurs individuels', 'monthly', 1, 'MGA', 150000, 20, '{"events_limit":3,"support":"email"}', TRUE, '2024-01-01', '2025-02-01'),
-    (2, 'COMPANY', 'Plan Entreprise', 'Abonnement mensuel pour entreprises', 'monthly', 1, 'MGA', 350000, 20, '{"events_limit":15,"support":"chat"}', TRUE, '2024-01-01', '2025-02-01'),
-    (3, 'NON_PROFIT', 'Plan Association', 'Abonnement mensuel pour associations à but non lucratif', 'monthly', 1, 'MGA', 180000, 20, '{"events_limit":8,"support":"email"}', TRUE, '2024-01-01', '2025-02-01'),
-    (4, 'COLLECTIVE', 'Plan Collectif', 'Abonnement mensuel pour collectifs', 'monthly', 1, 'MGA', 220000, 20, '{"events_limit":10,"support":"chat"}', TRUE, '2024-01-01', '2025-02-01');
+    (1, 'BASIC', 'Plan Basic', 'Offre de base pour démarrer vos événements', 'basic', 'monthly', 1, 'MGA', 150000, 20, '{"events_limit":3,"support":"email","features":["gestion_evenements","tableau_bord"]}', 1, FALSE, TRUE, '2024-01-01', '2025-02-01'),
+    (2, 'PRO', 'Plan Pro', 'Offre professionnelle avec fonctionnalités avancées', 'pro', 'monthly', 1, 'MGA', 350000, 20, '{"events_limit":15,"support":"chat","features":["gestion_evenements","tableau_bord","statistiques_avancees","support_prioritaire"]}', 2, TRUE, TRUE, '2024-01-01', '2025-02-01'),
+    (3, 'ENTERPRISE', 'Plan Enterprise', 'Offre entreprise avec toutes les fonctionnalités', 'enterprise', 'monthly', 1, 'MGA', 600000, 20, '{"events_limit":-1,"support":"phone","features":["gestion_evenements","tableau_bord","statistiques_avancees","support_prioritaire","api_access","white_label"]}', 3, FALSE, TRUE, '2024-01-01', '2025-02-01');
 
 -- ------------------------------------------------------------
 -- 3. Profils organisateurs & abonnements
@@ -226,7 +230,14 @@ FROM organizer_base ob
 JOIN users u ON u.id = ob.user_id;
 
 -- Abonnements des organisateurs (un abonnement par organisateur)
--- Chaque organisateur est assigné au plan correspondant à son organization_type
+-- Scénarios avec tous les statuts de facture :
+-- - Organisateurs 1-3 : Abonnement annuel complet (12 mois payés = 'paid')
+-- - Organisateurs 4-5 : Abonnement avec pauses (certains mois non payés)
+-- - Organisateur 6 : Paiements en retard (statut 'overdue' puis 'paid')
+-- - Organisateur 7 : Factures remboursées (statut 'refunded')
+-- - Organisateur 8 : Factures annulées (statut 'void')
+-- - Organisateur 9 : Factures en attente (statut 'issued')
+-- - Organisateur 10 : Factures brouillon (statut 'draft')
 WITH organizer_ranked AS (
     SELECT
         op.id AS organizer_profile_id,
@@ -251,48 +262,78 @@ INSERT INTO organizer_subscriptions (
 )
 SELECT
     orr.organizer_profile_id,
+    -- Distribution libre des plans : mélange des 3 offres
     CASE 
-        WHEN orr.organization_type = 'individual' THEN 1
-        WHEN orr.organization_type = 'company' THEN 2
-        WHEN orr.organization_type = 'non_profit' THEN 3
-        WHEN orr.organization_type = 'collective' THEN 4
-        ELSE 1 -- Par défaut individual si type non reconnu
+        WHEN orr.rn % 3 = 1 THEN 1  -- Plan Basic
+        WHEN orr.rn % 3 = 2 THEN 2  -- Plan Pro (le plus populaire)
+        ELSE 3                       -- Plan Enterprise
     END,
     CASE
-        WHEN orr.rn <= 5 THEN 'active'::subscription_status_enum
-        WHEN orr.rn = 6 THEN 'pending'::subscription_status_enum
-        WHEN orr.rn = 7 THEN 'past_due'::subscription_status_enum
-        WHEN orr.rn = 8 THEN 'suspended'::subscription_status_enum
+        WHEN orr.rn <= 3 THEN 'active'::subscription_status_enum  -- Abonnements annuels actifs
+        WHEN orr.rn <= 5 THEN 'active'::subscription_status_enum  -- Abonnements avec pauses mais actifs
+        WHEN orr.rn = 6 THEN 'past_due'::subscription_status_enum  -- Paiements en retard presque tous les mois
+        WHEN orr.rn = 7 THEN 'active'::subscription_status_enum  -- Paiements en retard + remboursements
+        WHEN orr.rn = 8 THEN 'suspended'::subscription_status_enum  -- Suspendu
+        WHEN orr.rn = 9 THEN 'pending'::subscription_status_enum  -- En attente
         ELSE 'cancelled'::subscription_status_enum
     END,
-    now() - INTERVAL '360 days',
-    date_trunc('month', now() - INTERVAL '90 days'),
-    date_trunc('month', now() + INTERVAL '0 days') + INTERVAL '1 month' - INTERVAL '1 day',
-    date_trunc('month', now() + INTERVAL '30 days'),
-    (orr.rn >= 8),
+    -- Date de début : il y a 12 mois pour les abonnements annuels
+    date_trunc('month', now() - INTERVAL '12 months'),
+    date_trunc('month', now()),
+    date_trunc('month', now()) + INTERVAL '1 month' - INTERVAL '1 day',
+    date_trunc('month', now() + INTERVAL '1 month'),
+    (orr.rn >= 9),
     CASE WHEN orr.rn = 10 THEN now() - INTERVAL '30 days' ELSE NULL END,
     jsonb_build_object(
         'admin_note', CONCAT('Abonnement de test #', orr.rn),
-        'organization_type', orr.organization_type
+        'organization_type', orr.organization_type,
+        'plan_chosen_freely', TRUE,
+        'subscription_type', CASE 
+            WHEN orr.rn <= 3 THEN 'annual'
+            WHEN orr.rn <= 5 THEN 'monthly_with_pauses'
+            WHEN orr.rn = 6 THEN 'monthly_late_payments'
+            WHEN orr.rn = 7 THEN 'monthly_with_refunds'
+            ELSE 'monthly'
+        END
     ),
-    now() - INTERVAL '360 days',
+    date_trunc('month', now() - INTERVAL '12 months'),
     now()
 FROM organizer_ranked orr;
 
 -- ------------------------------------------------------------
--- 4. Factures, paiements et historiques (10 occurrences par organisateur)
+-- 4. Factures, paiements et historiques
+-- Scénarios avec TOUS les statuts de facture :
+-- - Organisateurs 1-3 : 12 mois payés (statut 'paid')
+-- - Organisateurs 4-5 : 12 mois avec pauses (certains mois non payés)
+-- - Organisateur 6 : 12 mois avec statut 'overdue' puis 'paid' (en retard)
+-- - Organisateur 7 : 12 mois avec statut 'refunded' (remboursés)
+-- - Organisateur 8 : 12 mois avec statut 'void' (annulés)
+-- - Organisateur 9 : 12 mois avec statut 'issued' (en attente)
+-- - Organisateur 10 : 12 mois avec statut 'draft' (brouillon)
 -- ------------------------------------------------------------
-WITH subscription_context AS (
+WITH organizer_subscription_ranked AS (
     SELECT
         os.id AS subscription_id,
         os.organizer_profile_id,
         os.plan_id,
         op.user_id,
-        sp.price,
-        sp.vat_rate
+        os.metadata->>'subscription_type' AS subscription_type,
+        ROW_NUMBER() OVER (ORDER BY os.id) AS org_rn
     FROM organizer_subscriptions os
     JOIN organizer_profiles op ON op.id = os.organizer_profile_id
-    JOIN subscription_plans sp ON sp.id = os.plan_id
+),
+subscription_context AS (
+    SELECT
+        osr.subscription_id,
+        osr.organizer_profile_id,
+        osr.plan_id,
+        osr.user_id,
+        sp.price,
+        sp.vat_rate,
+        osr.subscription_type,
+        osr.org_rn
+    FROM organizer_subscription_ranked osr
+    JOIN subscription_plans sp ON sp.id = osr.plan_id
 ),
 invoice_source AS (
     SELECT
@@ -301,10 +342,23 @@ invoice_source AS (
         sc.plan_id,
         sc.price,
         sc.vat_rate,
+        sc.subscription_type,
+        sc.org_rn,
         gs AS period_index,
-        date_trunc('month', now() - (10 - gs) * INTERVAL '1 month') AS issued_at
+        date_trunc('month', now() - (12 - gs) * INTERVAL '1 month') AS issued_at,
+        -- Déterminer si le mois doit être payé ou non (pour les pauses)
+        CASE
+            -- Organisateurs 1-3 : tous les mois payés (abonnement annuel)
+            WHEN sc.org_rn <= 3 THEN TRUE
+            -- Organisateur 4 : pause aux mois 3, 6, 9 (ne paie pas ces mois)
+            WHEN sc.org_rn = 4 AND gs IN (3, 6, 9) THEN FALSE
+            -- Organisateur 5 : pause aux mois 2, 5, 8 (ne paie pas ces mois)
+            WHEN sc.org_rn = 5 AND gs IN (2, 5, 8) THEN FALSE
+            -- Autres : tous les mois payés
+            ELSE TRUE
+        END AS should_be_paid
     FROM subscription_context sc
-    CROSS JOIN generate_series(1, 10) AS gs
+    CROSS JOIN generate_series(1, 12) AS gs
 ),
 invoice_rows AS (
     INSERT INTO subscription_invoices (
@@ -330,25 +384,110 @@ invoice_rows AS (
         ROUND(isrc.price * isrc.vat_rate / 100, 2),
         ROUND(isrc.price * (1 + isrc.vat_rate / 100), 2),
         CASE
-            WHEN isrc.period_index <= 6 THEN 'paid'
-            WHEN isrc.period_index = 7 THEN 'partially_paid'
-            WHEN isrc.period_index = 8 THEN 'issued'
+            -- Organisateurs 1-3 : tous les mois payés (statut 'paid')
+            WHEN isrc.org_rn <= 3 AND isrc.should_be_paid THEN 'paid'
+            -- Organisateurs 4-5 : mois payés normalement, mois de pause = non émis
+            WHEN isrc.org_rn BETWEEN 4 AND 5 AND isrc.should_be_paid THEN 
+                CASE 
+                    WHEN isrc.period_index <= 8 THEN 'paid'
+                    WHEN isrc.period_index = 9 THEN 'issued'
+                    ELSE 'overdue'
+                END
+            -- Organisateur 6 : statut 'overdue' (en retard) pour les premiers mois, puis 'paid'
+            WHEN isrc.org_rn = 6 THEN
+                CASE
+                    WHEN isrc.period_index <= 6 THEN 'overdue'  -- En retard
+                    WHEN isrc.period_index <= 10 THEN 'paid'  -- Payé après retard
+                    ELSE 'overdue'  -- Retour en retard
+                END
+            -- Organisateur 7 : statut 'refunded' (remboursé) pour certains mois
+            WHEN isrc.org_rn = 7 THEN
+                CASE
+                    WHEN isrc.period_index IN (2, 5, 8, 11) THEN 'refunded'  -- Mois remboursés
+                    WHEN isrc.period_index <= 6 THEN 'paid'  -- Mois payés
+                    ELSE 'issued'  -- En attente
+                END
+            -- Organisateur 8 : statut 'void' (annulé) pour certains mois
+            WHEN isrc.org_rn = 8 THEN
+                CASE
+                    WHEN isrc.period_index IN (3, 6, 9) THEN 'void'  -- Factures annulées
+                    WHEN isrc.period_index <= 5 THEN 'paid'  -- Mois payés
+                    WHEN isrc.period_index <= 8 THEN 'issued'  -- En attente
+                    ELSE 'overdue'  -- En retard
+                END
+            -- Organisateur 9 : statut 'issued' (en attente) pour tous les mois
+            WHEN isrc.org_rn = 9 THEN 'issued'
+            -- Organisateur 10 : statut 'draft' (brouillon) pour tous les mois
+            WHEN isrc.org_rn = 10 THEN 'draft'
             ELSE 'overdue'
         END,
         isrc.issued_at,
+        -- Date d'échéance : 15 jours après l'émission (respect des dates d'échéance mensuelles)
         isrc.issued_at + INTERVAL '15 days',
+        -- Date de paiement : selon le statut (NULL pour draft, issued, void, overdue non payé)
         CASE
-            WHEN isrc.period_index <= 6 THEN isrc.issued_at + INTERVAL '5 days'
-            WHEN isrc.period_index = 7 THEN isrc.issued_at + INTERVAL '20 days'
+            -- Organisateurs 1-3 : paiement rapide (3-5 jours après émission, AVANT échéance)
+            WHEN isrc.org_rn <= 3 AND isrc.should_be_paid THEN isrc.issued_at + INTERVAL '3 days' + (isrc.period_index % 3) * INTERVAL '1 day'
+            -- Organisateurs 4-5 : paiement normal pour les mois payés (AVANT échéance)
+            WHEN isrc.org_rn BETWEEN 4 AND 5 AND isrc.should_be_paid AND isrc.period_index <= 8 THEN isrc.issued_at + INTERVAL '5 days'
+            -- Organisateur 6 : paiements EN RETARD (5-20 jours APRÈS l'échéance) pour les mois payés
+            WHEN isrc.org_rn = 6 AND isrc.period_index BETWEEN 7 AND 10 THEN 
+                (isrc.issued_at + INTERVAL '15 days') + INTERVAL '5 days' + (isrc.period_index % 15) * INTERVAL '1 day'
+            -- Organisateur 7 : paiements pour les mois payés, puis remboursés
+            WHEN isrc.org_rn = 7 THEN
+                CASE
+                    WHEN isrc.period_index IN (2, 5, 8, 11) THEN 
+                        -- Paiement initial puis remboursement
+                        isrc.issued_at + INTERVAL '5 days'
+                    WHEN isrc.period_index <= 6 THEN 
+                        -- Paiements normaux
+                        isrc.issued_at + INTERVAL '5 days'
+                    ELSE NULL  -- En attente
+                END
+            -- Organisateur 8 : paiement pour les mois payés (pas pour void)
+            WHEN isrc.org_rn = 8 AND isrc.period_index <= 5 AND isrc.period_index NOT IN (3) THEN isrc.issued_at + INTERVAL '7 days'
+            -- Organisateur 9 : pas de paiement (tous en 'issued')
+            -- Organisateur 10 : pas de paiement (tous en 'draft')
             ELSE NULL
         END,
         jsonb_build_object(
             'period_index', isrc.period_index,
-            'note', 'Facture générée pour scénarios admin'
+            'subscription_type', isrc.subscription_type,
+            'month_name', to_char(isrc.issued_at, 'Month YYYY'),
+            'note', CASE 
+                WHEN NOT isrc.should_be_paid THEN 'Pause - mois non payé'
+                WHEN isrc.org_rn = 6 AND isrc.period_index <= 6 THEN 'Facture en retard - non payée'
+                WHEN isrc.org_rn = 6 THEN 'Paiement en retard - dépassement échéance'
+                WHEN isrc.org_rn = 7 AND isrc.period_index IN (2, 5, 8, 11) THEN 'Facture remboursée'
+                WHEN isrc.org_rn = 8 AND isrc.period_index IN (3, 6, 9) THEN 'Facture annulée'
+                WHEN isrc.org_rn = 9 THEN 'Facture en attente de paiement'
+                WHEN isrc.org_rn = 10 THEN 'Facture en brouillon'
+                ELSE 'Facture générée pour scénarios admin'
+            END,
+            'is_pause_month', NOT isrc.should_be_paid,
+            'is_late_payment', CASE 
+                WHEN isrc.org_rn = 6 AND isrc.period_index BETWEEN 7 AND 10 THEN TRUE
+                ELSE FALSE
+            END,
+            'days_late', CASE
+                WHEN isrc.org_rn = 6 AND isrc.period_index BETWEEN 7 AND 10 THEN 5 + (isrc.period_index % 15)
+                ELSE NULL
+            END,
+            'invoice_status_type', CASE
+                WHEN isrc.org_rn <= 3 THEN 'paid'
+                WHEN isrc.org_rn = 6 AND isrc.period_index <= 6 THEN 'overdue'
+                WHEN isrc.org_rn = 6 THEN 'paid_late'
+                WHEN isrc.org_rn = 7 AND isrc.period_index IN (2, 5, 8, 11) THEN 'refunded'
+                WHEN isrc.org_rn = 8 AND isrc.period_index IN (3, 6, 9) THEN 'void'
+                WHEN isrc.org_rn = 9 THEN 'issued'
+                WHEN isrc.org_rn = 10 THEN 'draft'
+                ELSE 'paid'
+            END
         ),
         isrc.issued_at,
         isrc.issued_at + INTERVAL '1 hour'
     FROM invoice_source isrc
+    WHERE isrc.should_be_paid = TRUE  -- Ne créer des factures que pour les mois qui doivent être payés
     RETURNING
         id,
         subscription_id,
@@ -356,6 +495,8 @@ invoice_rows AS (
         status,
         total_amount,
         issued_at,
+        due_at,
+        paid_at,
         metadata
 ),
 invoice_items AS (
@@ -397,34 +538,61 @@ payment_rows AS (
         ir.id,
         CASE
             WHEN ir.status = 'paid' THEN 'orange'
+            WHEN ir.status = 'refunded' THEN 'orange'  -- Paiement initial via Orange
             WHEN ir.status = 'partially_paid' THEN 'bank_transfer'
             ELSE 'telma'
         END,
         CONCAT('PAY-', ir.id),
         CASE
             WHEN ir.status = 'paid' THEN 'paid'::payment_status_enum
+            WHEN ir.status = 'refunded' THEN 'refunded'::payment_status_enum  -- Statut remboursé
             WHEN ir.status = 'partially_paid' THEN 'processing'::payment_status_enum
             ELSE 'processing'::payment_status_enum
         END,
         CASE
             WHEN ir.status = 'paid' THEN ir.total_amount
+            WHEN ir.status = 'refunded' THEN ir.total_amount  -- Montant initial avant remboursement
             WHEN ir.status = 'partially_paid' THEN ROUND(ir.total_amount * 0.6, 2)
             ELSE ROUND(ir.total_amount * 0.1, 2)
         END,
         'MGA',
-        CASE
-            WHEN ir.status = 'paid' THEN ir.issued_at + INTERVAL '5 days'
-            WHEN ir.status = 'partially_paid' THEN ir.issued_at + INTERVAL '25 days'
-            ELSE NULL
-        END,
+        -- Utiliser la date de paiement de la facture si elle existe
+        COALESCE(ir.paid_at, 
+            CASE
+                WHEN ir.status = 'paid' THEN ir.issued_at + INTERVAL '5 days'
+                WHEN ir.status = 'refunded' THEN ir.issued_at + INTERVAL '5 days'  -- Date de paiement initial
+                WHEN ir.status = 'partially_paid' THEN ir.issued_at + INTERVAL '25 days'
+                ELSE NULL
+            END
+        ),
         jsonb_build_object(
             'status_source', ir.status,
-            'admin_comment', 'Paiement test'
+            'admin_comment', CASE
+                WHEN ir.status = 'refunded' THEN 'Paiement remboursé'
+                WHEN (ir.metadata->>'is_late_payment')::boolean THEN 'Paiement en retard'
+                ELSE 'Paiement test'
+            END,
+            'due_date', ir.due_at,
+            'payment_delay_days', CASE 
+                WHEN ir.paid_at IS NOT NULL AND ir.due_at IS NOT NULL THEN 
+                    EXTRACT(DAY FROM (ir.paid_at - ir.due_at))
+                ELSE NULL
+            END,
+            'days_late', (ir.metadata->>'days_late')::integer,
+            'is_late_payment', (ir.metadata->>'is_late_payment')::boolean,
+            'refund_date', CASE 
+                WHEN ir.status = 'refunded' THEN (ir.paid_at + INTERVAL '10 days')::text
+                ELSE NULL
+            END,
+            'refund_amount', CASE 
+                WHEN ir.status = 'refunded' THEN ir.total_amount
+                ELSE NULL
+            END
         ),
-        ir.issued_at + INTERVAL '2 hours',
-        ir.issued_at + INTERVAL '2 hours'
+        COALESCE(ir.paid_at, ir.issued_at) + INTERVAL '2 hours',
+        COALESCE(ir.paid_at, ir.issued_at) + INTERVAL '2 hours'
     FROM invoice_rows ir
-    WHERE ir.status IN ('paid', 'partially_paid')
+    WHERE ir.status IN ('paid', 'partially_paid', 'refunded') AND ir.paid_at IS NOT NULL
     RETURNING
         id,
         invoice_id,
@@ -450,10 +618,29 @@ UNION ALL
 SELECT
     pr.id,
     'initiated'::payment_status_enum,
-    (CASE WHEN pr.status = 'paid' THEN 'paid' ELSE 'processing' END)::payment_status_enum,
+    (CASE 
+        WHEN pr.status = 'refunded' THEN 'paid'::payment_status_enum  -- D'abord payé
+        WHEN pr.status = 'paid' THEN 'paid'::payment_status_enum
+        ELSE 'processing'::payment_status_enum
+    END),
     pr.created_at,
     jsonb_build_object('detail', 'Mise à jour du paiement', 'context', pr.metadata)
-FROM payment_rows pr;
+FROM payment_rows pr
+UNION ALL
+-- Ajouter les remboursements dans l'historique pour les paiements remboursés
+SELECT
+    pr.id,
+    'paid'::payment_status_enum,
+    'refunded'::payment_status_enum,
+    (pr.created_at + INTERVAL '10 days'),
+    jsonb_build_object(
+        'detail', 'Remboursement effectué',
+        'refund_amount', (pr.metadata->>'refund_amount')::numeric,
+        'refund_reason', 'Demande client',
+        'refund_date', (pr.created_at + INTERVAL '10 days')::text
+    )
+FROM payment_rows pr
+WHERE pr.status = 'refunded';
 
 COMMIT;
 
