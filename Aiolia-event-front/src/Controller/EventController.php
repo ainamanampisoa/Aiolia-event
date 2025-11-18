@@ -524,15 +524,25 @@ class EventController extends AbstractController
                 tt.base_price,
                 tt.service_fee,
                 tt.vat_rate,
+                tt.age_category,
                 tt.min_per_order,
                 tt.max_per_order,
+                tt.metadata,
                 inv.total_quantity,
                 inv.reserved_quantity,
                 inv.sold_quantity
             FROM aiolia.ticket_types tt
             LEFT JOIN aiolia.ticket_inventory inv ON inv.ticket_type_id = tt.id
             WHERE tt.event_id = :event_id
-            ORDER BY tt.base_price ASC NULLS LAST, tt.name ASC
+            ORDER BY 
+                CASE tt.age_category 
+                    WHEN 'adult' THEN 1 
+                    WHEN 'child' THEN 2 
+                    WHEN 'all' THEN 3 
+                    ELSE 4 
+                END,
+                tt.base_price ASC NULLS LAST, 
+                tt.name ASC
         SQL;
 
         $rows = $this->connection->executeQuery($sql, ['event_id' => $eventId])->fetchAllAssociative();
@@ -546,6 +556,14 @@ class EventController extends AbstractController
                 $available = max($total - $sold - $reserved, 0);
             }
 
+            $metadata = null;
+            if (!empty($row['metadata'])) {
+                $decoded = json_decode($row['metadata'], true);
+                if (is_array($decoded)) {
+                    $metadata = $decoded;
+                }
+            }
+
             return [
                 'id' => (int) $row['id'],
                 'name' => $row['name'],
@@ -554,6 +572,8 @@ class EventController extends AbstractController
                 'base_price' => (float) $row['base_price'],
                 'service_fee' => isset($row['service_fee']) ? (float) $row['service_fee'] : null,
                 'vat_rate' => isset($row['vat_rate']) ? (float) $row['vat_rate'] : null,
+                'age_category' => $row['age_category'] ?? 'all',
+                'metadata' => $metadata,
                 'min_per_order' => isset($row['min_per_order']) ? (int) $row['min_per_order'] : null,
                 'max_per_order' => isset($row['max_per_order']) ? (int) $row['max_per_order'] : null,
                 'available' => $available,

@@ -51,6 +51,7 @@ CREATE TYPE subscription_status_enum     AS ENUM ('pending', 'active', 'past_due
 CREATE TYPE cart_status_enum             AS ENUM ('active', 'converted', 'abandoned', 'expired');
 CREATE TYPE ticket_chance_status_enum    AS ENUM ('pending', 'won', 'lost', 'claimed');
 CREATE TYPE organizer_type_enum          AS ENUM ('individual', 'company', 'non_profit', 'collective');
+CREATE TYPE age_category_enum            AS ENUM ('adult', 'child', 'all');
 
 DO $$
 BEGIN
@@ -411,6 +412,7 @@ CREATE TABLE IF NOT EXISTS ticket_types (
     base_price NUMERIC(12,2) NOT NULL CHECK (base_price >= 0),
     service_fee NUMERIC(12,2) NOT NULL DEFAULT 0 CHECK (service_fee >= 0),
     vat_rate NUMERIC(5,2) NOT NULL DEFAULT 0,
+    age_category age_category_enum NOT NULL DEFAULT 'all',
     sales_start TIMESTAMPTZ,
     sales_end TIMESTAMPTZ,
     min_per_order INTEGER NOT NULL DEFAULT 1 CHECK (min_per_order > 0),
@@ -679,6 +681,7 @@ CREATE INDEX IF NOT EXISTS idx_events_venue ON events(venue_id, main_space_id);
 CREATE INDEX IF NOT EXISTS idx_venues_city ON venues(city, country_code);
 CREATE INDEX IF NOT EXISTS idx_venue_spaces_venue ON venue_spaces(venue_id);
 CREATE INDEX IF NOT EXISTS idx_ticket_types_event ON ticket_types(event_id);
+CREATE INDEX IF NOT EXISTS idx_ticket_types_age_category ON ticket_types(age_category);
 CREATE INDEX IF NOT EXISTS idx_orders_user ON orders(user_id);
 CREATE INDEX IF NOT EXISTS idx_wallet_tx_wallet ON wallet_transactions(wallet_id);
 CREATE INDEX IF NOT EXISTS idx_notifications_user_status ON notifications(user_id, status);
@@ -808,7 +811,7 @@ ALTER DEFAULT PRIVILEGES IN SCHEMA aiolia
 -- ------------------------------------------------------------
 -- Récapitulatif
 -- ------------------------------------------------------------
--- Total ENUM : 21
+-- Total ENUM : 22
 -- Total TABLES : 48
--- Total INDEXES : 16
+-- Total INDEXES : 17
 
