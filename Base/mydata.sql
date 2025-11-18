@@ -507,7 +507,7 @@ WITH evt AS (
 )
 INSERT INTO ticket_types (
     event_id, name, description, currency,
-    base_price, service_fee, vat_rate,
+    base_price, service_fee, vat_rate, age_category,
     sales_start, sales_end, min_per_order, max_per_order
 )
 SELECT evt.id,
@@ -517,7 +517,7 @@ SELECT evt.id,
        END,
        CASE evt.slug
            WHEN 'business-connect-mada' THEN 'Accès complet à la soirée networking, cocktail inclus.'
-           ELSE 'Accès libre à l’ensemble de la soirée musicale.'
+           ELSE 'Accès libre à l''ensemble de la soirée musicale.'
        END,
        'MGA',
        CASE evt.slug
@@ -529,6 +529,7 @@ SELECT evt.id,
            ELSE 4000
        END,
        20,
+       'all'::age_category_enum,
        evt.sales_starts_at,
        evt.sales_ends_at,
        1,
@@ -625,6 +626,397 @@ VALUES
     ('order_confirmation', 'email', 'Confirmation de commande', 'Merci pour votre achat sur Aiolia Event.', '{"type":"order"}'),
     ('event_reminder', 'email', 'Rappel événement', 'Votre événement approche, pensez à votre billet.', '{"type":"reminder"}')
 ON CONFLICT (code) DO NOTHING;
+
+-- -------------------------------------------------------------------
+-- Événements de test pour les catégories d'âge (adulte/enfant)
+-- -------------------------------------------------------------------
+WITH organizer AS (
+    SELECT
+        op.id AS organizer_profile_id,
+        op.user_id
+    FROM organizer_profiles op
+    ORDER BY CASE
+        WHEN op.user_id = (
+            SELECT id FROM users WHERE email = 'admin@aiolia.com'
+        ) THEN 0
+        ELSE 1
+    END
+    LIMIT 1
+),
+venue_famille AS (
+    INSERT INTO venues (
+        organizer_id,
+        name,
+        slug,
+        description,
+        address_line1,
+        city,
+        region,
+        postal_code,
+        country_code,
+        latitude,
+        longitude,
+        timezone,
+        capacity
+    )
+    SELECT
+        organizer.organizer_profile_id,
+        'Parc des Familles',
+        'parc-des-familles',
+        'Espace en plein air idéal pour les événements familiaux et les activités pour enfants.',
+        'Avenue de l''Indépendance',
+        'Antananarivo',
+        'Analamanga',
+        '101',
+        'MG',
+        -18.879200,
+        47.507500,
+        'Indian/Antananarivo',
+        500
+    FROM organizer
+    ON CONFLICT (slug) DO UPDATE
+        SET name = EXCLUDED.name,
+            description = EXCLUDED.description,
+            updated_at = now()
+    RETURNING id, slug
+),
+venue_corporate AS (
+    INSERT INTO venues (
+        organizer_id,
+        name,
+        slug,
+        description,
+        address_line1,
+        city,
+        region,
+        postal_code,
+        country_code,
+        latitude,
+        longitude,
+        timezone,
+        capacity
+    )
+    SELECT
+        organizer.organizer_profile_id,
+        'Centre de Conférences',
+        'centre-conferences',
+        'Espace professionnel moderne pour séminaires et formations.',
+        'Zone Galaxy Andraharo',
+        'Antananarivo',
+        'Analamanga',
+        '101',
+        'MG',
+        -18.854900,
+        47.520300,
+        'Indian/Antananarivo',
+        150
+    FROM organizer
+    ON CONFLICT (slug) DO UPDATE
+        SET name = EXCLUDED.name,
+            description = EXCLUDED.description,
+            updated_at = now()
+    RETURNING id, slug
+),
+space_famille AS (
+    INSERT INTO venue_spaces (venue_id, name, description, capacity, is_default)
+    SELECT v.id, 'Espace principal', 'Grande pelouse avec scène et aire de jeux', 500, TRUE
+    FROM venue_famille v
+    WHERE NOT EXISTS (
+        SELECT 1 FROM venue_spaces vs WHERE vs.venue_id = v.id AND vs.name = 'Espace principal'
+    )
+    RETURNING id, venue_id
+),
+space_corporate AS (
+    INSERT INTO venue_spaces (venue_id, name, description, capacity, is_default)
+    SELECT v.id, 'Salle principale', 'Amphithéâtre équipé pour conférences', 150, TRUE
+    FROM venue_corporate v
+    WHERE NOT EXISTS (
+        SELECT 1 FROM venue_spaces vs WHERE vs.venue_id = v.id AND vs.name = 'Salle principale'
+    )
+    RETURNING id, venue_id
+),
+event_famille AS (
+    INSERT INTO events (
+        organizer_id,
+        primary_category_id,
+        venue_id,
+        main_space_id,
+        slug,
+        title,
+        subtitle,
+        summary,
+        description,
+        visibility,
+        status,
+        event_format,
+        timezone,
+        capacity,
+        language_code,
+        is_featured,
+        is_highlighted,
+        starts_at,
+        ends_at,
+        sales_starts_at,
+        sales_ends_at,
+        location_override,
+        cover_image_url
+    )
+    SELECT
+        organizer.user_id,
+        cat.id,
+        vf.id,
+        sf.id,
+        'festival-famille-enfants',
+        'Festival Famille & Enfants',
+        'Journée découverte',
+        'Une journée entière dédiée aux familles avec activités pour tous les âges.',
+        'Festival en plein air avec ateliers créatifs, spectacles de marionnettes, jeux géants, et animations pour enfants. Espace restauration et aire de pique-nique disponibles. Les enfants de moins de 3 ans sont gratuits.',
+        'public'::event_visibility_enum,
+        'published'::event_status_enum,
+        'in_person',
+        'Indian/Antananarivo',
+        500,
+        'fr-FR',
+        TRUE,
+        TRUE,
+        now() + INTERVAL '20 days',
+        now() + INTERVAL '20 days' + INTERVAL '8 hours',
+        now() + INTERVAL '2 days',
+        now() + INTERVAL '18 days',
+        '{"venue_name":"Parc des Familles","address":"Avenue de l''Indépendance","city":"Antananarivo","region":"Analamanga","country":"MG"}'::jsonb,
+        '/vente-ticket/images/img1.png'
+    FROM organizer
+    CROSS JOIN venue_famille vf
+    CROSS JOIN space_famille sf
+    LEFT JOIN event_categories cat ON cat.slug = 'concert'
+    ON CONFLICT (slug) DO UPDATE
+        SET title = EXCLUDED.title,
+            subtitle = EXCLUDED.subtitle,
+            summary = EXCLUDED.summary,
+            description = EXCLUDED.description,
+            updated_at = now()
+    RETURNING id, slug
+),
+event_corporate AS (
+    INSERT INTO events (
+        organizer_id,
+        primary_category_id,
+        venue_id,
+        main_space_id,
+        slug,
+        title,
+        subtitle,
+        summary,
+        description,
+        visibility,
+        status,
+        event_format,
+        timezone,
+        capacity,
+        language_code,
+        is_featured,
+        is_highlighted,
+        starts_at,
+        ends_at,
+        sales_starts_at,
+        sales_ends_at,
+        location_override,
+        cover_image_url
+    )
+    SELECT
+        organizer.user_id,
+        cat.id,
+        vc.id,
+        sc.id,
+        'seminaire-professionnel-adultes',
+        'Séminaire Professionnel',
+        'Formation & Networking',
+        'Formation intensive pour professionnels sur les nouvelles technologies.',
+        'Séminaire d''une journée destiné aux professionnels du secteur IT. Programme incluant conférences, ateliers pratiques, et session de networking. Repas de midi inclus. Réservé aux adultes (18 ans et plus).',
+        'public'::event_visibility_enum,
+        'published'::event_status_enum,
+        'in_person',
+        'Indian/Antananarivo',
+        150,
+        'fr-FR',
+        FALSE,
+        TRUE,
+        now() + INTERVAL '25 days',
+        now() + INTERVAL '25 days' + INTERVAL '6 hours',
+        now() + INTERVAL '3 days',
+        now() + INTERVAL '23 days',
+        '{"venue_name":"Centre de Conférences","address":"Zone Galaxy Andraharo","city":"Antananarivo","region":"Analamanga","country":"MG"}'::jsonb,
+        '/vente-ticket/images/img2.png'
+    FROM organizer
+    CROSS JOIN venue_corporate vc
+    CROSS JOIN space_corporate sc
+    LEFT JOIN event_categories cat ON cat.slug = 'business'
+    ON CONFLICT (slug) DO UPDATE
+        SET title = EXCLUDED.title,
+            subtitle = EXCLUDED.subtitle,
+            summary = EXCLUDED.summary,
+            description = EXCLUDED.description,
+            updated_at = now()
+    RETURNING id, slug
+)
+-- Catégories et tags pour les nouveaux événements
+INSERT INTO event_category_links (event_id, category_id)
+SELECT evt.id, cat.id
+FROM (SELECT id, slug FROM events WHERE slug IN ('festival-famille-enfants', 'seminaire-professionnel-adultes')) evt
+JOIN event_categories cat ON cat.slug = CASE evt.slug
+    WHEN 'seminaire-professionnel-adultes' THEN 'business'
+    ELSE 'concert'
+END
+ON CONFLICT DO NOTHING;
+
+-- Médias pour les nouveaux événements
+INSERT INTO event_media (event_id, media_type, url, alt_text, display_order, is_public)
+SELECT evt.id,
+       'image',
+       CASE evt.slug
+           WHEN 'seminaire-professionnel-adultes' THEN '/vente-ticket/images/img2.png'
+           ELSE '/vente-ticket/images/img1.png'
+       END,
+       CASE evt.slug
+           WHEN 'seminaire-professionnel-adultes' THEN 'Affiche Séminaire Professionnel'
+           ELSE 'Affiche Festival Famille & Enfants'
+       END,
+       1,
+       TRUE
+FROM (SELECT id, slug FROM events WHERE slug IN ('festival-famille-enfants', 'seminaire-professionnel-adultes')) evt
+WHERE NOT EXISTS (
+    SELECT 1 FROM event_media em WHERE em.event_id = evt.id AND em.display_order = 1
+);
+
+-- Types de billets pour "Festival Famille & Enfants" (ADULTE ET ENFANT)
+WITH evt_famille AS (
+    SELECT id, sales_starts_at, sales_ends_at FROM events WHERE slug = 'festival-famille-enfants'
+)
+INSERT INTO ticket_types (
+    event_id, name, description, currency,
+    base_price, service_fee, vat_rate, age_category,
+    sales_start, sales_end, min_per_order, max_per_order,
+    metadata
+)
+SELECT evt.id,
+       'Billet Adulte',
+       'Accès complet pour un adulte (18 ans et plus). Inclut toutes les activités et animations.',
+       'MGA',
+       15000,
+        750,
+        20,
+       'adult'::age_category_enum,
+       evt.sales_starts_at,
+       evt.sales_ends_at,
+       1,
+       10,
+       '{"age_min":18,"age_max":null,"requires_accompaniment":false}'::jsonb
+FROM evt_famille evt
+WHERE NOT EXISTS (
+    SELECT 1 FROM ticket_types tt WHERE tt.event_id = evt.id AND tt.name = 'Billet Adulte'
+)
+UNION ALL
+SELECT evt.id,
+       'Billet Enfant',
+       'Accès complet pour un enfant (3 à 17 ans). Gratuit pour les moins de 3 ans.',
+       'MGA',
+       8000,
+        400,
+        20,
+       'child'::age_category_enum,
+       evt.sales_starts_at,
+       evt.sales_ends_at,
+       1,
+       10,
+       '{"age_min":3,"age_max":17,"requires_accompaniment":true,"accompaniment_age_min":18,"special_conditions":"Gratuit pour les moins de 3 ans"}'::jsonb
+FROM evt_famille evt
+WHERE NOT EXISTS (
+    SELECT 1 FROM ticket_types tt WHERE tt.event_id = evt.id AND tt.name = 'Billet Enfant'
+);
+
+-- Inventaire pour les billets famille
+WITH tt_famille AS (
+    SELECT tt.id, tt.name
+    FROM ticket_types tt
+    JOIN events ev ON ev.id = tt.event_id
+    WHERE ev.slug = 'festival-famille-enfants'
+)
+INSERT INTO ticket_inventory (ticket_type_id, total_quantity, reserved_quantity, sold_quantity)
+SELECT tt.id,
+       CASE tt.name
+           WHEN 'Billet Adulte' THEN 300
+           WHEN 'Billet Enfant' THEN 200
+           ELSE 0
+       END,
+       0,
+       0
+FROM tt_famille tt
+ON CONFLICT (ticket_type_id) DO NOTHING;
+
+-- Types de billets pour "Séminaire Professionnel" (ADULTE SEULEMENT)
+WITH evt_corporate AS (
+    SELECT id, sales_starts_at, sales_ends_at FROM events WHERE slug = 'seminaire-professionnel-adultes'
+)
+INSERT INTO ticket_types (
+    event_id, name, description, currency,
+    base_price, service_fee, vat_rate, age_category,
+    sales_start, sales_end, min_per_order, max_per_order,
+    metadata
+)
+SELECT evt.id,
+       'Pass Standard',
+       'Accès complet au séminaire pour un adulte (18 ans et plus). Inclut repas de midi et documentation.',
+       'MGA',
+       250000,
+        12500,
+        20,
+       'adult'::age_category_enum,
+       evt.sales_starts_at,
+       evt.sales_ends_at,
+       1,
+       5,
+       '{"age_min":18,"age_max":null,"includes_lunch":true,"includes_documentation":true}'::jsonb
+FROM evt_corporate evt
+WHERE NOT EXISTS (
+    SELECT 1 FROM ticket_types tt WHERE tt.event_id = evt.id AND tt.name = 'Pass Standard'
+)
+UNION ALL
+SELECT evt.id,
+       'Pass Premium',
+       'Accès VIP avec place réservée en première rangée, repas premium, et accès à la session exclusive.',
+       'MGA',
+       400000,
+        20000,
+        20,
+       'adult'::age_category_enum,
+       evt.sales_starts_at,
+       evt.sales_ends_at,
+       1,
+       3,
+       '{"age_min":18,"age_max":null,"includes_lunch":true,"includes_documentation":true,"vip_seating":true,"exclusive_session":true}'::jsonb
+FROM evt_corporate evt
+WHERE NOT EXISTS (
+    SELECT 1 FROM ticket_types tt WHERE tt.event_id = evt.id AND tt.name = 'Pass Premium'
+);
+
+-- Inventaire pour les billets corporate
+WITH tt_corporate AS (
+    SELECT tt.id, tt.name
+    FROM ticket_types tt
+    JOIN events ev ON ev.id = tt.event_id
+    WHERE ev.slug = 'seminaire-professionnel-adultes'
+)
+INSERT INTO ticket_inventory (ticket_type_id, total_quantity, reserved_quantity, sold_quantity)
+SELECT tt.id,
+       CASE tt.name
+           WHEN 'Pass Standard' THEN 120
+           WHEN 'Pass Premium' THEN 30
+           ELSE 0
+       END,
+       0,
+       0
+FROM tt_corporate tt
+ON CONFLICT (ticket_type_id) DO NOTHING;
 
 COMMIT;
 
