@@ -87,45 +87,26 @@ class ReportController extends AbstractController
     {
         $this->denyAccessUnlessGranted('IS_AUTHENTICATED_REMEMBERED');
 
-        $month = $request->query->get('month');
-        $year = $request->query->get('year');
+        $dateDebut = $request->query->get('date_debut');
+        $dateFin = $request->query->get('date_fin');
         
         $dateFromObj = null;
         $dateToObj = null;
         
-        // Si mois ET année sont fournis : filtrer sur ce mois précis
-        if ($month && $year) {
+        // Traitement de la date de début
+        if ($dateDebut) {
             try {
-                $dateFromObj = new \DateTime(sprintf('%d-%02d-01 00:00:00', $year, $month), new \DateTimeZone('UTC'));
-                $dateToObj = clone $dateFromObj;
-                $dateToObj->modify('last day of this month');
-                $dateToObj->setTime(23, 59, 59);
+                $dateFromObj = new \DateTime($dateDebut . ' 00:00:00', new \DateTimeZone('UTC'));
             } catch (\Exception $e) {
                 $dateFromObj = null;
-                $dateToObj = null;
             }
         }
-        // Si seulement l'année est fournie : filtrer sur toute l'année
-        elseif ($year && !$month) {
+        
+        // Traitement de la date de fin
+        if ($dateFin) {
             try {
-                $dateFromObj = new \DateTime(sprintf('%d-01-01 00:00:00', $year), new \DateTimeZone('UTC'));
-                $dateToObj = new \DateTime(sprintf('%d-12-31 23:59:59', $year), new \DateTimeZone('UTC'));
+                $dateToObj = new \DateTime($dateFin . ' 23:59:59', new \DateTimeZone('UTC'));
             } catch (\Exception $e) {
-                $dateFromObj = null;
-                $dateToObj = null;
-            }
-        }
-        // Si seulement le mois est fourni : filtrer sur ce mois pour toutes les années disponibles
-        elseif ($month && !$year) {
-            try {
-                // Utiliser l'année actuelle comme référence
-                $currentYear = (int) date('Y');
-                $dateFromObj = new \DateTime(sprintf('%d-%02d-01 00:00:00', $currentYear, $month), new \DateTimeZone('UTC'));
-                $dateToObj = clone $dateFromObj;
-                $dateToObj->modify('last day of this month');
-                $dateToObj->setTime(23, 59, 59);
-            } catch (\Exception $e) {
-                $dateFromObj = null;
                 $dateToObj = null;
             }
         }
@@ -135,8 +116,8 @@ class ReportController extends AbstractController
         return $this->render('reports/statistiques.html.twig', [
             'user' => $this->getUser(),
             'stats' => $stats,
-            'currentMonth' => $month,
-            'currentYear' => $year,
+            'dateDebut' => $dateDebut,
+            'dateFin' => $dateFin,
         ]);
     }
 

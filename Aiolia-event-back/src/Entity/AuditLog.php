@@ -7,9 +7,9 @@ use Doctrine\DBAL\Types\Types;
 use Doctrine\ORM\Mapping as ORM;
 
 #[ORM\Entity(repositoryClass: AuditLogRepository::class)]
-#[ORM\Table(name: 'audit_logs', schema: 'aiolia')]
-#[ORM\Index(name: 'idx_audit_logs_scope', columns: ['scope'])]
-#[ORM\Index(name: 'idx_audit_logs_created_at', columns: ['created_at'])]
+#[ORM\Table(name: 'journaux_audit', schema: 'aiolia')]
+#[ORM\Index(name: 'idx_journaux_audit_portee', columns: ['portee'])]
+#[ORM\Index(name: 'idx_journaux_audit_cree_le', columns: ['cree_le'])]
 #[ORM\HasLifecycleCallbacks]
 class AuditLog
 {
@@ -19,31 +19,31 @@ class AuditLog
     private ?string $id = null;
 
     #[ORM\ManyToOne(targetEntity: User::class)]
-    #[ORM\JoinColumn(name: 'actor_user_id', referencedColumnName: 'id', nullable: true, onDelete: 'SET NULL')]
+    #[ORM\JoinColumn(name: 'id_utilisateur_acteur', referencedColumnName: 'id', nullable: true, onDelete: 'SET NULL')]
     private ?User $actor = null;
 
-    #[ORM\Column(type: Types::STRING, length: 120)]
+    #[ORM\Column(name: 'portee', type: Types::STRING, length: 120)]
     private string $scope;
 
-    #[ORM\Column(type: Types::STRING, length: 120)]
+    #[ORM\Column(name: 'action', type: Types::STRING, length: 120)]
     private string $action;
 
-    #[ORM\Column(name: 'entity_type', type: Types::STRING, length: 120, nullable: true)]
+    #[ORM\Column(name: 'type_entite', type: Types::STRING, length: 120, nullable: true)]
     private ?string $entityType = null;
 
-    #[ORM\Column(name: 'entity_id', type: Types::BIGINT, nullable: true)]
+    #[ORM\Column(name: 'id_entite', type: Types::BIGINT, nullable: true)]
     private ?string $entityId = null;
 
-    #[ORM\Column(type: Types::JSON, nullable: true)]
+    #[ORM\Column(name: 'modifications', type: Types::JSON, nullable: true)]
     private ?array $changes = null;
 
-    #[ORM\Column(name: 'ip_address', type: Types::STRING, length: 64, nullable: true, columnDefinition: 'INET')]
+    #[ORM\Column(name: 'adresse_ip', type: Types::STRING, length: 64, nullable: true, columnDefinition: 'INET')]
     private ?string $ipAddress = null;
 
     #[ORM\Column(name: 'user_agent', type: Types::TEXT, nullable: true)]
     private ?string $userAgent = null;
 
-    #[ORM\Column(name: 'created_at', type: Types::DATETIMETZ_MUTABLE)]
+    #[ORM\Column(name: 'cree_le', type: Types::DATETIMETZ_MUTABLE)]
     private ?\DateTimeInterface $createdAt = null;
 
     #[ORM\PrePersist]

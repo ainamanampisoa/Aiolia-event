@@ -11,13 +11,13 @@ SET search_path TO aiolia, public;
 DROP MATERIALIZED VIEW IF EXISTS aiolia.mv_user_monthly_spend;
 CREATE MATERIALIZED VIEW aiolia.mv_user_monthly_spend AS
 SELECT
-    ti.customer_id AS user_id,
-    date_trunc('month', ti.paid_at) AS month,
-    SUM(ti.total_amount) AS total_spend
-FROM ticket_invoices ti
-WHERE ti.status IN ('paid', 'partially_paid')
-  AND ti.paid_at IS NOT NULL
-GROUP BY ti.customer_id, date_trunc('month', ti.paid_at);
+    ti.id_client AS user_id,
+    date_trunc('month', ti.payee_le) AS month,
+    SUM(ti.montant_total) AS total_spend
+FROM factures_billets ti
+WHERE ti.statut IN ('paid', 'partially_paid')
+  AND ti.payee_le IS NOT NULL
+GROUP BY ti.id_client, date_trunc('month', ti.payee_le);
 
 COMMENT ON MATERIALIZED VIEW aiolia.mv_user_monthly_spend IS
     'Agrégation mensuelle des montants payés par utilisateur sur les factures tickets.';
@@ -25,17 +25,17 @@ COMMENT ON MATERIALIZED VIEW aiolia.mv_user_monthly_spend IS
 CREATE OR REPLACE VIEW aiolia.vw_user_dashboard_summary AS
 SELECT
     u.id AS user_id,
-    u.first_name,
-    u.last_name,
+    u.prenom,
+    u.nom,
     u.role,
-    COALESCE(w.balance, 0) AS wallet_balance,
-    COALESCE(w.points_balance, 0) AS loyalty_points,
-    COALESCE(s.events_attended, 0) AS events_attended,
-    COALESCE(s.total_spend, 0) AS total_spend,
-    s.last_event_at
-FROM users u
-LEFT JOIN wallets w ON w.user_id = u.id
-LEFT JOIN user_event_stats s ON s.user_id = u.id;
+    COALESCE(w.solde, 0) AS wallet_balance,
+    COALESCE(w.solde_points, 0) AS loyalty_points,
+    COALESCE(s.evenements_auxquels_a_participe, 0) AS events_attended,
+    COALESCE(s.depenses_totales, 0) AS total_spend,
+    s.dernier_evenement_le
+FROM utilisateurs u
+LEFT JOIN portefeuilles w ON w.id_utilisateur = u.id
+LEFT JOIN statistiques_evenements_utilisateurs s ON s.id_utilisateur = u.id;
 
 COMMENT ON VIEW aiolia.vw_user_dashboard_summary IS
     'Vue synthétique utilisée pour le tableau de bord utilisateur (soldes, points et activité).';
@@ -43,34 +43,34 @@ COMMENT ON VIEW aiolia.vw_user_dashboard_summary IS
 CREATE OR REPLACE VIEW aiolia.vw_event_sales_summary AS
 SELECT
     e.id AS event_id,
-    e.title,
-    e.starts_at,
-    COALESCE(SUM(oi.quantity) FILTER (WHERE o.status IN ('paid', 'awaiting_payment')), 0) AS tickets_sold,
-    COALESCE(SUM(oi.total_amount) FILTER (WHERE o.status IN ('paid', 'awaiting_payment')), 0) AS gross_revenue
-FROM events e
-LEFT JOIN ticket_types tt ON tt.event_id = e.id
-LEFT JOIN order_items oi ON oi.ticket_type_id = tt.id
-LEFT JOIN orders o ON o.id = oi.order_id
-GROUP BY e.id, e.title, e.starts_at;
+    e.titre,
+    e.commence_le,
+    COALESCE(SUM(oi.quantite) FILTER (WHERE o.statut IN ('paid', 'awaiting_payment')), 0) AS tickets_sold,
+    COALESCE(SUM(oi.montant_total) FILTER (WHERE o.statut IN ('paid', 'awaiting_payment')), 0) AS gross_revenue
+FROM evenements e
+LEFT JOIN types_billets tt ON tt.id_evenement = e.id
+LEFT JOIN elements_commandes oi ON oi.id_type_billet = tt.id
+LEFT JOIN commandes o ON o.id = oi.id_commande
+GROUP BY e.id, e.titre, e.commence_le;
 
 COMMENT ON VIEW aiolia.vw_event_sales_summary IS
     'Vue analytique des ventes par événement (billets vendus et revenu brut filtrés sur commandes payées).';
 
 CREATE OR REPLACE VIEW aiolia.vw_subscription_payment_summary AS
 SELECT
-    si.subscription_id,
-    os.organizer_profile_id,
-    op.user_id AS organizer_user_id,
-    op.organization_type,
-    op.verification_status,
-    si.customer_id,
-    sp.status,
-    si.total_amount,
-    sp.paid_at
-FROM subscription_invoices si
-LEFT JOIN organizer_subscriptions os ON os.id = si.subscription_id
-LEFT JOIN organizer_profiles op ON op.id = os.organizer_profile_id
-LEFT JOIN subscription_payments sp ON sp.invoice_id = si.id;
+    si.id_abonnement,
+    os.id_profil_organisateur,
+    op.id_utilisateur AS organizer_user_id,
+    op.type_organisation,
+    op.statut_verification,
+    si.id_client,
+    sp.statut,
+    si.montant_total,
+    sp.paye_le
+FROM factures_abonnements si
+LEFT JOIN abonnements_organisateurs os ON os.id = si.id_abonnement
+LEFT JOIN profils_organisateurs op ON op.id = os.id_profil_organisateur
+LEFT JOIN paiements_abonnements sp ON sp.id_facture = si.id;
 
 COMMENT ON VIEW aiolia.vw_subscription_payment_summary IS
     'Vue de suivi des paiements d’abonnements avec état de vérification des organisateurs.';
@@ -78,21 +78,21 @@ COMMENT ON VIEW aiolia.vw_subscription_payment_summary IS
 CREATE OR REPLACE VIEW aiolia.vw_ticket_payments_detailed AS
 SELECT
     tp.id AS payment_id,
-    ti.invoice_number,
-    ti.customer_id,
-    ti.order_id,
-    tp.provider,
-    tp.status,
-    tp.amount,
-    tp.currency,
-    tp.paid_at,
-    tph.status_from,
-    tph.status_to,
-    tph.changed_at,
-    tph.metadata
-FROM ticket_payments tp
-LEFT JOIN ticket_invoices ti ON ti.id = tp.invoice_id
-LEFT JOIN ticket_payment_history tph ON tph.payment_id = tp.id;
+    ti.numero_facture,
+    ti.id_client,
+    ti.id_commande,
+    tp.fournisseur,
+    tp.statut,
+    tp.montant,
+    tp.devise,
+    tp.paye_le,
+    tph.statut_de,
+    tph.statut_vers,
+    tph.modifie_le,
+    tph.metadonnees
+FROM paiements_billets tp
+LEFT JOIN factures_billets ti ON ti.id = tp.id_facture
+LEFT JOIN historique_paiements_billets tph ON tph.id_paiement = tp.id;
 
 COMMENT ON VIEW aiolia.vw_ticket_payments_detailed IS
     'Historique détaillé des paiements de billets incluant les transitions de statut.';
@@ -100,63 +100,63 @@ COMMENT ON VIEW aiolia.vw_ticket_payments_detailed IS
 CREATE OR REPLACE VIEW aiolia.vw_subscription_payments_detailed AS
 SELECT
     sp.id AS payment_id,
-    si.invoice_number,
-    si.subscription_id,
-    os.organizer_profile_id,
-    op.user_id AS organizer_user_id,
-    op.organization_type,
-    op.verification_status,
-    sp.provider,
-    sp.status,
-    sp.amount,
-    sp.currency,
-    sp.paid_at,
-    sph.status_from,
-    sph.status_to,
-    sph.changed_at,
-    sph.metadata
-FROM subscription_payments sp
-LEFT JOIN subscription_invoices si ON si.id = sp.invoice_id
-LEFT JOIN organizer_subscriptions os ON os.id = si.subscription_id
-LEFT JOIN organizer_profiles op ON op.id = os.organizer_profile_id
-LEFT JOIN subscription_payment_history sph ON sph.payment_id = sp.id;
+    si.numero_facture,
+    si.id_abonnement,
+    os.id_profil_organisateur,
+    op.id_utilisateur AS organizer_user_id,
+    op.type_organisation,
+    op.statut_verification,
+    sp.fournisseur,
+    sp.statut,
+    sp.montant,
+    sp.devise,
+    sp.paye_le,
+    sph.statut_de,
+    sph.statut_vers,
+    sph.modifie_le,
+    sph.metadonnees
+FROM paiements_abonnements sp
+LEFT JOIN factures_abonnements si ON si.id = sp.id_facture
+LEFT JOIN abonnements_organisateurs os ON os.id = si.id_abonnement
+LEFT JOIN profils_organisateurs op ON op.id = os.id_profil_organisateur
+LEFT JOIN historique_paiements_abonnements sph ON sph.id_paiement = sp.id;
 
 COMMENT ON VIEW aiolia.vw_subscription_payments_detailed IS
     'Historique détaillé des paiements d’abonnement avec métadonnées organisateur.';
 
 CREATE OR REPLACE VIEW aiolia.vw_ticket_invoices_overdue AS
 SELECT
-    ti.invoice_number,
-    ti.customer_id,
-    ti.order_id,
-    ti.total_amount,
-    ti.issued_at,
-    ti.due_at,
-    ti.status
-FROM ticket_invoices ti
-WHERE ti.status IN ('issued', 'overdue')
-   OR (ti.status = 'draft' AND ti.due_at IS NOT NULL AND ti.due_at < now());
+    ti.numero_facture,
+    ti.id_client,
+    ti.id_commande,
+    ti.montant_total,
+    ti.emise_le,
+    ti.echeance_le,
+    ti.statut
+FROM factures_billets ti
+WHERE ti.statut IN ('issued', 'overdue')
+   OR (ti.statut = 'draft' AND ti.echeance_le IS NOT NULL AND ti.echeance_le < now());
 
 COMMENT ON VIEW aiolia.vw_ticket_invoices_overdue IS
     'Liste les factures tickets en retard ou proches de l’échéance.';
 
 CREATE OR REPLACE VIEW aiolia.vw_subscription_invoices_overdue AS
 SELECT
-    si.invoice_number,
-    si.subscription_id,
-    os.organizer_profile_id,
-    op.user_id AS organizer_user_id,
-    op.organization_type,
-    op.verification_status,
-    si.total_amount,
-    si.issued_at,
-    si.due_at,
-    si.status
-FROM subscription_invoices si
-LEFT JOIN organizer_subscriptions os ON os.id = si.subscription_id
-LEFT JOIN organizer_profiles op ON op.id = os.organizer_profile_id
-WHERE si.status IN ('issued', 'overdue')
-   OR (si.status = 'draft' AND si.due_at IS NOT NULL AND si.due_at < now());
+    si.numero_facture,
+    si.id_abonnement,
+    os.id_profil_organisateur,
+    op.id_utilisateur AS organizer_user_id,
+    op.type_organisation,
+    op.statut_verification,
+    si.montant_total,
+    si.emise_le,
+    si.echeance_le,
+    si.statut
+FROM factures_abonnements si
+LEFT JOIN abonnements_organisateurs os ON os.id = si.id_abonnement
+LEFT JOIN profils_organisateurs op ON op.id = os.id_profil_organisateur
+WHERE si.statut IN ('issued', 'overdue')
+   OR (si.statut = 'draft' AND si.echeance_le IS NOT NULL AND si.echeance_le < now());
 
 COMMENT ON VIEW aiolia.vw_subscription_invoices_overdue IS
     'Liste les factures d’abonnement à risque ou échues avec informations organisateur.';
@@ -167,24 +167,24 @@ COMMENT ON VIEW aiolia.vw_subscription_invoices_overdue IS
 CREATE OR REPLACE VIEW aiolia.vw_subscription_invoice_items AS
 SELECT
     sii.id AS item_id,
-    si.invoice_number,
-    si.subscription_id,
-    os.organizer_profile_id,
-    op.user_id AS organizer_user_id,
-    op.organization_type,
-    op.verification_status,
-    sii.plan_id,
+    si.numero_facture,
+    si.id_abonnement,
+    os.id_profil_organisateur,
+    op.id_utilisateur AS organizer_user_id,
+    op.type_organisation,
+    op.statut_verification,
+    sii.id_plan,
     sp.code AS plan_code,
-    sp.name AS plan_name,
+    sp.nom AS plan_name,
     sii.description,
-    sii.quantity,
-    sii.unit_price,
-    sii.total_amount
-FROM subscription_invoice_items sii
-JOIN subscription_invoices si ON si.id = sii.invoice_id
-LEFT JOIN organizer_subscriptions os ON os.id = si.subscription_id
-LEFT JOIN organizer_profiles op ON op.id = os.organizer_profile_id
-LEFT JOIN subscription_plans sp ON sp.id = sii.plan_id;
+    sii.quantite,
+    sii.prix_unitaire,
+    sii.montant_total
+FROM elements_factures_abonnements sii
+JOIN factures_abonnements si ON si.id = sii.id_facture
+LEFT JOIN abonnements_organisateurs os ON os.id = si.id_abonnement
+LEFT JOIN profils_organisateurs op ON op.id = os.id_profil_organisateur
+LEFT JOIN plans_abonnements sp ON sp.id = sii.id_plan;
 
 COMMENT ON VIEW aiolia.vw_subscription_invoice_items IS
     'Détaille les lignes des factures d’abonnement, incluant plan et statut d’organisateur.';
@@ -204,63 +204,63 @@ COMMENT ON FUNCTION refresh_user_monthly_spend() IS
 
 CREATE OR REPLACE FUNCTION wallet_transactions_apply() RETURNS trigger AS $$
 DECLARE
-    v_wallet wallets%ROWTYPE;
+    v_wallet portefeuilles%ROWTYPE;
     v_new_balance NUMERIC(14,2);
     v_new_points INTEGER;
 BEGIN
-    IF NEW.status <> 'pending' THEN
+    IF NEW.statut <> 'pending' THEN
         RETURN NEW;
     END IF;
 
-    IF NEW.transaction_type IN ('credit', 'debit') AND NEW.amount <= 0 THEN
+    IF NEW.type_transaction IN ('credit', 'debit') AND NEW.montant <= 0 THEN
         RAISE EXCEPTION 'Le montant doit être strictement positif pour une transaction monétaire (%).', NEW.id;
-    ELSIF NEW.transaction_type IN ('points_credit', 'points_debit') AND NEW.points_delta <= 0 THEN
+    ELSIF NEW.type_transaction IN ('points_credit', 'points_debit') AND NEW.variation_points <= 0 THEN
         RAISE EXCEPTION 'La variation de points doit être strictement positive pour une transaction de points (%).', NEW.id;
     END IF;
 
     SELECT *
       INTO v_wallet
-      FROM wallets
-     WHERE id = NEW.wallet_id
+      FROM portefeuilles
+     WHERE id = NEW.id_portefeuille
      FOR UPDATE;
 
     IF NOT FOUND THEN
-        RAISE EXCEPTION 'Portefeuille % introuvable pour la transaction %.', NEW.wallet_id, NEW.id;
+        RAISE EXCEPTION 'Portefeuille % introuvable pour la transaction %.', NEW.id_portefeuille, NEW.id;
     END IF;
 
-    v_new_balance := v_wallet.balance;
-    v_new_points := v_wallet.points_balance;
+    v_new_balance := v_wallet.solde;
+    v_new_points := v_wallet.solde_points;
 
-    CASE NEW.transaction_type
+    CASE NEW.type_transaction
         WHEN 'credit' THEN
-            v_new_balance := v_wallet.balance + NEW.amount;
+            v_new_balance := v_wallet.solde + NEW.montant;
         WHEN 'debit' THEN
-            IF NEW.amount > v_wallet.balance THEN
-                RAISE EXCEPTION 'Solde insuffisant sur le portefeuille % pour débiter %.', NEW.wallet_id, NEW.amount;
+            IF NEW.montant > v_wallet.solde THEN
+                RAISE EXCEPTION 'Solde insuffisant sur le portefeuille % pour débiter %.', NEW.id_portefeuille, NEW.montant;
             END IF;
-            v_new_balance := v_wallet.balance - NEW.amount;
+            v_new_balance := v_wallet.solde - NEW.montant;
         WHEN 'points_credit' THEN
-            v_new_points := v_wallet.points_balance + NEW.points_delta;
+            v_new_points := v_wallet.solde_points + NEW.variation_points;
         WHEN 'points_debit' THEN
-            IF NEW.points_delta > v_wallet.points_balance THEN
-                RAISE EXCEPTION 'Solde de points insuffisant sur le portefeuille % pour déduire % points.', NEW.wallet_id, NEW.points_delta;
+            IF NEW.variation_points > v_wallet.solde_points THEN
+                RAISE EXCEPTION 'Solde de points insuffisant sur le portefeuille % pour déduire % points.', NEW.id_portefeuille, NEW.variation_points;
             END IF;
-            v_new_points := v_wallet.points_balance - NEW.points_delta;
+            v_new_points := v_wallet.solde_points - NEW.variation_points;
     END CASE;
 
-    IF NEW.transaction_type IN ('credit', 'debit') THEN
-        UPDATE wallets
-           SET balance = v_new_balance,
-               updated_at = now()
-         WHERE id = NEW.wallet_id;
+    IF NEW.type_transaction IN ('credit', 'debit') THEN
+        UPDATE portefeuilles
+           SET solde = v_new_balance,
+               modifie_le = now()
+         WHERE id = NEW.id_portefeuille;
     ELSE
-        UPDATE wallets
-           SET points_balance = v_new_points,
-               updated_at = now()
-         WHERE id = NEW.wallet_id;
+        UPDATE portefeuilles
+           SET solde_points = v_new_points,
+               modifie_le = now()
+         WHERE id = NEW.id_portefeuille;
     END IF;
 
-    NEW.status := 'completed';
+    NEW.statut := 'completed';
     RETURN NEW;
 END;
 $$ LANGUAGE plpgsql;
@@ -274,27 +274,27 @@ DECLARE
     v_reserved INTEGER;
     v_sold INTEGER;
 BEGIN
-    SELECT total_quantity, reserved_quantity, sold_quantity
+    SELECT quantite_totale, quantite_reservee, quantite_vendue
       INTO v_total, v_reserved, v_sold
-      FROM ticket_inventory
-     WHERE ticket_type_id = NEW.ticket_type_id
+      FROM inventaire_billets
+     WHERE id_type_billet = NEW.id_type_billet
      FOR UPDATE;
 
     IF NOT FOUND THEN
-        RAISE EXCEPTION 'Inventaire introuvable pour le type de billet %.', NEW.ticket_type_id;
+        RAISE EXCEPTION 'Inventaire introuvable pour le type de billet %.', NEW.id_type_billet;
     END IF;
 
-    IF v_reserved + v_sold + NEW.quantity > v_total THEN
+    IF v_reserved + v_sold + NEW.quantite > v_total THEN
         RAISE EXCEPTION 'Stock insuffisant pour le type de billet %, quantité demandée : %, disponible : %.',
-            NEW.ticket_type_id,
-            NEW.quantity,
+            NEW.id_type_billet,
+            NEW.quantite,
             v_total - v_reserved - v_sold;
     END IF;
 
-    UPDATE ticket_inventory
-       SET reserved_quantity = v_reserved + NEW.quantity,
-           updated_at = now()
-     WHERE ticket_type_id = NEW.ticket_type_id;
+    UPDATE inventaire_billets
+       SET quantite_reservee = v_reserved + NEW.quantite,
+           modifie_le = now()
+     WHERE id_type_billet = NEW.id_type_billet;
 
     RETURN NEW;
 END;
@@ -313,22 +313,22 @@ DECLARE
     v_upcoming_increment INTEGER := 0;
     v_last_event_at TIMESTAMPTZ;
 BEGIN
-    IF NEW.owner_user_id IS NULL THEN
+    IF NEW.id_utilisateur_proprietaire IS NULL THEN
         RETURN NEW;
     END IF;
 
-    SELECT e.starts_at,
-           oi.total_amount,
-           oi.quantity
+    SELECT e.commence_le,
+           oi.montant_total,
+           oi.quantite
       INTO v_event_start,
            v_total_amount,
            v_quantity
-      FROM ticket_types tt
-      LEFT JOIN events e ON e.id = tt.event_id
-      LEFT JOIN order_items oi ON oi.id = NEW.order_item_id
-     WHERE tt.id = NEW.ticket_type_id;
+      FROM types_billets tt
+      LEFT JOIN evenements e ON e.id = tt.id_evenement
+      LEFT JOIN elements_commandes oi ON oi.id = NEW.id_element_commande
+     WHERE tt.id = NEW.id_type_billet;
 
-    v_last_event_at := COALESCE(v_event_start, NEW.issued_at);
+    v_last_event_at := COALESCE(v_event_start, NEW.emis_le);
 
     IF v_quantity IS NULL OR v_quantity = 0 THEN
         v_quantity := 1;
@@ -346,28 +346,28 @@ BEGIN
         v_upcoming_increment := 1;
     END IF;
 
-    INSERT INTO user_event_stats (
-        user_id,
-        events_attended,
-        upcoming_events,
-        total_spend,
-        last_event_at,
-        updated_at
+    INSERT INTO statistiques_evenements_utilisateurs (
+        id_utilisateur,
+        evenements_auxquels_a_participe,
+        evenements_a_venir,
+        depenses_totales,
+        dernier_evenement_le,
+        modifie_le
     )
     VALUES (
-        NEW.owner_user_id,
+        NEW.id_utilisateur_proprietaire,
         v_attended_increment,
         v_upcoming_increment,
         v_ticket_value,
         v_last_event_at,
         now()
     )
-    ON CONFLICT (user_id) DO UPDATE
-        SET events_attended = user_event_stats.events_attended + EXCLUDED.events_attended,
-            upcoming_events = user_event_stats.upcoming_events + EXCLUDED.upcoming_events,
-            total_spend = user_event_stats.total_spend + EXCLUDED.total_spend,
-            last_event_at = GREATEST(user_event_stats.last_event_at, EXCLUDED.last_event_at),
-            updated_at = now();
+    ON CONFLICT (id_utilisateur) DO UPDATE
+        SET evenements_auxquels_a_participe = statistiques_evenements_utilisateurs.evenements_auxquels_a_participe + EXCLUDED.evenements_auxquels_a_participe,
+            evenements_a_venir = statistiques_evenements_utilisateurs.evenements_a_venir + EXCLUDED.evenements_a_venir,
+            depenses_totales = statistiques_evenements_utilisateurs.depenses_totales + EXCLUDED.depenses_totales,
+            dernier_evenement_le = GREATEST(statistiques_evenements_utilisateurs.dernier_evenement_le, EXCLUDED.dernier_evenement_le),
+            modifie_le = now();
 
     RETURN NEW;
 END;
@@ -379,28 +379,28 @@ COMMENT ON FUNCTION tickets_record_stats() IS
 -- ------------------------------------------------------------
 -- 3. Triggers
 -- ------------------------------------------------------------
-DROP TRIGGER IF EXISTS trg_wallet_transactions_apply ON wallet_transactions;
+DROP TRIGGER IF EXISTS trg_wallet_transactions_apply ON transactions_portefeuilles;
 CREATE TRIGGER trg_wallet_transactions_apply
-BEFORE INSERT ON wallet_transactions
+BEFORE INSERT ON transactions_portefeuilles
 FOR EACH ROW EXECUTE FUNCTION wallet_transactions_apply();
 
-COMMENT ON TRIGGER trg_wallet_transactions_apply ON wallet_transactions IS
+COMMENT ON TRIGGER trg_wallet_transactions_apply ON transactions_portefeuilles IS
     'Avant insertion : applique immédiatement les effets des transactions de portefeuille.';
 
-DROP TRIGGER IF EXISTS trg_order_items_adjust_inventory ON order_items;
+DROP TRIGGER IF EXISTS trg_order_items_adjust_inventory ON elements_commandes;
 CREATE TRIGGER trg_order_items_adjust_inventory
-AFTER INSERT ON order_items
+AFTER INSERT ON elements_commandes
 FOR EACH ROW EXECUTE FUNCTION order_items_adjust_inventory();
 
-COMMENT ON TRIGGER trg_order_items_adjust_inventory ON order_items IS
+COMMENT ON TRIGGER trg_order_items_adjust_inventory ON elements_commandes IS
     'Après insertion : réserve le stock correspondant pour le type de billet ciblé.';
 
-DROP TRIGGER IF EXISTS trg_tickets_record_stats ON tickets;
+DROP TRIGGER IF EXISTS trg_tickets_record_stats ON billets;
 CREATE TRIGGER trg_tickets_record_stats
-AFTER INSERT ON tickets
+AFTER INSERT ON billets
 FOR EACH ROW EXECUTE FUNCTION tickets_record_stats();
 
-COMMENT ON TRIGGER trg_tickets_record_stats ON tickets IS
+COMMENT ON TRIGGER trg_tickets_record_stats ON billets IS
     'Après insertion : met à jour les statistiques utilisateur liées aux billets.';
 
 -- ============================================================

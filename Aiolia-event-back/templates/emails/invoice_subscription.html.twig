@@ -356,7 +356,7 @@
 
             <div class="email-body">
                 <div class="greeting">
-                    <p>Bonjour <strong>{{ customer.firstName }} {{ customer.lastName }}</strong>,</p>
+                    <p>Bonjour <strong>{{ customer.prenom }} {{ customer.nom }}</strong>,</p>
                 </div>
 
                 {% if isOverdueNotification %}
@@ -450,7 +450,7 @@
                         {% endif %}
                         <div class="invoice-info-item">
                             <strong>Client</strong>
-                            <span>{{ customer.firstName }} {{ customer.lastName }}</span>
+                            <span>{{ customer.prenom }} {{ customer.nom }}</span>
                         </div>
                         <div class="invoice-info-item">
                             <strong>Email de facturation</strong>

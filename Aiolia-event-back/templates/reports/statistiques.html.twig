@@ -15,46 +15,29 @@
         <div class="header-actions">
             <form method="get" action="{{ path('app_reports_statistiques') }}" style="display: flex; gap: 10px; align-items: flex-end; flex-wrap: wrap;">
                 <div style="display: flex; flex-direction: column; gap: 4px;">
-                    <label style="font-size: 0.85rem; color: var(--text-secondary);">Mois</label>
-                    <select 
-                        name="month" 
-                        style="padding: 8px 12px; border: 2px solid var(--border-color); background: var(--bg-secondary); color: var(--text-primary); border-radius: 8px; font-size: 0.9rem; min-width: 140px;"
+                    <label style="font-size: 0.85rem; color: var(--text-secondary);">Date de début</label>
+                    <input 
+                        type="date" 
+                        name="date_debut" 
+                        value="{{ dateDebut ?? '' }}"
+                        style="padding: 8px 12px; border: 2px solid var(--border-color); background: var(--bg-secondary); color: var(--text-primary); border-radius: 8px; font-size: 0.9rem; min-width: 160px;"
                     >
-                        <option value="">-- Tous les mois --</option>
-                        <option value="1" {{ currentMonth == '1' ? 'selected' : '' }}>Janvier</option>
-                        <option value="2" {{ currentMonth == '2' ? 'selected' : '' }}>Février</option>
-                        <option value="3" {{ currentMonth == '3' ? 'selected' : '' }}>Mars</option>
-                        <option value="4" {{ currentMonth == '4' ? 'selected' : '' }}>Avril</option>
-                        <option value="5" {{ currentMonth == '5' ? 'selected' : '' }}>Mai</option>
-                        <option value="6" {{ currentMonth == '6' ? 'selected' : '' }}>Juin</option>
-                        <option value="7" {{ currentMonth == '7' ? 'selected' : '' }}>Juillet</option>
-                        <option value="8" {{ currentMonth == '8' ? 'selected' : '' }}>Août</option>
-                        <option value="9" {{ currentMonth == '9' ? 'selected' : '' }}>Septembre</option>
-                        <option value="10" {{ currentMonth == '10' ? 'selected' : '' }}>Octobre</option>
-                        <option value="11" {{ currentMonth == '11' ? 'selected' : '' }}>Novembre</option>
-                        <option value="12" {{ currentMonth == '12' ? 'selected' : '' }}>Décembre</option>
-                    </select>
                 </div>
                 <div style="display: flex; flex-direction: column; gap: 4px;">
-                    <label style="font-size: 0.85rem; color: var(--text-secondary);">Année</label>
-                    <select 
-                        name="year" 
-                        style="padding: 8px 12px; border: 2px solid var(--border-color); background: var(--bg-secondary); color: var(--text-primary); border-radius: 8px; font-size: 0.9rem; min-width: 120px;"
+                    <label style="font-size: 0.85rem; color: var(--text-secondary);">Date de fin</label>
+                    <input 
+                        type="date" 
+                        name="date_fin" 
+                        value="{{ dateFin ?? '' }}"
+                        style="padding: 8px 12px; border: 2px solid var(--border-color); background: var(--bg-secondary); color: var(--text-primary); border-radius: 8px; font-size: 0.9rem; min-width: 160px;"
                     >
-                        <option value="">-- Toutes les années --</option>
-                        {% set currentYear = "now"|date("Y")|number_format(0, '', '') %}
-                        {% for i in -1..5 %}
-                            {% set year = currentYear - i %}
-                            <option value="{{ year }}" {{ currentYear == year ? 'selected' : '' }}>{{ year }}</option>
-                        {% endfor %}
-                    </select>
                 </div>
                 <div style="display: flex; flex-direction: column; gap: 4px; margin-top: 20px;">
                     <button type="submit" class="btn btn-primary" style="padding: 8px 20px; border-radius: 8px; font-size: 0.9rem;">
                         <i class="fas fa-filter"></i> Filtrer
                     </button>
                 </div>
-                {% if currentMonth or currentYear %}
+                {% if dateDebut or dateFin %}
                 <div style="display: flex; flex-direction: column; gap: 4px; margin-top: 20px;">
                     <a href="{{ path('app_reports_statistiques') }}" class="btn btn-secondary" style="padding: 8px 20px; border-radius: 8px; font-size: 0.9rem; text-decoration: none;">
                         <i class="fas fa-times"></i> Réinitialiser
@@ -73,7 +56,7 @@
             </div>
             <div class="stat-content">
                 <h3>{{ stats.counts.organizers ?? 0 }}</h3>
-                <p>Organisateurs</p>
+                <p>Organisateurs actifs</p>
             </div>
         </div>
         <div class="stat-card stat-card-compact">
@@ -85,26 +68,56 @@
                 <p>Factures payées</p>
             </div>
         </div>
+        {% set totalTtc = stats.fiscal.by_month.ttc_values|default([])|sum %}
+        {% set totalHt = stats.fiscal.by_month.ht_values|default([])|sum %}
+        {% set totalTva = stats.fiscal.by_month.tva_values|default([])|sum %}
+        <div class="stat-card stat-card-compact">
+            <div class="stat-icon stat-icon-compact bg-info">
+                <i class="fas fa-receipt"></i>
+            </div>
+            <div class="stat-content">
+                <h3>{{ totalHt|number_format(0, ',', ' ') }}</h3>
+                <p>Total HT (MGA)</p>
+            </div>
+        </div>
+        <div class="stat-card stat-card-compact">
+            <div class="stat-icon stat-icon-compact bg-warning">
+                <i class="fas fa-percent"></i>
+            </div>
+            <div class="stat-content">
+                <h3>{{ totalTva|number_format(0, ',', ' ') }}</h3>
+                <p>Total TVA (MGA)</p>
+            </div>
+        </div>
+        <div class="stat-card stat-card-compact">
+            <div class="stat-icon stat-icon-compact bg-success">
+                <i class="fas fa-money-bill-wave"></i>
+            </div>
+            <div class="stat-content">
+                <h3>{{ totalTtc|number_format(0, ',', ' ') }}</h3>
+                <p>Total TTC (MGA)</p>
+            </div>
+        </div>
         <div class="stat-card stat-card-compact" style="display: none;">
             <div class="kpi-label">Utilisateurs</div>
             <div class="kpi-value">{{ stats.counts.users ?? '2 345' }}</div>
         </div>
-        <div class="stat-card stat-card-compact">
+        {# <div class="stat-card stat-card-compact">
             <div class="stat-icon stat-icon-compact bg-warning">
                 <i class="fas fa-sync-alt"></i>
             </div>
             <div class="stat-content">
                 <h3>{{ stats.counts.active_subscriptions ?? 0 }}</h3>
-                <p>Abonnements actifs</p>
+                <p>Abonnements totaux</p>
             </div>
-        </div>
+        </div> #}
         <div class="stat-card stat-card-compact">
             <div class="stat-icon stat-icon-compact bg-info">
                 <i class="fas fa-money-bill-wave"></i>
             </div>
             <div class="stat-content">
                 <h3>{{ (stats.organizers.subscription_revenue_total ?? 0)|number_format(0, ',', ' ') }}</h3>
-                <p>Revenus abonnements (MGA)</p>
+                <p>Revenus (MGA)</p>
             </div>
         </div>
         <div class="stat-card stat-card-compact" style="display: none;">
@@ -118,9 +131,9 @@
         <div class="content-col">
             <div class="chart-card">
                 <div class="card-header">
-                    <h3>📊 Évolution des abonnements</h3>
+                    <h3>📊 Graphique des abonnements (chiffre d'affaires) par mois</h3>
                     <p style="color: var(--text-secondary); font-size: 0.9rem; margin-top: 4px;">
-                        Nombre d'abonnements actifs par mois
+                        Évolution mensuelle du chiffre d'affaires par plan (Basic / Pro / Entreprise)
                     </p>
                 </div>
                 <div class="card-body">
@@ -147,7 +160,7 @@
     <!-- Top payeurs (barres) -->
     <div class="chart-card" style="margin-bottom: 24px;">
         <div class="card-header">
-            <h3>🏆 Top payeurs{% if currentMonth or currentYear %}{% set monthNames = {1: 'Janvier', 2: 'Février', 3: 'Mars', 4: 'Avril', 5: 'Mai', 6: 'Juin', 7: 'Juillet', 8: 'Août', 9: 'Septembre', 10: 'Octobre', 11: 'Novembre', 12: 'Décembre'} %} ({% if currentMonth and currentYear %}{{ monthNames[currentMonth] }} {{ currentYear }}{% elseif currentMonth %}{{ monthNames[currentMonth] }}{% elseif currentYear %}{{ currentYear }}{% endif %}){% else %} (12 derniers mois){% endif %}</h3>
+            <h3>🏆 Top payeurs (2025)</h3>
             <p style="color: var(--text-secondary); font-size: 0.9rem; margin-top: 4px;">
                 Classement des meilleurs contributeurs
             </p>
@@ -156,18 +169,78 @@
             <canvas id="topPayersChart" height="280"></canvas>
         </div>
     </div>
+
+    <!-- Section Statistiques Fiscales -->
+    <div style="margin-top: 40px; padding-top: 24px; border-top: 2px solid var(--border-color);">
+        <h2 style="margin-bottom: 24px; color: var(--text-primary); font-size: 1.5rem;">📊 Statistiques Fiscales</h2>
+        
+        <!-- Graphiques HT, TVA, TTC par mois -->
+        <div class="content-row" style="margin-bottom: 24px;">
+            <div class="content-col">
+                <div class="chart-card">
+                    <div class="card-header">
+                        <h3>💰 Revenus HT par mois</h3>
+                        <p style="color: var(--text-secondary); font-size: 0.9rem; margin-top: 4px;">
+                            Évolution mensuelle des revenus hors taxes
+                        </p>
+                    </div>
+                    <div class="card-body">
+                        <canvas id="htByMonthChart" height="220"></canvas>
+                    </div>
+                </div>
+            </div>
+            <div class="content-col">
+                <div class="chart-card">
+                    <div class="card-header">
+                        <h3>🧾 TVA collectée par mois</h3>
+                        <p style="color: var(--text-secondary); font-size: 0.9rem; margin-top: 4px;">
+                            Évolution mensuelle de la TVA collectée
+                        </p>
+                    </div>
+                    <div class="card-body">
+                        <canvas id="tvaByMonthChart" height="220"></canvas>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div class="chart-card" style="margin-bottom: 24px;">
+            <div class="card-header">
+                <h3>💵 Total TTC par mois</h3>
+                <p style="color: var(--text-secondary); font-size: 0.9rem; margin-top: 4px;">
+                    Évolution mensuelle du total toutes taxes comprises
+                </p>
+            </div>
+            <div class="card-body">
+                <canvas id="ttcByMonthChart" height="280"></canvas>
+            </div>
+        </div>
+
+        <!-- Top contributeurs TVA -->
+        <div class="chart-card" style="margin-bottom: 24px;">
+            <div class="card-header">
+                <h3>🏆 Top organisateurs contributeurs à la TVA</h3>
+                <p style="color: var(--text-secondary); font-size: 0.9rem; margin-top: 4px;">
+                    Classement des organisateurs ayant contribué le plus à la TVA
+                </p>
+            </div>
+            <div class="card-body">
+                <canvas id="topVatContributorsChart" height="280"></canvas>
+            </div>
+        </div>
+    </div>
 </div>
 
 <style>
 .stats-grid {
     display: grid;
-    grid-template-columns: repeat(4, 1fr);
+    grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
     gap: 16px;
     margin: 12px 0 24px;
 }
 
 .stats-grid-compact {
-    grid-template-columns: repeat(4, 1fr);
+    grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
 }
 
 .stat-card {
@@ -273,6 +346,43 @@
 
 .content-col {
     display: flex;
+}
+
+.chart-card {
+    background: var(--bg-card);
+    border: 1px solid var(--border-color);
+    border-radius: var(--border-radius-md);
+    padding: 20px;
+    width: 100%;
+    transition: var(--transition-base);
+}
+
+.chart-card:hover {
+    box-shadow: var(--shadow-md);
+    border-color: var(--accent-light);
+}
+
+.card-header {
+    margin-bottom: 16px;
+    padding-bottom: 12px;
+    border-bottom: 2px solid var(--border-light);
+}
+
+.card-header h3 {
+    font-size: 1.1rem;
+    font-weight: var(--font-weight-semibold);
+    color: var(--text-primary);
+    margin: 0;
+}
+
+.card-body {
+    position: relative;
+    min-height: 220px;
+    height: auto;
+}
+
+.card-body canvas[height="280"] {
+    min-height: 280px;
 }
 
 .chart-placeholder {
@@ -399,19 +509,74 @@
 <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.1/dist/chart.umd.min.js"></script>
 <script>
 function renderStatsCharts() {
-    // Courbe abonnements (line)
+    // Courbe abonnements par plan (line avec 3 courbes)
     const subsEl = document.getElementById('subsEvolutionChart');
     if (subsEl) {
         if (subsEl._chartInstance) { try { subsEl._chartInstance.destroy(); } catch(e) {} }
-        const labels = {{ (stats.subscriptions.timeseries.labels ?? ['J-6','J-5','J-4','J-3','J-2','J-1','Aujourd\'hui'])|json_encode|raw }};
-        const values = {{ (stats.subscriptions.timeseries.values ?? [100, 120, 130, 110, 150, 160, 170])|json_encode|raw }};
+        const revenueData = {{ (stats.subscriptions.revenue_by_plan_by_month ?? {labels: [], plans: {}})|json_encode|raw }};
+        const labels = revenueData.labels || [];
+        const plans = revenueData.plans || {};
         const accent = (getComputedStyle(document.documentElement).getPropertyValue('--accent') || '#3498db').trim();
         const textColor = getComputedStyle(document.documentElement).getPropertyValue('--text-secondary') || '#666';
         const gridColor = 'rgba(128,128,128,0.2)';
+        
+        // Couleurs pour chaque plan
+        const planColors = {
+            'Basic': accent || '#3498db',
+            'Pro': '#9b59b6',
+            'Entreprise': '#e67e22'
+        };
+        
+        // Créer les datasets pour chaque plan
+        const datasets = [];
+        const planOrder = ['Basic', 'Pro', 'Entreprise'];
+        
+        planOrder.forEach(planName => {
+            if (plans[planName] && Array.isArray(plans[planName])) {
+                datasets.push({
+                    label: planName,
+                    data: plans[planName],
+                    tension: 0.35,
+                    fill: false,
+                    borderColor: planColors[planName] || accent,
+                    backgroundColor: planColors[planName] || accent,
+                    pointRadius: 3,
+                    borderWidth: 2
+                });
+            }
+        });
+        
         subsEl._chartInstance = new Chart(subsEl.getContext('2d'), {
             type: 'line',
-            data: { labels, datasets: [{ label: 'Abonnements actifs', data: values, tension: 0.35, fill: true, borderColor: accent, backgroundColor: accent + '33', pointRadius: 3, borderWidth: 2 }] },
-            options: { responsive: true, maintainAspectRatio: false, scales: { x: { grid: { color: gridColor }, ticks: { color: textColor } }, y: { beginAtZero: true, grid: { color: gridColor }, ticks: { color: textColor } } }, plugins: { legend: { labels: { color: textColor } } } }
+            data: { labels, datasets },
+            options: { 
+                responsive: true, 
+                maintainAspectRatio: false, 
+                scales: { 
+                    x: { grid: { color: gridColor }, ticks: { color: textColor } }, 
+                    y: { 
+                        beginAtZero: true, 
+                        grid: { color: gridColor }, 
+                        ticks: { 
+                            color: textColor,
+                            callback: function(value) {
+                                return value.toLocaleString('fr-FR') + ' MGA';
+                            }
+                        } 
+                    } 
+                }, 
+                plugins: { 
+                    legend: { labels: { color: textColor } },
+                    tooltip: {
+                        callbacks: {
+                            label: function(context) {
+                                const value = context.parsed.y ?? 0;
+                                return context.dataset.label + ': ' + value.toLocaleString('fr-FR') + ' MGA';
+                            }
+                        }
+                    }
+                } 
+            }
         });
     }
 
@@ -444,6 +609,216 @@ function renderStatsCharts() {
             type: 'bar',
             data: { labels, datasets: [{ label: 'Total payé (MGA)', data: values, backgroundColor: accent + '88', borderColor: accent, borderWidth: 1 }] },
             options: { responsive: true, maintainAspectRatio: false, scales: { x: { grid: { display: false }, ticks: { color: textColor } }, y: { beginAtZero: true, grid: { color: gridColor }, ticks: { color: textColor } } }, plugins: { legend: { labels: { color: textColor } }, tooltip: { callbacks: { label: (ctx) => { const v = ctx.parsed.y ?? 0; return ' ' + v.toLocaleString('fr-FR') + ' MGA'; } } } } }
+        });
+    }
+
+    // Graphiques fiscaux
+    const fiscalData = {{ (stats.fiscal.by_month ?? {labels: [], ht_values: [], tva_values: [], ttc_values: []})|json_encode|raw }};
+    const fiscalLabels = fiscalData.labels || [];
+    const htValues = fiscalData.ht_values || [];
+    const tvaValues = fiscalData.tva_values || [];
+    const ttcValues = fiscalData.ttc_values || [];
+    const accent = (getComputedStyle(document.documentElement).getPropertyValue('--accent') || '#3498db').trim();
+    const textColor = getComputedStyle(document.documentElement).getPropertyValue('--text-secondary') || '#666';
+    const gridColor = 'rgba(128,128,128,0.2)';
+
+    // Graphique HT par mois
+    const htEl = document.getElementById('htByMonthChart');
+    if (htEl) {
+        if (htEl._chartInstance) { try { htEl._chartInstance.destroy(); } catch(e) {} }
+        htEl._chartInstance = new Chart(htEl.getContext('2d'), {
+            type: 'line',
+            data: { 
+                labels: fiscalLabels, 
+                datasets: [{
+                    label: 'Revenus HT',
+                    data: htValues,
+                    tension: 0.35,
+                    fill: false,
+                    borderColor: '#3498db',
+                    backgroundColor: '#3498db',
+                    pointRadius: 3,
+                    borderWidth: 2
+                }]
+            },
+            options: { 
+                responsive: true, 
+                maintainAspectRatio: false, 
+                scales: { 
+                    x: { grid: { color: gridColor }, ticks: { color: textColor } }, 
+                    y: { 
+                        beginAtZero: true, 
+                        grid: { color: gridColor }, 
+                        ticks: { 
+                            color: textColor,
+                            callback: function(value) {
+                                return value.toLocaleString('fr-FR') + ' MGA';
+                            }
+                        } 
+                    } 
+                }, 
+                plugins: { 
+                    legend: { labels: { color: textColor } },
+                    tooltip: {
+                        callbacks: {
+                            label: function(context) {
+                                const value = context.parsed.y ?? 0;
+                                return 'HT: ' + value.toLocaleString('fr-FR') + ' MGA';
+                            }
+                        }
+                    }
+                } 
+            }
+        });
+    }
+
+    // Graphique TVA par mois
+    const tvaEl = document.getElementById('tvaByMonthChart');
+    if (tvaEl) {
+        if (tvaEl._chartInstance) { try { tvaEl._chartInstance.destroy(); } catch(e) {} }
+        tvaEl._chartInstance = new Chart(tvaEl.getContext('2d'), {
+            type: 'line',
+            data: { 
+                labels: fiscalLabels, 
+                datasets: [{
+                    label: 'TVA collectée',
+                    data: tvaValues,
+                    tension: 0.35,
+                    fill: false,
+                    borderColor: '#e67e22',
+                    backgroundColor: '#e67e22',
+                    pointRadius: 3,
+                    borderWidth: 2
+                }]
+            },
+            options: { 
+                responsive: true, 
+                maintainAspectRatio: false, 
+                scales: { 
+                    x: { grid: { color: gridColor }, ticks: { color: textColor } }, 
+                    y: { 
+                        beginAtZero: true, 
+                        grid: { color: gridColor }, 
+                        ticks: { 
+                            color: textColor,
+                            callback: function(value) {
+                                return value.toLocaleString('fr-FR') + ' MGA';
+                            }
+                        } 
+                    } 
+                }, 
+                plugins: { 
+                    legend: { labels: { color: textColor } },
+                    tooltip: {
+                        callbacks: {
+                            label: function(context) {
+                                const value = context.parsed.y ?? 0;
+                                return 'TVA: ' + value.toLocaleString('fr-FR') + ' MGA';
+                            }
+                        }
+                    }
+                } 
+            }
+        });
+    }
+
+    // Graphique TTC par mois
+    const ttcEl = document.getElementById('ttcByMonthChart');
+    if (ttcEl) {
+        if (ttcEl._chartInstance) { try { ttcEl._chartInstance.destroy(); } catch(e) {} }
+        ttcEl._chartInstance = new Chart(ttcEl.getContext('2d'), {
+            type: 'line',
+            data: { 
+                labels: fiscalLabels, 
+                datasets: [{
+                    label: 'Total TTC',
+                    data: ttcValues,
+                    tension: 0.35,
+                    fill: false,
+                    borderColor: '#27ae60',
+                    backgroundColor: '#27ae60',
+                    pointRadius: 3,
+                    borderWidth: 2
+                }]
+            },
+            options: { 
+                responsive: true, 
+                maintainAspectRatio: false, 
+                scales: { 
+                    x: { grid: { color: gridColor }, ticks: { color: textColor } }, 
+                    y: { 
+                        beginAtZero: true, 
+                        grid: { color: gridColor }, 
+                        ticks: { 
+                            color: textColor,
+                            callback: function(value) {
+                                return value.toLocaleString('fr-FR') + ' MGA';
+                            }
+                        } 
+                    } 
+                }, 
+                plugins: { 
+                    legend: { labels: { color: textColor } },
+                    tooltip: {
+                        callbacks: {
+                            label: function(context) {
+                                const value = context.parsed.y ?? 0;
+                                return 'TTC: ' + value.toLocaleString('fr-FR') + ' MGA';
+                            }
+                        }
+                    }
+                } 
+            }
+        });
+    }
+
+    // Top contributeurs TVA
+    const topVatData = {{ (stats.fiscal.top_vat_contributors ?? {labels: [], vat_values: []})|json_encode|raw }};
+    const topVatEl = document.getElementById('topVatContributorsChart');
+    if (topVatEl) {
+        if (topVatEl._chartInstance) { try { topVatEl._chartInstance.destroy(); } catch(e) {} }
+        const topVatLabels = topVatData.labels || [];
+        const topVatValues = topVatData.vat_values || [];
+        topVatEl._chartInstance = new Chart(topVatEl.getContext('2d'), {
+            type: 'bar',
+            data: { 
+                labels: topVatLabels, 
+                datasets: [{ 
+                    label: 'TVA contribuée (MGA)', 
+                    data: topVatValues, 
+                    backgroundColor: '#e67e22' + '88', 
+                    borderColor: '#e67e22', 
+                    borderWidth: 1 
+                }] 
+            },
+            options: { 
+                responsive: true, 
+                maintainAspectRatio: false, 
+                scales: { 
+                    x: { grid: { display: false }, ticks: { color: textColor } }, 
+                    y: { 
+                        beginAtZero: true, 
+                        grid: { color: gridColor }, 
+                        ticks: { 
+                            color: textColor,
+                            callback: function(value) {
+                                return value.toLocaleString('fr-FR') + ' MGA';
+                            }
+                        } 
+                    } 
+                }, 
+                plugins: { 
+                    legend: { labels: { color: textColor } }, 
+                    tooltip: { 
+                        callbacks: { 
+                            label: (ctx) => { 
+                                const v = ctx.parsed.y ?? 0; 
+                                return 'TVA: ' + v.toLocaleString('fr-FR') + ' MGA'; 
+                            } 
+                        } 
+                    } 
+                } 
+            }
         });
     }
 }

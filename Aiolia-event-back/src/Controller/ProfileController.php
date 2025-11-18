@@ -40,9 +40,9 @@ class ProfileController extends AbstractController
         $user = $this->getUser();
 
         if ($request->isMethod('POST')) {
-            $user->setFirstName($request->request->get('first_name'));
-            $user->setLastName($request->request->get('last_name'));
-            $user->setPhone($request->request->get('phone'));
+            $user->setPrenom($request->request->get('prenom'));
+            $user->setNom($request->request->get('nom'));
+            $user->setTelephone($request->request->get('telephone'));
 
             $em->flush();
 
@@ -72,7 +72,7 @@ class ProfileController extends AbstractController
 
             if ($passwordHasher->isPasswordValid($user, $currentPassword)) {
                 $hashedPassword = $passwordHasher->hashPassword($user, $newPassword);
-                $user->setPasswordHash($hashedPassword);
+                $user->setHashMotDePasse($hashedPassword);
                 $em->flush();
 
                 $this->addFlash('success', 'Mot de passe changé avec succès !');
@@ -114,7 +114,7 @@ class ProfileController extends AbstractController
             return $this->redirectToRoute('app_profile_index');
         }
 
-        $displayName = trim(sprintf('%s %s', (string) $user->getFirstName(), (string) $user->getLastName()));
+        $displayName = trim(sprintf('%s %s', (string) $user->getPrenom(), (string) $user->getNom()));
         if ($displayName === '') {
             $displayName = $user->getEmail() ?? 'profil';
         }
@@ -138,7 +138,7 @@ class ProfileController extends AbstractController
             return $this->redirectToRoute('app_profile_index');
         }
 
-        $user->setAvatarUrl($uploadResult['url']);
+        $user->setUrlAvatar($uploadResult['url']);
         $em->flush();
 
         $this->addFlash('success', 'Photo mise à jour avec succès !');

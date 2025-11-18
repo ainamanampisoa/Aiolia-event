@@ -91,9 +91,9 @@ class UserValidationController extends AbstractController
         $comment = $request->request->get('comment');
 
         $oldRole = $user->getRole();
-        $oldStatus = $user->getAccountStatus();
+        $oldStatus = $user->getStatutCompte();
         $user->setRole($targetRole);
-        $user->setAccountStatus('active');
+        $user->setStatutCompte('active');
 
         // Envoyer une notification par email
         $emailSent = $this->notificationService->sendValidationApprovedNotification(
@@ -104,11 +104,11 @@ class UserValidationController extends AbstractController
 
         if (!$emailSent) {
             $user->setRole($oldRole);
-            $user->setAccountStatus($oldStatus);
+            $user->setStatutCompte($oldStatus);
 
             $this->addFlash('error', sprintf(
                 'Échec de l\'envoi de l\'email de validation pour %s. Aucune modification n\'a été enregistrée.',
-                $user->getFullName()
+                $user->getNomComplet()
             ));
 
             return $this->redirectToRoute('admin_validation_pending');
@@ -125,7 +125,7 @@ class UserValidationController extends AbstractController
                 'old_role' => $oldRole,
                 'new_role' => $user->getRole(),
                 'old_status' => $oldStatus,
-                'new_status' => $user->getAccountStatus(),
+                'new_status' => $user->getStatutCompte(),
                 'comment' => $comment,
             ],
             $this->getUser()
@@ -133,7 +133,7 @@ class UserValidationController extends AbstractController
 
         $this->addFlash('success', sprintf(
             'Demande approuvée : %s est maintenant %s',
-            $user->getFullName(),
+            $user->getNomComplet(),
             $this->getRoleLabel($user->getRole())
         ));
 
@@ -167,10 +167,10 @@ class UserValidationController extends AbstractController
         }
 
         $comment = $request->request->get('comment');
-        $oldStatus = $user->getAccountStatus();
+        $oldStatus = $user->getStatutCompte();
 
         // Mettre à jour le statut du compte
-        $user->setAccountStatus('rejected');
+        $user->setStatutCompte('rejected');
 
         $this->entityManager->flush();
 
@@ -182,7 +182,7 @@ class UserValidationController extends AbstractController
             [
                 'requested_role' => $user->getRole(),
                 'old_status' => $oldStatus,
-                'new_status' => $user->getAccountStatus(),
+                'new_status' => $user->getStatutCompte(),
                 'reason' => $comment,
             ],
             $this->getUser()
@@ -197,7 +197,7 @@ class UserValidationController extends AbstractController
 
         $this->addFlash('success', sprintf(
             'Demande rejetée : %s',
-            $user->getFullName()
+            $user->getNomComplet()
         ));
 
         // Rediriger vers la liste des utilisateurs si on vient de là

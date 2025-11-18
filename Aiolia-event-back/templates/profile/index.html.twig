@@ -21,15 +21,15 @@
             <div class="profile-card">
                 <div class="profile-header">
                     <form id="avatarUploadForm" class="profile-avatar-large" action="{{ path('app_profile_photo') }}" method="POST" enctype="multipart/form-data">
-                        {% set avatarUrl = app.user.avatarUrl %}
-                        {% set userInitials = app.user.photoUrl %}
+                        {% set avatarUrl = app.user.urlAvatar %}
+                        {% set userInitials = app.user.urlPhoto %}
 
                         {% if avatarUrl %}
                             <img src="{{ avatarUrl }}"
                                  data-i18n-attributes="alt"
                                  data-i18n-attr-alt-key="profile.avatar.alt"
-                                 data-i18n-params="{{ {'firstName': app.user.firstName, 'lastName': app.user.lastName}|json_encode|e('html_attr') }}"
-                                 alt="Photo de {{ app.user.firstName }} {{ app.user.lastName }}">
+                                 data-i18n-params="{{ {'prenom': app.user.prenom, 'nom': app.user.nom}|json_encode|e('html_attr') }}"
+                                 alt="Photo de {{ app.user.prenom }} {{ app.user.nom }}">
                         {% else %}
                             <div class="avatar-large-initials">
                                 {{ userInitials ?: (app.user.email|first|upper) }}
@@ -45,7 +45,7 @@
                         <input type="hidden" name="_token" value="{{ csrf_token('profile_photo_upload') }}">
                     </form>
                     <div class="profile-info-header">
-                        <h2>{{ app.user.firstName }} {{ app.user.lastName }}</h2>
+                        <h2>{{ app.user.prenom }} {{ app.user.nom }}</h2>
                     </div>
                 </div>
 
@@ -64,8 +64,8 @@
                             <span data-i18n="profile.details.phone">Téléphone</span>
                         </div>
                         <div class="detail-value">
-                            {% if app.user.phone %}
-                                {{ app.user.phone }}
+                            {% if app.user.telephone %}
+                                {{ app.user.telephone }}
                             {% else %}
                                 <span data-i18n="profile.details.phone.unset">Non renseigné</span>
                             {% endif %}
@@ -85,7 +85,7 @@
                             <i class="fas fa-calendar"></i>
                             <span data-i18n="profile.details.member_since">Membre depuis</span>
                         </div>
-                        <div class="detail-value">{{ app.user.createdAt|date('d F Y') }}</div>
+                        <div class="detail-value">{{ app.user.creeLe|date('d F Y') }}</div>
                     </div>
 
                     <div class="detail-row">
@@ -93,7 +93,7 @@
                             <i class="fas fa-clock"></i>
                             <span data-i18n="profile.details.last_login">Dernière connexion</span>
                         </div>
-                        <div class="detail-value">{{ app.user.lastLoginAt|date('d F Y à H:i') }}</div>
+                        <div class="detail-value">{{ app.user.derniereConnexionLe|date('d F Y à H:i') }}</div>
                     </div>
                 </div>
             </div>

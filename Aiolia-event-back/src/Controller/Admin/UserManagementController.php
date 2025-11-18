@@ -59,10 +59,10 @@ class UserManagementController extends AbstractController
         if ($search) {
             $searchTerm = '%' . trim($search) . '%';
             $searchCondition = '
-                u.firstName LIKE :search OR 
-                u.lastName LIKE :search OR 
-                u.email LIKE :search OR 
-                u.phone LIKE :search
+                u.prenom LIKE :search OR 
+                u.nom LIKE :search OR 
+                u.email LIKE :search OR
+                u.telephone LIKE :search
             ';
             $qb->andWhere($searchCondition)
                ->setParameter('search', $searchTerm);
@@ -91,15 +91,15 @@ class UserManagementController extends AbstractController
         // Filtre par statut
         if ($status && in_array($status, ['active', 'pending_validation', 'rejected'], true)) {
             $databaseStatus = User::accountStatusToDatabaseStatus($status);
-            $qb->andWhere('u.status = :status')
-               ->setParameter('status', $databaseStatus);
-            $countQb->andWhere('u.status = :status')
-                    ->setParameter('status', $databaseStatus);
+            $qb->andWhere('u.statut = :statut')
+                    ->setParameter('statut', $databaseStatus);
+            $countQb->andWhere('u.statut = :statut')
+                    ->setParameter('statut', $databaseStatus);
         }
 
         // Tri par défaut : date de création décroissante (plus récents en premier)
-        $validSortFields = ['created_at' => 'createdAt', 'email' => 'email', 'first_name' => 'firstName', 'last_name' => 'lastName'];
-        $sortField = $validSortFields[$sort] ?? 'createdAt';
+        $validSortFields = ['created_at' => 'creeLe', 'email' => 'email', 'first_name' => 'prenom', 'last_name' => 'nom'];
+        $sortField = $validSortFields[$sort] ?? 'creeLe';
         $qb->orderBy('u.' . $sortField, strtoupper($order) === 'ASC' ? 'ASC' : 'DESC');
 
         // Compter le total d'utilisateurs avec les filtres appliqués
@@ -124,16 +124,16 @@ class UserManagementController extends AbstractController
         // Utilisateurs en attente
         $pendingUsers = (int) $this->userRepository->createQueryBuilder('u')
             ->select('COUNT(u.id)')
-            ->where('u.status = :status')
-            ->setParameter('status', User::STATUS_PENDING)
+            ->where('u.statut = :statut')
+            ->setParameter('statut', User::STATUS_PENDING)
             ->getQuery()
             ->getSingleScalarResult();
 
         // Utilisateurs actifs
         $activeUsers = (int) $this->userRepository->createQueryBuilder('u')
             ->select('COUNT(u.id)')
-            ->where('u.status = :status')
-            ->setParameter('status', User::STATUS_ACTIVE)
+            ->where('u.statut = :statut')
+            ->setParameter('statut', User::STATUS_ACTIVE)
             ->getQuery()
             ->getSingleScalarResult();
 
@@ -178,7 +178,7 @@ class UserManagementController extends AbstractController
         }
 
         $users = $this->userRepository->createQueryBuilder('u')
-            ->where('u.firstName LIKE :query OR u.lastName LIKE :query OR u.email LIKE :query')
+            ->where('u.prenom LIKE :query OR u.nom LIKE :query OR u.email LIKE :query')
             ->setParameter('query', '%' . $query . '%')
             ->setMaxResults(10)
             ->getQuery()
@@ -188,7 +188,7 @@ class UserManagementController extends AbstractController
         foreach ($users as $user) {
             $results[] = [
                 'id' => $user->getId(),
-                'text' => sprintf('%s (%s)', $user->getFullName(), $user->getEmail()),
+                'text' => sprintf('%s (%s)', $user->getNomComplet(), $user->getEmail()),
                 'email' => $user->getEmail(),
                 'role' => $user->getRole(),
             ];
@@ -271,7 +271,7 @@ class UserManagementController extends AbstractController
 
         $this->addFlash('success', sprintf(
             'Rôle de %s modifié : %s → %s',
-            $user->getFullName(),
+            $user->getNomComplet(),
             $this->getRoleLabel($oldRole),
             $this->getRoleLabel($newRole)
         ));
@@ -298,9 +298,9 @@ class UserManagementController extends AbstractController
             return $this->redirectToRoute('admin_users_list');
         }
 
-        $oldStatus = $user->getAccountStatus();
-        $newStatus = $user->getAccountStatus() === 'pending_validation' ? 'active' : 'pending_validation';
-        $user->setAccountStatus($newStatus);
+        $oldStatus = $user->getStatutCompte();
+        $newStatus = $user->getStatutCompte() === 'pending_validation' ? 'active' : 'pending_validation';
+        $user->setStatutCompte($newStatus);
         $this->entityManager->flush();
 
         // Logger l'action
@@ -319,7 +319,7 @@ class UserManagementController extends AbstractController
 
         $this->addFlash('success', sprintf(
             'Compte de %s %s',
-            $user->getFullName(),
+            $user->getNomComplet(),
             $newStatus === 'pending_validation' ? 'désactivé' : 'activé'
         ));
 
@@ -346,7 +346,7 @@ class UserManagementController extends AbstractController
             return $this->redirectToRoute('admin_users_show', ['id' => $id]);
         }
 
-        $userName = $user->getFullName();
+        $userName = $user->getNomComplet();
         $userId = $user->getId();
 
         // Logger l'action avant la suppression

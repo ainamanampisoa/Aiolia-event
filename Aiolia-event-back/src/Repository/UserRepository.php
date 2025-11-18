@@ -34,7 +34,7 @@ class UserRepository extends ServiceEntityRepository implements PasswordUpgrader
             $user = $this->createQueryBuilder('u')
                 ->where('LOWER(u.email) = :email')
                 ->setParameter('email', mb_strtolower($identifier))
-                ->orderBy('u.createdAt', 'DESC')
+                ->orderBy('u.creeLe', 'DESC')
                 ->setMaxResults(1)
                 ->getQuery()
                 ->getOneOrNullResult();
@@ -52,13 +52,13 @@ class UserRepository extends ServiceEntityRepository implements PasswordUpgrader
             throw new UserNotFoundException('Veuillez saisir votre prénom suivi de votre nom.');
         }
 
-        [$firstName, $lastName] = $parts + ['', ''];
+        [$prenom, $nom] = $parts + ['', ''];
 
         $user = $this->createQueryBuilder('u')
-            ->where('LOWER(u.firstName) = :first')
-            ->andWhere('LOWER(COALESCE(u.lastName, \'\')) = :last')
-            ->setParameter('first', mb_strtolower($firstName))
-            ->setParameter('last', mb_strtolower($lastName))
+            ->where('LOWER(u.prenom) = :prenom')
+            ->andWhere('LOWER(COALESCE(u.nom, \'\')) = :nom')
+            ->setParameter('prenom', mb_strtolower($prenom))
+            ->setParameter('nom', mb_strtolower($nom))
             ->setMaxResults(1)
             ->getQuery()
             ->getOneOrNullResult();
@@ -79,7 +79,7 @@ class UserRepository extends ServiceEntityRepository implements PasswordUpgrader
             throw new UnsupportedUserException(sprintf('Instances of "%s" are not supported.', $user::class));
         }
 
-        $user->setPasswordHash($newHashedPassword);
+        $user->setHashMotDePasse($newHashedPassword);
         $this->getEntityManager()->persist($user);
         $this->getEntityManager()->flush();
     }
@@ -90,9 +90,9 @@ class UserRepository extends ServiceEntityRepository implements PasswordUpgrader
     public function findAccountsPendingValidation(): array
     {
         return $this->createQueryBuilder('u')
-            ->where('u.status = :status')
-            ->setParameter('status', User::STATUS_PENDING)
-            ->orderBy('u.createdAt', 'ASC')
+            ->where('u.statut = :statut')
+            ->setParameter('statut', User::STATUS_PENDING)
+            ->orderBy('u.creeLe', 'ASC')
             ->getQuery()
             ->getResult();
     }

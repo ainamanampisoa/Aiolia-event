@@ -163,10 +163,37 @@ class BillingController extends AbstractController
         // Récupérer le tier du plan d'abonnement
         $planTier = $this->subscriptionInvoiceRepository->getPlanTierForInvoice($invoice);
 
+        // Récupérer l'organisateur (via le customer qui est l'organisateur)
+        $organizer = $invoice->getCustomer();
+        
+        // Récupérer les factures précédentes pour l'historique
+        $previousInvoices = $this->subscriptionInvoiceRepository->createQueryBuilder('si')
+            ->where('si.customer = :customer')
+            ->andWhere('si.id != :currentId')
+            ->andWhere('si.createdAt < :currentDate')
+            ->setParameter('customer', $organizer)
+            ->setParameter('currentId', $invoice->getId())
+            ->setParameter('currentDate', $invoice->getCreatedAt())
+            ->orderBy('si.createdAt', 'DESC')
+            ->setMaxResults(10)
+            ->getQuery()
+            ->getResult();
+
+        // Vérifier s'il y a eu un changement de plan (comparer avec la facture précédente)
+        $planChanged = false;
+        if (!empty($previousInvoices)) {
+            $previousInvoice = $previousInvoices[0];
+            $previousPlanTier = $this->subscriptionInvoiceRepository->getPlanTierForInvoice($previousInvoice);
+            $planChanged = ($previousPlanTier !== $planTier);
+        }
+
         return $this->render('admin/billing/invoice_show.html.twig', [
             'invoice' => $invoice,
             'type' => 'subscription',
             'planTier' => $planTier,
+            'organizer' => $organizer,
+            'previousInvoices' => $previousInvoices,
+            'planChanged' => $planChanged,
         ]);
     }
 

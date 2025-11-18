@@ -164,7 +164,7 @@
                         <tr data-user-id="{{ user.id }}">
                             <td class="col-left">
                                 <div class="user-info">
-                                    {% set avatarUrl = user.photoUrl %}
+                                    {% set avatarUrl = user.urlPhoto %}
                                     {% if avatarUrl is empty %}
                                         {% set avatarUrl = null %}
                                     {% elseif avatarUrl matches '/^https?:\\/\\//' %}
@@ -176,18 +176,18 @@
                                     {% endif %}
                                     <div class="user-avatar-sm">
                                         {% if avatarUrl %}
-                                            <img src="{{ avatarUrl }}" alt="{{ user.fullName }}">
+                                            <img src="{{ avatarUrl }}" alt="{{ user.nomComplet }}">
                                         {% else %}
                                             {% set initials = '' %}
-                                            {% if user.firstName %}
-                                            {% set initials = user.firstName|slice(0, 1) %}
-                                            {% if user.lastName %}
-                                                {% set initials = initials ~ user.lastName|slice(0, 1) %}
-                                            {% elseif user.firstName|length > 1 %}
-                                                {% set initials = initials ~ user.firstName|slice(1, 1) %}
+                                            {% if user.prenom %}
+                                            {% set initials = user.prenom|slice(0, 1) %}
+                                            {% if user.nom %}
+                                                {% set initials = initials ~ user.nom|slice(0, 1) %}
+                                            {% elseif user.prenom|length > 1 %}
+                                                {% set initials = initials ~ user.prenom|slice(1, 1) %}
                                             {% endif %}
-                                            {% elseif user.fullName %}
-                                                {% set nameParts = user.fullName|trim|split(' ')|filter(v => v is not empty) %}
+                                            {% elseif user.nomComplet %}
+                                                {% set nameParts = user.nomComplet|trim|split(' ')|filter(v => v is not empty) %}
                                                 {% if nameParts|length > 0 %}
                                                 {% set initials = nameParts|first|slice(0, 1) %}
                                                 {% if nameParts|length > 1 %}
@@ -217,14 +217,14 @@
                                         {% endif %}
                                     </div>
                                     <div class="user-details">
-                                        <span class="user-name">{{ user.fullName }}</span>
+                                        <span class="user-name">{{ user.nomComplet }}</span>
                                         <div class="user-meta">
                                             <span class="user-email">
                                                 <i class="fas fa-envelope"></i>{{ user.email }}
                                             </span>
-                                            {% if user.phone %}
+                                            {% if user.telephone %}
                                                 <span class="user-phone">
-                                                    <i class="fas fa-phone"></i>{{ user.phone }}
+                                                    <i class="fas fa-phone"></i>{{ user.telephone }}
                                                 </span>
                                             {% endif %}
                                         </div>
@@ -241,11 +241,11 @@
                                 {% endif %}
                             </td>
                             <td class="col-center">
-                                {% if user.accountStatus == 'active' or (user.accountStatus is empty and user.isActive) %}
+                                {% if user.statutCompte == 'active' or (user.statutCompte is empty and user.estActif) %}
                                     <span class="badge status-badge status-active" data-i18n-fr="Actif" data-i18n-en="Active">Actif</span>
-                                {% elseif user.accountStatus == 'pending_validation' %}
+                                {% elseif user.statutCompte == 'pending_validation' %}
                                     <span class="badge status-badge status-pending" data-i18n-fr="En attente" data-i18n-en="Pending">En attente</span>
-                                {% elseif user.accountStatus == 'rejected' %}
+                                {% elseif user.statutCompte == 'rejected' %}
                                     <span class="badge status-badge status-rejected" data-i18n-fr="Rejeté" data-i18n-en="Rejected">Rejeté</span>
                                 {% else %}
                                     <span class="badge status-badge status-inactive" data-i18n-fr="Inactif" data-i18n-en="Inactive">Inactif</span>
@@ -253,11 +253,11 @@
                             </td>
                             <td class="col-center">
                                 <div class="date-info">
-                                    <span class="date-primary" data-i18n-target="html" data-i18n-fr="Créé le {{ user.createdAt|date('d/m/Y') }}" data-i18n-en="Created on {{ user.createdAt|date('d/m/Y') }}">Créé le {{ user.createdAt|date('d/m/Y') }}</span>
+                                    <span class="date-primary" data-i18n-target="html" data-i18n-fr="Créé le {{ user.creeLe|date('d/m/Y') }}" data-i18n-en="Created on {{ user.creeLe|date('d/m/Y') }}">Créé le {{ user.creeLe|date('d/m/Y') }}</span>
                                 </div>
                             </td>
                             <td class="col-center actions-cell">
-                                {% set isPendingOrganizer = user.role == 'organizer' and user.accountStatus == 'pending_validation' %}
+                                {% set isPendingOrganizer = user.role == 'organizer' and user.statutCompte == 'pending_validation' %}
                                 {% if isPendingOrganizer %}
                                     {# Organisateurs en attente de validation : Approuver/Rejeter #}
                                     <a href="{{ path('admin_users_show', {id: user.id}) }}" class="validation-action-pill pill-view">
@@ -276,7 +276,7 @@
                                         </button>
                                     </form>
                                 {% else %}
-                                    {% set isActive = user.accountStatus == 'active' or (user.accountStatus is empty and user.isActive) %}
+                                    {% set isActive = user.statutCompte == 'active' or (user.statutCompte is empty and user.estActif) %}
                                     {% if isActive %}
                                         {# 3 boutons selon le rôle pour les comptes actifs #}
                                         {% if user.role == 'organizer' %}

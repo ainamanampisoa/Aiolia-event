@@ -31,6 +31,7 @@ class StatisticsService
             'organizers' => $this->getOrganizersStatistics($dateFrom, $dateTo),
             'subscriptions' => $this->getSubscriptionsStatistics($dateFrom, $dateTo),
             'tax' => $this->getTaxStatistics(0.20, 0.05, $dateFrom, $dateTo),
+            'fiscal' => $this->getFiscalStatistics($dateFrom, $dateTo),
         ];
     }
 
@@ -39,7 +40,7 @@ class StatisticsService
      * 
      * @param \DateTimeInterface|null $dateFrom Date de début du filtre
      * @param \DateTimeInterface|null $dateTo Date de fin du filtre
-     * @return array ['organizers' => int, 'paid_invoices' => int, 'active_subscriptions' => int]
+     * @return array ['organizers' => int, 'paid_invoices' => int, 'active_subscriptions' => int, 'subscription_revenue_total' => float]
      */
     public function getCounts(?\DateTimeInterface $dateFrom = null, ?\DateTimeInterface $dateTo = null): array
     {
@@ -47,6 +48,7 @@ class StatisticsService
             'organizers' => $this->statisticsRepository->countOrganizers(),
             'paid_invoices' => $this->statisticsRepository->countPaidInvoices($dateFrom, $dateTo),
             'active_subscriptions' => $this->statisticsRepository->countActiveSubscriptions(),
+            'subscription_revenue_total' => $this->statisticsRepository->getSubscriptionRevenueTotal($dateFrom, $dateTo),
         ];
     }
 
@@ -84,18 +86,21 @@ class StatisticsService
      * @param \DateTimeInterface|null $dateFrom Date de début du filtre
      * @param \DateTimeInterface|null $dateTo Date de fin du filtre
      * @return array [
-     *     'timeseries' => ['labels' => [], 'values' => []]
+     *     'timeseries' => ['labels' => [], 'values' => []],
+     *     'revenue_by_plan_by_month' => ['labels' => [], 'plans' => []]
      * ]
      */
     public function getSubscriptionsStatistics(?\DateTimeInterface $dateFrom = null, ?\DateTimeInterface $dateTo = null): array
     {
         $evolution = $this->statisticsRepository->getSubscriptionsEvolution($dateFrom, $dateTo);
+        $revenueByPlanByMonth = $this->statisticsRepository->getRevenueByPlanByMonth($dateFrom, $dateTo);
         
         return [
             'timeseries' => [
                 'labels' => $evolution['labels'],
                 'values' => $evolution['values'],
             ],
+            'revenue_by_plan_by_month' => $revenueByPlanByMonth,
         ];
     }
 
@@ -146,6 +151,61 @@ class StatisticsService
     public function formatCurrencyEuro(float $amount): string
     {
         return number_format($amount, 2, ',', ' ') . ' €';
+    }
+
+    /**
+     * Récupère les statistiques fiscales (HT, TVA, TTC par mois)
+     * 
+     * Formules appliquées dans le métier :
+     * - HT = TTC / 1,2
+     * - TVA = TTC - HT
+     * - TTC = HT × 1,2 (utilisé pour la validation)
+     * 
+     * @param \DateTimeInterface|null $dateFrom Date de début du filtre
+     * @param \DateTimeInterface|null $dateTo Date de fin du filtre
+     * @return array [
+     *     'by_month' => ['labels' => [], 'ht_values' => [], 'tva_values' => [], 'ttc_values' => []],
+     *     'top_vat_contributors' => ['labels' => [], 'vat_values' => []]
+     * ]
+     */
+    public function getFiscalStatistics(?\DateTimeInterface $dateFrom = null, ?\DateTimeInterface $dateTo = null): array
+    {
+        $fiscalByMonth = $this->statisticsRepository->getFiscalStatisticsByMonth($dateFrom, $dateTo);
+        $topVatContributors = $this->statisticsRepository->getTopVatContributors(10, $dateFrom, $dateTo);
+        
+        // Calculer HT et TVA à partir de TTC
+        // HT = TTC / 1,2
+        // TVA = TTC - HT
+        $htValues = [];
+        $tvaValues = [];
+        
+        foreach ($fiscalByMonth['ttc_values'] as $ttc) {
+            $ht = $ttc / 1.2;
+            $tva = $ttc - $ht;
+            $htValues[] = $ht;
+            $tvaValues[] = $tva;
+        }
+        
+        // Calculer HT et TVA pour les top contributeurs
+        $topVatValues = [];
+        foreach ($topVatContributors['ttc_values'] as $ttc) {
+            $ht = $ttc / 1.2;
+            $tva = $ttc - $ht;
+            $topVatValues[] = $tva; // On affiche la TVA pour le top contributeurs
+        }
+        
+        return [
+            'by_month' => [
+                'labels' => $fiscalByMonth['labels'],
+                'ht_values' => $htValues,
+                'tva_values' => $tvaValues,
+                'ttc_values' => $fiscalByMonth['ttc_values'],
+            ],
+            'top_vat_contributors' => [
+                'labels' => $topVatContributors['labels'],
+                'vat_values' => $topVatValues,
+            ],
+        ];
     }
 }
 

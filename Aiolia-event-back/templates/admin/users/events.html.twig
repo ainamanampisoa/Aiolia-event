@@ -1,6 +1,6 @@
 {% extends 'base.html.twig' %}
 
-{% block title %}Événements créés - {{ user.fullName }}{% endblock %}
+{% block title %}Événements créés - {{ user.nomComplet }}{% endblock %}
 
 {% block stylesheets %}
 {{ parent() }}
@@ -145,7 +145,7 @@
             <div class="breadcrumb-horizontal">
                 <a href="{{ path('admin_users_list') }}">Gestion des utilisateurs</a>
                 <span>/</span>
-                <a href="{{ path('admin_users_show', {id: user.id}) }}">{{ user.fullName }}</a>
+                <a href="{{ path('admin_users_show', {id: user.id}) }}">{{ user.nomComplet }}</a>
                 <span>/</span>
                 <span class="breadcrumb-active">Événements créés</span>
             </div>
@@ -157,7 +157,7 @@
             <div class="card">
                 <div class="events-header">
                     <h5 class="mb-0">
-                        <i class="fas fa-calendar-alt"></i>Événements créés · {{ user.fullName }}
+                        <i class="fas fa-calendar-alt"></i>Événements créés · {{ user.nomComplet }}
                     </h5>
                     <a href="{{ path('admin_users_show', {id: user.id}) }}" class="btn btn-outline-primary btn-sm">
                         <i class="fas fa-user"></i> Fiche utilisateur

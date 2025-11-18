@@ -104,14 +104,14 @@ class EventRepository extends ServiceEntityRepository
      */
     public function findByOrganizer(User $organizer): array
     {
-        // Utilisation d'une requête SQL native car organizer_profile_id référence organizer_profiles
-        // qui a un user_id référençant users
+        // Utilisation d'une requête SQL native car id_profil_organisateur référence profils_organisateurs
+        // qui a un id_utilisateur référençant utilisateurs
         $conn = $this->getEntityManager()->getConnection();
         $sql = '
-            SELECT e.id FROM aiolia.events e
-            INNER JOIN aiolia.organizer_profiles op ON e.organizer_profile_id = op.id
-            WHERE op.user_id = :userId
-            ORDER BY e.created_at DESC
+            SELECT e.id FROM aiolia.evenements e
+            INNER JOIN aiolia.profils_organisateurs op ON e.id_profil_organisateur = op.id
+            WHERE op.id_utilisateur = :userId
+            ORDER BY e.cree_le DESC
         ';
         
         $result = $conn->executeQuery($sql, ['userId' => $organizer->getId()]);

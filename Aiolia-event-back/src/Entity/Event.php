@@ -7,7 +7,7 @@ use Doctrine\DBAL\Types\Types;
 use Doctrine\ORM\Mapping as ORM;
 
 #[ORM\Entity(repositoryClass: EventRepository::class)]
-#[ORM\Table(name: 'events', schema: 'aiolia')]
+#[ORM\Table(name: 'evenements', schema: 'aiolia')]
 #[ORM\HasLifecycleCallbacks]
 class Event
 {
@@ -25,76 +25,76 @@ class Event
     #[ORM\Column(type: Types::BIGINT)]
     private ?string $id = null;
 
-    #[ORM\Column(name: 'organizer_profile_id', type: Types::BIGINT, nullable: true)]
+    #[ORM\Column(name: 'id_profil_organisateur', type: Types::BIGINT, nullable: true)]
     private ?string $organizerProfileId = null;
     
     private ?User $organizer = null;
 
     #[ORM\ManyToOne(targetEntity: EventCategory::class)]
-    #[ORM\JoinColumn(name: 'primary_category_id', referencedColumnName: 'id', nullable: true, onDelete: 'SET NULL')]
+    #[ORM\JoinColumn(name: 'id_categorie_principale', referencedColumnName: 'id', nullable: true, onDelete: 'SET NULL')]
     private ?EventCategory $primaryCategory = null;
 
-    #[ORM\Column(name: 'venue_id', type: Types::BIGINT, nullable: true)]
+    #[ORM\Column(name: 'id_lieu', type: Types::BIGINT, nullable: true)]
     private ?string $venueId = null;
 
-    #[ORM\Column(type: Types::STRING, length: 255, unique: true)]
+    #[ORM\Column(name: 'slug', type: Types::STRING, length: 255, unique: true)]
     private string $slug;
 
-    #[ORM\Column(type: Types::STRING, length: 255)]
+    #[ORM\Column(name: 'titre', type: Types::STRING, length: 255)]
     private string $title;
 
-    #[ORM\Column(type: Types::STRING, length: 255, nullable: true)]
+    #[ORM\Column(name: 'sous_titre', type: Types::STRING, length: 255, nullable: true)]
     private ?string $subtitle = null;
 
-    #[ORM\Column(type: Types::TEXT, nullable: true)]
+    #[ORM\Column(name: 'resume', type: Types::TEXT, nullable: true)]
     private ?string $summary = null;
 
-    #[ORM\Column(type: Types::TEXT, nullable: true)]
+    #[ORM\Column(name: 'description', type: Types::TEXT, nullable: true)]
     private ?string $description = null;
 
-    #[ORM\Column(name: 'cover_image_url', type: Types::TEXT, nullable: true)]
+    #[ORM\Column(name: 'url_image_couverture', type: Types::TEXT, nullable: true)]
     private ?string $coverImageUrl = null;
 
-    #[ORM\Column(type: Types::STRING, length: 20, options: ['default' => self::STATUS_DRAFT])]
+    #[ORM\Column(name: 'statut', type: Types::STRING, length: 20, options: ['default' => self::STATUS_DRAFT])]
     private string $status = self::STATUS_DRAFT;
 
-    #[ORM\Column(type: Types::STRING, length: 20, options: ['default' => self::VISIBILITY_PUBLIC])]
+    #[ORM\Column(name: 'visibilite', type: Types::STRING, length: 20, options: ['default' => self::VISIBILITY_PUBLIC])]
     private string $visibility = self::VISIBILITY_PUBLIC;
 
-    #[ORM\Column(type: Types::INTEGER, nullable: true)]
+    #[ORM\Column(name: 'capacite', type: Types::INTEGER, nullable: true)]
     private ?int $capacity = null;
 
-    #[ORM\Column(type: Types::STRING, length: 64, options: ['default' => 'Indian/Antananarivo'])]
+    #[ORM\Column(name: 'fuseau_horaire', type: Types::STRING, length: 64, options: ['default' => 'Indian/Antananarivo'])]
     private string $timezone = 'Indian/Antananarivo';
 
-    #[ORM\Column(name: 'starts_at', type: Types::DATETIMETZ_MUTABLE)]
+    #[ORM\Column(name: 'commence_le', type: Types::DATETIMETZ_MUTABLE)]
     private \DateTimeInterface $startsAt;
 
-    #[ORM\Column(name: 'ends_at', type: Types::DATETIMETZ_MUTABLE)]
+    #[ORM\Column(name: 'se_termine_le', type: Types::DATETIMETZ_MUTABLE)]
     private \DateTimeInterface $endsAt;
 
-    #[ORM\Column(name: 'sales_starts_at', type: Types::DATETIMETZ_MUTABLE, nullable: true)]
+    #[ORM\Column(name: 'ventes_commencent_le', type: Types::DATETIMETZ_MUTABLE, nullable: true)]
     private ?\DateTimeInterface $salesStartsAt = null;
 
-    #[ORM\Column(name: 'sales_ends_at', type: Types::DATETIMETZ_MUTABLE, nullable: true)]
+    #[ORM\Column(name: 'ventes_se_terminent_le', type: Types::DATETIMETZ_MUTABLE, nullable: true)]
     private ?\DateTimeInterface $salesEndsAt = null;
 
-    #[ORM\Column(name: 'age_restriction', type: Types::STRING, length: 120, nullable: true)]
+    #[ORM\Column(name: 'restriction_age', type: Types::STRING, length: 120, nullable: true)]
     private ?string $ageRestriction = null;
 
-    #[ORM\Column(name: 'language_code', type: Types::STRING, length: 10, options: ['default' => 'fr-FR'])]
+    #[ORM\Column(name: 'code_langue', type: Types::STRING, length: 10, options: ['default' => 'fr-FR'])]
     private string $languageCode = 'fr-FR';
 
-    #[ORM\Column(name: 'is_featured', type: Types::BOOLEAN, options: ['default' => false])]
+    #[ORM\Column(name: 'est_en_vedette', type: Types::BOOLEAN, options: ['default' => false])]
     private bool $isFeatured = false;
 
-    #[ORM\Column(name: 'is_highlighted', type: Types::BOOLEAN, options: ['default' => false])]
+    #[ORM\Column(name: 'est_mis_en_avant', type: Types::BOOLEAN, options: ['default' => false])]
     private bool $isHighlighted = false;
 
-    #[ORM\Column(name: 'created_at', type: Types::DATETIMETZ_MUTABLE)]
+    #[ORM\Column(name: 'cree_le', type: Types::DATETIMETZ_MUTABLE)]
     private ?\DateTimeInterface $createdAt = null;
 
-    #[ORM\Column(name: 'updated_at', type: Types::DATETIMETZ_MUTABLE)]
+    #[ORM\Column(name: 'modifie_le', type: Types::DATETIMETZ_MUTABLE)]
     private ?\DateTimeInterface $updatedAt = null;
 
     public function __construct()

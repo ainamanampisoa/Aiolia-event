@@ -1,6 +1,6 @@
 {% extends 'base.html.twig' %}
 
-{% block title %}Détails utilisateur - {{ user.fullName }}{% endblock %}
+{% block title %}Détails utilisateur - {{ user.nomComplet }}{% endblock %}
 
 {% block stylesheets %}
 {{ parent() }}
@@ -70,8 +70,8 @@
 .user-details-page .user-header-section {
     display: flex;
     align-items: center;
-    gap: 2.5rem;
-    padding: 2rem;
+    gap: 1.5rem;
+    padding: 1.5rem;
     background: var(--bg-secondary);
     border-radius: var(--border-radius-lg);
     margin-bottom: 2rem;
@@ -84,51 +84,86 @@
 }
 
 .user-details-page .user-avatar {
-    width: 100px;
-    height: 100px;
-    border-radius: 50%;
-    overflow: hidden;
-    background: linear-gradient(135deg, var(--accent), var(--primary));
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    border: 3px solid var(--bg-card);
-    box-shadow: var(--shadow-sm);
+    position: relative;
+    width: 64px;
+    height: 64px;
 }
 
 .user-details-page .user-avatar img {
     width: 100%;
     height: 100%;
+    border-radius: 50%;
     object-fit: cover;
+    border: 3px solid var(--bg-secondary);
+    box-shadow: var(--shadow-sm);
+    transition: var(--transition-smooth);
 }
 
 .user-details-page .user-avatar-initials {
-    font-size: 2rem;
+    width: 64px;
+    height: 64px;
+    border-radius: 50%;
+    background: linear-gradient(135deg, var(--accent), var(--accent-light));
+    color: var(--white);
+    display: flex;
+    align-items: center;
+    justify-content: center;
     font-weight: var(--font-weight-bold);
-    color: var(--text-inverse);
-    text-transform: uppercase;
-    letter-spacing: 0.5px;
+    font-size: 1.5rem;
+    border: 3px solid var(--bg-secondary);
+    box-shadow: var(--shadow-sm);
+    transition: var(--transition-smooth);
+}
+
+.user-details-page .user-status {
+    position: absolute;
+    bottom: 0;
+    right: 0;
+    width: 16px;
+    height: 16px;
+    background: var(--success);
+    border: 3px solid var(--bg-secondary);
+    border-radius: 50%;
+    box-shadow: 0 0 0 2px var(--success-light);
+    animation: statusPulse 3s ease-in-out infinite;
+}
+
+@keyframes statusPulse {
+    0%, 100% {
+        box-shadow: 0 0 0 2px var(--success-light);
+    }
+    50% {
+        box-shadow: 0 0 0 4px var(--success-light);
+    }
+}
+
+.user-details-page .user-details {
+    display: flex;
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 0.125rem;
+}
+
+.user-details-page .user-name {
+    font-weight: var(--font-weight-semibold);
+    color: var(--text-primary);
+    font-size: 1.1rem;
+    line-height: 1.2;
+}
+
+.user-details-page .user-role {
+    font-size: 0.75rem;
+    color: var(--text-muted);
+    background: var(--bg-primary);
+    padding: 0.125rem 0.5rem;
+    border-radius: var(--border-radius-full);
 }
 
 .user-details-page .user-info-main {
     flex: 1;
     display: flex;
     flex-direction: column;
-    gap: 1rem;
-}
-
-.user-details-page .user-summary {
-    display: flex;
-    flex-direction: column;
     gap: 0.75rem;
-}
-
-.user-details-page .user-summary .user-summary-name {
-    font-size: 1.5rem;
-    font-weight: var(--font-weight-bold);
-    color: var(--text-primary);
-    margin: 0;
-    line-height: 1.3;
 }
 
 .user-details-page .user-contact-info {
@@ -370,16 +405,12 @@
     }
     
     .user-details-page .user-avatar {
-        width: 90px;
-        height: 90px;
+        width: 56px;
+        height: 56px;
     }
     
     .user-details-page .user-avatar-initials {
-        font-size: 1.75rem;
-    }
-    
-    .user-details-page .user-summary .user-summary-name {
-        font-size: 1.35rem;
+        font-size: 1.3rem;
     }
     
     .user-details-page .user-stats {
@@ -425,16 +456,12 @@
     }
     
     .user-details-page .user-avatar {
-        width: 85px;
-        height: 85px;
+        width: 56px;
+        height: 56px;
     }
     
     .user-details-page .user-avatar-initials {
-        font-size: 1.6rem;
-    }
-    
-    .user-details-page .user-summary .user-summary-name {
-        font-size: 1.25rem;
+        font-size: 1.3rem;
     }
     
     .user-details-page .user-stats {
@@ -474,16 +501,12 @@
     }
     
     .user-details-page .user-avatar {
-        width: 75px;
-        height: 75px;
+        width: 56px;
+        height: 56px;
     }
     
     .user-details-page .user-avatar-initials {
-        font-size: 1.4rem;
-    }
-    
-    .user-details-page .user-summary .user-summary-name {
-        font-size: 1.15rem;
+        font-size: 1.3rem;
     }
     
     .user-details-page .stat-item {
@@ -519,7 +542,7 @@
             <div class="breadcrumb-horizontal">
                 <a href="{{ path('admin_users_list') }}" data-i18n-fr="Gestion des utilisateurs" data-i18n-en="User management">Gestion des utilisateurs</a>
                 <span>/</span>
-                <span class="breadcrumb-active">{{ user.fullName }}</span>
+                <span class="breadcrumb-active">{{ user.nomComplet }}</span>
             </div>
         </div>
     </div>
@@ -541,77 +564,40 @@
                     </h5>
                 </div>
                 <div class="card-body">
-                    <!-- Section principale avec avatar -->
+                    <!-- Section principale avec avatar (style header) -->
                     <div class="user-header-section">
                         <div class="user-avatar-wrapper">
                             <div class="user-avatar">
-                                {% set avatarUrl = user.photoUrl %}
-                                {% if avatarUrl is empty %}
-                                    {% set avatarUrl = null %}
-                                {% elseif avatarUrl matches '/^https?:\\/\\//' %}
-                                    {% if avatarUrl starts with 'https://cdn.aiolia.test/avatars/' %}
-                                        {% set avatarUrl = null %}
-                                    {% endif %}
-                                {% else %}
-                                    {% set avatarUrl = null %}
-                                {% endif %}
+                                {% set avatarUrl = user.urlAvatar %}
+                                {% set userInitials = user.urlPhoto %}
                                 
                                 {% if avatarUrl %}
-                                    <img src="{{ avatarUrl }}" alt="{{ user.fullName }}">
+                                    <img src="{{ avatarUrl }}" alt="Avatar de {{ user.prenom }} {{ user.nom }}">
                                 {% else %}
-                                    {% set initials = '' %}
-                                    {% if user.firstName %}
-                                        {% set initials = user.firstName|slice(0, 1) %}
-                                        {% if user.lastName %}
-                                            {% set initials = initials ~ user.lastName|slice(0, 1) %}
-                                        {% elseif user.firstName|length > 1 %}
-                                            {% set initials = initials ~ user.firstName|slice(1, 1) %}
-                                        {% endif %}
-                                    {% elseif user.fullName %}
-                                        {% set nameParts = user.fullName|trim|split(' ')|filter(v => v is not empty) %}
-                                        {% if nameParts|length > 0 %}
-                                            {% set initials = nameParts|first|slice(0, 1) %}
-                                            {% if nameParts|length > 1 %}
-                                                {% set initials = initials ~ nameParts|last|slice(0, 1) %}
-                                            {% elseif nameParts|first|length > 1 %}
-                                                {% set initials = initials ~ nameParts|first|slice(1, 1) %}
-                                            {% endif %}
-                                        {% endif %}
-                                    {% endif %}
-
-                                    {% if initials is empty and user.email %}
-                                        {% set localPart = user.email|split('@')|first %}
-                                        {% if localPart|length >= 2 %}
-                                            {% set initials = localPart|slice(0, 2) %}
-                                        {% else %}
-                                            {% set initials = localPart|slice(0, 1) ~ '?' %}
-                                        {% endif %}
-                                    {% endif %}
-
-                                    {% if initials is empty %}
-                                        {% set initials = 'AA' %}
-                                    {% endif %}
-
-                                    <div class="user-avatar-initials">{{ initials|upper }}</div>
+                                    <div class="user-avatar-initials">
+                                        {{ userInitials ?: (user.email|first|upper) }}
+                                    </div>
                                 {% endif %}
+                                <div class="user-status"></div>
                             </div>
                         </div>
                         
                         <div class="user-info-main">
-                            <div class="user-summary">
-                                <h2 class="user-summary-name">{{ user.fullName }}</h2>
-                                <div class="user-contact-info">
-                                    <div class="user-contact-item">
-                                        <i class="fas fa-envelope"></i>
-                                        <span>{{ user.email }}</span>
-                                    </div>
-                                    {% if user.phone %}
-                                        <div class="user-contact-item">
-                                            <i class="fas fa-phone"></i>
-                                            <span>{{ user.phone }}</span>
-                                        </div>
-                                    {% endif %}
+                            <div class="user-details">
+                                <span class="user-name">{{ user.prenom }} {{ user.nom }}</span>
+                                <span class="user-role">{{ user.role|capitalize }}</span>
+                            </div>
+                            <div class="user-contact-info">
+                                <div class="user-contact-item">
+                                    <i class="fas fa-envelope"></i>
+                                    <span>{{ user.email }}</span>
                                 </div>
+                                {% if user.telephone %}
+                                    <div class="user-contact-item">
+                                        <i class="fas fa-phone"></i>
+                                        <span>{{ user.telephone }}</span>
+                                    </div>
+                                {% endif %}
                             </div>
                         </div>
                     </div>
@@ -658,11 +644,11 @@
                                 <div class="stat-content">
                                     <div class="stat-label" data-i18n-fr="État du compte" data-i18n-en="Account status">État du compte</div>
                                     <div class="stat-value">
-                                        {% if user.accountStatus == 'active' %}
+                                        {% if user.statutCompte == 'active' %}
                                             <span class="badge bg-success stat-badge" data-i18n-fr="Actif" data-i18n-en="Active">Actif</span>
-                                        {% elseif user.accountStatus == 'pending_validation' %}
+                                        {% elseif user.statutCompte == 'pending_validation' %}
                                             <span class="badge bg-warning stat-badge" data-i18n-fr="En attente" data-i18n-en="Pending">En attente</span>
-                                        {% elseif user.accountStatus == 'rejected' %}
+                                        {% elseif user.statutCompte == 'rejected' %}
                                             <span class="badge bg-danger stat-badge" data-i18n-fr="Rejeté" data-i18n-en="Rejected">Rejeté</span>
                                         {% else %}
                                             <span class="badge bg-dark stat-badge" data-i18n-fr="Inactif" data-i18n-en="Inactive">Inactif</span>
@@ -678,7 +664,7 @@
                                 <div class="stat-content">
                                     <div class="stat-label" data-i18n-fr="Vérification email" data-i18n-en="Email verification">Vérification email</div>
                                     <div class="stat-value">
-                                        {% if user.emailVerified %}
+                                        {% if user.isEmailVerifie %}
                                             <span class="text-success" data-i18n-fr="<i class='fas fa-check-circle'></i> Confirmé" data-i18n-en="<i class='fas fa-check-circle'></i> Confirmed" data-i18n-target="html"><i class="fas fa-check-circle"></i> Confirmé</span>
                                         {% else %}
                                             <span class="text-danger" data-i18n-fr="<i class='fas fa-times-circle'></i> En attente" data-i18n-en="<i class='fas fa-times-circle'></i> Pending" data-i18n-target="html"><i class="fas fa-times-circle"></i> En attente</span>
@@ -693,7 +679,7 @@
                                 </div>
                                 <div class="stat-content">
                                     <div class="stat-label" data-i18n-fr="Date d'inscription" data-i18n-en="Registration date">Date d'inscription</div>
-                                    <div class="stat-value" data-i18n-target="html" data-i18n-fr="{{ user.createdAt|date('d/m/Y') }}" data-i18n-en="{{ user.createdAt|date('d/m/Y') }}">{{ user.createdAt|date('d/m/Y') }}</div>
+                                    <div class="stat-value" data-i18n-target="html" data-i18n-fr="{{ user.creeLe|date('d/m/Y') }}" data-i18n-en="{{ user.creeLe|date('d/m/Y') }}">{{ user.creeLe|date('d/m/Y') }}</div>
                                 </div>
                             </div>
                             
@@ -704,8 +690,8 @@
                                 <div class="stat-content">
                                     <div class="stat-label" data-i18n-fr="Dernière activité" data-i18n-en="Last activity">Dernière activité</div>
                                     <div class="stat-value">
-                                        {% if user.lastLoginAt %}
-                                            <span data-i18n-target="html" data-i18n-fr="{{ user.lastLoginAt|date('d/m/Y à H:i') }}" data-i18n-en="{{ user.lastLoginAt|date('d/m/Y à H:i') }}">{{ user.lastLoginAt|date('d/m/Y à H:i') }}</span>
+                                        {% if user.derniereConnexionLe %}
+                                            <span data-i18n-target="html" data-i18n-fr="{{ user.derniereConnexionLe|date('d/m/Y à H:i') }}" data-i18n-en="{{ user.derniereConnexionLe|date('d/m/Y à H:i') }}">{{ user.derniereConnexionLe|date('d/m/Y à H:i') }}</span>
                                         {% else %}
                                             <span class="text-muted" data-i18n-fr="Aucune connexion" data-i18n-en="No connection">Aucune connexion</span>
                                         {% endif %}

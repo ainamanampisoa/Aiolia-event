@@ -1,117 +1,117 @@
 -- ============================================================
--- Migration : Ajout de la colonne tier à subscription_plans
+-- Migration : Ajout de la colonne niveau à plans_abonnements
 -- ============================================================
--- Cette migration ajoute les colonnes tier, display_order, is_popular
+-- Cette migration ajoute les colonnes niveau, ordre_affichage, est_populaire
 -- et la contrainte UNIQUE si elles n'existent pas déjà
 
 \c aiolia_event;
 SET search_path TO aiolia, public;
 
--- Vérifier et ajouter la colonne tier
+-- Vérifier et ajouter la colonne niveau
 DO $$
 BEGIN
     IF NOT EXISTS (
         SELECT 1 FROM information_schema.columns 
         WHERE table_schema = 'aiolia' 
-        AND table_name = 'subscription_plans' 
-        AND column_name = 'tier'
+        AND table_name = 'plans_abonnements' 
+        AND column_name = 'niveau'
     ) THEN
-        ALTER TABLE aiolia.subscription_plans
-        ADD COLUMN tier TEXT NOT NULL DEFAULT 'basic'
-            CHECK (tier IN ('basic', 'pro', 'enterprise'));
+        ALTER TABLE aiolia.plans_abonnements
+        ADD COLUMN niveau TEXT NOT NULL DEFAULT 'basic'
+            CHECK (niveau IN ('basic', 'pro', 'enterprise'));
         
-        RAISE NOTICE 'Colonne tier ajoutée à subscription_plans';
+        RAISE NOTICE 'Colonne niveau ajoutée à plans_abonnements';
     ELSE
-        RAISE NOTICE 'Colonne tier existe déjà dans subscription_plans';
+        RAISE NOTICE 'Colonne niveau existe déjà dans plans_abonnements';
     END IF;
 END
 $$;
 
--- Vérifier et ajouter la colonne display_order
+-- Vérifier et ajouter la colonne ordre_affichage
 DO $$
 BEGIN
     IF NOT EXISTS (
         SELECT 1 FROM information_schema.columns 
         WHERE table_schema = 'aiolia' 
-        AND table_name = 'subscription_plans' 
-        AND column_name = 'display_order'
+        AND table_name = 'plans_abonnements' 
+        AND column_name = 'ordre_affichage'
     ) THEN
-        ALTER TABLE aiolia.subscription_plans
-        ADD COLUMN display_order INTEGER NOT NULL DEFAULT 0;
+        ALTER TABLE aiolia.plans_abonnements
+        ADD COLUMN ordre_affichage INTEGER NOT NULL DEFAULT 0;
         
-        RAISE NOTICE 'Colonne display_order ajoutée à subscription_plans';
+        RAISE NOTICE 'Colonne ordre_affichage ajoutée à plans_abonnements';
     ELSE
-        RAISE NOTICE 'Colonne display_order existe déjà dans subscription_plans';
+        RAISE NOTICE 'Colonne ordre_affichage existe déjà dans plans_abonnements';
     END IF;
 END
 $$;
 
--- Vérifier et ajouter la colonne is_popular
+-- Vérifier et ajouter la colonne est_populaire
 DO $$
 BEGIN
     IF NOT EXISTS (
         SELECT 1 FROM information_schema.columns 
         WHERE table_schema = 'aiolia' 
-        AND table_name = 'subscription_plans' 
-        AND column_name = 'is_popular'
+        AND table_name = 'plans_abonnements' 
+        AND column_name = 'est_populaire'
     ) THEN
-        ALTER TABLE aiolia.subscription_plans
-        ADD COLUMN is_popular BOOLEAN NOT NULL DEFAULT FALSE;
+        ALTER TABLE aiolia.plans_abonnements
+        ADD COLUMN est_populaire BOOLEAN NOT NULL DEFAULT FALSE;
         
-        RAISE NOTICE 'Colonne is_popular ajoutée à subscription_plans';
+        RAISE NOTICE 'Colonne est_populaire ajoutée à plans_abonnements';
     ELSE
-        RAISE NOTICE 'Colonne is_popular existe déjà dans subscription_plans';
+        RAISE NOTICE 'Colonne est_populaire existe déjà dans plans_abonnements';
     END IF;
 END
 $$;
 
--- Vérifier et ajouter la contrainte UNIQUE sur (tier, billing_period)
+-- Vérifier et ajouter la contrainte UNIQUE sur (niveau, periode_facturation)
 DO $$
 BEGIN
     IF NOT EXISTS (
         SELECT 1 FROM information_schema.table_constraints
         WHERE constraint_schema = 'aiolia'
-        AND table_name = 'subscription_plans'
-        AND constraint_name = 'uq_subscription_plans_tier'
+        AND table_name = 'plans_abonnements'
+        AND constraint_name = 'uq_plans_abonnements_niveau'
     ) THEN
-        ALTER TABLE aiolia.subscription_plans
-        ADD CONSTRAINT uq_subscription_plans_tier UNIQUE (tier, billing_period);
+        ALTER TABLE aiolia.plans_abonnements
+        ADD CONSTRAINT uq_plans_abonnements_niveau UNIQUE (niveau, periode_facturation);
         
-        RAISE NOTICE 'Contrainte uq_subscription_plans_tier ajoutée';
+        RAISE NOTICE 'Contrainte uq_plans_abonnements_niveau ajoutée';
     ELSE
-        RAISE NOTICE 'Contrainte uq_subscription_plans_tier existe déjà';
+        RAISE NOTICE 'Contrainte uq_plans_abonnements_niveau existe déjà';
     END IF;
 END
 $$;
 
--- Mettre à jour les plans existants avec les valeurs tier appropriées
+-- Mettre à jour les plans existants avec les valeurs niveau appropriées
 -- Basé sur le code du plan
-UPDATE aiolia.subscription_plans
-SET tier = CASE 
+UPDATE aiolia.plans_abonnements
+SET niveau = CASE 
     WHEN code = 'BASIC' THEN 'basic'
     WHEN code = 'PRO' THEN 'pro'
     WHEN code = 'ENTERPRISE' THEN 'enterprise'
     ELSE 'basic'
 END,
-display_order = CASE 
+ordre_affichage = CASE 
     WHEN code = 'BASIC' THEN 1
     WHEN code = 'PRO' THEN 2
     WHEN code = 'ENTERPRISE' THEN 3
     ELSE 0
 END,
-is_popular = (code = 'PRO')
-WHERE tier IS NULL OR tier = 'basic';
+est_populaire = (code = 'PRO')
+WHERE niveau IS NULL OR niveau = 'basic';
 
 -- Afficher un résumé
 SELECT 
     id,
     code,
-    name,
-    tier,
-    display_order,
-    is_popular,
-    price,
-    currency
-FROM aiolia.subscription_plans
-ORDER BY display_order;
+    nom,
+    niveau,
+    ordre_affichage,
+    est_populaire,
+    prix,
+    devise
+FROM aiolia.plans_abonnements
+ORDER BY ordre_affichage;
 

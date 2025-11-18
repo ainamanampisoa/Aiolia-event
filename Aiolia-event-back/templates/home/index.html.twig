@@ -9,7 +9,7 @@
         
         {% if app.user %}
             <div class="text-center">
-                <p>Bonjour {{ app.user.fullName }} !</p>
+                <p>Bonjour {{ app.user.nomComplet }} !</p>
                 <a href="{{ path('app_logout') }}" class="btn">Se déconnecter</a>
             </div>
         {% else %}

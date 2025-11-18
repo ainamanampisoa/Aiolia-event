@@ -32,13 +32,13 @@
         
         <div class="header-user">
             <div class="user-dropdown">
-                {% set avatarUrl = app.user.avatarUrl %}
-                {% set userInitials = app.user.photoUrl %}
+                {% set avatarUrl = app.user.urlAvatar %}
+                {% set userInitials = app.user.urlPhoto %}
 
                 <button class="user-trigger" type="button" aria-expanded="false" aria-haspopup="true">
                     <div class="user-avatar">
                         {% if avatarUrl %}
-                            <img src="{{ avatarUrl }}" alt="Avatar de {{ app.user.firstName }} {{ app.user.lastName }}">
+                            <img src="{{ avatarUrl }}" alt="Avatar de {{ app.user.prenom }} {{ app.user.nom }}">
                         {% else %}
                             <div class="user-avatar-initials">
                                 {{ userInitials ?: (app.user.email|first|upper) }}
@@ -47,7 +47,7 @@
                         <div class="user-status"></div>
                     </div>
                     <div class="user-details">
-                        <span class="user-name">{{ app.user.firstName }} {{ app.user.lastName }}</span>
+                        <span class="user-name">{{ app.user.prenom }} {{ app.user.nom }}</span>
                         <span class="user-role">{{ app.user.role|capitalize }}</span>
                     </div>
                     <i class="fas fa-chevron-down dropdown-arrow"></i>
@@ -65,7 +65,7 @@
                             {% endif %}
                         </div>
                         <div class="user-info-sm">
-                            <span class="user-name-sm">{{ app.user.firstName }} {{ app.user.lastName }}</span>
+                            <span class="user-name-sm">{{ app.user.prenom }} {{ app.user.nom }}</span>
                             <span class="user-email-sm">{{ app.user.email }}</span>
                         </div>
                     </div>

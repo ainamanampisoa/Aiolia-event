@@ -52,7 +52,7 @@ class AuthTokenController extends AbstractController
             ], Response::HTTP_UNAUTHORIZED);
         }
 
-        if (!$user->isActive()) {
+        if (!$user->estActif()) {
             return $this->json([
                 'success' => false,
                 'error' => [

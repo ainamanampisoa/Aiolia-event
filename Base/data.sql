@@ -12,43 +12,63 @@ BEGIN;
 
 -- Réinitialisation des tables clés (cascade pour respecter les FK)
 TRUNCATE TABLE
-    subscription_payment_history,
-    subscription_payments,
-    subscription_invoice_items,
-    subscription_invoices,
-    organizer_subscriptions,
-    organizer_profiles,
-    subscription_plans,
-    wallets,
-    user_event_stats,
-    user_profiles,
-    users
+    historique_paiements_abonnements,
+    paiements_abonnements,
+    elements_factures_abonnements,
+    factures_abonnements,
+    abonnements_organisateurs,
+    profils_organisateurs,
+    plans_abonnements,
+    portefeuilles,
+    statistiques_evenements_utilisateurs,
+    profils_utilisateurs,
+    utilisateurs
 RESTART IDENTITY CASCADE;
+
+-- Réinitialisation explicite de toutes les séquences (pour garantir la réinitialisation)
+DO $$
+DECLARE
+    seq_record RECORD;
+BEGIN
+    -- Réinitialiser la séquence des numéros de facture
+    PERFORM setval('sequence_numero_facture', 100000, false);
+    
+    -- Réinitialiser toutes les séquences IDENTITY des tables principales
+    FOR seq_record IN 
+        SELECT schemaname, sequencename 
+        FROM pg_sequences 
+        WHERE schemaname = 'aiolia'
+        AND sequencename LIKE '%_id_seq'
+    LOOP
+        EXECUTE format('SELECT setval(%L, 1, false)', 
+            seq_record.schemaname || '.' || seq_record.sequencename);
+    END LOOP;
+END $$;
 
 -- ------------------------------------------------------------
 -- 1. Utilisateurs (30 comptes : 10 organisateurs, 15 utilisateurs, 5 admins)
 --    - 5 organisateurs actifs
 --    - 5 organisateurs non validés utilisant les adresses indiquées
 -- ------------------------------------------------------------
-INSERT INTO users (
+INSERT INTO utilisateurs (
     id,
     email,
-    login_identifier,
-    login_method,
-    password_hash,
-    first_name,
-    last_name,
-    phone,
-    country_code,
-    language_code,
-    timezone,
+    identifiant_connexion,
+    methode_connexion,
+    hash_mot_de_passe,
+    prenom,
+    nom,
+    telephone,
+    code_pays,
+    code_langue,
+    fuseau_horaire,
     role,
-    status,
-    is_email_verified,
-    is_phone_verified,
-    accepted_terms_at,
-    created_at,
-    updated_at
+    statut,
+    email_verifie,
+    telephone_verifie,
+    termes_acceptes_le,
+    cree_le,
+    modifie_le
 ) VALUES
     -- Organisateurs actifs
     (1, 'organisateur1@yopmail.com', 'organisateur1@yopmail.com', 'password', crypt('Org#Actif123', gen_salt('bf', 12)), 'OrgActif', 'Rafal', '+261320000001', 'MG', 'fr-FR', 'Indian/Antananarivo', 'organizer', 1, TRUE, TRUE, '2024-01-10', '2024-01-10', '2025-02-01'),
@@ -86,23 +106,23 @@ INSERT INTO users (
     (30, 'admin05@yopmail.com', 'admin05@yopmail.com', 'password', crypt('Admin#Test123', gen_salt('bf', 12)), 'Admin', 'Epsilon', '+261320000030', 'MG', 'fr-FR', 'Indian/Antananarivo', 'admin', 1, TRUE, TRUE, '2024-01-09', '2024-01-09', '2025-02-01');
 
 -- Profils utilisateurs enrichis
-INSERT INTO user_profiles (
-    user_id,
-    phone,
-    country_code,
-    language_code,
-    timezone,
-    avatar_url,
-    dark_mode_enabled,
-    marketing_opt_in,
-    preferred_categories
+INSERT INTO profils_utilisateurs (
+    id_utilisateur,
+    telephone,
+    code_pays,
+    code_langue,
+    fuseau_horaire,
+    url_avatar,
+    mode_sombre_active,
+    opt_in_marketing,
+    categories_preferees
 )
 SELECT
     u.id,
-    COALESCE(u.phone, CONCAT('+2613201', LPAD(u.id::text, 4, '0'))),
-    COALESCE(u.country_code, 'MG'),
-    u.language_code,
-    u.timezone,
+    COALESCE(u.telephone, CONCAT('+2613201', LPAD(u.id::text, 4, '0'))),
+    COALESCE(u.code_pays, 'MG'),
+    u.code_langue,
+    u.fuseau_horaire,
     CONCAT('https://cdn.aiolia.test/avatars/', u.id, '.png'),
     (u.role = 'admin'),
     (u.role = 'user'),
@@ -111,10 +131,10 @@ SELECT
         WHEN u.role = 'user' THEN ARRAY['concert', 'sport']
         ELSE ARRAY['gestion']
     END
-FROM users u;
+FROM utilisateurs u;
 
 -- Statistiques utilisateurs initiales
-INSERT INTO user_event_stats (user_id, events_attended, upcoming_events, total_spend, favorite_categories, last_event_at, updated_at)
+INSERT INTO statistiques_evenements_utilisateurs (id_utilisateur, evenements_auxquels_a_participe, evenements_a_venir, depenses_totales, categories_favorites, dernier_evenement_le, modifie_le)
 SELECT
     u.id,
     CASE WHEN u.role = 'user' THEN (u.id % 5) ELSE 0 END,
@@ -127,10 +147,10 @@ SELECT
     END,
     CASE WHEN u.role = 'user' THEN now() - (u.id % 5) * INTERVAL '10 days' ELSE NULL END,
     now()
-FROM users u;
+FROM utilisateurs u;
 
 -- Comptes portefeuilles
-INSERT INTO wallets (user_id, balance, points_balance, currency, created_at, updated_at)
+INSERT INTO portefeuilles (id_utilisateur, solde, solde_points, devise, cree_le, modifie_le)
 SELECT
     u.id,
     CASE
@@ -142,30 +162,30 @@ SELECT
     'MGA',
     now(),
     now()
-FROM users u;
+FROM utilisateurs u;
 
 -- ------------------------------------------------------------
 -- 2. Plans d'abonnement (3 offres : Basic, Pro, Enterprise)
 --    Les organisateurs peuvent choisir n'importe quelle offre
 --    indépendamment de leur organization_type
 -- ------------------------------------------------------------
-INSERT INTO subscription_plans (
+INSERT INTO plans_abonnements (
     id,
     code,
-    name,
+    nom,
     description,
-    tier,
-    billing_period,
-    period_count,
-    currency,
-    price,
-    vat_rate,
-    features,
-    display_order,
-    is_popular,
-    is_active,
-    created_at,
-    updated_at
+    niveau,
+    periode_facturation,
+    nombre_periodes,
+    devise,
+    prix,
+    taux_tva,
+    fonctionnalites,
+    ordre_affichage,
+    est_populaire,
+    est_actif,
+    cree_le,
+    modifie_le
 ) VALUES
     (1, 'BASIC', 'Plan Basic', 'Offre de base pour démarrer vos événements', 'basic', 'monthly', 1, 'MGA', 150000, 20, '{"events_limit":3,"support":"email","features":["gestion_evenements","tableau_bord"]}', 1, FALSE, TRUE, '2024-01-01', '2025-02-01'),
     (2, 'PRO', 'Plan Pro', 'Offre professionnelle avec fonctionnalités avancées', 'pro', 'monthly', 1, 'MGA', 350000, 20, '{"events_limit":15,"support":"chat","features":["gestion_evenements","tableau_bord","statistiques_avancees","support_prioritaire"]}', 2, TRUE, TRUE, '2024-01-01', '2025-02-01'),
@@ -178,26 +198,26 @@ WITH organizer_base AS (
     SELECT
         u.id AS user_id,
         ROW_NUMBER() OVER (ORDER BY u.id) AS rn,
-        u.status
-    FROM users u
+        u.statut
+    FROM utilisateurs u
     WHERE u.role = 'organizer'
 )
-INSERT INTO organizer_profiles (
-    user_id,
-    display_name,
-    legal_name,
-    tax_number,
-    support_email,
-    support_phone,
-    website_url,
-    biography,
-    organization_type,
-    company_registration_number,
-    company_size,
-    verification_status,
-    onboarding_completed_at,
-    created_at,
-    updated_at
+INSERT INTO profils_organisateurs (
+    id_utilisateur,
+    nom_affichage,
+    nom_legal,
+    numero_tva,
+    email_support,
+    telephone_support,
+    url_site_web,
+    biographie,
+    type_organisation,
+    numero_immatriculation,
+    taille_entreprise,
+    statut_verification,
+    onboarding_termine_le,
+    cree_le,
+    modifie_le
 )
 SELECT
     ob.user_id,
@@ -205,7 +225,7 @@ SELECT
     CONCAT('AIOLIA ORG ', LPAD(ob.rn::text, 2, '0')),
     CONCAT('TIN-', 100000 + ob.rn),
     u.email,
-    u.phone,
+    u.telephone,
     CONCAT('https://organizer', LPAD(ob.rn::text, 2, '0'), '.aiolia.test'),
     CONCAT('Biographie de démonstration pour organisateur ', ob.rn),
     CASE 
@@ -227,7 +247,7 @@ SELECT
     now() - INTERVAL '200 days',
     now()
 FROM organizer_base ob
-JOIN users u ON u.id = ob.user_id;
+JOIN utilisateurs u ON u.id = ob.user_id;
 
 -- Abonnements des organisateurs (un abonnement par organisateur)
 -- Scénarios avec tous les statuts de facture :
@@ -241,24 +261,24 @@ JOIN users u ON u.id = ob.user_id;
 WITH organizer_ranked AS (
     SELECT
         op.id AS organizer_profile_id,
-        op.user_id,
-        op.organization_type,
+        op.id_utilisateur,
+        op.type_organisation,
         ROW_NUMBER() OVER (ORDER BY op.id) AS rn
-    FROM organizer_profiles op
+    FROM profils_organisateurs op
 )
-INSERT INTO organizer_subscriptions (
-    organizer_profile_id,
-    plan_id,
-    status,
-    starts_at,
-    current_period_start,
-    current_period_end,
-    renewal_at,
-    cancel_at_period_end,
-    cancelled_at,
-    metadata,
-    created_at,
-    updated_at
+INSERT INTO abonnements_organisateurs (
+    id_profil_organisateur,
+    id_plan,
+    statut,
+    commence_le,
+    debut_periode_courante,
+    fin_periode_courante,
+    renouvellement_le,
+    annuler_a_la_fin_periode,
+    annule_le,
+    metadonnees,
+    cree_le,
+    modifie_le
 )
 SELECT
     orr.organizer_profile_id,
@@ -286,7 +306,7 @@ SELECT
     CASE WHEN orr.rn = 10 THEN now() - INTERVAL '30 days' ELSE NULL END,
     jsonb_build_object(
         'admin_note', CONCAT('Abonnement de test #', orr.rn),
-        'organization_type', orr.organization_type,
+        'organization_type', orr.type_organisation,
         'plan_chosen_freely', TRUE,
         'subscription_type', CASE 
             WHEN orr.rn <= 3 THEN 'annual'
@@ -314,34 +334,34 @@ FROM organizer_ranked orr;
 WITH organizer_subscription_ranked AS (
     SELECT
         os.id AS subscription_id,
-        os.organizer_profile_id,
-        os.plan_id,
-        op.user_id,
-        os.metadata->>'subscription_type' AS subscription_type,
+        os.id_profil_organisateur,
+        os.id_plan,
+        op.id_utilisateur,
+        os.metadonnees->>'subscription_type' AS subscription_type,
         ROW_NUMBER() OVER (ORDER BY os.id) AS org_rn
-    FROM organizer_subscriptions os
-    JOIN organizer_profiles op ON op.id = os.organizer_profile_id
+    FROM abonnements_organisateurs os
+    JOIN profils_organisateurs op ON op.id = os.id_profil_organisateur
 ),
 subscription_context AS (
     SELECT
         osr.subscription_id,
-        osr.organizer_profile_id,
-        osr.plan_id,
-        osr.user_id,
-        sp.price,
-        sp.vat_rate,
+        osr.id_profil_organisateur,
+        osr.id_plan,
+        osr.id_utilisateur,
+        sp.prix,
+        sp.taux_tva,
         osr.subscription_type,
         osr.org_rn
     FROM organizer_subscription_ranked osr
-    JOIN subscription_plans sp ON sp.id = osr.plan_id
+    JOIN plans_abonnements sp ON sp.id = osr.id_plan
 ),
 invoice_source AS (
     SELECT
         sc.subscription_id,
-        sc.user_id AS customer_id,
-        sc.plan_id,
-        sc.price,
-        sc.vat_rate,
+        sc.id_utilisateur AS customer_id,
+        sc.id_plan,
+        sc.prix,
+        sc.taux_tva,
         sc.subscription_type,
         sc.org_rn,
         gs AS period_index,
@@ -361,28 +381,34 @@ invoice_source AS (
     CROSS JOIN generate_series(1, 12) AS gs
 ),
 invoice_rows AS (
-    INSERT INTO subscription_invoices (
-        subscription_id,
-        customer_id,
-        currency,
-        subtotal_amount,
-        tax_amount,
-        total_amount,
-        status,
-        issued_at,
-        due_at,
-        paid_at,
-        metadata,
-        created_at,
-        updated_at
+    INSERT INTO factures_abonnements (
+        id_abonnement,
+        id_client,
+        devise,
+        montant_sous_total,
+        montant_tva,
+        montant_total,
+        mois_facturation,
+        est_mois_pause,
+        est_prepayee,
+        statut,
+        emise_le,
+        echeance_le,
+        payee_le,
+        metadonnees,
+        cree_le,
+        modifie_le
     )
     SELECT
         isrc.subscription_id,
         isrc.customer_id,
         'MGA',
-        ROUND(isrc.price, 2),
-        ROUND(isrc.price * isrc.vat_rate / 100, 2),
-        ROUND(isrc.price * (1 + isrc.vat_rate / 100), 2),
+        ROUND(isrc.prix, 2),
+        ROUND(isrc.prix * isrc.taux_tva / 100, 2),
+        ROUND(isrc.prix * (1 + isrc.taux_tva / 100), 2),
+        date_trunc('month', isrc.issued_at)::DATE,
+        NOT isrc.should_be_paid,
+        FALSE,
         CASE
             -- Organisateurs 1-3 : tous les mois payés (statut 'paid')
             WHEN isrc.org_rn <= 3 AND isrc.should_be_paid THEN 'paid'
@@ -490,128 +516,128 @@ invoice_rows AS (
     WHERE isrc.should_be_paid = TRUE  -- Ne créer des factures que pour les mois qui doivent être payés
     RETURNING
         id,
-        subscription_id,
-        customer_id,
-        status,
-        total_amount,
-        issued_at,
-        due_at,
-        paid_at,
-        metadata
+        id_abonnement,
+        id_client,
+        statut,
+        montant_total,
+        emise_le,
+        echeance_le,
+        payee_le,
+        metadonnees
 ),
 invoice_items AS (
-    INSERT INTO subscription_invoice_items (
-        invoice_id,
-        plan_id,
+    INSERT INTO elements_factures_abonnements (
+        id_facture,
+        id_plan,
         description,
-        quantity,
-        unit_price,
-        total_amount,
-        metadata
+        quantite,
+        prix_unitaire,
+        montant_total,
+        metadonnees
     )
     SELECT
         ir.id,
-        sc.plan_id,
-        CONCAT('Abonnement plan #', sc.plan_id, ' - Période ', (ir.metadata ->> 'period_index')),
+        sc.id_plan,
+        CONCAT('Abonnement plan #', sc.id_plan, ' - Période ', (ir.metadonnees ->> 'period_index')),
         1,
-        sc.price,
-        sc.price,
-        jsonb_build_object('period_index', ir.metadata ->> 'period_index')
+        sc.prix,
+        sc.prix,
+        jsonb_build_object('period_index', ir.metadonnees ->> 'period_index')
     FROM invoice_rows ir
-    JOIN subscription_context sc ON sc.subscription_id = ir.subscription_id
-    RETURNING invoice_id
+    JOIN subscription_context sc ON sc.subscription_id = ir.id_abonnement
+    RETURNING id_facture
 ),
 payment_rows AS (
-    INSERT INTO subscription_payments (
-        invoice_id,
-        provider,
-        provider_reference,
-        status,
-        amount,
-        currency,
-        paid_at,
-        metadata,
-        created_at,
-        updated_at
+    INSERT INTO paiements_abonnements (
+        id_facture,
+        fournisseur,
+        reference_fournisseur,
+        statut,
+        montant,
+        devise,
+        paye_le,
+        metadonnees,
+        cree_le,
+        modifie_le
     )
     SELECT
         ir.id,
         CASE
-            WHEN ir.status = 'paid' THEN 'orange'
-            WHEN ir.status = 'refunded' THEN 'orange'  -- Paiement initial via Orange
-            WHEN ir.status = 'partially_paid' THEN 'bank_transfer'
+            WHEN ir.statut = 'paid' THEN 'orange'
+            WHEN ir.statut = 'refunded' THEN 'orange'  -- Paiement initial via Orange
+            WHEN ir.statut = 'partially_paid' THEN 'bank_transfer'
             ELSE 'telma'
         END,
         CONCAT('PAY-', ir.id),
         CASE
-            WHEN ir.status = 'paid' THEN 'paid'::payment_status_enum
-            WHEN ir.status = 'refunded' THEN 'refunded'::payment_status_enum  -- Statut remboursé
-            WHEN ir.status = 'partially_paid' THEN 'processing'::payment_status_enum
+            WHEN ir.statut = 'paid' THEN 'paid'::payment_status_enum
+            WHEN ir.statut = 'refunded' THEN 'refunded'::payment_status_enum  -- Statut remboursé
+            WHEN ir.statut = 'partially_paid' THEN 'processing'::payment_status_enum
             ELSE 'processing'::payment_status_enum
         END,
         CASE
-            WHEN ir.status = 'paid' THEN ir.total_amount
-            WHEN ir.status = 'refunded' THEN ir.total_amount  -- Montant initial avant remboursement
-            WHEN ir.status = 'partially_paid' THEN ROUND(ir.total_amount * 0.6, 2)
-            ELSE ROUND(ir.total_amount * 0.1, 2)
+            WHEN ir.statut = 'paid' THEN ir.montant_total
+            WHEN ir.statut = 'refunded' THEN ir.montant_total  -- Montant initial avant remboursement
+            WHEN ir.statut = 'partially_paid' THEN ROUND(ir.montant_total * 0.6, 2)
+            ELSE ROUND(ir.montant_total * 0.1, 2)
         END,
         'MGA',
         -- Utiliser la date de paiement de la facture si elle existe
-        COALESCE(ir.paid_at, 
+        COALESCE(ir.payee_le, 
             CASE
-                WHEN ir.status = 'paid' THEN ir.issued_at + INTERVAL '5 days'
-                WHEN ir.status = 'refunded' THEN ir.issued_at + INTERVAL '5 days'  -- Date de paiement initial
-                WHEN ir.status = 'partially_paid' THEN ir.issued_at + INTERVAL '25 days'
+                WHEN ir.statut = 'paid' THEN ir.emise_le + INTERVAL '5 days'
+                WHEN ir.statut = 'refunded' THEN ir.emise_le + INTERVAL '5 days'  -- Date de paiement initial
+                WHEN ir.statut = 'partially_paid' THEN ir.emise_le + INTERVAL '25 days'
                 ELSE NULL
             END
         ),
         jsonb_build_object(
-            'status_source', ir.status,
+            'status_source', ir.statut,
             'admin_comment', CASE
-                WHEN ir.status = 'refunded' THEN 'Paiement remboursé'
-                WHEN (ir.metadata->>'is_late_payment')::boolean THEN 'Paiement en retard'
+                WHEN ir.statut = 'refunded' THEN 'Paiement remboursé'
+                WHEN (ir.metadonnees->>'is_late_payment')::boolean THEN 'Paiement en retard'
                 ELSE 'Paiement test'
             END,
-            'due_date', ir.due_at,
+            'due_date', ir.echeance_le,
             'payment_delay_days', CASE 
-                WHEN ir.paid_at IS NOT NULL AND ir.due_at IS NOT NULL THEN 
-                    EXTRACT(DAY FROM (ir.paid_at - ir.due_at))
+                WHEN ir.payee_le IS NOT NULL AND ir.echeance_le IS NOT NULL THEN 
+                    EXTRACT(DAY FROM (ir.payee_le - ir.echeance_le))
                 ELSE NULL
             END,
-            'days_late', (ir.metadata->>'days_late')::integer,
-            'is_late_payment', (ir.metadata->>'is_late_payment')::boolean,
+            'days_late', (ir.metadonnees->>'days_late')::integer,
+            'is_late_payment', (ir.metadonnees->>'is_late_payment')::boolean,
             'refund_date', CASE 
-                WHEN ir.status = 'refunded' THEN (ir.paid_at + INTERVAL '10 days')::text
+                WHEN ir.statut = 'refunded' THEN (ir.payee_le + INTERVAL '10 days')::text
                 ELSE NULL
             END,
             'refund_amount', CASE 
-                WHEN ir.status = 'refunded' THEN ir.total_amount
+                WHEN ir.statut = 'refunded' THEN ir.montant_total
                 ELSE NULL
             END
         ),
-        COALESCE(ir.paid_at, ir.issued_at) + INTERVAL '2 hours',
-        COALESCE(ir.paid_at, ir.issued_at) + INTERVAL '2 hours'
+        COALESCE(ir.payee_le, ir.emise_le) + INTERVAL '2 hours',
+        COALESCE(ir.payee_le, ir.emise_le) + INTERVAL '2 hours'
     FROM invoice_rows ir
-    WHERE ir.status IN ('paid', 'partially_paid', 'refunded') AND ir.paid_at IS NOT NULL
+    WHERE ir.statut IN ('paid', 'partially_paid', 'refunded') AND ir.payee_le IS NOT NULL
     RETURNING
         id,
-        invoice_id,
-        status,
-        metadata,
-        created_at
+        id_facture,
+        statut,
+        metadonnees,
+        cree_le
 )
-INSERT INTO subscription_payment_history (
-    payment_id,
-    status_from,
-    status_to,
-    changed_at,
-    metadata
+INSERT INTO historique_paiements_abonnements (
+    id_paiement,
+    statut_de,
+    statut_vers,
+    modifie_le,
+    metadonnees
 )
 SELECT
     pr.id,
     NULL::payment_status_enum,
     'initiated'::payment_status_enum,
-    pr.created_at - INTERVAL '2 hours',
+    pr.cree_le - INTERVAL '2 hours',
     jsonb_build_object('detail', 'Création du paiement')
 FROM payment_rows pr
 UNION ALL
@@ -619,12 +645,12 @@ SELECT
     pr.id,
     'initiated'::payment_status_enum,
     (CASE 
-        WHEN pr.status = 'refunded' THEN 'paid'::payment_status_enum  -- D'abord payé
-        WHEN pr.status = 'paid' THEN 'paid'::payment_status_enum
+        WHEN pr.statut = 'refunded' THEN 'paid'::payment_status_enum  -- D'abord payé
+        WHEN pr.statut = 'paid' THEN 'paid'::payment_status_enum
         ELSE 'processing'::payment_status_enum
     END),
-    pr.created_at,
-    jsonb_build_object('detail', 'Mise à jour du paiement', 'context', pr.metadata)
+    pr.cree_le,
+    jsonb_build_object('detail', 'Mise à jour du paiement', 'context', pr.metadonnees)
 FROM payment_rows pr
 UNION ALL
 -- Ajouter les remboursements dans l'historique pour les paiements remboursés
@@ -632,15 +658,15 @@ SELECT
     pr.id,
     'paid'::payment_status_enum,
     'refunded'::payment_status_enum,
-    (pr.created_at + INTERVAL '10 days'),
+    (pr.cree_le + INTERVAL '10 days'),
     jsonb_build_object(
         'detail', 'Remboursement effectué',
-        'refund_amount', (pr.metadata->>'refund_amount')::numeric,
+        'refund_amount', (pr.metadonnees->>'refund_amount')::numeric,
         'refund_reason', 'Demande client',
-        'refund_date', (pr.created_at + INTERVAL '10 days')::text
+        'refund_date', (pr.cree_le + INTERVAL '10 days')::text
     )
 FROM payment_rows pr
-WHERE pr.status = 'refunded';
+WHERE pr.statut = 'refunded';
 
 COMMIT;
 

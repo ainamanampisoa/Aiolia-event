@@ -46,6 +46,24 @@ class SubscriptionInvoice
     #[ORM\Column(name: 'total_amount', type: Types::DECIMAL, precision: 12, scale: 2, options: ['default' => 0])]
     private string $totalAmount = '0';
 
+    #[ORM\Column(name: 'amount_ht', type: Types::DECIMAL, precision: 12, scale: 2, options: ['default' => 0])]
+    private string $amountHt = '0';
+
+    #[ORM\Column(name: 'amount_tva', type: Types::DECIMAL, precision: 12, scale: 2, options: ['default' => 0])]
+    private string $amountTva = '0';
+
+    #[ORM\Column(name: 'amount_ttc', type: Types::DECIMAL, precision: 12, scale: 2, options: ['default' => 0])]
+    private string $amountTtc = '0';
+
+    #[ORM\Column(name: 'billing_month', type: Types::DATE_MUTABLE, nullable: true)]
+    private ?\DateTimeInterface $billingMonth = null;
+
+    #[ORM\Column(name: 'is_pause_month', type: Types::BOOLEAN, options: ['default' => false])]
+    private bool $isPauseMonth = false;
+
+    #[ORM\Column(name: 'is_prepaid', type: Types::BOOLEAN, options: ['default' => false])]
+    private bool $isPrepaid = false;
+
     #[ORM\Column(type: Types::STRING, length: 20, options: ['default' => self::STATUS_DRAFT])]
     private string $status = self::STATUS_DRAFT;
 
@@ -159,6 +177,39 @@ class SubscriptionInvoice
     public function setTotalAmount(string $totalAmount): self
     {
         $this->totalAmount = $totalAmount;
+        return $this;
+    }
+
+    public function getAmountHt(): string
+    {
+        return $this->amountHt;
+    }
+
+    public function setAmountHt(string $amountHt): self
+    {
+        $this->amountHt = $amountHt;
+        return $this;
+    }
+
+    public function getAmountTva(): string
+    {
+        return $this->amountTva;
+    }
+
+    public function setAmountTva(string $amountTva): self
+    {
+        $this->amountTva = $amountTva;
+        return $this;
+    }
+
+    public function getAmountTtc(): string
+    {
+        return $this->amountTtc;
+    }
+
+    public function setAmountTtc(string $amountTtc): self
+    {
+        $this->amountTtc = $amountTtc;
         return $this;
     }
 
@@ -345,6 +396,39 @@ class SubscriptionInvoice
     public function isOverdue(?\DateTimeInterface $currentDate = null): bool
     {
         return $this->getDaysOverdue($currentDate) !== null;
+    }
+
+    public function getBillingMonth(): ?\DateTimeInterface
+    {
+        return $this->billingMonth;
+    }
+
+    public function setBillingMonth(?\DateTimeInterface $billingMonth): self
+    {
+        $this->billingMonth = $billingMonth;
+        return $this;
+    }
+
+    public function isPauseMonth(): bool
+    {
+        return $this->isPauseMonth;
+    }
+
+    public function setIsPauseMonth(bool $isPauseMonth): self
+    {
+        $this->isPauseMonth = $isPauseMonth;
+        return $this;
+    }
+
+    public function isPrepaid(): bool
+    {
+        return $this->isPrepaid;
+    }
+
+    public function setIsPrepaid(bool $isPrepaid): self
+    {
+        $this->isPrepaid = $isPrepaid;
+        return $this;
     }
 }
 

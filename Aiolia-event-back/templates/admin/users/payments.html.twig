@@ -1,6 +1,6 @@
 {% extends 'base.html.twig' %}
 
-{% block title %}Historique des paiements - {{ user.fullName }}{% endblock %}
+{% block title %}Historique des paiements - {{ user.nomComplet }}{% endblock %}
 
 {% block stylesheets %}
 {{ parent() }}
@@ -108,7 +108,7 @@
             <div class="breadcrumb-horizontal">
                 <a href="{{ path('admin_users_list') }}">Gestion des utilisateurs</a>
                 <span>/</span>
-                <a href="{{ path('admin_users_show', {id: user.id}) }}">{{ user.fullName }}</a>
+                <a href="{{ path('admin_users_show', {id: user.id}) }}">{{ user.nomComplet }}</a>
                 <span>/</span>
                 <span class="breadcrumb-active">Historique des paiements</span>
             </div>
@@ -120,7 +120,7 @@
             <div class="card">
                 <div class="payments-header">
                     <h5 class="mb-0">
-                        <i class="fas fa-receipt"></i>Historique des paiements · {{ user.fullName }}
+                        <i class="fas fa-receipt"></i>Historique des paiements · {{ user.nomComplet }}
                     </h5>
                     <a href="{{ path('admin_users_show', {id: user.id}) }}" class="btn btn-outline-primary btn-sm">
                         <i class="fas fa-user"></i> Fiche utilisateur

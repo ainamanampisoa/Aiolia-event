@@ -1,6 +1,6 @@
 {% extends 'base.html.twig' %}
 
-{% block title %}Informations supplémentaires - {{ user.fullName }}{% endblock %}
+{% block title %}Informations supplémentaires - {{ user.nomComplet }}{% endblock %}
 
 {% block stylesheets %}
 {{ parent() }}
@@ -59,7 +59,7 @@
             <nav aria-label="breadcrumb">
                 <ol class="breadcrumb">
                     <li class="breadcrumb-item"><a href="{{ path('admin_users_list') }}" data-i18n-fr="Utilisateurs" data-i18n-en="Users">Utilisateurs</a></li>
-                    <li class="breadcrumb-item"><a href="{{ path('admin_users_show', {id: user.id}) }}">{{ user.fullName }}</a></li>
+                    <li class="breadcrumb-item"><a href="{{ path('admin_users_show', {id: user.id}) }}">{{ user.nomComplet }}</a></li>
                     <li class="breadcrumb-item active" data-i18n-fr="Informations supplémentaires" data-i18n-en="Additional information">Informations supplémentaires</li>
                 </ol>
             </nav>
@@ -71,7 +71,7 @@
             <div class="card">
                 <div class="card-header" style="display:flex; justify-content:space-between; align-items:center;">
                     <h5 class="mb-0">
-                        <i class="fas fa-info-circle"></i> <span data-i18n-fr="Informations supplémentaires" data-i18n-en="Additional information">Informations supplémentaires</span> - {{ user.fullName }}
+                        <i class="fas fa-info-circle"></i> <span data-i18n-fr="Informations supplémentaires" data-i18n-en="Additional information">Informations supplémentaires</span> - {{ user.nomComplet }}
                     </h5>
                     <a href="{{ path('admin_users_show', {id: user.id}) }}" class="btn btn-sm btn-secondary">
                         <i class="fas fa-arrow-left"></i> <span data-i18n-fr="Retour" data-i18n-en="Back">Retour</span>
@@ -95,7 +95,7 @@
                                 </div>
                                 <div class="info-content">
                                     <h6 data-i18n-fr="Date d'inscription" data-i18n-en="Registration date">Date d'inscription</h6>
-                                    <p class="mb-0" data-i18n-target="html" data-i18n-fr="{{ user.createdAt|date('d F Y à H:i') }}" data-i18n-en="{{ user.createdAt|date('d F Y à H:i') }}">{{ user.createdAt|date('d F Y à H:i') }}</p>
+                                    <p class="mb-0" data-i18n-target="html" data-i18n-fr="{{ user.creeLe|date('d F Y à H:i') }}" data-i18n-en="{{ user.creeLe|date('d F Y à H:i') }}">{{ user.creeLe|date('d F Y à H:i') }}</p>
                                 </div>
                             </div>
                         </div>
@@ -106,7 +106,7 @@
                                 </div>
                                 <div class="info-content">
                                     <h6 data-i18n-fr="Dernière activité" data-i18n-en="Last activity">Dernière activité</h6>
-                                    <p class="mb-0" data-i18n-target="html" data-i18n-fr="{{ user.lastLoginAt ? user.lastLoginAt|date('d F Y à H:i') : 'Jamais connecté' }}" data-i18n-en="{{ user.lastLoginAt ? user.lastLoginAt|date('d F Y à H:i') : 'Never logged in' }}">{{ user.lastLoginAt ? user.lastLoginAt|date('d F Y à H:i') : 'Jamais connecté' }}</p>
+                                    <p class="mb-0" data-i18n-target="html" data-i18n-fr="{{ user.derniereConnexionLe ? user.derniereConnexionLe|date('d F Y à H:i') : 'Jamais connecté' }}" data-i18n-en="{{ user.derniereConnexionLe ? user.derniereConnexionLe|date('d F Y à H:i') : 'Never logged in' }}">{{ user.derniereConnexionLe ? user.derniereConnexionLe|date('d F Y à H:i') : 'Jamais connecté' }}</p>
                                 </div>
                             </div>
                         </div>

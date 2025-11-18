@@ -11,12 +11,12 @@ use Symfony\Component\Security\Core\User\PasswordAuthenticatedUserInterface;
 use Symfony\Component\Security\Core\User\UserInterface;
 
 #[ORM\Entity(repositoryClass: UserRepository::class)]
-#[ORM\Table(name: 'users', schema: 'aiolia', uniqueConstraints: [
-    new ORM\UniqueConstraint(name: 'uniq_users_fullname', columns: ['first_name', 'last_name']),
-    new ORM\UniqueConstraint(name: 'uq_users_login', columns: ['login_identifier', 'login_method'])
+#[ORM\Table(name: 'utilisateurs', schema: 'aiolia', uniqueConstraints: [
+    new ORM\UniqueConstraint(name: 'uniq_utilisateurs_nom_complet', columns: ['prenom', 'nom']),
+    new ORM\UniqueConstraint(name: 'uq_utilisateurs_connexion', columns: ['identifiant_connexion', 'methode_connexion'])
 ])]
 #[ORM\HasLifecycleCallbacks]
-#[UniqueEntity(fields: ['firstName', 'lastName'], message: 'Un compte existe déjà avec ce prénom et ce nom')]
+#[UniqueEntity(fields: ['prenom', 'nom'], message: 'Un compte existe déjà avec ce prénom et ce nom')]
 class User implements UserInterface, PasswordAuthenticatedUserInterface
 {
     public const STATUS_DELETED = -1;
@@ -38,89 +38,89 @@ class User implements UserInterface, PasswordAuthenticatedUserInterface
     #[ORM\Column(length: 255, columnDefinition: 'CITEXT')]
     private string $email;
 
-    #[ORM\Column(name: 'login_identifier', type: Types::STRING, length: 255)]
-    private string $loginIdentifier;
+    #[ORM\Column(name: 'identifiant_connexion', type: Types::STRING, length: 255)]
+    private string $identifiantConnexion;
 
-    #[ORM\Column(name: 'login_method', type: Types::STRING, length: 20, options: ['default' => self::AUTH_PROVIDER_PASSWORD])]
-    private string $loginMethod = self::AUTH_PROVIDER_PASSWORD;
+    #[ORM\Column(name: 'methode_connexion', type: Types::STRING, length: 20, options: ['default' => self::AUTH_PROVIDER_PASSWORD])]
+    private string $methodeConnexion = self::AUTH_PROVIDER_PASSWORD;
 
-    #[ORM\Column(name: 'password_hash', type: Types::TEXT)]
-    private string $passwordHash;
+    #[ORM\Column(name: 'hash_mot_de_passe', type: Types::TEXT)]
+    private string $hashMotDePasse;
 
-    #[ORM\Column(name: 'first_name', type: Types::TEXT)]
-    private string $firstName;
+    #[ORM\Column(name: 'prenom', type: Types::TEXT)]
+    private string $prenom;
 
-    #[ORM\Column(name: 'last_name', type: Types::TEXT, nullable: true)]
-    private ?string $lastName = null;
+    #[ORM\Column(name: 'nom', type: Types::TEXT, nullable: true)]
+    private ?string $nom = null;
 
-    #[ORM\Column(type: Types::TEXT, nullable: true)]
-    private ?string $phone = null;
+    #[ORM\Column(name: 'telephone', type: Types::TEXT, nullable: true)]
+    private ?string $telephone = null;
 
-    #[ORM\Column(name: 'country_code', type: Types::STRING, length: 2, nullable: true, options: ['fixed' => true])]
-    private ?string $countryCode = null;
+    #[ORM\Column(name: 'code_pays', type: Types::STRING, length: 2, nullable: true, options: ['fixed' => true])]
+    private ?string $codePays = null;
 
-    #[ORM\Column(name: 'language_code', type: Types::STRING, length: 10, options: ['default' => 'fr-FR'])]
-    private string $languageCode = 'fr-FR';
+    #[ORM\Column(name: 'code_langue', type: Types::STRING, length: 10, options: ['default' => 'fr-FR'])]
+    private string $codeLangue = 'fr-FR';
 
-    #[ORM\Column(type: Types::TEXT, options: ['default' => 'Indian/Antananarivo'])]
-    private string $timezone = 'Indian/Antananarivo';
+    #[ORM\Column(name: 'fuseau_horaire', type: Types::TEXT, options: ['default' => 'Indian/Antananarivo'])]
+    private string $fuseauHoraire = 'Indian/Antananarivo';
 
-    #[ORM\Column(name: 'avatar_url', type: Types::TEXT, nullable: true)]
-    private ?string $avatarUrl = null;
+    #[ORM\Column(name: 'url_avatar', type: Types::TEXT, nullable: true)]
+    private ?string $urlAvatar = null;
 
     #[ORM\Column(name: 'role', type: Types::STRING, length: 20, options: ['default' => UserRoleEnum::USER], columnDefinition: "user_role_enum NOT NULL DEFAULT 'user'")]
     private string $role = UserRoleEnum::USER;
 
-    #[ORM\Column(name: 'status', type: Types::SMALLINT, options: ['default' => self::STATUS_PENDING])]
-    private int|string $status = self::STATUS_PENDING;
+    #[ORM\Column(name: 'statut', type: Types::SMALLINT, options: ['default' => self::STATUS_PENDING])]
+    private int|string $statut = self::STATUS_PENDING;
 
-    #[ORM\Column(name: 'auth_provider', type: Types::STRING, length: 20, options: ['default' => self::AUTH_PROVIDER_PASSWORD])]
-    private string $authProvider = self::AUTH_PROVIDER_PASSWORD;
+    #[ORM\Column(name: 'fournisseur_auth', type: Types::STRING, length: 20, options: ['default' => self::AUTH_PROVIDER_PASSWORD])]
+    private string $fournisseurAuth = self::AUTH_PROVIDER_PASSWORD;
 
-    #[ORM\Column(name: 'oauth_provider_id', type: Types::TEXT, nullable: true)]
-    private ?string $oauthProviderId = null;
+    #[ORM\Column(name: 'id_fournisseur_oauth', type: Types::TEXT, nullable: true)]
+    private ?string $idFournisseurOauth = null;
 
-    #[ORM\Column(name: 'is_email_verified', type: Types::BOOLEAN, options: ['default' => false])]
-    private bool $isEmailVerified = false;
+    #[ORM\Column(name: 'email_verifie', type: Types::BOOLEAN, options: ['default' => false])]
+    private bool $emailVerifie = false;
 
-    #[ORM\Column(name: 'is_phone_verified', type: Types::BOOLEAN, options: ['default' => false])]
-    private bool $isPhoneVerified = false;
+    #[ORM\Column(name: 'telephone_verifie', type: Types::BOOLEAN, options: ['default' => false])]
+    private bool $telephoneVerifie = false;
 
-    #[ORM\Column(name: 'two_factor_type', type: Types::STRING, nullable: true)]
-    private ?string $twoFactorType = null;
+    #[ORM\Column(name: 'type_double_authentification', type: Types::STRING, nullable: true)]
+    private ?string $typeDoubleAuthentification = null;
 
-    #[ORM\Column(name: 'accepted_terms_at', type: Types::DATETIMETZ_MUTABLE, nullable: true)]
-    private ?\DateTimeInterface $acceptedTermsAt = null;
+    #[ORM\Column(name: 'termes_acceptes_le', type: Types::DATETIMETZ_MUTABLE, nullable: true)]
+    private ?\DateTimeInterface $termesAcceptesLe = null;
 
-    #[ORM\Column(name: 'created_at', type: Types::DATETIMETZ_MUTABLE)]
-    private ?\DateTimeInterface $createdAt = null;
+    #[ORM\Column(name: 'cree_le', type: Types::DATETIMETZ_MUTABLE)]
+    private ?\DateTimeInterface $creeLe = null;
 
-    #[ORM\Column(name: 'updated_at', type: Types::DATETIMETZ_MUTABLE)]
-    private ?\DateTimeInterface $updatedAt = null;
+    #[ORM\Column(name: 'modifie_le', type: Types::DATETIMETZ_MUTABLE)]
+    private ?\DateTimeInterface $modifieLe = null;
 
-    #[ORM\Column(name: 'last_login_at', type: Types::DATETIMETZ_MUTABLE, nullable: true)]
-    private ?\DateTimeInterface $lastLoginAt = null;
+    #[ORM\Column(name: 'derniere_connexion_le', type: Types::DATETIMETZ_MUTABLE, nullable: true)]
+    private ?\DateTimeInterface $derniereConnexionLe = null;
 
     public function __construct()
     {
         $now = new \DateTimeImmutable();
-        $this->createdAt = $now;
-        $this->updatedAt = $now;
-        $this->loginIdentifier = '';
+        $this->creeLe = $now;
+        $this->modifieLe = $now;
+        $this->identifiantConnexion = '';
     }
 
     #[ORM\PrePersist]
     public function initializeTimestamps(): void
     {
         $now = new \DateTimeImmutable();
-        $this->createdAt ??= $now;
-        $this->updatedAt = $now;
+        $this->creeLe ??= $now;
+        $this->modifieLe = $now;
     }
 
     #[ORM\PreUpdate]
     public function refreshUpdatedAt(): void
     {
-        $this->updatedAt = new \DateTimeImmutable();
+        $this->modifieLe = new \DateTimeImmutable();
     }
 
     public function getId(): ?string
@@ -137,157 +137,157 @@ class User implements UserInterface, PasswordAuthenticatedUserInterface
     {
         $this->email = $email;
 
-        if ($this->loginIdentifier === '') {
-            $this->setLoginIdentifier($email);
+        if ($this->identifiantConnexion === '') {
+            $this->setIdentifiantConnexion($email);
         }
 
         return $this;
     }
 
-    public function getLoginIdentifier(): string
+    public function getIdentifiantConnexion(): string
     {
-        return $this->loginIdentifier;
+        return $this->identifiantConnexion;
     }
 
-    public function setLoginIdentifier(string $loginIdentifier): static
+    public function setIdentifiantConnexion(string $identifiantConnexion): static
     {
-        $this->loginIdentifier = trim($loginIdentifier);
+        $this->identifiantConnexion = trim($identifiantConnexion);
 
         return $this;
     }
 
-    public function getLoginMethod(): string
+    public function getMethodeConnexion(): string
     {
-        return $this->loginMethod;
+        return $this->methodeConnexion;
     }
 
-    public function setLoginMethod(string $loginMethod): static
+    public function setMethodeConnexion(string $methodeConnexion): static
     {
-        $this->loginMethod = strtolower(trim($loginMethod)) ?: self::AUTH_PROVIDER_PASSWORD;
+        $this->methodeConnexion = strtolower(trim($methodeConnexion)) ?: self::AUTH_PROVIDER_PASSWORD;
 
         return $this;
     }
 
-    public function getPasswordHash(): string
+    public function getHashMotDePasse(): string
     {
-        return $this->passwordHash;
+        return $this->hashMotDePasse;
     }
 
-    public function setPasswordHash(string $passwordHash): static
+    public function setHashMotDePasse(string $hashMotDePasse): static
     {
-        $this->passwordHash = $passwordHash;
+        $this->hashMotDePasse = $hashMotDePasse;
 
         return $this;
     }
 
     public function getPassword(): string
     {
-        return $this->passwordHash;
+        return $this->hashMotDePasse;
     }
 
-    public function getFirstName(): string
+    public function getPrenom(): string
     {
-        return $this->firstName;
+        return $this->prenom;
     }
 
-    public function setFirstName(string $firstName): static
+    public function setPrenom(string $prenom): static
     {
-        $this->firstName = $firstName;
+        $this->prenom = $prenom;
 
         return $this;
     }
 
-    public function getLastName(): ?string
+    public function getNom(): ?string
     {
-        return $this->lastName;
+        return $this->nom;
     }
 
-    public function setLastName(?string $lastName): static
+    public function setNom(?string $nom): static
     {
-        $this->lastName = $lastName;
+        $this->nom = $nom;
 
         return $this;
     }
 
-    public function getFullName(): string
+    public function getNomComplet(): string
     {
-        return trim($this->firstName . ' ' . ($this->lastName ?? ''));
+        return trim($this->prenom . ' ' . ($this->nom ?? ''));
     }
 
-    public function getPhone(): ?string
+    public function getTelephone(): ?string
     {
-        return $this->phone;
+        return $this->telephone;
     }
 
-    public function setPhone(?string $phone): static
+    public function setTelephone(?string $telephone): static
     {
-        $this->phone = $phone;
+        $this->telephone = $telephone;
 
         return $this;
     }
 
-    public function getCountryCode(): ?string
+    public function getCodePays(): ?string
     {
-        return $this->countryCode;
+        return $this->codePays;
     }
 
-    public function setCountryCode(?string $countryCode): static
+    public function setCodePays(?string $codePays): static
     {
-        $this->countryCode = $countryCode;
+        $this->codePays = $codePays;
 
         return $this;
     }
 
-    public function getLanguageCode(): string
+    public function getCodeLangue(): string
     {
-        return $this->languageCode;
+        return $this->codeLangue;
     }
 
-    public function setLanguageCode(string $languageCode): static
+    public function setCodeLangue(string $codeLangue): static
     {
-        $this->languageCode = $languageCode;
+        $this->codeLangue = $codeLangue;
 
         return $this;
     }
 
-    public function getTimezone(): string
+    public function getFuseauHoraire(): string
     {
-        return $this->timezone;
+        return $this->fuseauHoraire;
     }
 
-    public function setTimezone(string $timezone): static
+    public function setFuseauHoraire(string $fuseauHoraire): static
     {
-        $this->timezone = $timezone;
+        $this->fuseauHoraire = $fuseauHoraire;
 
         return $this;
     }
 
-    public function getAvatarUrl(): ?string
+    public function getUrlAvatar(): ?string
     {
-        return $this->avatarUrl;
+        return $this->urlAvatar;
     }
 
-    public function setAvatarUrl(?string $avatarUrl): static
+    public function setUrlAvatar(?string $urlAvatar): static
     {
-        $this->avatarUrl = $avatarUrl;
+        $this->urlAvatar = $urlAvatar;
 
         return $this;
     }
 
-    public function getPhotoUrl(): string
+    public function getUrlPhoto(): string
     {
-        if (!empty($this->avatarUrl)) {
-            return $this->avatarUrl;
+        if (!empty($this->urlAvatar)) {
+            return $this->urlAvatar;
         }
 
         $initials = '';
 
-        if (!empty($this->firstName)) {
-            $initials .= mb_substr($this->firstName, 0, 1);
+        if (!empty($this->prenom)) {
+            $initials .= mb_substr($this->prenom, 0, 1);
         }
 
-        if (!empty($this->lastName)) {
-            $initials .= mb_substr($this->lastName, 0, 1);
+        if (!empty($this->nom)) {
+            $initials .= mb_substr($this->nom, 0, 1);
         }
 
         if ($initials === '' && !empty($this->email)) {
@@ -311,36 +311,36 @@ class User implements UserInterface, PasswordAuthenticatedUserInterface
         return $this;
     }
 
-    public function getStatus(): int
+    public function getStatut(): int
     {
-        return (int) $this->status;
+        return (int) $this->statut;
     }
 
-    public function setStatus(int|string $status): static
+    public function setStatut(int|string $statut): static
     {
-        if (is_string($status) && !is_numeric($status)) {
-            $status = self::accountStatusToDatabaseStatus($status);
+        if (is_string($statut) && !is_numeric($statut)) {
+            $statut = self::accountStatusToDatabaseStatus($statut);
         }
 
-        $this->status = (int) $status;
+        $this->statut = (int) $statut;
         return $this;
     }
 
-    public function getAccountStatus(): string
+    public function getStatutCompte(): string
     {
-        return self::databaseStatusToAccountStatus($this->status);
+        return self::databaseStatusToAccountStatus($this->statut);
     }
 
-    public function setAccountStatus(string $accountStatus): static
+    public function setStatutCompte(string $statutCompte): static
     {
-        $this->status = self::accountStatusToDatabaseStatus($accountStatus);
+        $this->statut = self::accountStatusToDatabaseStatus($statutCompte);
 
         return $this;
     }
 
-    public function isActive(): bool
+    public function estActif(): bool
     {
-        return $this->getStatus() === self::STATUS_ACTIVE;
+        return $this->getStatut() === self::STATUS_ACTIVE;
     }
 
     public static function accountStatusToDatabaseStatus(string $accountStatus): int
@@ -375,110 +375,122 @@ class User implements UserInterface, PasswordAuthenticatedUserInterface
         };
     }
 
-    public function getAuthProvider(): string
+    public function getFournisseurAuth(): string
     {
-        return $this->authProvider;
+        return $this->fournisseurAuth;
     }
 
-    public function setAuthProvider(string $authProvider): static
+    public function setFournisseurAuth(string $fournisseurAuth): static
     {
-        $this->authProvider = $authProvider;
+        $this->fournisseurAuth = $fournisseurAuth;
 
         return $this;
     }
 
-    public function getOauthProviderId(): ?string
+    public function getIdFournisseurOauth(): ?string
     {
-        return $this->oauthProviderId;
+        return $this->idFournisseurOauth;
     }
 
-    public function setOauthProviderId(?string $oauthProviderId): static
+    public function setIdFournisseurOauth(?string $idFournisseurOauth): static
     {
-        $this->oauthProviderId = $oauthProviderId;
+        $this->idFournisseurOauth = $idFournisseurOauth;
 
         return $this;
     }
 
-    public function isEmailVerified(): bool
+    public function estEmailVerifie(): bool
     {
-        return $this->isEmailVerified;
+        return $this->emailVerifie;
     }
 
-    public function setIsEmailVerified(bool $isEmailVerified): static
+    /** @deprecated Utiliser estEmailVerifie() */
+    public function isEmailVerifie(): bool
     {
-        $this->isEmailVerified = $isEmailVerified;
+        return $this->estEmailVerifie();
+    }
+
+    public function setEmailVerifie(bool $emailVerifie): static
+    {
+        $this->emailVerifie = $emailVerifie;
 
         return $this;
     }
 
-    public function isPhoneVerified(): bool
+    public function estTelephoneVerifie(): bool
     {
-        return $this->isPhoneVerified;
+        return $this->telephoneVerifie;
     }
 
-    public function setIsPhoneVerified(bool $isPhoneVerified): static
+    /** @deprecated Utiliser estTelephoneVerifie() */
+    public function isTelephoneVerifie(): bool
     {
-        $this->isPhoneVerified = $isPhoneVerified;
+        return $this->estTelephoneVerifie();
+    }
+
+    public function setTelephoneVerifie(bool $telephoneVerifie): static
+    {
+        $this->telephoneVerifie = $telephoneVerifie;
 
         return $this;
     }
 
-    public function getTwoFactorType(): ?string
+    public function getTypeDoubleAuthentification(): ?string
     {
-        return $this->twoFactorType;
+        return $this->typeDoubleAuthentification;
     }
 
-    public function setTwoFactorType(?string $twoFactorType): static
+    public function setTypeDoubleAuthentification(?string $typeDoubleAuthentification): static
     {
-        $this->twoFactorType = $twoFactorType;
+        $this->typeDoubleAuthentification = $typeDoubleAuthentification;
 
         return $this;
     }
 
-    public function getAcceptedTermsAt(): ?\DateTimeInterface
+    public function getTermesAcceptesLe(): ?\DateTimeInterface
     {
-        return $this->acceptedTermsAt;
+        return $this->termesAcceptesLe;
     }
 
-    public function setAcceptedTermsAt(?\DateTimeInterface $acceptedTermsAt): static
+    public function setTermesAcceptesLe(?\DateTimeInterface $termesAcceptesLe): static
     {
-        $this->acceptedTermsAt = $acceptedTermsAt;
+        $this->termesAcceptesLe = $termesAcceptesLe;
 
         return $this;
     }
 
-    public function getCreatedAt(): ?\DateTimeInterface
+    public function getCreeLe(): ?\DateTimeInterface
     {
-        return $this->createdAt;
+        return $this->creeLe;
     }
 
-    public function setCreatedAt(?\DateTimeInterface $createdAt): static
+    public function setCreeLe(?\DateTimeInterface $creeLe): static
     {
-        $this->createdAt = $createdAt;
+        $this->creeLe = $creeLe;
 
         return $this;
     }
 
-    public function getUpdatedAt(): ?\DateTimeInterface
+    public function getModifieLe(): ?\DateTimeInterface
     {
-        return $this->updatedAt;
+        return $this->modifieLe;
     }
 
-    public function setUpdatedAt(?\DateTimeInterface $updatedAt): static
+    public function setModifieLe(?\DateTimeInterface $modifieLe): static
     {
-        $this->updatedAt = $updatedAt;
+        $this->modifieLe = $modifieLe;
 
         return $this;
     }
 
-    public function getLastLoginAt(): ?\DateTimeInterface
+    public function getDerniereConnexionLe(): ?\DateTimeInterface
     {
-        return $this->lastLoginAt;
+        return $this->derniereConnexionLe;
     }
 
-    public function setLastLoginAt(?\DateTimeInterface $lastLoginAt): static
+    public function setDerniereConnexionLe(?\DateTimeInterface $derniereConnexionLe): static
     {
-        $this->lastLoginAt = $lastLoginAt;
+        $this->derniereConnexionLe = $derniereConnexionLe;
 
         return $this;
     }
@@ -500,6 +512,166 @@ class User implements UserInterface, PasswordAuthenticatedUserInterface
     public function eraseCredentials(): void
     {
         // Rien à effacer pour l'instant
+    }
+
+    // ============================================================
+    // Méthodes de compatibilité (dépréciées - utiliser les noms français)
+    // ============================================================
+    
+    /** @deprecated Utiliser getPrenom() */
+    public function getFirstName(): string
+    {
+        return $this->prenom;
+    }
+
+    /** @deprecated Utiliser setPrenom() */
+    public function setFirstName(string $prenom): static
+    {
+        return $this->setPrenom($prenom);
+    }
+
+    /** @deprecated Utiliser getNom() */
+    public function getLastName(): ?string
+    {
+        return $this->nom;
+    }
+
+    /** @deprecated Utiliser setNom() */
+    public function setLastName(?string $nom): static
+    {
+        return $this->setNom($nom);
+    }
+
+    /** @deprecated Utiliser getNomComplet() */
+    public function getFullName(): string
+    {
+        return $this->getNomComplet();
+    }
+
+    /** @deprecated Utiliser getTelephone() */
+    public function getPhone(): ?string
+    {
+        return $this->telephone;
+    }
+
+    /** @deprecated Utiliser setTelephone() */
+    public function setPhone(?string $telephone): static
+    {
+        return $this->setTelephone($telephone);
+    }
+
+    /** @deprecated Utiliser getUrlAvatar() */
+    public function getAvatarUrl(): ?string
+    {
+        return $this->urlAvatar;
+    }
+
+    /** @deprecated Utiliser setUrlAvatar() */
+    public function setAvatarUrl(?string $urlAvatar): static
+    {
+        return $this->setUrlAvatar($urlAvatar);
+    }
+
+    /** @deprecated Utiliser getUrlPhoto() */
+    public function getPhotoUrl(): string
+    {
+        return $this->getUrlPhoto();
+    }
+
+    /** @deprecated Utiliser getCreeLe() */
+    public function getCreatedAt(): ?\DateTimeInterface
+    {
+        return $this->creeLe;
+    }
+
+    /** @deprecated Utiliser setCreeLe() */
+    public function setCreatedAt(?\DateTimeInterface $creeLe): static
+    {
+        return $this->setCreeLe($creeLe);
+    }
+
+    /** @deprecated Utiliser getModifieLe() */
+    public function getUpdatedAt(): ?\DateTimeInterface
+    {
+        return $this->modifieLe;
+    }
+
+    /** @deprecated Utiliser setModifieLe() */
+    public function setUpdatedAt(?\DateTimeInterface $modifieLe): static
+    {
+        return $this->setModifieLe($modifieLe);
+    }
+
+    /** @deprecated Utiliser getDerniereConnexionLe() */
+    public function getLastLoginAt(): ?\DateTimeInterface
+    {
+        return $this->derniereConnexionLe;
+    }
+
+    /** @deprecated Utiliser setDerniereConnexionLe() */
+    public function setLastLoginAt(?\DateTimeInterface $derniereConnexionLe): static
+    {
+        return $this->setDerniereConnexionLe($derniereConnexionLe);
+    }
+
+    /** @deprecated Utiliser getStatut() */
+    public function getStatus(): int
+    {
+        return (int) $this->statut;
+    }
+
+    /** @deprecated Utiliser setStatut() */
+    public function setStatus(int|string $statut): static
+    {
+        return $this->setStatut($statut);
+    }
+
+    /** @deprecated Utiliser getStatutCompte() */
+    public function getAccountStatus(): string
+    {
+        return $this->getStatutCompte();
+    }
+
+    /** @deprecated Utiliser setStatutCompte() */
+    public function setAccountStatus(string $statutCompte): static
+    {
+        return $this->setStatutCompte($statutCompte);
+    }
+
+    /** @deprecated Utiliser getHashMotDePasse() */
+    public function getPasswordHash(): string
+    {
+        return $this->hashMotDePasse;
+    }
+
+    /** @deprecated Utiliser setHashMotDePasse() */
+    public function setPasswordHash(string $hashMotDePasse): static
+    {
+        return $this->setHashMotDePasse($hashMotDePasse);
+    }
+
+    /** @deprecated Utiliser getIdentifiantConnexion() */
+    public function getLoginIdentifier(): string
+    {
+        return $this->identifiantConnexion;
+    }
+
+    /** @deprecated Utiliser setIdentifiantConnexion() */
+    public function setLoginIdentifier(string $identifiantConnexion): static
+    {
+        return $this->setIdentifiantConnexion($identifiantConnexion);
+    }
+
+    /** @deprecated Utiliser getMethodeConnexion() */
+    public function getLoginMethod(): string
+    {
+        return $this->methodeConnexion;
+    }
+
+    /** @deprecated Utiliser setMethodeConnexion() */
+    public function setLoginMethod(string $methodeConnexion): static
+    {
+        return $this->setMethodeConnexion($methodeConnexion);
     }
 }
 

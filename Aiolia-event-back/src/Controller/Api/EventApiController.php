@@ -149,7 +149,7 @@ class EventApiController extends AbstractController
             ],
             'organizer' => [
                 'id' => $event->getOrganizer()?->getId(),
-                'name' => $event->getOrganizer()?->getFullName(),
+                'name' => $event->getOrganizer()?->getNomComplet(),
             ],
         ];
 

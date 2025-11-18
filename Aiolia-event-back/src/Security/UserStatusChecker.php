@@ -40,7 +40,7 @@ class UserStatusChecker implements UserCheckerInterface
 
     private function assertAccountIsActive(User $user): void
     {
-        if ($user->getAccountStatus() !== 'active') {
+        if ($user->getStatutCompte() !== 'active') {
             throw new CustomUserMessageAuthenticationException(
                 'Votre compte doit être validé par un administrateur avant de pouvoir vous connecter.'
             );
@@ -72,11 +72,11 @@ class UserStatusChecker implements UserCheckerInterface
         
         // Vérifier le statut de l'abonnement de l'organisateur
         $subscriptionSql = "
-            SELECT os.status, os.id
-            FROM aiolia.organizer_subscriptions os
-            INNER JOIN aiolia.organizer_profiles op ON op.id = os.organizer_profile_id
-            WHERE op.user_id = :user_id
-            ORDER BY os.created_at DESC
+            SELECT os.statut, os.id
+            FROM aiolia.abonnements_organisateurs os
+            INNER JOIN aiolia.profils_organisateurs op ON op.id = os.id_profil_organisateur
+            WHERE op.id_utilisateur = :user_id
+            ORDER BY os.cree_le DESC
             LIMIT 1
         ";
         
@@ -87,7 +87,7 @@ class UserStatusChecker implements UserCheckerInterface
             return;
         }
         
-        $subscriptionStatus = $subscriptionData['status'] ?? null;
+        $subscriptionStatus = $subscriptionData['statut'] ?? null;
         $subscriptionId = $subscriptionData['id'] ?? null;
         
         // Si l'abonnement est suspendu, vérifier la facture du mois courant
@@ -123,15 +123,15 @@ class UserStatusChecker implements UserCheckerInterface
         $currentInvoiceSql = "
             SELECT 
                 si.id,
-                si.invoice_number,
-                si.issued_at,
-                si.status,
-                si.paid_at
-            FROM aiolia.subscription_invoices si
-            WHERE si.subscription_id = :subscription_id
-                AND EXTRACT(YEAR FROM si.issued_at) = :current_year
-                AND EXTRACT(MONTH FROM si.issued_at) = :current_month
-            ORDER BY si.issued_at DESC
+                si.numero_facture,
+                si.emise_le,
+                si.statut,
+                si.payee_le
+            FROM aiolia.factures_abonnements si
+            WHERE si.id_abonnement = :subscription_id
+                AND EXTRACT(YEAR FROM si.emise_le) = :current_year
+                AND EXTRACT(MONTH FROM si.emise_le) = :current_month
+            ORDER BY si.emise_le DESC
             LIMIT 1
         ";
         
@@ -147,7 +147,7 @@ class UserStatusChecker implements UserCheckerInterface
         }
         
         // Si la facture du mois courant est payée, autoriser la connexion
-        if ($currentInvoice['paid_at'] !== null) {
+        if ($currentInvoice['payee_le'] !== null) {
             return;
         }
         
@@ -159,7 +159,7 @@ class UserStatusChecker implements UserCheckerInterface
         ];
         
         $monthName = $months[$currentMonth] ?? $currentMonth;
-        $invoiceStatus = $currentInvoice['status'];
+        $invoiceStatus = $currentInvoice['statut'];
         
         // Message expliquant qu'il doit payer la facture du mois courant
         $message = sprintf(

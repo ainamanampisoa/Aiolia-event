@@ -57,7 +57,7 @@ class AuthController extends AbstractController
             $requestReason = $form->get('requestReason')->getData();
 
             // Encoder le mot de passe
-            $user->setPasswordHash(
+            $user->setHashMotDePasse(
                 $userPasswordHasher->hashPassword(
                     $user,
                     $form->get('plainPassword')->getData()
@@ -68,18 +68,18 @@ class AuthController extends AbstractController
             if ($requestedRole === UserRoleEnum::ORGANIZER) {
                 // Comptes organisateurs : rôle assigné mais compte en attente
                 $user->setRole(UserRoleEnum::ORGANIZER);
-                $user->setAccountStatus('pending_validation');
+                $user->setStatutCompte('pending_validation');
 
                 $message = 'Votre demande d\'inscription en tant qu\'Organisateur a été envoyée. Vous recevrez une notification une fois que votre compte sera validé par un administrateur.';
             } else {
                 // Utilisateur normal - compte actif immédiatement
                 $user->setRole(UserRoleEnum::USER);
-                $user->setAccountStatus('active');
+                $user->setStatutCompte('active');
                 $message = 'Votre compte a été créé avec succès ! Vous pouvez maintenant vous connecter.';
             }
 
-            $user->setLoginIdentifier($user->getEmail());
-            $user->setLoginMethod(User::AUTH_PROVIDER_PASSWORD);
+            $user->setIdentifiantConnexion($user->getEmail());
+            $user->setMethodeConnexion(User::AUTH_PROVIDER_PASSWORD);
 
             // Sauvegarder l'utilisateur
             $entityManager->persist($user);
@@ -92,10 +92,10 @@ class AuthController extends AbstractController
                 $user->getId(),
                 [
                     'email' => $user->getEmail(),
-                    'name' => $user->getFullName(),
+                    'name' => $user->getNomComplet(),
                     'requested_role' => $requestedRole,
                     'request_reason' => $requestReason,
-                    'account_status' => $user->getAccountStatus(),
+                    'account_status' => $user->getStatutCompte(),
                 ],
                 null
             );

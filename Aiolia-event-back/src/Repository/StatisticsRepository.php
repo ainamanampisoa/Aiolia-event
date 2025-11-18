@@ -34,8 +34,8 @@ class StatisticsRepository
         return (int) $qb->select('COUNT(u.id)')
             ->from(User::class, 'u')
             ->where("u.role = 'organizer'")
-            ->andWhere('u.status = :status')
-            ->setParameter('status', User::STATUS_ACTIVE, Types::SMALLINT)
+            ->andWhere('u.statut = :statut')
+            ->setParameter('statut', User::STATUS_ACTIVE, Types::SMALLINT)
             ->getQuery()
             ->getSingleScalarResult();
     }
@@ -49,8 +49,8 @@ class StatisticsRepository
         
         return (int) $qb->select('COUNT(u.id)')
             ->from(User::class, 'u')
-            ->where('u.status = :status')
-            ->setParameter('status', User::STATUS_ACTIVE, Types::SMALLINT)
+            ->where('u.statut = :statut')
+            ->setParameter('statut', User::STATUS_ACTIVE, Types::SMALLINT)
             ->getQuery()
             ->getSingleScalarResult();
     }
@@ -191,6 +191,144 @@ class StatisticsRepository
         return [
             'labels' => $labels,
             'values' => $values,
+        ];
+    }
+
+    /**
+     * Récupère les revenus par plan d'abonnement par mois
+     * Retourne un tableau avec labels (mois), et pour chaque plan (Basic, Pro, Entreprise) les revenus mensuels
+     */
+    public function getRevenueByPlanByMonth(?\DateTimeInterface $dateFrom = null, ?\DateTimeInterface $dateTo = null): array
+    {
+        $conn = $this->getEntityManager()->getConnection();
+        
+        // Si pas de filtre, utiliser les 12 derniers mois
+        if (!$dateFrom || !$dateTo) {
+            $dateTo = new \DateTime();
+            $dateFrom = clone $dateTo;
+            $dateFrom->modify('-11 months');
+        }
+        
+        // S'assurer que les dates sont au début du mois
+        $startMonth = new \DateTime($dateFrom->format('Y-m-01'));
+        $endMonth = new \DateTime($dateTo->format('Y-m-01'));
+        
+        $sql = "
+            WITH month_series AS (
+                SELECT generate_series(
+                    date_trunc('month', :startDate::date),
+                    date_trunc('month', :endDate::date),
+                    '1 month'::interval
+                )::date AS month_start
+            ),
+            all_combinations AS (
+                SELECT ms.month_start, sp.id AS plan_id, sp.name AS plan_name, sp.display_order
+                FROM month_series ms
+                CROSS JOIN aiolia.subscription_plans sp
+            )
+            SELECT 
+                ac.month_start,
+                TO_CHAR(ac.month_start, 'TMMonth YYYY') AS month_label,
+                ac.plan_name,
+                COALESCE(SUM(si.total_amount::numeric), 0) AS revenue
+            FROM all_combinations ac
+            LEFT JOIN aiolia.organizer_subscriptions os ON os.plan_id = ac.plan_id
+            LEFT JOIN aiolia.subscription_invoices si 
+                ON si.subscription_id = os.id 
+                AND si.status = 'paid'
+                AND date_trunc('month', si.paid_at) = ac.month_start
+            GROUP BY ac.month_start, ac.plan_id, ac.plan_name, ac.display_order
+            ORDER BY ac.month_start ASC, ac.display_order ASC
+        ";
+        
+        $result = $conn->executeQuery($sql, 
+            [
+                'startDate' => $startMonth->format('Y-m-d'),
+                'endDate' => $endMonth->format('Y-m-d')
+            ], 
+            [
+                'startDate' => Types::STRING,
+                'endDate' => Types::STRING
+            ]
+        );
+        
+        $monthNames = [
+            1 => 'Janvier', 2 => 'Février', 3 => 'Mars', 4 => 'Avril',
+            5 => 'Mai', 6 => 'Juin', 7 => 'Juillet', 8 => 'Août',
+            9 => 'Septembre', 10 => 'Octobre', 11 => 'Novembre', 12 => 'Décembre'
+        ];
+        
+        // D'abord, récupérer tous les mois uniques et tous les plans
+        $allMonths = [];
+        $allPlans = [];
+        $dataByPlan = [];
+        
+        // Parcourir les résultats pour construire les structures
+        while ($row = $result->fetchAssociative()) {
+            $date = new \DateTime($row['month_start']);
+            $monthNum = (int) $date->format('n');
+            $year = $date->format('Y');
+            $monthLabel = $monthNames[$monthNum] . ' ' . $year;
+            $planName = $row['plan_name'];
+            $revenue = (float) $row['revenue'];
+            
+            // Ajouter le mois s'il n'existe pas
+            if (!in_array($monthLabel, $allMonths)) {
+                $allMonths[] = $monthLabel;
+            }
+            
+            // Ajouter le plan s'il n'existe pas
+            if (!in_array($planName, $allPlans)) {
+                $allPlans[] = $planName;
+            }
+            
+            // Initialiser le plan s'il n'existe pas
+            if (!isset($dataByPlan[$planName])) {
+                $dataByPlan[$planName] = [];
+            }
+            
+            // Stocker le revenu pour ce mois et ce plan
+            $dataByPlan[$planName][$monthLabel] = $revenue;
+        }
+        
+        // Si aucun mois n'a été trouvé, créer la série de mois
+        if (empty($allMonths)) {
+            $current = clone $startMonth;
+            while ($current <= $endMonth) {
+                $monthNum = (int) $current->format('n');
+                $year = $current->format('Y');
+                $allMonths[] = $monthNames[$monthNum] . ' ' . $year;
+                $current->modify('+1 month');
+            }
+        }
+        
+        // Si aucun plan n'a été trouvé, récupérer tous les plans depuis la base
+        if (empty($allPlans)) {
+            $plansQuery = $conn->executeQuery("SELECT name FROM aiolia.subscription_plans ORDER BY display_order ASC");
+            while ($planRow = $plansQuery->fetchAssociative()) {
+                $allPlans[] = $planRow['name'];
+            }
+        }
+        
+        // Trier les mois
+        sort($allMonths);
+        $labels = $allMonths;
+        
+        // S'assurer que tous les plans ont des valeurs pour tous les mois
+        foreach ($allPlans as $planName) {
+            if (!isset($dataByPlan[$planName])) {
+                $dataByPlan[$planName] = [];
+            }
+            $values = [];
+            foreach ($labels as $monthLabel) {
+                $values[] = $dataByPlan[$planName][$monthLabel] ?? 0;
+            }
+            $dataByPlan[$planName] = $values;
+        }
+        
+        return [
+            'labels' => $labels,
+            'plans' => $dataByPlan,
         ];
     }
 
@@ -374,6 +512,159 @@ class StatisticsRepository
             'net_revenue' => $netRevenue,
             'vat_rate' => $vatRate,
             'commission_rate' => $commissionRate,
+        ];
+    }
+
+    /**
+     * Récupère les revenus HT, TVA et TTC par mois
+     * Les calculs sont faits dans le métier (service) à partir des montants TTC
+     * 
+     * @param \DateTimeInterface|null $dateFrom Date de début du filtre
+     * @param \DateTimeInterface|null $dateTo Date de fin du filtre
+     * @return array ['labels' => [], 'ht_values' => [], 'tva_values' => [], 'ttc_values' => []]
+     */
+    public function getFiscalStatisticsByMonth(?\DateTimeInterface $dateFrom = null, ?\DateTimeInterface $dateTo = null): array
+    {
+        $conn = $this->getEntityManager()->getConnection();
+        
+        // Si pas de filtre, utiliser les 12 derniers mois
+        if (!$dateFrom || !$dateTo) {
+            $dateTo = new \DateTime();
+            $dateFrom = clone $dateTo;
+            $dateFrom->modify('-11 months');
+        }
+        
+        // S'assurer que les dates sont au début du mois
+        $startMonth = new \DateTime($dateFrom->format('Y-m-01'));
+        $endMonth = new \DateTime($dateTo->format('Y-m-01'));
+        
+        $sql = "
+            WITH month_series AS (
+                SELECT generate_series(
+                    date_trunc('month', :startDate::date),
+                    date_trunc('month', :endDate::date),
+                    '1 month'::interval
+                )::date AS month_start
+            )
+            SELECT 
+                ms.month_start,
+                TO_CHAR(ms.month_start, 'TMMonth YYYY') AS month_label,
+                COALESCE(SUM(si.total_amount::numeric), 0) AS ttc_total
+            FROM month_series ms
+            LEFT JOIN aiolia.subscription_invoices si 
+                ON si.status = 'paid'
+                AND date_trunc('month', si.paid_at) = ms.month_start
+            GROUP BY ms.month_start
+            ORDER BY ms.month_start ASC
+        ";
+        
+        $result = $conn->executeQuery($sql, 
+            [
+                'startDate' => $startMonth->format('Y-m-d'),
+                'endDate' => $endMonth->format('Y-m-d')
+            ], 
+            [
+                'startDate' => Types::STRING,
+                'endDate' => Types::STRING
+            ]
+        );
+        
+        $labels = [];
+        $ttcValues = [];
+        
+        $monthNames = [
+            1 => 'Janvier', 2 => 'Février', 3 => 'Mars', 4 => 'Avril',
+            5 => 'Mai', 6 => 'Juin', 7 => 'Juillet', 8 => 'Août',
+            9 => 'Septembre', 10 => 'Octobre', 11 => 'Novembre', 12 => 'Décembre'
+        ];
+        
+        while ($row = $result->fetchAssociative()) {
+            $date = new \DateTime($row['month_start']);
+            $monthNum = (int) $date->format('n');
+            $year = $date->format('Y');
+            $labels[] = $monthNames[$monthNum] . ' ' . $year;
+            $ttcValues[] = (float) $row['ttc_total'];
+        }
+        
+        // Si aucun mois n'a été trouvé, créer la série de mois
+        if (empty($labels)) {
+            $current = clone $startMonth;
+            while ($current <= $endMonth) {
+                $monthNum = (int) $current->format('n');
+                $year = $current->format('Y');
+                $labels[] = $monthNames[$monthNum] . ' ' . $year;
+                $ttcValues[] = 0;
+                $current->modify('+1 month');
+            }
+        }
+        
+        return [
+            'labels' => $labels,
+            'ttc_values' => $ttcValues,
+        ];
+    }
+
+    /**
+     * Récupère le top des organisateurs contributeurs à la TVA
+     * 
+     * @param int $limit Nombre d'organisateurs à retourner
+     * @param \DateTimeInterface|null $dateFrom Date de début du filtre
+     * @param \DateTimeInterface|null $dateTo Date de fin du filtre
+     * @return array ['labels' => [], 'vat_values' => []]
+     */
+    public function getTopVatContributors(int $limit = 10, ?\DateTimeInterface $dateFrom = null, ?\DateTimeInterface $dateTo = null): array
+    {
+        $conn = $this->getEntityManager()->getConnection();
+        
+        $sql = "
+            SELECT 
+                CONCAT(u.first_name, ' ', COALESCE(u.last_name, '')) AS organizer_name,
+                COALESCE(SUM(si.total_amount::numeric), 0) AS ttc_total
+            FROM aiolia.subscription_invoices si
+            INNER JOIN aiolia.users u ON u.id = si.customer_id
+            WHERE si.status = 'paid'
+        ";
+        
+        $params = [];
+        $types = [];
+        
+        if ($dateFrom) {
+            $sql .= " AND si.paid_at >= :dateFrom";
+            $params['dateFrom'] = $dateFrom;
+            $types['dateFrom'] = Types::DATETIMETZ_MUTABLE;
+        } elseif (!$dateTo) {
+            // Si pas de filtre de date, utiliser les 12 derniers mois
+            $sql .= " AND si.paid_at >= date_trunc('month', CURRENT_DATE) - INTERVAL '11 months'";
+        }
+        
+        if ($dateTo) {
+            $sql .= " AND si.paid_at <= :dateTo";
+            $params['dateTo'] = $dateTo;
+            $types['dateTo'] = Types::DATETIMETZ_MUTABLE;
+        }
+        
+        $sql .= "
+            GROUP BY u.id, u.first_name, u.last_name
+            ORDER BY ttc_total DESC
+            LIMIT :limit
+        ";
+        
+        $params['limit'] = $limit;
+        $types['limit'] = Types::INTEGER;
+        
+        $result = $conn->executeQuery($sql, $params, $types);
+        
+        $labels = [];
+        $ttcValues = [];
+        
+        while ($row = $result->fetchAssociative()) {
+            $labels[] = $row['organizer_name'];
+            $ttcValues[] = (float) $row['ttc_total'];
+        }
+        
+        return [
+            'labels' => $labels,
+            'ttc_values' => $ttcValues,
         ];
     }
 }

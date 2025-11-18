@@ -81,16 +81,16 @@ class CreateTestUsersCommand extends Command
             if ($isNewUser) {
                 $user = new User();
                 $user->setEmail($userData['email']);
-                $user->setLoginIdentifier($userData['email']);
-                $user->setLoginMethod(User::AUTH_PROVIDER_PASSWORD);
+                $user->setIdentifiantConnexion($userData['email']);
+                $user->setMethodeConnexion(User::AUTH_PROVIDER_PASSWORD);
                 $io->success(sprintf('Utilisateur créé: %s (%s) - Mot de passe: %s', $userData['email'], $userData['role'], $userData['password']));
             } else {
                 $io->note(sprintf('Utilisateur %s mis à jour avec les nouvelles informations de test.', $userData['email']));
             }
 
-            $user->setFirstName($userData['firstName']);
-            $user->setLastName($userData['lastName']);
-            $user->setPhone($userData['phone']);
+            $user->setPrenom($userData['firstName']);
+            $user->setNom($userData['lastName']);
+            $user->setTelephone($userData['phone']);
 
             $roleCode = UserRoleEnum::normalize($userData['role']);
             if (!UserRoleEnum::isValid($roleCode)) {
@@ -99,12 +99,12 @@ class CreateTestUsersCommand extends Command
             }
 
             $user->setRole($roleCode);
-            $user->setIsEmailVerified($userData['emailVerified']);
-            $user->setAccountStatus('active');
+            $user->setEmailVerifie($userData['emailVerified']);
+            $user->setStatutCompte('active');
 
             // Hasher le mot de passe (réinitialise aussi les comptes existants)
             $hashedPassword = $this->passwordHasher->hashPassword($user, $userData['password']);
-            $user->setPasswordHash($hashedPassword);
+            $user->setHashMotDePasse($hashedPassword);
 
             if ($isNewUser) {
                 $this->entityManager->persist($user);
