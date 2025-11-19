@@ -6,7 +6,7 @@
 <div class="dashboard">
     <div class="dashboard-header">
         <div>
-            <h1 data-i18n="billing.invoice.title" data-i18n-params='{"number": "{{ invoice.invoiceNumber }}" }'>Facture {{ invoice.invoiceNumber }}</h1>
+            <h1><i class="fas fa-file-invoice"></i> <span data-i18n="billing.invoice.title" data-i18n-params='{"number": "{{ invoice.invoiceNumber }}" }'>Facture {{ invoice.invoiceNumber }}</span></h1>
             <p class="dashboard-subtitle">
                 {% if type == 'ticket' %}
                     <span data-i18n="billing.invoice.type.ticket">Facture de billet</span>
@@ -590,6 +590,21 @@
 </div>
 
 <style>
+/* Styles pour les titres avec icônes */
+.dashboard-header h1 {
+    display: flex !important;
+    align-items: center;
+    gap: 12px;
+}
+
+.dashboard-header h1 i {
+    font-size: 2rem !important;
+    color: var(--accent) !important;
+    display: inline-block !important;
+    visibility: visible !important;
+    opacity: 1 !important;
+}
+
 /* ============================================
    INVOICE DETAIL PAGE - MODERN PROFESSIONAL DESIGN
    ============================================ */

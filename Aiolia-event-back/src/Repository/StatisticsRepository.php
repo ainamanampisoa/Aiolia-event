@@ -73,49 +73,85 @@ class StatisticsRepository
     /**
      * Compte le nombre de factures payées
      */
-    public function countPaidInvoices(?\DateTimeInterface $dateFrom = null, ?\DateTimeInterface $dateTo = null): int
+    public function countPaidInvoices(?\DateTimeInterface $dateFrom = null, ?\DateTimeInterface $dateTo = null, ?string $plan = null): int
     {
-        $qb = $this->getEntityManager()->createQueryBuilder();
+        $conn = $this->getEntityManager()->getConnection();
         
-        $qb->select('COUNT(si.id)')
-            ->from('App\Entity\SubscriptionInvoice', 'si')
-            ->where("si.status = 'paid'");
+        $sql = "
+            SELECT COUNT(si.id) AS count
+            FROM aiolia.factures_abonnements si
+            LEFT JOIN aiolia.abonnements_organisateurs os ON os.id = si.id_abonnement
+            LEFT JOIN aiolia.plans_abonnements sp ON sp.id = os.id_plan
+            WHERE si.statut = 'paid'
+        ";
+        
+        $params = [];
+        $types = [];
         
         if ($dateFrom) {
-            $qb->andWhere('si.paidAt >= :dateFrom')
-                ->setParameter('dateFrom', $dateFrom);
+            $sql .= " AND si.payee_le >= :dateFrom";
+            $params['dateFrom'] = $dateFrom;
+            $types['dateFrom'] = Types::DATETIMETZ_MUTABLE;
         }
         
         if ($dateTo) {
-            $qb->andWhere('si.paidAt <= :dateTo')
-                ->setParameter('dateTo', $dateTo);
+            $sql .= " AND si.payee_le <= :dateTo";
+            $params['dateTo'] = $dateTo;
+            $types['dateTo'] = Types::DATETIMETZ_MUTABLE;
         }
         
-        return (int) $qb->getQuery()->getSingleScalarResult();
+        if ($plan) {
+            $sql .= " AND sp.niveau = :plan";
+            $params['plan'] = $plan;
+            $types['plan'] = Types::STRING;
+        }
+        
+        $result = empty($params) 
+            ? $conn->fetchOne($sql)
+            : $conn->fetchOne($sql, $params, $types);
+        
+        return (int) $result;
     }
 
     /**
      * Calcule le total des revenus d'abonnements (factures payées uniquement)
      */
-    public function getSubscriptionRevenueTotal(?\DateTimeInterface $dateFrom = null, ?\DateTimeInterface $dateTo = null): float
+    public function getSubscriptionRevenueTotal(?\DateTimeInterface $dateFrom = null, ?\DateTimeInterface $dateTo = null, ?string $plan = null): float
     {
-        $qb = $this->getEntityManager()->createQueryBuilder();
+        $conn = $this->getEntityManager()->getConnection();
         
-        $qb->select('COALESCE(SUM(si.totalAmount), 0)')
-            ->from('App\Entity\SubscriptionInvoice', 'si')
-            ->where("si.status = 'paid'");
+        $sql = "
+            SELECT COALESCE(SUM(si.montant_total::numeric), 0) AS total
+            FROM aiolia.factures_abonnements si
+            LEFT JOIN aiolia.abonnements_organisateurs os ON os.id = si.id_abonnement
+            LEFT JOIN aiolia.plans_abonnements sp ON sp.id = os.id_plan
+            WHERE si.statut = 'paid'
+        ";
+        
+        $params = [];
+        $types = [];
         
         if ($dateFrom) {
-            $qb->andWhere('si.paidAt >= :dateFrom')
-                ->setParameter('dateFrom', $dateFrom);
+            $sql .= " AND si.payee_le >= :dateFrom";
+            $params['dateFrom'] = $dateFrom;
+            $types['dateFrom'] = Types::DATETIMETZ_MUTABLE;
         }
         
         if ($dateTo) {
-            $qb->andWhere('si.paidAt <= :dateTo')
-                ->setParameter('dateTo', $dateTo);
+            $sql .= " AND si.payee_le <= :dateTo";
+            $params['dateTo'] = $dateTo;
+            $types['dateTo'] = Types::DATETIMETZ_MUTABLE;
         }
         
-        $result = $qb->getQuery()->getSingleScalarResult();
+        if ($plan) {
+            $sql .= " AND sp.niveau = :plan";
+            $params['plan'] = $plan;
+            $types['plan'] = Types::STRING;
+        }
+        
+        $result = empty($params) 
+            ? $conn->fetchOne($sql)
+            : $conn->fetchOne($sql, $params, $types);
         
         return (float) $result;
     }
@@ -124,7 +160,7 @@ class StatisticsRepository
      * Récupère l'évolution des abonnements actifs par mois
      * Retourne un tableau avec labels (mois) et values (nombre d'abonnements)
      */
-    public function getSubscriptionsEvolution(?\DateTimeInterface $dateFrom = null, ?\DateTimeInterface $dateTo = null): array
+    public function getSubscriptionsEvolution(?\DateTimeInterface $dateFrom = null, ?\DateTimeInterface $dateTo = null, ?string $plan = null): array
     {
         $conn = $this->getEntityManager()->getConnection();
         
@@ -156,20 +192,35 @@ class StatisticsRepository
                 ON os.statut = 'active' 
                 AND date_trunc('month', os.commence_le) <= ms.month_start
                 AND (os.annule_le IS NULL OR date_trunc('month', os.annule_le) >= ms.month_start)
+        ";
+        
+        if ($plan) {
+            $sql .= "
+                LEFT JOIN aiolia.plans_abonnements sp ON sp.id = os.id_plan
+                WHERE (sp.niveau = :plan OR os.id IS NULL)
+            ";
+        }
+        
+        $sql .= "
             GROUP BY ms.month_start
             ORDER BY ms.month_start ASC
         ";
         
-        $result = $conn->executeQuery($sql, 
-            [
-                'startDate' => $startMonth->format('Y-m-d'),
-                'endDate' => $endMonth->format('Y-m-d')
-            ], 
-            [
-                'startDate' => Types::STRING,
-                'endDate' => Types::STRING
-            ]
-        );
+        $params = [
+            'startDate' => $startMonth->format('Y-m-d'),
+            'endDate' => $endMonth->format('Y-m-d')
+        ];
+        $types = [
+            'startDate' => Types::STRING,
+            'endDate' => Types::STRING
+        ];
+        
+        if ($plan) {
+            $params['plan'] = $plan;
+            $types['plan'] = Types::STRING;
+        }
+        
+        $result = $conn->executeQuery($sql, $params, $types);
         
         $labels = [];
         $values = [];
@@ -198,7 +249,7 @@ class StatisticsRepository
      * Récupère les revenus par plan d'abonnement par mois
      * Retourne un tableau avec labels (mois), et pour chaque plan (Basic, Pro, Entreprise) les revenus mensuels
      */
-    public function getRevenueByPlanByMonth(?\DateTimeInterface $dateFrom = null, ?\DateTimeInterface $dateTo = null): array
+    public function getRevenueByPlanByMonth(?\DateTimeInterface $dateFrom = null, ?\DateTimeInterface $dateTo = null, ?string $plan = null): array
     {
         $conn = $this->getEntityManager()->getConnection();
         
@@ -237,20 +288,38 @@ class StatisticsRepository
                 ON si.id_abonnement = os.id 
                 AND si.statut = 'paid'
                 AND date_trunc('month', si.payee_le) = ac.month_start
+                AND si.payee_le >= :dateFromFilter::timestamp
+                AND si.payee_le <= :dateToFilter::timestamp
+        ";
+        
+        if ($plan) {
+            $sql .= " WHERE ac.plan_id IN (SELECT id FROM aiolia.plans_abonnements WHERE niveau = :plan)";
+        }
+        
+        $sql .= "
             GROUP BY ac.month_start, ac.plan_id, ac.plan_name, ac.ordre_affichage
             ORDER BY ac.month_start ASC, ac.ordre_affichage ASC
         ";
         
-        $result = $conn->executeQuery($sql, 
-            [
-                'startDate' => $startMonth->format('Y-m-d'),
-                'endDate' => $endMonth->format('Y-m-d')
-            ], 
-            [
-                'startDate' => Types::STRING,
-                'endDate' => Types::STRING
-            ]
-        );
+        $params = [
+            'startDate' => $startMonth->format('Y-m-d'),
+            'endDate' => $endMonth->format('Y-m-d'),
+            'dateFromFilter' => $dateFrom->format('Y-m-d H:i:s'),
+            'dateToFilter' => $dateTo->format('Y-m-d H:i:s')
+        ];
+        $types = [
+            'startDate' => Types::STRING,
+            'endDate' => Types::STRING,
+            'dateFromFilter' => Types::STRING,
+            'dateToFilter' => Types::STRING
+        ];
+        
+        if ($plan) {
+            $params['plan'] = $plan;
+            $types['plan'] = Types::STRING;
+        }
+        
+        $result = $conn->executeQuery($sql, $params, $types);
         
         $monthNames = [
             1 => 'Janvier', 2 => 'Février', 3 => 'Mars', 4 => 'Avril',
@@ -336,7 +405,7 @@ class StatisticsRepository
      * Récupère les revenus par plan d'abonnement (Basic, Pro, Enterprise)
      * Retourne un tableau avec labels (noms des plans) et revenue_values (montants)
      */
-    public function getRevenueByPlan(?\DateTimeInterface $dateFrom = null, ?\DateTimeInterface $dateTo = null): array
+    public function getRevenueByPlan(?\DateTimeInterface $dateFrom = null, ?\DateTimeInterface $dateTo = null, ?string $plan = null): array
     {
         $conn = $this->getEntityManager()->getConnection();
         
@@ -366,6 +435,12 @@ class StatisticsRepository
             $conditions[] = "si.payee_le <= :dateTo";
             $params['dateTo'] = $dateTo;
             $types['dateTo'] = Types::DATETIMETZ_MUTABLE;
+        }
+        
+        if ($plan) {
+            $conditions[] = "sp.niveau = :plan";
+            $params['plan'] = $plan;
+            $types['plan'] = Types::STRING;
         }
         
         if (!empty($conditions)) {
@@ -399,7 +474,7 @@ class StatisticsRepository
      * Récupère les top payeurs (organisateurs ayant payé le plus)
      * Retourne un tableau avec labels (noms des organisateurs) et values (montants totaux)
      */
-    public function getTopPayers(int $limit = 10, int $days = 30, ?\DateTimeInterface $dateFrom = null, ?\DateTimeInterface $dateTo = null): array
+    public function getTopPayers(int $limit = 10, int $days = 30, ?\DateTimeInterface $dateFrom = null, ?\DateTimeInterface $dateTo = null, ?string $plan = null): array
     {
         $conn = $this->getEntityManager()->getConnection();
         
@@ -409,6 +484,8 @@ class StatisticsRepository
                 COALESCE(SUM(si.montant_total::numeric), 0) AS total_paid
             FROM aiolia.factures_abonnements si
             INNER JOIN aiolia.utilisateurs u ON u.id = si.id_client
+            LEFT JOIN aiolia.abonnements_organisateurs os ON os.id = si.id_abonnement
+            LEFT JOIN aiolia.plans_abonnements sp ON sp.id = os.id_plan
             WHERE si.statut = 'paid'
         ";
         
@@ -430,6 +507,12 @@ class StatisticsRepository
             $sql .= " AND si.payee_le <= :dateTo";
             $params['dateTo'] = $dateTo;
             $types['dateTo'] = Types::DATETIMETZ_MUTABLE;
+        }
+        
+        if ($plan) {
+            $sql .= " AND sp.niveau = :plan";
+            $params['plan'] = $plan;
+            $types['plan'] = Types::STRING;
         }
         
         $sql .= "
@@ -466,30 +549,38 @@ class StatisticsRepository
      * - Commissions plateforme = Revenus bruts * (taux_commission / 100) où taux_commission est généralement 5% (0.05)
      * - Revenus nets = Revenus bruts - TVA - Commissions plateforme
      */
-    public function getTaxStatistics(float $vatRate = 0.20, float $commissionRate = 0.05, ?\DateTimeInterface $dateFrom = null, ?\DateTimeInterface $dateTo = null): array
+    public function getTaxStatistics(float $vatRate = 0.20, float $commissionRate = 0.05, ?\DateTimeInterface $dateFrom = null, ?\DateTimeInterface $dateTo = null, ?string $plan = null): array
     {
         $conn = $this->getEntityManager()->getConnection();
         
         // Revenus bruts = somme des montant_total des factures payées
         $sql = "
-            SELECT COALESCE(SUM(montant_total::numeric), 0) AS gross_revenue
-            FROM aiolia.factures_abonnements
-            WHERE statut = 'paid'
+            SELECT COALESCE(SUM(si.montant_total::numeric), 0) AS gross_revenue
+            FROM aiolia.factures_abonnements si
+            LEFT JOIN aiolia.abonnements_organisateurs os ON os.id = si.id_abonnement
+            LEFT JOIN aiolia.plans_abonnements sp ON sp.id = os.id_plan
+            WHERE si.statut = 'paid'
         ";
         
         $params = [];
         $types = [];
         
         if ($dateFrom) {
-            $sql .= " AND payee_le >= :dateFrom";
+            $sql .= " AND si.payee_le >= :dateFrom";
             $params['dateFrom'] = $dateFrom;
             $types['dateFrom'] = Types::DATETIMETZ_MUTABLE;
         }
         
         if ($dateTo) {
-            $sql .= " AND payee_le <= :dateTo";
+            $sql .= " AND si.payee_le <= :dateTo";
             $params['dateTo'] = $dateTo;
             $types['dateTo'] = Types::DATETIMETZ_MUTABLE;
+        }
+        
+        if ($plan) {
+            $sql .= " AND sp.niveau = :plan";
+            $params['plan'] = $plan;
+            $types['plan'] = Types::STRING;
         }
         
         $grossRevenue = empty($params)
@@ -523,7 +614,7 @@ class StatisticsRepository
      * @param \DateTimeInterface|null $dateTo Date de fin du filtre
      * @return array ['labels' => [], 'ht_values' => [], 'tva_values' => [], 'ttc_values' => []]
      */
-    public function getFiscalStatisticsByMonth(?\DateTimeInterface $dateFrom = null, ?\DateTimeInterface $dateTo = null): array
+    public function getFiscalStatisticsByMonth(?\DateTimeInterface $dateFrom = null, ?\DateTimeInterface $dateTo = null, ?string $plan = null): array
     {
         $conn = $this->getEntityManager()->getConnection();
         
@@ -534,40 +625,93 @@ class StatisticsRepository
             $dateFrom->modify('-11 months');
         }
         
-        // S'assurer que les dates sont au début du mois
+        // S'assurer que les dates sont au début du mois pour la série
         $startMonth = new \DateTime($dateFrom->format('Y-m-01'));
         $endMonth = new \DateTime($dateTo->format('Y-m-01'));
         
-        $sql = "
-            WITH month_series AS (
-                SELECT generate_series(
-                    date_trunc('month', :startDate::date),
-                    date_trunc('month', :endDate::date),
-                    '1 month'::interval
-                )::date AS month_start
-            )
-            SELECT 
-                ms.month_start,
-                TO_CHAR(ms.month_start, 'TMMonth YYYY') AS month_label,
-                COALESCE(SUM(si.montant_total::numeric), 0) AS ttc_total
-            FROM month_series ms
-            LEFT JOIN aiolia.factures_abonnements si 
-                ON si.statut = 'paid'
-                AND date_trunc('month', si.payee_le) = ms.month_start
+        // Utiliser les dates exactes pour filtrer les factures
+        $dateFromStr = $dateFrom->format('Y-m-d H:i:s');
+        $dateToStr = $dateTo->format('Y-m-d H:i:s');
+        
+        // Construire la requête avec ou sans filtre par plan
+        if ($plan) {
+            // Avec filtre par plan : utiliser une sous-requête pour filtrer les factures
+            $sql = "
+                WITH month_series AS (
+                    SELECT generate_series(
+                        date_trunc('month', :startDate::date),
+                        date_trunc('month', :endDate::date),
+                        '1 month'::interval
+                    )::date AS month_start
+                ),
+                filtered_invoices AS (
+                    SELECT 
+                        si.*,
+                        date_trunc('month', si.payee_le) AS month_start
+                    FROM aiolia.factures_abonnements si
+                    LEFT JOIN aiolia.abonnements_organisateurs os ON os.id = si.id_abonnement
+                    LEFT JOIN aiolia.plans_abonnements sp ON sp.id = os.id_plan
+                    WHERE si.statut = 'paid'
+                        AND si.payee_le >= :dateFromFilter::timestamp
+                        AND si.payee_le <= :dateToFilter::timestamp
+                        AND (sp.niveau = :plan OR si.id_abonnement IS NULL)
+                )
+                SELECT 
+                    ms.month_start,
+                    TO_CHAR(ms.month_start, 'TMMonth YYYY') AS month_label,
+                    COALESCE(SUM(fi.montant_total::numeric), 0) AS ttc_total
+                FROM month_series ms
+                LEFT JOIN filtered_invoices fi 
+                    ON fi.month_start = ms.month_start
+            ";
+        } else {
+            // Sans filtre par plan : requête simple
+            $sql = "
+                WITH month_series AS (
+                    SELECT generate_series(
+                        date_trunc('month', :startDate::date),
+                        date_trunc('month', :endDate::date),
+                        '1 month'::interval
+                    )::date AS month_start
+                )
+                SELECT 
+                    ms.month_start,
+                    TO_CHAR(ms.month_start, 'TMMonth YYYY') AS month_label,
+                    COALESCE(SUM(si.montant_total::numeric), 0) AS ttc_total
+                FROM month_series ms
+                LEFT JOIN aiolia.factures_abonnements si 
+                    ON si.statut = 'paid'
+                    AND date_trunc('month', si.payee_le) = ms.month_start
+                    AND si.payee_le >= :dateFromFilter::timestamp
+                    AND si.payee_le <= :dateToFilter::timestamp
+            ";
+        }
+        
+        $params = [
+            'startDate' => $startMonth->format('Y-m-d'),
+            'endDate' => $endMonth->format('Y-m-d'),
+            'dateFromFilter' => $dateFrom->format('Y-m-d H:i:s'),
+            'dateToFilter' => $dateTo->format('Y-m-d H:i:s')
+        ];
+        $types = [
+            'startDate' => Types::STRING,
+            'endDate' => Types::STRING,
+            'dateFromFilter' => Types::STRING,
+            'dateToFilter' => Types::STRING
+        ];
+        
+        if ($plan) {
+            $params['plan'] = $plan;
+            $types['plan'] = Types::STRING;
+        }
+        
+        // Ajouter GROUP BY et ORDER BY à la fin
+        $sql .= "
             GROUP BY ms.month_start
             ORDER BY ms.month_start ASC
         ";
         
-        $result = $conn->executeQuery($sql, 
-            [
-                'startDate' => $startMonth->format('Y-m-d'),
-                'endDate' => $endMonth->format('Y-m-d')
-            ], 
-            [
-                'startDate' => Types::STRING,
-                'endDate' => Types::STRING
-            ]
-        );
+        $result = $conn->executeQuery($sql, $params, $types);
         
         $labels = [];
         $ttcValues = [];
@@ -612,7 +756,7 @@ class StatisticsRepository
      * @param \DateTimeInterface|null $dateTo Date de fin du filtre
      * @return array ['labels' => [], 'vat_values' => []]
      */
-    public function getTopVatContributors(int $limit = 10, ?\DateTimeInterface $dateFrom = null, ?\DateTimeInterface $dateTo = null): array
+    public function getTopVatContributors(int $limit = 10, ?\DateTimeInterface $dateFrom = null, ?\DateTimeInterface $dateTo = null, ?string $plan = null): array
     {
         $conn = $this->getEntityManager()->getConnection();
         
@@ -622,6 +766,8 @@ class StatisticsRepository
                 COALESCE(SUM(si.montant_total::numeric), 0) AS ttc_total
             FROM aiolia.factures_abonnements si
             INNER JOIN aiolia.utilisateurs u ON u.id = si.id_client
+            LEFT JOIN aiolia.abonnements_organisateurs os ON os.id = si.id_abonnement
+            LEFT JOIN aiolia.plans_abonnements sp ON sp.id = os.id_plan
             WHERE si.statut = 'paid'
         ";
         
@@ -641,6 +787,12 @@ class StatisticsRepository
             $sql .= " AND si.payee_le <= :dateTo";
             $params['dateTo'] = $dateTo;
             $types['dateTo'] = Types::DATETIMETZ_MUTABLE;
+        }
+        
+        if ($plan) {
+            $sql .= " AND sp.niveau = :plan";
+            $params['plan'] = $plan;
+            $types['plan'] = Types::STRING;
         }
         
         $sql .= "
@@ -666,6 +818,270 @@ class StatisticsRepository
             'labels' => $labels,
             'ttc_values' => $ttcValues,
         ];
+    }
+
+    /**
+     * Compte le nombre d'organisateurs distincts ayant payé au moins une facture
+     * 
+     * @param \DateTimeInterface|null $dateFrom Date de début du filtre
+     * @param \DateTimeInterface|null $dateTo Date de fin du filtre
+     * @return int Nombre d'organisateurs ayant payé
+     */
+    public function countOrganizersWhoPaid(?\DateTimeInterface $dateFrom = null, ?\DateTimeInterface $dateTo = null, ?string $plan = null): int
+    {
+        $conn = $this->getEntityManager()->getConnection();
+        
+        $sql = "
+            SELECT COUNT(DISTINCT si.id_client) AS count
+            FROM aiolia.factures_abonnements si
+            LEFT JOIN aiolia.abonnements_organisateurs os ON os.id = si.id_abonnement
+            LEFT JOIN aiolia.plans_abonnements sp ON sp.id = os.id_plan
+            WHERE si.statut = 'paid'
+        ";
+        
+        $params = [];
+        $types = [];
+        
+        if ($dateFrom) {
+            $sql .= " AND si.payee_le >= :dateFrom";
+            $params['dateFrom'] = $dateFrom;
+            $types['dateFrom'] = Types::DATETIMETZ_MUTABLE;
+        }
+        
+        if ($dateTo) {
+            $sql .= " AND si.payee_le <= :dateTo";
+            $params['dateTo'] = $dateTo;
+            $types['dateTo'] = Types::DATETIMETZ_MUTABLE;
+        }
+        
+        if ($plan) {
+            $sql .= " AND sp.niveau = :plan";
+            $params['plan'] = $plan;
+            $types['plan'] = Types::STRING;
+        }
+        
+        $result = $conn->executeQuery($sql, $params, $types);
+        $row = $result->fetchAssociative();
+        
+        return (int) ($row['count'] ?? 0);
+    }
+
+    /**
+     * Récupère les statistiques des factures impayées
+     * 
+     * @param \DateTimeInterface|null $dateFrom Date de début du filtre
+     * @param \DateTimeInterface|null $dateTo Date de fin du filtre
+     * @param string|null $plan Filtre par plan
+     * @param int|null $organizerId Filtre par organisateur
+     * @return array [
+     *     'overdue_count' => int,
+     *     'overdue_amount' => float,
+     *     'pending_count' => int,
+     *     'pending_amount' => float,
+     *     'invoices' => array
+     * ]
+     */
+    public function getUnpaidStatistics(?\DateTimeInterface $dateFrom = null, ?\DateTimeInterface $dateTo = null, ?string $plan = null, ?int $organizerId = null): array
+    {
+        $conn = $this->getEntityManager()->getConnection();
+        
+        // Compter les factures en retard
+        $sqlOverdue = "
+            SELECT 
+                COUNT(si.id) AS count,
+                COALESCE(SUM(si.montant_total::numeric), 0) AS total
+            FROM aiolia.factures_abonnements si
+            LEFT JOIN aiolia.abonnements_organisateurs os ON os.id = si.id_abonnement
+            LEFT JOIN aiolia.plans_abonnements sp ON sp.id = os.id_plan
+            WHERE si.statut = 'overdue'
+        ";
+        
+        // Compter les factures en attente
+        $sqlPending = "
+            SELECT 
+                COUNT(si.id) AS count,
+                COALESCE(SUM(si.montant_total::numeric), 0) AS total
+            FROM aiolia.factures_abonnements si
+            LEFT JOIN aiolia.abonnements_organisateurs os ON os.id = si.id_abonnement
+            LEFT JOIN aiolia.plans_abonnements sp ON sp.id = os.id_plan
+            WHERE si.statut IN ('issued', 'draft')
+        ";
+        
+        // Récupérer les détails des factures impayées
+        $sqlInvoices = "
+            SELECT 
+                si.numero_facture AS invoice_number,
+                CONCAT(u.prenom, ' ', COALESCE(u.nom, '')) AS organizer_name,
+                si.montant_total::numeric AS amount,
+                si.echeance_le AS due_date,
+                si.statut AS status,
+                CASE 
+                    WHEN si.statut = 'overdue' AND si.echeance_le IS NOT NULL 
+                    THEN (CURRENT_DATE - si.echeance_le::date)::integer
+                    ELSE NULL
+                END AS days_overdue
+            FROM aiolia.factures_abonnements si
+            INNER JOIN aiolia.utilisateurs u ON u.id = si.id_client
+            LEFT JOIN aiolia.abonnements_organisateurs os ON os.id = si.id_abonnement
+            LEFT JOIN aiolia.plans_abonnements sp ON sp.id = os.id_plan
+            WHERE si.statut IN ('overdue', 'issued', 'draft')
+        ";
+        
+        $params = [];
+        $types = [];
+        $conditions = [];
+        
+        if ($dateFrom) {
+            $conditions[] = "si.emise_le >= :dateFrom";
+            $params['dateFrom'] = $dateFrom;
+            $types['dateFrom'] = Types::DATETIMETZ_MUTABLE;
+        }
+        
+        if ($dateTo) {
+            $conditions[] = "si.emise_le <= :dateTo";
+            $params['dateTo'] = $dateTo;
+            $types['dateTo'] = Types::DATETIMETZ_MUTABLE;
+        }
+        
+        if ($plan) {
+            $conditions[] = "sp.niveau = :plan";
+            $params['plan'] = $plan;
+            $types['plan'] = Types::STRING;
+        }
+        
+        if ($organizerId) {
+            $conditions[] = "si.id_client = :organizerId";
+            $params['organizerId'] = $organizerId;
+            $types['organizerId'] = Types::INTEGER;
+        }
+        
+        if (!empty($conditions)) {
+            $whereClause = " WHERE " . implode(" AND ", $conditions);
+            $sqlOverdue .= $whereClause;
+            $sqlPending .= $whereClause;
+            $sqlInvoices .= $whereClause;
+        }
+        
+        $sqlInvoices .= " ORDER BY si.echeance_le ASC, si.emise_le DESC LIMIT 50";
+        
+        // Exécuter les requêtes
+        $overdueResult = empty($params) 
+            ? $conn->fetchAssociative($sqlOverdue)
+            : $conn->fetchAssociative($sqlOverdue, $params, $types);
+        
+        $pendingResult = empty($params) 
+            ? $conn->fetchAssociative($sqlPending)
+            : $conn->fetchAssociative($sqlPending, $params, $types);
+        
+        $invoicesResult = empty($params)
+            ? $conn->executeQuery($sqlInvoices)
+            : $conn->executeQuery($sqlInvoices, $params, $types);
+        
+        $invoices = [];
+        while ($row = $invoicesResult->fetchAssociative()) {
+            $invoices[] = [
+                'invoice_number' => $row['invoice_number'],
+                'organizer_name' => $row['organizer_name'],
+                'amount' => (float) $row['amount'],
+                'due_date' => $row['due_date'] ? new \DateTime($row['due_date']) : null,
+                'status' => $row['status'],
+                'days_overdue' => $row['days_overdue'] ? (int) $row['days_overdue'] : null,
+            ];
+        }
+        
+        return [
+            'overdue_count' => (int) ($overdueResult['count'] ?? 0),
+            'overdue_amount' => (float) ($overdueResult['total'] ?? 0),
+            'pending_count' => (int) ($pendingResult['count'] ?? 0),
+            'pending_amount' => (float) ($pendingResult['total'] ?? 0),
+            'invoices' => $invoices,
+        ];
+    }
+
+    /**
+     * Récupère les statistiques par méthode de paiement
+     * 
+     * @param \DateTimeInterface|null $dateFrom Date de début du filtre
+     * @param \DateTimeInterface|null $dateTo Date de fin du filtre
+     * @param string|null $plan Filtre par plan
+     * @param int|null $organizerId Filtre par organisateur
+     * @return array [
+     *     ['method' => string, 'count' => int, 'amount' => float, 'percentage' => float]
+     * ]
+     */
+    public function getPaymentMethodsStatistics(?\DateTimeInterface $dateFrom = null, ?\DateTimeInterface $dateTo = null, ?string $plan = null, ?int $organizerId = null): array
+    {
+        $conn = $this->getEntityManager()->getConnection();
+        
+        $sql = "
+            SELECT 
+                si.methode_paiement AS method,
+                COUNT(si.id) AS count,
+                COALESCE(SUM(si.montant_total::numeric), 0) AS amount
+            FROM aiolia.factures_abonnements si
+            LEFT JOIN aiolia.abonnements_organisateurs os ON os.id = si.id_abonnement
+            LEFT JOIN aiolia.plans_abonnements sp ON sp.id = os.id_plan
+            WHERE si.statut = 'paid'
+                AND si.methode_paiement IS NOT NULL
+        ";
+        
+        $params = [];
+        $types = [];
+        $conditions = [];
+        
+        if ($dateFrom) {
+            $conditions[] = "si.payee_le >= :dateFrom";
+            $params['dateFrom'] = $dateFrom;
+            $types['dateFrom'] = Types::DATETIMETZ_MUTABLE;
+        }
+        
+        if ($dateTo) {
+            $conditions[] = "si.payee_le <= :dateTo";
+            $params['dateTo'] = $dateTo;
+            $types['dateTo'] = Types::DATETIMETZ_MUTABLE;
+        }
+        
+        if ($plan) {
+            $conditions[] = "sp.niveau = :plan";
+            $params['plan'] = $plan;
+            $types['plan'] = Types::STRING;
+        }
+        
+        if ($organizerId) {
+            $conditions[] = "si.id_client = :organizerId";
+            $params['organizerId'] = $organizerId;
+            $types['organizerId'] = Types::INTEGER;
+        }
+        
+        if (!empty($conditions)) {
+            $sql .= " AND " . implode(" AND ", $conditions);
+        }
+        
+        $sql .= " GROUP BY si.methode_paiement ORDER BY amount DESC";
+        
+        $result = empty($params)
+            ? $conn->executeQuery($sql)
+            : $conn->executeQuery($sql, $params, $types);
+        
+        $methods = [];
+        $totalAmount = 0;
+        
+        while ($row = $result->fetchAssociative()) {
+            $amount = (float) $row['amount'];
+            $methods[] = [
+                'method' => $row['method'],
+                'count' => (int) $row['count'],
+                'amount' => $amount,
+            ];
+            $totalAmount += $amount;
+        }
+        
+        // Calculer les pourcentages
+        foreach ($methods as &$method) {
+            $method['percentage'] = $totalAmount > 0 ? ($method['amount'] / $totalAmount) * 100 : 0;
+        }
+        
+        return $methods;
     }
 }
 

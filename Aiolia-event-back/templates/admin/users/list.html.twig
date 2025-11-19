@@ -6,8 +6,6 @@
 {{ parent() }}
 <!-- Select2 CSS -->
 <link href="https://cdn.jsdelivr.net/npm/select2@4.1.0-rc.0/dist/css/select2.min.css" rel="stylesheet" />
-<!-- Font Awesome -->
-<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
 {% endblock %}
 
 {% block body %}
@@ -15,7 +13,7 @@
     <!-- En-tête -->
     <div class="dashboard-header">
         <div>
-            <h1 data-i18n="users.header.title">Gestion des utilisateurs</h1>
+            <h1><i class="fas fa-users"></i> <span data-i18n="users.header.title">Gestion des utilisateurs</span></h1>
             <p class="dashboard-subtitle" data-i18n="users.header.subtitle">
                 Gérez et administrez les comptes utilisateurs de votre plateforme
             </p>
@@ -764,6 +762,20 @@ function showUserStats() {
 
 <style>
 /* Harmonisation mode sombre pour recherche et tableaux */
+.dashboard-header h1 {
+    display: flex !important;
+    align-items: center;
+    gap: 12px;
+}
+
+.dashboard-header h1 i {
+    font-size: 2rem !important;
+    color: var(--accent) !important;
+    display: inline-block !important;
+    visibility: visible !important;
+    opacity: 1 !important;
+}
+
 .search-section {
     background: var(--bg-card);
     border-radius: var(--border-radius-lg);

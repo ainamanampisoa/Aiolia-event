@@ -4,7 +4,6 @@
 
 {% block stylesheets %}
 {{ parent() }}
-<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
 <!-- Flatpickr CSS -->
 <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/flatpickr/dist/flatpickr.min.css">
 {% endblock %}
@@ -14,7 +13,7 @@
     <!-- En-tête -->
     <div class="dashboard-header">
         <div>
-            <h1 data-i18n="billing.header.title">Facturation & Paiement</h1>
+            <h1><i class="fas fa-credit-card"></i> <span data-i18n="billing.header.title">Facturation & Paiement</span></h1>
             <p class="dashboard-subtitle" data-i18n="billing.header.subtitle">
                 Gérez les factures et les paiements
             </p>
@@ -387,6 +386,21 @@
 </div>
 
 <style>
+/* Styles pour les titres avec icônes */
+.dashboard-header h1 {
+    display: flex !important;
+    align-items: center;
+    gap: 12px;
+}
+
+.dashboard-header h1 i {
+    font-size: 2rem !important;
+    color: var(--accent) !important;
+    display: inline-block !important;
+    visibility: visible !important;
+    opacity: 1 !important;
+}
+
 /* Styles pour la section de recherche et filtres */
 .search-section {
     background: var(--bg-card);

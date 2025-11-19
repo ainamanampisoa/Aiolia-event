@@ -22,16 +22,19 @@ class StatisticsService
      * 
      * @param \DateTimeInterface|null $dateFrom Date de début du filtre
      * @param \DateTimeInterface|null $dateTo Date de fin du filtre
+     * @param string|null $plan Filtre par plan (Basic, Pro, Entreprise)
      * @return array Structure complète des statistiques
      */
-    public function getAllStatistics(?\DateTimeInterface $dateFrom = null, ?\DateTimeInterface $dateTo = null): array
+    public function getAllStatistics(?\DateTimeInterface $dateFrom = null, ?\DateTimeInterface $dateTo = null, ?string $plan = null, ?int $organizerId = null): array
     {
         return [
-            'counts' => $this->getCounts($dateFrom, $dateTo),
-            'organizers' => $this->getOrganizersStatistics($dateFrom, $dateTo),
-            'subscriptions' => $this->getSubscriptionsStatistics($dateFrom, $dateTo),
-            'tax' => $this->getTaxStatistics(0.20, 0.05, $dateFrom, $dateTo),
-            'fiscal' => $this->getFiscalStatistics($dateFrom, $dateTo),
+            'counts' => $this->getCounts($dateFrom, $dateTo, $plan),
+            'organizers' => $this->getOrganizersStatistics($dateFrom, $dateTo, $plan),
+            'subscriptions' => $this->getSubscriptionsStatistics($dateFrom, $dateTo, $plan),
+            'tax' => $this->getTaxStatistics(0.20, 0.05, $dateFrom, $dateTo, $plan),
+            'fiscal' => $this->getFiscalStatistics($dateFrom, $dateTo, $plan),
+            'unpaid' => $this->getUnpaidStatistics($dateFrom, $dateTo, $plan, $organizerId),
+            'payment_methods' => $this->getPaymentMethodsStatistics($dateFrom, $dateTo, $plan, $organizerId),
         ];
     }
 
@@ -40,15 +43,16 @@ class StatisticsService
      * 
      * @param \DateTimeInterface|null $dateFrom Date de début du filtre
      * @param \DateTimeInterface|null $dateTo Date de fin du filtre
+     * @param string|null $plan Filtre par plan
      * @return array ['organizers' => int, 'paid_invoices' => int, 'active_subscriptions' => int, 'subscription_revenue_total' => float]
      */
-    public function getCounts(?\DateTimeInterface $dateFrom = null, ?\DateTimeInterface $dateTo = null): array
+    public function getCounts(?\DateTimeInterface $dateFrom = null, ?\DateTimeInterface $dateTo = null, ?string $plan = null): array
     {
         return [
             'organizers' => $this->statisticsRepository->countOrganizers(),
-            'paid_invoices' => $this->statisticsRepository->countPaidInvoices($dateFrom, $dateTo),
+            'paid_invoices' => $this->statisticsRepository->countPaidInvoices($dateFrom, $dateTo, $plan),
             'active_subscriptions' => $this->statisticsRepository->countActiveSubscriptions(),
-            'subscription_revenue_total' => $this->statisticsRepository->getSubscriptionRevenueTotal($dateFrom, $dateTo),
+            'subscription_revenue_total' => $this->statisticsRepository->getSubscriptionRevenueTotal($dateFrom, $dateTo, $plan),
         ];
     }
 
@@ -57,6 +61,7 @@ class StatisticsService
      * 
      * @param \DateTimeInterface|null $dateFrom Date de début du filtre
      * @param \DateTimeInterface|null $dateTo Date de fin du filtre
+     * @param string|null $plan Filtre par plan
      * @return array [
      *     'subscription_revenue_total' => float,
      *     'plans' => ['labels' => [], 'revenue_values' => []],
@@ -64,13 +69,13 @@ class StatisticsService
      *     'top_payers_values' => []
      * ]
      */
-    public function getOrganizersStatistics(?\DateTimeInterface $dateFrom = null, ?\DateTimeInterface $dateTo = null): array
+    public function getOrganizersStatistics(?\DateTimeInterface $dateFrom = null, ?\DateTimeInterface $dateTo = null, ?string $plan = null): array
     {
-        $revenueByPlan = $this->statisticsRepository->getRevenueByPlan($dateFrom, $dateTo);
-        $topPayers = $this->statisticsRepository->getTopPayers(10, 30, $dateFrom, $dateTo);
+        $revenueByPlan = $this->statisticsRepository->getRevenueByPlan($dateFrom, $dateTo, $plan);
+        $topPayers = $this->statisticsRepository->getTopPayers(10, 30, $dateFrom, $dateTo, $plan);
         
         return [
-            'subscription_revenue_total' => $this->statisticsRepository->getSubscriptionRevenueTotal($dateFrom, $dateTo),
+            'subscription_revenue_total' => $this->statisticsRepository->getSubscriptionRevenueTotal($dateFrom, $dateTo, $plan),
             'plans' => [
                 'labels' => $revenueByPlan['labels'],
                 'revenue_values' => $revenueByPlan['revenue_values'],
@@ -85,15 +90,16 @@ class StatisticsService
      * 
      * @param \DateTimeInterface|null $dateFrom Date de début du filtre
      * @param \DateTimeInterface|null $dateTo Date de fin du filtre
+     * @param string|null $plan Filtre par plan
      * @return array [
      *     'timeseries' => ['labels' => [], 'values' => []],
      *     'revenue_by_plan_by_month' => ['labels' => [], 'plans' => []]
      * ]
      */
-    public function getSubscriptionsStatistics(?\DateTimeInterface $dateFrom = null, ?\DateTimeInterface $dateTo = null): array
+    public function getSubscriptionsStatistics(?\DateTimeInterface $dateFrom = null, ?\DateTimeInterface $dateTo = null, ?string $plan = null): array
     {
-        $evolution = $this->statisticsRepository->getSubscriptionsEvolution($dateFrom, $dateTo);
-        $revenueByPlanByMonth = $this->statisticsRepository->getRevenueByPlanByMonth($dateFrom, $dateTo);
+        $evolution = $this->statisticsRepository->getSubscriptionsEvolution($dateFrom, $dateTo, $plan);
+        $revenueByPlanByMonth = $this->statisticsRepository->getRevenueByPlanByMonth($dateFrom, $dateTo, $plan);
         
         return [
             'timeseries' => [
@@ -126,9 +132,9 @@ class StatisticsService
      *     'commission_rate' => float
      * ]
      */
-    public function getTaxStatistics(float $vatRate = 0.20, float $commissionRate = 0.05, ?\DateTimeInterface $dateFrom = null, ?\DateTimeInterface $dateTo = null): array
+    public function getTaxStatistics(float $vatRate = 0.20, float $commissionRate = 0.05, ?\DateTimeInterface $dateFrom = null, ?\DateTimeInterface $dateTo = null, ?string $plan = null): array
     {
-        return $this->statisticsRepository->getTaxStatistics($vatRate, $commissionRate, $dateFrom, $dateTo);
+        return $this->statisticsRepository->getTaxStatistics($vatRate, $commissionRate, $dateFrom, $dateTo, $plan);
     }
 
     /**
@@ -163,15 +169,18 @@ class StatisticsService
      * 
      * @param \DateTimeInterface|null $dateFrom Date de début du filtre
      * @param \DateTimeInterface|null $dateTo Date de fin du filtre
+     * @param string|null $plan Filtre par plan
      * @return array [
      *     'by_month' => ['labels' => [], 'ht_values' => [], 'tva_values' => [], 'ttc_values' => []],
-     *     'top_vat_contributors' => ['labels' => [], 'vat_values' => []]
+     *     'top_vat_contributors' => ['labels' => [], 'vat_values' => []],
+     *     'totals' => ['ht_total' => float, 'tva_total' => float, 'ttc_total' => float],
+     *     'organizers_who_paid' => int
      * ]
      */
-    public function getFiscalStatistics(?\DateTimeInterface $dateFrom = null, ?\DateTimeInterface $dateTo = null): array
+    public function getFiscalStatistics(?\DateTimeInterface $dateFrom = null, ?\DateTimeInterface $dateTo = null, ?string $plan = null): array
     {
-        $fiscalByMonth = $this->statisticsRepository->getFiscalStatisticsByMonth($dateFrom, $dateTo);
-        $topVatContributors = $this->statisticsRepository->getTopVatContributors(10, $dateFrom, $dateTo);
+        $fiscalByMonth = $this->statisticsRepository->getFiscalStatisticsByMonth($dateFrom, $dateTo, $plan);
+        $topVatContributors = $this->statisticsRepository->getTopVatContributors(5, $dateFrom, $dateTo, $plan);
         
         // Calculer HT et TVA à partir de TTC
         // HT = TTC / 1,2
@@ -186,6 +195,11 @@ class StatisticsService
             $tvaValues[] = $tva;
         }
         
+        // Calculer les totaux
+        $htTotal = array_sum($htValues);
+        $tvaTotal = array_sum($tvaValues);
+        $ttcTotal = array_sum($fiscalByMonth['ttc_values']);
+        
         // Calculer HT et TVA pour les top contributeurs
         $topVatValues = [];
         foreach ($topVatContributors['ttc_values'] as $ttc) {
@@ -193,6 +207,9 @@ class StatisticsService
             $tva = $ttc - $ht;
             $topVatValues[] = $tva; // On affiche la TVA pour le top contributeurs
         }
+        
+        // Compter les organisateurs ayant payé
+        $organizersWhoPaid = $this->statisticsRepository->countOrganizersWhoPaid($dateFrom, $dateTo, $plan);
         
         return [
             'by_month' => [
@@ -205,7 +222,41 @@ class StatisticsService
                 'labels' => $topVatContributors['labels'],
                 'vat_values' => $topVatValues,
             ],
+            'totals' => [
+                'ht_total' => $htTotal,
+                'tva_total' => $tvaTotal,
+                'ttc_total' => $ttcTotal,
+            ],
+            'organizers_who_paid' => $organizersWhoPaid,
         ];
+    }
+
+    /**
+     * Récupère les statistiques des factures impayées
+     * 
+     * @param \DateTimeInterface|null $dateFrom Date de début du filtre
+     * @param \DateTimeInterface|null $dateTo Date de fin du filtre
+     * @param string|null $plan Filtre par plan
+     * @param int|null $organizerId Filtre par organisateur
+     * @return array
+     */
+    public function getUnpaidStatistics(?\DateTimeInterface $dateFrom = null, ?\DateTimeInterface $dateTo = null, ?string $plan = null, ?int $organizerId = null): array
+    {
+        return $this->statisticsRepository->getUnpaidStatistics($dateFrom, $dateTo, $plan, $organizerId);
+    }
+
+    /**
+     * Récupère les statistiques par méthode de paiement
+     * 
+     * @param \DateTimeInterface|null $dateFrom Date de début du filtre
+     * @param \DateTimeInterface|null $dateTo Date de fin du filtre
+     * @param string|null $plan Filtre par plan
+     * @param int|null $organizerId Filtre par organisateur
+     * @return array
+     */
+    public function getPaymentMethodsStatistics(?\DateTimeInterface $dateFrom = null, ?\DateTimeInterface $dateTo = null, ?string $plan = null, ?int $organizerId = null): array
+    {
+        return $this->statisticsRepository->getPaymentMethodsStatistics($dateFrom, $dateTo, $plan, $organizerId);
     }
 }
 

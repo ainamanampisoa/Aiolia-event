@@ -361,3 +361,6 @@ sudo chown postgres:postgres /tmp/script.sql
 mail : https://mailtrap.io/home
 
 explication : https://chatgpt.com/c/691c09da-a1b0-8328-b7a2-1b815d4289f6
+
+📊 Rapports mensuels (abonnements)
+Synthèse des abonnements et revenus par mois
