@@ -5,6 +5,8 @@
 {% block stylesheets %}
 {{ parent() }}
 <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+<!-- Flatpickr CSS -->
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/flatpickr/dist/flatpickr.min.css">
 {% endblock %}
 
 {% block body %}
@@ -71,13 +73,19 @@
                             <i class="fas fa-calendar-alt"></i>
                             <span data-i18n="billing.filters.date_from">Date de début</span>
                         </label>
-                        <input 
-                            type="date" 
-                            id="date-from"
-                            name="date_from" 
-                            class="form-input" 
-                            value="{{ currentDateFrom|default('') }}"
-                        >
+                        <div class="date-input-wrapper">
+                            <input 
+                                type="text" 
+                                id="date-from"
+                                name="date_from" 
+                                class="form-input date-picker-input" 
+                                value="{{ currentDateFrom|default('') }}"
+                                placeholder="Sélectionner une date"
+                                autocomplete="off"
+                                readonly
+                            >
+                            <i class="fas fa-calendar-alt date-picker-icon"></i>
+                        </div>
                     </div>
 
                     <div class="search-field">
@@ -85,13 +93,19 @@
                             <i class="fas fa-calendar-alt"></i>
                             <span data-i18n="billing.filters.date_to">Date de fin</span>
                         </label>
-                        <input 
-                            type="date" 
-                            id="date-to"
-                            name="date_to" 
-                            class="form-input" 
-                            value="{{ currentDateTo|default('') }}"
-                        >
+                        <div class="date-input-wrapper">
+                            <input 
+                                type="text" 
+                                id="date-to"
+                                name="date_to" 
+                                class="form-input date-picker-input" 
+                                value="{{ currentDateTo|default('') }}"
+                                placeholder="Sélectionner une date"
+                                autocomplete="off"
+                                readonly
+                            >
+                            <i class="fas fa-calendar-alt date-picker-icon"></i>
+                        </div>
                     </div>
                 </div>
 
@@ -1164,6 +1178,262 @@
         font-size: 0.8rem;
     }
 }
+
+/* Styles pour les date pickers */
+.date-input-wrapper {
+    position: relative;
+    display: flex;
+    align-items: center;
+}
+
+.date-picker-input {
+    padding-right: 40px !important;
+    cursor: pointer;
+}
+
+.date-picker-input:focus {
+    cursor: text;
+}
+
+.date-picker-icon {
+    position: absolute;
+    right: 14px;
+    color: var(--text-secondary);
+    pointer-events: none;
+    font-size: 0.9rem;
+    z-index: 1;
+}
+
+.date-input-wrapper:hover .date-picker-icon {
+    color: var(--accent);
+}
+
+/* Styles personnalisés pour Flatpickr */
+.flatpickr-calendar {
+    background: var(--bg-card) !important;
+    border: 1px solid var(--border-color) !important;
+    border-radius: var(--border-radius-lg) !important;
+    box-shadow: 0 10px 40px rgba(0, 0, 0, 0.2) !important;
+    font-family: var(--font-family) !important;
+}
+
+.flatpickr-months {
+    background: var(--bg-secondary) !important;
+    border-radius: var(--border-radius-lg) var(--border-radius-lg) 0 0 !important;
+    padding: 12px !important;
+}
+
+.flatpickr-month {
+    color: var(--text-primary) !important;
+    fill: var(--text-primary) !important;
+}
+
+.flatpickr-current-month {
+    color: var(--text-primary) !important;
+    font-weight: var(--font-weight-medium) !important;
+}
+
+.flatpickr-prev-month,
+.flatpickr-next-month {
+    color: var(--text-secondary) !important;
+    fill: var(--text-secondary) !important;
+    padding: 8px !important;
+    border-radius: var(--border-radius-sm) !important;
+    transition: var(--transition-base) !important;
+}
+
+.flatpickr-prev-month:hover,
+.flatpickr-next-month:hover {
+    background: var(--bg-primary) !important;
+    color: var(--accent) !important;
+    fill: var(--accent) !important;
+}
+
+.flatpickr-weekdays {
+    background: var(--bg-secondary) !important;
+    border-bottom: 1px solid var(--border-color) !important;
+}
+
+.flatpickr-weekday {
+    color: var(--text-secondary) !important;
+    font-weight: var(--font-weight-medium) !important;
+    text-transform: uppercase !important;
+    font-size: 0.75rem !important;
+}
+
+.flatpickr-days {
+    padding: 8px !important;
+}
+
+.flatpickr-day {
+    color: var(--text-primary) !important;
+    border-radius: var(--border-radius-sm) !important;
+    border: 1px solid transparent !important;
+    transition: var(--transition-base) !important;
+}
+
+.flatpickr-day:hover {
+    background: var(--bg-secondary) !important;
+    border-color: var(--accent) !important;
+    color: var(--accent) !important;
+}
+
+.flatpickr-day.selected,
+.flatpickr-day.startRange,
+.flatpickr-day.endRange {
+    background: var(--accent) !important;
+    border-color: var(--accent) !important;
+    color: #fff !important;
+    font-weight: var(--font-weight-medium) !important;
+}
+
+.flatpickr-day.selected:hover,
+.flatpickr-day.startRange:hover,
+.flatpickr-day.endRange:hover {
+    background: var(--accent-dark, #2980b9) !important;
+    border-color: var(--accent-dark, #2980b9) !important;
+}
+
+.flatpickr-day.today {
+    border-color: var(--accent) !important;
+    color: var(--accent) !important;
+    font-weight: var(--font-weight-bold) !important;
+}
+
+.flatpickr-day.today:hover {
+    background: var(--bg-secondary) !important;
+}
+
+.flatpickr-day.flatpickr-disabled,
+.flatpickr-day.prevMonthDay,
+.flatpickr-day.nextMonthDay {
+    color: var(--text-muted) !important;
+    opacity: 0.4 !important;
+}
+
+.flatpickr-day.inRange {
+    background: rgba(52, 152, 219, 0.1) !important;
+    border-color: transparent !important;
+    color: var(--text-primary) !important;
+}
+
+.flatpickr-time {
+    border-top: 1px solid var(--border-color) !important;
+    background: var(--bg-secondary) !important;
+}
+
+.flatpickr-time input {
+    color: var(--text-primary) !important;
+    background: transparent !important;
+}
+
+.flatpickr-time input:hover {
+    background: var(--bg-primary) !important;
+}
+
+.flatpickr-am-pm {
+    color: var(--text-primary) !important;
+}
+
+.flatpickr-am-pm:hover {
+    background: var(--bg-primary) !important;
+}
 </style>
+
+<!-- Flatpickr JS -->
+<script src="https://cdn.jsdelivr.net/npm/flatpickr"></script>
+<script src="https://cdn.jsdelivr.net/npm/flatpickr/dist/l10n/fr.js"></script>
+
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    const dateFromInput = document.getElementById('date-from');
+    const dateToInput = document.getElementById('date-to');
+    
+    let dateFromPicker = null;
+    let dateToPicker = null;
+
+    // Configuration pour la date de début
+    if (dateFromInput) {
+        dateFromPicker = flatpickr(dateFromInput, {
+            dateFormat: 'Y-m-d',
+            locale: 'fr',
+            altInput: false,
+            allowInput: false,
+            clickOpens: true,
+            animate: true,
+            monthSelectorType: 'static',
+            onChange: function(selectedDates, dateStr, instance) {
+                // Si une date de fin est sélectionnée et que la date de début est après, réinitialiser la date de fin
+                if (dateToPicker) {
+                    const dateTo = dateToPicker.selectedDates[0];
+                    if (dateTo && selectedDates[0] && selectedDates[0] > dateTo) {
+                        dateToPicker.clear();
+                    }
+                    // Mettre à jour la date minimale pour la date de fin
+                    dateToPicker.set('minDate', selectedDates[0] || null);
+                }
+            },
+            onReady: function(selectedDates, dateStr, instance) {
+                // Ajouter un style personnalisé au calendrier
+                instance.calendarContainer.classList.add('custom-flatpickr');
+            }
+        });
+    }
+
+    // Configuration pour la date de fin
+    if (dateToInput) {
+        const minDate = dateFromPicker && dateFromPicker.selectedDates[0] 
+            ? dateFromPicker.selectedDates[0] 
+            : null;
+
+        dateToPicker = flatpickr(dateToInput, {
+            dateFormat: 'Y-m-d',
+            locale: 'fr',
+            altInput: false,
+            allowInput: false,
+            clickOpens: true,
+            animate: true,
+            monthSelectorType: 'static',
+            minDate: minDate,
+            onChange: function(selectedDates, dateStr, instance) {
+                // Si une date de début est sélectionnée et que la date de fin est avant, réinitialiser la date de début
+                if (dateFromPicker) {
+                    const dateFrom = dateFromPicker.selectedDates[0];
+                    if (dateFrom && selectedDates[0] && selectedDates[0] < dateFrom) {
+                        dateFromPicker.clear();
+                    }
+                    // Mettre à jour la date maximale pour la date de début
+                    dateFromPicker.set('maxDate', selectedDates[0] || null);
+                }
+            },
+            onReady: function(selectedDates, dateStr, instance) {
+                // Ajouter un style personnalisé au calendrier
+                instance.calendarContainer.classList.add('custom-flatpickr');
+            }
+        });
+    }
+});
+
+// Réinitialiser les date pickers lors du clic sur le bouton réinitialiser
+document.addEventListener('DOMContentLoaded', function() {
+    const resetBtn = document.querySelector('.btn-reset');
+    if (resetBtn) {
+        resetBtn.addEventListener('click', function(e) {
+            // Ne pas empêcher la navigation, juste réinitialiser les dates
+            setTimeout(function() {
+                const dateFromInput = document.getElementById('date-from');
+                const dateToInput = document.getElementById('date-to');
+                
+                if (dateFromInput && dateFromInput._flatpickr) {
+                    dateFromInput._flatpickr.clear();
+                }
+                if (dateToInput && dateToInput._flatpickr) {
+                    dateToInput._flatpickr.clear();
+                }
+            }, 100);
+        });
+    }
+});
+</script>
 {% endblock %}
 

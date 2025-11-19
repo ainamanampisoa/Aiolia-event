@@ -31,15 +31,7 @@ class SubscriptionInvoiceRepository extends ServiceEntityRepository
         }
 
         if ($search) {
-            $qb->andWhere(
-                $qb->expr()->orX(
-                    $qb->expr()->like('si.invoiceNumber', ':search'),
-                    $qb->expr()->like('c.email', ':search'),
-                    $qb->expr()->like('c.firstName', ':search'),
-                    $qb->expr()->like('c.lastName', ':search')
-                )
-            )
-                ->setParameter('search', '%' . $search . '%');
+            $this->applySearchFilter($qb, $search, 'si', 'c');
         }
 
         if ($dateFrom) {
@@ -77,16 +69,8 @@ class SubscriptionInvoiceRepository extends ServiceEntityRepository
         }
 
         if ($search) {
-            $qb->leftJoin('si.customer', 'c')
-                ->andWhere(
-                    $qb->expr()->orX(
-                        $qb->expr()->like('si.invoiceNumber', ':search'),
-                        $qb->expr()->like('c.email', ':search'),
-                        $qb->expr()->like('c.firstName', ':search'),
-                        $qb->expr()->like('c.lastName', ':search')
-                    )
-                )
-                ->setParameter('search', '%' . $search . '%');
+            $qb->leftJoin('si.customer', 'c');
+            $this->applySearchFilter($qb, $search, 'si', 'c');
         }
 
         if ($dateFrom) {
@@ -294,6 +278,60 @@ class SubscriptionInvoiceRepository extends ServiceEntityRepository
         $result = $connection->fetchOne($sql, ['invoice_id' => $invoice->getId()]);
         
         return $result !== false ? $result : null;
+    }
+
+    /**
+     * Applique un filtre de recherche intelligent selon le type de valeur
+     * - Si uniquement des chiffres : recherche dans invoiceNumber
+     * - Si contient @ : recherche dans email
+     * - Sinon : recherche dans prenom, nom et nom complet (prenom + nom)
+     */
+    private function applySearchFilter($qb, string $search, string $invoiceAlias, string $customerAlias): void
+    {
+        $searchTrimmed = trim($search);
+        $searchPattern = '%' . $searchTrimmed . '%';
+
+        // Vérifier si c'est uniquement des chiffres (numéro de facture)
+        if (preg_match('/^\d+$/', $searchTrimmed)) {
+            $qb->andWhere($qb->expr()->like($invoiceAlias . '.invoiceNumber', ':search'))
+                ->setParameter('search', $searchPattern);
+            return;
+        }
+
+        // Vérifier si c'est un email (contient @)
+        if (strpos($searchTrimmed, '@') !== false) {
+            $qb->andWhere($qb->expr()->like($customerAlias . '.email', ':search'))
+                ->setParameter('search', $searchPattern);
+            return;
+        }
+
+        // Sinon, rechercher dans prenom, nom et nom complet
+        // Si la recherche contient un espace, diviser en mots et chercher dans prenom ET nom
+        $words = preg_split('/\s+/', $searchTrimmed);
+        
+        if (count($words) > 1) {
+            // Recherche multi-mots : chercher le premier mot dans prenom et le dernier dans nom
+            $firstWord = '%' . $words[0] . '%';
+            $lastWord = '%' . end($words) . '%';
+            
+            $qb->andWhere(
+                $qb->expr()->andX(
+                    $qb->expr()->like($customerAlias . '.prenom', ':firstWord'),
+                    $qb->expr()->like($customerAlias . '.nom', ':lastWord')
+                )
+            )
+                ->setParameter('firstWord', $firstWord)
+                ->setParameter('lastWord', $lastWord);
+        } else {
+            // Recherche simple : chercher dans prenom OU nom
+            $qb->andWhere(
+                $qb->expr()->orX(
+                    $qb->expr()->like($customerAlias . '.prenom', ':search'),
+                    $qb->expr()->like($customerAlias . '.nom', ':search')
+                )
+            )
+                ->setParameter('search', $searchPattern);
+        }
     }
 }
 

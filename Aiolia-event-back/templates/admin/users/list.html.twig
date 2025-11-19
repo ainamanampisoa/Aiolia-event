@@ -270,13 +270,13 @@
                                     <a href="{{ path('admin_users_show', {id: user.id}) }}" class="validation-action-pill pill-view">
                                         <i class="fas fa-eye"></i><span data-i18n="users.actions.view">Voir le profil</span>
                                     </a>
-                                    <form method="POST" action="{{ path('admin_validation_approve', {id: user.id}) }}" class="d-inline" onsubmit="return confirmApprove(this);" data-confirm-fr="Approuver la demande de cet organisateur ?" data-confirm-en="Approve this organizer's request?">
+                                    <form method="POST" action="{{ path('admin_validation_approve', {id: user.id}) }}" class="d-inline" onsubmit="return confirmApprove(this, event);" data-confirm-fr="Approuver la demande de cet organisateur ?" data-confirm-en="Approve this organizer's request?">
                                         <input type="hidden" name="_token" value="{{ csrf_token('approve_user_' ~ user.id) }}">
                                         <button type="submit" class="validation-action-pill pill-approve">
                                             <i class="fas fa-check-circle"></i><span data-i18n="validation.table.button.approve">Approuver</span>
                                         </button>
                                     </form>
-                                    <form method="POST" action="{{ path('admin_validation_reject', {id: user.id}) }}" class="d-inline" onsubmit="return confirmReject(this);" data-confirm-fr="Rejeter la demande de cet organisateur ?" data-confirm-en="Reject this organizer's request?">
+                                    <form method="POST" action="{{ path('admin_validation_reject', {id: user.id}) }}" class="d-inline" onsubmit="return confirmReject(this, event);" data-confirm-fr="Rejeter la demande de cet organisateur ?" data-confirm-en="Reject this organizer's request?">
                                         <input type="hidden" name="_token" value="{{ csrf_token('reject_user_' ~ user.id) }}">
                                         <button type="submit" class="validation-action-pill pill-reject">
                                             <i class="fas fa-times-circle"></i><span data-i18n="validation.table.button.reject">Rejeter</span>
@@ -441,6 +441,28 @@
 </div>
 </div>
 
+<!-- Modal de confirmation personnalisée -->
+<div id="confirmationModal" class="custom-confirmation-modal" style="display: none;">
+    <div class="modal-overlay"></div>
+    <div class="modal-content">
+        <div class="modal-header">
+            <div class="modal-icon" id="modalIcon">
+                <i class="fas fa-question-circle"></i>
+            </div>
+            <h3 class="modal-title" id="modalTitle" data-i18n-fr="Confirmation" data-i18n-en="Confirmation">Confirmation</h3>
+        </div>
+        <div class="modal-body">
+            <p class="modal-message" id="modalMessage"></p>
+        </div>
+        <div class="modal-footer">
+            <button type="button" class="modal-btn modal-btn-cancel" id="modalCancelBtn" data-i18n-fr="Annuler" data-i18n-en="Cancel">Annuler</button>
+            <button type="button" class="modal-btn modal-btn-confirm" id="modalConfirmBtn">
+                <span data-i18n-fr="Confirmer" data-i18n-en="Confirm">Confirmer</span>
+            </button>
+        </div>
+    </div>
+</div>
+
 <!-- jQuery -->
 <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
 <!-- Bootstrap JS -->
@@ -488,22 +510,180 @@ function handleStatusConfirm(form) {
     return window.confirm(message);
 }
 
-function confirmApprove(form) {
+// Fonction pour afficher la popup de confirmation personnalisée
+function showConfirmationModal(options) {
+    return new Promise((resolve) => {
+        const modal = document.getElementById('confirmationModal');
+        const modalMessage = document.getElementById('modalMessage');
+        const modalIcon = document.getElementById('modalIcon');
+        const modalTitle = document.getElementById('modalTitle');
+        const modalConfirmBtn = document.getElementById('modalConfirmBtn');
+        const modalCancelBtn = document.getElementById('modalCancelBtn');
+        
+        // Définir le message
+        modalMessage.textContent = options.message || '';
+        
+        // Définir le type (approve/reject/default)
+        const type = options.type || 'default';
+        let iconClass = 'fas fa-question-circle';
+        let confirmBtnClass = 'modal-btn-confirm';
+        let confirmText = 'Confirmer';
+        
+        if (type === 'approve') {
+            iconClass = 'fas fa-check-circle';
+            confirmBtnClass = 'modal-btn-approve';
+            confirmText = translateInline('validation.table.button.approve', 'Approuver');
+        } else if (type === 'reject') {
+            iconClass = 'fas fa-times-circle';
+            confirmBtnClass = 'modal-btn-reject';
+            confirmText = translateInline('validation.table.button.reject', 'Rejeter');
+        }
+        
+        // Mettre à jour l'icône
+        modalIcon.innerHTML = `<i class="${iconClass}"></i>`;
+        modalIcon.className = `modal-icon modal-icon-${type}`;
+        
+        // Mettre à jour le bouton de confirmation
+        modalConfirmBtn.className = `modal-btn ${confirmBtnClass}`;
+        modalConfirmBtn.innerHTML = `<span>${confirmText}</span>`;
+        
+        // Traduire le titre et le bouton annuler
+        if (window.languageManager) {
+            const lang = window.languageManager.getLanguage();
+            const titleKey = lang === 'en' ? 'data-i18n-en' : 'data-i18n-fr';
+            const titleEl = modalTitle;
+            if (titleEl.getAttribute(titleKey)) {
+                titleEl.textContent = titleEl.getAttribute(titleKey);
+            }
+            
+            const cancelKey = lang === 'en' ? 'data-i18n-en' : 'data-i18n-fr';
+            const cancelEl = modalCancelBtn;
+            if (cancelEl.getAttribute(cancelKey)) {
+                cancelEl.textContent = cancelEl.getAttribute(cancelKey);
+            }
+        }
+        
+        // Afficher la modal
+        modal.style.display = 'flex';
+        document.body.style.overflow = 'hidden';
+        
+        // Nettoyer les anciens event listeners si nécessaire
+        const oldConfirm = modalConfirmBtn._confirmHandler;
+        const oldCancel = modalCancelBtn._cancelHandler;
+        const oldOverlay = modal._overlayHandler;
+        const oldEscape = document._escapeHandler;
+        
+        if (oldConfirm) modalConfirmBtn.removeEventListener('click', oldConfirm);
+        if (oldCancel) modalCancelBtn.removeEventListener('click', oldCancel);
+        if (oldOverlay) modal.removeEventListener('click', oldOverlay);
+        if (oldEscape) document.removeEventListener('keydown', oldEscape);
+        
+        // Gérer la confirmation
+        const handleConfirm = () => {
+            modal.style.display = 'none';
+            document.body.style.overflow = '';
+            modalConfirmBtn.removeEventListener('click', handleConfirm);
+            modalCancelBtn.removeEventListener('click', handleCancel);
+            modal.removeEventListener('click', handleOverlayClick);
+            document.removeEventListener('keydown', handleEscape);
+            modalConfirmBtn._confirmHandler = null;
+            modalCancelBtn._cancelHandler = null;
+            modal._overlayHandler = null;
+            document._escapeHandler = null;
+            resolve(true);
+        };
+        
+        // Gérer l'annulation
+        const handleCancel = () => {
+            modal.style.display = 'none';
+            document.body.style.overflow = '';
+            modalConfirmBtn.removeEventListener('click', handleConfirm);
+            modalCancelBtn.removeEventListener('click', handleCancel);
+            modal.removeEventListener('click', handleOverlayClick);
+            document.removeEventListener('keydown', handleEscape);
+            modalConfirmBtn._confirmHandler = null;
+            modalCancelBtn._cancelHandler = null;
+            modal._overlayHandler = null;
+            document._escapeHandler = null;
+            resolve(false);
+        };
+        
+        // Gérer le clic sur l'overlay
+        const handleOverlayClick = (e) => {
+            if (e.target.classList.contains('modal-overlay')) {
+                handleCancel();
+            }
+        };
+        
+        // Gérer la touche Escape
+        const handleEscape = (e) => {
+            if (e.key === 'Escape') {
+                handleCancel();
+            }
+        };
+        
+        // Stocker les handlers pour nettoyage futur
+        modalConfirmBtn._confirmHandler = handleConfirm;
+        modalCancelBtn._cancelHandler = handleCancel;
+        modal._overlayHandler = handleOverlayClick;
+        document._escapeHandler = handleEscape;
+        
+        // Ajouter les event listeners
+        modalConfirmBtn.addEventListener('click', handleConfirm);
+        modalCancelBtn.addEventListener('click', handleCancel);
+        modal.addEventListener('click', handleOverlayClick);
+        document.addEventListener('keydown', handleEscape);
+    });
+}
+
+function confirmApprove(form, event) {
+    if (event) {
+        event.preventDefault();
+        event.stopPropagation();
+    }
+    
     const manager = window.languageManager;
     const lang = manager ? manager.getLanguage() : 'fr';
     const datasetKey = lang === 'en' ? 'confirmEn' : 'confirmFr';
     const fallback = form.dataset.confirmFr || 'Approuver la demande de cet organisateur ?';
     const message = form.dataset[datasetKey] || fallback;
-    return window.confirm(message);
+    
+    // Afficher la popup et attendre la réponse
+    showConfirmationModal({
+        message: message,
+        type: 'approve'
+    }).then((confirmed) => {
+        if (confirmed) {
+            form.submit();
+        }
+    });
+    
+    return false;
 }
 
-function confirmReject(form) {
+function confirmReject(form, event) {
+    if (event) {
+        event.preventDefault();
+        event.stopPropagation();
+    }
+    
     const manager = window.languageManager;
     const lang = manager ? manager.getLanguage() : 'fr';
     const datasetKey = lang === 'en' ? 'confirmEn' : 'confirmFr';
     const fallback = form.dataset.confirmFr || 'Rejeter la demande de cet organisateur ?';
     const message = form.dataset[datasetKey] || fallback;
-    return window.confirm(message);
+    
+    // Afficher la popup et attendre la réponse
+    showConfirmationModal({
+        message: message,
+        type: 'reject'
+    }).then((confirmed) => {
+        if (confirmed) {
+            form.submit();
+        }
+    });
+    
+    return false;
 }
 
 // Init simple (sans toggle) : tooltips + sélection multiple
@@ -1432,6 +1612,240 @@ function showUserStats() {
 
 .table-responsive::-webkit-scrollbar-thumb:hover {
     background: var(--text-secondary);
+}
+
+/* Styles pour la popup de confirmation personnalisée */
+.custom-confirmation-modal {
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    z-index: 10000;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    animation: fadeIn 0.2s ease-out;
+}
+
+@keyframes fadeIn {
+    from {
+        opacity: 0;
+    }
+    to {
+        opacity: 1;
+    }
+}
+
+@keyframes slideUp {
+    from {
+        transform: translateY(20px);
+        opacity: 0;
+    }
+    to {
+        transform: translateY(0);
+        opacity: 1;
+    }
+}
+
+.modal-overlay {
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    background: rgba(0, 0, 0, 0.5);
+    backdrop-filter: blur(4px);
+}
+
+.modal-content {
+    position: relative;
+    background: var(--bg-card);
+    border-radius: var(--border-radius-lg);
+    box-shadow: 0 10px 40px rgba(0, 0, 0, 0.2);
+    max-width: 480px;
+    width: 90%;
+    max-height: 90vh;
+    overflow: hidden;
+    z-index: 10001;
+    animation: slideUp 0.3s ease-out;
+    border: 1px solid var(--border-color);
+}
+
+.modal-header {
+    padding: 24px 24px 16px;
+    text-align: center;
+    border-bottom: 1px solid var(--border-color);
+}
+
+.modal-icon {
+    width: 64px;
+    height: 64px;
+    margin: 0 auto 16px;
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 2rem;
+    background: var(--bg-secondary);
+    border: 3px solid var(--border-color);
+    transition: var(--transition-base);
+}
+
+.modal-icon i {
+    color: var(--text-primary);
+}
+
+.modal-icon.modal-icon-approve {
+    background: rgba(46, 204, 113, 0.12);
+    border-color: rgba(46, 204, 113, 0.3);
+}
+
+.modal-icon.modal-icon-approve i {
+    color: #27AE60;
+}
+
+.modal-icon.modal-icon-reject {
+    background: rgba(231, 76, 60, 0.12);
+    border-color: rgba(231, 76, 60, 0.3);
+}
+
+.modal-icon.modal-icon-reject i {
+    color: #C0392B;
+}
+
+.modal-title {
+    font-size: 1.5rem;
+    font-weight: var(--font-weight-bold);
+    color: var(--text-primary);
+    margin: 0;
+}
+
+.modal-body {
+    padding: 24px;
+    text-align: center;
+}
+
+.modal-message {
+    font-size: 1rem;
+    line-height: 1.6;
+    color: var(--text-secondary);
+    margin: 0;
+}
+
+.modal-footer {
+    padding: 16px 24px 24px;
+    display: flex;
+    gap: 12px;
+    justify-content: flex-end;
+    border-top: 1px solid var(--border-color);
+}
+
+.modal-btn {
+    padding: 12px 24px;
+    border-radius: var(--border-radius-sm);
+    font-size: 0.9rem;
+    font-weight: var(--font-weight-medium);
+    cursor: pointer;
+    border: 2px solid transparent;
+    transition: var(--transition-base);
+    min-width: 100px;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    gap: 8px;
+}
+
+.modal-btn-cancel {
+    background: var(--bg-secondary);
+    color: var(--text-secondary);
+    border-color: var(--border-color);
+}
+
+.modal-btn-cancel:hover {
+    background: var(--bg-primary);
+    border-color: var(--text-secondary);
+    color: var(--text-primary);
+}
+
+.modal-btn-confirm {
+    background: var(--accent);
+    color: #fff;
+    border-color: var(--accent);
+}
+
+.modal-btn-confirm:hover {
+    background: var(--accent-dark, #2980b9);
+    border-color: var(--accent-dark, #2980b9);
+    transform: translateY(-1px);
+    box-shadow: 0 4px 12px rgba(52, 152, 219, 0.3);
+}
+
+.modal-btn-approve {
+    background: #27AE60;
+    color: #fff;
+    border-color: #27AE60;
+}
+
+.modal-btn-approve:hover {
+    background: #229954;
+    border-color: #229954;
+    transform: translateY(-1px);
+    box-shadow: 0 4px 12px rgba(39, 174, 96, 0.3);
+}
+
+.modal-btn-reject {
+    background: #C0392B;
+    color: #fff;
+    border-color: #C0392B;
+}
+
+.modal-btn-reject:hover {
+    background: #A93226;
+    border-color: #A93226;
+    transform: translateY(-1px);
+    box-shadow: 0 4px 12px rgba(192, 57, 43, 0.3);
+}
+
+/* Responsive pour la popup */
+@media (max-width: 768px) {
+    .modal-content {
+        width: 95%;
+        max-width: none;
+    }
+    
+    .modal-header {
+        padding: 20px 20px 12px;
+    }
+    
+    .modal-icon {
+        width: 56px;
+        height: 56px;
+        font-size: 1.75rem;
+        margin-bottom: 12px;
+    }
+    
+    .modal-title {
+        font-size: 1.25rem;
+    }
+    
+    .modal-body {
+        padding: 20px;
+    }
+    
+    .modal-message {
+        font-size: 0.95rem;
+    }
+    
+    .modal-footer {
+        padding: 12px 20px 20px;
+        flex-direction: column-reverse;
+    }
+    
+    .modal-btn {
+        width: 100%;
+        padding: 14px 24px;
+    }
 }
 </style>
 {% endblock %}
