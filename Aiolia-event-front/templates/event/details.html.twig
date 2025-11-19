@@ -32,6 +32,17 @@
         {% set hasAdultTickets = adultTickets|length > 0 %}
         {% set hasChildTickets = childTickets|length > 0 %}
         
+        {# Debug: Afficher les informations dans la console #}
+        <script>
+            console.log('DEBUG Tickets:', {
+                totalTicketTypes: {{ ticketTypes|length }},
+                adultTickets: {{ adultTickets|length }},
+                childTickets: {{ childTickets|length }},
+                hasChildTickets: {{ hasChildTickets ? 'true' : 'false' }},
+                ticketCategories: {{ ticketTypes|map(t => t.age_category)|join(', ')|json_encode|raw }}
+            });
+        </script>
+        
         {# Variables pour JavaScript - définies avant les blocs #}
         <script>
             window.ticketConfig = {
@@ -171,7 +182,7 @@
                                                     {% endif %}
                                                 </div>
                                                 <div class="blc-nbr d-flex">
-                                                    <div class="col">
+                                                    <div class="col" style="flex: 1 1 auto; min-width: 0;">
                                                         <label>Adulte</label>
                                                         <div class="numbers-row">
                                                             <div class="dec button" data-type="adult"><span>-</span></div>
@@ -179,16 +190,15 @@
                                                             <div class="inc button" data-type="adult"><span>+</span></div>
                                                         </div>
                                                     </div>
-                                                    <div class="col">
-                                                        <label>Enfant <span class="info"><img src="{{ asset('vente-ticket/images/info.png') }}"><div class="tooltip">Un ticket est requis pour les enfants de plus de 10 ans</div></span></label>
-                                                        <div class="numbers-row">
-                                                            <div class="dec button" data-type="child" {% if not hasChildTickets %}style="opacity:0.5; pointer-events:none;"{% endif %}><span>-</span></div>
-                                                            <input type="text" name="child_qtt" id="child_qtt" value="{% if not hasChildTickets %}0{% else %}1{% endif %}" class="qtt" data-type="child" {% if not hasChildTickets %}disabled style="opacity:0.5;"{% endif %}>
-                                                            <div class="inc button" data-type="child" {% if not hasChildTickets %}style="opacity:0.5; pointer-events:none;"{% endif %}><span>+</span></div>
+                                                    <div class="col" style="flex: 1 1 auto; min-width: 0;">
+                                                        <label>
+                                                            Enfant{% if not hasChildTickets %} <span style="color:#d32f2f; font-weight:normal;">(non disponible)</span>{% endif %} <span class="info"><img src="{{ asset('vente-ticket/images/info.png') }}"><div class="tooltip">Un ticket est requis pour les enfants de plus de 10 ans</div></span>
+                                                        </label>
+                                                        <div class="numbers-row" {% if not hasChildTickets %}style="background-color:#f5f5f5; border:1px solid #e0e0e0;"{% endif %}>
+                                                            <div class="dec button" data-type="child" {% if not hasChildTickets %}style="opacity:0.4; pointer-events:none; cursor:not-allowed;"{% endif %}><span>-</span></div>
+                                                            <input type="text" name="child_qtt" id="child_qtt" value="{% if not hasChildTickets %}0{% else %}1{% endif %}" class="qtt" data-type="child" {% if not hasChildTickets %}disabled style="opacity:0.5; background-color:transparent; color:#999; cursor:not-allowed;"{% endif %}>
+                                                            <div class="inc button" data-type="child" {% if not hasChildTickets %}style="opacity:0.4; pointer-events:none; cursor:not-allowed;"{% endif %}><span>+</span></div>
                                                         </div>
-                                                        {% if not hasChildTickets %}
-                                                            <small style="color:#999; font-size:0.85em; display:block; margin-top:5px;">Pas de billets enfants disponibles pour cet événement</small>
-                                                        {% endif %}
                                                     </div>
                                                     <div class="col btn-ok">
                                                         <button class="btn ok" type="button" id="add-to-cart-btn">OK</button>
