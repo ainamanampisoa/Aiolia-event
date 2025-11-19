@@ -167,6 +167,7 @@ COMMENT ON VIEW aiolia.vw_subscription_invoices_overdue IS
 CREATE OR REPLACE VIEW aiolia.vw_subscription_invoice_items AS
 SELECT
     sii.id AS item_id,
+    si.id AS invoice_id,
     si.numero_facture,
     si.id_abonnement,
     os.id_profil_organisateur,

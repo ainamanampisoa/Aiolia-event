@@ -6,6 +6,7 @@ use App\Entity\TicketInvoice;
 use App\Entity\SubscriptionInvoice;
 use App\Repository\TicketInvoiceRepository;
 use App\Repository\SubscriptionInvoiceRepository;
+use App\Service\BillingInvoiceDetailService;
 use App\Service\InvoicePdfService;
 use App\Service\InvoiceEmailService;
 use Symfony\Bundle\FrameworkBundle\Controller\AbstractController;
@@ -22,7 +23,8 @@ class BillingController extends AbstractController
         private TicketInvoiceRepository $ticketInvoiceRepository,
         private SubscriptionInvoiceRepository $subscriptionInvoiceRepository,
         private InvoicePdfService $pdfService,
-        private InvoiceEmailService $emailService
+        private InvoiceEmailService $emailService,
+        private BillingInvoiceDetailService $invoiceDetailService
     ) {
     }
 
@@ -161,7 +163,7 @@ class BillingController extends AbstractController
         }
 
         // Récupérer les informations complètes du plan d'abonnement
-        $planInfo = $this->subscriptionInvoiceRepository->getPlanInfoForInvoice($invoice);
+        $planInfo = $this->invoiceDetailService->getPlanInfo($invoice);
         $planTier = $planInfo['niveau'] ?? null;
 
         // Récupérer l'organisateur (via le customer qui est l'organisateur)
@@ -190,6 +192,8 @@ class BillingController extends AbstractController
                           ($planInfo['periode_facturation'] ?? null) !== ($previousPlanInfo['periode_facturation'] ?? null);
         }
 
+        $invoiceItems = $this->invoiceDetailService->getInvoiceItems($invoice);
+
         return $this->render('admin/billing/invoice_show.html.twig', [
             'invoice' => $invoice,
             'type' => 'subscription',
@@ -198,6 +202,7 @@ class BillingController extends AbstractController
             'organizer' => $organizer,
             'previousInvoices' => $previousInvoices,
             'planChanged' => $planChanged,
+            'invoiceItems' => $invoiceItems,
         ]);
     }
 

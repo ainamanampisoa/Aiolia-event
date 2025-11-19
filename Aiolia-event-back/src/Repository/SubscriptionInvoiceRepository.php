@@ -234,6 +234,32 @@ class SubscriptionInvoiceRepository extends ServiceEntityRepository
     }
 
     /**
+     * Retourne la liste détaillée des lignes d'une facture d'abonnement
+     */
+    public function getInvoiceItemsForInvoice(SubscriptionInvoice $invoice): array
+    {
+        $connection = $this->getEntityManager()->getConnection();
+
+        $sql = "
+            SELECT 
+                item_id,
+                plan_code,
+                plan_name,
+                description,
+                quantite,
+                prix_unitaire,
+                montant_total
+            FROM aiolia.vw_subscription_invoice_items
+            WHERE invoice_id = :invoice_id
+            ORDER BY item_id ASC
+        ";
+
+        return $connection->fetchAllAssociative($sql, [
+            'invoice_id' => $invoice->getId(),
+        ]);
+    }
+
+    /**
      * @deprecated Utiliser getPlanTierForInvoice() à la place
      */
     public function getOrganizerTypeForInvoice(SubscriptionInvoice $invoice): ?string

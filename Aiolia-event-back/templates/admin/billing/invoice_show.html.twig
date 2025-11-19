@@ -406,6 +406,46 @@
             </div>
         </div>
 
+        {% if type == 'subscription' and invoiceItems is defined and invoiceItems|length > 0 %}
+            <div class="invoice-card invoice-items-card">
+                <div class="card-header">
+                    <i class="fas fa-list"></i>
+                    <h3 data-i18n-fr="Détails de la facture" data-i18n-en="Invoice items">Détails de la facture</h3>
+                </div>
+                <div class="card-body">
+                    <div class="table-responsive invoice-items-table-wrapper">
+                        <table class="table invoice-items-table">
+                            <thead>
+                                <tr>
+                                    <th data-i18n-fr="Description" data-i18n-en="Description">Description</th>
+                                    <th class="text-center" data-i18n-fr="Quantité" data-i18n-en="Quantity">Quantité</th>
+                                    <th class="text-right" data-i18n-fr="Prix unitaire" data-i18n-en="Unit price">Prix unitaire</th>
+                                    <th class="text-right" data-i18n-fr="Montant" data-i18n-en="Amount">Montant</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                {% for item in invoiceItems %}
+                                    <tr>
+                                        <td>
+                                            <div class="item-description">
+                                                <span class="item-title">{{ item.description ?? (planInfo.nom ?? 'N/A') }}</span>
+                                                {% if item.plan_name %}
+                                                    <span class="item-subtitle">{{ item.plan_name }}</span>
+                                                {% endif %}
+                                            </div>
+                                        </td>
+                                        <td class="text-center">{{ item.quantite }}</td>
+                                        <td class="text-right">{{ item.prix_unitaire|number_format(0, ',', ' ') }} {{ invoice.currency }}</td>
+                                        <td class="text-right item-total">{{ item.montant_total|number_format(0, ',', ' ') }} {{ invoice.currency }}</td>
+                                    </tr>
+                                {% endfor %}
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+        {% endif %}
+
         {% if type == 'subscription' and previousInvoices is defined and previousInvoices|length > 0 %}
             <!-- Historique des paiements précédents -->
             <div class="invoice-card invoice-info-card">
@@ -1221,6 +1261,56 @@
 .prepaid-badge {
     color: var(--success, #27AE60);
     font-weight: 600;
+}
+
+.invoice-items-table-wrapper {
+    border: 1px solid var(--border-color, #E9ECEF);
+    border-radius: 12px;
+    padding: 1rem;
+}
+
+.invoice-items-table {
+    width: 100%;
+    border-collapse: collapse;
+}
+
+.invoice-items-table thead th {
+    font-size: 0.75rem;
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+    color: var(--text-secondary);
+    border-bottom: 1px solid var(--border-color);
+    padding-bottom: 0.75rem;
+}
+
+.invoice-items-table tbody td {
+    padding: 0.85rem 0;
+    border-bottom: 1px solid var(--border-color);
+    font-size: 0.95rem;
+    color: var(--text-primary);
+}
+
+.invoice-items-table tbody tr:last-child td {
+    border-bottom: none;
+}
+
+.item-description {
+    display: flex;
+    flex-direction: column;
+}
+
+.item-title {
+    font-weight: var(--font-weight-medium);
+    color: var(--text-primary);
+}
+
+.item-subtitle {
+    font-size: 0.8rem;
+    color: var(--text-secondary);
+}
+
+.item-total {
+    font-weight: var(--font-weight-semibold);
 }
 
 .info-row-pause {
