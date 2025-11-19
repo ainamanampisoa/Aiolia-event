@@ -523,11 +523,7 @@
                 
                 function updateButtonsState() {
                     if (!selectedTicketType) {
-                        if (adultDecBtn) adultDecBtn.style.pointerEvents = 'none';
-                        if (adultIncBtn) adultIncBtn.style.pointerEvents = 'none';
-                        if (childDecBtn) childDecBtn.style.pointerEvents = 'none';
-                        if (childIncBtn) childIncBtn.style.pointerEvents = 'none';
-                        return;
+                        return; // Ne rien modifier tant qu'aucun type de billet n'est sélectionné
                     }
                     
                     const ageCat = selectedTicketType.ageCategory;
