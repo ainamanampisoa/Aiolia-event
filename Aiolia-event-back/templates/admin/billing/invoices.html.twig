@@ -161,20 +161,21 @@
                                                 'enterprise': {'fr': 'Enterprise', 'en': 'Enterprise', 'icon': 'crown'}
                                             } %}
                                             {% set periodLabels = {
-                                                'monthly': {'fr': 'Mensuel', 'en': 'Monthly'},
-                                                'quarterly': {'fr': 'Trimestriel', 'en': 'Quarterly'},
-                                                'yearly': {'fr': 'Annuel', 'en': 'Yearly'}
+                                                'monthly': {'fr': 'Mensuel', 'en': 'Monthly', 'icon': 'calendar-alt'},
+                                                'quarterly': {'fr': 'Trimestriel', 'en': 'Quarterly', 'icon': 'calendar-week'},
+                                                'yearly': {'fr': 'Annuel', 'en': 'Yearly', 'icon': 'calendar-check'}
                                             } %}
                                             {% set tierLabel = tierLabels[planTier] ?? {'fr': planTier|upper, 'en': planTier|upper, 'icon': 'tag'} %}
-                                            {% set periodLabel = billingPeriod ? (periodLabels[billingPeriod] ?? {'fr': billingPeriod|capitalize, 'en': billingPeriod|capitalize}) : null %}
-                                            <div style="display: flex; flex-direction: column; align-items: center; gap: 4px;">
+                                            {% set periodLabel = billingPeriod ? (periodLabels[billingPeriod] ?? {'fr': billingPeriod|capitalize, 'en': billingPeriod|capitalize, 'icon': 'calendar-alt'}) : null %}
+                                            <div class="plan-display-wrapper plan-display-horizontal">
                                                 <span class="plan-tier-badge plan-tier-{{ planTier }}" data-i18n="billing.plan.tier.{{ planTier }}" title="{{ tierLabel.fr }}">
                                                     <i class="fas fa-{{ tierLabel.icon }}"></i>
                                                     <span class="tier-name">{{ tierLabel.fr }}</span>
                                                 </span>
                                                 {% if periodLabel %}
                                                     <span class="billing-period-badge" data-i18n="billing.plan.period.{{ billingPeriod }}" title="{{ periodLabel.fr }}">
-                                                        {{ periodLabel.fr }}
+                                                        <i class="fas fa-{{ periodLabel.icon }}"></i>
+                                                        <span class="period-text">{{ periodLabel.fr }}</span>
                                                     </span>
                                                 {% endif %}
                                             </div>
@@ -721,79 +722,149 @@
     border: 1px solid var(--border-color);
 }
 
+.plan-display-wrapper {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 6px;
+    min-width: 120px;
+}
+
+.plan-display-wrapper.plan-display-horizontal {
+    flex-direction: row;
+    align-items: center;
+    justify-content: center;
+    gap: 8px;
+    flex-wrap: wrap;
+    min-width: auto;
+}
+
 .plan-tier-badge {
-    font-size: 0.75rem;
-    padding: 6px 12px;
-    border-radius: var(--border-radius-md);
+    font-size: 0.8rem;
+    padding: 8px 14px;
+    border-radius: 10px;
     font-weight: var(--font-weight-semibold);
     display: inline-flex;
     align-items: center;
-    gap: 6px;
+    gap: 7px;
     white-space: nowrap;
-    box-shadow: var(--shadow-xs);
-    transition: var(--transition-base);
+    box-shadow: 0 2px 6px rgba(0, 0, 0, 0.12), 0 1px 3px rgba(0, 0, 0, 0.08);
+    transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
     border: 1px solid transparent;
+    position: relative;
+    overflow: hidden;
 }
 
+
 .plan-tier-badge .tier-name {
-    font-weight: var(--font-weight-medium);
-    letter-spacing: 0.3px;
+    font-weight: var(--font-weight-semibold);
+    letter-spacing: 0.4px;
+    position: relative;
+    z-index: 1;
 }
 
 .plan-tier-badge i {
-    font-size: 0.75rem;
-    opacity: 0.95;
+    font-size: 0.85rem;
+    opacity: 1;
+    position: relative;
+    z-index: 1;
+    filter: drop-shadow(0 1px 2px rgba(0, 0, 0, 0.1));
 }
 
 .plan-tier-basic {
-    background: linear-gradient(135deg, #3498DB, #2980B9);
-    color: white;
+    background: var(--bg-secondary);
+    color: #3498DB;
     border-color: rgba(52, 152, 219, 0.3);
 }
 
 .plan-tier-basic:hover {
-    background: linear-gradient(135deg, #2980B9, #21618C);
-    box-shadow: 0 2px 8px rgba(52, 152, 219, 0.3);
+    background: var(--bg-primary);
+    border-color: rgba(52, 152, 219, 0.5);
+    box-shadow: 0 2px 8px rgba(52, 152, 219, 0.15);
+    transform: translateY(-1px);
+}
+
+.plan-tier-basic i {
+    color: #3498DB;
+}
+
+.plan-tier-basic .tier-name {
+    color: #3498DB;
 }
 
 .plan-tier-pro {
-    background: linear-gradient(135deg, #9B59B6, #8E44AD);
-    color: white;
+    background: var(--bg-secondary);
+    color: #9B59B6;
     border-color: rgba(155, 89, 182, 0.3);
 }
 
 .plan-tier-pro:hover {
-    background: linear-gradient(135deg, #8E44AD, #7D3C98);
-    box-shadow: 0 2px 8px rgba(155, 89, 182, 0.3);
+    background: var(--bg-primary);
+    border-color: rgba(155, 89, 182, 0.5);
+    box-shadow: 0 2px 8px rgba(155, 89, 182, 0.15);
+    transform: translateY(-1px);
+}
+
+.plan-tier-pro i {
+    color: #9B59B6;
+}
+
+.plan-tier-pro .tier-name {
+    color: #9B59B6;
 }
 
 .plan-tier-enterprise {
-    background: linear-gradient(135deg, #F39C12, #E67E22);
-    color: white;
+    background: var(--bg-secondary);
+    color: #F39C12;
     border-color: rgba(243, 156, 18, 0.3);
 }
 
 .plan-tier-enterprise:hover {
-    background: linear-gradient(135deg, #E67E22, #D35400);
-    box-shadow: 0 2px 8px rgba(243, 156, 18, 0.3);
+    background: var(--bg-primary);
+    border-color: rgba(243, 156, 18, 0.5);
+    box-shadow: 0 2px 8px rgba(243, 156, 18, 0.15);
+    transform: translateY(-1px);
 }
 
-.plan-tier-badge:hover {
-    transform: translateY(-1px);
-    box-shadow: var(--shadow-md);
+.plan-tier-enterprise i {
+    color: #F39C12;
+}
+
+.plan-tier-enterprise .tier-name {
+    color: #F39C12;
 }
 
 .billing-period-badge {
-    font-size: 0.7rem;
-    padding: 3px 8px;
-    border-radius: var(--border-radius-sm);
+    font-size: 0.72rem;
+    padding: 5px 10px;
+    border-radius: 8px;
     font-weight: var(--font-weight-medium);
-    background: var(--bg-secondary);
+    background: linear-gradient(135deg, var(--bg-secondary) 0%, var(--bg-primary) 100%);
     color: var(--text-secondary);
-    border: 1px solid var(--border-color);
+    border: 1.5px solid var(--border-color);
     white-space: nowrap;
-    display: inline-block;
-    margin-top: 2px;
+    display: inline-flex;
+    align-items: center;
+    gap: 5px;
+    box-shadow: 0 1px 3px rgba(0, 0, 0, 0.08);
+    transition: all 0.2s ease;
+}
+
+.billing-period-badge:hover {
+    border-color: var(--accent);
+    color: var(--accent);
+    box-shadow: 0 2px 6px rgba(52, 152, 219, 0.15);
+    transform: translateY(-1px);
+}
+
+.billing-period-badge i {
+    font-size: 0.65rem;
+    opacity: 0.8;
+}
+
+.billing-period-badge .period-text {
+    font-weight: var(--font-weight-medium);
+    letter-spacing: 0.2px;
 }
 
 .days-overdue-indicator {

@@ -146,6 +146,7 @@ class BillingController extends AbstractController
         return $this->render('admin/billing/invoice_show.html.twig', [
             'invoice' => $invoice,
             'type' => 'ticket',
+            'invoiceItems' => [],
         ]);
     }
 
