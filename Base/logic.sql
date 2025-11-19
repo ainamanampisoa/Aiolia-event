@@ -403,6 +403,311 @@ FOR EACH ROW EXECUTE FUNCTION tickets_record_stats();
 COMMENT ON TRIGGER trg_tickets_record_stats ON billets IS
     'Après insertion : met à jour les statistiques utilisateur liées aux billets.';
 
+-- ------------------------------------------------------------
+-- 4. Fonction de génération automatique des factures mensuelles
+-- ------------------------------------------------------------
+CREATE OR REPLACE FUNCTION generate_monthly_subscription_invoices(target_month DATE DEFAULT date_trunc('month', CURRENT_DATE)) 
+RETURNS TABLE(
+    subscription_id BIGINT,
+    invoice_id BIGINT,
+    invoice_number TEXT,
+    status TEXT,
+    amount NUMERIC(12,2),
+    action TEXT
+) AS $$
+DECLARE
+    v_subscription RECORD;
+    v_plan RECORD;
+    v_existing_invoice RECORD;
+    v_invoice_id BIGINT;
+    v_invoice_number TEXT;
+    v_month_start DATE;
+    v_due_date TIMESTAMPTZ;
+    v_subtotal NUMERIC(12,2);
+    v_tax_amount NUMERIC(12,2);
+    v_total_amount NUMERIC(12,2);
+    v_vat_rate NUMERIC(5,2);
+    v_currency TEXT;
+    v_invoice_status TEXT;
+    v_is_pause_month BOOLEAN;
+    v_has_prepaid_credit BOOLEAN;
+BEGIN
+    -- S'assurer que target_month est le premier jour du mois
+    v_month_start := date_trunc('month', target_month)::DATE;
+    v_due_date := (v_month_start + INTERVAL '10 days')::TIMESTAMPTZ;
+
+    -- Parcourir tous les abonnements actifs ou en pause
+    FOR v_subscription IN
+        SELECT 
+            os.id,
+            os.id_profil_organisateur,
+            os.statut,
+            os.mois_prepayes_restants,
+            os.mis_en_pause_le,
+            os.repris_le,
+            op.id_utilisateur,
+            os.id_plan
+        FROM abonnements_organisateurs os
+        INNER JOIN profils_organisateurs op ON op.id = os.id_profil_organisateur
+        WHERE os.statut IN ('active', 'paused')
+            AND os.annule_le IS NULL
+    LOOP
+        -- Récupérer les informations du plan (incluant le niveau/type d'offre)
+        SELECT 
+            sp.id,
+            sp.code,
+            sp.nom,
+            sp.niveau,
+            sp.prix,
+            sp.taux_tva,
+            sp.devise,
+            sp.periode_facturation,
+            sp.nombre_periodes
+        INTO v_plan
+        FROM plans_abonnements sp
+        WHERE sp.id = v_subscription.id_plan
+            AND sp.est_actif = true;
+
+        IF NOT FOUND THEN
+            -- Plan introuvable ou inactif, passer à l'abonnement suivant
+            CONTINUE;
+        END IF;
+
+        -- Vérifier que le niveau du plan est valide
+        IF v_plan.niveau NOT IN ('basic', 'pro', 'enterprise') THEN
+            -- Niveau invalide, passer à l'abonnement suivant
+            CONTINUE;
+        END IF;
+
+        v_vat_rate := COALESCE(v_plan.taux_tva, 20);
+        v_currency := COALESCE(v_plan.devise, 'MGA');
+
+        -- Vérifier si une facture existe déjà pour ce mois et cet abonnement
+        SELECT id, numero_facture, statut, est_prepayee
+        INTO v_existing_invoice
+        FROM factures_abonnements
+        WHERE id_abonnement = v_subscription.id
+            AND mois_facturation = v_month_start;
+
+        -- Si la facture existe déjà et que l'abonnement est actif, ne pas générer
+        IF v_existing_invoice IS NOT NULL AND v_subscription.statut = 'active' THEN
+            RETURN QUERY SELECT 
+                v_subscription.id::BIGINT,
+                v_existing_invoice.id::BIGINT,
+                v_existing_invoice.numero_facture,
+                v_existing_invoice.statut,
+                0::NUMERIC(12,2),
+                'skipped'::TEXT;
+            CONTINUE;
+        END IF;
+
+        -- Déterminer si c'est un mois en pause
+        v_is_pause_month := (v_subscription.statut = 'paused') 
+            OR (v_subscription.mis_en_pause_le IS NOT NULL 
+                AND v_subscription.mis_en_pause_le <= v_month_start 
+                AND (v_subscription.repris_le IS NULL OR v_subscription.repris_le > v_month_start));
+
+        -- Vérifier si l'organisateur a du crédit prépayé
+        v_has_prepaid_credit := (v_subscription.mois_prepayes_restants > 0);
+
+        -- Si période prépayée et facture existe déjà, reporter le mois (ne pas générer)
+        IF v_has_prepaid_credit AND v_existing_invoice IS NOT NULL AND v_existing_invoice.est_prepayee THEN
+            RETURN QUERY SELECT 
+                v_subscription.id::BIGINT,
+                v_existing_invoice.id::BIGINT,
+                v_existing_invoice.numero_facture,
+                v_existing_invoice.statut,
+                0::NUMERIC(12,2),
+                'deferred'::TEXT;
+            CONTINUE;
+        END IF;
+
+        -- Calculer les montants
+        IF v_is_pause_month THEN
+            -- Facture en pause : montant à 0
+            v_subtotal := 0;
+            v_tax_amount := 0;
+            v_total_amount := 0;
+            v_invoice_status := 'pending'; -- Statut pour facture suspendue (en pause)
+        ELSE
+            -- Facture normale - calcul selon le type d'offre et la période de facturation
+            IF v_plan.periode_facturation = 'yearly' THEN
+                -- Pour un abonnement annuel, diviser le prix par 12
+                v_subtotal := v_plan.prix / 12;
+            ELSIF v_plan.periode_facturation = 'quarterly' THEN
+                -- Pour un abonnement trimestriel, diviser le prix par 3
+                v_subtotal := v_plan.prix / 3;
+            ELSE
+                -- Abonnement mensuel : prix mensuel
+                v_subtotal := v_plan.prix;
+            END IF;
+            
+            v_tax_amount := v_subtotal * (v_vat_rate / 100);
+            v_total_amount := v_subtotal + v_tax_amount;
+            
+            -- Si crédit prépayé disponible, utiliser le crédit (statut pending)
+            IF v_has_prepaid_credit THEN
+                v_invoice_status := 'pending'; -- Facture prépayée en attente de consommation
+            ELSE
+                v_invoice_status := 'issued'; -- Facture normale émise
+            END IF;
+        END IF;
+
+        -- Générer le numéro de facture
+        v_invoice_number := LPAD(nextval('sequence_numero_facture')::text, 8, '0');
+
+        -- Insérer la facture
+        INSERT INTO factures_abonnements (
+            numero_facture,
+            id_abonnement,
+            id_client,
+            devise,
+            montant_sous_total,
+            montant_tva,
+            montant_total,
+            montant_ht,
+            montant_tva_detail,
+            montant_ttc,
+            mois_facturation,
+            est_mois_pause,
+            est_prepayee,
+            statut,
+            emise_le,
+            echeance_le,
+            metadonnees,
+            cree_le,
+            modifie_le
+        ) VALUES (
+            v_invoice_number,
+            v_subscription.id,
+            v_subscription.id_utilisateur,
+            v_currency,
+            v_subtotal,
+            v_tax_amount,
+            v_total_amount,
+            v_subtotal,
+            v_tax_amount,
+            v_total_amount,
+            v_month_start,
+            v_is_pause_month,
+            v_has_prepaid_credit,
+            v_invoice_status,
+            v_month_start::TIMESTAMPTZ,
+            v_due_date,
+            jsonb_build_object(
+                'auto_generated', true,
+                'month', EXTRACT(MONTH FROM v_month_start),
+                'year', EXTRACT(YEAR FROM v_month_start),
+                'billing_period', v_plan.periode_facturation,
+                'plan_level', v_plan.niveau,
+                'plan_code', v_plan.code,
+                'plan_name', v_plan.nom,
+                'subscription_status', v_subscription.statut
+            ),
+            now(),
+            now()
+        ) RETURNING id INTO v_invoice_id;
+
+        -- Si crédit prépayé utilisé, décrémenter le crédit
+        IF v_has_prepaid_credit AND NOT v_is_pause_month THEN
+            UPDATE abonnements_organisateurs
+            SET mois_prepayes_restants = GREATEST(0, mois_prepayes_restants - 1),
+                modifie_le = now()
+            WHERE id = v_subscription.id;
+        END IF;
+
+        -- Retourner le résultat
+        RETURN QUERY SELECT 
+            v_subscription.id::BIGINT,
+            v_invoice_id::BIGINT,
+            v_invoice_number::TEXT,
+            v_invoice_status::TEXT,
+            v_total_amount::NUMERIC(12,2),
+            CASE 
+                WHEN v_is_pause_month THEN 'created_pause'::TEXT
+                WHEN v_has_prepaid_credit THEN 'created_prepaid'::TEXT
+                ELSE 'created'::TEXT
+            END;
+    END LOOP;
+
+    RETURN;
+END;
+$$ LANGUAGE plpgsql;
+
+COMMENT ON FUNCTION generate_monthly_subscription_invoices(DATE) IS
+    'Génère automatiquement les factures mensuelles pour tous les abonnements actifs ou en pause.
+    - Si actif : facture avec statut "issued", échéance 10 jours après le 1er du mois
+    - Si en pause : facture à 0 Ar avec statut "pending"
+    - Vérifie l''existence d''une facture pour éviter les doublons
+    - Gère les crédits prépayés : mois reportés sans remboursement
+    - À exécuter le 1er jour de chaque mois';
+
+-- ------------------------------------------------------------
+-- 5. Fonction pour mettre à jour le statut des factures en retard
+-- ------------------------------------------------------------
+CREATE OR REPLACE FUNCTION update_overdue_invoices_status() 
+RETURNS TABLE(
+    invoice_id BIGINT,
+    invoice_number TEXT,
+    old_status TEXT,
+    new_status TEXT,
+    days_overdue INTEGER
+) AS $$
+DECLARE
+    v_invoice RECORD;
+    v_current_date DATE;
+    v_due_date DATE;
+    v_days_overdue INTEGER;
+BEGIN
+    v_current_date := CURRENT_DATE;
+
+    -- Parcourir toutes les factures émises non payées
+    FOR v_invoice IN
+        SELECT 
+            si.id,
+            si.numero_facture,
+            si.statut,
+            si.echeance_le,
+            si.mois_facturation
+        FROM factures_abonnements si
+        WHERE si.statut IN ('issued', 'draft')
+            AND si.payee_le IS NULL
+            AND si.echeance_le IS NOT NULL
+    LOOP
+        v_due_date := v_invoice.echeance_le::DATE;
+        
+        -- Vérifier si la date d'échéance est dépassée
+        IF v_current_date > v_due_date THEN
+            v_days_overdue := EXTRACT(DAY FROM (v_current_date - v_due_date))::INTEGER;
+            
+            -- Mettre à jour le statut en "overdue" (retard)
+            UPDATE factures_abonnements
+            SET statut = 'overdue',
+                modifie_le = now(),
+                metadonnees = COALESCE(metadonnees, '{}'::jsonb) || jsonb_build_object(
+                    'marked_overdue_at', now(),
+                    'days_overdue', v_days_overdue
+                )
+            WHERE id = v_invoice.id;
+
+            RETURN QUERY SELECT 
+                v_invoice.id::BIGINT,
+                v_invoice.numero_facture::TEXT,
+                v_invoice.statut::TEXT,
+                'overdue'::TEXT,
+                v_days_overdue::INTEGER;
+        END IF;
+    END LOOP;
+
+    RETURN;
+END;
+$$ LANGUAGE plpgsql;
+
+COMMENT ON FUNCTION update_overdue_invoices_status() IS
+    'Met à jour le statut des factures non payées après la date d''échéance (10 jours après le 1er du mois).
+    Change le statut de "issued" ou "draft" à "overdue" pour les factures en retard.
+    À exécuter quotidiennement après le 10ème jour du mois.';
+
 -- ============================================================
 -- fin du fichier
 -- ============================================================
@@ -412,5 +717,5 @@ COMMENT ON TRIGGER trg_tickets_record_stats ON billets IS
 -- ------------------------------------------------------------
 -- Vues matérialisées : 1
 -- Vues : 8
--- Fonctions : 4
+-- Fonctions : 6
 -- Triggers : 3

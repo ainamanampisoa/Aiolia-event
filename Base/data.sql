@@ -3,6 +3,7 @@
 --  Génération : 2025-11-11
 --  Objectif  : peupler la base avec un jeu d'essai riche
 --              (utilisateurs, organisateurs, abonnements, paiements)
+--              Dates basées sur l'année courante (2025) et le mois courant
 -- ============================================================
 
 \c aiolia_event;
@@ -10,30 +11,31 @@ SET search_path TO aiolia, public;
 
 BEGIN;
 
--- Réinitialisation des tables clés (cascade pour respecter les FK)
-TRUNCATE TABLE
-    historique_paiements_abonnements,
-    paiements_abonnements,
-    elements_factures_abonnements,
-    factures_abonnements,
-    abonnements_organisateurs,
-    profils_organisateurs,
-    plans_abonnements,
-    portefeuilles,
-    statistiques_evenements_utilisateurs,
-    profils_utilisateurs,
-    utilisateurs
-RESTART IDENTITY CASCADE;
-
--- Réinitialisation explicite de toutes les séquences (pour garantir la réinitialisation)
+-- Variables pour le mois et l'année courants
 DO $$
 DECLARE
-    seq_record RECORD;
+    current_year INTEGER := EXTRACT(YEAR FROM CURRENT_DATE);
+    current_month INTEGER := EXTRACT(MONTH FROM CURRENT_DATE);
+    current_date_val DATE := CURRENT_DATE;
 BEGIN
-    -- Réinitialiser la séquence des numéros de facture
+    -- Réinitialisation des tables clés (cascade pour respecter les FK)
+    TRUNCATE TABLE
+        historique_paiements_abonnements,
+        paiements_abonnements,
+        elements_factures_abonnements,
+        factures_abonnements,
+        abonnements_organisateurs,
+        profils_organisateurs,
+        plans_abonnements,
+        portefeuilles,
+        statistiques_evenements_utilisateurs,
+        profils_utilisateurs,
+        utilisateurs
+    RESTART IDENTITY CASCADE;
+
+    -- Réinitialisation explicite de toutes les séquences
     PERFORM setval('sequence_numero_facture', 100000, false);
     
-    -- Réinitialiser toutes les séquences IDENTITY des tables principales
     FOR seq_record IN 
         SELECT schemaname, sequencename 
         FROM pg_sequences 
@@ -46,10 +48,9 @@ BEGIN
 END $$;
 
 -- ------------------------------------------------------------
--- 1. Utilisateurs (30 comptes : 10 organisateurs, 15 utilisateurs, 5 admins)
---    - 5 organisateurs actifs
---    - 5 organisateurs non validés utilisant les adresses indiquées
+-- 1. Utilisateurs (60 organisateurs + 15 utilisateurs + 5 admins = 80)
 -- ------------------------------------------------------------
+-- Génération des 60 organisateurs avec leurs profils
 INSERT INTO utilisateurs (
     id,
     email,
@@ -69,41 +70,114 @@ INSERT INTO utilisateurs (
     termes_acceptes_le,
     cree_le,
     modifie_le
-) VALUES
-    -- Organisateurs actifs
-    (1, 'organisateur1@yopmail.com', 'organisateur1@yopmail.com', 'password', crypt('Org#Actif123', gen_salt('bf', 12)), 'OrgActif', 'Rafal', '+261320000001', 'MG', 'fr-FR', 'Indian/Antananarivo', 'organizer', 1, TRUE, TRUE, '2024-01-10', '2024-01-10', '2025-02-01'),
-    (2, 'organisateur2@yopmail.com', 'organisateur2@yopmail.com', 'password', crypt('Org#Actif123', gen_salt('bf', 12)), 'OrgActif', 'Miora', '+261320000002', 'MG', 'fr-FR', 'Indian/Antananarivo', 'organizer', 1, TRUE, TRUE, '2024-02-15', '2024-02-15', '2025-02-01'),
-    (3, 'organisateur3@yopmail.com', 'organisateur3@yopmail.com', 'password', crypt('Org#Actif123', gen_salt('bf', 12)), 'OrgActif', 'Santatra', '+261320000003', 'MG', 'fr-FR', 'Indian/Antananarivo', 'organizer', 1, TRUE, TRUE, '2024-03-05', '2024-03-05', '2025-02-01'),
-    (4, 'organisateur4@yopmail.com', 'organisateur4@yopmail.com', 'password', crypt('Org#Actif123', gen_salt('bf', 12)), 'OrgActif', 'Tahina', '+261320000004', 'MG', 'fr-FR', 'Indian/Antananarivo', 'organizer', 1, TRUE, TRUE, '2024-04-12', '2024-04-12', '2025-02-01'),
-    (5, 'organisateur5@yopmail.com', 'organisateur5@yopmail.com', 'password', crypt('Org#Actif123', gen_salt('bf', 12)), 'OrgActif', 'Feno', '+261320000005', 'MG', 'fr-FR', 'Indian/Antananarivo', 'organizer', 1, TRUE, TRUE, '2024-05-08', '2024-05-08', '2025-02-01'),
-    -- Organisateurs non validés (adresses imposées)
-    (6, 'valeafifaliana+org1@yopmail.com', 'valeafifaliana+org1@yopmail.com', 'password', crypt('Org#Pending123', gen_salt('bf', 12)), 'OrgPending', 'Anja', '+261320000006', 'MG', 'fr-FR', 'Indian/Antananarivo', 'organizer', 0, FALSE, FALSE, NULL, '2024-06-01', '2025-02-01'),
-    (7, 'valeafifaliana+org2@yopmail.com', 'valeafifaliana+org2@yopmail.com', 'password', crypt('Org#Pending123', gen_salt('bf', 12)), 'OrgPending', 'Lova', '+261320000007', 'MG', 'fr-FR', 'Indian/Antananarivo', 'organizer', 0, FALSE, FALSE, NULL, '2024-06-15', '2025-02-01'),
-    (8, 'valeafifaliana+org3@yopmail.com', 'valeafifaliana+org3@yopmail.com', 'password', crypt('Org#Pending123', gen_salt('bf', 12)), 'OrgPending', 'Hery', '+261320000008', 'MG', 'fr-FR', 'Indian/Antananarivo', 'organizer', 0, FALSE, FALSE, NULL, '2024-07-01', '2025-02-01'),
-    (9, 'malalavalea@gmail.com', 'malalavalea@gmail.com', 'password', crypt('Org#Pending123', gen_salt('bf', 12)), 'OrgPending', 'Irina', '+261320000009', 'MG', 'fr-FR', 'Indian/Antananarivo', 'organizer', 0, FALSE, FALSE, NULL, '2024-07-20', '2025-02-01'),
-    (10, 'malalavalea+org5@yopmail.com', 'malalavalea+org5@yopmail.com', 'password', crypt('Org#Pending123', gen_salt('bf', 12)), 'OrgPending', 'Josoa', '+261320000010', 'MG', 'fr-FR', 'Indian/Antananarivo', 'organizer', 0, FALSE, FALSE, NULL, '2024-08-05', '2025-02-01'),
-    -- Utilisateurs finaux (15 comptes)
-    (11, 'user01@yopmail.com', 'user01@yopmail.com', 'password', crypt('User#Test123', gen_salt('bf', 12)), 'Client', 'Un', '+261320000011', 'MG', 'fr-FR', 'Indian/Antananarivo', 'user', 1, TRUE, FALSE, '2024-02-01', '2024-02-01', '2025-02-01'),
-    (12, 'user02@yopmail.com', 'user02@yopmail.com', 'password', crypt('User#Test123', gen_salt('bf', 12)), 'Client', 'Deux', '+261320000012', 'MG', 'fr-FR', 'Indian/Antananarivo', 'user', 1, TRUE, FALSE, '2024-02-02', '2024-02-02', '2025-02-01'),
-    (13, 'user03@yopmail.com', 'user03@yopmail.com', 'password', crypt('User#Test123', gen_salt('bf', 12)), 'Client', 'Trois', '+261320000013', 'MG', 'fr-FR', 'Indian/Antananarivo', 'user', 1, TRUE, FALSE, '2024-02-03', '2024-02-03', '2025-02-01'),
-    (14, 'user04@yopmail.com', 'user04@yopmail.com', 'password', crypt('User#Test123', gen_salt('bf', 12)), 'Client', 'Quatre', '+261320000014', 'MG', 'fr-FR', 'Indian/Antananarivo', 'user', 1, TRUE, FALSE, '2024-02-04', '2024-02-04', '2025-02-01'),
-    (15, 'user05@yopmail.com', 'user05@yopmail.com', 'password', crypt('User#Test123', gen_salt('bf', 12)), 'Client', 'Cinq', '+261320000015', 'MG', 'fr-FR', 'Indian/Antananarivo', 'user', 1, TRUE, FALSE, '2024-02-05', '2024-02-05', '2025-02-01'),
-    (16, 'user06@yopmail.com', 'user06@yopmail.com', 'password', crypt('User#Test123', gen_salt('bf', 12)), 'Client', 'Six', '+261320000016', 'MG', 'fr-FR', 'Indian/Antananarivo', 'user', 1, TRUE, FALSE, '2024-02-06', '2024-02-06', '2025-02-01'),
-    (17, 'user07@yopmail.com', 'user07@yopmail.com', 'password', crypt('User#Test123', gen_salt('bf', 12)), 'Client', 'Sept', '+261320000017', 'MG', 'fr-FR', 'Indian/Antananarivo', 'user', 1, TRUE, FALSE, '2024-02-07', '2024-02-07', '2025-02-01'),
-    (18, 'user08@yopmail.com', 'user08@yopmail.com', 'password', crypt('User#Test123', gen_salt('bf', 12)), 'Client', 'Huit', '+261320000018', 'MG', 'fr-FR', 'Indian/Antananarivo', 'user', 1, TRUE, FALSE, '2024-02-08', '2024-02-08', '2025-02-01'),
-    (19, 'user09@yopmail.com', 'user09@yopmail.com', 'password', crypt('User#Test123', gen_salt('bf', 12)), 'Client', 'Neuf', '+261320000019', 'MG', 'fr-FR', 'Indian/Antananarivo', 'user', 1, TRUE, FALSE, '2024-02-09', '2024-02-09', '2025-02-01'),
-    (20, 'user10@yopmail.com', 'user10@yopmail.com', 'password', crypt('User#Test123', gen_salt('bf', 12)), 'Client', 'Dix', '+261320000020', 'MG', 'fr-FR', 'Indian/Antananarivo', 'user', 1, TRUE, FALSE, '2024-02-10', '2024-02-10', '2025-02-01'),
-    (21, 'user11@yopmail.com', 'user11@yopmail.com', 'password', crypt('User#Test123', gen_salt('bf', 12)), 'Client', 'Onze', '+261320000021', 'MG', 'fr-FR', 'Indian/Antananarivo', 'user', 0, FALSE, FALSE, NULL, '2024-02-11', '2025-02-01'),
-    (22, 'user12@yopmail.com', 'user12@yopmail.com', 'password', crypt('User#Test123', gen_salt('bf', 12)), 'Client', 'Douze', '+261320000022', 'MG', 'fr-FR', 'Indian/Antananarivo', 'user', 0, FALSE, FALSE, NULL, '2024-02-12', '2025-02-01'),
-    (23, 'user13@yopmail.com', 'user13@yopmail.com', 'password', crypt('User#Test123', gen_salt('bf', 12)), 'Client', 'Treize', '+261320000023', 'MG', 'fr-FR', 'Indian/Antananarivo', 'user', 0, FALSE, FALSE, NULL, '2024-02-13', '2025-02-01'),
-    (24, 'user14@yopmail.com', 'user14@yopmail.com', 'password', crypt('User#Test123', gen_salt('bf', 12)), 'Client', 'Quatorze', '+261320000024', 'MG', 'fr-FR', 'Indian/Antananarivo', 'user', 1, TRUE, FALSE, '2024-02-14', '2024-02-14', '2025-02-01'),
-    (25, 'user15@yopmail.com', 'user15@yopmail.com', 'password', crypt('User#Test123', gen_salt('bf', 12)), 'Client', 'Quinze', '+261320000025', 'MG', 'fr-FR', 'Indian/Antananarivo', 'user', 1, TRUE, FALSE, '2024-02-15', '2024-02-15', '2025-02-01'),
-    -- Administrateurs (5 comptes)
-    (26, 'admin01@yopmail.com', 'admin01@yopmail.com', 'password', crypt('Admin#Test123', gen_salt('bf', 12)), 'Admin', 'Alpha', '+261320000026', 'MG', 'fr-FR', 'Indian/Antananarivo', 'admin', 1, TRUE, TRUE, '2024-01-05', '2024-01-05', '2025-02-01'),
-    (27, 'admin02@yopmail.com', 'admin02@yopmail.com', 'password', crypt('Admin#Test123', gen_salt('bf', 12)), 'Admin', 'Beta', '+261320000027', 'MG', 'fr-FR', 'Indian/Antananarivo', 'admin', 1, TRUE, TRUE, '2024-01-06', '2024-01-06', '2025-02-01'),
-    (28, 'admin03@yopmail.com', 'admin03@yopmail.com', 'password', crypt('Admin#Test123', gen_salt('bf', 12)), 'Admin', 'Gamma', '+261320000028', 'MG', 'fr-FR', 'Indian/Antananarivo', 'admin', 1, TRUE, TRUE, '2024-01-07', '2024-01-07', '2025-02-01'),
-    (29, 'admin04@yopmail.com', 'admin04@yopmail.com', 'password', crypt('Admin#Test123', gen_salt('bf', 12)), 'Admin', 'Delta', '+261320000029', 'MG', 'fr-FR', 'Indian/Antananarivo', 'admin', 1, TRUE, TRUE, '2024-01-08', '2024-01-08', '2025-02-01'),
-    (30, 'admin05@yopmail.com', 'admin05@yopmail.com', 'password', crypt('Admin#Test123', gen_salt('bf', 12)), 'Admin', 'Epsilon', '+261320000030', 'MG', 'fr-FR', 'Indian/Antananarivo', 'admin', 1, TRUE, TRUE, '2024-01-09', '2024-01-09', '2025-02-01');
+)
+SELECT
+    gs,
+    CONCAT('organisateur', LPAD(gs::text, 2, '0'), '@yopmail.com'),
+    CONCAT('organisateur', LPAD(gs::text, 2, '0'), '@yopmail.com'),
+    'password',
+    crypt('Org#Test123', gen_salt('bf', 12)),
+    CONCAT('Organisateur', LPAD(gs::text, 2, '0')),
+    CONCAT('Nom', LPAD(gs::text, 2, '0')),
+    CONCAT('+2613200', LPAD(gs::text, 5, '0')),
+    'MG',
+    'fr-FR',
+    'Indian/Antananarivo',
+    'organizer',
+    CASE 
+        WHEN gs <= 52 THEN 1  -- Validés (52 premiers)
+        ELSE 0                 -- Non validés (8 derniers)
+    END,
+    CASE WHEN gs <= 52 THEN TRUE ELSE FALSE END,
+    CASE WHEN gs <= 52 THEN TRUE ELSE FALSE END,
+    CASE WHEN gs <= 52 THEN CURRENT_DATE - INTERVAL '30 days' ELSE NULL END,
+    CURRENT_DATE - INTERVAL '60 days' + (gs * INTERVAL '1 day'),
+    CURRENT_DATE
+FROM generate_series(1, 60) AS gs;
+
+-- Utilisateurs finaux (15 comptes)
+INSERT INTO utilisateurs (
+    id,
+    email,
+    identifiant_connexion,
+    methode_connexion,
+    hash_mot_de_passe,
+    prenom,
+    nom,
+    telephone,
+    code_pays,
+    code_langue,
+    fuseau_horaire,
+    role,
+    statut,
+    email_verifie,
+    telephone_verifie,
+    termes_acceptes_le,
+    cree_le,
+    modifie_le
+)
+SELECT
+    60 + gs,
+    CONCAT('user', LPAD(gs::text, 2, '0'), '@yopmail.com'),
+    CONCAT('user', LPAD(gs::text, 2, '0'), '@yopmail.com'),
+    'password',
+    crypt('User#Test123', gen_salt('bf', 12)),
+    CONCAT('Client', LPAD(gs::text, 2, '0')),
+    CONCAT('Nom', LPAD(gs::text, 2, '0')),
+    CONCAT('+2613201', LPAD(gs::text, 4, '0')),
+    'MG',
+    'fr-FR',
+    'Indian/Antananarivo',
+    'user',
+    1,
+    TRUE,
+    FALSE,
+    CURRENT_DATE - INTERVAL '30 days',
+    CURRENT_DATE - INTERVAL '30 days' + (gs * INTERVAL '1 day'),
+    CURRENT_DATE
+FROM generate_series(1, 15) AS gs;
+
+-- Administrateurs (5 comptes)
+INSERT INTO utilisateurs (
+    id,
+    email,
+    identifiant_connexion,
+    methode_connexion,
+    hash_mot_de_passe,
+    prenom,
+    nom,
+    telephone,
+    code_pays,
+    code_langue,
+    fuseau_horaire,
+    role,
+    statut,
+    email_verifie,
+    telephone_verifie,
+    termes_acceptes_le,
+    cree_le,
+    modifie_le
+)
+SELECT
+    75 + gs,
+    CONCAT('admin', LPAD(gs::text, 2, '0'), '@yopmail.com'),
+    CONCAT('admin', LPAD(gs::text, 2, '0'), '@yopmail.com'),
+    'password',
+    crypt('Admin#Test123', gen_salt('bf', 12)),
+    CONCAT('Admin', LPAD(gs::text, 2, '0')),
+    CONCAT('Nom', LPAD(gs::text, 2, '0')),
+    CONCAT('+2613202', LPAD(gs::text, 4, '0')),
+    'MG',
+    'fr-FR',
+    'Indian/Antananarivo',
+    'admin',
+    1,
+    TRUE,
+    TRUE,
+    CURRENT_DATE - INTERVAL '90 days',
+    CURRENT_DATE - INTERVAL '90 days' + (gs * INTERVAL '1 day'),
+    CURRENT_DATE
+FROM generate_series(1, 5) AS gs;
 
 -- Profils utilisateurs enrichis
 INSERT INTO profils_utilisateurs (
@@ -119,8 +193,8 @@ INSERT INTO profils_utilisateurs (
 )
 SELECT
     u.id,
-    COALESCE(u.telephone, CONCAT('+2613201', LPAD(u.id::text, 4, '0'))),
-    COALESCE(u.code_pays, 'MG'),
+    u.telephone,
+    u.code_pays,
     u.code_langue,
     u.fuseau_horaire,
     CONCAT('https://cdn.aiolia.test/avatars/', u.id, '.png'),
@@ -145,8 +219,8 @@ SELECT
         WHEN u.role = 'organizer' THEN ARRAY['business']
         ELSE ARRAY['admin']
     END,
-    CASE WHEN u.role = 'user' THEN now() - (u.id % 5) * INTERVAL '10 days' ELSE NULL END,
-    now()
+    CASE WHEN u.role = 'user' THEN CURRENT_DATE - (u.id % 5) * INTERVAL '10 days' ELSE NULL END,
+    CURRENT_DATE
 FROM utilisateurs u;
 
 -- Comptes portefeuilles
@@ -160,14 +234,13 @@ SELECT
     END,
     CASE WHEN u.role = 'user' THEN u.id * 10 ELSE 0 END,
     'MGA',
-    now(),
-    now()
+    CURRENT_DATE,
+    CURRENT_DATE
 FROM utilisateurs u;
 
 -- ------------------------------------------------------------
--- 2. Plans d'abonnement (3 offres : Basic, Pro, Enterprise)
---    Les organisateurs peuvent choisir n'importe quelle offre
---    indépendamment de leur organization_type
+-- 2. Plans d'abonnement (9 offres : Basic, Pro, Enterprise × 3 périodes)
+--    SANS les plans "lifetime" (à vie)
 -- ------------------------------------------------------------
 INSERT INTO plans_abonnements (
     id,
@@ -187,21 +260,30 @@ INSERT INTO plans_abonnements (
     cree_le,
     modifie_le
 ) VALUES
-    (1, 'BASIC', 'Plan Basic', 'Offre de base pour démarrer vos événements', 'basic', 'monthly', 1, 'MGA', 150000, 20, '{"events_limit":3,"support":"email","features":["gestion_evenements","tableau_bord"]}', 1, FALSE, TRUE, '2024-01-01', '2025-02-01'),
-    (2, 'PRO', 'Plan Pro', 'Offre professionnelle avec fonctionnalités avancées', 'pro', 'monthly', 1, 'MGA', 350000, 20, '{"events_limit":15,"support":"chat","features":["gestion_evenements","tableau_bord","statistiques_avancees","support_prioritaire"]}', 2, TRUE, TRUE, '2024-01-01', '2025-02-01'),
-    (3, 'ENTERPRISE', 'Plan Enterprise', 'Offre entreprise avec toutes les fonctionnalités', 'enterprise', 'monthly', 1, 'MGA', 600000, 20, '{"events_limit":-1,"support":"phone","features":["gestion_evenements","tableau_bord","statistiques_avancees","support_prioritaire","api_access","white_label"]}', 3, FALSE, TRUE, '2024-01-01', '2025-02-01');
+    -- BASIC - Mensuel
+    (1, 'BASIC_MONTHLY', 'Plan Basic Mensuel', 'Offre de base pour démarrer vos événements - Facturation mensuelle', 'basic', 'monthly', 1, 'MGA', 150000, 20, '{"events_limit":3,"support":"email","features":["gestion_evenements","tableau_bord"]}', 1, FALSE, TRUE, CURRENT_DATE - INTERVAL '365 days', CURRENT_DATE),
+    -- BASIC - Trimestriel
+    (2, 'BASIC_QUARTERLY', 'Plan Basic Trimestriel', 'Offre de base - Facturation trimestrielle avec réduction', 'basic', 'quarterly', 1, 'MGA', 420000, 20, '{"events_limit":3,"support":"email","features":["gestion_evenements","tableau_bord"],"discount":"6.7%"}', 2, FALSE, TRUE, CURRENT_DATE - INTERVAL '365 days', CURRENT_DATE),
+    -- BASIC - Annuel
+    (3, 'BASIC_YEARLY', 'Plan Basic Annuel', 'Offre de base - Facturation annuelle avec réduction', 'basic', 'yearly', 1, 'MGA', 1620000, 20, '{"events_limit":3,"support":"email","features":["gestion_evenements","tableau_bord"],"discount":"10%"}', 3, FALSE, TRUE, CURRENT_DATE - INTERVAL '365 days', CURRENT_DATE),
+    
+    -- PRO - Mensuel
+    (4, 'PRO_MONTHLY', 'Plan Pro Mensuel', 'Offre professionnelle avec fonctionnalités avancées - Facturation mensuelle', 'pro', 'monthly', 1, 'MGA', 350000, 20, '{"events_limit":15,"support":"chat","features":["gestion_evenements","tableau_bord","statistiques_avancees","support_prioritaire"]}', 4, TRUE, TRUE, CURRENT_DATE - INTERVAL '365 days', CURRENT_DATE),
+    -- PRO - Trimestriel
+    (5, 'PRO_QUARTERLY', 'Plan Pro Trimestriel', 'Offre professionnelle - Facturation trimestrielle avec réduction', 'pro', 'quarterly', 1, 'MGA', 980000, 20, '{"events_limit":15,"support":"chat","features":["gestion_evenements","tableau_bord","statistiques_avancees","support_prioritaire"],"discount":"6.7%"}', 5, FALSE, TRUE, CURRENT_DATE - INTERVAL '365 days', CURRENT_DATE),
+    -- PRO - Annuel
+    (6, 'PRO_YEARLY', 'Plan Pro Annuel', 'Offre professionnelle - Facturation annuelle avec réduction', 'pro', 'yearly', 1, 'MGA', 3780000, 20, '{"events_limit":15,"support":"chat","features":["gestion_evenements","tableau_bord","statistiques_avancees","support_prioritaire"],"discount":"10%"}', 6, FALSE, TRUE, CURRENT_DATE - INTERVAL '365 days', CURRENT_DATE),
+    
+    -- ENTERPRISE - Mensuel
+    (7, 'ENTERPRISE_MONTHLY', 'Plan Enterprise Mensuel', 'Offre entreprise avec toutes les fonctionnalités - Facturation mensuelle', 'enterprise', 'monthly', 1, 'MGA', 600000, 20, '{"events_limit":-1,"support":"phone","features":["gestion_evenements","tableau_bord","statistiques_avancees","support_prioritaire","api_access","white_label"]}', 7, FALSE, TRUE, CURRENT_DATE - INTERVAL '365 days', CURRENT_DATE),
+    -- ENTERPRISE - Trimestriel
+    (8, 'ENTERPRISE_QUARTERLY', 'Plan Enterprise Trimestriel', 'Offre entreprise - Facturation trimestrielle avec réduction', 'enterprise', 'quarterly', 1, 'MGA', 1680000, 20, '{"events_limit":-1,"support":"phone","features":["gestion_evenements","tableau_bord","statistiques_avancees","support_prioritaire","api_access","white_label"],"discount":"6.7%"}', 8, FALSE, TRUE, CURRENT_DATE - INTERVAL '365 days', CURRENT_DATE),
+    -- ENTERPRISE - Annuel
+    (9, 'ENTERPRISE_YEARLY', 'Plan Enterprise Annuel', 'Offre entreprise - Facturation annuelle avec réduction', 'enterprise', 'yearly', 1, 'MGA', 6480000, 20, '{"events_limit":-1,"support":"phone","features":["gestion_evenements","tableau_bord","statistiques_avancees","support_prioritaire","api_access","white_label"],"discount":"10%"}', 9, FALSE, TRUE, CURRENT_DATE - INTERVAL '365 days', CURRENT_DATE);
 
 -- ------------------------------------------------------------
--- 3. Profils organisateurs & abonnements
+-- 3. Profils organisateurs (60 organisateurs)
 -- ------------------------------------------------------------
-WITH organizer_base AS (
-    SELECT
-        u.id AS user_id,
-        ROW_NUMBER() OVER (ORDER BY u.id) AS rn,
-        u.statut
-    FROM utilisateurs u
-    WHERE u.role = 'organizer'
-)
 INSERT INTO profils_organisateurs (
     id_utilisateur,
     nom_affichage,
@@ -220,454 +302,300 @@ INSERT INTO profils_organisateurs (
     modifie_le
 )
 SELECT
-    ob.user_id,
-    CONCAT('Organisateur ', LPAD(ob.rn::text, 2, '0')),
-    CONCAT('AIOLIA ORG ', LPAD(ob.rn::text, 2, '0')),
-    CONCAT('TIN-', 100000 + ob.rn),
+    u.id,
+    CONCAT('Organisateur ', LPAD(u.id::text, 2, '0')),
+    CONCAT('AIOLIA ORG ', LPAD(u.id::text, 2, '0')),
+    CONCAT('TIN-', 100000 + u.id),
     u.email,
     u.telephone,
-    CONCAT('https://organizer', LPAD(ob.rn::text, 2, '0'), '.aiolia.test'),
-    CONCAT('Biographie de démonstration pour organisateur ', ob.rn),
+    CONCAT('https://organizer', LPAD(u.id::text, 2, '0'), '.aiolia.test'),
+    CONCAT('Biographie de démonstration pour organisateur ', u.id),
     CASE 
-        WHEN ob.rn <= 3 THEN 'company'::organizer_type_enum
-        WHEN ob.rn <= 6 THEN 'individual'::organizer_type_enum
-        WHEN ob.rn <= 8 THEN 'non_profit'::organizer_type_enum
+        WHEN u.id % 4 = 1 THEN 'company'::organizer_type_enum
+        WHEN u.id % 4 = 2 THEN 'individual'::organizer_type_enum
+        WHEN u.id % 4 = 3 THEN 'non_profit'::organizer_type_enum
         ELSE 'collective'::organizer_type_enum
     END,
-    CONCAT('RC-', 52000 + ob.rn),
-    CASE WHEN ob.rn <= 4 THEN '50-100' ELSE '1-10' END,
+    CONCAT('RC-', 52000 + u.id),
+    CASE WHEN u.id % 2 = 0 THEN '50-100' ELSE '1-10' END,
     CASE
-        WHEN ob.rn <= 5 THEN 'verified'
-        WHEN ob.rn = 6 THEN 'pending'
-        WHEN ob.rn = 7 THEN 'pending'
-        WHEN ob.rn = 8 THEN 'rejected'
-        ELSE 'pending'
+        WHEN u.id <= 52 THEN 'verified'  -- 52 organisateurs validés
+        ELSE 'pending'                    -- 8 organisateurs non validés
     END,
-    CASE WHEN ob.rn <= 5 THEN now() - INTERVAL '120 days' ELSE NULL END,
-    now() - INTERVAL '200 days',
-    now()
-FROM organizer_base ob
-JOIN utilisateurs u ON u.id = ob.user_id;
+    CASE WHEN u.id <= 52 THEN CURRENT_DATE - INTERVAL '120 days' ELSE NULL END,
+    CURRENT_DATE - INTERVAL '200 days',
+    CURRENT_DATE
+FROM utilisateurs u
+WHERE u.role = 'organizer';
 
--- Abonnements des organisateurs (un abonnement par organisateur)
--- Scénarios avec tous les statuts de facture :
--- - Organisateurs 1-3 : Abonnement annuel complet (12 mois payés = 'paid')
--- - Organisateurs 4-5 : Abonnement avec pauses (certains mois non payés)
--- - Organisateur 6 : Paiements en retard (statut 'overdue' puis 'paid')
--- - Organisateur 7 : Factures remboursées (statut 'refunded')
--- - Organisateur 8 : Factures annulées (statut 'void')
--- - Organisateur 9 : Factures en attente (statut 'issued')
--- - Organisateur 10 : Factures brouillon (statut 'draft')
-WITH organizer_ranked AS (
+-- ------------------------------------------------------------
+-- 4. Abonnements organisateurs avec différents scénarios
+-- ------------------------------------------------------------
+-- Scénarios :
+-- 1-10 : Basic (10 organisateurs)
+-- 11-25 : Changent parfois leurs offres (15 organisateurs)
+-- 26-45 : Respectent les dates d'échéance (20 organisateurs)
+-- 46-52 : Presque en retard (7 organisateurs)
+-- 53-60 : Non validés (8 organisateurs) - pas d'abonnement actif
+
+WITH organizer_scenarios AS (
     SELECT
         op.id AS organizer_profile_id,
         op.id_utilisateur,
-        op.type_organisation,
-        ROW_NUMBER() OVER (ORDER BY op.id) AS rn
+        CASE
+            -- 1-10 : Basic
+            WHEN op.id <= 10 THEN 1  -- Basic Mensuel
+            -- 11-25 : Changent parfois leurs offres (mélange)
+            WHEN op.id BETWEEN 11 AND 15 THEN 1  -- Basic
+            WHEN op.id BETWEEN 16 AND 20 THEN 4  -- Pro
+            WHEN op.id BETWEEN 21 AND 25 THEN 7  -- Enterprise
+            -- 26-45 : Respectent les dates (mélange)
+            WHEN op.id BETWEEN 26 AND 30 THEN 1  -- Basic
+            WHEN op.id BETWEEN 31 AND 35 THEN 4  -- Pro
+            WHEN op.id BETWEEN 36 AND 40 THEN 7  -- Enterprise
+            WHEN op.id BETWEEN 41 AND 45 THEN 3  -- Basic Annuel
+            -- 46-52 : Presque en retard (mélange)
+            WHEN op.id BETWEEN 46 AND 48 THEN 1  -- Basic
+            WHEN op.id BETWEEN 49 AND 50 THEN 4  -- Pro
+            WHEN op.id BETWEEN 51 AND 52 THEN 7  -- Enterprise
+            ELSE NULL  -- 53-60 : Pas d'abonnement
+        END AS plan_id,
+        CASE
+            WHEN op.id <= 10 THEN 'basic_fixed'
+            WHEN op.id BETWEEN 11 AND 25 THEN 'changes_offers'
+            WHEN op.id BETWEEN 26 AND 45 THEN 'respects_deadlines'
+            WHEN op.id BETWEEN 46 AND 52 THEN 'almost_late'
+            ELSE NULL
+        END AS scenario_type
     FROM profils_organisateurs op
+    WHERE op.id <= 52  -- Seulement les 52 validés ont des abonnements
 )
 INSERT INTO abonnements_organisateurs (
     id_profil_organisateur,
     id_plan,
     statut,
+    mois_prepayes_restants,
     commence_le,
     debut_periode_courante,
     fin_periode_courante,
     renouvellement_le,
     annuler_a_la_fin_periode,
     annule_le,
+    mis_en_pause_le,
+    repris_le,
     metadonnees,
     cree_le,
     modifie_le
 )
 SELECT
-    orr.organizer_profile_id,
-    -- Distribution libre des plans : mélange des 3 offres
-    CASE 
-        WHEN orr.rn % 3 = 1 THEN 1  -- Plan Basic
-        WHEN orr.rn % 3 = 2 THEN 2  -- Plan Pro (le plus populaire)
-        ELSE 3                       -- Plan Enterprise
+    os.organizer_profile_id,
+    os.plan_id,
+    CASE
+        -- Scénarios avec pauses
+        WHEN os.scenario_type = 'changes_offers' AND os.organizer_profile_id BETWEEN 21 AND 25 THEN 'paused'::subscription_status_enum
+        ELSE 'active'::subscription_status_enum
     END,
     CASE
-        WHEN orr.rn <= 3 THEN 'active'::subscription_status_enum  -- Abonnements annuels actifs
-        WHEN orr.rn <= 5 THEN 'active'::subscription_status_enum  -- Abonnements avec pauses mais actifs
-        WHEN orr.rn = 6 THEN 'past_due'::subscription_status_enum  -- Paiements en retard presque tous les mois
-        WHEN orr.rn = 7 THEN 'active'::subscription_status_enum  -- Paiements en retard + remboursements
-        WHEN orr.rn = 8 THEN 'suspended'::subscription_status_enum  -- Suspendu
-        WHEN orr.rn = 9 THEN 'pending'::subscription_status_enum  -- En attente
-        ELSE 'cancelled'::subscription_status_enum
+        -- 4 mois en avance sans payer
+        WHEN os.organizer_profile_id BETWEEN 11 AND 15 THEN 4
+        -- 7 mois en avance avec pauses
+        WHEN os.organizer_profile_id BETWEEN 21 AND 25 THEN 7
+        ELSE 0
     END,
-    -- Date de début : il y a 12 mois pour les abonnements annuels
-    date_trunc('month', now() - INTERVAL '12 months'),
-    date_trunc('month', now()),
-    date_trunc('month', now()) + INTERVAL '1 month' - INTERVAL '1 day',
-    date_trunc('month', now() + INTERVAL '1 month'),
-    (orr.rn >= 9),
-    CASE WHEN orr.rn = 10 THEN now() - INTERVAL '30 days' ELSE NULL END,
+    CASE
+        -- Abonnements annuels commencés en début d'année
+        WHEN os.plan_id IN (3, 6, 9) THEN DATE_TRUNC('year', CURRENT_DATE)
+        ELSE CURRENT_DATE - INTERVAL '6 months'
+    END,
+    DATE_TRUNC('month', CURRENT_DATE),
+    DATE_TRUNC('month', CURRENT_DATE) + INTERVAL '1 month' - INTERVAL '1 day',
+    DATE_TRUNC('month', CURRENT_DATE) + INTERVAL '1 month',
+    FALSE,
+    NULL,
+    CASE
+        -- Pauses pour novembre et décembre (organisateurs 21-25)
+        WHEN os.organizer_profile_id BETWEEN 21 AND 25 THEN CURRENT_DATE - INTERVAL '15 days'
+        ELSE NULL
+    END,
+    CASE
+        -- Reprise après décembre
+        WHEN os.organizer_profile_id BETWEEN 21 AND 25 THEN DATE_TRUNC('year', CURRENT_DATE) + INTERVAL '1 year'
+        ELSE NULL
+    END,
     jsonb_build_object(
-        'admin_note', CONCAT('Abonnement de test #', orr.rn),
-        'organization_type', orr.type_organisation,
-        'plan_chosen_freely', TRUE,
-        'subscription_type', CASE 
-            WHEN orr.rn <= 3 THEN 'annual'
-            WHEN orr.rn <= 5 THEN 'monthly_with_pauses'
-            WHEN orr.rn = 6 THEN 'monthly_late_payments'
-            WHEN orr.rn = 7 THEN 'monthly_with_refunds'
-            ELSE 'monthly'
-        END
+        'scenario_type', os.scenario_type,
+        'organizer_id', os.organizer_profile_id
     ),
-    date_trunc('month', now() - INTERVAL '12 months'),
-    now()
-FROM organizer_ranked orr;
+    CURRENT_DATE - INTERVAL '6 months',
+    CURRENT_DATE
+FROM organizer_scenarios os
+WHERE os.plan_id IS NOT NULL;
 
 -- ------------------------------------------------------------
--- 4. Factures, paiements et historiques
--- Scénarios avec TOUS les statuts de facture :
--- - Organisateurs 1-3 : 12 mois payés (statut 'paid')
--- - Organisateurs 4-5 : 12 mois avec pauses (certains mois non payés)
--- - Organisateur 6 : 12 mois avec statut 'overdue' puis 'paid' (en retard)
--- - Organisateur 7 : 12 mois avec statut 'refunded' (remboursés)
--- - Organisateur 8 : 12 mois avec statut 'void' (annulés)
--- - Organisateur 9 : 12 mois avec statut 'issued' (en attente)
--- - Organisateur 10 : 12 mois avec statut 'draft' (brouillon)
+-- 5. Factures d'abonnements selon les scénarios
 -- ------------------------------------------------------------
-WITH organizer_subscription_ranked AS (
+-- Scénarios de factures :
+-- 1. Organisateurs payés annuellement (basic, pro, enterprise) - IDs 41-45
+-- 2. Organisateurs payés 4 mois en avance sans payer - IDs 11-15
+-- 3. Organisateurs payés mois par mois - IDs 1-10, 26-40
+-- 4. Organisateurs payés 7 mois à l'avance avec pauses (novembre/décembre décalés) - IDs 21-25
+-- 5. Organisateurs dont le prochain paiement est l'année prochaine - IDs 41-45 (annuels)
+
+WITH subscription_plans AS (
     SELECT
         os.id AS subscription_id,
         os.id_profil_organisateur,
         os.id_plan,
+        os.statut,
+        os.mois_prepayes_restants,
+        os.mis_en_pause_le,
+        os.repris_le,
         op.id_utilisateur,
-        os.metadonnees->>'subscription_type' AS subscription_type,
-        ROW_NUMBER() OVER (ORDER BY os.id) AS org_rn
-    FROM abonnements_organisateurs os
-    JOIN profils_organisateurs op ON op.id = os.id_profil_organisateur
-),
-subscription_context AS (
-    SELECT
-        osr.subscription_id,
-        osr.id_profil_organisateur,
-        osr.id_plan,
-        osr.id_utilisateur,
         sp.prix,
         sp.taux_tva,
-        osr.subscription_type,
-        osr.org_rn
-    FROM organizer_subscription_ranked osr
-    JOIN plans_abonnements sp ON sp.id = osr.id_plan
-),
-invoice_source AS (
-    SELECT
-        sc.subscription_id,
-        sc.id_utilisateur AS customer_id,
-        sc.id_plan,
-        sc.prix,
-        sc.taux_tva,
-        sc.subscription_type,
-        sc.org_rn,
-        gs AS period_index,
-        date_trunc('month', now() - (12 - gs) * INTERVAL '1 month') AS issued_at,
-        -- Déterminer si le mois doit être payé ou non (pour les pauses)
+        sp.periode_facturation,
+        sp.niveau,
         CASE
-            -- Organisateurs 1-3 : tous les mois payés (abonnement annuel)
-            WHEN sc.org_rn <= 3 THEN TRUE
-            -- Organisateur 4 : pause aux mois 3, 6, 9 (ne paie pas ces mois)
-            WHEN sc.org_rn = 4 AND gs IN (3, 6, 9) THEN FALSE
-            -- Organisateur 5 : pause aux mois 2, 5, 8 (ne paie pas ces mois)
-            WHEN sc.org_rn = 5 AND gs IN (2, 5, 8) THEN FALSE
-            -- Autres : tous les mois payés
-            ELSE TRUE
-        END AS should_be_paid
-    FROM subscription_context sc
-    CROSS JOIN generate_series(1, 12) AS gs
-),
-invoice_rows AS (
-    INSERT INTO factures_abonnements (
-        id_abonnement,
-        id_client,
-        devise,
-        montant_sous_total,
-        montant_tva,
-        montant_total,
-        mois_facturation,
-        est_mois_pause,
-        est_prepayee,
-        statut,
-        emise_le,
-        echeance_le,
-        payee_le,
-        metadonnees,
-        cree_le,
-        modifie_le
-    )
-    SELECT
-        isrc.subscription_id,
-        isrc.customer_id,
-        'MGA',
-        ROUND(isrc.prix, 2),
-        ROUND(isrc.prix * isrc.taux_tva / 100, 2),
-        ROUND(isrc.prix * (1 + isrc.taux_tva / 100), 2),
-        date_trunc('month', isrc.issued_at)::DATE,
-        NOT isrc.should_be_paid,
-        FALSE,
-        CASE
-            -- Organisateurs 1-3 : tous les mois payés (statut 'paid')
-            WHEN isrc.org_rn <= 3 AND isrc.should_be_paid THEN 'paid'
-            -- Organisateurs 4-5 : mois payés normalement, mois de pause = non émis
-            WHEN isrc.org_rn BETWEEN 4 AND 5 AND isrc.should_be_paid THEN 
-                CASE 
-                    WHEN isrc.period_index <= 8 THEN 'paid'
-                    WHEN isrc.period_index = 9 THEN 'issued'
-                    ELSE 'overdue'
-                END
-            -- Organisateur 6 : statut 'overdue' (en retard) pour les premiers mois, puis 'paid'
-            WHEN isrc.org_rn = 6 THEN
-                CASE
-                    WHEN isrc.period_index <= 6 THEN 'overdue'  -- En retard
-                    WHEN isrc.period_index <= 10 THEN 'paid'  -- Payé après retard
-                    ELSE 'overdue'  -- Retour en retard
-                END
-            -- Organisateur 7 : statut 'refunded' (remboursé) pour certains mois
-            WHEN isrc.org_rn = 7 THEN
-                CASE
-                    WHEN isrc.period_index IN (2, 5, 8, 11) THEN 'refunded'  -- Mois remboursés
-                    WHEN isrc.period_index <= 6 THEN 'paid'  -- Mois payés
-                    ELSE 'issued'  -- En attente
-                END
-            -- Organisateur 8 : statut 'void' (annulé) pour certains mois
-            WHEN isrc.org_rn = 8 THEN
-                CASE
-                    WHEN isrc.period_index IN (3, 6, 9) THEN 'void'  -- Factures annulées
-                    WHEN isrc.period_index <= 5 THEN 'paid'  -- Mois payés
-                    WHEN isrc.period_index <= 8 THEN 'issued'  -- En attente
-                    ELSE 'overdue'  -- En retard
-                END
-            -- Organisateur 9 : statut 'issued' (en attente) pour tous les mois
-            WHEN isrc.org_rn = 9 THEN 'issued'
-            -- Organisateur 10 : statut 'draft' (brouillon) pour tous les mois
-            WHEN isrc.org_rn = 10 THEN 'draft'
-            ELSE 'overdue'
-        END,
-        isrc.issued_at,
-        -- Date d'échéance : 15 jours après l'émission (respect des dates d'échéance mensuelles)
-        isrc.issued_at + INTERVAL '15 days',
-        -- Date de paiement : selon le statut (NULL pour draft, issued, void, overdue non payé)
-        CASE
-            -- Organisateurs 1-3 : paiement rapide (3-5 jours après émission, AVANT échéance)
-            WHEN isrc.org_rn <= 3 AND isrc.should_be_paid THEN isrc.issued_at + INTERVAL '3 days' + (isrc.period_index % 3) * INTERVAL '1 day'
-            -- Organisateurs 4-5 : paiement normal pour les mois payés (AVANT échéance)
-            WHEN isrc.org_rn BETWEEN 4 AND 5 AND isrc.should_be_paid AND isrc.period_index <= 8 THEN isrc.issued_at + INTERVAL '5 days'
-            -- Organisateur 6 : paiements EN RETARD (5-20 jours APRÈS l'échéance) pour les mois payés
-            WHEN isrc.org_rn = 6 AND isrc.period_index BETWEEN 7 AND 10 THEN 
-                (isrc.issued_at + INTERVAL '15 days') + INTERVAL '5 days' + (isrc.period_index % 15) * INTERVAL '1 day'
-            -- Organisateur 7 : paiements pour les mois payés, puis remboursés
-            WHEN isrc.org_rn = 7 THEN
-                CASE
-                    WHEN isrc.period_index IN (2, 5, 8, 11) THEN 
-                        -- Paiement initial puis remboursement
-                        isrc.issued_at + INTERVAL '5 days'
-                    WHEN isrc.period_index <= 6 THEN 
-                        -- Paiements normaux
-                        isrc.issued_at + INTERVAL '5 days'
-                    ELSE NULL  -- En attente
-                END
-            -- Organisateur 8 : paiement pour les mois payés (pas pour void)
-            WHEN isrc.org_rn = 8 AND isrc.period_index <= 5 AND isrc.period_index NOT IN (3) THEN isrc.issued_at + INTERVAL '7 days'
-            -- Organisateur 9 : pas de paiement (tous en 'issued')
-            -- Organisateur 10 : pas de paiement (tous en 'draft')
+            WHEN op.id <= 10 THEN 'basic_fixed'
+            WHEN op.id BETWEEN 11 AND 15 THEN 'prepaid_4_months'
+            WHEN op.id BETWEEN 16 AND 20 THEN 'changes_offers'
+            WHEN op.id BETWEEN 21 AND 25 THEN 'prepaid_7_months_paused'
+            WHEN op.id BETWEEN 26 AND 45 THEN 'monthly_payment'
+            WHEN op.id BETWEEN 46 AND 52 THEN 'almost_late'
             ELSE NULL
-        END,
-        jsonb_build_object(
-            'period_index', isrc.period_index,
-            'subscription_type', isrc.subscription_type,
-            'month_name', to_char(isrc.issued_at, 'Month YYYY'),
-            'note', CASE 
-                WHEN NOT isrc.should_be_paid THEN 'Pause - mois non payé'
-                WHEN isrc.org_rn = 6 AND isrc.period_index <= 6 THEN 'Facture en retard - non payée'
-                WHEN isrc.org_rn = 6 THEN 'Paiement en retard - dépassement échéance'
-                WHEN isrc.org_rn = 7 AND isrc.period_index IN (2, 5, 8, 11) THEN 'Facture remboursée'
-                WHEN isrc.org_rn = 8 AND isrc.period_index IN (3, 6, 9) THEN 'Facture annulée'
-                WHEN isrc.org_rn = 9 THEN 'Facture en attente de paiement'
-                WHEN isrc.org_rn = 10 THEN 'Facture en brouillon'
-                ELSE 'Facture générée pour scénarios admin'
-            END,
-            'is_pause_month', NOT isrc.should_be_paid,
-            'is_late_payment', CASE 
-                WHEN isrc.org_rn = 6 AND isrc.period_index BETWEEN 7 AND 10 THEN TRUE
-                ELSE FALSE
-            END,
-            'days_late', CASE
-                WHEN isrc.org_rn = 6 AND isrc.period_index BETWEEN 7 AND 10 THEN 5 + (isrc.period_index % 15)
-                ELSE NULL
-            END,
-            'invoice_status_type', CASE
-                WHEN isrc.org_rn <= 3 THEN 'paid'
-                WHEN isrc.org_rn = 6 AND isrc.period_index <= 6 THEN 'overdue'
-                WHEN isrc.org_rn = 6 THEN 'paid_late'
-                WHEN isrc.org_rn = 7 AND isrc.period_index IN (2, 5, 8, 11) THEN 'refunded'
-                WHEN isrc.org_rn = 8 AND isrc.period_index IN (3, 6, 9) THEN 'void'
-                WHEN isrc.org_rn = 9 THEN 'issued'
-                WHEN isrc.org_rn = 10 THEN 'draft'
-                ELSE 'paid'
-            END
-        ),
-        isrc.issued_at,
-        isrc.issued_at + INTERVAL '1 hour'
-    FROM invoice_source isrc
-    WHERE isrc.should_be_paid = TRUE  -- Ne créer des factures que pour les mois qui doivent être payés
-    RETURNING
-        id,
-        id_abonnement,
-        id_client,
-        statut,
-        montant_total,
-        emise_le,
-        echeance_le,
-        payee_le,
-        metadonnees
+        END AS scenario_type
+    FROM abonnements_organisateurs os
+    JOIN profils_organisateurs op ON op.id = os.id_profil_organisateur
+    JOIN plans_abonnements sp ON sp.id = os.id_plan
 ),
-invoice_items AS (
-    INSERT INTO elements_factures_abonnements (
-        id_facture,
-        id_plan,
-        description,
-        quantite,
-        prix_unitaire,
-        montant_total,
-        metadonnees
-    )
+invoice_months AS (
     SELECT
-        ir.id,
-        sc.id_plan,
-        CONCAT('Abonnement plan #', sc.id_plan, ' - Période ', (ir.metadonnees ->> 'period_index')),
-        1,
-        sc.prix,
-        sc.prix,
-        jsonb_build_object('period_index', ir.metadonnees ->> 'period_index')
-    FROM invoice_rows ir
-    JOIN subscription_context sc ON sc.subscription_id = ir.id_abonnement
-    RETURNING id_facture
+        sp.subscription_id,
+        sp.id_profil_organisateur,
+        sp.id_plan,
+        sp.id_utilisateur,
+        sp.prix,
+        sp.taux_tva,
+        sp.periode_facturation,
+        sp.niveau,
+        sp.scenario_type,
+        sp.mois_prepayes_restants,
+        sp.mis_en_pause_le,
+        sp.repris_le,
+        gs AS month_offset,
+        DATE_TRUNC('month', CURRENT_DATE) - (gs * INTERVAL '1 month') AS billing_month
+    FROM subscription_plans sp
+    CROSS JOIN generate_series(0, 11) AS gs  -- 12 derniers mois
+    WHERE sp.scenario_type IS NOT NULL
 ),
-payment_rows AS (
-    INSERT INTO paiements_abonnements (
-        id_facture,
-        fournisseur,
-        reference_fournisseur,
-        statut,
-        montant,
-        devise,
-        paye_le,
-        metadonnees,
-        cree_le,
-        modifie_le
-    )
+invoice_calculations AS (
     SELECT
-        ir.id,
+        im.*,
         CASE
-            WHEN ir.statut = 'paid' THEN 'orange'
-            WHEN ir.statut = 'refunded' THEN 'orange'  -- Paiement initial via Orange
-            WHEN ir.statut = 'partially_paid' THEN 'bank_transfer'
-            ELSE 'telma'
-        END,
-        CONCAT('PAY-', ir.id),
+            WHEN im.periode_facturation = 'yearly' THEN im.prix / 12
+            WHEN im.periode_facturation = 'quarterly' THEN im.prix / 3
+            ELSE im.prix
+        END AS monthly_price,
+        -- Déterminer si le mois est en pause
         CASE
-            WHEN ir.statut = 'paid' THEN 'paid'::payment_status_enum
-            WHEN ir.statut = 'refunded' THEN 'refunded'::payment_status_enum  -- Statut remboursé
-            WHEN ir.statut = 'partially_paid' THEN 'processing'::payment_status_enum
-            ELSE 'processing'::payment_status_enum
-        END,
+            WHEN im.scenario_type = 'prepaid_7_months_paused' 
+                AND EXTRACT(MONTH FROM im.billing_month) IN (11, 12) THEN TRUE
+            ELSE FALSE
+        END AS is_pause_month,
+        -- Déterminer si la facture doit être prépayée
         CASE
-            WHEN ir.statut = 'paid' THEN ir.montant_total
-            WHEN ir.statut = 'refunded' THEN ir.montant_total  -- Montant initial avant remboursement
-            WHEN ir.statut = 'partially_paid' THEN ROUND(ir.montant_total * 0.6, 2)
-            ELSE ROUND(ir.montant_total * 0.1, 2)
-        END,
-        'MGA',
-        -- Utiliser la date de paiement de la facture si elle existe
-        COALESCE(ir.payee_le, 
-            CASE
-                WHEN ir.statut = 'paid' THEN ir.emise_le + INTERVAL '5 days'
-                WHEN ir.statut = 'refunded' THEN ir.emise_le + INTERVAL '5 days'  -- Date de paiement initial
-                WHEN ir.statut = 'partially_paid' THEN ir.emise_le + INTERVAL '25 days'
-                ELSE NULL
-            END
-        ),
-        jsonb_build_object(
-            'status_source', ir.statut,
-            'admin_comment', CASE
-                WHEN ir.statut = 'refunded' THEN 'Paiement remboursé'
-                WHEN (ir.metadonnees->>'is_late_payment')::boolean THEN 'Paiement en retard'
-                ELSE 'Paiement test'
-            END,
-            'due_date', ir.echeance_le,
-            'payment_delay_days', CASE 
-                WHEN ir.payee_le IS NOT NULL AND ir.echeance_le IS NOT NULL THEN 
-                    EXTRACT(DAY FROM (ir.payee_le - ir.echeance_le))
-                ELSE NULL
-            END,
-            'days_late', (ir.metadonnees->>'days_late')::integer,
-            'is_late_payment', (ir.metadonnees->>'is_late_payment')::boolean,
-            'refund_date', CASE 
-                WHEN ir.statut = 'refunded' THEN (ir.payee_le + INTERVAL '10 days')::text
-                ELSE NULL
-            END,
-            'refund_amount', CASE 
-                WHEN ir.statut = 'refunded' THEN ir.montant_total
-                ELSE NULL
-            END
-        ),
-        COALESCE(ir.payee_le, ir.emise_le) + INTERVAL '2 hours',
-        COALESCE(ir.payee_le, ir.emise_le) + INTERVAL '2 hours'
-    FROM invoice_rows ir
-    WHERE ir.statut IN ('paid', 'partially_paid', 'refunded') AND ir.payee_le IS NOT NULL
-    RETURNING
-        id,
-        id_facture,
-        statut,
-        metadonnees,
-        cree_le
+            WHEN im.scenario_type IN ('prepaid_4_months', 'prepaid_7_months_paused')
+                AND im.month_offset < im.mois_prepayes_restants THEN TRUE
+            ELSE FALSE
+        END AS is_prepaid,
+        -- Déterminer le statut de la facture
+        CASE
+            -- Annuels payés en début d'année
+            WHEN im.scenario_type = 'monthly_payment' 
+                AND im.periode_facturation = 'yearly'
+                AND im.month_offset <= 11 THEN 'paid'
+            -- 4 mois prépayés sans payer (statut pending)
+            WHEN im.scenario_type = 'prepaid_4_months'
+                AND im.month_offset < 4 THEN 'pending'
+            -- 7 mois prépayés avec pauses
+            WHEN im.scenario_type = 'prepaid_7_months_paused'
+                AND im.month_offset < 7
+                AND NOT (EXTRACT(MONTH FROM im.billing_month) IN (11, 12)) THEN 'pending'
+            -- Mois en pause
+            WHEN EXTRACT(MONTH FROM im.billing_month) IN (11, 12)
+                AND im.scenario_type = 'prepaid_7_months_paused' THEN 'pending'
+            -- Mois par mois payés
+            WHEN im.scenario_type IN ('basic_fixed', 'monthly_payment')
+                AND im.month_offset <= 5 THEN 'paid'
+            -- Presque en retard (statut issued, proche de l'échéance)
+            WHEN im.scenario_type = 'almost_late'
+                AND im.month_offset = 0 THEN 'issued'
+            WHEN im.scenario_type = 'almost_late'
+                AND im.month_offset <= 2 THEN 'overdue'
+            -- Mois futurs
+            WHEN im.month_offset = 0 THEN 'issued'
+            ELSE 'draft'
+        END AS invoice_status,
+        -- Date de paiement
+        CASE
+            WHEN im.scenario_type = 'monthly_payment' 
+                AND im.periode_facturation = 'yearly'
+                AND im.month_offset <= 11 THEN im.billing_month + INTERVAL '5 days'
+            WHEN im.scenario_type IN ('basic_fixed', 'monthly_payment')
+                AND im.month_offset <= 5 THEN im.billing_month + INTERVAL '5 days'
+            ELSE NULL
+        END AS paid_date
+    FROM invoice_months im
 )
-INSERT INTO historique_paiements_abonnements (
-    id_paiement,
-    statut_de,
-    statut_vers,
-    modifie_le,
-    metadonnees
+INSERT INTO factures_abonnements (
+    id_abonnement,
+    id_client,
+    devise,
+    montant_sous_total,
+    montant_tva,
+    montant_total,
+    montant_ht,
+    montant_tva_detail,
+    montant_ttc,
+    mois_facturation,
+    est_mois_pause,
+    est_prepayee,
+    statut,
+    emise_le,
+    echeance_le,
+    payee_le,
+    metadonnees,
+    cree_le,
+    modifie_le
 )
 SELECT
-    pr.id,
-    NULL::payment_status_enum,
-    'initiated'::payment_status_enum,
-    pr.cree_le - INTERVAL '2 hours',
-    jsonb_build_object('detail', 'Création du paiement')
-FROM payment_rows pr
-UNION ALL
-SELECT
-    pr.id,
-    'initiated'::payment_status_enum,
-    (CASE 
-        WHEN pr.statut = 'refunded' THEN 'paid'::payment_status_enum  -- D'abord payé
-        WHEN pr.statut = 'paid' THEN 'paid'::payment_status_enum
-        ELSE 'processing'::payment_status_enum
-    END),
-    pr.cree_le,
-    jsonb_build_object('detail', 'Mise à jour du paiement', 'context', pr.metadonnees)
-FROM payment_rows pr
-UNION ALL
--- Ajouter les remboursements dans l'historique pour les paiements remboursés
-SELECT
-    pr.id,
-    'paid'::payment_status_enum,
-    'refunded'::payment_status_enum,
-    (pr.cree_le + INTERVAL '10 days'),
+    ic.subscription_id,
+    ic.id_utilisateur,
+    'MGA',
+    CASE WHEN ic.is_pause_month THEN 0 ELSE ic.monthly_price END,
+    CASE WHEN ic.is_pause_month THEN 0 ELSE ic.monthly_price * (ic.taux_tva / 100) END,
+    CASE WHEN ic.is_pause_month THEN 0 ELSE ic.monthly_price * (1 + ic.taux_tva / 100) END,
+    CASE WHEN ic.is_pause_month THEN 0 ELSE ic.monthly_price END,
+    CASE WHEN ic.is_pause_month THEN 0 ELSE ic.monthly_price * (ic.taux_tva / 100) END,
+    CASE WHEN ic.is_pause_month THEN 0 ELSE ic.monthly_price * (1 + ic.taux_tva / 100) END,
+    ic.billing_month,
+    ic.is_pause_month,
+    ic.is_prepaid,
+    ic.invoice_status,
+    ic.billing_month,
+    ic.billing_month + INTERVAL '10 days',
+    ic.paid_date,
     jsonb_build_object(
-        'detail', 'Remboursement effectué',
-        'refund_amount', (pr.metadonnees->>'refund_amount')::numeric,
-        'refund_reason', 'Demande client',
-        'refund_date', (pr.cree_le + INTERVAL '10 days')::text
-    )
-FROM payment_rows pr
-WHERE pr.statut = 'refunded';
+        'scenario_type', ic.scenario_type,
+        'month_offset', ic.month_offset,
+        'plan_level', ic.niveau,
+        'billing_period', ic.periode_facturation
+    ),
+    ic.billing_month,
+    CURRENT_DATE
+FROM invoice_calculations ic
+WHERE ic.month_offset <= 11  -- Seulement les 12 derniers mois
+    AND (ic.invoice_status != 'draft' OR ic.month_offset = 0);  -- Inclure les factures du mois courant même si draft
 
 COMMIT;
-
 

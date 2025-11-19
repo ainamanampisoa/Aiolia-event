@@ -239,7 +239,7 @@ CREATE TABLE IF NOT EXISTS plans_abonnements (
     niveau TEXT NOT NULL DEFAULT 'basic'
         CHECK (niveau IN ('basic', 'pro', 'enterprise')),
     periode_facturation TEXT NOT NULL
-        CHECK (periode_facturation IN ('monthly', 'quarterly', 'yearly', 'lifetime')),
+        CHECK (periode_facturation IN ('monthly', 'quarterly', 'yearly')),
     nombre_periodes INTEGER NOT NULL DEFAULT 1 CHECK (nombre_periodes > 0),
     devise currency_code NOT NULL DEFAULT 'MGA',
     prix NUMERIC(12,2) NOT NULL CHECK (prix >= 0),

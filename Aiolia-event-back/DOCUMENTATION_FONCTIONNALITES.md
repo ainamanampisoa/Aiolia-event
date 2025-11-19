@@ -697,25 +697,50 @@ Marquage des factures en retard
 
 ### 🎯 Vue d'ensemble
 
-Le système propose **3 offres d'abonnement mensuelles** indépendantes : **Basic**, **Pro** et **Enterprise**. 
+Le système propose **9 offres d'abonnement** indépendantes : **Basic**, **Pro** et **Enterprise**, chacune disponible en **3 périodes de facturation** (mensuel, trimestriel, annuel).
 
-**Principe fondamental** : Les organisateurs peuvent **choisir librement** leur plan d'abonnement parmi les 3 offres disponibles, **indépendamment de leur type d'organisation** (`organization_type` : individual, company, non_profit, collective). 
+**Principe fondamental** : Les organisateurs peuvent **choisir librement** leur plan d'abonnement parmi les 9 offres disponibles, **indépendamment de leur type d'organisation** (`organization_type` : individual, company, non_profit, collective). 
 
-Chaque offre propose des fonctionnalités, limites et avantages adaptés à différents besoins et budgets, permettant à chaque organisateur de sélectionner la solution la plus adaptée à son activité.
+Chaque offre propose des fonctionnalités, limites et avantages adaptés à différents besoins et budgets, permettant à chaque organisateur de sélectionner la solution la plus adaptée à son activité. Les abonnements trimestriels et annuels bénéficient de réductions par rapport au tarif mensuel.
 
 ### Système de tarification
 
-Les factures mensuelles sont générées automatiquement avec le prix correspondant au plan choisi par l'organisateur :
+Les factures mensuelles sont générées automatiquement avec le prix correspondant au plan choisi par l'organisateur.
 
-- **Basic** (tier: `basic`) → Plan ID 1 → **150 000 MGA/mois**
-- **Pro** (tier: `pro`) → Plan ID 2 → **350 000 MGA/mois** ⭐ (Populaire)
-- **Enterprise** (tier: `enterprise`) → Plan ID 3 → **600 000 MGA/mois**
+#### 📊 Tableau des tarifs par période de facturation
+
+| Plan | Période | Prix total | Prix mensuel équivalent | Réduction | Plan ID |
+|------|---------|------------|-------------------------|-----------|---------|
+| **BASIC** | Mensuel | 150 000 Ar | 150 000 Ar/mois | - | 1 |
+| | Trimestriel | 420 000 Ar | 140 000 Ar/mois | -6.7% | 2 |
+| | Annuel | 1 620 000 Ar | 135 000 Ar/mois | -10% | 3 |
+| **PRO** ⭐ | Mensuel | 350 000 Ar | 350 000 Ar/mois | - | 4 |
+| | Trimestriel | 980 000 Ar | 326 667 Ar/mois | -6.7% | 5 |
+| | Annuel | 3 780 000 Ar | 315 000 Ar/mois | -10% | 6 |
+| **ENTERPRISE** | Mensuel | 600 000 Ar | 600 000 Ar/mois | - | 7 |
+| | Trimestriel | 1 680 000 Ar | 560 000 Ar/mois | -6.7% | 8 |
+| | Annuel | 6 480 000 Ar | 540 000 Ar/mois | -10% | 9 |
+
+**Notes importantes** :
+- ✅ Tous les prix sont **HT** (Hors Taxes)
+- ✅ La **TVA (20%)** est calculée automatiquement lors de la génération des factures
+- ✅ Les réductions sont appliquées par rapport au tarif mensuel
+- ✅ Les abonnements **trimestriels** bénéficient d'une réduction de **6.7%**
+- ✅ Les abonnements **annuels** bénéficient d'une réduction de **10%**
+- ✅ Le calcul du prix mensuel est automatique selon la période :
+  - **Annuel** : `prix_total / 12`
+  - **Trimestriel** : `prix_total / 3`
+  - **Mensuel** : `prix_total`
 
 ---
 
 #### 1. 💼 **BASIC** (Plan Basic)
 
-**Prix mensuel** : 150 000 MGA (TVA 20% incluse)  
+**Tarifs disponibles** :
+- **Mensuel** : 150 000 Ar/mois (HT) - Plan ID 1
+- **Trimestriel** : 420 000 Ar/trimestre (140 000 Ar/mois, -6.7%) - Plan ID 2
+- **Annuel** : 1 620 000 Ar/an (135 000 Ar/mois, -10%) - Plan ID 3
+
 **Limite d'événements** : 3 événements par mois  
 **Support** : Email uniquement
 
@@ -756,7 +781,11 @@ Les factures mensuelles sont générées automatiquement avec le prix correspond
 
 #### 2. ⭐ **PRO** (Plan Pro) - Populaire
 
-**Prix mensuel** : 350 000 MGA (TVA 20% incluse)  
+**Tarifs disponibles** :
+- **Mensuel** : 350 000 Ar/mois (HT) - Plan ID 4 ⭐ (Populaire)
+- **Trimestriel** : 980 000 Ar/trimestre (326 667 Ar/mois, -6.7%) - Plan ID 5
+- **Annuel** : 3 780 000 Ar/an (315 000 Ar/mois, -10%) - Plan ID 6
+
 **Limite d'événements** : 15 événements par mois  
 **Support** : Chat en direct + Email prioritaire
 
@@ -803,7 +832,11 @@ Les factures mensuelles sont générées automatiquement avec le prix correspond
 
 #### 3. 🏢 **ENTERPRISE** (Plan Enterprise)
 
-**Prix mensuel** : 600 000 MGA (TVA 20% incluse)  
+**Tarifs disponibles** :
+- **Mensuel** : 600 000 Ar/mois (HT) - Plan ID 7
+- **Trimestriel** : 1 680 000 Ar/trimestre (560 000 Ar/mois, -6.7%) - Plan ID 8
+- **Annuel** : 6 480 000 Ar/an (540 000 Ar/mois, -10%) - Plan ID 9
+
 **Limite d'événements** : **Illimité**  
 **Support** : Téléphone prioritaire + Chat + Email
 
@@ -900,7 +933,9 @@ Les factures mensuelles sont générées automatiquement avec le prix correspond
 
 | Fonctionnalité | Basic | Pro | Enterprise |
 |---|---|---|---|
-| **Prix mensuel** | 150 000 MGA | 350 000 MGA | 600 000 MGA |
+| **Prix mensuel (HT)** | 150 000 Ar | 350 000 Ar | 600 000 Ar |
+| **Prix trimestriel (HT)** | 420 000 Ar (-6.7%) | 980 000 Ar (-6.7%) | 1 680 000 Ar (-6.7%) |
+| **Prix annuel (HT)** | 1 620 000 Ar (-10%) | 3 780 000 Ar (-10%) | 6 480 000 Ar (-10%) |
 | **Événements/mois** | 3 | 15 | Illimité |
 | **Support** | Email | Chat + Email | Téléphone + Chat + Email |
 | **Statistiques** | Base | Avancées | Complètes |
@@ -1186,10 +1221,19 @@ $stats = $this->statisticsService->getTaxStatistics(
 
 ### 📝 Résumé
 
-**3 offres d'abonnement indépendantes** :
-- 💼 **Basic** : 150 000 MGA/mois - Idéal pour démarrer (3 événements/mois)
-- ⭐ **Pro** : 350 000 MGA/mois - Pour les organisateurs actifs (15 événements/mois) - Plan populaire
-- 🏢 **Enterprise** : 600 000 MGA/mois - Solution complète (événements illimités)
+**9 offres d'abonnement indépendantes** (3 niveaux × 3 périodes) :
+- 💼 **Basic**:
+  - Mensuel : 150 000 Ar/mois - Idéal pour démarrer (3 événements/mois)
+  - Trimestriel : 420 000 Ar/trimestre (140 000 Ar/mois, -6.7%)
+  - Annuel : 1 620 000 Ar/an (135 000 Ar/mois, -10%)
+- ⭐ **Pro** (Populaire):
+  - Mensuel : 350 000 Ar/mois - Pour les organisateurs actifs (15 événements/mois)
+  - Trimestriel : 980 000 Ar/trimestre (326 667 Ar/mois, -6.7%)
+  - Annuel : 3 780 000 Ar/an (315 000 Ar/mois, -10%)
+- 🏢 **Enterprise**:
+  - Mensuel : 600 000 Ar/mois - Solution complète (événements illimités)
+  - Trimestriel : 1 680 000 Ar/trimestre (560 000 Ar/mois, -6.7%)
+  - Annuel : 6 480 000 Ar/an (540 000 Ar/mois, -10%)
 
 **Avantages du système** :
 - ✅ **Choix libre** : Les organisateurs choisissent leur plan indépendamment de leur `organization_type`
