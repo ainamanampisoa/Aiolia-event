@@ -81,6 +81,72 @@ class EventController extends AbstractController
 
             return true === $ticket['is_available'];
         }));
+        
+        // Grouper les types de billets par nom pour gérer VIP/Gold/Silver avec prix adultes/enfants
+        $groupedTicketTypes = $this->groupTicketTypesByName($ticketTypes);
+        
+        // Détecter si l'événement a des billets adultes ET enfants disponibles (pour activer les deux inputs)
+        $hasAnyAdultTickets = false;
+        $hasAnyChildTickets = false;
+        $hasOnlyAllCategory = true; // Vérifier si tous les billets sont de type 'all' (pas de distinction adulte/enfant)
+        
+        foreach ($ticketTypes as $ticket) {
+            $ageCategory = $ticket['age_category'] ?? 'all';
+            
+            if ($ageCategory === 'adult' || $ageCategory === 'all') {
+                $hasAnyAdultTickets = true;
+            }
+            if ($ageCategory === 'child' || $ageCategory === 'all') {
+                $hasAnyChildTickets = true;
+            }
+            
+            // Si on trouve un billet qui n'est pas de type 'all', alors on n'a pas seulement des billets génériques
+            if ($ageCategory !== 'all') {
+                $hasOnlyAllCategory = false;
+            }
+        }
+        
+        // Si on a des billets avec 'adult' OU 'child' séparés, ce n'est pas seulement 'all'
+        if ($hasAnyAdultTickets && $hasAnyChildTickets) {
+            // Vérifier si on a des billets séparés (adult/child) en plus de 'all'
+            $hasSeparateAdultChild = false;
+            foreach ($ticketTypes as $ticket) {
+                $ageCategory = $ticket['age_category'] ?? 'all';
+                if ($ageCategory === 'adult' || $ageCategory === 'child') {
+                    $hasSeparateAdultChild = true;
+                    $hasOnlyAllCategory = false;
+                    break;
+                }
+            }
+        }
+        
+        // Créer un mapping pour trouver les IDs adultes/enfants pour chaque type groupé
+        // Cela permet de gérer les cas où "Billet Adulte" et "Billet Enfant" sont séparés
+        // Le mapping contient toutes les infos nécessaires (id, base_price, available, currency)
+        $eventTicketMapping = [
+            'adult_ticket_ids' => [],
+            'child_ticket_ids' => [],
+            'all_ticket_ids' => []
+        ];
+        
+        foreach ($ticketTypes as $ticket) {
+            $ticketData = [
+                'id' => $ticket['id'],
+                'base_price' => $ticket['base_price'],
+                'available' => $ticket['available'],
+                'currency' => $ticket['currency'] ?? 'MGA',
+                'name' => $ticket['name']
+            ];
+            
+            if ($ticket['age_category'] === 'adult') {
+                $eventTicketMapping['adult_ticket_ids'][(string)$ticket['id']] = $ticketData;
+            } elseif ($ticket['age_category'] === 'child') {
+                $eventTicketMapping['child_ticket_ids'][(string)$ticket['id']] = $ticketData;
+            } elseif ($ticket['age_category'] === 'all') {
+                $eventTicketMapping['all_ticket_ids'][(string)$ticket['id']] = $ticketData;
+            }
+        }
+        
         $tags = $this->fetchEventTags($id);
 
         $priceMin = null;
@@ -95,7 +161,12 @@ class EventController extends AbstractController
         }
 
         $event['ticket_types'] = $ticketTypes;
+        $event['ticket_types_grouped'] = $groupedTicketTypes;
         $event['ticket_types_all'] = $rawTicketTypes;
+        $event['has_adult_tickets'] = $hasAnyAdultTickets;
+        $event['has_child_tickets'] = $hasAnyChildTickets;
+        $event['has_only_all_category'] = $hasOnlyAllCategory; // Indique si on n'a que des billets sans distinction adulte/enfant
+        $event['ticket_mapping'] = $eventTicketMapping;
         $event['tags'] = $tags;
         $event['price_min'] = $priceMin;
         $event['price_max'] = $priceMax;
@@ -583,6 +654,97 @@ class EventController extends AbstractController
                 'is_available' => null === $available || $available > 0,
             ];
         }, $rows);
+    }
+
+    /**
+     * Groupe les types de billets par nom pour gérer les types VIP/Gold/Silver
+     * avec des prix différents pour adultes et enfants.
+     *
+     * @param array<int, array<string, mixed>> $ticketTypes
+     * @return array<string, array<string, mixed>>
+     */
+    private function groupTicketTypesByName(array $ticketTypes): array
+    {
+        if (empty($ticketTypes)) {
+            return [];
+        }
+
+        // Détecter si les billets ont des types spécifiques (VIP, Gold, Silver, etc.)
+        // ou s'ils sont génériques (Billet Adulte, Billet Enfant, Standard, etc.)
+        $hasSpecificTypes = false;
+        $genericNames = ['Billet Adulte', 'Billet Enfant', 'Billet', 'Standard', 'General', 'Général', 'Adulte', 'Enfant'];
+        
+        foreach ($ticketTypes as $ticket) {
+            $name = $ticket['name'];
+            // Si le nom n'est pas dans la liste des noms génériques, c'est un type spécifique
+            if (!in_array($name, $genericNames, true)) {
+                $hasSpecificTypes = true;
+                break;
+            }
+        }
+
+        // Si pas de types spécifiques, créer un seul groupe combiné
+        if (!$hasSpecificTypes) {
+            $grouped = [];
+            $firstTicket = $ticketTypes[0];
+            
+            // Créer un groupe unique avec un nom générique
+            $groupName = 'Billet';
+            $grouped[$groupName] = [
+                'name' => $groupName,
+                'description' => $firstTicket['description'] ?? '',
+                'currency' => $firstTicket['currency'] ?? 'MGA',
+                'adult' => null,
+                'child' => null,
+                'all' => null,
+            ];
+
+            // Assigner tous les billets selon leur catégorie d'âge
+            foreach ($ticketTypes as $ticket) {
+                $ageCategory = $ticket['age_category'] ?? 'all';
+                
+                if ($ageCategory === 'adult') {
+                    $grouped[$groupName]['adult'] = $ticket;
+                } elseif ($ageCategory === 'child') {
+                    $grouped[$groupName]['child'] = $ticket;
+                } elseif ($ageCategory === 'all') {
+                    $grouped[$groupName]['all'] = $ticket;
+                }
+            }
+
+            return $grouped;
+        }
+
+        // Sinon, grouper normalement par nom
+        $grouped = [];
+
+        foreach ($ticketTypes as $ticket) {
+            $name = $ticket['name'];
+            
+            if (!isset($grouped[$name])) {
+                $grouped[$name] = [
+                    'name' => $name,
+                    'description' => $ticket['description'],
+                    'currency' => $ticket['currency'],
+                    'adult' => null,
+                    'child' => null,
+                    'all' => null, // Pour les types avec age_category='all'
+                ];
+            }
+
+            // Assigner selon la catégorie d'âge
+            $ageCategory = $ticket['age_category'] ?? 'all';
+            
+            if ($ageCategory === 'adult') {
+                $grouped[$name]['adult'] = $ticket;
+            } elseif ($ageCategory === 'child') {
+                $grouped[$name]['child'] = $ticket;
+            } elseif ($ageCategory === 'all') {
+                $grouped[$name]['all'] = $ticket;
+            }
+        }
+
+        return $grouped;
     }
 
     /**

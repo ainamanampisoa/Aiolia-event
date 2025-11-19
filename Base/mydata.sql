@@ -1018,5 +1018,408 @@ SELECT tt.id,
 FROM tt_corporate tt
 ON CONFLICT (ticket_type_id) DO NOTHING;
 
+-- ============================================================
+-- ÉVÉNEMENTS AVEC TYPES VIP/GOLD/SILVER GROUPÉS
+-- (avec prix adultes/enfants séparés)
+-- ============================================================
+
+-- Concert Premium avec types VIP/Gold/Silver
+WITH organizer AS (
+    SELECT op.user_id
+    FROM organizer_profiles op
+    ORDER BY op.id
+    LIMIT 1
+),
+venue_premium AS (
+    SELECT id FROM venues ORDER BY id LIMIT 1
+),
+space_premium AS (
+    SELECT id FROM venue_spaces ORDER BY id LIMIT 1
+),
+event_premium AS (
+    INSERT INTO events (
+        organizer_id,
+        primary_category_id,
+        venue_id,
+        main_space_id,
+        slug,
+        title,
+        subtitle,
+        summary,
+        description,
+        visibility,
+        status,
+        event_format,
+        timezone,
+        capacity,
+        language_code,
+        is_featured,
+        is_highlighted,
+        starts_at,
+        ends_at,
+        sales_starts_at,
+        sales_ends_at,
+        location_override,
+        cover_image_url
+    )
+    SELECT
+        organizer.user_id,
+        cat.id,
+        vp.id,
+        sp.id,
+        'concert-premium-vip-types',
+        'Concert Premium - Types VIP Groupés',
+        'Expérience musicale exclusive',
+        'Un concert exceptionnel avec différents types de billets pour tous les âges. Profitez de l''expérience VIP, Gold ou Silver selon vos préférences.',
+        'Concert premium avec plusieurs catégories de billets. Types VIP avec accès prioritaire et zone exclusive, Gold avec meilleur placement, et Silver avec accès standard amélioré. Tarifs adaptés pour adultes et enfants.',
+        'public'::event_visibility_enum,
+        'published'::event_status_enum,
+        'in_person',
+        'Indian/Antananarivo',
+        800,
+        'fr-FR',
+        TRUE,
+        TRUE,
+        now() + INTERVAL '25 days',
+        now() + INTERVAL '25 days' + INTERVAL '4 hours',
+        now() - INTERVAL '1 day',
+        now() + INTERVAL '24 days',
+        '{"venue_name":"Salle Premium","address":"Boulevard de l''Indépendance","city":"Antananarivo","region":"Analamanga","country":"MG"}'::jsonb,
+        '/vente-ticket/images/img1.png'
+    FROM organizer
+    CROSS JOIN venue_premium vp
+    CROSS JOIN space_premium sp
+    LEFT JOIN event_categories cat ON cat.slug = 'concert'
+    ON CONFLICT (slug) DO UPDATE
+        SET title = EXCLUDED.title,
+            subtitle = EXCLUDED.subtitle,
+            summary = EXCLUDED.summary,
+            description = EXCLUDED.description,
+            updated_at = now()
+    RETURNING id, slug, sales_starts_at, sales_ends_at
+)
+-- Types de billets VIP avec prix adultes/enfants
+INSERT INTO ticket_types (
+    event_id, name, description, currency,
+    base_price, service_fee, vat_rate, age_category,
+    sales_start, sales_end, min_per_order, max_per_order,
+    metadata
+)
+-- VIP Adulte
+SELECT evt.id,
+       'VIP',
+       'Billet VIP pour adulte. Accès prioritaire, zone VIP exclusive, parking réservé et boissons offertes.',
+       'MGA',
+       100000,
+       5000,
+       20,
+       'adult'::age_category_enum,
+       evt.sales_starts_at,
+       evt.sales_ends_at,
+       1,
+       5,
+       '{"vip":true,"priority_access":true,"exclusive_area":true,"parking":true,"drinks":true,"age_min":18}'::jsonb
+FROM event_premium evt
+WHERE NOT EXISTS (
+    SELECT 1 FROM ticket_types tt WHERE tt.event_id = evt.id AND tt.name = 'VIP' AND tt.age_category = 'adult'
+)
+UNION ALL
+-- VIP Enfant
+SELECT evt.id,
+       'VIP',
+       'Billet VIP pour enfant. Accès prioritaire, zone VIP exclusive adaptée aux enfants.',
+       'MGA',
+       50000,
+       2500,
+       20,
+       'child'::age_category_enum,
+       evt.sales_starts_at,
+       evt.sales_ends_at,
+       1,
+       5,
+       '{"vip":true,"priority_access":true,"exclusive_area":true,"age_min":3,"age_max":17,"requires_accompaniment":true}'::jsonb
+FROM event_premium evt
+WHERE NOT EXISTS (
+    SELECT 1 FROM ticket_types tt WHERE tt.event_id = evt.id AND tt.name = 'VIP' AND tt.age_category = 'child'
+)
+UNION ALL
+-- Gold Adulte
+SELECT evt.id,
+       'Gold',
+       'Billet Gold pour adulte. Meilleur placement, avantages premium.',
+       'MGA',
+       75000,
+       3750,
+       20,
+       'adult'::age_category_enum,
+       evt.sales_starts_at,
+       evt.sales_ends_at,
+       1,
+       10,
+       '{"gold":true,"premium_seating":true,"age_min":18}'::jsonb
+FROM event_premium evt
+WHERE NOT EXISTS (
+    SELECT 1 FROM ticket_types tt WHERE tt.event_id = evt.id AND tt.name = 'Gold' AND tt.age_category = 'adult'
+)
+UNION ALL
+-- Gold Enfant
+SELECT evt.id,
+       'Gold',
+       'Billet Gold pour enfant. Meilleur placement, avantages premium.',
+       'MGA',
+       37500,
+       1875,
+       20,
+       'child'::age_category_enum,
+       evt.sales_starts_at,
+       evt.sales_ends_at,
+       1,
+       10,
+       '{"gold":true,"premium_seating":true,"age_min":3,"age_max":17,"requires_accompaniment":true}'::jsonb
+FROM event_premium evt
+WHERE NOT EXISTS (
+    SELECT 1 FROM ticket_types tt WHERE tt.event_id = evt.id AND tt.name = 'Gold' AND tt.age_category = 'child'
+)
+UNION ALL
+-- Silver Adulte
+SELECT evt.id,
+       'Silver',
+       'Billet Silver pour adulte. Placement standard amélioré.',
+       'MGA',
+       50000,
+       2500,
+       20,
+       'adult'::age_category_enum,
+       evt.sales_starts_at,
+       evt.sales_ends_at,
+       1,
+       20,
+       '{"silver":true,"standard_plus":true,"age_min":18}'::jsonb
+FROM event_premium evt
+WHERE NOT EXISTS (
+    SELECT 1 FROM ticket_types tt WHERE tt.event_id = evt.id AND tt.name = 'Silver' AND tt.age_category = 'adult'
+)
+UNION ALL
+-- Silver Enfant
+SELECT evt.id,
+       'Silver',
+       'Billet Silver pour enfant. Placement standard amélioré.',
+       'MGA',
+       25000,
+       1250,
+       20,
+       'child'::age_category_enum,
+       evt.sales_starts_at,
+       evt.sales_ends_at,
+       1,
+       20,
+       '{"silver":true,"standard_plus":true,"age_min":3,"age_max":17,"requires_accompaniment":true}'::jsonb
+FROM event_premium evt
+WHERE NOT EXISTS (
+    SELECT 1 FROM ticket_types tt WHERE tt.event_id = evt.id AND tt.name = 'Silver' AND tt.age_category = 'child'
+);
+
+-- Inventaire pour les billets premium VIP/Gold/Silver
+WITH tt_premium AS (
+    SELECT tt.id, tt.name, tt.age_category
+    FROM ticket_types tt
+    JOIN events ev ON ev.id = tt.event_id
+    WHERE ev.slug = 'concert-premium-vip-types'
+)
+INSERT INTO ticket_inventory (ticket_type_id, total_quantity, reserved_quantity, sold_quantity)
+SELECT tt.id,
+       CASE 
+           WHEN tt.name = 'VIP' AND tt.age_category = 'adult' THEN 50
+           WHEN tt.name = 'VIP' AND tt.age_category = 'child' THEN 30
+           WHEN tt.name = 'Gold' AND tt.age_category = 'adult' THEN 100
+           WHEN tt.name = 'Gold' AND tt.age_category = 'child' THEN 50
+           WHEN tt.name = 'Silver' AND tt.age_category = 'adult' THEN 200
+           WHEN tt.name = 'Silver' AND tt.age_category = 'child' THEN 100
+           ELSE 0
+       END,
+       0,
+       0
+FROM tt_premium tt
+ON CONFLICT (ticket_type_id) DO NOTHING;
+
+-- Festival Sportif avec types VIP/Standard
+WITH organizer AS (
+    SELECT op.user_id
+    FROM organizer_profiles op
+    ORDER BY op.id
+    LIMIT 1
+),
+venue_sport AS (
+    SELECT id FROM venues ORDER BY id LIMIT 1
+),
+space_sport AS (
+    SELECT id FROM venue_spaces ORDER BY id LIMIT 1
+),
+event_sport AS (
+    INSERT INTO events (
+        organizer_id,
+        primary_category_id,
+        venue_id,
+        main_space_id,
+        slug,
+        title,
+        subtitle,
+        summary,
+        description,
+        visibility,
+        status,
+        event_format,
+        timezone,
+        capacity,
+        language_code,
+        is_featured,
+        is_highlighted,
+        starts_at,
+        ends_at,
+        sales_starts_at,
+        sales_ends_at,
+        location_override,
+        cover_image_url
+    )
+    SELECT
+        organizer.user_id,
+        cat.id,
+        vs.id,
+        ss.id,
+        'festival-sportif-vip-standard',
+        'Festival Sportif - VIP et Standard',
+        'Compétition sportive familiale',
+        'Festival sportif avec différentes catégories de billets. Profitez de l''événement en VIP ou Standard, avec des tarifs adaptés pour toute la famille.',
+        'Festival sportif avec plusieurs disciplines. Billets VIP pour une expérience premium avec accès privilégié, ou Standard pour profiter de l''événement à un tarif accessible. Tarifs adaptés pour adultes et enfants.',
+        'public'::event_visibility_enum,
+        'published'::event_status_enum,
+        'in_person',
+        'Indian/Antananarivo',
+        600,
+        'fr-FR',
+        FALSE,
+        FALSE,
+        now() + INTERVAL '35 days',
+        now() + INTERVAL '35 days' + INTERVAL '6 hours',
+        now() + INTERVAL '1 day',
+        now() + INTERVAL '34 days',
+        '{"venue_name":"Stade Municipal","address":"Avenue de la République","city":"Antananarivo","region":"Analamanga","country":"MG"}'::jsonb,
+        '/vente-ticket/images/img1.png'
+    FROM organizer
+    CROSS JOIN venue_sport vs
+    CROSS JOIN space_sport ss
+    LEFT JOIN event_categories cat ON cat.slug = 'concert'
+    ON CONFLICT (slug) DO UPDATE
+        SET title = EXCLUDED.title,
+            subtitle = EXCLUDED.subtitle,
+            summary = EXCLUDED.summary,
+            description = EXCLUDED.description,
+            updated_at = now()
+    RETURNING id, slug, sales_starts_at, sales_ends_at
+)
+-- Types VIP et Standard avec prix adultes/enfants
+INSERT INTO ticket_types (
+    event_id, name, description, currency,
+    base_price, service_fee, vat_rate, age_category,
+    sales_start, sales_end, min_per_order, max_per_order,
+    metadata
+)
+-- VIP Adulte
+SELECT evt.id,
+       'VIP',
+       'Billet VIP pour adulte. Tribune VIP, restauration incluse, accès parking.',
+       'MGA',
+       80000,
+       4000,
+       20,
+       'adult'::age_category_enum,
+       evt.sales_starts_at,
+       evt.sales_ends_at,
+       1,
+       8,
+       '{"vip":true,"vip_stand":true,"food":true,"parking":true,"age_min":18}'::jsonb
+FROM event_sport evt
+WHERE NOT EXISTS (
+    SELECT 1 FROM ticket_types tt WHERE tt.event_id = evt.id AND tt.name = 'VIP' AND tt.age_category = 'adult'
+)
+UNION ALL
+-- VIP Enfant
+SELECT evt.id,
+       'VIP',
+       'Billet VIP pour enfant. Tribune VIP adaptée, restauration incluse.',
+       'MGA',
+       40000,
+       2000,
+       20,
+       'child'::age_category_enum,
+       evt.sales_starts_at,
+       evt.sales_ends_at,
+       1,
+       8,
+       '{"vip":true,"vip_stand":true,"food":true,"age_min":3,"age_max":17,"requires_accompaniment":true}'::jsonb
+FROM event_sport evt
+WHERE NOT EXISTS (
+    SELECT 1 FROM ticket_types tt WHERE tt.event_id = evt.id AND tt.name = 'VIP' AND tt.age_category = 'child'
+)
+UNION ALL
+-- Standard Adulte
+SELECT evt.id,
+       'Standard',
+       'Billet Standard pour adulte. Accès général avec bon placement.',
+       'MGA',
+       30000,
+       1500,
+       20,
+       'adult'::age_category_enum,
+       evt.sales_starts_at,
+       evt.sales_ends_at,
+       1,
+       15,
+       '{"standard":true,"general_access":true,"age_min":18}'::jsonb
+FROM event_sport evt
+WHERE NOT EXISTS (
+    SELECT 1 FROM ticket_types tt WHERE tt.event_id = evt.id AND tt.name = 'Standard' AND tt.age_category = 'adult'
+)
+UNION ALL
+-- Standard Enfant
+SELECT evt.id,
+       'Standard',
+       'Billet Standard pour enfant. Accès général avec bon placement.',
+       'MGA',
+       15000,
+       750,
+       20,
+       'child'::age_category_enum,
+       evt.sales_starts_at,
+       evt.sales_ends_at,
+       1,
+       15,
+       '{"standard":true,"general_access":true,"age_min":3,"age_max":17,"requires_accompaniment":true}'::jsonb
+FROM event_sport evt
+WHERE NOT EXISTS (
+    SELECT 1 FROM ticket_types tt WHERE tt.event_id = evt.id AND tt.name = 'Standard' AND tt.age_category = 'child'
+);
+
+-- Inventaire pour les billets sportifs
+WITH tt_sport AS (
+    SELECT tt.id, tt.name, tt.age_category
+    FROM ticket_types tt
+    JOIN events ev ON ev.id = tt.event_id
+    WHERE ev.slug = 'festival-sportif-vip-standard'
+)
+INSERT INTO ticket_inventory (ticket_type_id, total_quantity, reserved_quantity, sold_quantity)
+SELECT tt.id,
+       CASE 
+           WHEN tt.name = 'VIP' AND tt.age_category = 'adult' THEN 80
+           WHEN tt.name = 'VIP' AND tt.age_category = 'child' THEN 40
+           WHEN tt.name = 'Standard' AND tt.age_category = 'adult' THEN 250
+           WHEN tt.name = 'Standard' AND tt.age_category = 'child' THEN 130
+           ELSE 0
+       END,
+       0,
+       0
+FROM tt_sport tt
+ON CONFLICT (ticket_type_id) DO NOTHING;
+
 COMMIT;
 

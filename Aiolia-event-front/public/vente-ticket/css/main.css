@@ -1382,7 +1382,8 @@ a.ui-button:active,
 
 #qtt,
 #adult_qtt,
-#child_qtt {
+#child_qtt,
+#quantity_qtt {
     border: none;
     width: 70px;
     text-align: center;
