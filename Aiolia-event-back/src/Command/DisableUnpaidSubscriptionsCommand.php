@@ -56,14 +56,18 @@ class DisableUnpaidSubscriptionsCommand extends Command
         // Récupérer les abonnements avec factures non payées du mois courant
         // Uniquement ceux dont la facture n'est pas payée après le 13ème jour
         $sql = "
-            SELECT DISTINCT os.id as subscription_id, os.organizer_profile_id, si.id as invoice_id, si.invoice_number
-            FROM aiolia.organizer_subscriptions os
-            INNER JOIN aiolia.subscription_invoices si ON si.subscription_id = os.id
-            WHERE os.status = 'active'
-                AND si.issued_at >= :monthStart
-                AND si.issued_at <= :monthEnd
-                AND si.status IN ('issued', 'draft', 'overdue')
-                AND si.paid_at IS NULL
+            SELECT DISTINCT 
+                os.id as subscription_id, 
+                os.id_profil_organisateur, 
+                si.id as invoice_id, 
+                si.numero_facture
+            FROM aiolia.abonnements_organisateurs os
+            INNER JOIN aiolia.factures_abonnements si ON si.id_abonnement = os.id
+            WHERE os.statut = 'active'::subscription_status_enum
+                AND si.emise_le >= :monthStart
+                AND si.emise_le <= :monthEnd
+                AND si.statut IN ('issued', 'draft', 'overdue')
+                AND si.payee_le IS NULL
         ";
 
         $subscriptions = $connection->fetchAllAssociative($sql, [
@@ -76,11 +80,12 @@ class DisableUnpaidSubscriptionsCommand extends Command
 
         foreach ($subscriptions as $subscription) {
             try {
-                // Désactiver l'abonnement (mettre le statut à 'suspended')
+                // Mettre en pause l'abonnement (mettre le statut à 'paused')
                 $updateSql = "
-                    UPDATE aiolia.organizer_subscriptions 
-                    SET status = 'suspended',
-                        updated_at = :now
+                    UPDATE aiolia.abonnements_organisateurs 
+                    SET statut = 'paused'::subscription_status_enum,
+                        mis_en_pause_le = :now,
+                        modifie_le = :now
                     WHERE id = :subscription_id
                 ";
                 

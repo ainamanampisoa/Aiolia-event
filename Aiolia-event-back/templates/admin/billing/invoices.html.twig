@@ -12,8 +12,8 @@
     <!-- En-tête -->
     <div class="dashboard-header">
         <div>
-            <h1 data-i18n-fr="Facturation & Paiement" data-i18n-en="Billing & Payment">Facturation & Paiement</h1>
-            <p class="dashboard-subtitle" data-i18n-fr="Gérez les factures et les paiements" data-i18n-en="Manage invoices and payments">
+            <h1 data-i18n="billing.header.title">Facturation & Paiement</h1>
+            <p class="dashboard-subtitle" data-i18n="billing.header.subtitle">
                 Gérez les factures et les paiements
             </p>
         </div>
@@ -25,7 +25,7 @@
                 <div class="search-icon-wrapper">
                     <i class="fas fa-filter"></i>
                 </div>
-                <h3 data-i18n-fr="Filtres de recherche" data-i18n-en="Search filters">Filtres de recherche</h3>
+                <h3 data-i18n="billing.filters.title">Filtres de recherche</h3>
             </div>
         </div>
 
@@ -35,7 +35,7 @@
                     <div class="search-field">
                         <label for="search-input">
                             <i class="fas fa-search"></i>
-                            <span data-i18n-fr="Recherche" data-i18n-en="Search">Recherche</span>
+                            <span data-i18n="billing.filters.search">Recherche</span>
                         </label>
                         <input 
                             type="text" 
@@ -51,17 +51,17 @@
                     <div class="search-field">
                         <label for="status-select">
                             <i class="fas fa-tag"></i>
-                            <span data-i18n-fr="Statut" data-i18n-en="Status">Statut</span>
+                            <span data-i18n="billing.filters.status">Statut</span>
                         </label>
                         <div class="select-wrapper">
                             <select id="status-select" name="status" class="form-input form-select">
-                                <option value="" {{ currentStatus == '' or currentStatus is null ? 'selected' : '' }} data-i18n-fr="Tous les statuts" data-i18n-en="All statuses">Tous les statuts</option>
-                                <option value="draft" {{ currentStatus == 'draft' ? 'selected' : '' }} data-i18n-fr="Brouillon" data-i18n-en="Draft">Brouillon</option>
-                                <option value="issued" {{ currentStatus == 'issued' ? 'selected' : '' }} data-i18n-fr="Émise" data-i18n-en="Issued">Émise</option>
-                                <option value="paid" {{ currentStatus == 'paid' ? 'selected' : '' }} data-i18n-fr="Payée" data-i18n-en="Paid">Payée</option>
-                                <option value="overdue" {{ currentStatus == 'overdue' ? 'selected' : '' }} data-i18n-fr="En retard" data-i18n-en="Overdue">En retard</option>
-                                <option value="void" {{ currentStatus == 'void' ? 'selected' : '' }} data-i18n-fr="Annulée" data-i18n-en="Void">Annulée</option>
-                                <option value="refunded" {{ currentStatus == 'refunded' ? 'selected' : '' }} data-i18n-fr="Remboursée" data-i18n-en="Refunded">Remboursée</option>
+                                <option value="" {{ currentStatus == '' or currentStatus is null ? 'selected' : '' }} data-i18n="billing.filters.status.all">Tous les statuts</option>
+                                <option value="draft" {{ currentStatus == 'draft' ? 'selected' : '' }} data-i18n="billing.filters.status.draft">Brouillon</option>
+                                <option value="issued" {{ currentStatus == 'issued' ? 'selected' : '' }} data-i18n="billing.filters.status.issued">Émise</option>
+                                <option value="paid" {{ currentStatus == 'paid' ? 'selected' : '' }} data-i18n="billing.filters.status.paid">Payée</option>
+                                <option value="overdue" {{ currentStatus == 'overdue' ? 'selected' : '' }} data-i18n="billing.filters.status.overdue">En retard</option>
+                                <option value="void" {{ currentStatus == 'void' ? 'selected' : '' }} data-i18n="billing.filters.status.void">Annulée</option>
+                                <option value="refunded" {{ currentStatus == 'refunded' ? 'selected' : '' }} data-i18n="billing.filters.status.refunded">Remboursée</option>
                             </select>
                         </div>
                     </div>
@@ -69,7 +69,7 @@
                     <div class="search-field">
                         <label for="date-from">
                             <i class="fas fa-calendar-alt"></i>
-                            <span data-i18n-fr="Date de début" data-i18n-en="Start date">Date de début</span>
+                            <span data-i18n="billing.filters.date_from">Date de début</span>
                         </label>
                         <input 
                             type="date" 
@@ -83,7 +83,7 @@
                     <div class="search-field">
                         <label for="date-to">
                             <i class="fas fa-calendar-alt"></i>
-                            <span data-i18n-fr="Date de fin" data-i18n-en="End date">Date de fin</span>
+                            <span data-i18n="billing.filters.date_to">Date de fin</span>
                         </label>
                         <input 
                             type="date" 
@@ -98,11 +98,11 @@
                 <div class="search-actions">
                     <button type="submit" class="btn btn-primary btn-search">
                         <i class="fas fa-search"></i>
-                        <span data-i18n-fr="Rechercher" data-i18n-en="Search">Rechercher</span>
+                        <span data-i18n="billing.actions.search">Rechercher</span>
                     </button>
                     <a href="{{ path('admin_billing_invoices') }}" class="btn btn-secondary btn-reset">
                         <i class="fas fa-redo"></i>
-                        <span data-i18n-fr="Réinitialiser" data-i18n-en="Reset">Réinitialiser</span>
+                        <span data-i18n="billing.actions.reset">Réinitialiser</span>
                     </a>
                 </div>
             </form>
@@ -116,13 +116,13 @@
                 <table class="table table-hover validation-table invoices-table">
                     <thead>
                         <tr>
-                            <th class="col-left" data-i18n-fr="Numéro" data-i18n-en="Number">Numéro</th>
-                            <th class="col-left" data-i18n-fr="Client" data-i18n-en="Customer">Client</th>
-                            <th class="col-center" data-i18n-fr="Offre" data-i18n-en="Plan">Offre</th>
-                            <th class="col-right" data-i18n-fr="Montant" data-i18n-en="Amount">Montant</th>
-                            <th class="col-center" data-i18n-fr="Statut" data-i18n-en="Status">Statut</th>
-                            <th class="col-center" data-i18n-fr="Période" data-i18n-en="Period">Période</th>
-                            <th class="col-center actions-header" data-i18n-fr="Actions" data-i18n-en="Actions">Actions</th>
+                            <th class="col-left" data-i18n="billing.table.number">Numéro</th>
+                            <th class="col-left" data-i18n="billing.table.customer">Client</th>
+                            <th class="col-center" data-i18n="billing.table.plan">Offre</th>
+                            <th class="col-right" data-i18n="billing.table.amount">Montant</th>
+                            <th class="col-center" data-i18n="billing.table.status">Statut</th>
+                            <th class="col-center" data-i18n="billing.table.period">Période</th>
+                            <th class="col-center actions-header" data-i18n="billing.table.actions">Actions</th>
                         </tr>
                     </thead>
                     <tbody>
@@ -134,7 +134,9 @@
                                 {% elseif invoice.getInvoiceType() == 'subscription' %}
                                     {% set isSubscription = true %}
                                 {% endif %}
-                                {% set planTier = isSubscription ? (planTiers[invoice.id] ?? null) : null %}
+                                {% set planInfo = isSubscription ? (planInfos[invoice.id] ?? null) : null %}
+                                {% set planTier = planInfo ? planInfo.niveau : null %}
+                                {% set billingPeriod = planInfo ? planInfo.periode_facturation : null %}
                                 <tr>
                                     <td class="col-left">
                                         <span style="color: var(--text-primary); font-size: 0.95rem; font-weight: var(--font-weight-medium);">{{ invoice.invoiceNumber }}</span>
@@ -158,13 +160,26 @@
                                                 'pro': {'fr': 'Pro', 'en': 'Pro', 'icon': 'star'},
                                                 'enterprise': {'fr': 'Enterprise', 'en': 'Enterprise', 'icon': 'crown'}
                                             } %}
+                                            {% set periodLabels = {
+                                                'monthly': {'fr': 'Mensuel', 'en': 'Monthly'},
+                                                'quarterly': {'fr': 'Trimestriel', 'en': 'Quarterly'},
+                                                'yearly': {'fr': 'Annuel', 'en': 'Yearly'}
+                                            } %}
                                             {% set tierLabel = tierLabels[planTier] ?? {'fr': planTier|upper, 'en': planTier|upper, 'icon': 'tag'} %}
-                                            <span class="plan-tier-badge plan-tier-{{ planTier }}" data-i18n-fr="{{ tierLabel.fr }}" data-i18n-en="{{ tierLabel.en }}" title="{{ tierLabel.fr }}">
-                                                <i class="fas fa-{{ tierLabel.icon }}"></i>
-                                                <span class="tier-name">{{ tierLabel.fr }}</span>
-                                            </span>
+                                            {% set periodLabel = billingPeriod ? (periodLabels[billingPeriod] ?? {'fr': billingPeriod|capitalize, 'en': billingPeriod|capitalize}) : null %}
+                                            <div style="display: flex; flex-direction: column; align-items: center; gap: 4px;">
+                                                <span class="plan-tier-badge plan-tier-{{ planTier }}" data-i18n="billing.plan.tier.{{ planTier }}" title="{{ tierLabel.fr }}">
+                                                    <i class="fas fa-{{ tierLabel.icon }}"></i>
+                                                    <span class="tier-name">{{ tierLabel.fr }}</span>
+                                                </span>
+                                                {% if periodLabel %}
+                                                    <span class="billing-period-badge" data-i18n="billing.plan.period.{{ billingPeriod }}" title="{{ periodLabel.fr }}">
+                                                        {{ periodLabel.fr }}
+                                                    </span>
+                                                {% endif %}
+                                            </div>
                                         {% else %}
-                                            <span class="text-muted" data-i18n-fr="N/A" data-i18n-en="N/A">-</span>
+                                            <span class="text-muted" data-i18n="common.na">-</span>
                                         {% endif %}
                                     </td>
                                     <td class="col-right">
@@ -172,23 +187,25 @@
                                     </td>
                                     <td class="col-center">
                                         {% if invoice.status == 'paid' %}
-                                            <span class="badge status-badge status-active" data-i18n-fr="Payée" data-i18n-en="Paid">Payée</span>
+                                            <span class="badge status-badge status-active" data-i18n="billing.invoice.status.paid">Payée</span>
                                         {% elseif invoice.status == 'issued' or invoice.status == 'draft' %}
-                                            <span class="badge status-badge status-pending" data-i18n-fr="En attente" data-i18n-en="Pending">En attente</span>
+                                            <span class="badge status-badge status-pending" data-i18n="billing.invoice.status.pending">En attente</span>
+                                        {% elseif invoice.status == 'suspendue' %}
+                                            <span class="badge status-badge status-suspended" data-i18n="billing.invoice.status.suspended">Suspendue</span>
                                         {% elseif invoice.status == 'overdue' %}
                                             {% set daysOverdue = invoice.getDaysOverdue() %}
                                             <div style="display: flex; flex-direction: column; align-items: center; gap: 6px;">
-                                                <span class="badge status-badge status-rejected" data-i18n-fr="En retard" data-i18n-en="Overdue">En retard</span>
+                                                <span class="badge status-badge status-rejected" data-i18n="billing.invoice.status.overdue">En retard</span>
                                                 {% if daysOverdue is not null %}
-                                                    <span class="days-overdue-indicator" data-i18n-fr="{{ daysOverdue }} j. de retard" data-i18n-en="{{ daysOverdue }}d overdue">
+                                                    <span class="days-overdue-indicator" data-i18n="billing.invoice.overdue.days" data-i18n-params='{"days": {{ daysOverdue }}, "s": "{{ daysOverdue > 1 ? 's' : '' }}" }'>
                                                         <i class="fas fa-clock" style="font-size: 0.7rem;"></i> {{ daysOverdue }}j
                                                     </span>
                                                 {% endif %}
                                             </div>
                                         {% elseif invoice.status == 'void' %}
-                                            <span class="badge status-badge status-inactive" data-i18n-fr="Annulée" data-i18n-en="Cancelled">Annulée</span>
+                                            <span class="badge status-badge status-inactive" data-i18n="billing.invoice.status.cancelled">Annulée</span>
                                         {% elseif invoice.status == 'refunded' %}
-                                            <span class="badge status-badge status-refunded" data-i18n-fr="Remboursée" data-i18n-en="Refunded">Remboursée</span>
+                                            <span class="badge status-badge status-refunded" data-i18n="billing.invoice.status.refunded">Remboursée</span>
                                         {% else %}
                                             <span class="badge status-badge status-inactive">{{ invoice.status }}</span>
                                         {% endif %}
@@ -219,14 +236,14 @@
                                     <td class="col-center actions-cell">
                                         {% if invoice.invoiceType == 'ticket' %}
                                             <a href="{{ path('admin_billing_ticket_invoice_show', {id: invoice.id}) }}" class="validation-action-pill pill-view">
-                                                <i class="fas fa-eye"></i><span data-i18n-fr="Voir" data-i18n-en="View">Voir</span>
+                                                <i class="fas fa-eye"></i><span data-i18n="common.view">Voir</span>
                                             </a>
                                             <a href="{{ path('admin_billing_ticket_invoice_pdf', {id: invoice.id}) }}" class="validation-action-pill pill-info" target="_blank">
                                                 <i class="fas fa-file-pdf"></i><span data-i18n-fr="PDF" data-i18n-en="PDF">PDF</span>
                                             </a>
                                         {% else %}
                                             <a href="{{ path('admin_billing_subscription_invoice_show', {id: invoice.id}) }}" class="validation-action-pill pill-view">
-                                                <i class="fas fa-eye"></i><span data-i18n-fr="Voir" data-i18n-en="View">Voir</span>
+                                                <i class="fas fa-eye"></i><span data-i18n="common.view">Voir</span>
                                             </a>
                                             <a href="{{ path('admin_billing_subscription_invoice_pdf', {id: invoice.id}) }}" class="validation-action-pill pill-info" target="_blank">
                                                 <i class="fas fa-file-pdf"></i><span data-i18n-fr="PDF" data-i18n-en="PDF">PDF</span>
@@ -239,7 +256,7 @@
                             <tr>
                                 <td colspan="8" class="text-center" style="padding: 40px;">
                                     <i class="fas fa-inbox" style="font-size: 3rem; color: var(--text-secondary); margin-bottom: 1rem;"></i>
-                                    <p style="color: var(--text-secondary);" data-i18n-fr="Aucune facture trouvée" data-i18n-en="No invoices found">Aucune facture trouvée</p>
+                                    <p style="color: var(--text-secondary);" data-i18n="billing.table.empty">Aucune facture trouvée</p>
                                 </td>
                             </tr>
                         {% endif %}
@@ -267,7 +284,7 @@
                     <ul class="pagination pagination-rounded">
                         <li class="page-item {{ currentPage == 1 ? 'disabled' }}">
                             {% if currentPage == 1 %}
-                                <span class="page-link" aria-disabled="true" data-i18n-fr="Précédent" data-i18n-en="Previous">Précédent</span>
+                                <span class="page-link" aria-disabled="true" data-i18n="pagination.previous">Précédent</span>
                             {% else %}
                                 <a class="page-link" href="{{ path('admin_billing_invoices', {
                                     page: currentPage - 1,
@@ -275,7 +292,7 @@
                                     search: currentSearch,
                                     date_from: currentDateFrom,
                                     date_to: currentDateTo
-                                }) }}" rel="prev" data-i18n-fr="Précédent" data-i18n-en="Previous">Précédent</a>
+                                }) }}" rel="prev" data-i18n="pagination.previous">Précédent</a>
                             {% endif %}
                         </li>
 
@@ -327,7 +344,7 @@
 
                         <li class="page-item {{ currentPage == totalPages ? 'disabled' }}">
                             {% if currentPage == totalPages %}
-                                <span class="page-link" aria-disabled="true" data-i18n-fr="Suivant" data-i18n-en="Next">Suivant</span>
+                                <span class="page-link" aria-disabled="true" data-i18n="pagination.next">Suivant</span>
                             {% else %}
                                 <a class="page-link" href="{{ path('admin_billing_invoices', {
                                     page: currentPage + 1,
@@ -335,7 +352,7 @@
                                     search: currentSearch,
                                     date_from: currentDateFrom,
                                     date_to: currentDateTo
-                                }) }}" rel="next" data-i18n-fr="Suivant" data-i18n-en="Next">Suivant</a>
+                                }) }}" rel="next" data-i18n="pagination.next">Suivant</a>
                             {% endif %}
                         </li>
                     </ul>
@@ -766,6 +783,19 @@
     box-shadow: var(--shadow-md);
 }
 
+.billing-period-badge {
+    font-size: 0.7rem;
+    padding: 3px 8px;
+    border-radius: var(--border-radius-sm);
+    font-weight: var(--font-weight-medium);
+    background: var(--bg-secondary);
+    color: var(--text-secondary);
+    border: 1px solid var(--border-color);
+    white-space: nowrap;
+    display: inline-block;
+    margin-top: 2px;
+}
+
 .days-overdue-indicator {
     font-size: 0.75rem;
     color: var(--danger-color);
@@ -805,6 +835,12 @@
 .status-pending {
     background: var(--bg-secondary);
     color: var(--warning);
+    border: 1px solid var(--border-color);
+}
+
+.status-suspended {
+    background: var(--bg-secondary);
+    color: #F39C12;
     border: 1px solid var(--border-color);
 }
 

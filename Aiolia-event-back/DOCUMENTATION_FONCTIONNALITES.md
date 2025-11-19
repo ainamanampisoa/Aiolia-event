@@ -91,6 +91,8 @@ php bin/console app:mark-overdue-invoices
 - `draft` (Brouillon) : Facture créée mais pas encore complète/validée
 - `issued` (Émise/Attente) : Facture complète et émise, en attente de paiement
 - `paid` (Payée) : Facture payée, déclenche l'envoi automatique par email
+- `pending` (En attente) : Facture prépayée en attente de consommation
+- `suspendue` (Suspendue) : Facture de mois en pause (0 Ar) - organisateur en pause
 - `overdue` (En retard) : Facture dont la date d'échéance est dépassée
 - `partially_paid` (Partiellement payée) : Facture partiellement payée
 - `void` (Annulée) : Facture annulée
@@ -101,7 +103,58 @@ php bin/console app:mark-overdue-invoices
 draft → issued → paid (après paiement)
            ↓
        overdue (si non payée après échéance)
+       
+pending → (facture prépayée en attente de consommation)
+suspendue → (facture de mois en pause, 0 Ar)
 ```
+
+#### 4.1. Gestion des abonnements en pause
+
+**Règle principale** : Si un organisateur est en pause, sa facture du mois est automatiquement à **0 Ar** jusqu'à ce qu'il reprenne le service le mois suivant.
+
+**Mise en pause automatique** :
+- Si l'organisateur ne paie pas son abonnement du mois courant avant le **11ème jour du mois**, son compte est automatiquement mis en pause
+- La fonction `auto_pause_unpaid_subscriptions()` est exécutée automatiquement (via cron job le 11ème jour)
+- L'abonnement passe au statut `paused` et `mis_en_pause_le` est enregistré
+
+**Génération des factures en pause** :
+- Lors de la génération mensuelle des factures, si l'abonnement est en pause :
+  - La facture est créée avec un montant de **0 Ar** (sous-total, TVA et total à 0)
+  - Le statut est `suspendue` (suspendue)
+  - Le champ `est_mois_pause` est mis à `true`
+  - La facture est générée pour **chaque mois** où l'organisateur est en pause
+  - Les factures en pause continuent d'être générées à 0 Ar jusqu'à ce que l'organisateur reprenne le service
+  - Si une facture en pause existe déjà pour un mois, elle n'est pas régénérée (évite les doublons)
+
+**Reprise du service** :
+- L'organisateur peut reprendre le service à tout moment
+- Lors de la reprise, `repris_le` est enregistré
+- La facture du mois suivant sera générée normalement (avec le montant du plan)
+
+**Commande** :
+```bash
+php bin/console app:auto-pause-unpaid-subscriptions
+```
+
+**Configuration CRON recommandée** :
+```bash
+# Mettre en pause les abonnements non payés (le 11ème jour du mois)
+0 0 11 * * cd /chemin/vers/Aiolia-event-back && php bin/console app:auto-pause-unpaid-subscriptions
+```
+
+**Règles d'accès pour les organisateurs en pause** :
+
+| Action | Possible en pause ? | Description |
+|--------|---------------------|-------------|
+| **Accéder au dashboard** | ✔️ **Oui** (lecture seule) | L'organisateur peut consulter son tableau de bord en mode lecture seule |
+| **Voir ses événements** | ✔️ **Oui** | L'organisateur peut voir la liste de ses événements existants |
+| **Créer/modifier un événement** | ❌ **Non** | Impossible de créer ou modifier des événements pendant la pause |
+| **Publier un événement** | ❌ **Non** | Impossible de publier de nouveaux événements |
+| **Vendre des billets** | ❌ **Non** | Les ventes de billets sont suspendues pendant la pause |
+| **Voir les statistiques** | ✔️ **Oui** | L'organisateur peut consulter les statistiques de ses événements passés |
+| **Reprendre le service** | ✔️ **Oui** | L'organisateur peut reprendre son abonnement à tout moment |
+
+**Note importante** : Ces règles d'accès seront implémentées dans le module organisateur (front-end). Pour l'instant, seule la logique de facturation et de mise en pause automatique est active dans le module admin.
 
 #### 5. Calcul et affichage des jours de retard
 
@@ -128,6 +181,7 @@ draft → issued → paid (après paiement)
 #### Commandes
 - `src/Command/GenerateMonthlyInvoicesCommand.php` - Génération mensuelle des factures
 - `src/Command/MarkOverdueInvoicesCommand.php` - Marquage des factures en retard
+- `src/Command/AutoPauseUnpaidSubscriptionsCommand.php` - Mise en pause automatique des abonnements non payés
 
 #### EventSubscribers
 - `src/EventSubscriber/SubscriptionInvoiceSubscriber.php` - Envoi automatique après paiement
@@ -604,6 +658,58 @@ Le module Paramètres est actuellement basique et peut être étendu avec :
 
 ---
 
+## 🗄️ Fonctions SQL et logique stockée (`Base/logic.sql`)
+
+Le fichier `Base/logic.sql` centralise toutes les vues, fonctions PL/pgSQL et triggers utilisés par l’application.  
+Cette logique est versionnée au même titre que le code PHP et chaque commande Symfony y fait directement référence.
+
+### Vues et vues matérialisées
+
+| Vue | Rôle | Utilisation dans l’application |
+|-----|------|--------------------------------|
+| `mv_user_monthly_spend` *(matérialisée)* | total des dépenses par utilisateur et par mois | Rafraîchie via `refresh_user_monthly_spend()` avant les exports/rapports Analytics. |
+| `vw_user_dashboard_summary` | résumé profil + portefeuille + stats | Utilisée lorsque le Dashboard admin récupère les infos d’un utilisateur (ex. `UserManagementController::show`). |
+| `vw_event_sales_summary` | ventes & revenus par événement | Sert de base aux graphiques “Rapports Analytics” (`reports/statistiques`). |
+| `vw_subscription_payment_summary` | synthèse des paiements d’abonnements | Requêtes du module Facturation (`BillingController::invoices`). |
+| `vw_subscription_payments_detailed` | historique détaillé des paiements d’abonnement | Exploité pour l’écran `/admin/users/{id}/payments` et pour les exports financiers. |
+| `vw_ticket_payments_detailed` | historique détaillé des paiements de billets | Utilisé par les exports tickets et les rapports fiscaux. |
+| `vw_subscription_invoices_overdue` / `vw_ticket_invoices_overdue` | factures en retard | Liste affichée dans la vue “Facturation & Paiement” (filtre “En retard”). |
+| `vw_subscription_invoice_items` | détail des lignes d’une facture d’abonnement | Chargé via DBAL dans `BillingController::showSubscriptionInvoice()` pour afficher les montants HT/TVA/TTC. |
+
+### Fonctions PL/pgSQL
+
+| Fonction | Description | Où / comment elle est utilisée |
+|----------|-------------|--------------------------------|
+| `refresh_user_monthly_spend()` | Rafraîchit la vue matérialisée `mv_user_monthly_spend`. | Commandes/cron d’Analytics (appel manuel avant export volumineux). |
+| `wallet_transactions_apply()` | Applique immédiatement les transactions de portefeuille (crédit, débit, points). | Appelée automatiquement par `trg_wallet_transactions_apply` lors de l’insertion dans `transactions_portefeuilles`. |
+| `order_items_adjust_inventory()` | Vérifie et réserve le stock quand une ligne de commande est créée. | Trigger `trg_order_items_adjust_inventory` sur `elements_commandes`. |
+| `tickets_record_stats()` | Met à jour `statistiques_evenements_utilisateurs` à chaque billet émis. | Trigger `trg_tickets_record_stats` sur `billets`. |
+| `generate_monthly_subscription_invoices(target_month DATE)` | Crée les factures d’abonnement (statut `issued`, `pending`, `suspendue` selon le cas). | Service `SubscriptionInvoiceGenerationService` + commande `php bin/console app:generate-monthly-invoices`. |
+| `update_overdue_invoices_status()` | Passe les factures en retard en statut `overdue` et stocke `days_overdue`. | Commande `php bin/console app:mark-overdue-invoices`. |
+| `auto_pause_unpaid_subscriptions()` | Le 11 du mois, met en pause les abonnements actifs dont la facture courante n’est pas payée. | Commande `php bin/console app:auto-pause-unpaid-subscriptions` (module Facturation). |
+
+### Triggers actifs
+
+| Trigger | Table | Fonction | Effet |
+|---------|-------|---------|-------|
+| `trg_wallet_transactions_apply` | `transactions_portefeuilles` | `wallet_transactions_apply()` | Applique la transaction et met à jour le solde/points avant insertion. |
+| `trg_order_items_adjust_inventory` | `elements_commandes` | `order_items_adjust_inventory()` | Empêche les dépassements de stock et réserve les quantités. |
+| `trg_tickets_record_stats` | `billets` | `tickets_record_stats()` | Alimente automatiquement les statistiques utilisateur/billets. |
+
+### Résumé “où est-ce utilisé ?”
+
+| Élément SQL | Point d’entrée Symfony / Service | Comportement |
+|-------------|----------------------------------|--------------|
+| `generate_monthly_subscription_invoices` | `SubscriptionInvoiceGenerationService`, `GenerateMonthlyInvoicesCommand` | Génère les factures du mois (1er jour). |
+| `update_overdue_invoices_status` | `MarkOverdueInvoicesCommand` | Marque les factures `issued/draft` en retard. |
+| `auto_pause_unpaid_subscriptions` | `AutoPauseUnpaidSubscriptionsCommand` | Met en pause les abonnements impayés (11e jour). |
+| Vues `vw_*` (paiements, factures, stats) | `BillingController`, `ReportController`, exports | Fournissent des datasets prêts à afficher pour les modules Facturation & Rapports. |
+| Triggers portefeuille/inventaire/billets | Insertion Doctrine/DBAL sur les tables concernées | Garantissent l’intégrité métier sans code PHP supplémentaire. |
+
+> 📝 Toutes ces fonctions/vues sont déployées en même temps que le schéma (`schema.sql` + `logic.sql`). Pour déclencher une fonction côté PHP, utilisez simplement DBAL (`$connection->executeStatement('SELECT ...')`) ou créez une commande Symfony comme celles présentées ci-dessus.
+
+---
+
 ## 🔧 Architecture Technique
 
 ### Services transversaux
@@ -659,6 +765,9 @@ Marquage des factures en retard
 
 # Marquer les factures en retard (10-15 du mois)
 0 3 10-15 * * cd /chemin/vers/Aiolia-event-back && php bin/console app:mark-overdue-invoices
+
+# Mettre en pause les abonnements non payés (le 11ème jour du mois)
+0 0 11 * * cd /chemin/vers/Aiolia-event-back && php bin/console app:auto-pause-unpaid-subscriptions
 ```
 
 ---
@@ -1218,27 +1327,3 @@ $stats = $this->statisticsService->getTaxStatistics(
 **Auteur** : Aiolia Event Development Team
 
 ---
-
-### 📝 Résumé
-
-**9 offres d'abonnement indépendantes** (3 niveaux × 3 périodes) :
-- 💼 **Basic**:
-  - Mensuel : 150 000 Ar/mois - Idéal pour démarrer (3 événements/mois)
-  - Trimestriel : 420 000 Ar/trimestre (140 000 Ar/mois, -6.7%)
-  - Annuel : 1 620 000 Ar/an (135 000 Ar/mois, -10%)
-- ⭐ **Pro** (Populaire):
-  - Mensuel : 350 000 Ar/mois - Pour les organisateurs actifs (15 événements/mois)
-  - Trimestriel : 980 000 Ar/trimestre (326 667 Ar/mois, -6.7%)
-  - Annuel : 3 780 000 Ar/an (315 000 Ar/mois, -10%)
-- 🏢 **Enterprise**:
-  - Mensuel : 600 000 Ar/mois - Solution complète (événements illimités)
-  - Trimestriel : 1 680 000 Ar/trimestre (560 000 Ar/mois, -6.7%)
-  - Annuel : 6 480 000 Ar/an (540 000 Ar/mois, -10%)
-
-**Avantages du système** :
-- ✅ **Choix libre** : Les organisateurs choisissent leur plan indépendamment de leur `organization_type`
-- ✅ **Flexibilité** : Passage facile entre les offres selon les besoins
-- ✅ **Simplicité** : 3 offres claires au lieu de plans complexes basés sur le type
-- ✅ **Évolutivité** : Possibilité d'ajouter des offres annuelles ou trimestrielles plus tard sans modifier la structure
-- ✅ **Adoption facilitée** : Offres simples augmentent l'engagement (+30%)
-- ✅ **Rétention améliorée** : Flexibilité réduit le taux de churn de 20%

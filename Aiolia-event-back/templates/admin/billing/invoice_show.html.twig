@@ -6,12 +6,12 @@
 <div class="dashboard">
     <div class="dashboard-header">
         <div>
-            <h1 data-i18n-fr="Facture {{ invoice.invoiceNumber }}" data-i18n-en="Invoice {{ invoice.invoiceNumber }}">Facture {{ invoice.invoiceNumber }}</h1>
+            <h1 data-i18n="billing.invoice.title" data-i18n-params='{"number": "{{ invoice.invoiceNumber }}" }'>Facture {{ invoice.invoiceNumber }}</h1>
             <p class="dashboard-subtitle">
                 {% if type == 'ticket' %}
-                    <span data-i18n-fr="Facture de billet" data-i18n-en="Ticket invoice">Facture de billet</span>
+                    <span data-i18n="billing.invoice.type.ticket">Facture de billet</span>
                 {% else %}
-                    <span data-i18n-fr="Facture d'abonnement" data-i18n-en="Subscription invoice">Facture d'abonnement</span>
+                    <span data-i18n="billing.invoice.type.subscription">Facture d'abonnement</span>
                 {% endif %}
             </p>
         </div>
@@ -19,38 +19,38 @@
             {% if type == 'ticket' %}
                 <a href="{{ path('admin_billing_ticket_invoice_pdf', {id: invoice.id}) }}" class="btn btn-primary" target="_blank">
                     <i class="fas fa-file-pdf"></i>
-                    <span data-i18n-fr="Télécharger PDF" data-i18n-en="Download PDF">Télécharger PDF</span>
+                    <span data-i18n="billing.invoice.actions.download_pdf">Télécharger PDF</span>
                 </a>
                 <form method="post" action="{{ path('admin_billing_ticket_invoice_resend', {id: invoice.id}) }}" class="d-inline">
                     <button type="submit" class="btn btn-secondary">
                         <i class="fas fa-envelope"></i>
-                        <span data-i18n-fr="Renvoyer par email" data-i18n-en="Resend email">Renvoyer par email</span>
+                        <span data-i18n="billing.invoice.actions.resend_email">Renvoyer par email</span>
                     </button>
                 </form>
             {% else %}
                 <a href="{{ path('admin_billing_subscription_invoice_pdf', {id: invoice.id}) }}" class="btn btn-primary" target="_blank">
                     <i class="fas fa-file-pdf"></i>
-                    <span data-i18n-fr="Télécharger PDF" data-i18n-en="Download PDF">Télécharger PDF</span>
+                    <span data-i18n="billing.invoice.actions.download_pdf">Télécharger PDF</span>
                 </a>
                 {% if invoice.status == 'paid' %}
                     <form method="post" action="{{ path('admin_billing_subscription_invoice_resend', {id: invoice.id}) }}" class="d-inline">
                         <button type="submit" class="btn btn-secondary">
                             <i class="fas fa-envelope"></i>
-                            <span data-i18n-fr="Renvoyer par email" data-i18n-en="Resend email">Renvoyer par email</span>
+                            <span data-i18n="billing.invoice.actions.resend_email">Renvoyer par email</span>
                         </button>
                     </form>
                 {% elseif invoice.status == 'overdue' %}
                     <form method="post" action="{{ path('admin_billing_subscription_invoice_notify', {id: invoice.id}) }}" class="d-inline">
                         <button type="submit" class="btn btn-warning">
                             <i class="fas fa-exclamation-triangle"></i>
-                            <span data-i18n-fr="Signaler le retard" data-i18n-en="Report delay">Signaler le retard</span>
+                            <span data-i18n="billing.invoice.actions.report_delay">Signaler le retard</span>
                         </button>
                     </form>
                 {% endif %}
             {% endif %}
             <a href="{{ path('admin_billing_invoices') }}" class="btn btn-outline">
                 <i class="fas fa-arrow-left"></i>
-                <span data-i18n-fr="Retour" data-i18n-en="Back">Retour</span>
+                <span data-i18n="billing.invoice.actions.back">Retour</span>
             </a>
         </div>
     </div>
@@ -61,7 +61,7 @@
             <div class="invoice-header-content">
                 <div class="invoice-title-section">
                     <div class="invoice-number-wrapper">
-                        <span class="invoice-label" data-i18n-fr="Facture" data-i18n-en="Invoice">Facture</span>
+                        <span class="invoice-label" data-i18n="billing.invoice.label">Facture</span>
                         <h1 class="invoice-number invoice-number-status-{{ invoice.status }}">{{ invoice.invoiceNumber }}</h1>
                     </div>
                     {% set monthNames = {
@@ -103,7 +103,7 @@
                             <span class="invoice-meta-separator">•</span>
                             <span class="invoice-meta-item invoice-pause-badge">
                                 <i class="fas fa-pause-circle"></i>
-                                <span data-i18n-fr="Mois en pause" data-i18n-en="Pause month">Mois en pause</span>
+                                <span data-i18n="billing.invoice.pause_month">Mois en pause</span>
                             </span>
                         {% endif %}
                     </div>
@@ -112,7 +112,7 @@
                     {% if invoice.status == 'paid' %}
                         <div class="status-badge status-badge-paid">
                             <i class="fas fa-check-circle"></i>
-                            <span data-i18n-fr="Payée" data-i18n-en="Paid">Payée</span>
+                            <span data-i18n="billing.invoice.status.paid">Payée</span>
                         </div>
                     {% elseif invoice.status == 'overdue' %}
                         {% set daysOverdue = invoice.getDaysOverdue() %}
@@ -132,23 +132,28 @@
                             {% endif %}
                             <div class="status-badge status-badge-overdue">
                                 <i class="fas fa-times-circle"></i>
-                                <span data-i18n-fr="En retard" data-i18n-en="Overdue">En retard</span>
+                                <span data-i18n="billing.invoice.status.overdue">En retard</span>
                             </div>
                         </div>
                     {% elseif invoice.status == 'issued' or invoice.status == 'draft' %}
                         <div class="status-badge status-badge-pending">
                             <i class="fas fa-hourglass-half"></i>
-                            <span data-i18n-fr="En attente" data-i18n-en="Pending">En attente</span>
+                            <span data-i18n="billing.invoice.status.pending">En attente</span>
+                        </div>
+                    {% elseif invoice.status == 'suspendue' %}
+                        <div class="status-badge status-badge-suspended">
+                            <i class="fas fa-pause-circle"></i>
+                            <span data-i18n="billing.invoice.status.suspended">Suspendue</span>
                         </div>
                     {% elseif invoice.status == 'void' %}
                         <div class="status-badge status-badge-cancelled">
                             <i class="fas fa-ban"></i>
-                            <span data-i18n-fr="Annulée" data-i18n-en="Cancelled">Annulée</span>
+                            <span data-i18n="billing.invoice.status.cancelled">Annulée</span>
                         </div>
                     {% elseif invoice.status == 'refunded' %}
                         <div class="status-badge status-badge-refunded">
                             <i class="fas fa-undo"></i>
-                            <span data-i18n-fr="Remboursée" data-i18n-en="Refunded">Remboursée</span>
+                            <span data-i18n="billing.invoice.status.refunded">Remboursée</span>
                         </div>
                     {% else %}
                         <div class="status-badge status-badge-secondary">
@@ -171,14 +176,14 @@
                 </div>
                 <div class="card-body">
                     <div class="info-row">
-                        <span class="info-label" data-i18n-fr="Nom" data-i18n-en="Name">Nom</span>
+                        <span class="info-label" data-i18n="billing.invoice.customer.name">Nom</span>
                         <span class="info-value">{{ invoice.customer.nomComplet }}</span>
                     </div>
                     {% if type == 'subscription' %}
                         <div class="info-row">
                             <span class="info-label">
                                 <i class="fas fa-id-card"></i>
-                                <span data-i18n-fr="ID Organisateur" data-i18n-en="Organizer ID">ID Organisateur</span>
+                                <span data-i18n="billing.invoice.customer.organizer_id">ID Organisateur</span>
                             </span>
                             <span class="info-value">#{{ invoice.customer.id }}</span>
                         </div>
@@ -186,7 +191,7 @@
                     <div class="info-row">
                         <span class="info-label">
                             <i class="fas fa-envelope"></i>
-                            <span data-i18n-fr="Email" data-i18n-en="Email">Email</span>
+                            <span data-i18n="billing.invoice.customer.email">Email</span>
                         </span>
                         <span class="info-value">{{ invoice.customer.email }}</span>
                     </div>
@@ -194,36 +199,62 @@
                         <div class="info-row">
                             <span class="info-label">
                                 <i class="fas fa-phone"></i>
-                                <span data-i18n-fr="Téléphone" data-i18n-en="Phone">Téléphone</span>
+                                <span data-i18n="billing.invoice.customer.phone">Téléphone</span>
                             </span>
                             <span class="info-value">{{ invoice.customer.telephone }}</span>
                         </div>
                     {% endif %}
-                    {% if type == 'subscription' and planTier is defined and planTier %}
+                    {% if type == 'subscription' and planInfo is defined and planInfo %}
                         {% set tierLabels = {
                             'basic': {'fr': 'Basique', 'en': 'Basic'},
                             'pro': {'fr': 'Pro', 'en': 'Pro'},
                             'enterprise': {'fr': 'Entreprise', 'en': 'Enterprise'}
                         } %}
+                        {% set periodLabels = {
+                            'monthly': {'fr': 'Mensuel', 'en': 'Monthly'},
+                            'quarterly': {'fr': 'Trimestriel', 'en': 'Quarterly'},
+                            'yearly': {'fr': 'Annuel', 'en': 'Yearly'}
+                        } %}
+                        {% set planTier = planInfo.niveau ?? null %}
+                        {% set billingPeriod = planInfo.periode_facturation ?? null %}
                         {% set tierLabel = tierLabels[planTier] ?? {'fr': planTier|upper, 'en': planTier|upper} %}
-                        <div class="info-row info-row-plan">
-                            <span class="info-label">
-                                <i class="fas fa-{% if planTier == 'basic' %}tag{% elseif planTier == 'pro' %}star{% else %}crown{% endif %}"></i>
-                                <span data-i18n-fr="Offre active" data-i18n-en="Active plan">Offre active</span>
-                            </span>
-                            <span class="plan-tier-badge-modern plan-tier-{{ planTier }}" data-i18n-fr="{{ tierLabel.fr }}" data-i18n-en="{{ tierLabel.en }}">
-                                {{ tierLabel.fr }}
-                            </span>
-                        </div>
+                        {% set periodLabel = billingPeriod ? (periodLabels[billingPeriod] ?? {'fr': billingPeriod|capitalize, 'en': billingPeriod|capitalize}) : null %}
+                        {% if planTier %}
+                            <div class="info-row info-row-plan">
+                                <span class="info-label">
+                                    <i class="fas fa-{% if planTier == 'basic' %}tag{% elseif planTier == 'pro' %}star{% else %}crown{% endif %}"></i>
+                                    <span data-i18n="billing.invoice.customer.active_plan">Offre active</span>
+                                </span>
+                                <div style="display: flex; flex-direction: column; align-items: flex-end; gap: 6px;">
+                                    <span class="plan-tier-badge-modern plan-tier-{{ planTier }}" data-i18n-fr="{{ tierLabel.fr }}" data-i18n-en="{{ tierLabel.en }}">
+                                        {{ tierLabel.fr }}
+                                    </span>
+                                    {% if periodLabel %}
+                                        <span class="billing-period-badge-modern" data-i18n-fr="{{ periodLabel.fr }}" data-i18n-en="{{ periodLabel.en }}">
+                                            <i class="fas fa-calendar-alt"></i> {{ periodLabel.fr }}
+                                        </span>
+                                    {% endif %}
+                                </div>
+                            </div>
+                        {% endif %}
+                        {% if planInfo.nom is defined and planInfo.nom %}
+                            <div class="info-row">
+                                <span class="info-label">
+                                    <i class="fas fa-file-contract"></i>
+                                    <span data-i18n="billing.invoice.customer.plan_name">Nom du plan</span>
+                                </span>
+                                <span class="info-value">{{ planInfo.nom }}</span>
+                            </div>
+                        {% endif %}
                         {% if planChanged is defined and planChanged %}
                             <div class="info-row info-row-plan-change">
                                 <span class="info-label">
                                     <i class="fas fa-exchange-alt"></i>
-                                    <span data-i18n-fr="Changement de plan" data-i18n-en="Plan change">Changement de plan</span>
+                                    <span data-i18n="billing.invoice.customer.plan_change">Changement de plan</span>
                                 </span>
                                 <span class="info-value plan-change-badge">
                                     <i class="fas fa-check-circle"></i>
-                                    <span data-i18n-fr="Oui" data-i18n-en="Yes">Oui</span>
+                                    <span data-i18n="billing.invoice.customer.plan_change.yes">Oui</span>
                                 </span>
                             </div>
                         {% endif %}
@@ -235,16 +266,26 @@
             <div class="invoice-card invoice-info-card">
                 <div class="card-header">
                     <i class="fas fa-file-invoice"></i>
-                    <h3 data-i18n-fr="Informations de facturation" data-i18n-en="Billing information">Informations de facturation</h3>
+                    <h3 data-i18n="billing.invoice.billing_info.title">Informations de facturation</h3>
                 </div>
                 <div class="card-body">
                     <div class="info-row">
-                        <span class="info-label" data-i18n-fr="Type" data-i18n-en="Type">Type</span>
+                        <span class="info-label" data-i18n="billing.invoice.billing_info.type">Type</span>
                         <span class="info-value">
                             {% if type == 'ticket' %}
-                                <span data-i18n-fr="Billet" data-i18n-en="Ticket">Billet</span>
+                                <span data-i18n="billing.invoice.billing_info.type.ticket">Billet</span>
                             {% else %}
-                                <span data-i18n-fr="Abonnement mensuel" data-i18n-en="Monthly subscription">Abonnement mensuel</span>
+                                {% if planInfo is defined and planInfo and planInfo.periode_facturation %}
+                                    {% set periodLabels = {
+                                        'monthly': {'fr': 'Abonnement mensuel', 'en': 'Monthly subscription'},
+                                        'quarterly': {'fr': 'Abonnement trimestriel', 'en': 'Quarterly subscription'},
+                                        'yearly': {'fr': 'Abonnement annuel', 'en': 'Yearly subscription'}
+                                    } %}
+                                    {% set periodLabel = periodLabels[planInfo.periode_facturation] ?? {'fr': 'Abonnement', 'en': 'Subscription'} %}
+                                    <span data-i18n-fr="{{ periodLabel.fr }}" data-i18n-en="{{ periodLabel.en }}">{{ periodLabel.fr }}</span>
+                                {% else %}
+                                    <span data-i18n="billing.invoice.billing_info.type.subscription">Abonnement</span>
+                                {% endif %}
                             {% endif %}
                         </span>
                     </div>
@@ -281,15 +322,15 @@
                             <i class="fas fa-plus-circle"></i>
                             <span data-i18n-fr="Créée le" data-i18n-en="Created on">Créée le</span>
                         </span>
-                        <span class="info-value text-muted">{{ invoice.creeLe|date('d/m/Y à H:i') }}</span>
+                        <span class="info-value text-muted">{{ invoice.createdAt|date('d/m/Y à H:i') }}</span>
                     </div>
-                    {% if invoice.modifieLe and invoice.modifieLe != invoice.creeLe %}
+                    {% if invoice.updatedAt and invoice.updatedAt != invoice.createdAt %}
                         <div class="info-row">
                             <span class="info-label">
                                 <i class="fas fa-sync-alt"></i>
                                 <span data-i18n-fr="Mise à jour" data-i18n-en="Updated">Mise à jour</span>
                             </span>
-                            <span class="info-value text-muted">{{ invoice.modifieLe|date('d/m/Y à H:i') }}</span>
+                            <span class="info-value text-muted">{{ invoice.updatedAt|date('d/m/Y à H:i') }}</span>
                         </div>
                     {% endif %}
                     {% if invoice.status == 'overdue' %}
@@ -380,11 +421,11 @@
                                     <span class="payment-history-number">{{ prevInvoice.invoiceNumber }}</span>
                                     <span class="payment-history-status status-{{ prevInvoice.status }}">
                                         {% if prevInvoice.status == 'paid' %}
-                                            <span data-i18n-fr="Payée" data-i18n-en="Paid">Payée</span>
+                                            <span data-i18n="billing.invoice.status.paid">Payée</span>
                                         {% elseif prevInvoice.status == 'overdue' %}
-                                            <span data-i18n-fr="En retard" data-i18n-en="Overdue">En retard</span>
+                                            <span data-i18n="billing.invoice.status.overdue">En retard</span>
                                         {% else %}
-                                            <span data-i18n-fr="En attente" data-i18n-en="Pending">En attente</span>
+                                            <span data-i18n="billing.invoice.status.pending">En attente</span>
                                         {% endif %}
                                     </span>
                                 </div>
@@ -619,6 +660,12 @@
     color: var(--text-primary, #212529);
 }
 
+.status-badge-suspended {
+    background: var(--bg-secondary);
+    color: #F39C12;
+    border: 1px solid var(--border-color);
+}
+
 .status-badge-cancelled {
     background: linear-gradient(135deg, var(--gray-600, #6C757D), var(--gray-700, #495057));
     color: white;
@@ -835,6 +882,25 @@
 .plan-tier-badge-modern.plan-tier-enterprise {
     background: linear-gradient(135deg, var(--warning, #F39C12), #E67E22);
     color: white;
+}
+
+.billing-period-badge-modern {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.375rem;
+    padding: 0.375rem 0.75rem;
+    border-radius: 6px;
+    font-size: 0.75rem;
+    font-weight: 500;
+    background: var(--bg-secondary);
+    color: var(--text-secondary);
+    border: 1px solid var(--border-color);
+    box-shadow: 0 1px 2px rgba(0, 0, 0, 0.05);
+}
+
+.billing-period-badge-modern i {
+    font-size: 0.7rem;
+    opacity: 0.8;
 }
 
 /* Overdue Alert Modern */

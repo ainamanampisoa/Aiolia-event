@@ -10,6 +10,7 @@ use Symfony\Component\Security\Core\Exception\UserNotFoundException;
 use Symfony\Component\Security\Core\User\PasswordAuthenticatedUserInterface;
 use Symfony\Component\Security\Core\User\PasswordUpgraderInterface;
 use Symfony\Bridge\Doctrine\Security\User\UserLoaderInterface;
+use Doctrine\DBAL\ArrayParameterType;
 use function mb_strtolower;
 
 /**
@@ -95,6 +96,45 @@ class UserRepository extends ServiceEntityRepository implements PasswordUpgrader
             ->orderBy('u.creeLe', 'ASC')
             ->getQuery()
             ->getResult();
+    }
+
+    /**
+     * Retourne le statut d'abonnement (pending/active/paused) pour les organisateurs fournis.
+     *
+     * @param list<int|string> $userIds
+     * @return array<int|string, string>
+     */
+    public function getOrganizerSubscriptionStatuses(array $userIds): array
+    {
+        if (empty($userIds)) {
+            return [];
+        }
+
+        $connection = $this->getEntityManager()->getConnection();
+
+        $sql = "
+            SELECT DISTINCT ON (po.id_utilisateur)
+                po.id_utilisateur AS user_id,
+                os.statut
+            FROM aiolia.abonnements_organisateurs os
+            INNER JOIN aiolia.profils_organisateurs po ON po.id = os.id_profil_organisateur
+            WHERE po.id_utilisateur IN (:userIds)
+                AND os.annule_le IS NULL
+            ORDER BY po.id_utilisateur, os.cree_le DESC
+        ";
+
+        $results = $connection->executeQuery(
+            $sql,
+            ['userIds' => $userIds],
+            ['userIds' => ArrayParameterType::INTEGER]
+        )->fetchAllAssociative();
+
+        $statuses = [];
+        foreach ($results as $row) {
+            $statuses[$row['user_id']] = $row['statut'];
+        }
+
+        return $statuses;
     }
 }
 

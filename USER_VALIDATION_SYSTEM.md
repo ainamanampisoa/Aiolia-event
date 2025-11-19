@@ -142,6 +142,91 @@ php bin/console debug:router | grep admin
 
 ## Utilisation
 
+### Identifiants de test
+
+**Important** : Pour vous connecter, utilisez l'**email** comme identifiant et le mot de passe correspondant.
+
+#### Administrateurs (5 comptes disponibles)
+| Email | Mot de passe | Statut | ID |
+|-------|--------------|--------|-----|
+| admin01@yopmail.com | Admin#Test123 | Actif | 76 |
+| admin02@yopmail.com | Admin#Test123 | Actif | 77 |
+| admin03@yopmail.com | Admin#Test123 | Actif | 78 |
+| admin04@yopmail.com | Admin#Test123 | Actif | 79 |
+| admin05@yopmail.com | Admin#Test123 | Actif | 80 |
+
+#### Organisateurs (60 comptes disponibles)
+| Email | Mot de passe | Statut | ID | Notes |
+|-------|--------------|--------|-----|-------|
+| organisateur01@yopmail.com | Org#Test123 | Validé | 1 | Actif |
+| organisateur02@yopmail.com | Org#Test123 | Validé | 2 | Actif |
+| organisateur03@yopmail.com | Org#Test123 | Validé | 3 | Actif |
+| organisateur04@yopmail.com | Org#Test123 | Validé | 4 | Actif |
+| ... | ... | ... | ... | ... |
+| organisateur46@yopmail.com | Org#Test123 | Validé | 46 | En pause (almost_late) |
+| organisateur47@yopmail.com | Org#Test123 | Validé | 47 | En pause (almost_late) |
+| organisateur48@yopmail.com | Org#Test123 | Validé | 48 | En pause (almost_late) |
+| organisateur49@yopmail.com | Org#Test123 | Validé | 49 | En pause (almost_late) |
+| organisateur50@yopmail.com | Org#Test123 | Validé | 50 | En pause (almost_late) |
+| organisateur51@yopmail.com | Org#Test123 | Validé | 51 | En pause (almost_late) |
+| organisateur52@yopmail.com | Org#Test123 | Validé | 52 | En pause (almost_late) |
+| organisateur53@yopmail.com | Org#Test123 | En attente | 53 | Non validé |
+| ... | ... | ... | ... | ... |
+| organisateur60@yopmail.com | Org#Test123 | En attente | 60 | Non validé |
+
+**Notes importantes** :
+- Les organisateurs 1 à 52 sont validés et peuvent se connecter
+- Les organisateurs 53 à 60 sont en attente de validation (statut = 0)
+- Les organisateurs 46 à 52 sont en pause (abonnement non payé avant le 11ème jour)
+- Tous les organisateurs en pause **peuvent se connecter**, mais avec des accès limités (voir section ci-dessous)
+
+#### Statuts d'abonnement des organisateurs
+
+Les organisateurs ont **trois statuts d'abonnement possibles** :
+
+1. **`pending` (En attente)** : L'organisateur a créé son compte mais n'a pas encore souscrit d'abonnement, ou son abonnement est en attente d'activation
+2. **`active` (Actif)** : L'organisateur a un abonnement actif et à jour. Il peut utiliser toutes les fonctionnalités de la plateforme
+3. **`paused` (En pause)** : L'abonnement est en pause (généralement à cause d'un non-paiement). L'organisateur peut se connecter mais avec des accès limités
+
+**Règles de transition entre statuts** :
+- `pending` → `active` : Lorsque l'organisateur souscrit à un plan d'abonnement
+- `active` → `paused` : Automatiquement si la facture du mois courant n'est pas payée avant le 11ème jour du mois suivant
+- `paused` → `active` : Lorsque l'organisateur paie toutes les factures en retard et la facture du mois courant
+
+### Règles d'accès pour les organisateurs en pause
+
+**Important** : Seuls les **organisateurs qui paient un abonnement** sont concernés par les règles de pause. Les administrateurs et les utilisateurs simples ne sont **pas** affectés par ces règles.
+
+#### Connexion autorisée
+✅ **Tous les organisateurs en pause peuvent se connecter** à leur compte, mais avec des accès limités.
+
+#### Tableau des actions autorisées/interdites
+
+| Action | Possible en pause ? | Description |
+|--------|---------------------|------------|
+| **Accéder au dashboard** | ✅ **Oui** (En lecture seule) | L'organisateur peut voir son dashboard, mais en mode lecture seule |
+| **Voir ses événements** | ✅ **Oui** | L'organisateur peut consulter la liste de ses événements existants |
+| **Créer/modifier un événement** | ❌ **Non** | Impossible de créer ou modifier des événements pendant la pause |
+| **Publier un événement** | ❌ **Non** | Les événements ne peuvent pas être publiés pendant la pause |
+| **Vendre des billets** | ❌ **Non** | Les ventes de billets sont suspendues pendant la pause |
+| **Voir les statistiques** | ✅ **Oui** | L'organisateur peut consulter ses statistiques existantes |
+| **Reprendre le service** | ✅ **Oui** | L'organisateur peut reprendre son service en payant les factures en retard |
+
+#### Conditions de mise en pause automatique
+
+Un organisateur est automatiquement mis en pause si :
+- Il ne paie pas son abonnement du mois courant **avant le 11ème jour du mois suivant**
+- Exemple : Si la facture de septembre n'est pas payée avant le 11 octobre, le compte est mis en pause le 11 octobre
+
+#### Reprise du service
+
+Pour reprendre le service, l'organisateur doit :
+1. Payer toutes les factures en retard (statut `overdue`)
+2. Payer la facture du mois courant (statut `issued`)
+3. Le compte reprendra automatiquement au statut `active` lors de la génération des factures du mois suivant
+
+**Note** : Ces règles d'accès seront implémentées dans le module organisateur (front-end). Pour l'instant, seule la logique de facturation et de mise en pause automatique est active dans le module admin.
+
 ### Pour les utilisateurs
 
 1. **S'inscrire** : Aller sur `/register`

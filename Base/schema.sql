@@ -49,7 +49,7 @@ CREATE TYPE wallet_transaction_type_enum AS ENUM ('credit', 'debit', 'points_cre
 CREATE TYPE wallet_transaction_status_enum AS ENUM ('pending', 'completed', 'cancelled', 'failed');
 CREATE TYPE referral_reward_type_enum    AS ENUM ('amount', 'percent', 'points');
 CREATE TYPE invite_status_enum           AS ENUM ('pending', 'accepted', 'declined', 'expired');
-CREATE TYPE subscription_status_enum     AS ENUM ('pending', 'active', 'paused', 'past_due', 'suspended', 'cancelled', 'expired');
+CREATE TYPE subscription_status_enum     AS ENUM ('pending', 'active', 'paused');
 CREATE TYPE cart_status_enum             AS ENUM ('active', 'converted', 'abandoned', 'expired');
 CREATE TYPE ticket_chance_status_enum    AS ENUM ('pending', 'won', 'lost', 'claimed');
 CREATE TYPE organizer_type_enum          AS ENUM ('individual', 'company', 'non_profit', 'collective');
@@ -792,8 +792,9 @@ CREATE TABLE IF NOT EXISTS factures_abonnements (
     methode_paiement TEXT
         CHECK (methode_paiement IS NULL OR methode_paiement IN ('espace', 'orange', 'airtel', 'telma', 'bank_transfer')),
     statut TEXT NOT NULL DEFAULT 'draft'
-        CHECK (statut IN ('draft', 'issued', 'paid', 'pending', 'partially_paid', 'void', 'refunded', 'overdue')),
+        CHECK (statut IN ('draft', 'issued', 'paid', 'pending', 'suspendue', 'partially_paid', 'void', 'refunded', 'overdue')),
     -- 'pending' : pour les factures prépayées qui attendent d'être consommées
+    -- 'suspendue' : pour les factures de mois en pause (0 Ar)
     emise_le TIMESTAMPTZ NOT NULL DEFAULT now(),
     echeance_le TIMESTAMPTZ,
     payee_le TIMESTAMPTZ,
@@ -865,7 +866,7 @@ ALTER DEFAULT PRIVILEGES IN SCHEMA aiolia
 -- Total INDEXES : 25 (ajout de 3 index pour les abonnements)
 --
 -- Modifications apportées pour le système d'abonnements :
--- 1. Ajout du statut 'paused' dans subscription_status_enum
+-- 1. subscription_status_enum contient uniquement 3 statuts : 'pending', 'active', 'paused'
 -- 2. Ajout de mois_prepayes_restants dans abonnements_organisateurs
 -- 3. Ajout de mis_en_pause_le et repris_le dans abonnements_organisateurs
 -- 4. Ajout de mois_facturation, est_mois_pause, est_prepayee dans factures_abonnements

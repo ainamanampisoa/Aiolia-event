@@ -119,18 +119,18 @@ class SubscriptionInvoiceRepository extends ServiceEntityRepository
     }
 
     /**
-     * Récupère le tier du plan d'abonnement pour une facture d'abonnement
-     * Retourne null si le tier n'est pas trouvé
+     * Récupère le niveau (tier) du plan d'abonnement pour une facture d'abonnement
+     * Retourne null si le niveau n'est pas trouvé
      */
     public function getPlanTierForInvoice(SubscriptionInvoice $invoice): ?string
     {
         $connection = $this->getEntityManager()->getConnection();
         
         $sql = "
-            SELECT sp.tier
-            FROM aiolia.subscription_invoices si
-            INNER JOIN aiolia.organizer_subscriptions os ON os.id = si.subscription_id
-            INNER JOIN aiolia.subscription_plans sp ON sp.id = os.plan_id
+            SELECT sp.niveau
+            FROM aiolia.factures_abonnements si
+            INNER JOIN aiolia.abonnements_organisateurs os ON os.id = si.id_abonnement
+            INNER JOIN aiolia.plans_abonnements sp ON sp.id = os.id_plan
             WHERE si.id = :invoice_id
         ";
         
@@ -140,7 +140,7 @@ class SubscriptionInvoiceRepository extends ServiceEntityRepository
     }
 
     /**
-     * Récupère les tiers des plans d'abonnement pour plusieurs factures
+     * Récupère les niveaux (tiers) des plans d'abonnement pour plusieurs factures
      * Retourne un array avec invoice_id => plan_tier
      */
     public function getPlanTiersForInvoices(array $invoices): array
@@ -154,16 +154,83 @@ class SubscriptionInvoiceRepository extends ServiceEntityRepository
         
         $placeholders = implode(',', array_fill(0, count($invoiceIds), '?'));
         $sql = "
-            SELECT si.id, sp.tier
-            FROM aiolia.subscription_invoices si
-            INNER JOIN aiolia.organizer_subscriptions os ON os.id = si.subscription_id
-            INNER JOIN aiolia.subscription_plans sp ON sp.id = os.plan_id
+            SELECT si.id, sp.niveau
+            FROM aiolia.factures_abonnements si
+            INNER JOIN aiolia.abonnements_organisateurs os ON os.id = si.id_abonnement
+            INNER JOIN aiolia.plans_abonnements sp ON sp.id = os.id_plan
             WHERE si.id IN ($placeholders)
         ";
         
         $results = $connection->fetchAllKeyValue($sql, $invoiceIds);
         
         return $results;
+    }
+
+    /**
+     * Récupère les informations complètes du plan (niveau et période) pour une facture
+     * Retourne un array avec 'niveau' et 'periode_facturation' ou null
+     */
+    public function getPlanInfoForInvoice(SubscriptionInvoice $invoice): ?array
+    {
+        $connection = $this->getEntityManager()->getConnection();
+        
+        $sql = "
+            SELECT 
+                sp.niveau,
+                sp.periode_facturation,
+                sp.nom,
+                sp.code
+            FROM aiolia.factures_abonnements si
+            INNER JOIN aiolia.abonnements_organisateurs os ON os.id = si.id_abonnement
+            INNER JOIN aiolia.plans_abonnements sp ON sp.id = os.id_plan
+            WHERE si.id = :invoice_id
+        ";
+        
+        $result = $connection->fetchAssociative($sql, ['invoice_id' => $invoice->getId()]);
+        
+        return $result ?: null;
+    }
+
+    /**
+     * Récupère les informations complètes des plans pour plusieurs factures
+     * Retourne un array avec invoice_id => ['niveau' => ..., 'periode_facturation' => ..., 'nom' => ..., 'code' => ...]
+     */
+    public function getPlanInfosForInvoices(array $invoices): array
+    {
+        if (empty($invoices)) {
+            return [];
+        }
+        
+        $invoiceIds = array_map(fn($invoice) => $invoice->getId(), $invoices);
+        $connection = $this->getEntityManager()->getConnection();
+        
+        $placeholders = implode(',', array_fill(0, count($invoiceIds), '?'));
+        $sql = "
+            SELECT 
+                si.id,
+                sp.niveau,
+                sp.periode_facturation,
+                sp.nom,
+                sp.code
+            FROM aiolia.factures_abonnements si
+            INNER JOIN aiolia.abonnements_organisateurs os ON os.id = si.id_abonnement
+            INNER JOIN aiolia.plans_abonnements sp ON sp.id = os.id_plan
+            WHERE si.id IN ($placeholders)
+        ";
+        
+        $results = $connection->fetchAllAssociative($sql, $invoiceIds);
+        
+        $planInfos = [];
+        foreach ($results as $row) {
+            $planInfos[$row['id']] = [
+                'niveau' => $row['niveau'],
+                'periode_facturation' => $row['periode_facturation'],
+                'nom' => $row['nom'],
+                'code' => $row['code'],
+            ];
+        }
+        
+        return $planInfos;
     }
 
     /**

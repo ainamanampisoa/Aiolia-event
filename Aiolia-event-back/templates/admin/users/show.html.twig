@@ -603,6 +603,8 @@
                     </div>
 
                     <!-- Statistiques détaillées -->
+                    {% set organizerSubscriptionStatus = (user.role == 'organizer' and subscriptionInfo is not null) ? subscriptionInfo.statut : null %}
+
                     <div class="stats-section">
                         <h3 class="stats-section-title">
                             <i class="fas fa-chart-line"></i>
@@ -644,14 +646,18 @@
                                 <div class="stat-content">
                                     <div class="stat-label" data-i18n-fr="État du compte" data-i18n-en="Account status">État du compte</div>
                                     <div class="stat-value">
-                                        {% if user.statutCompte == 'active' %}
-                                            <span class="badge bg-success stat-badge" data-i18n-fr="Actif" data-i18n-en="Active">Actif</span>
+                                        {% if user.role == 'organizer' and organizerSubscriptionStatus == 'paused' %}
+                                            <span class="badge bg-warning stat-badge" data-i18n="users.status.paused">En pause</span>
+                                        {% elseif user.role == 'organizer' and organizerSubscriptionStatus == 'pending' %}
+                                            <span class="badge bg-warning stat-badge" data-i18n="users.status.pending">En attente</span>
+                                        {% elseif user.statutCompte == 'active' %}
+                                            <span class="badge bg-success stat-badge" data-i18n="users.status.active">Actif</span>
                                         {% elseif user.statutCompte == 'pending_validation' %}
-                                            <span class="badge bg-warning stat-badge" data-i18n-fr="En attente" data-i18n-en="Pending">En attente</span>
+                                            <span class="badge bg-warning stat-badge" data-i18n="users.status.pending">En attente</span>
                                         {% elseif user.statutCompte == 'rejected' %}
-                                            <span class="badge bg-danger stat-badge" data-i18n-fr="Rejeté" data-i18n-en="Rejected">Rejeté</span>
+                                            <span class="badge bg-danger stat-badge" data-i18n="users.status.rejected">Rejeté</span>
                                         {% else %}
-                                            <span class="badge bg-dark stat-badge" data-i18n-fr="Inactif" data-i18n-en="Inactive">Inactif</span>
+                                            <span class="badge bg-dark stat-badge" data-i18n="users.status.inactive">Inactif</span>
                                         {% endif %}
                                     </div>
                                 </div>
@@ -698,6 +704,32 @@
                                     </div>
                                 </div>
                             </div>
+                            
+                            {% if subscriptionInfo is defined and subscriptionInfo %}
+                            <div class="stat-item">
+                                <div class="stat-icon-wrapper">
+                                    <i class="fas fa-tag"></i>
+                                </div>
+                                <div class="stat-content">
+                                    <div class="stat-label" data-i18n-fr="Offre active" data-i18n-en="Active plan">Offre active</div>
+                                    <div class="stat-value">
+                                        {% set tierLabels = {
+                                            'basic': {'fr': 'Basic', 'en': 'Basic'},
+                                            'pro': {'fr': 'Pro', 'en': 'Pro'},
+                                            'enterprise': {'fr': 'Enterprise', 'en': 'Enterprise'}
+                                        } %}
+                                        {% set periodLabels = {
+                                            'monthly': {'fr': 'Mensuel', 'en': 'Monthly'},
+                                            'quarterly': {'fr': 'Trimestriel', 'en': 'Quarterly'},
+                                            'yearly': {'fr': 'Annuel', 'en': 'Yearly'}
+                                        } %}
+                                        {% set tierLabel = tierLabels[subscriptionInfo.niveau] ?? {'fr': subscriptionInfo.niveau|upper, 'en': subscriptionInfo.niveau|upper} %}
+                                        {% set periodLabel = periodLabels[subscriptionInfo.periode_facturation] ?? {'fr': subscriptionInfo.periode_facturation|capitalize, 'en': subscriptionInfo.periode_facturation|capitalize} %}
+                                        <span class="badge bg-primary stat-badge" data-i18n-fr="{{ tierLabel.fr }} {{ periodLabel.fr }}" data-i18n-en="{{ tierLabel.en }} {{ periodLabel.en }}">{{ tierLabel.fr }} {{ periodLabel.fr }}</span>
+                                    </div>
+                                </div>
+                            </div>
+                            {% endif %}
                         </div>
                     </div>
 

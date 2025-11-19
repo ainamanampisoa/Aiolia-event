@@ -92,11 +92,11 @@ class BillingController extends AbstractController
             return $b->getCreatedAt() <=> $a->getCreatedAt();
         });
         
-        // Récupérer les tiers des plans d'abonnement pour les factures d'abonnement
-        $planTiers = [];
+        // Récupérer les informations complètes des plans d'abonnement pour les factures d'abonnement
+        $planInfos = [];
         $subscriptionInvoicesOnly = array_filter($allInvoices, fn($inv) => $inv instanceof SubscriptionInvoice);
         if (!empty($subscriptionInvoicesOnly)) {
-            $planTiers = $this->subscriptionInvoiceRepository->getPlanTiersForInvoices($subscriptionInvoicesOnly);
+            $planInfos = $this->subscriptionInvoiceRepository->getPlanInfosForInvoices($subscriptionInvoicesOnly);
         }
         
         // Appliquer la pagination : limiter à 7 résultats par page
@@ -116,7 +116,7 @@ class BillingController extends AbstractController
             'ticketInvoices' => $ticketInvoices,
             'subscriptionInvoices' => $subscriptionInvoices,
             'allInvoices' => $allInvoices,
-            'planTiers' => $planTiers,
+            'planInfos' => $planInfos,
             'stats' => $stats,
             'currentStatus' => $status,
             'currentSearch' => $search,
@@ -160,8 +160,9 @@ class BillingController extends AbstractController
             return $this->redirectToRoute('admin_billing_invoices');
         }
 
-        // Récupérer le tier du plan d'abonnement
-        $planTier = $this->subscriptionInvoiceRepository->getPlanTierForInvoice($invoice);
+        // Récupérer les informations complètes du plan d'abonnement
+        $planInfo = $this->subscriptionInvoiceRepository->getPlanInfoForInvoice($invoice);
+        $planTier = $planInfo['niveau'] ?? null;
 
         // Récupérer l'organisateur (via le customer qui est l'organisateur)
         $organizer = $invoice->getCustomer();
@@ -183,14 +184,17 @@ class BillingController extends AbstractController
         $planChanged = false;
         if (!empty($previousInvoices)) {
             $previousInvoice = $previousInvoices[0];
-            $previousPlanTier = $this->subscriptionInvoiceRepository->getPlanTierForInvoice($previousInvoice);
-            $planChanged = ($previousPlanTier !== $planTier);
+            $previousPlanInfo = $this->subscriptionInvoiceRepository->getPlanInfoForInvoice($previousInvoice);
+            $previousPlanTier = $previousPlanInfo['niveau'] ?? null;
+            $planChanged = ($previousPlanTier !== $planTier) || 
+                          ($planInfo['periode_facturation'] ?? null) !== ($previousPlanInfo['periode_facturation'] ?? null);
         }
 
         return $this->render('admin/billing/invoice_show.html.twig', [
             'invoice' => $invoice,
             'type' => 'subscription',
             'planTier' => $planTier,
+            'planInfo' => $planInfo,
             'organizer' => $organizer,
             'previousInvoices' => $previousInvoices,
             'planChanged' => $planChanged,

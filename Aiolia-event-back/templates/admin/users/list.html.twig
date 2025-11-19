@@ -15,8 +15,8 @@
     <!-- En-tête -->
     <div class="dashboard-header">
         <div>
-            <h1 data-i18n-fr="Gestion des utilisateurs" data-i18n-en="User management">Gestion des utilisateurs</h1>
-            <p class="dashboard-subtitle" data-i18n-fr="Gérez et administrez les comptes utilisateurs de votre plateforme" data-i18n-en="Manage and administer your platform user accounts">
+            <h1 data-i18n="users.header.title">Gestion des utilisateurs</h1>
+            <p class="dashboard-subtitle" data-i18n="users.header.subtitle">
                 Gérez et administrez les comptes utilisateurs de votre plateforme
             </p>
         </div>
@@ -30,7 +30,7 @@
             </div>
             <div class="stat-content">
                 <h3>{{ stats.total|default(0) }}</h3>
-                <p data-i18n-fr="Utilisateurs totaux" data-i18n-en="Total users">Utilisateurs totaux</p>
+                <p data-i18n="users.stats.total_users">Total utilisateurs</p>
             </div>
         </div>
 
@@ -40,7 +40,7 @@
             </div>
             <div class="stat-content">
                 <h3>{{ stats.pending|default(0) }}</h3>
-                <p data-i18n-fr="En attente" data-i18n-en="Pending">En attente</p>
+                <p data-i18n="users.stats.pending">En attente</p>
             </div>
         </div>
 
@@ -49,8 +49,8 @@
                 <i class="fas fa-check-circle"></i>
             </div>
             <div class="stat-content">
-                <h3>{{ stats.active|default(0) }}</h3>
-                <p data-i18n-fr="Utilisateurs actifs" data-i18n-en="Active users">Utilisateurs actifs</p>
+                <h3>{{ stats.activeOrganizers|default(0) }}</h3>
+                <p data-i18n="users.stats.active_organizers">Organisateurs actifs</p>
             </div>
         </div>
 
@@ -59,8 +59,8 @@
                 <i class="fas fa-user-shield"></i>
             </div>
             <div class="stat-content">
-                <h3>{{ stats.organizers|default(0) }}</h3>
-                <p data-i18n-fr="Organisateurs" data-i18n-en="Organizers">Organisateurs</p>
+                <h3>{{ stats.totalOrganizers|default(0) }}</h3>
+                <p data-i18n="users.stats.total_organizers">Total organisateurs</p>
             </div>
         </div>
     </div>
@@ -70,7 +70,7 @@
         <div class="search-header">
             <h3 style="font-size: 1.1rem; color: var(--text-primary); margin: 0; display: flex; align-items: center; gap: 8px;">
                 <i class="fas fa-search"></i>
-                <span data-i18n-fr="Recherche multicritère" data-i18n-en="Multi-criteria search">Recherche multicritère</span>
+                <span data-i18n="users.filters.title">Recherche multicritère</span>
             </h3>
             
         </div>
@@ -79,45 +79,46 @@
             <form method="get">
                 <div class="search-grid">
                     <div class="search-field">
-                        <label data-i18n-fr="Recherche (Nom, Email, Téléphone)" data-i18n-en="Search (Name, Email, Phone)">Recherche (Nom, Email, Téléphone)</label>
-                        <input type="text" name="search" class="form-input" value="{{ search }}" placeholder="Rechercher par nom, email ou téléphone..." data-i18n-target="placeholder" data-i18n-fr="Rechercher par nom, email ou téléphone..." data-i18n-en="Search by name, email or phone...">
+                        <label data-i18n="users.filters.search.label">Recherche (Nom, Email, Téléphone)</label>
+                        <input type="text" name="search" class="form-input" value="{{ search }}" data-i18n-target="placeholder" data-i18n="users.filters.search.placeholder" placeholder="Rechercher par nom, email ou téléphone...">
                     </div>
 
                     <div class="search-field">
-                        <label data-i18n-fr="Rôle" data-i18n-en="Role">Rôle</label>
+                        <label data-i18n="users.filters.role">Rôle</label>
                         <select name="role" class="form-input">
-                            <option value="" data-i18n-fr="Tous les rôles" data-i18n-en="All roles">Tous les rôles</option>
-                            <option value="user" {{ currentRole == 'user' ? 'selected' : '' }} data-i18n-fr="Utilisateur" data-i18n-en="User">Utilisateur</option>
-                            <option value="organizer" {{ currentRole == 'organizer' ? 'selected' : '' }} data-i18n-fr="Organisateur" data-i18n-en="Organizer">Organisateur</option>
-                            <option value="admin" {{ currentRole == 'admin' ? 'selected' : '' }} data-i18n-fr="Administrateur" data-i18n-en="Administrator">Administrateur</option>
+                            <option value="" data-i18n="users.filters.role.all">Tous les rôles</option>
+                            <option value="user" {{ currentRole == 'user' ? 'selected' : '' }} data-i18n="users.filters.role.user">Utilisateur</option>
+                            <option value="organizer" {{ currentRole == 'organizer' ? 'selected' : '' }} data-i18n="users.filters.role.organizer">Organisateur</option>
+                            <option value="admin" {{ currentRole == 'admin' ? 'selected' : '' }} data-i18n="users.filters.role.admin">Administrateur</option>
                         </select>
                     </div>
 
                     <div class="search-field">
-                        <label data-i18n-fr="Statut" data-i18n-en="Status">Statut</label>
+                        <label data-i18n="users.filters.status">Statut</label>
                         <select name="status" class="form-input">
-                            <option value="" data-i18n-fr="Tous les statuts" data-i18n-en="All statuses">Tous les statuts</option>
-                            <option value="active" {{ currentStatus == 'active' ? 'selected' : '' }} data-i18n-fr="Actif" data-i18n-en="Active">Actif</option>
-                            <option value="pending_validation" {{ currentStatus == 'pending_validation' ? 'selected' : '' }} data-i18n-fr="En attente" data-i18n-en="Pending">En attente</option>
-                            <option value="rejected" {{ currentStatus == 'rejected' ? 'selected' : '' }} data-i18n-fr="Rejeté" data-i18n-en="Rejected">Rejeté</option>
+                            <option value="" data-i18n="users.filters.status.all">Tous les statuts</option>
+                            <option value="active" {{ currentStatus == 'active' ? 'selected' : '' }} data-i18n="users.filters.status.active">Actif</option>
+                            <option value="pending_validation" {{ currentStatus == 'pending_validation' ? 'selected' : '' }} data-i18n="users.filters.status.pending">En attente</option>
+                            <option value="paused" {{ currentStatus == 'paused' ? 'selected' : '' }} data-i18n="users.filters.status.paused">En pause</option>
+                            <option value="rejected" {{ currentStatus == 'rejected' ? 'selected' : '' }} data-i18n="users.filters.status.rejected">Rejeté</option>
                         </select>
                     </div>
 
                     <div class="search-field">
-                        <label data-i18n-fr="Trier par" data-i18n-en="Sort by">Trier par</label>
+                        <label data-i18n="users.filters.sort_by">Trier par</label>
                         <select name="sort" class="form-input">
-                            <option value="created_at" {{ currentSort == 'created_at' ? 'selected' : '' }} data-i18n-fr="Date création" data-i18n-en="Creation date">Date création</option>
-                            <option value="email" {{ currentSort == 'email' ? 'selected' : '' }} data-i18n-fr="Email" data-i18n-en="Email">Email</option>
-                            <option value="first_name" {{ currentSort == 'first_name' ? 'selected' : '' }} data-i18n-fr="Prénom" data-i18n-en="First name">Prénom</option>
-                            <option value="last_name" {{ currentSort == 'last_name' ? 'selected' : '' }} data-i18n-fr="Nom" data-i18n-en="Last name">Nom</option>
+                            <option value="created_at" {{ currentSort == 'created_at' ? 'selected' : '' }} data-i18n="users.filters.sort.created_at">Date création</option>
+                            <option value="email" {{ currentSort == 'email' ? 'selected' : '' }} data-i18n="users.filters.sort.email">Email</option>
+                            <option value="first_name" {{ currentSort == 'first_name' ? 'selected' : '' }} data-i18n="users.filters.sort.first_name">Prénom</option>
+                            <option value="last_name" {{ currentSort == 'last_name' ? 'selected' : '' }} data-i18n="users.filters.sort.last_name">Nom</option>
                         </select>
                     </div>
 
                     <div class="search-field">
-                        <label data-i18n-fr="Ordre" data-i18n-en="Order">Ordre</label>
+                        <label data-i18n="users.filters.order">Ordre</label>
                         <select name="order" class="form-input">
-                            <option value="DESC" {{ currentOrder == 'DESC' ? 'selected' : '' }} data-i18n-fr="Décroissant" data-i18n-en="Descending">Décroissant</option>
-                            <option value="ASC" {{ currentOrder == 'ASC' ? 'selected' : '' }} data-i18n-fr="Croissant" data-i18n-en="Ascending">Croissant</option>
+                            <option value="DESC" {{ currentOrder == 'DESC' ? 'selected' : '' }} data-i18n="users.filters.order.desc">Décroissant</option>
+                            <option value="ASC" {{ currentOrder == 'ASC' ? 'selected' : '' }} data-i18n="users.filters.order.asc">Croissant</option>
                         </select>
                     </div>
                 </div>
@@ -125,11 +126,11 @@
                 <div class="search-actions">
                     <button type="submit" class="btn btn-primary" style="background: #3498DB !important; color: var(--text-inverse); border: none; padding: 10px 24px; border-radius: 8px; cursor: pointer; font-weight: 500;">
                         <i class="fas fa-search"></i>
-                        <span data-i18n-fr="Rechercher" data-i18n-en="Search">Rechercher</span>
+                        <span data-i18n="users.actions.search">Rechercher</span>
                     </button>
                     <a href="{{ path('admin_users_list') }}" class="btn btn-secondary" style="background: var(--bg-secondary); color: var(--text-secondary); border: 2px solid var(--border-color); padding: 10px 24px; border-radius: 8px; cursor: pointer; font-weight: 500;">
                         <i class="fas fa-redo"></i>
-                        <span data-i18n-fr="Réinitialiser" data-i18n-en="Reset">Réinitialiser</span>
+                        <span data-i18n="users.actions.reset">Réinitialiser</span>
                     </a>
                 </div>
             </form>
@@ -145,22 +146,24 @@
                 <table class="table table-hover users-table validation-table" id="usersTable" data-show-url-base="{{ path('admin_users_show', {id: 0}) }}">
                     <thead>
                         <tr>
-                            <th class="col-left" data-i18n-fr="Utilisateur" data-i18n-en="User">Utilisateur</th>
-                            <th class="col-center" data-i18n-fr="Rôle" data-i18n-en="Role">Rôle</th>
-                            <th class="col-center" data-i18n-fr="Statut" data-i18n-en="Status">Statut</th>
-                            <th class="col-center" data-i18n-fr="Activité" data-i18n-en="Activity">Activité</th>
-                            <th class="col-center actions-header" data-i18n-fr="Actions" data-i18n-en="Actions">Actions</th>
+                            <th class="col-left" data-i18n="users.table.user">Utilisateur</th>
+                            <th class="col-center" data-i18n="users.table.role">Rôle</th>
+                            <th class="col-center" data-i18n="users.table.status">Statut</th>
+                            <th class="col-center" data-i18n="users.table.activity">Activité</th>
+                            <th class="col-center actions-header" data-i18n="users.table.actions">Actions</th>
                         </tr>
                     </thead>
                     <tbody>
                         {% if users is empty %}
                         <tr>
                             <td colspan="7" class="text-center" style="padding: 40px;">
-                                <p style="color: var(--text-secondary);" data-i18n-fr="Aucun utilisateur trouvé" data-i18n-en="No users found">Aucun utilisateur trouvé</p>
+                                <p style="color: var(--text-secondary);" data-i18n="users.table.empty">Aucun utilisateur trouvé</p>
                             </td>
                         </tr>
                         {% else %}
+                        {% set subscriptionMap = subscriptionStatuses|default({}) %}
                         {% for user in users %}
+                        {% set subscriptionStatus = subscriptionMap[user.id]|default(null) %}
                         <tr data-user-id="{{ user.id }}">
                             <td class="col-left">
                                 <div class="user-info">
@@ -233,22 +236,26 @@
                             </td>
                             <td class="col-center">
                                 {% if user.role == 'admin' %}
-                                    <span class="badge role-badge role-admin" data-i18n-fr="Administrateur" data-i18n-en="Administrator">Administrateur</span>
+                                    <span class="badge role-badge role-admin" data-i18n="users.role.admin">Administrateur</span>
                                 {% elseif user.role == 'organizer' %}
-                                    <span class="badge role-badge role-organizer" data-i18n-fr="Organisateur" data-i18n-en="Organizer">Organisateur</span>
+                                    <span class="badge role-badge role-organizer" data-i18n="users.role.organizer">Organisateur</span>
                                 {% else %}
-                                    <span class="badge role-badge role-user" data-i18n-fr="Utilisateur" data-i18n-en="User">Utilisateur</span>
+                                    <span class="badge role-badge role-user" data-i18n="users.role.user">Utilisateur</span>
                                 {% endif %}
                             </td>
                             <td class="col-center">
-                                {% if user.statutCompte == 'active' or (user.statutCompte is empty and user.estActif) %}
-                                    <span class="badge status-badge status-active" data-i18n-fr="Actif" data-i18n-en="Active">Actif</span>
+                                {% if user.role == 'organizer' and subscriptionStatus == 'paused' %}
+                                    <span class="badge status-badge status-paused" data-i18n="users.status.paused">En pause</span>
+                                {% elseif user.statutCompte == 'active' or (user.statutCompte is empty and user.estActif) %}
+                                    <span class="badge status-badge status-active" data-i18n="users.status.active">Actif</span>
+                                {% elseif user.role == 'organizer' and subscriptionStatus == 'pending' %}
+                                    <span class="badge status-badge status-pending" data-i18n="users.status.pending">En attente</span>
                                 {% elseif user.statutCompte == 'pending_validation' %}
-                                    <span class="badge status-badge status-pending" data-i18n-fr="En attente" data-i18n-en="Pending">En attente</span>
+                                    <span class="badge status-badge status-pending" data-i18n="users.status.pending">En attente</span>
                                 {% elseif user.statutCompte == 'rejected' %}
-                                    <span class="badge status-badge status-rejected" data-i18n-fr="Rejeté" data-i18n-en="Rejected">Rejeté</span>
+                                    <span class="badge status-badge status-rejected" data-i18n="users.status.rejected">Rejeté</span>
                                 {% else %}
-                                    <span class="badge status-badge status-inactive" data-i18n-fr="Inactif" data-i18n-en="Inactive">Inactif</span>
+                                    <span class="badge status-badge status-inactive" data-i18n="users.status.inactive">Inactif</span>
                                 {% endif %}
                             </td>
                             <td class="col-center">
@@ -261,18 +268,18 @@
                                 {% if isPendingOrganizer %}
                                     {# Organisateurs en attente de validation : Approuver/Rejeter #}
                                     <a href="{{ path('admin_users_show', {id: user.id}) }}" class="validation-action-pill pill-view">
-                                        <i class="fas fa-eye"></i><span data-i18n-fr="Voir le profil" data-i18n-en="View profile">Voir le profil</span>
+                                        <i class="fas fa-eye"></i><span data-i18n="users.actions.view">Voir le profil</span>
                                     </a>
                                     <form method="POST" action="{{ path('admin_validation_approve', {id: user.id}) }}" class="d-inline" onsubmit="return confirmApprove(this);" data-confirm-fr="Approuver la demande de cet organisateur ?" data-confirm-en="Approve this organizer's request?">
                                         <input type="hidden" name="_token" value="{{ csrf_token('approve_user_' ~ user.id) }}">
                                         <button type="submit" class="validation-action-pill pill-approve">
-                                            <i class="fas fa-check-circle"></i><span data-i18n-fr="Approuver" data-i18n-en="Approve">Approuver</span>
+                                            <i class="fas fa-check-circle"></i><span data-i18n="validation.table.button.approve">Approuver</span>
                                         </button>
                                     </form>
                                     <form method="POST" action="{{ path('admin_validation_reject', {id: user.id}) }}" class="d-inline" onsubmit="return confirmReject(this);" data-confirm-fr="Rejeter la demande de cet organisateur ?" data-confirm-en="Reject this organizer's request?">
                                         <input type="hidden" name="_token" value="{{ csrf_token('reject_user_' ~ user.id) }}">
                                         <button type="submit" class="validation-action-pill pill-reject">
-                                            <i class="fas fa-times-circle"></i><span data-i18n-fr="Rejeter" data-i18n-en="Reject">Rejeter</span>
+                                            <i class="fas fa-times-circle"></i><span data-i18n="validation.table.button.reject">Rejeter</span>
                                         </button>
                                     </form>
                                 {% else %}
@@ -282,18 +289,18 @@
                                         {% if user.role == 'organizer' %}
                                             {# Organisateur : Voir profil, Paiements, Événements #}
                                             <a href="{{ path('admin_users_show', {id: user.id}) }}" class="validation-action-pill pill-view">
-                                                <i class="fas fa-eye"></i><span data-i18n-fr="Voir le profil" data-i18n-en="View profile">Voir le profil</span>
+                                                <i class="fas fa-eye"></i><span data-i18n="users.actions.view">Voir le profil</span>
                                             </a>
-                                            <a href="{{ path('admin_users_payments', {id: user.id}) }}" class="validation-action-pill pill-payments" title="Voir l'historique des paiements">
-                                                <i class="fas fa-credit-card"></i><span data-i18n-fr="Paiements" data-i18n-en="Payments">Paiements</span>
+                                            <a href="{{ path('admin_users_payments', {id: user.id}) }}" class="validation-action-pill pill-payments" title="Voir l'historique des paiements" target="_blank" rel="noopener noreferrer">
+                                                <i class="fas fa-credit-card"></i><span data-i18n="users.actions.payments">Paiements</span>
                                             </a>
-                                            <a href="{{ path('admin_users_events', {id: user.id}) }}" class="validation-action-pill pill-events">
-                                                <i class="fas fa-calendar-alt"></i><span data-i18n-fr="Événements" data-i18n-en="Events">Événements</span>
+                                            <a href="{{ path('admin_users_events', {id: user.id}) }}" class="validation-action-pill pill-events" target="_blank" rel="noopener noreferrer">
+                                                <i class="fas fa-calendar-alt"></i><span data-i18n="users.actions.events">Événements</span>
                                             </a>
                                         {% elseif user.role == 'admin' %}
                                             {# Admin : Voir profil, Activité, Info #}
                                             <a href="{{ path('admin_users_show', {id: user.id}) }}" class="validation-action-pill pill-view">
-                                                <i class="fas fa-eye"></i><span data-i18n-fr="Voir le profil" data-i18n-en="View profile">Voir le profil</span>
+                                                <i class="fas fa-eye"></i><span data-i18n="users.actions.view">Voir le profil</span>
                                             </a>
                                             <a href="{{ path('admin_users_show', {id: user.id}) }}" class="validation-action-pill pill-activity" title="Voir l'historique d'activité et les logs d'audit">
                                                 <i class="fas fa-history"></i><span data-i18n-fr="Activité" data-i18n-en="Activity">Activité</span>
@@ -304,13 +311,13 @@
                                         {% else %}
                                             {# User : Voir profil uniquement #}
                                             <a href="{{ path('admin_users_show', {id: user.id}) }}" class="validation-action-pill pill-view">
-                                                <i class="fas fa-eye"></i><span data-i18n-fr="Voir le profil" data-i18n-en="View profile">Voir le profil</span>
+                                                <i class="fas fa-eye"></i><span data-i18n="users.actions.view">Voir le profil</span>
                                             </a>
                                         {% endif %}
                                     {% else %}
                                         {# Comptes non actifs : seulement Voir profil #}
                                         <a href="{{ path('admin_users_show', {id: user.id}) }}" class="validation-action-pill pill-view">
-                                            <i class="fas fa-eye"></i><span data-i18n-fr="Voir le profil" data-i18n-en="View profile">Voir le profil</span>
+                                            <i class="fas fa-eye"></i><span data-i18n="users.actions.view">Voir le profil</span>
                                         </a>
                                     {% endif %}
                                 {% endif %}
@@ -933,21 +940,21 @@ function showUserStats() {
 }
 
 .role-organizer {
-    background: var(--bg-secondary);
-    color: var(--text-secondary);
-    border: 1px solid var(--border-color);
+    background: rgba(155, 89, 182, 0.12);
+    color: #8E44AD;
+    border: 1px solid rgba(155, 89, 182, 0.25);
 }
 
 .role-user {
-    background: var(--bg-secondary);
-    color: var(--text-secondary);
-    border: 1px solid var(--border-color);
+    background: rgba(52, 152, 219, 0.12);
+    color: #1F78B4;
+    border: 1px solid rgba(52, 152, 219, 0.25);
 }
 
 .role-admin {
-    background: var(--bg-secondary);
-    color: var(--text-primary);
-    border: 1px solid var(--border-color);
+    background: rgba(231, 76, 60, 0.12);
+    color: #C0392B;
+    border: 1px solid rgba(231, 76, 60, 0.25);
 }
 
 .status-badge {
@@ -969,27 +976,31 @@ function showUserStats() {
 }
 
 .status-active {
-    background: var(--bg-secondary);
-    color: var(--success);
-    border: 1px solid var(--border-color);
+    background: rgba(46, 204, 113, 0.12);
+    color: #27AE60;
+    border: 1px solid rgba(46, 204, 113, 0.25);
 }
 
 .status-pending {
-    background: var(--bg-secondary);
-    color: var(--warning);
-    border: 1px solid var(--border-color);
+    background: rgba(243, 156, 18, 0.12);
+    color: #F39C12;
+    border: 1px solid rgba(243, 156, 18, 0.25);
 }
-
+.status-paused {
+    background: rgba(241, 196, 15, 0.16);
+    color: #D48900;
+    border: 1px solid rgba(241, 196, 15, 0.3);
+}
 .status-rejected {
-    background: var(--bg-secondary);
-    color: var(--danger);
-    border: 1px solid var(--border-color);
+    background: rgba(231, 76, 60, 0.12);
+    color: #C0392B;
+    border: 1px solid rgba(231, 76, 60, 0.25);
 }
 
 .status-inactive {
-    background: var(--bg-secondary);
-    color: var(--text-muted);
-    border: 1px solid var(--border-color);
+    background: rgba(149, 165, 166, 0.12);
+    color: #7F8C8D;
+    border: 1px solid rgba(149, 165, 166, 0.25);
 }
 
 .date-info {
@@ -1127,30 +1138,62 @@ function showUserStats() {
 
 .validation-action-pill.pill-events {
     background: var(--bg-secondary);
-    color: var(--text-secondary);
+    color: #9B59B6;
     border-color: var(--border-color);
+}
+
+.validation-action-pill.pill-events i {
+    color: #9B59B6;
+}
+
+.validation-action-pill.pill-events span {
+    color: #9B59B6;
 }
 
 .validation-action-pill.pill-events:hover {
     background: var(--bg-primary);
-    border-color: var(--accent);
-    color: var(--accent);
+    border-color: #9B59B6;
+    color: #8E44AD;
     transform: none;
-    box-shadow: none;
+    box-shadow: 0 2px 8px rgba(155, 89, 182, 0.2);
+}
+
+.validation-action-pill.pill-events:hover i {
+    color: #8E44AD;
+}
+
+.validation-action-pill.pill-events:hover span {
+    color: #8E44AD;
 }
 
 .validation-action-pill.pill-payments {
     background: var(--bg-secondary);
-    color: var(--text-secondary);
+    color: #27AE60;
     border-color: var(--border-color);
+}
+
+.validation-action-pill.pill-payments i {
+    color: #27AE60;
+}
+
+.validation-action-pill.pill-payments span {
+    color: #27AE60;
 }
 
 .validation-action-pill.pill-payments:hover {
     background: var(--bg-primary);
-    border-color: var(--accent);
-    color: var(--accent);
+    border-color: #27AE60;
+    color: #229954;
     transform: none;
-    box-shadow: none;
+    box-shadow: 0 2px 8px rgba(39, 174, 96, 0.2);
+}
+
+.validation-action-pill.pill-payments:hover i {
+    color: #229954;
+}
+
+.validation-action-pill.pill-payments:hover span {
+    color: #229954;
 }
 
 .validation-action-pill.pill-activity {

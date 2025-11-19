@@ -17,21 +17,22 @@ DECLARE
     current_year INTEGER := EXTRACT(YEAR FROM CURRENT_DATE);
     current_month INTEGER := EXTRACT(MONTH FROM CURRENT_DATE);
     current_date_val DATE := CURRENT_DATE;
+    seq_record RECORD;
 BEGIN
-    -- Réinitialisation des tables clés (cascade pour respecter les FK)
-    TRUNCATE TABLE
-        historique_paiements_abonnements,
-        paiements_abonnements,
-        elements_factures_abonnements,
-        factures_abonnements,
-        abonnements_organisateurs,
-        profils_organisateurs,
-        plans_abonnements,
-        portefeuilles,
-        statistiques_evenements_utilisateurs,
-        profils_utilisateurs,
-        utilisateurs
-    RESTART IDENTITY CASCADE;
+-- Réinitialisation des tables clés (cascade pour respecter les FK)
+TRUNCATE TABLE
+    historique_paiements_abonnements,
+    paiements_abonnements,
+    elements_factures_abonnements,
+    factures_abonnements,
+    abonnements_organisateurs,
+    profils_organisateurs,
+    plans_abonnements,
+    portefeuilles,
+    statistiques_evenements_utilisateurs,
+    profils_utilisateurs,
+    utilisateurs
+RESTART IDENTITY CASCADE;
 
     -- Réinitialisation explicite de toutes les séquences
     PERFORM setval('sequence_numero_facture', 100000, false);
@@ -95,7 +96,7 @@ SELECT
     CURRENT_DATE
 FROM generate_series(1, 60) AS gs;
 
--- Utilisateurs finaux (15 comptes)
+    -- Utilisateurs finaux (15 comptes)
 INSERT INTO utilisateurs (
     id,
     email,
@@ -137,7 +138,7 @@ SELECT
     CURRENT_DATE
 FROM generate_series(1, 15) AS gs;
 
--- Administrateurs (5 comptes)
+    -- Administrateurs (5 comptes)
 INSERT INTO utilisateurs (
     id,
     email,
@@ -391,8 +392,10 @@ SELECT
     os.organizer_profile_id,
     os.plan_id,
     CASE
-        -- Scénarios avec pauses
+        -- Scénarios avec pauses programmées
         WHEN os.scenario_type = 'changes_offers' AND os.organizer_profile_id BETWEEN 21 AND 25 THEN 'paused'::subscription_status_enum
+        -- Scénario almost_late : si septembre n'est pas payé, le compte est en pause
+        WHEN os.scenario_type = 'almost_late' THEN 'paused'::subscription_status_enum
         ELSE 'active'::subscription_status_enum
     END,
     CASE
@@ -415,6 +418,8 @@ SELECT
     CASE
         -- Pauses pour novembre et décembre (organisateurs 21-25)
         WHEN os.organizer_profile_id BETWEEN 21 AND 25 THEN CURRENT_DATE - INTERVAL '15 days'
+        -- Pause pour almost_late : si septembre n'est pas payé avant le 11 octobre, pause depuis le 11 octobre
+        WHEN os.scenario_type = 'almost_late' THEN DATE_TRUNC('month', CURRENT_DATE) - INTERVAL '1 month' + INTERVAL '10 days'
         ELSE NULL
     END,
     CASE
@@ -488,20 +493,33 @@ invoice_months AS (
     CROSS JOIN generate_series(0, 11) AS gs  -- 12 derniers mois
     WHERE sp.scenario_type IS NOT NULL
 ),
+-- CTE pour déterminer quels mois sont en pause (basé sur la règle : si mois M non payé avant le 11 de M+1, alors M+1 est en pause)
+pause_months AS (
+    SELECT DISTINCT
+        im.subscription_id,
+        im.billing_month,
+        im.month_offset,
+        -- Un mois est en pause si le mois précédent n'a pas été payé avant le 11 de ce mois
+        CASE
+            -- Mois en pause programmés (scénario prepaid_7_months_paused)
+            WHEN im.scenario_type = 'prepaid_7_months_paused' 
+                AND EXTRACT(MONTH FROM im.billing_month) IN (11, 12) THEN TRUE
+            -- Pour le scénario almost_late : si septembre (offset 2) n'est pas payé, octobre (offset 1) et novembre (offset 0) sont en pause
+            WHEN im.scenario_type = 'almost_late' 
+                AND im.month_offset IN (0, 1) THEN TRUE
+            ELSE FALSE
+        END AS is_pause_month
+    FROM invoice_months im
+),
 invoice_calculations AS (
     SELECT
         im.*,
+        COALESCE(pm.is_pause_month, FALSE) AS is_pause_month,
         CASE
             WHEN im.periode_facturation = 'yearly' THEN im.prix / 12
             WHEN im.periode_facturation = 'quarterly' THEN im.prix / 3
             ELSE im.prix
         END AS monthly_price,
-        -- Déterminer si le mois est en pause
-        CASE
-            WHEN im.scenario_type = 'prepaid_7_months_paused' 
-                AND EXTRACT(MONTH FROM im.billing_month) IN (11, 12) THEN TRUE
-            ELSE FALSE
-        END AS is_pause_month,
         -- Déterminer si la facture doit être prépayée
         CASE
             WHEN im.scenario_type IN ('prepaid_4_months', 'prepaid_7_months_paused')
@@ -510,6 +528,8 @@ invoice_calculations AS (
         END AS is_prepaid,
         -- Déterminer le statut de la facture
         CASE
+            -- Si c'est un mois en pause, statut suspendue
+            WHEN COALESCE(pm.is_pause_month, FALSE) THEN 'suspendue'
             -- Annuels payés en début d'année
             WHEN im.scenario_type = 'monthly_payment' 
                 AND im.periode_facturation = 'yearly'
@@ -517,23 +537,18 @@ invoice_calculations AS (
             -- 4 mois prépayés sans payer (statut pending)
             WHEN im.scenario_type = 'prepaid_4_months'
                 AND im.month_offset < 4 THEN 'pending'
-            -- 7 mois prépayés avec pauses
+            -- 7 mois prépayés avec pauses (sauf mois en pause)
             WHEN im.scenario_type = 'prepaid_7_months_paused'
                 AND im.month_offset < 7
                 AND NOT (EXTRACT(MONTH FROM im.billing_month) IN (11, 12)) THEN 'pending'
-            -- Mois en pause
-            WHEN EXTRACT(MONTH FROM im.billing_month) IN (11, 12)
-                AND im.scenario_type = 'prepaid_7_months_paused' THEN 'pending'
             -- Mois par mois payés
             WHEN im.scenario_type IN ('basic_fixed', 'monthly_payment')
                 AND im.month_offset <= 5 THEN 'paid'
-            -- Presque en retard (statut issued, proche de l'échéance)
+            -- Presque en retard : septembre (offset 2) = overdue, octobre (offset 1) et novembre (offset 0) = suspendue (déjà géré ci-dessus)
             WHEN im.scenario_type = 'almost_late'
-                AND im.month_offset = 0 THEN 'issued'
-            WHEN im.scenario_type = 'almost_late'
-                AND im.month_offset <= 2 THEN 'overdue'
-            -- Mois futurs
-            WHEN im.month_offset = 0 THEN 'issued'
+                AND im.month_offset = 2 THEN 'overdue'
+            -- Mois futurs (sauf si en pause)
+            WHEN im.month_offset = 0 AND NOT COALESCE(pm.is_pause_month, FALSE) THEN 'issued'
             ELSE 'draft'
         END AS invoice_status,
         -- Date de paiement
@@ -546,32 +561,34 @@ invoice_calculations AS (
             ELSE NULL
         END AS paid_date
     FROM invoice_months im
+    LEFT JOIN pause_months pm ON pm.subscription_id = im.subscription_id 
+        AND pm.billing_month = im.billing_month
 )
-INSERT INTO factures_abonnements (
-    id_abonnement,
-    id_client,
-    devise,
-    montant_sous_total,
-    montant_tva,
-    montant_total,
+    INSERT INTO factures_abonnements (
+        id_abonnement,
+        id_client,
+        devise,
+        montant_sous_total,
+        montant_tva,
+        montant_total,
     montant_ht,
     montant_tva_detail,
     montant_ttc,
-    mois_facturation,
-    est_mois_pause,
-    est_prepayee,
-    statut,
-    emise_le,
-    echeance_le,
-    payee_le,
-    metadonnees,
-    cree_le,
-    modifie_le
-)
-SELECT
+        mois_facturation,
+        est_mois_pause,
+        est_prepayee,
+        statut,
+        emise_le,
+        echeance_le,
+        payee_le,
+        metadonnees,
+        cree_le,
+        modifie_le
+    )
+    SELECT
     ic.subscription_id,
     ic.id_utilisateur,
-    'MGA',
+        'MGA',
     CASE WHEN ic.is_pause_month THEN 0 ELSE ic.monthly_price END,
     CASE WHEN ic.is_pause_month THEN 0 ELSE ic.monthly_price * (ic.taux_tva / 100) END,
     CASE WHEN ic.is_pause_month THEN 0 ELSE ic.monthly_price * (1 + ic.taux_tva / 100) END,
@@ -581,9 +598,10 @@ SELECT
     ic.billing_month,
     ic.is_pause_month,
     ic.is_prepaid,
-    ic.invoice_status,
+    -- Si c'est un mois en pause, forcer le statut à suspendue
+    CASE WHEN ic.is_pause_month THEN 'suspendue' ELSE ic.invoice_status END,
     ic.billing_month,
-    ic.billing_month + INTERVAL '10 days',
+    CASE WHEN ic.is_pause_month THEN NULL ELSE ic.billing_month + INTERVAL '10 days' END,
     ic.paid_date,
     jsonb_build_object(
         'scenario_type', ic.scenario_type,

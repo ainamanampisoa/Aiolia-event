@@ -64,8 +64,8 @@ class StatisticsRepository
         $conn = $this->getEntityManager()->getConnection();
         
         $sql = "SELECT COUNT(*) 
-                FROM aiolia.organizer_subscriptions 
-                WHERE status = 'active'";
+                FROM aiolia.abonnements_organisateurs 
+                WHERE statut = 'active'";
         
         return (int) $conn->fetchOne($sql);
     }
@@ -152,10 +152,10 @@ class StatisticsRepository
                 TO_CHAR(ms.month_start, 'TMMonth YYYY') AS month_label,
                 COALESCE(COUNT(DISTINCT os.id), 0) AS count
             FROM month_series ms
-            LEFT JOIN aiolia.organizer_subscriptions os 
-                ON os.status = 'active' 
-                AND date_trunc('month', os.starts_at) <= ms.month_start
-                AND (os.cancelled_at IS NULL OR date_trunc('month', os.cancelled_at) >= ms.month_start)
+            LEFT JOIN aiolia.abonnements_organisateurs os 
+                ON os.statut = 'active' 
+                AND date_trunc('month', os.commence_le) <= ms.month_start
+                AND (os.annule_le IS NULL OR date_trunc('month', os.annule_le) >= ms.month_start)
             GROUP BY ms.month_start
             ORDER BY ms.month_start ASC
         ";
@@ -222,23 +222,23 @@ class StatisticsRepository
                 )::date AS month_start
             ),
             all_combinations AS (
-                SELECT ms.month_start, sp.id AS plan_id, sp.name AS plan_name, sp.display_order
+                SELECT ms.month_start, sp.id AS plan_id, sp.nom AS plan_name, sp.ordre_affichage
                 FROM month_series ms
-                CROSS JOIN aiolia.subscription_plans sp
+                CROSS JOIN aiolia.plans_abonnements sp
             )
             SELECT 
                 ac.month_start,
                 TO_CHAR(ac.month_start, 'TMMonth YYYY') AS month_label,
                 ac.plan_name,
-                COALESCE(SUM(si.total_amount::numeric), 0) AS revenue
+                COALESCE(SUM(si.montant_total::numeric), 0) AS revenue
             FROM all_combinations ac
-            LEFT JOIN aiolia.organizer_subscriptions os ON os.plan_id = ac.plan_id
-            LEFT JOIN aiolia.subscription_invoices si 
-                ON si.subscription_id = os.id 
-                AND si.status = 'paid'
-                AND date_trunc('month', si.paid_at) = ac.month_start
-            GROUP BY ac.month_start, ac.plan_id, ac.plan_name, ac.display_order
-            ORDER BY ac.month_start ASC, ac.display_order ASC
+            LEFT JOIN aiolia.abonnements_organisateurs os ON os.id_plan = ac.plan_id
+            LEFT JOIN aiolia.factures_abonnements si 
+                ON si.id_abonnement = os.id 
+                AND si.statut = 'paid'
+                AND date_trunc('month', si.payee_le) = ac.month_start
+            GROUP BY ac.month_start, ac.plan_id, ac.plan_name, ac.ordre_affichage
+            ORDER BY ac.month_start ASC, ac.ordre_affichage ASC
         ";
         
         $result = $conn->executeQuery($sql, 
@@ -304,9 +304,9 @@ class StatisticsRepository
         
         // Si aucun plan n'a été trouvé, récupérer tous les plans depuis la base
         if (empty($allPlans)) {
-            $plansQuery = $conn->executeQuery("SELECT name FROM aiolia.subscription_plans ORDER BY display_order ASC");
+            $plansQuery = $conn->executeQuery("SELECT nom FROM aiolia.plans_abonnements ORDER BY ordre_affichage ASC");
             while ($planRow = $plansQuery->fetchAssociative()) {
-                $allPlans[] = $planRow['name'];
+                $allPlans[] = $planRow['nom'];
             }
         }
         
@@ -342,14 +342,14 @@ class StatisticsRepository
         
         $sql = "
             SELECT 
-                sp.tier,
-                sp.name,
-                COALESCE(SUM(si.total_amount::numeric), 0) AS revenue
-            FROM aiolia.subscription_plans sp
-            LEFT JOIN aiolia.organizer_subscriptions os ON os.plan_id = sp.id
-            LEFT JOIN aiolia.subscription_invoices si 
-                ON si.subscription_id = os.id 
-                AND si.status = 'paid'
+                sp.niveau,
+                sp.nom,
+                COALESCE(SUM(si.montant_total::numeric), 0) AS revenue
+            FROM aiolia.plans_abonnements sp
+            LEFT JOIN aiolia.abonnements_organisateurs os ON os.id_plan = sp.id
+            LEFT JOIN aiolia.factures_abonnements si 
+                ON si.id_abonnement = os.id 
+                AND si.statut = 'paid'
         ";
         
         $params = [];
@@ -357,13 +357,13 @@ class StatisticsRepository
         $conditions = [];
         
         if ($dateFrom) {
-            $conditions[] = "si.paid_at >= :dateFrom";
+            $conditions[] = "si.payee_le >= :dateFrom";
             $params['dateFrom'] = $dateFrom;
             $types['dateFrom'] = Types::DATETIMETZ_MUTABLE;
         }
         
         if ($dateTo) {
-            $conditions[] = "si.paid_at <= :dateTo";
+            $conditions[] = "si.payee_le <= :dateTo";
             $params['dateTo'] = $dateTo;
             $types['dateTo'] = Types::DATETIMETZ_MUTABLE;
         }
@@ -373,8 +373,8 @@ class StatisticsRepository
         }
         
         $sql .= "
-            GROUP BY sp.id, sp.tier, sp.name
-            ORDER BY sp.display_order ASC
+            GROUP BY sp.id, sp.niveau, sp.nom
+            ORDER BY sp.ordre_affichage ASC
         ";
         
         $result = empty($params) 
@@ -385,7 +385,7 @@ class StatisticsRepository
         $revenueValues = [];
         
         while ($row = $result->fetchAssociative()) {
-            $labels[] = $row['name'];
+            $labels[] = $row['nom'];
             $revenueValues[] = (float) $row['revenue'];
         }
         
@@ -405,11 +405,11 @@ class StatisticsRepository
         
         $sql = "
             SELECT 
-                CONCAT(u.first_name, ' ', COALESCE(u.last_name, '')) AS organizer_name,
-                COALESCE(SUM(si.total_amount::numeric), 0) AS total_paid
-            FROM aiolia.subscription_invoices si
-            INNER JOIN aiolia.users u ON u.id = si.customer_id
-            WHERE si.status = 'paid'
+                CONCAT(u.prenom, ' ', COALESCE(u.nom, '')) AS organizer_name,
+                COALESCE(SUM(si.montant_total::numeric), 0) AS total_paid
+            FROM aiolia.factures_abonnements si
+            INNER JOIN aiolia.utilisateurs u ON u.id = si.id_client
+            WHERE si.statut = 'paid'
         ";
         
         $params = [];
@@ -417,23 +417,23 @@ class StatisticsRepository
         
         if ($dateFrom) {
             // Utiliser le premier jour du mois de début
-            $sql .= " AND si.paid_at >= :dateFrom";
+            $sql .= " AND si.payee_le >= :dateFrom";
             $params['dateFrom'] = $dateFrom;
             $types['dateFrom'] = Types::DATETIMETZ_MUTABLE;
         } elseif (!$dateTo) {
             // Si pas de filtre de date, utiliser les 12 derniers mois
-            $sql .= " AND si.paid_at >= date_trunc('month', CURRENT_DATE) - INTERVAL '11 months'";
+            $sql .= " AND si.payee_le >= date_trunc('month', CURRENT_DATE) - INTERVAL '11 months'";
         }
         
         if ($dateTo) {
             // Utiliser le dernier jour du mois de fin
-            $sql .= " AND si.paid_at <= :dateTo";
+            $sql .= " AND si.payee_le <= :dateTo";
             $params['dateTo'] = $dateTo;
             $types['dateTo'] = Types::DATETIMETZ_MUTABLE;
         }
         
         $sql .= "
-            GROUP BY u.id, u.first_name, u.last_name
+            GROUP BY u.id, u.prenom, u.nom
             ORDER BY total_paid DESC
             LIMIT :limit
         ";
@@ -470,24 +470,24 @@ class StatisticsRepository
     {
         $conn = $this->getEntityManager()->getConnection();
         
-        // Revenus bruts = somme des total_amount des factures payées
+        // Revenus bruts = somme des montant_total des factures payées
         $sql = "
-            SELECT COALESCE(SUM(total_amount::numeric), 0) AS gross_revenue
-            FROM aiolia.subscription_invoices
-            WHERE status = 'paid'
+            SELECT COALESCE(SUM(montant_total::numeric), 0) AS gross_revenue
+            FROM aiolia.factures_abonnements
+            WHERE statut = 'paid'
         ";
         
         $params = [];
         $types = [];
         
         if ($dateFrom) {
-            $sql .= " AND paid_at >= :dateFrom";
+            $sql .= " AND payee_le >= :dateFrom";
             $params['dateFrom'] = $dateFrom;
             $types['dateFrom'] = Types::DATETIMETZ_MUTABLE;
         }
         
         if ($dateTo) {
-            $sql .= " AND paid_at <= :dateTo";
+            $sql .= " AND payee_le <= :dateTo";
             $params['dateTo'] = $dateTo;
             $types['dateTo'] = Types::DATETIMETZ_MUTABLE;
         }
@@ -549,11 +549,11 @@ class StatisticsRepository
             SELECT 
                 ms.month_start,
                 TO_CHAR(ms.month_start, 'TMMonth YYYY') AS month_label,
-                COALESCE(SUM(si.total_amount::numeric), 0) AS ttc_total
+                COALESCE(SUM(si.montant_total::numeric), 0) AS ttc_total
             FROM month_series ms
-            LEFT JOIN aiolia.subscription_invoices si 
-                ON si.status = 'paid'
-                AND date_trunc('month', si.paid_at) = ms.month_start
+            LEFT JOIN aiolia.factures_abonnements si 
+                ON si.statut = 'paid'
+                AND date_trunc('month', si.payee_le) = ms.month_start
             GROUP BY ms.month_start
             ORDER BY ms.month_start ASC
         ";
@@ -618,33 +618,33 @@ class StatisticsRepository
         
         $sql = "
             SELECT 
-                CONCAT(u.first_name, ' ', COALESCE(u.last_name, '')) AS organizer_name,
-                COALESCE(SUM(si.total_amount::numeric), 0) AS ttc_total
-            FROM aiolia.subscription_invoices si
-            INNER JOIN aiolia.users u ON u.id = si.customer_id
-            WHERE si.status = 'paid'
+                CONCAT(u.prenom, ' ', COALESCE(u.nom, '')) AS organizer_name,
+                COALESCE(SUM(si.montant_total::numeric), 0) AS ttc_total
+            FROM aiolia.factures_abonnements si
+            INNER JOIN aiolia.utilisateurs u ON u.id = si.id_client
+            WHERE si.statut = 'paid'
         ";
         
         $params = [];
         $types = [];
         
         if ($dateFrom) {
-            $sql .= " AND si.paid_at >= :dateFrom";
+            $sql .= " AND si.payee_le >= :dateFrom";
             $params['dateFrom'] = $dateFrom;
             $types['dateFrom'] = Types::DATETIMETZ_MUTABLE;
         } elseif (!$dateTo) {
             // Si pas de filtre de date, utiliser les 12 derniers mois
-            $sql .= " AND si.paid_at >= date_trunc('month', CURRENT_DATE) - INTERVAL '11 months'";
+            $sql .= " AND si.payee_le >= date_trunc('month', CURRENT_DATE) - INTERVAL '11 months'";
         }
         
         if ($dateTo) {
-            $sql .= " AND si.paid_at <= :dateTo";
+            $sql .= " AND si.payee_le <= :dateTo";
             $params['dateTo'] = $dateTo;
             $types['dateTo'] = Types::DATETIMETZ_MUTABLE;
         }
         
         $sql .= "
-            GROUP BY u.id, u.first_name, u.last_name
+            GROUP BY u.id, u.prenom, u.nom
             ORDER BY ttc_total DESC
             LIMIT :limit
         ";

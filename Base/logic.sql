@@ -482,15 +482,21 @@ BEGIN
         v_vat_rate := COALESCE(v_plan.taux_tva, 20);
         v_currency := COALESCE(v_plan.devise, 'MGA');
 
+        -- Déterminer si c'est un mois en pause
+        v_is_pause_month := (v_subscription.statut = 'paused') 
+            OR (v_subscription.mis_en_pause_le IS NOT NULL 
+                AND v_subscription.mis_en_pause_le <= v_month_start 
+                AND (v_subscription.repris_le IS NULL OR v_subscription.repris_le > v_month_start));
+
         -- Vérifier si une facture existe déjà pour ce mois et cet abonnement
-        SELECT id, numero_facture, statut, est_prepayee
+        SELECT id, numero_facture, statut, est_prepayee, est_mois_pause
         INTO v_existing_invoice
         FROM factures_abonnements
         WHERE id_abonnement = v_subscription.id
             AND mois_facturation = v_month_start;
 
         -- Si la facture existe déjà et que l'abonnement est actif, ne pas générer
-        IF v_existing_invoice IS NOT NULL AND v_subscription.statut = 'active' THEN
+        IF v_existing_invoice IS NOT NULL AND v_subscription.statut = 'active' AND NOT v_is_pause_month THEN
             RETURN QUERY SELECT 
                 v_subscription.id::BIGINT,
                 v_existing_invoice.id::BIGINT,
@@ -501,11 +507,17 @@ BEGIN
             CONTINUE;
         END IF;
 
-        -- Déterminer si c'est un mois en pause
-        v_is_pause_month := (v_subscription.statut = 'paused') 
-            OR (v_subscription.mis_en_pause_le IS NOT NULL 
-                AND v_subscription.mis_en_pause_le <= v_month_start 
-                AND (v_subscription.repris_le IS NULL OR v_subscription.repris_le > v_month_start));
+        -- Si la facture existe déjà pour un mois en pause, ne pas régénérer
+        IF v_existing_invoice IS NOT NULL AND v_is_pause_month THEN
+            RETURN QUERY SELECT 
+                v_subscription.id::BIGINT,
+                v_existing_invoice.id::BIGINT,
+                v_existing_invoice.numero_facture,
+                v_existing_invoice.statut,
+                0::NUMERIC(12,2),
+                'skipped_pause'::TEXT;
+            CONTINUE;
+        END IF;
 
         -- Vérifier si l'organisateur a du crédit prépayé
         v_has_prepaid_credit := (v_subscription.mois_prepayes_restants > 0);
@@ -528,7 +540,7 @@ BEGIN
             v_subtotal := 0;
             v_tax_amount := 0;
             v_total_amount := 0;
-            v_invoice_status := 'pending'; -- Statut pour facture suspendue (en pause)
+            v_invoice_status := 'suspendue'; -- Statut pour facture suspendue (en pause)
         ELSE
             -- Facture normale - calcul selon le type d'offre et la période de facturation
             IF v_plan.periode_facturation = 'yearly' THEN
@@ -637,7 +649,8 @@ $$ LANGUAGE plpgsql;
 COMMENT ON FUNCTION generate_monthly_subscription_invoices(DATE) IS
     'Génère automatiquement les factures mensuelles pour tous les abonnements actifs ou en pause.
     - Si actif : facture avec statut "issued", échéance 10 jours après le 1er du mois
-    - Si en pause : facture à 0 Ar avec statut "pending"
+    - Si en pause : facture à 0 Ar avec statut "suspendue" et est_mois_pause = true
+    - Les factures en pause sont générées pour chaque mois où l''organisateur est en pause
     - Vérifie l''existence d''une facture pour éviter les doublons
     - Gère les crédits prépayés : mois reportés sans remboursement
     - À exécuter le 1er jour de chaque mois';
@@ -708,6 +721,107 @@ COMMENT ON FUNCTION update_overdue_invoices_status() IS
     Change le statut de "issued" ou "draft" à "overdue" pour les factures en retard.
     À exécuter quotidiennement après le 10ème jour du mois.';
 
+-- ------------------------------------------------------------
+-- 6. Fonction pour mettre automatiquement en pause les abonnements non payés
+-- ------------------------------------------------------------
+CREATE OR REPLACE FUNCTION auto_pause_unpaid_subscriptions() 
+RETURNS TABLE(
+    subscription_id BIGINT,
+    organizer_profile_id BIGINT,
+    organizer_user_id BIGINT,
+    invoice_id BIGINT,
+    invoice_number TEXT,
+    old_status TEXT,
+    new_status TEXT,
+    paused_at TIMESTAMPTZ
+) AS $$
+DECLARE
+    v_current_date DATE;
+    v_current_day INTEGER;
+    v_current_month DATE;
+    v_subscription RECORD;
+    v_invoice RECORD;
+    v_paused_at TIMESTAMPTZ;
+BEGIN
+    v_current_date := CURRENT_DATE;
+    v_current_day := EXTRACT(DAY FROM v_current_date)::INTEGER;
+    v_current_month := date_trunc('month', v_current_date)::DATE;
+    v_paused_at := now();
+
+    -- Vérifier si on est après le 10ème jour du mois
+    IF v_current_day <= 10 THEN
+        -- Si on est avant ou le 10ème jour, ne rien faire
+        RETURN;
+    END IF;
+
+    -- Parcourir les factures du mois courant non payées
+    FOR v_invoice IN
+        SELECT 
+            si.id AS invoice_id,
+            si.numero_facture,
+            si.id_abonnement,
+            si.mois_facturation,
+            si.statut AS invoice_status,
+            si.payee_le,
+            os.id AS subscription_id,
+            os.id_profil_organisateur,
+            os.statut AS subscription_status,
+            os.mis_en_pause_le,
+            op.id_utilisateur AS organizer_user_id
+        FROM factures_abonnements si
+        INNER JOIN abonnements_organisateurs os ON os.id = si.id_abonnement
+        INNER JOIN profils_organisateurs op ON op.id = os.id_profil_organisateur
+        WHERE si.mois_facturation = v_current_month
+            AND si.statut IN ('issued', 'overdue')
+            AND si.payee_le IS NULL
+            AND os.statut = 'active'  -- Seulement les abonnements actifs
+            AND os.annule_le IS NULL  -- Pas d'abonnements annulés
+            AND os.mis_en_pause_le IS NULL  -- Pas déjà en pause
+    LOOP
+        -- Mettre en pause l'abonnement
+        UPDATE abonnements_organisateurs
+        SET statut = 'paused'::subscription_status_enum,
+            mis_en_pause_le = v_paused_at,
+            modifie_le = now(),
+            metadonnees = COALESCE(metadonnees, '{}'::jsonb) || jsonb_build_object(
+                'auto_paused', true,
+                'auto_paused_at', v_paused_at,
+                'auto_paused_reason', 'Non paiement de la facture du mois courant avant le 11ème jour',
+                'invoice_id', v_invoice.invoice_id,
+                'invoice_number', v_invoice.numero_facture
+            )
+        WHERE id = v_invoice.subscription_id;
+
+        -- Mettre à jour la facture pour indiquer qu'elle est liée à une pause
+        UPDATE factures_abonnements
+        SET metadonnees = COALESCE(metadonnees, '{}'::jsonb) || jsonb_build_object(
+                'subscription_paused', true,
+                'subscription_paused_at', v_paused_at
+            ),
+            modifie_le = now()
+        WHERE id = v_invoice.invoice_id;
+
+        -- Retourner le résultat
+        RETURN QUERY SELECT 
+            v_invoice.subscription_id::BIGINT,
+            v_invoice.id_profil_organisateur::BIGINT,
+            v_invoice.organizer_user_id::BIGINT,
+            v_invoice.invoice_id::BIGINT,
+            v_invoice.numero_facture::TEXT,
+            v_invoice.subscription_status::TEXT,
+            'paused'::TEXT,
+            v_paused_at::TIMESTAMPTZ;
+    END LOOP;
+
+    RETURN;
+END;
+$$ LANGUAGE plpgsql;
+
+COMMENT ON FUNCTION auto_pause_unpaid_subscriptions() IS
+    'Met automatiquement en pause les abonnements dont la facture du mois courant n''a pas été payée avant le 11ème jour du mois.
+    Règle : Si l''organisateur ne paie pas son abonnement du mois courant avant le 11ème jour, son compte est automatiquement mis en pause.
+    À exécuter quotidiennement après le 10ème jour du mois (idéalement le 11ème jour à minuit).';
+
 -- ============================================================
 -- fin du fichier
 -- ============================================================
@@ -717,5 +831,5 @@ COMMENT ON FUNCTION update_overdue_invoices_status() IS
 -- ------------------------------------------------------------
 -- Vues matérialisées : 1
 -- Vues : 8
--- Fonctions : 6
+-- Fonctions : 7
 -- Triggers : 3

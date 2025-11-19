@@ -7,7 +7,7 @@ use Doctrine\DBAL\Types\Types;
 use Doctrine\ORM\Mapping as ORM;
 
 #[ORM\Entity(repositoryClass: SubscriptionInvoiceRepository::class)]
-#[ORM\Table(name: 'subscription_invoices', schema: 'aiolia')]
+#[ORM\Table(name: 'factures_abonnements', schema: 'aiolia')]
 #[ORM\HasLifecycleCallbacks]
 class SubscriptionInvoice
 {
@@ -24,65 +24,65 @@ class SubscriptionInvoice
     #[ORM\Column(type: Types::BIGINT)]
     private ?string $id = null;
 
-    #[ORM\Column(name: 'invoice_number', type: Types::STRING, length: 255, unique: true)]
+    #[ORM\Column(name: 'numero_facture', type: Types::STRING, length: 255, unique: true)]
     private ?string $invoiceNumber = null;
 
-    #[ORM\Column(name: 'subscription_id', type: Types::BIGINT, nullable: false)]
+    #[ORM\Column(name: 'id_abonnement', type: Types::BIGINT, nullable: false)]
     private string $subscriptionId;
 
     #[ORM\ManyToOne(targetEntity: User::class)]
-    #[ORM\JoinColumn(name: 'customer_id', referencedColumnName: 'id', nullable: false)]
+    #[ORM\JoinColumn(name: 'id_client', referencedColumnName: 'id', nullable: false)]
     private User $customer;
 
-    #[ORM\Column(type: Types::STRING, length: 3, options: ['default' => 'MGA'])]
+    #[ORM\Column(name: 'devise', type: Types::STRING, length: 3, options: ['default' => 'MGA'])]
     private string $currency = 'MGA';
 
-    #[ORM\Column(name: 'subtotal_amount', type: Types::DECIMAL, precision: 12, scale: 2, options: ['default' => 0])]
+    #[ORM\Column(name: 'montant_sous_total', type: Types::DECIMAL, precision: 12, scale: 2, options: ['default' => 0])]
     private string $subtotalAmount = '0';
 
-    #[ORM\Column(name: 'tax_amount', type: Types::DECIMAL, precision: 12, scale: 2, options: ['default' => 0])]
+    #[ORM\Column(name: 'montant_tva', type: Types::DECIMAL, precision: 12, scale: 2, options: ['default' => 0])]
     private string $taxAmount = '0';
 
-    #[ORM\Column(name: 'total_amount', type: Types::DECIMAL, precision: 12, scale: 2, options: ['default' => 0])]
+    #[ORM\Column(name: 'montant_total', type: Types::DECIMAL, precision: 12, scale: 2, options: ['default' => 0])]
     private string $totalAmount = '0';
 
-    #[ORM\Column(name: 'amount_ht', type: Types::DECIMAL, precision: 12, scale: 2, options: ['default' => 0])]
+    #[ORM\Column(name: 'montant_ht', type: Types::DECIMAL, precision: 10, scale: 2, options: ['default' => 0])]
     private string $amountHt = '0';
 
-    #[ORM\Column(name: 'amount_tva', type: Types::DECIMAL, precision: 12, scale: 2, options: ['default' => 0])]
+    #[ORM\Column(name: 'montant_tva_detail', type: Types::DECIMAL, precision: 10, scale: 2, options: ['default' => 0])]
     private string $amountTva = '0';
 
-    #[ORM\Column(name: 'amount_ttc', type: Types::DECIMAL, precision: 12, scale: 2, options: ['default' => 0])]
+    #[ORM\Column(name: 'montant_ttc', type: Types::DECIMAL, precision: 10, scale: 2, options: ['default' => 0])]
     private string $amountTtc = '0';
 
-    #[ORM\Column(name: 'billing_month', type: Types::DATE_MUTABLE, nullable: true)]
-    private ?\DateTimeInterface $billingMonth = null;
+    #[ORM\Column(name: 'mois_facturation', type: Types::DATE_MUTABLE, nullable: false)]
+    private \DateTimeInterface $billingMonth;
 
-    #[ORM\Column(name: 'is_pause_month', type: Types::BOOLEAN, options: ['default' => false])]
+    #[ORM\Column(name: 'est_mois_pause', type: Types::BOOLEAN, options: ['default' => false])]
     private bool $isPauseMonth = false;
 
-    #[ORM\Column(name: 'is_prepaid', type: Types::BOOLEAN, options: ['default' => false])]
+    #[ORM\Column(name: 'est_prepayee', type: Types::BOOLEAN, options: ['default' => false])]
     private bool $isPrepaid = false;
 
-    #[ORM\Column(type: Types::STRING, length: 20, options: ['default' => self::STATUS_DRAFT])]
+    #[ORM\Column(name: 'statut', type: Types::STRING, length: 20, options: ['default' => self::STATUS_DRAFT])]
     private string $status = self::STATUS_DRAFT;
 
-    #[ORM\Column(name: 'issued_at', type: Types::DATETIMETZ_MUTABLE)]
+    #[ORM\Column(name: 'emise_le', type: Types::DATETIMETZ_MUTABLE)]
     private \DateTimeInterface $issuedAt;
 
-    #[ORM\Column(name: 'due_at', type: Types::DATETIMETZ_MUTABLE, nullable: true)]
+    #[ORM\Column(name: 'echeance_le', type: Types::DATETIMETZ_MUTABLE, nullable: true)]
     private ?\DateTimeInterface $dueAt = null;
 
-    #[ORM\Column(name: 'paid_at', type: Types::DATETIMETZ_MUTABLE, nullable: true)]
+    #[ORM\Column(name: 'payee_le', type: Types::DATETIMETZ_MUTABLE, nullable: true)]
     private ?\DateTimeInterface $paidAt = null;
 
-    #[ORM\Column(type: Types::JSON, nullable: true)]
+    #[ORM\Column(name: 'metadonnees', type: Types::JSON, nullable: true)]
     private ?array $metadata = null;
 
-    #[ORM\Column(name: 'created_at', type: Types::DATETIMETZ_MUTABLE)]
+    #[ORM\Column(name: 'cree_le', type: Types::DATETIMETZ_MUTABLE)]
     private \DateTimeInterface $createdAt;
 
-    #[ORM\Column(name: 'updated_at', type: Types::DATETIMETZ_MUTABLE)]
+    #[ORM\Column(name: 'modifie_le', type: Types::DATETIMETZ_MUTABLE)]
     private \DateTimeInterface $updatedAt;
 
     public function __construct()
@@ -90,6 +90,7 @@ class SubscriptionInvoice
         $this->issuedAt = new \DateTimeImmutable();
         $this->createdAt = new \DateTimeImmutable();
         $this->updatedAt = new \DateTimeImmutable();
+        $this->billingMonth = new \DateTimeImmutable();
     }
 
     #[ORM\PreUpdate]
@@ -398,12 +399,12 @@ class SubscriptionInvoice
         return $this->getDaysOverdue($currentDate) !== null;
     }
 
-    public function getBillingMonth(): ?\DateTimeInterface
+    public function getBillingMonth(): \DateTimeInterface
     {
         return $this->billingMonth;
     }
 
-    public function setBillingMonth(?\DateTimeInterface $billingMonth): self
+    public function setBillingMonth(\DateTimeInterface $billingMonth): self
     {
         $this->billingMonth = $billingMonth;
         return $this;

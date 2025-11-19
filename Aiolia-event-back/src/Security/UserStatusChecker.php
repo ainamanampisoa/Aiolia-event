@@ -90,92 +90,26 @@ class UserStatusChecker implements UserCheckerInterface
         $subscriptionStatus = $subscriptionData['statut'] ?? null;
         $subscriptionId = $subscriptionData['id'] ?? null;
         
-        // Si l'abonnement est suspendu, vérifier la facture du mois courant
-        if ($subscriptionStatus === 'suspended' && $subscriptionId) {
-            $this->checkCurrentMonthInvoice($user, $subscriptionId);
+        // Si l'abonnement est en pause, autoriser la connexion (avec accès limités)
+        // Les règles d'accès pour les organisateurs en pause sont gérées dans le front-end
+        if ($subscriptionStatus === 'paused') {
+            // Les organisateurs en pause peuvent se connecter mais avec des accès limités
+            // Cette logique sera implémentée dans le module organisateur (front-end)
             return;
         }
         
-        // Si l'abonnement est annulé ou expiré, bloquer la connexion
-        if (in_array($subscriptionStatus, ['cancelled', 'expired'], true)) {
-            $message = match($subscriptionStatus) {
-                'cancelled' => 'Votre abonnement a été annulé. Veuillez contacter l\'administration pour réactiver votre compte.',
-                'expired' => 'Votre abonnement a expiré. Veuillez renouveler votre abonnement pour continuer à utiliser la plateforme.',
-                default => 'Votre abonnement n\'est pas actif. Veuillez contacter l\'administration.'
-            };
-            
-            throw new CustomUserMessageAuthenticationException($message);
+        // Si l'abonnement est en attente (pending), autoriser la connexion pour qu'il puisse s'abonner
+        if ($subscriptionStatus === 'pending') {
+            return;
+        }
+        
+        // Si l'abonnement n'est pas actif, bloquer la connexion
+        if ($subscriptionStatus !== 'active') {
+            throw new CustomUserMessageAuthenticationException(
+                'Votre abonnement n\'est pas actif. Veuillez contacter l\'administration pour réactiver votre compte.'
+            );
         }
     }
 
-    /**
-     * Vérifie la facture du mois courant
-     * Règle : si la facture du mois courant n'est pas payée, bloquer la connexion pour ce mois
-     */
-    private function checkCurrentMonthInvoice(User $user, int $subscriptionId): void
-    {
-        $connection = $this->entityManager->getConnection();
-        $now = new \DateTimeImmutable();
-        $currentMonth = (int) $now->format('n');
-        $currentYear = (int) $now->format('Y');
-        
-        // Récupérer la facture du mois courant
-        $currentInvoiceSql = "
-            SELECT 
-                si.id,
-                si.numero_facture,
-                si.emise_le,
-                si.statut,
-                si.payee_le
-            FROM aiolia.factures_abonnements si
-            WHERE si.id_abonnement = :subscription_id
-                AND EXTRACT(YEAR FROM si.emise_le) = :current_year
-                AND EXTRACT(MONTH FROM si.emise_le) = :current_month
-            ORDER BY si.emise_le DESC
-            LIMIT 1
-        ";
-        
-        $currentInvoice = $connection->fetchAssociative($currentInvoiceSql, [
-            'subscription_id' => $subscriptionId,
-            'current_year' => $currentYear,
-            'current_month' => $currentMonth,
-        ]);
-        
-        // Si pas de facture pour ce mois, autoriser la connexion (la facture sera créée plus tard)
-        if ($currentInvoice === false || $currentInvoice === null) {
-            return;
-        }
-        
-        // Si la facture du mois courant est payée, autoriser la connexion
-        if ($currentInvoice['payee_le'] !== null) {
-            return;
-        }
-        
-        // Si la facture du mois courant n'est pas payée, bloquer la connexion
-        $months = [
-            1 => 'janvier', 2 => 'février', 3 => 'mars', 4 => 'avril',
-            5 => 'mai', 6 => 'juin', 7 => 'juillet', 8 => 'août',
-            9 => 'septembre', 10 => 'octobre', 11 => 'novembre', 12 => 'décembre'
-        ];
-        
-        $monthName = $months[$currentMonth] ?? $currentMonth;
-        $invoiceStatus = $currentInvoice['statut'];
-        
-        // Message expliquant qu'il doit payer la facture du mois courant
-        $message = sprintf(
-            'Vous ne pouvez pas vous connecter ce mois (%s %d) car votre facture d\'abonnement du mois n\'est pas payée. ' .
-            'Pour accéder à votre compte ce mois-ci, vous devez régler la facture d\'abonnement de %s %d. ' .
-            'Vous pouvez faire une pause et vous reconnecter plus tard, mais pour chaque mois où vous souhaitez vous connecter, vous devez avoir payé la facture de ce mois. ' .
-            'Vous pouvez régler votre abonnement dans les 5 derniers jours du mois précédent ou dans les 5 premiers jours du mois courant. ' .
-            'Exemple : Si vous souhaitez vous connecter en décembre, vous devez avoir payé la facture de décembre (dans les 5 derniers jours de novembre ou les 5 premiers jours de décembre). ' .
-            'Veuillez contacter l\'administration pour régulariser votre situation.',
-            $monthName,
-            $currentYear,
-            $monthName,
-            $currentYear
-        );
-        
-        throw new CustomUserMessageAuthenticationException($message);
-    }
 }
 

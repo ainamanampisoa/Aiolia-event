@@ -89,10 +89,29 @@ class UserManagementController extends AbstractController
         }
 
         // Filtre par statut
-        if ($status && in_array($status, ['active', 'pending_validation', 'rejected'], true)) {
+        if ($status === 'paused') {
+            $pausedCondition = "
+                EXISTS (
+                    SELECT 1
+                    FROM aiolia.abonnements_organisateurs os
+                    INNER JOIN aiolia.profils_organisateurs po ON po.id = os.id_profil_organisateur
+                    WHERE po.id_utilisateur = u.id
+                        AND os.annule_le IS NULL
+                        AND os.statut = 'paused'
+                )
+            ";
+
+            $qb->andWhere('u.role = :pausedRole')
+               ->setParameter('pausedRole', UserRoleEnum::ORGANIZER)
+               ->andWhere($pausedCondition);
+
+            $countQb->andWhere('u.role = :pausedRole')
+                    ->setParameter('pausedRole', UserRoleEnum::ORGANIZER)
+                    ->andWhere($pausedCondition);
+        } elseif ($status && in_array($status, ['active', 'pending_validation', 'rejected'], true)) {
             $databaseStatus = User::accountStatusToDatabaseStatus($status);
             $qb->andWhere('u.statut = :statut')
-                    ->setParameter('statut', $databaseStatus);
+               ->setParameter('statut', $databaseStatus);
             $countQb->andWhere('u.statut = :statut')
                     ->setParameter('statut', $databaseStatus);
         }
@@ -113,6 +132,16 @@ class UserManagementController extends AbstractController
         // Récupérer les utilisateurs de la page courante depuis la base de données
         $users = $qb->getQuery()->getResult();
 
+        // Récupérer le statut d'abonnement des organisateurs affichés
+        $organizerIds = array_values(array_filter(
+            array_map(static function ($user) {
+                return $user instanceof User && $user->getRole() === UserRoleEnum::ORGANIZER ? $user->getId() : null;
+            }, $users),
+            static fn($id) => $id !== null
+        ));
+
+        $subscriptionStatuses = $this->userRepository->getOrganizerSubscriptionStatuses($organizerIds);
+
         // Calculer les statistiques depuis la base de données
         $statsQb = $this->userRepository->createQueryBuilder('u');
         
@@ -129,16 +158,18 @@ class UserManagementController extends AbstractController
             ->getQuery()
             ->getSingleScalarResult();
 
-        // Utilisateurs actifs
-        $activeUsers = (int) $this->userRepository->createQueryBuilder('u')
-            ->select('COUNT(u.id)')
-            ->where('u.statut = :statut')
+        // Organisateurs actifs uniquement
+        $activeOrganizers = (int) $this->userRepository->createQueryBuilder('u')
+            ->select('COUNT(DISTINCT u.id)')
+            ->where('u.role = :role')
+            ->andWhere('u.statut = :statut')
+            ->setParameter('role', UserRoleEnum::ORGANIZER)
             ->setParameter('statut', User::STATUS_ACTIVE)
             ->getQuery()
             ->getSingleScalarResult();
 
-        // Organisateurs
-        $organizers = (int) $this->userRepository->createQueryBuilder('u')
+        // Total organisateurs (tous les statuts)
+        $totalOrganizers = (int) $this->userRepository->createQueryBuilder('u')
             ->select('COUNT(DISTINCT u.id)')
             ->where('u.role = :role')
             ->setParameter('role', UserRoleEnum::ORGANIZER)
@@ -159,9 +190,10 @@ class UserManagementController extends AbstractController
             'stats' => [
                 'total' => $totalUsers,
                 'pending' => $pendingUsers,
-                'active' => $activeUsers,
-                'organizers' => $organizers,
+                'activeOrganizers' => $activeOrganizers,
+                'totalOrganizers' => $totalOrganizers,
             ],
+            'subscriptionStatuses' => $subscriptionStatuses,
         ]);
     }
 
@@ -222,12 +254,42 @@ class UserManagementController extends AbstractController
         $eventsCount = count($events);
         $publishedEventsCount = count(array_filter($events, fn($e) => $e->getStatus() === 'published'));
 
+        // Récupérer les informations d'abonnement si c'est un organisateur
+        $subscriptionInfo = null;
+        if ($user->getRole() === 'organizer') {
+            $conn = $this->entityManager->getConnection();
+            $sql = "
+                SELECT 
+                    os.id,
+                    os.statut,
+                    os.mois_prepayes_restants,
+                    os.mis_en_pause_le,
+                    os.repris_le,
+                    sp.niveau,
+                    sp.nom,
+                    sp.code,
+                    sp.periode_facturation
+                FROM aiolia.abonnements_organisateurs os
+                INNER JOIN aiolia.profils_organisateurs po ON po.id = os.id_profil_organisateur
+                INNER JOIN aiolia.plans_abonnements sp ON sp.id = os.id_plan
+                WHERE po.id_utilisateur = :userId
+                    AND os.annule_le IS NULL
+                ORDER BY os.cree_le DESC
+                LIMIT 1
+            ";
+            $result = $conn->fetchAssociative($sql, ['userId' => $user->getId()]);
+            if ($result) {
+                $subscriptionInfo = $result;
+            }
+        }
+
         return $this->render('admin/users/show.html.twig', [
             'user' => $user,
             'auditLogs' => $auditLogs,
             'events' => $events,
             'eventsCount' => $eventsCount,
             'publishedEventsCount' => $publishedEventsCount,
+            'subscriptionInfo' => $subscriptionInfo,
         ]);
     }
 
@@ -416,13 +478,108 @@ class UserManagementController extends AbstractController
             throw $this->createNotFoundException('Utilisateur non trouvé');
         }
 
-        // TODO: Récupérer les paiements réels depuis la base de données
-        // Pour l'instant, on retourne une liste vide
-        $payments = [];
+        $conn = $this->entityManager->getConnection();
+        
+        // Récupérer l'abonnement actif de l'organisateur
+        $subscriptionInfo = null;
+        $nextPaymentDate = null;
+        $prepaidMonths = 0;
+        $isPaused = false;
+        $pauseMonth = null;
+        
+        if ($user->getRole() === 'organizer') {
+            $sql = "
+                SELECT 
+                    os.id,
+                    os.statut,
+                    os.mois_prepayes_restants,
+                    os.mis_en_pause_le,
+                    os.repris_le,
+                    sp.niveau,
+                    sp.nom,
+                    sp.code,
+                    sp.periode_facturation
+                FROM aiolia.abonnements_organisateurs os
+                INNER JOIN aiolia.profils_organisateurs po ON po.id = os.id_profil_organisateur
+                INNER JOIN aiolia.plans_abonnements sp ON sp.id = os.id_plan
+                WHERE po.id_utilisateur = :userId
+                    AND os.annule_le IS NULL
+                ORDER BY os.cree_le DESC
+                LIMIT 1
+            ";
+            $result = $conn->fetchAssociative($sql, ['userId' => $user->getId()]);
+            if ($result) {
+                $subscriptionInfo = $result;
+                $prepaidMonths = (int) ($result['mois_prepayes_restants'] ?? 0);
+                
+                // Vérifier si en pause
+                $isPaused = $result['statut'] === 'paused' || 
+                           ($result['mis_en_pause_le'] !== null && 
+                            ($result['repris_le'] === null || new \DateTime($result['repris_le']) > new \DateTime()));
+                
+                if ($isPaused && $result['mis_en_pause_le']) {
+                    $pauseDate = new \DateTime($result['mis_en_pause_le']);
+                    $monthNames = [
+                        1 => 'Janvier', 2 => 'Février', 3 => 'Mars', 4 => 'Avril',
+                        5 => 'Mai', 6 => 'Juin', 7 => 'Juillet', 8 => 'Août',
+                        9 => 'Septembre', 10 => 'Octobre', 11 => 'Novembre', 12 => 'Décembre'
+                    ];
+                    $pauseMonth = $monthNames[(int)$pauseDate->format('n')] ?? $pauseDate->format('F');
+                }
+                
+                // Calculer le prochain paiement (première facture non payée à venir)
+                $sqlNextPayment = "
+                    SELECT 
+                        (mois_facturation + INTERVAL '1 month')::date as next_payment
+                    FROM aiolia.factures_abonnements
+                    WHERE id_abonnement = :subscriptionId
+                        AND statut IN ('issued', 'draft', 'pending')
+                        AND mois_facturation >= DATE_TRUNC('month', CURRENT_DATE)
+                    ORDER BY mois_facturation ASC
+                    LIMIT 1
+                ";
+                $nextPaymentResult = $conn->fetchOne($sqlNextPayment, ['subscriptionId' => $result['id']]);
+                if ($nextPaymentResult) {
+                    $nextPaymentDate = new \DateTime($nextPaymentResult);
+                } else {
+                    // Si aucune facture en attente, calculer à partir du mois suivant
+                    $nextPaymentDate = new \DateTime('first day of next month');
+                }
+            }
+        }
+        
+        // Récupérer l'historique des paiements (factures payées)
+        $sqlPayments = "
+            SELECT 
+                fa.id,
+                fa.numero_facture,
+                fa.montant_total,
+                fa.devise,
+                fa.mois_facturation,
+                fa.statut,
+                fa.payee_le,
+                fa.emise_le,
+                fa.echeance_le,
+                COALESCE(sp.niveau, 'basic') as niveau,
+                COALESCE(sp.nom, 'Plan inconnu') as plan_nom
+            FROM aiolia.factures_abonnements fa
+            INNER JOIN aiolia.abonnements_organisateurs os ON os.id = fa.id_abonnement
+            INNER JOIN aiolia.profils_organisateurs po ON po.id = os.id_profil_organisateur
+            LEFT JOIN aiolia.plans_abonnements sp ON sp.id = os.id_plan
+            WHERE po.id_utilisateur = :userId
+            ORDER BY fa.mois_facturation DESC, fa.cree_le DESC
+            LIMIT 50
+        ";
+        $payments = $conn->fetchAllAssociative($sqlPayments, ['userId' => $user->getId()]);
 
         return $this->render('admin/users/payments.html.twig', [
             'user' => $user,
             'payments' => $payments,
+            'subscriptionInfo' => $subscriptionInfo,
+            'nextPaymentDate' => $nextPaymentDate,
+            'prepaidMonths' => $prepaidMonths,
+            'isPaused' => $isPaused,
+            'pauseMonth' => $pauseMonth,
         ]);
     }
 
