@@ -116,6 +116,10 @@ $( function() {
 
 
  $(".numbers-row .button").on("click", function() {
+        // Ignorer les boutons avec data-type (gérés par le code spécifique dans details.html.twig)
+        if ($(this).attr('data-type')) {
+            return;
+        }
         var $button = $(this);
         var oldValue = $button.parent().find("input").val();
         if ($button.text() == "+") {

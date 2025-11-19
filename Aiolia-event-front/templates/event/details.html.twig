@@ -31,6 +31,14 @@
         {% set childTickets = ticketTypes|filter(t => t.age_category == 'child' or t.age_category == 'all') %}
         {% set hasAdultTickets = adultTickets|length > 0 %}
         {% set hasChildTickets = childTickets|length > 0 %}
+        
+        {# Variables pour JavaScript - définies avant les blocs #}
+        <script>
+            window.ticketConfig = {
+                hasChildTickets: {{ hasChildTickets ? 'true' : 'false' }},
+                hasAdultTickets: {{ hasAdultTickets ? 'true' : 'false' }}
+            };
+        </script>
 
         <main>
             <section class="sec-event-details">
@@ -123,76 +131,32 @@
                                         <h3>Option sur le ticket</h3>
                                         <div class="type">
                                             <form id="ticket-selection-form">
-                                                {% if hasAdultTickets or hasChildTickets %}
-                                                    {# Sélection des billets adultes #}
-                                                    {% if hasAdultTickets %}
-                                                        <div class="blc-select">
-                                                            <label for="ticket-type-adult">Billets Adultes</label>
-                                                            <select id="ticket-type-adult" name="ticket_type_adult" data-age-category="adult">
-                                                                <option value="">-- Sélectionner un billet --</option>
-                                                                {% for ticket in adultTickets %}
-                                                                    {% if ticket.age_category == 'adult' or ticket.age_category == 'all' %}
-                                                                        <option value="{{ ticket.id }}" data-price="{{ ticket.base_price }}" data-available="{{ ticket.available ?? 'unlimited' }}">
-                                                                            {{ ticket.name }}
-                                                                            — {{ ticket.base_price|number_format(0, '.', ' ') }} {{ ticket.currency }}
-                                                                            {% if ticket.available is not null %}
-                                                                                ({{ ticket.available }} restant{% if ticket.available > 1 %}s{% endif %})
-                                                                            {% endif %}
-                                                                        </option>
+                                                <div class="blc-select">
+                                                    <label for="ticket-type">Type de ticket</label>
+                                                    {% if ticketTypes %}
+                                                        <select id="ticket-type" name="ticket_type">
+                                                            <option value="">-- Sélectionner un type de billet --</option>
+                                                            {% for ticket in ticketTypes %}
+                                                                <option value="{{ ticket.id }}" 
+                                                                        data-age-category="{{ ticket.age_category }}"
+                                                                        data-price="{{ ticket.base_price }}" 
+                                                                        data-available="{{ ticket.available ?? 'unlimited' }}"
+                                                                        data-currency="{{ ticket.currency }}">
+                                                                    {{ ticket.name }}
+                                                                    — {{ ticket.base_price|number_format(0, '.', ' ') }} {{ ticket.currency }}
+                                                                    {% if ticket.available is not null %}
+                                                                        ({{ ticket.available }} restant{% if ticket.available > 1 %}s{% endif %})
                                                                     {% endif %}
-                                                                {% endfor %}
-                                                            </select>
-                                                        </div>
-                                                        <div class="blc-nbr d-flex" id="adult-quantity-section" style="display: none;">
-                                                            <div class="col">
-                                                                <label>Quantité</label>
-                                                                <div class="numbers-row">
-                                                                    <div class="dec button" data-type="adult"><span>-</span></div>
-                                                                    <input type="text" name="adult_qtt" id="adult_qtt" value="1" class="qtt" data-type="adult" min="1">
-                                                                    <div class="inc button" data-type="adult"><span>+</span></div>
-                                                                </div>
-                                                            </div>
-                                                        </div>
-                                                    {% endif %}
-                                                    
-                                                    {# Sélection des billets enfants #}
-                                                    {% if hasChildTickets %}
-                                                        <div class="blc-select" {% if hasAdultTickets %}style="margin-top: 15px;"{% endif %}>
-                                                            <label for="ticket-type-child">Billets Enfants <span class="info"><img src="{{ asset('vente-ticket/images/info.png') }}"><div class="tooltip">Un ticket est requis pour les enfants de plus de 10 ans</div></span></label>
-                                                            <select id="ticket-type-child" name="ticket_type_child" data-age-category="child">
-                                                                <option value="">-- Sélectionner un billet --</option>
-                                                                {% for ticket in childTickets %}
-                                                                    {% if ticket.age_category == 'child' or ticket.age_category == 'all' %}
-                                                                        <option value="{{ ticket.id }}" data-price="{{ ticket.base_price }}" data-available="{{ ticket.available ?? 'unlimited' }}">
-                                                                            {{ ticket.name }}
-                                                                            — {{ ticket.base_price|number_format(0, '.', ' ') }} {{ ticket.currency }}
-                                                                            {% if ticket.available is not null %}
-                                                                                ({{ ticket.available }} restant{% if ticket.available > 1 %}s{% endif %})
-                                                                            {% endif %}
-                                                                        </option>
+                                                                    {% if ticket.age_category == 'adult' %}
+                                                                        [Adulte]
+                                                                    {% elseif ticket.age_category == 'child' %}
+                                                                        [Enfant]
                                                                     {% endif %}
-                                                                {% endfor %}
-                                                            </select>
-                                                        </div>
-                                                        <div class="blc-nbr d-flex" id="child-quantity-section" style="display: none;">
-                                                            <div class="col">
-                                                                <label>Quantité</label>
-                                                                <div class="numbers-row">
-                                                                    <div class="dec button" data-type="child"><span>-</span></div>
-                                                                    <input type="text" name="child_qtt" id="child_qtt" value="1" class="qtt" data-type="child" min="1">
-                                                                    <div class="inc button" data-type="child"><span>+</span></div>
-                                                                </div>
-                                                            </div>
-                                                        </div>
-                                                    {% endif %}
-                                                    
-                                                    <div class="col btn-ok" style="margin-top: 15px;">
-                                                        <button class="btn ok" type="button" id="add-to-cart-btn">Ajouter au panier</button>
-                                                    </div>
-                                                {% elseif ticketTypesAll %}
-                                                    <div class="blc-select">
-                                                        <label>Type de ticket</label>
-                                                        <select disabled>
+                                                                </option>
+                                                            {% endfor %}
+                                                        </select>
+                                                    {% elseif ticketTypesAll %}
+                                                        <select id="ticket-type" name="ticket_type" disabled>
                                                             {% for ticket in ticketTypesAll %}
                                                                 <option>
                                                                     {{ ticket.name }} — {{ ticket.base_price|number_format(0, '.', ' ') }} {{ ticket.currency }} (épuisé)
@@ -200,15 +164,36 @@
                                                             {% endfor %}
                                                         </select>
                                                         <p class="ticket-info text-warning">Tous les billets sont actuellement épuisés.</p>
-                                                    </div>
-                                                {% else %}
-                                                    <div class="blc-select">
-                                                        <label>Type de ticket</label>
-                                                        <select disabled>
+                                                    {% else %}
+                                                        <select id="ticket-type" name="ticket_type" disabled>
                                                             <option>Aucune catégorie disponible pour le moment</option>
                                                         </select>
+                                                    {% endif %}
+                                                </div>
+                                                <div class="blc-nbr d-flex">
+                                                    <div class="col">
+                                                        <label>Adulte</label>
+                                                        <div class="numbers-row">
+                                                            <div class="dec button" data-type="adult"><span>-</span></div>
+                                                            <input type="text" name="adult_qtt" id="adult_qtt" value="1" class="qtt" data-type="adult">
+                                                            <div class="inc button" data-type="adult"><span>+</span></div>
+                                                        </div>
                                                     </div>
-                                                {% endif %}
+                                                    <div class="col">
+                                                        <label>Enfant <span class="info"><img src="{{ asset('vente-ticket/images/info.png') }}"><div class="tooltip">Un ticket est requis pour les enfants de plus de 10 ans</div></span></label>
+                                                        <div class="numbers-row">
+                                                            <div class="dec button" data-type="child" {% if not hasChildTickets %}style="opacity:0.5; pointer-events:none;"{% endif %}><span>-</span></div>
+                                                            <input type="text" name="child_qtt" id="child_qtt" value="{% if not hasChildTickets %}0{% else %}1{% endif %}" class="qtt" data-type="child" {% if not hasChildTickets %}disabled style="opacity:0.5;"{% endif %}>
+                                                            <div class="inc button" data-type="child" {% if not hasChildTickets %}style="opacity:0.5; pointer-events:none;"{% endif %}><span>+</span></div>
+                                                        </div>
+                                                        {% if not hasChildTickets %}
+                                                            <small style="color:#999; font-size:0.85em; display:block; margin-top:5px;">Pas de billets enfants disponibles pour cet événement</small>
+                                                        {% endif %}
+                                                    </div>
+                                                    <div class="col btn-ok">
+                                                        <button class="btn ok" type="button" id="add-to-cart-btn">OK</button>
+                                                    </div>
+                                                </div>
                                             </form>
                                         </div>
                                     </div>
@@ -405,144 +390,316 @@
         <script>
             // Gestion des sélections de billets par catégorie d'âge
             document.addEventListener('DOMContentLoaded', function() {
-                const adultSelect = document.getElementById('ticket-type-adult');
-                const childSelect = document.getElementById('ticket-type-child');
-                const adultQtySection = document.getElementById('adult-quantity-section');
-                const childQtySection = document.getElementById('child-quantity-section');
+                const ticketTypeSelect = document.getElementById('ticket-type');
+                const adultQtyInput = document.getElementById('adult_qtt');
+                const childQtyInput = document.getElementById('child_qtt');
+                const adultDecBtn = document.querySelector('.button.dec[data-type="adult"]');
+                const adultIncBtn = document.querySelector('.button.inc[data-type="adult"]');
+                const childDecBtn = document.querySelector('.button.dec[data-type="child"]');
+                const childIncBtn = document.querySelector('.button.inc[data-type="child"]');
                 const addToCartBtn = document.getElementById('add-to-cart-btn');
                 
-                // Afficher/masquer la section quantité pour adultes
-                if (adultSelect && adultQtySection) {
-                    adultSelect.addEventListener('change', function() {
-                        if (this.value) {
-                            adultQtySection.style.display = 'flex';
-                            const selectedOption = this.options[this.selectedIndex];
-                            const available = selectedOption.dataset.available;
-                            const maxQty = available === 'unlimited' ? null : parseInt(available);
-                            const qtyInput = document.getElementById('adult_qtt');
-                            if (qtyInput) {
-                                qtyInput.max = maxQty || '';
-                                qtyInput.value = Math.min(parseInt(qtyInput.value) || 1, maxQty || 999);
-                            }
-                        } else {
-                            adultQtySection.style.display = 'none';
+                let selectedTicketType = null;
+                let maxAvailable = null;
+                
+                // Gestion du changement de type de billet
+                if (ticketTypeSelect) {
+                    ticketTypeSelect.addEventListener('change', function() {
+                        const selectedOption = this.options[this.selectedIndex];
+                        
+                        if (!this.value) {
+                            // Aucun billet sélectionné
+                            selectedTicketType = null;
+                            maxAvailable = null;
+                            resetQuantities();
+                            updateButtonsState();
+                            return;
                         }
-                        updateAddToCartButton();
+                        
+                        selectedTicketType = {
+                            id: this.value,
+                            ageCategory: selectedOption.dataset.ageCategory,
+                            price: parseFloat(selectedOption.dataset.price),
+                            available: selectedOption.dataset.available === 'unlimited' ? null : parseInt(selectedOption.dataset.available),
+                            currency: selectedOption.dataset.currency
+                        };
+                        
+                        maxAvailable = selectedTicketType.available;
+                        
+                        // Réinitialiser les quantités
+                        resetQuantities();
+                        
+                        // Activer/désactiver les inputs selon la catégorie
+                        updateInputsState();
+                        updateButtonsState();
                     });
                 }
                 
-                // Afficher/masquer la section quantité pour enfants
-                if (childSelect && childQtySection) {
-                    childSelect.addEventListener('change', function() {
-                        if (this.value) {
-                            childQtySection.style.display = 'flex';
-                            const selectedOption = this.options[this.selectedIndex];
-                            const available = selectedOption.dataset.available;
-                            const maxQty = available === 'unlimited' ? null : parseInt(available);
-                            const qtyInput = document.getElementById('child_qtt');
-                            if (qtyInput) {
-                                qtyInput.max = maxQty || '';
-                                qtyInput.value = Math.min(parseInt(qtyInput.value) || 1, maxQty || 999);
+                function resetQuantities() {
+                    if (adultQtyInput) adultQtyInput.value = '1';
+                    if (childQtyInput) childQtyInput.value = '1';
+                }
+                
+                function updateInputsState() {
+                    const hasChildTicketsAvailable = window.ticketConfig ? window.ticketConfig.hasChildTickets : false;
+                    
+                    if (!selectedTicketType) {
+                        // Aucun billet sélectionné - tout désactivé visuellement mais garde l'apparence
+                        if (adultQtyInput) {
+                            adultQtyInput.style.pointerEvents = 'none';
+                            adultQtyInput.style.opacity = '0.6';
+                            adultQtyInput.style.cursor = 'not-allowed';
+                        }
+                        if (childQtyInput) {
+                            childQtyInput.style.pointerEvents = 'none';
+                            childQtyInput.style.opacity = '0.6';
+                            childQtyInput.style.cursor = 'not-allowed';
+                            // Si pas de billets enfants disponibles, désactiver complètement
+                            if (!hasChildTicketsAvailable) {
+                                childQtyInput.disabled = true;
+                                childQtyInput.value = '0';
+                            }
+                        }
+                        return;
+                    }
+                    
+                    const ageCat = selectedTicketType.ageCategory;
+                    
+                    // Gérer les inputs selon la catégorie
+                    if (ageCat === 'adult' || ageCat === 'all') {
+                        // Billet adulte ou pour tous - activer input adulte
+                        if (adultQtyInput) {
+                            adultQtyInput.style.pointerEvents = 'auto';
+                            adultQtyInput.style.opacity = '1';
+                            adultQtyInput.style.cursor = 'text';
+                            adultQtyInput.disabled = false;
+                            if (maxAvailable) adultQtyInput.setAttribute('max', maxAvailable);
+                            else adultQtyInput.removeAttribute('max');
+                        }
+                    } else {
+                        // Billet enfant uniquement - désactiver input adulte
+                        if (adultQtyInput) {
+                            adultQtyInput.style.pointerEvents = 'none';
+                            adultQtyInput.style.opacity = '0.6';
+                            adultQtyInput.style.cursor = 'not-allowed';
+                            adultQtyInput.disabled = true;
+                            adultQtyInput.value = '0';
+                        }
+                    }
+                    
+                    if (ageCat === 'child' || ageCat === 'all') {
+                        // Billet enfant ou pour tous
+                        if (hasChildTicketsAvailable) {
+                            // Billets enfants disponibles - activer input enfant
+                            if (childQtyInput) {
+                                childQtyInput.style.pointerEvents = 'auto';
+                                childQtyInput.style.opacity = '1';
+                                childQtyInput.style.cursor = 'text';
+                                childQtyInput.disabled = false;
+                                if (maxAvailable) childQtyInput.setAttribute('max', maxAvailable);
+                                else childQtyInput.removeAttribute('max');
                             }
                         } else {
-                            childQtySection.style.display = 'none';
+                            // Pas de billets enfants disponibles - désactiver input enfant
+                            if (childQtyInput) {
+                                childQtyInput.style.pointerEvents = 'none';
+                                childQtyInput.style.opacity = '0.5';
+                                childQtyInput.style.cursor = 'not-allowed';
+                                childQtyInput.disabled = true;
+                                childQtyInput.value = '0';
+                            }
                         }
-                        updateAddToCartButton();
-                    });
+                    } else {
+                        // Billet adulte uniquement - désactiver input enfant
+                        if (childQtyInput) {
+                            childQtyInput.style.pointerEvents = 'none';
+                            childQtyInput.style.opacity = '0.6';
+                            childQtyInput.style.cursor = 'not-allowed';
+                            childQtyInput.disabled = true;
+                            childQtyInput.value = '0';
+                        }
+                    }
+                }
+                
+                function updateButtonsState() {
+                    if (!selectedTicketType) {
+                        if (adultDecBtn) adultDecBtn.style.pointerEvents = 'none';
+                        if (adultIncBtn) adultIncBtn.style.pointerEvents = 'none';
+                        if (childDecBtn) childDecBtn.style.pointerEvents = 'none';
+                        if (childIncBtn) childIncBtn.style.pointerEvents = 'none';
+                        return;
+                    }
+                    
+                    const ageCat = selectedTicketType.ageCategory;
+                    const adultQty = parseInt(adultQtyInput?.value) || 0;
+                    const childQty = parseInt(childQtyInput?.value) || 0;
+                    const totalQty = adultQty + childQty;
+                    
+                    // Boutons adultes
+                    if (ageCat === 'adult' || ageCat === 'all') {
+                        if (adultDecBtn) adultDecBtn.style.pointerEvents = adultQty > 0 ? 'auto' : 'none';
+                        if (adultIncBtn) {
+                            const canInc = !maxAvailable || totalQty < maxAvailable;
+                            adultIncBtn.style.pointerEvents = canInc ? 'auto' : 'none';
+                        }
+                    } else {
+                        if (adultDecBtn) adultDecBtn.style.pointerEvents = 'none';
+                        if (adultIncBtn) adultIncBtn.style.pointerEvents = 'none';
+                    }
+                    
+                    // Boutons enfants
+                    const hasChildTicketsAvailable = window.ticketConfig ? window.ticketConfig.hasChildTickets : false;
+                    if ((ageCat === 'child' || ageCat === 'all') && hasChildTicketsAvailable && !childQtyInput.disabled) {
+                        if (childDecBtn) childDecBtn.style.pointerEvents = childQty > 0 ? 'auto' : 'none';
+                        if (childIncBtn) {
+                            const canInc = !maxAvailable || totalQty < maxAvailable;
+                            childIncBtn.style.pointerEvents = canInc ? 'auto' : 'none';
+                        }
+                    } else {
+                        if (childDecBtn) childDecBtn.style.pointerEvents = 'none';
+                        if (childIncBtn) childIncBtn.style.pointerEvents = 'none';
+                    }
                 }
                 
                 // Gestion des boutons + et - pour les quantités
+                // Utiliser capture: true pour s'exécuter AVANT le gestionnaire de custom.js
                 document.querySelectorAll('.button[data-type]').forEach(function(button) {
                     button.addEventListener('click', function(e) {
+                        // Empêcher la propagation pour éviter le double déclenchement
+                        e.stopImmediatePropagation();
                         e.preventDefault();
+                        
+                        if (this.style.pointerEvents === 'none') return;
+                        
                         const type = this.dataset.type;
                         const input = document.getElementById(type + '_qtt');
-                        if (!input || input.disabled) return;
+                        if (!input || input.disabled || input.style.pointerEvents === 'none') {
+                            e.stopImmediatePropagation();
+                            e.preventDefault();
+                            return;
+                        }
                         
                         let value = parseInt(input.value) || 0;
-                        const max = input.max ? parseInt(input.max) : null;
+                        const adultQty = parseInt(adultQtyInput?.value) || 0;
+                        const childQty = parseInt(childQtyInput?.value) || 0;
+                        const totalQty = adultQty + childQty;
                         
                         if (this.classList.contains('dec')) {
                             value = Math.max(1, value - 1);
                         } else {
-                            value = max ? Math.min(max, value + 1) : value + 1;
+                            // Vérifier la limite totale si maxAvailable est défini
+                            if (maxAvailable && totalQty >= maxAvailable) {
+                                alert('Quantité maximale disponible atteinte: ' + maxAvailable);
+                                return;
+                            }
+                            value = value + 1;
                         }
                         
                         input.value = value;
-                        updateAddToCartButton();
-                    });
+                        updateButtonsState();
+                    }, true); // capture: true pour s'exécuter en premier
                 });
                 
-                // Validation des quantités
-                document.querySelectorAll('.qtt[data-type]').forEach(function(input) {
-                    input.addEventListener('change', function() {
-                        let value = parseInt(this.value) || 1;
-                        const max = this.max ? parseInt(this.max) : null;
-                        const min = this.min ? parseInt(this.min) : 1;
+                // Validation des quantités lors de la saisie manuelle
+                if (adultQtyInput) {
+                    adultQtyInput.addEventListener('change', function() {
+                        let value = parseInt(this.value) || 0;
+                        const adultQty = value;
+                        const childQty = parseInt(childQtyInput?.value) || 0;
+                        const totalQty = adultQty + childQty;
                         
-                        if (value < min) value = min;
-                        if (max && value > max) value = max;
+                        if (value < 0) value = 0;
+                        if (maxAvailable && totalQty > maxAvailable) {
+                            value = Math.max(0, maxAvailable - childQty);
+                            alert('Quantité maximale disponible: ' + maxAvailable);
+                        }
                         
                         this.value = value;
-                        updateAddToCartButton();
+                        updateButtonsState();
                     });
-                });
-                
-                // Mise à jour du bouton "Ajouter au panier"
-                function updateAddToCartButton() {
-                    if (!addToCartBtn) return;
-                    
-                    const hasAdult = adultSelect && adultSelect.value;
-                    const hasChild = childSelect && childSelect.value;
-                    const adultQty = hasAdult ? (parseInt(document.getElementById('adult_qtt')?.value) || 0) : 0;
-                    const childQty = hasChild ? (parseInt(document.getElementById('child_qtt')?.value) || 0) : 0;
-                    
-                    if (hasAdult || hasChild) {
-                        addToCartBtn.disabled = false;
-                        addToCartBtn.style.opacity = '1';
-                    } else {
-                        addToCartBtn.disabled = true;
-                        addToCartBtn.style.opacity = '0.5';
-                    }
                 }
                 
-                // Gestion du clic sur "Ajouter au panier"
+                if (childQtyInput) {
+                    childQtyInput.addEventListener('change', function() {
+                        if (this.disabled || this.style.pointerEvents === 'none') return;
+                        
+                        let value = parseInt(this.value) || 0;
+                        const adultQty = parseInt(adultQtyInput?.value) || 0;
+                        const childQty = value;
+                        const totalQty = adultQty + childQty;
+                        
+                        if (value < 0) value = 0;
+                        if (maxAvailable && totalQty > maxAvailable) {
+                            value = Math.max(0, maxAvailable - adultQty);
+                            alert('Quantité maximale disponible: ' + maxAvailable);
+                        }
+                        
+                        this.value = value;
+                        updateButtonsState();
+                    });
+                }
+                
+                // Gestion du bouton OK
                 if (addToCartBtn) {
                     addToCartBtn.addEventListener('click', function(e) {
                         e.preventDefault();
                         
-                        const adultTicketId = adultSelect?.value;
-                        const childTicketId = childSelect?.value;
-                        const adultQty = adultTicketId ? (parseInt(document.getElementById('adult_qtt')?.value) || 0) : 0;
-                        const childQty = childTicketId ? (parseInt(document.getElementById('child_qtt')?.value) || 0) : 0;
-                        
-                        if (!adultTicketId && !childTicketId) {
-                            alert('Veuillez sélectionner au moins un type de billet.');
+                        if (!selectedTicketType) {
+                            alert('Veuillez sélectionner un type de billet.');
                             return;
                         }
                         
-                        if (adultTicketId && adultQty <= 0) {
-                            alert('Veuillez sélectionner une quantité valide pour les billets adultes.');
+                        const adultQty = parseInt(adultQtyInput?.value) || 0;
+                        const childQty = parseInt(childQtyInput?.value) || 0;
+                        const totalQty = adultQty + childQty;
+                        
+                        if (totalQty === 0) {
+                            alert('Veuillez sélectionner au moins une quantité.');
                             return;
                         }
                         
-                        if (childTicketId && childQty <= 0) {
-                            alert('Veuillez sélectionner une quantité valide pour les billets enfants.');
+                        // Vérifier selon la catégorie
+                        const ageCat = selectedTicketType.ageCategory;
+                        if (ageCat === 'adult' && adultQty === 0) {
+                            alert('Veuillez sélectionner une quantité pour les billets adultes.');
+                            return;
+                        }
+                        if (ageCat === 'child' && childQty === 0) {
+                            alert('Veuillez sélectionner une quantité pour les billets enfants.');
+                            return;
+                        }
+                        if (ageCat === 'all' && adultQty === 0 && childQty === 0) {
+                            alert('Veuillez sélectionner une quantité pour adulte ou enfant.');
+                            return;
+                        }
+                        
+                        // Vérifier la disponibilité
+                        if (maxAvailable && totalQty > maxAvailable) {
+                            alert('Quantité demandée (' + totalQty + ') dépasse la disponibilité (' + maxAvailable + ').');
                             return;
                         }
                         
                         // TODO: Implémenter l'ajout au panier
                         console.log('Ajout au panier:', {
-                            adult: { ticketId: adultTicketId, quantity: adultQty },
-                            child: { ticketId: childTicketId, quantity: childQty }
+                            ticketId: selectedTicketType.id,
+                            ticketType: selectedTicketType.ageCategory,
+                            adultQuantity: adultQty,
+                            childQuantity: childQty,
+                            totalQuantity: totalQty,
+                            totalPrice: (adultQty + childQty) * selectedTicketType.price
                         });
+                        
+                        alert('Ajouté au panier: ' + totalQty + ' billet(s) - ' + ((adultQty + childQty) * selectedTicketType.price).toLocaleString('fr-FR') + ' ' + selectedTicketType.currency);
                         
                         // Redirection temporaire vers le panier
                         // window.location.href = '{{ path("cart") }}';
                     });
                 }
                 
-                updateAddToCartButton();
+                // Initialisation - ne pas désactiver au chargement, laisser l'affichage original
+                // Les inputs restent actifs jusqu'à ce qu'un type de billet soit sélectionné
+                // updateInputsState(); // Désactivé pour préserver l'affichage original
+                // updateButtonsState(); // Sera appelé après sélection
             });
         </script>
 {% endblock %}

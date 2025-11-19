@@ -1380,7 +1380,9 @@ a.ui-button:active,
 }
 
 
-#qtt {
+#qtt,
+#adult_qtt,
+#child_qtt {
     border: none;
     width: 70px;
     text-align: center;
