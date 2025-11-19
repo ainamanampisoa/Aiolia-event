@@ -183,17 +183,28 @@ class BillingController extends AbstractController
             ->getQuery()
             ->getResult();
 
+        // Préparer les informations de plan pour chaque facture précédente
+        $previousInvoicesWithPlan = [];
+        foreach ($previousInvoices as $prevInvoice) {
+            $prevPlanInfo = $this->subscriptionInvoiceRepository->getPlanInfoForInvoice($prevInvoice);
+            $previousInvoicesWithPlan[] = [
+                'invoice' => $prevInvoice,
+                'planInfo' => $prevPlanInfo,
+                'planTier' => $prevPlanInfo['niveau'] ?? null,
+            ];
+        }
+
         // Vérifier s'il y a eu un changement de plan (comparer avec la facture précédente)
         $planChanged = false;
-        if (!empty($previousInvoices)) {
-            $previousInvoice = $previousInvoices[0];
-            $previousPlanInfo = $this->subscriptionInvoiceRepository->getPlanInfoForInvoice($previousInvoice);
+        if (!empty($previousInvoicesWithPlan)) {
+            $previousPlanInfo = $previousInvoicesWithPlan[0]['planInfo'];
             $previousPlanTier = $previousPlanInfo['niveau'] ?? null;
             $planChanged = ($previousPlanTier !== $planTier) || 
                           ($planInfo['periode_facturation'] ?? null) !== ($previousPlanInfo['periode_facturation'] ?? null);
         }
 
         $invoiceItems = $this->invoiceDetailService->getInvoiceItems($invoice);
+        $paymentMethod = $this->invoiceDetailService->getPaymentMethod($invoice);
 
         return $this->render('admin/billing/invoice_show.html.twig', [
             'invoice' => $invoice,
@@ -201,9 +212,10 @@ class BillingController extends AbstractController
             'planTier' => $planTier,
             'planInfo' => $planInfo,
             'organizer' => $organizer,
-            'previousInvoices' => $previousInvoices,
+            'previousInvoices' => $previousInvoicesWithPlan,
             'planChanged' => $planChanged,
             'invoiceItems' => $invoiceItems,
+            'paymentMethod' => $paymentMethod,
         ]);
     }
 
@@ -236,7 +248,13 @@ class BillingController extends AbstractController
             return $this->redirectToRoute('admin_billing_invoices');
         }
 
-        return $this->pdfService->generateSubscriptionInvoicePdf($invoice);
+        // Récupérer l'admin connecté
+        $admin = $this->getUser();
+        if (!$admin instanceof \App\Entity\User) {
+            $admin = null;
+        }
+
+        return $this->pdfService->generateSubscriptionInvoicePdf($invoice, $admin);
     }
 
     /**

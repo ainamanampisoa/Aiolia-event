@@ -65,7 +65,7 @@
                         </div>
                         <div class="detail-value">
                             {% if app.user.telephone %}
-                                {{ app.user.telephone }}
+                                {{ app.user.telephone|phone_format(app.user.codePays) }}
                             {% else %}
                                 <span data-i18n="profile.details.phone.unset">Non renseigné</span>
                             {% endif %}
@@ -283,6 +283,28 @@
     color: var(--text-primary);
     text-align: right;
     flex: 1;
+}
+
+.phone-formatted {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    white-space: nowrap;
+}
+
+.phone-flag {
+    font-size: 1em;
+    line-height: 1;
+    display: inline-block;
+}
+
+.phone-country-code {
+    font-weight: 600;
+    color: inherit;
+}
+
+.phone-number {
+    color: inherit;
 }
 
 .profile-sidebar {

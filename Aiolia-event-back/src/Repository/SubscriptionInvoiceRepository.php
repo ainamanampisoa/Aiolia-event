@@ -274,5 +274,26 @@ class SubscriptionInvoiceRepository extends ServiceEntityRepository
     {
         return $this->getPlanTiersForInvoices($invoices);
     }
+
+    /**
+     * Récupère le mode de paiement pour une facture depuis la table paiements_abonnements
+     * Retourne null si aucun paiement n'est trouvé
+     */
+    public function getPaymentMethodForInvoice(SubscriptionInvoice $invoice): ?string
+    {
+        $connection = $this->getEntityManager()->getConnection();
+        
+        $sql = "
+            SELECT pa.fournisseur
+            FROM aiolia.paiements_abonnements pa
+            WHERE pa.id_facture = :invoice_id
+            ORDER BY pa.paye_le DESC NULLS LAST, pa.cree_le DESC
+            LIMIT 1
+        ";
+        
+        $result = $connection->fetchOne($sql, ['invoice_id' => $invoice->getId()]);
+        
+        return $result !== false ? $result : null;
+    }
 }
 

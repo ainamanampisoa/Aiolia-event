@@ -6,6 +6,7 @@ use App\Entity\TicketInvoice;
 use App\Entity\SubscriptionInvoice;
 use Twig\Environment;
 use Symfony\Component\HttpFoundation\Response;
+use Symfony\Component\HttpKernel\KernelInterface;
 use Dompdf\Dompdf;
 use Dompdf\Options;
 
@@ -13,7 +14,8 @@ class InvoicePdfService
 {
     public function __construct(
         private Environment $twig,
-        private BillingInvoiceDetailService $invoiceDetailService
+        private BillingInvoiceDetailService $invoiceDetailService,
+        private KernelInterface $kernel
     ) {
     }
 
@@ -30,17 +32,29 @@ class InvoicePdfService
     /**
      * Génère le HTML de la facture pour les abonnements
      */
-    public function generateSubscriptionInvoiceHtml(SubscriptionInvoice $invoice): string
+    public function generateSubscriptionInvoiceHtml(SubscriptionInvoice $invoice, ?\App\Entity\User $admin = null): string
     {
         $planInfo = $this->invoiceDetailService->getPlanInfo($invoice);
         $invoiceItems = $this->invoiceDetailService->getInvoiceItems($invoice);
         $planTier = $planInfo['niveau'] ?? null;
+        $paymentMethod = $this->invoiceDetailService->getPaymentMethod($invoice);
+
+        // Chemin absolu du logo pour Dompdf
+        $logoPath = $this->kernel->getProjectDir() . '/public/images/aiolia-logo.svg';
+        $logoBase64 = null;
+        if (file_exists($logoPath)) {
+            $logoContent = file_get_contents($logoPath);
+            $logoBase64 = 'data:image/svg+xml;base64,' . base64_encode($logoContent);
+        }
 
         return $this->twig->render('admin/billing/invoice_subscription.html.twig', [
             'invoice' => $invoice,
             'planInfo' => $planInfo,
             'planTier' => $planTier,
             'invoiceItems' => $invoiceItems,
+            'admin' => $admin,
+            'logoBase64' => $logoBase64,
+            'paymentMethod' => $paymentMethod,
         ]);
     }
 
@@ -56,9 +70,9 @@ class InvoicePdfService
     /**
      * Génère une réponse PDF pour une facture d'abonnement
      */
-    public function generateSubscriptionInvoicePdf(SubscriptionInvoice $invoice): Response
+    public function generateSubscriptionInvoicePdf(SubscriptionInvoice $invoice, ?\App\Entity\User $admin = null): Response
     {
-        $html = $this->generateSubscriptionInvoiceHtml($invoice);
+        $html = $this->generateSubscriptionInvoiceHtml($invoice, $admin);
         return $this->generatePdfResponse($html, 'facture-abonnement-' . $invoice->getInvoiceNumber() . '.pdf');
     }
 

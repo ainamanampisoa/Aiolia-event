@@ -227,7 +227,7 @@
                                             </span>
                                             {% if user.telephone %}
                                                 <span class="user-phone">
-                                                    <i class="fas fa-phone"></i>{{ user.telephone }}
+                                                    <i class="fas fa-phone"></i>{{ user.telephone|phone_format(user.codePays) }}
                                                 </span>
                                             {% endif %}
                                         </div>
@@ -919,6 +919,28 @@ function showUserStats() {
     width: 14px;
     text-align: center;
     color: var(--text-secondary);
+}
+
+.phone-formatted {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    white-space: nowrap;
+}
+
+.phone-flag {
+    font-size: 1em;
+    line-height: 1;
+    display: inline-block;
+}
+
+.phone-country-code {
+    font-weight: 600;
+    color: inherit;
+}
+
+.phone-number {
+    color: inherit;
 }
 
 .role-badge {

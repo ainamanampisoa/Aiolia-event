@@ -201,7 +201,7 @@
                                 <i class="fas fa-phone"></i>
                                 <span data-i18n="billing.invoice.customer.phone">Téléphone</span>
                             </span>
-                            <span class="info-value">{{ invoice.customer.telephone }}</span>
+                            <span class="info-value">{{ invoice.customer.telephone|phone_format(invoice.customer.codePays) }}</span>
                         </div>
                     {% endif %}
                     {% if type == 'subscription' and planInfo is defined and planInfo %}
@@ -272,24 +272,11 @@
                 </div>
                 <div class="card-body">
                     <div class="info-row">
-                        <span class="info-label" data-i18n="billing.invoice.billing_info.type">Type</span>
-                        <span class="info-value">
-                            {% if type == 'ticket' %}
-                                <span data-i18n="billing.invoice.billing_info.type.ticket">Billet</span>
-                            {% else %}
-                                {% if planInfo is defined and planInfo and planInfo.periode_facturation %}
-                                    {% set periodLabels = {
-                                        'monthly': {'fr': 'Abonnement mensuel', 'en': 'Monthly subscription'},
-                                        'quarterly': {'fr': 'Abonnement trimestriel', 'en': 'Quarterly subscription'},
-                                        'yearly': {'fr': 'Abonnement annuel', 'en': 'Yearly subscription'}
-                                    } %}
-                                    {% set periodLabel = periodLabels[planInfo.periode_facturation] ?? {'fr': 'Abonnement', 'en': 'Subscription'} %}
-                                    <span data-i18n-fr="{{ periodLabel.fr }}" data-i18n-en="{{ periodLabel.en }}">{{ periodLabel.fr }}</span>
-                                {% else %}
-                                    <span data-i18n="billing.invoice.billing_info.type.subscription">Abonnement</span>
-                                {% endif %}
-                            {% endif %}
+                        <span class="info-label">
+                            <i class="fas fa-calendar-alt"></i>
+                            <span data-i18n-fr="Date d'émission" data-i18n-en="Issue date">Date d'émission</span>
                         </span>
+                        <span class="info-value">{{ invoice.issuedAt|date('d/m/Y à H:i') }}</span>
                     </div>
                     {% if invoice.dueAt %}
                         <div class="info-row info-row-due-date">
@@ -319,20 +306,33 @@
                             <span class="info-value paid-date-value">{{ invoice.paidAt|date('d/m/Y à H:i') }}</span>
                         </div>
                     {% endif %}
-                    <div class="info-row">
-                        <span class="info-label">
-                            <i class="fas fa-plus-circle"></i>
-                            <span data-i18n-fr="Créée le" data-i18n-en="Created on">Créée le</span>
-                        </span>
-                        <span class="info-value text-muted">{{ invoice.createdAt|date('d/m/Y à H:i') }}</span>
-                    </div>
-                    {% if invoice.updatedAt and invoice.updatedAt != invoice.createdAt %}
+                    {% if type == 'subscription' and invoice.billingMonth is defined and invoice.billingMonth %}
+                        {% set monthNames = {
+                            '1': {'fr': 'Janvier', 'en': 'January'},
+                            '2': {'fr': 'Février', 'en': 'February'},
+                            '3': {'fr': 'Mars', 'en': 'March'},
+                            '4': {'fr': 'Avril', 'en': 'April'},
+                            '5': {'fr': 'Mai', 'en': 'May'},
+                            '6': {'fr': 'Juin', 'en': 'June'},
+                            '7': {'fr': 'Juillet', 'en': 'July'},
+                            '8': {'fr': 'Août', 'en': 'August'},
+                            '9': {'fr': 'Septembre', 'en': 'September'},
+                            '10': {'fr': 'Octobre', 'en': 'October'},
+                            '11': {'fr': 'Novembre', 'en': 'November'},
+                            '12': {'fr': 'Décembre', 'en': 'December'}
+                        } %}
+                        {% set month = invoice.billingMonth|date('n') %}
+                        {% set year = invoice.billingMonth|date('Y') %}
                         <div class="info-row">
                             <span class="info-label">
-                                <i class="fas fa-sync-alt"></i>
-                                <span data-i18n-fr="Mise à jour" data-i18n-en="Updated">Mise à jour</span>
+                                <i class="fas fa-calendar"></i>
+                                <span data-i18n-fr="Mois de facturation" data-i18n-en="Billing month">Mois de facturation</span>
                             </span>
-                            <span class="info-value text-muted">{{ invoice.updatedAt|date('d/m/Y à H:i') }}</span>
+                            <span class="info-value">
+                                <span data-i18n-fr="{{ monthNames[month].fr }} {{ year }}" data-i18n-en="{{ monthNames[month].en }} {{ year }}">
+                                    {{ monthNames[month].fr }} {{ year }}
+                                </span>
+                            </span>
                         </div>
                     {% endif %}
                     {% if invoice.status == 'overdue' %}
@@ -457,7 +457,44 @@
                 </div>
                 <div class="card-body">
                     <div class="payment-history-list">
-                        {% for prevInvoice in previousInvoices|slice(0, 5) %}
+                        {% set monthNames = {
+                            '1': {'fr': 'Janvier', 'en': 'January'},
+                            '2': {'fr': 'Février', 'en': 'February'},
+                            '3': {'fr': 'Mars', 'en': 'March'},
+                            '4': {'fr': 'Avril', 'en': 'April'},
+                            '5': {'fr': 'Mai', 'en': 'May'},
+                            '6': {'fr': 'Juin', 'en': 'June'},
+                            '7': {'fr': 'Juillet', 'en': 'July'},
+                            '8': {'fr': 'Août', 'en': 'August'},
+                            '9': {'fr': 'Septembre', 'en': 'September'},
+                            '10': {'fr': 'Octobre', 'en': 'October'},
+                            '11': {'fr': 'Novembre', 'en': 'November'},
+                            '12': {'fr': 'Décembre', 'en': 'December'}
+                        } %}
+                        {% set tierLabels = {
+                            'basic': {'fr': 'Basic', 'en': 'Basic', 'icon': 'tag'},
+                            'pro': {'fr': 'Pro', 'en': 'Pro', 'icon': 'star'},
+                            'enterprise': {'fr': 'Enterprise', 'en': 'Enterprise', 'icon': 'crown'}
+                        } %}
+                        {% set periodLabels = {
+                            'monthly': {'fr': 'Mensuel', 'en': 'Monthly', 'icon': 'calendar-alt'},
+                            'quarterly': {'fr': 'Trimestriel', 'en': 'Quarterly', 'icon': 'calendar-week'},
+                            'yearly': {'fr': 'Annuel', 'en': 'Yearly', 'icon': 'calendar-check'}
+                        } %}
+                        {% for prevInvoiceData in previousInvoices|slice(0, 5) %}
+                            {% set prevInvoice = prevInvoiceData.invoice %}
+                            {% set prevPlanInfo = prevInvoiceData.planInfo %}
+                            {% set prevPlanTier = prevInvoiceData.planTier %}
+                            {% if prevInvoice.billingMonth is defined and prevInvoice.billingMonth %}
+                                {% set billingDate = prevInvoice.billingMonth %}
+                            {% else %}
+                                {% set billingDate = prevInvoice.issuedAt %}
+                            {% endif %}
+                            {% set month = billingDate|date('n') %}
+                            {% set year = billingDate|date('Y') %}
+                            {% set prevBillingPeriod = prevPlanInfo.periode_facturation ?? null %}
+                            {% set prevTierLabel = tierLabels[prevPlanTier] ?? {'fr': prevPlanTier|upper, 'en': prevPlanTier|upper, 'icon': 'tag'} %}
+                            {% set prevPeriodLabel = prevBillingPeriod ? (periodLabels[prevBillingPeriod] ?? {'fr': prevBillingPeriod|capitalize, 'en': prevBillingPeriod|capitalize, 'icon': 'calendar-alt'}) : null %}
                             <div class="payment-history-item">
                                 <div class="payment-history-header">
                                     <span class="payment-history-number">{{ prevInvoice.invoiceNumber }}</span>
@@ -472,9 +509,30 @@
                                     </span>
                                 </div>
                                 <div class="payment-history-details">
-                                    <span class="payment-history-date">{{ prevInvoice.issuedAt|date('d/m/Y') }}</span>
+                                    <span class="payment-history-date">
+                                        <span data-i18n-fr="{{ monthNames[month].fr }} {{ year }}" data-i18n-en="{{ monthNames[month].en }} {{ year }}">
+                                            {{ monthNames[month].fr }} {{ year }}
+                                        </span>
+                                    </span>
                                     <span class="payment-history-amount">{{ prevInvoice.totalAmount|number_format(0, ',', ' ') }} {{ prevInvoice.currency }}</span>
                                 </div>
+                                {% if prevPlanTier %}
+                                <div class="payment-history-plan">
+                                    <span class="payment-history-plan-label" data-i18n-fr="Offre active" data-i18n-en="Active plan">Offre active :</span>
+                                    <div class="plan-display-wrapper-detail plan-display-horizontal-detail">
+                                        <span class="plan-tier-badge-modern plan-tier-{{ prevPlanTier }}" data-i18n-fr="{{ prevTierLabel.fr }}" data-i18n-en="{{ prevTierLabel.en }}">
+                                            <i class="fas fa-{{ prevTierLabel.icon }}"></i>
+                                            <span class="tier-name">{{ prevTierLabel.fr }}</span>
+                                        </span>
+                                        {% if prevPeriodLabel %}
+                                            <span class="billing-period-badge-modern" data-i18n-fr="{{ prevPeriodLabel.fr }}" data-i18n-en="{{ prevPeriodLabel.en }}">
+                                                <i class="fas fa-{{ prevPeriodLabel.icon }}"></i>
+                                                <span class="period-text">{{ prevPeriodLabel.fr }}</span>
+                                            </span>
+                                        {% endif %}
+                                    </div>
+                                </div>
+                                {% endif %}
                             </div>
                         {% endfor %}
                     </div>
@@ -496,26 +554,25 @@
                     </span>
                     <span class="info-value invoice-ref">{{ invoice.invoiceNumber }}</span>
                 </div>
-                {% if invoice.paymentMethod is defined and invoice.paymentMethod %}
-                    {% set paymentMethodLabels = {
-                        'espace': {'fr': 'Espace', 'en': 'Espace', 'icon': 'wallet'},
-                        'orange': {'fr': 'Orange Money', 'en': 'Orange Money', 'icon': 'mobile-alt'},
-                        'airtel': {'fr': 'Airtel Money', 'en': 'Airtel Money', 'icon': 'mobile-alt'},
-                        'telma': {'fr': 'MVola (Telma)', 'en': 'MVola (Telma)', 'icon': 'mobile-alt'},
-                        'bank_transfer': {'fr': 'Virement bancaire', 'en': 'Bank transfer', 'icon': 'university'}
-                    } %}
-                    {% set paymentMethodLabel = paymentMethodLabels[invoice.paymentMethod] ?? {'fr': invoice.paymentMethod|upper, 'en': invoice.paymentMethod|upper, 'icon': 'credit-card'} %}
-                    <div class="info-row info-row-payment">
-                        <span class="info-label">
-                            <i class="fas fa-{{ paymentMethodLabel.icon }}"></i>
-                            <span data-i18n-fr="Mode de paiement" data-i18n-en="Payment method">Mode de paiement</span>
-                        </span>
-                        <span class="info-value payment-method-badge payment-method-{{ invoice.paymentMethod }}">
-                            <i class="fas fa-{{ paymentMethodLabel.icon }}"></i>
-                            <span data-i18n-fr="{{ paymentMethodLabel.fr }}" data-i18n-en="{{ paymentMethodLabel.en }}">{{ paymentMethodLabel.fr }}</span>
-                        </span>
-                    </div>
-                {% endif %}
+                {% set paymentMethodFromDb = paymentMethod|default(null) %}
+                {% set paymentMethodLabels = {
+                    'espace': 'Espèce',
+                    'orange': 'Orange Money',
+                    'airtel': 'Airtel Money',
+                    'telma': 'Mvola',
+                    'mvola': 'Mvola',
+                    'bank_transfer': 'Virement bancaire'
+                } %}
+                {% set paymentMethodLabel = paymentMethodFromDb ? (paymentMethodLabels[paymentMethodFromDb] ?? paymentMethodFromDb|capitalize) : 'Mobile Money / Virement' %}
+                <div class="info-row info-row-payment">
+                    <span class="info-label">
+                        <i class="fas fa-credit-card"></i>
+                        <span data-i18n-fr="Mode de paiement" data-i18n-en="Payment method">Mode de paiement</span>
+                    </span>
+                    <span class="info-value payment-method-badge">
+                        <span data-i18n-fr="{{ paymentMethodLabel }}" data-i18n-en="{{ paymentMethodLabel }}">{{ paymentMethodLabel }}</span>
+                    </span>
+                </div>
                 {% if type == 'subscription' and invoice.isPauseMonth is defined and invoice.isPauseMonth %}
                     <div class="info-row info-row-pause">
                         <span class="info-label">
@@ -854,6 +911,28 @@
 .info-value.text-muted {
     color: var(--text-secondary, #6C757D);
     font-weight: 500;
+}
+
+.phone-formatted {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    white-space: nowrap;
+}
+
+.phone-flag {
+    font-size: 1em;
+    line-height: 1;
+    display: inline-block;
+}
+
+.phone-country-code {
+    font-weight: 600;
+    color: inherit;
+}
+
+.phone-number {
+    color: inherit;
 }
 
 .info-row-plan {
@@ -1351,6 +1430,23 @@
 .payment-history-amount {
     font-weight: 600;
     color: var(--text-primary, #212529);
+}
+
+.payment-history-plan {
+    margin-top: 0.75rem;
+    padding-top: 0.75rem;
+    border-top: 1px solid var(--border-color, #E9ECEF);
+    display: flex;
+    align-items: center;
+    gap: 0.75rem;
+    flex-wrap: wrap;
+}
+
+.payment-history-plan-label {
+    font-size: 0.875rem;
+    font-weight: 600;
+    color: var(--text-secondary, #6C757D);
+    min-width: 100px;
 }
 
 .summary-prepaid {

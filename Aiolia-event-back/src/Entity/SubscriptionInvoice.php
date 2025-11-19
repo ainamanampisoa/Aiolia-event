@@ -76,6 +76,9 @@ class SubscriptionInvoice
     #[ORM\Column(name: 'payee_le', type: Types::DATETIMETZ_MUTABLE, nullable: true)]
     private ?\DateTimeInterface $paidAt = null;
 
+    #[ORM\Column(name: 'methode_paiement', type: Types::STRING, length: 50, nullable: true)]
+    private ?string $paymentMethod = null;
+
     #[ORM\Column(name: 'metadonnees', type: Types::JSON, nullable: true)]
     private ?array $metadata = null;
 
@@ -255,6 +258,17 @@ class SubscriptionInvoice
     public function setPaidAt(?\DateTimeInterface $paidAt): self
     {
         $this->paidAt = $paidAt;
+        return $this;
+    }
+
+    public function getPaymentMethod(): ?string
+    {
+        return $this->paymentMethod;
+    }
+
+    public function setPaymentMethod(?string $paymentMethod): self
+    {
+        $this->paymentMethod = $paymentMethod;
         return $this;
     }
 

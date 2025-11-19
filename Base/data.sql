@@ -559,7 +559,51 @@ invoice_calculations AS (
             WHEN im.scenario_type IN ('basic_fixed', 'monthly_payment')
                 AND im.month_offset <= 5 THEN im.billing_month + INTERVAL '5 days'
             ELSE NULL
-        END AS paid_date
+        END AS paid_date,
+        -- Mode de paiement (réparti entre les différents modes)
+        CASE
+            -- Factures payées mensuellement
+            WHEN im.scenario_type IN ('basic_fixed', 'monthly_payment')
+                AND im.month_offset <= 5 THEN 
+                    CASE (im.id_utilisateur % 5)
+                        WHEN 0 THEN 'orange'
+                        WHEN 1 THEN 'airtel'
+                        WHEN 2 THEN 'telma'
+                        WHEN 3 THEN 'espace'
+                        ELSE 'bank_transfer'
+                    END
+            -- Factures payées annuellement
+            WHEN im.scenario_type = 'monthly_payment' 
+                AND im.periode_facturation = 'yearly'
+                AND im.month_offset <= 11 THEN
+                    CASE (im.id_utilisateur % 5)
+                        WHEN 0 THEN 'orange'
+                        WHEN 1 THEN 'airtel'
+                        WHEN 2 THEN 'telma'
+                        WHEN 3 THEN 'espace'
+                        ELSE 'bank_transfer'
+                    END
+            -- Factures prépayées 4 mois
+            WHEN im.scenario_type = 'prepaid_4_months'
+                AND im.month_offset < 4 THEN 
+                    CASE (im.id_utilisateur % 4)
+                        WHEN 0 THEN 'orange'
+                        WHEN 1 THEN 'airtel'
+                        WHEN 2 THEN 'telma'
+                        ELSE 'espace'
+                    END
+            -- Factures prépayées 7 mois (sauf mois en pause)
+            WHEN im.scenario_type = 'prepaid_7_months_paused'
+                AND im.month_offset < 7
+                AND NOT (EXTRACT(MONTH FROM im.billing_month) IN (11, 12)) THEN 
+                    CASE (im.id_utilisateur % 4)
+                        WHEN 0 THEN 'orange'
+                        WHEN 1 THEN 'airtel'
+                        WHEN 2 THEN 'telma'
+                        ELSE 'bank_transfer'
+                    END
+            ELSE NULL
+        END AS payment_method
     FROM invoice_months im
     LEFT JOIN pause_months pm ON pm.subscription_id = im.subscription_id 
         AND pm.billing_month = im.billing_month
@@ -577,6 +621,7 @@ invoice_calculations AS (
         mois_facturation,
         est_mois_pause,
         est_prepayee,
+        methode_paiement,
         statut,
         emise_le,
         echeance_le,
@@ -598,6 +643,7 @@ invoice_calculations AS (
     ic.billing_month,
     ic.is_pause_month,
     ic.is_prepaid,
+    ic.payment_method,
     -- Si c'est un mois en pause, forcer le statut à suspendue
     CASE WHEN ic.is_pause_month THEN 'suspendue' ELSE ic.invoice_status END,
     ic.billing_month,
@@ -614,6 +660,58 @@ invoice_calculations AS (
 FROM invoice_calculations ic
 WHERE ic.month_offset <= 11  -- Seulement les 12 derniers mois
     AND (ic.invoice_status != 'draft' OR ic.month_offset = 0);  -- Inclure les factures du mois courant même si draft
+
+-- ------------------------------------------------------------
+-- 6. Paiements d'abonnements pour les factures payées et prépayées
+-- ------------------------------------------------------------
+-- Créer des paiements pour toutes les factures qui ont été payées (paid)
+INSERT INTO paiements_abonnements (
+    id_facture,
+    fournisseur,
+    reference_fournisseur,
+    statut,
+    montant,
+    devise,
+    paye_le,
+    metadonnees,
+    cree_le,
+    modifie_le
+)
+SELECT
+    fa.id,
+    fa.methode_paiement,
+    CONCAT('REF-', LPAD(fa.id::text, 8, '0'), '-', TO_CHAR(COALESCE(fa.payee_le, fa.emise_le), 'YYYYMMDD')),
+    'paid'::payment_status_enum,
+    fa.montant_total,
+    fa.devise,
+    COALESCE(fa.payee_le, fa.emise_le),
+    jsonb_build_object(
+        'invoice_number', fa.numero_facture,
+        'billing_month', fa.mois_facturation,
+        'scenario_type', fa.metadonnees->>'scenario_type',
+        'is_prepaid', fa.est_prepayee
+    ),
+    COALESCE(fa.payee_le, fa.emise_le),
+    COALESCE(fa.payee_le, fa.emise_le)
+FROM factures_abonnements fa
+WHERE fa.statut IN ('paid', 'pending')
+    AND fa.methode_paiement IS NOT NULL;
+
+-- Créer l'historique des paiements
+INSERT INTO historique_paiements_abonnements (
+    id_paiement,
+    statut_de,
+    statut_vers,
+    modifie_le,
+    metadonnees
+)
+SELECT
+    pa.id,
+    NULL,
+    'paid'::payment_status_enum,
+    pa.paye_le,
+    jsonb_build_object('detail', 'Paiement initial enregistré')
+FROM paiements_abonnements pa;
 
 COMMIT;
 

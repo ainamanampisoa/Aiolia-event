@@ -194,6 +194,28 @@
     font-weight: var(--font-weight-medium);
 }
 
+.phone-formatted {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    white-space: nowrap;
+}
+
+.phone-flag {
+    font-size: 1em;
+    line-height: 1;
+    display: inline-block;
+}
+
+.phone-country-code {
+    font-weight: 600;
+    color: inherit;
+}
+
+.phone-number {
+    color: inherit;
+}
+
 /* Statistiques utilisateur */
 .user-details-page .stats-section {
     margin-top: 1rem;
@@ -595,7 +617,7 @@
                                 {% if user.telephone %}
                                     <div class="user-contact-item">
                                         <i class="fas fa-phone"></i>
-                                        <span>{{ user.telephone }}</span>
+                                        <span>{{ user.telephone|phone_format(user.codePays) }}</span>
                                     </div>
                                 {% endif %}
                             </div>
