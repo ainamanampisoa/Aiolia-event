@@ -742,6 +742,67 @@
         
         // Mettre à jour le badge au chargement de la page
         document.addEventListener('DOMContentLoaded', function() {
+            {% if just_logged_in is defined and just_logged_in %}
+            // L'utilisateur vient de se connecter - synchroniser le panier immédiatement
+            // D'abord synchroniser LocalStorage avec le serveur
+            const localItems = CartStorage.getItems();
+            
+            // Envoyer le panier LocalStorage au serveur pour fusion
+            fetch('{{ path("api_tickets_cart_sync") }}', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'X-Requested-With': 'XMLHttpRequest',
+                },
+                body: JSON.stringify({
+                    items: localItems
+                })
+            })
+            .then(response => response.json())
+            .then(data => {
+                if (data.status === 'success') {
+                    // Maintenant charger le panier fusionné depuis le serveur
+                    return fetch('{{ path("api_tickets_cart_load") }}', {
+                        method: 'GET',
+                        headers: {
+                            'X-Requested-With': 'XMLHttpRequest',
+                        }
+                    });
+                }
+                throw new Error('Échec de la synchronisation');
+            })
+            .then(response => response.json())
+            .then(data => {
+                if (data.status === 'success') {
+                    // Mettre à jour LocalStorage avec les données du serveur si disponible
+                    if (data.items) {
+                        CartStorage.saveItems(data.items);
+                    }
+                    // Mettre à jour le badge immédiatement
+                    updateCartBadge(data.count || 0);
+                }
+            })
+            .catch(error => {
+                console.error('Erreur lors de la synchronisation du panier après connexion:', error);
+                // En cas d'erreur, essayer quand même de charger le count
+                fetch('{{ path("api_tickets_cart_count") }}', {
+                    method: 'GET',
+                    headers: {
+                        'X-Requested-With': 'XMLHttpRequest',
+                    },
+                })
+                .then(response => response.json())
+                .then(data => {
+                    if (data.status === 'success') {
+                        updateCartBadge(data.count || 0);
+                    }
+                })
+                .catch(err => {
+                    console.error('Erreur lors du chargement du count:', err);
+                });
+            });
+            {% else %}
+            // Comportement normal - charger le panier progressivement
             // D'abord, utiliser LocalStorage pour un chargement rapide
             const localCount = CartStorage.getCount();
             if (localCount > 0) {
@@ -751,9 +812,10 @@
             // Ensuite, charger depuis le serveur et fusionner
             CartStorage.loadFromServer(function(data) {
                 if (data.status === 'success') {
-                    updateCartBadge(data.count);
+                    updateCartBadge(data.count || 0);
                 }
             });
+            {% endif %}
         });
         
         // Écouter les événements de mise à jour du panier

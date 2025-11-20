@@ -26,6 +26,14 @@ class HomeController extends AbstractController
         $sessionUser = $session->get('user');
         $isAuthenticated = is_array($sessionUser) && isset($sessionUser['id']);
 
+        // Vérifier si l'utilisateur vient de se connecter
+        $justLoggedIn = $session->has('just_logged_in') && $session->get('just_logged_in');
+        
+        // Retirer le flag après l'avoir lu (pour qu'il ne persiste pas sur les autres pages)
+        if ($justLoggedIn) {
+            $session->remove('just_logged_in');
+        }
+
         $events = $this->fetchUpcomingEvents();
         $stats = $this->fetchHeadlineStats();
 
@@ -34,6 +42,7 @@ class HomeController extends AbstractController
             'stats' => $stats,
             'isAuthenticated' => $isAuthenticated,
             'sessionUser' => $sessionUser,
+            'just_logged_in' => $justLoggedIn,
         ]);
     }
 

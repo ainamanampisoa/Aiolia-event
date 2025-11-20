@@ -17,23 +17,32 @@
         <main>
             <section class="sec-filtre">
                 <div class="container">
-                    <form>
+                    <form method="GET" action="{{ path('events') }}">
+                        {# Conserver la recherche textuelle si présente #}
+                        {% if searchQuery is defined and searchQuery %}
+                            <input type="hidden" name="q" value="{{ searchQuery }}">
+                        {% endif %}
+                        
                     <div class="cont-filtre d-flex  wow fadeInUp" data-wow-delay="300ms">
                         
                             <div class="col">
                                 <div class="blc-chp">
-                                    <label>Type d'évènement</label>
-                                    <select>
+                                    <label>Type d'évènement <small style="font-weight: normal; color: #999;">(optionnel)</small></label>
+                                    <select name="category">
                                         <option value="">Tous les types</option>
                                         {% for category in categories %}
-                                            <option value="{{ category.slug }}">{{ category.label }}</option>
+                                            <option value="{{ category.slug }}" {% if filters.category is defined and filters.category == category.slug %}selected{% endif %}>
+                                                {{ category.label }}
+                                            </option>
                                         {% endfor %}
                                     </select>
                                 </div>
 
                                 <div class="blc-chp">
-                                    <label for="amount">Prix</label>
-                                    <input type="text" id="amount" readonly value="" >
+                                    <label for="amount">Prix <small style="font-weight: normal; color: #999;">(optionnel)</small></label>
+                                    <input type="text" id="amount" readonly value="" placeholder="Tous les prix">
+                                    <input type="hidden" id="price_min" name="price_min" value="{{ filters.price_min ?? '' }}">
+                                    <input type="hidden" id="price_max" name="price_max" value="{{ filters.price_max ?? '' }}">
                                     <div id="slider-range"
                                          data-min="{{ price_bounds.min }}"
                                          data-max="{{ price_bounds.max }}"></div>
@@ -42,36 +51,41 @@
                                         <span class="max">{{ price_bounds.max|number_format(0, '.', ' ') }} MGA</span>
 
                                     </div>
+                                    <small style="font-size: 11px; color: #999; display: block; margin-top: 4px;">Laissez vide pour tous les prix</small>
                                 </div>
 
                             </div>
                             <div class="col">
                                 <div class="blc-chp">
-                                    <label>Localité</label>
-                                    <select>
+                                    <label>Localité <small style="font-weight: normal; color: #999;">(optionnel)</small></label>
+                                    <select name="city">
                                         <option value="">Toutes les villes</option>
                                         {% for city in locations %}
-                                            <option value="{{ city }}">{{ city }}</option>
+                                            <option value="{{ city }}" {% if filters.city is defined and filters.city == city %}selected{% endif %}>
+                                                {{ city }}
+                                            </option>
                                         {% endfor %}
                                     </select>
                                 </div>
                                  <div class="blc-chp">
                                     <label>Public</label>
-                                    <select>
+                                    <select name="audience" disabled>
                                         <option>Famille (tout public)</option>
                                         <option>Famille </option>
                                     </select>
+                                    <small style="font-size: 11px; color: #999; display: block; margin-top: 4px;">Fonctionnalité à venir</small>
                                 </div>
                             </div>
                             <div class="col">
                                 <div class="blc-chp">
-                                    <label>Date</label>
+                                    <label>Date <small style="font-weight: normal; color: #999;">(optionnel)</small></label>
                                     <div class="blc-date">
                                         <label for="from">Du</label>
-                                        <input type="text" id="from" name="from" class="chp date"  >
+                                        <input type="text" id="from" name="date_from" class="chp date" value="{{ filters.date_from ?? '' }}" placeholder="JJ/MM/AAAA">
                                         <label for="to">Au</label>
-                                        <input type="text" id="to" name="to" class="chp date" >
+                                        <input type="text" id="to" name="date_to" class="chp date" value="{{ filters.date_to ?? '' }}" placeholder="JJ/MM/AAAA">
                                     </div>
+                                    <small style="font-size: 11px; color: #999; display: block; margin-top: 4px;">Laissez vide pour toutes les dates</small>
                                 </div> 
                                 <div class="blc-chp">
                                     <label>Afficher par</label>
@@ -79,11 +93,11 @@
                                     <div class="blc-option d-flex">
                                        <div class="option">
                                          <div class="check">
-                                            <input type="radio" id="prix-croissant" name="radio-group" checked>
+                                            <input type="radio" id="prix-croissant" name="sort_by" value="price_asc" {% if filters.sort_by is defined and filters.sort_by == 'price_asc' or (filters.sort_by is not defined) %}checked{% endif %}>
                                             <label for="prix-croissant">Prix croissant</label>
                                           </div>
                                           <div class="check">
-                                            <input type="radio" id="prix-decroissant" name="radio-group">
+                                            <input type="radio" id="prix-decroissant" name="sort_by" value="price_desc" {% if filters.sort_by is defined and filters.sort_by == 'price_desc' %}checked{% endif %}>
                                             <label for="prix-decroissant">Prix décroissant</label>
                                           </div>
                                         </div>
@@ -92,11 +106,11 @@
 
                                         <div class="option">
                                             <div class="check">
-                                                <input type="radio" id="nouveaute" name="radio-group1" checked>
+                                                <input type="radio" id="nouveaute" name="sort_by" value="date" {% if filters.sort_by is defined and filters.sort_by == 'date' %}checked{% endif %}>
                                                 <label for="nouveaute">Nouveautés</label>
                                             </div>
                                             <div class="check">
-                                                <input type="radio" id="popularite" name="radio-group1">
+                                                <input type="radio" id="popularite" name="sort_by" value="popularity" {% if filters.sort_by is defined and filters.sort_by == 'popularity' %}checked{% endif %}>
                                                 <label for="popularite">Popularité</label>
                                             </div>
                                         </div> 
@@ -109,7 +123,7 @@
                         
                     </div>
                     <div class="blcBtn text-center">
-                        <input type="button" name="" value="Affiner ma recherche" class="btn submit">
+                        <button type="submit" class="btn submit">Affiner ma recherche</button>
                     </div>
                     </form>
                 </div>
@@ -117,9 +131,31 @@
 
             <section class="sec-event all-event">
                 <div class="container">
+                    {# Afficher le message de recherche si une requête est présente #}
+                    {% if searchQuery is defined and searchQuery %}
+                        <div class="search-results-header wow fadeIn" data-wow-delay="200ms" style="margin-bottom: 30px;">
+                            <h2>Résultats de recherche pour "{{ searchQuery }}"</h2>
+                            {% set totalResults = 0 %}
+                            {% for categoryName, eventsByCategory in groupedEvents %}
+                                {% set totalResults = totalResults + eventsByCategory|length %}
+                            {% endfor %}
+                            <p style="color: #666; margin-top: 10px;">{{ totalResults }} événement(s) trouvé(s)</p>
+                        </div>
+                    {% endif %}
+                    
                     {% if groupedEvents is defined and groupedEvents %}
-                                {% for categoryName, eventsByCategory in groupedEvents %}
-                            <h2 class="wow fadeIn" data-wow-delay="300ms">{{ categoryName }}</h2>
+                        {% if groupedEvents|length == 0 %}
+                            <div class="no-results wow fadeIn" data-wow-delay="200ms" style="text-align: center; padding: 60px 20px;">
+                                <i class="fas fa-search" style="font-size: 48px; color: #ccc; margin-bottom: 20px;"></i>
+                                <h3>Aucun événement trouvé</h3>
+                                <p style="color: #666; margin-top: 10px;">Essayez de modifier vos critères de recherche</p>
+                                <a href="{{ path('events') }}" class="btn" style="margin-top: 20px; display: inline-block;">
+                                    Voir tous les événements
+                                </a>
+                            </div>
+                        {% else %}
+                            {% for categoryName, eventsByCategory in groupedEvents %}
+                                <h2 class="wow fadeIn" data-wow-delay="300ms">{{ categoryName }}</h2>
                             <div class="lst-event">
                                 {% for event in eventsByCategory %}
                                 {% set startsAt = event.starts_at %}
@@ -200,11 +236,18 @@
                                     </div>
                                 </div>
                                 {% endfor %}
-                            </div>
-                        {% endfor %}
+                                </div>
+                            {% endfor %}
+                        {% endif %}
                     {% else %}
-                        <h2 class="wow fadeIn" data-wow-delay="300ms">Tous les évènements</h2>
-                        <p class="text-center">Aucun événement disponible pour le moment.</p>
+                        <div class="no-results wow fadeIn" data-wow-delay="200ms" style="text-align: center; padding: 60px 20px;">
+                            <i class="fas fa-calendar-alt" style="font-size: 48px; color: #ccc; margin-bottom: 20px;"></i>
+                            <h3>Aucun événement disponible</h3>
+                            <p style="color: #666; margin-top: 10px;">Aucun événement ne correspond à vos critères</p>
+                            <a href="{{ path('events') }}" class="btn" style="margin-top: 20px; display: inline-block;">
+                                Réinitialiser les filtres
+                            </a>
+                        </div>
                     {% endif %}
 
                     <div class="pagination">
@@ -232,12 +275,185 @@
         <script type="text/javascript" src="{{ asset('vente-ticket/js/custom.js') }}"></script>
         <script>
             document.addEventListener('DOMContentLoaded', () => {
+                // Gestion des favoris
                 document.querySelectorAll('.favorite-toggle').forEach(btn => {
                     btn.addEventListener('click', () => {
                         btn.classList.toggle('is-active');
                         btn.setAttribute('aria-pressed', btn.classList.contains('is-active'));
                     });
                 });
+                
+                // Initialiser le slider de prix (optionnel)
+                const sliderRange = document.getElementById('slider-range');
+                const amountInput = document.getElementById('amount');
+                const priceMinInput = document.getElementById('price_min');
+                const priceMaxInput = document.getElementById('price_max');
+                
+                if (sliderRange && typeof jQuery !== 'undefined' && jQuery.fn.slider) {
+                    const min = parseFloat(sliderRange.dataset.min) || 0;
+                    const max = parseFloat(sliderRange.dataset.max) || 100000;
+                    
+                    // Récupérer les valeurs actuelles ou utiliser les valeurs par défaut
+                    let currentMin = parseFloat(priceMinInput.value);
+                    let currentMax = parseFloat(priceMaxInput.value);
+                    
+                    // Si aucune valeur n'est définie, initialiser à min/max (tous les prix)
+                    if (isNaN(currentMin)) currentMin = min;
+                    if (isNaN(currentMax)) currentMax = max;
+                    
+                    jQuery('#slider-range').slider({
+                        range: true,
+                        min: min,
+                        max: max,
+                        values: [currentMin, currentMax],
+                        slide: function(event, ui) {
+                            // Ne mettre à jour les champs cachés que si la valeur a changé
+                            if (ui.values[0] > min || ui.values[1] < max) {
+                                priceMinInput.value = ui.values[0];
+                                priceMaxInput.value = ui.values[1];
+                                amountInput.value = ui.values[0].toLocaleString('fr-FR') + ' MGA - ' + ui.values[1].toLocaleString('fr-FR') + ' MGA';
+                            } else {
+                                // Si la valeur est aux extrémités, vider les champs (tous les prix)
+                                priceMinInput.value = '';
+                                priceMaxInput.value = '';
+                                amountInput.value = '';
+                            }
+                        },
+                        change: function(event, ui) {
+                            // Même logique pour le changement
+                            if (ui.values[0] > min || ui.values[1] < max) {
+                                priceMinInput.value = ui.values[0];
+                                priceMaxInput.value = ui.values[1];
+                                amountInput.value = ui.values[0].toLocaleString('fr-FR') + ' MGA - ' + ui.values[1].toLocaleString('fr-FR') + ' MGA';
+                            } else {
+                                priceMinInput.value = '';
+                                priceMaxInput.value = '';
+                                amountInput.value = '';
+                            }
+                        }
+                    });
+                    
+                    // Initialiser l'affichage seulement si des valeurs sont définies
+                    if (priceMinInput.value && priceMaxInput.value) {
+                        const minVal = parseFloat(priceMinInput.value);
+                        const maxVal = parseFloat(priceMaxInput.value);
+                        if (!isNaN(minVal) && !isNaN(maxVal) && (minVal > min || maxVal < max)) {
+                            amountInput.value = minVal.toLocaleString('fr-FR') + ' MGA - ' + maxVal.toLocaleString('fr-FR') + ' MGA';
+                        }
+                    }
+                }
+                
+                // Initialiser les datepickers
+                if (typeof jQuery !== 'undefined' && jQuery.fn.datepicker) {
+                    const dateFormat = 'dd/mm/yy';
+                    
+                    // Récupérer les valeurs actuelles depuis les inputs
+                    const fromInput = document.getElementById('from');
+                    const toInput = document.getElementById('to');
+                    
+                    let fromDate = null;
+                    let toDate = null;
+                    
+                    if (fromInput && fromInput.value) {
+                        // Convertir la date du format YYYY-MM-DD ou dd/mm/yyyy vers un objet Date
+                        const fromParts = fromInput.value.split(/[-\/]/);
+                        if (fromParts.length === 3) {
+                            if (fromInput.value.includes('-')) {
+                                fromDate = new Date(fromParts[0], fromParts[1] - 1, fromParts[2]);
+                            } else {
+                                fromDate = new Date(fromParts[2], fromParts[1] - 1, fromParts[0]);
+                            }
+                        }
+                    }
+                    
+                    if (toInput && toInput.value) {
+                        const toParts = toInput.value.split(/[-\/]/);
+                        if (toParts.length === 3) {
+                            if (toInput.value.includes('-')) {
+                                toDate = new Date(toParts[0], toParts[1] - 1, toParts[2]);
+                            } else {
+                                toDate = new Date(toParts[2], toParts[1] - 1, toParts[0]);
+                            }
+                        }
+                    }
+                    
+                    jQuery('#from').datepicker({
+                        dateFormat: dateFormat,
+                        defaultDate: fromDate || '+1d',
+                        changeMonth: true,
+                        changeYear: true,
+                        onClose: function(selectedDate) {
+                            jQuery('#to').datepicker('option', 'minDate', selectedDate);
+                            // Mettre à jour l'input hidden avec le format YYYY-MM-DD
+                            if (selectedDate) {
+                                const dateParts = selectedDate.split('/');
+                                if (dateParts.length === 3) {
+                                    fromInput.setAttribute('data-iso-date', dateParts[2] + '-' + dateParts[1] + '-' + dateParts[0]);
+                                }
+                            }
+                        }
+                    });
+                    
+                    jQuery('#to').datepicker({
+                        dateFormat: dateFormat,
+                        defaultDate: toDate || '+1d',
+                        changeMonth: true,
+                        changeYear: true,
+                        minDate: fromDate || '+1d',
+                        onClose: function(selectedDate) {
+                            // Mettre à jour l'input hidden avec le format YYYY-MM-DD
+                            if (selectedDate) {
+                                const dateParts = selectedDate.split('/');
+                                if (dateParts.length === 3) {
+                                    toInput.setAttribute('data-iso-date', dateParts[2] + '-' + dateParts[1] + '-' + dateParts[0]);
+                                }
+                            }
+                        }
+                    });
+                    
+                    // Gérer la soumission du formulaire pour convertir les dates et nettoyer les champs vides
+                    const form = document.querySelector('form[method="GET"]');
+                    if (form) {
+                        form.addEventListener('submit', function(e) {
+                            // Convertir les dates du format dd/mm/yyyy vers YYYY-MM-DD
+                            if (fromInput && fromInput.value && !fromInput.value.includes('-')) {
+                                const fromParts = fromInput.value.split('/');
+                                if (fromParts.length === 3) {
+                                    fromInput.value = fromParts[2] + '-' + fromParts[1] + '-' + fromParts[0];
+                                }
+                            } else if (fromInput && !fromInput.value) {
+                                // Supprimer le paramètre si vide
+                                fromInput.disabled = true;
+                            }
+                            
+                            if (toInput && toInput.value && !toInput.value.includes('-')) {
+                                const toParts = toInput.value.split('/');
+                                if (toParts.length === 3) {
+                                    toInput.value = toParts[2] + '-' + toParts[1] + '-' + toParts[0];
+                                }
+                            } else if (toInput && !toInput.value) {
+                                // Supprimer le paramètre si vide
+                                toInput.disabled = true;
+                            }
+                            
+                            // Nettoyer les champs de prix si vides ou à la valeur par défaut
+                            if (priceMinInput && priceMaxInput) {
+                                const sliderValues = jQuery('#slider-range').slider('values');
+                                const min = parseFloat(sliderRange.dataset.min) || 0;
+                                const max = parseFloat(sliderRange.dataset.max) || 100000;
+                                
+                                // Si les valeurs sont aux extrémités, ne pas envoyer les paramètres de prix
+                                if (sliderValues && sliderValues[0] <= min && sliderValues[1] >= max) {
+                                    priceMinInput.disabled = true;
+                                    priceMaxInput.disabled = true;
+                                } else if (!priceMinInput.value || !priceMaxInput.value) {
+                                    priceMinInput.disabled = true;
+                                    priceMaxInput.disabled = true;
+                                }
+                            }
+                        });
+                    }
+                }
             });
         </script>
 {% endblock %}

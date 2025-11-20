@@ -61,6 +61,10 @@ class AuthController extends AbstractController
                     'profile' => $result['user'],
                     'tokens' => $result['tokens'],
                 ]);
+                
+                // Marquer que l'utilisateur vient de se connecter pour synchroniser le panier
+                $session->set('just_logged_in', true);
+                
                   $this->logger->debug('AuthController register: session populated', [
                       'session_keys' => array_keys($session->all()),
                       'session_user' => $session->get('user'),

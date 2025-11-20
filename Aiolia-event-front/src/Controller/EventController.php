@@ -34,7 +34,81 @@ class EventController extends AbstractController
             'is_authenticated_flag' => $isAuthenticated,
         ]);
 
-        $events = $this->fetchEvents();
+        // Récupérer les paramètres de recherche et filtres (tous optionnels)
+        $query = trim((string) $request->query->get('q', ''));
+        $category = trim((string) $request->query->get('category', ''));
+        $city = trim((string) $request->query->get('city', ''));
+        $priceMin = $request->query->get('price_min');
+        $priceMax = $request->query->get('price_max');
+        $dateFrom = trim((string) $request->query->get('date_from', ''));
+        $dateTo = trim((string) $request->query->get('date_to', ''));
+        $sortBy = $request->query->get('sort_by', 'date'); // date, price_asc, price_desc, popularity
+        $sortOrder = $request->query->get('sort_order', 'asc');
+
+        // Normaliser les valeurs vides en null
+        $priceMin = !empty($priceMin) && $priceMin !== '0' ? (float) $priceMin : null;
+        $priceMax = !empty($priceMax) && $priceMax !== '0' ? (float) $priceMax : null;
+        $dateFrom = !empty($dateFrom) ? $dateFrom : '';
+        $dateTo = !empty($dateTo) ? $dateTo : '';
+
+        // Si on a au moins un critère de recherche ou filtre, utiliser la méthode de recherche
+        // Sinon, afficher tous les événements avec le tri par défaut
+        $hasFilters = !empty($query) || !empty($category) || !empty($city) || 
+                     null !== $priceMin || null !== $priceMax || !empty($dateFrom) || !empty($dateTo);
+
+        if ($hasFilters) {
+            // Utiliser la méthode de recherche avec les filtres (même partiels)
+            $events = $this->searchEvents($query, [
+                'category' => $category,
+                'city' => $city,
+                'price_min' => $priceMin,
+                'price_max' => $priceMax,
+                'date_from' => $dateFrom,
+                'date_to' => $dateTo,
+                'sort_by' => $sortBy,
+                'sort_order' => $sortOrder,
+            ]);
+            
+            // Sauvegarder l'historique de recherche si utilisateur connecté et qu'il y a une requête textuelle
+            if ($isAuthenticated && !empty($query)) {
+                $this->saveSearchHistory((int) $sessionUser['id'], $query, [
+                    'category' => $category,
+                    'city' => $city,
+                    'price_min' => $priceMin,
+                    'price_max' => $priceMax,
+                    'date_from' => $dateFrom,
+                    'date_to' => $dateTo,
+                ]);
+            }
+        } else {
+            // Aucun filtre : afficher tous les événements avec tri par défaut
+            $events = $this->fetchEvents();
+            
+            // Appliquer le tri même sans filtres
+            if ($sortBy !== 'date' || $sortOrder !== 'asc') {
+                // Trier les résultats en mémoire selon les critères sélectionnés
+                usort($events, function($a, $b) use ($sortBy, $sortOrder) {
+                    $direction = $sortOrder === 'desc' ? -1 : 1;
+                    
+                    switch ($sortBy) {
+                        case 'price_asc':
+                            $aPrice = $a['min_price'] ?? 0;
+                            $bPrice = $b['min_price'] ?? 0;
+                            return $direction * ($aPrice <=> $bPrice);
+                        case 'price_desc':
+                            $aPrice = $a['max_price'] ?? 0;
+                            $bPrice = $b['max_price'] ?? 0;
+                            return -$direction * ($aPrice <=> $bPrice);
+                        case 'date':
+                        default:
+                            $aDate = $a['starts_at']?->getTimestamp() ?? 0;
+                            $bDate = $b['starts_at']?->getTimestamp() ?? 0;
+                            return $direction * ($aDate <=> $bDate);
+                    }
+                });
+            }
+        }
+
         $groupedEvents = $this->groupEventsByCategory($events);
         $categories = $this->fetchCategories();
         $locations = $this->fetchLocations();
@@ -47,6 +121,17 @@ class EventController extends AbstractController
             'price_bounds' => $priceBounds,
             'isAuthenticated' => $isAuthenticated,
             'sessionUser' => $sessionUser,
+            'searchQuery' => $query,
+            'filters' => [
+                'category' => $category,
+                'city' => $city,
+                'price_min' => $priceMin,
+                'price_max' => $priceMax,
+                'date_from' => $dateFrom,
+                'date_to' => $dateTo,
+                'sort_by' => $sortBy,
+                'sort_order' => $sortOrder,
+            ],
         ]);
     }
 
@@ -203,27 +288,330 @@ class EventController extends AbstractController
     }
 
     #[Route('/api/events/search', name: 'api_events_search', methods: ['GET'])]
-    public function searchEvents(Request $request): JsonResponse
+    public function searchEventsApi(Request $request): JsonResponse
     {
-        // TODO: Rechercher des événements par critères
-        $query = $request->query->get('q', '');
-        $category = $request->query->get('category', '');
-        $city = $request->query->get('city', '');
+        $query = trim((string) $request->query->get('q', ''));
+        $category = trim((string) $request->query->get('category', ''));
+        $city = trim((string) $request->query->get('city', ''));
+        $priceMin = $request->query->get('price_min');
+        $priceMax = $request->query->get('price_max');
         $dateFrom = $request->query->get('date_from', '');
         $dateTo = $request->query->get('date_to', '');
+        $sortBy = $request->query->get('sort_by', 'date');
+        $sortOrder = $request->query->get('sort_order', 'asc');
+
+        $events = $this->searchEvents($query, [
+            'category' => $category,
+            'city' => $city,
+            'price_min' => $priceMin ? (float) $priceMin : null,
+            'price_max' => $priceMax ? (float) $priceMax : null,
+            'date_from' => $dateFrom,
+            'date_to' => $dateTo,
+            'sort_by' => $sortBy,
+            'sort_order' => $sortOrder,
+        ]);
 
         return new JsonResponse([
-            'message' => 'Recherche d\'événements - À implémenter',
             'status' => 'success',
+            'count' => count($events),
+            'data' => $events,
             'filters' => [
                 'query' => $query,
                 'category' => $category,
                 'city' => $city,
+                'price_min' => $priceMin,
+                'price_max' => $priceMax,
                 'date_from' => $dateFrom,
-                'date_to' => $dateTo
+                'date_to' => $dateTo,
             ],
-            'data' => []
         ]);
+    }
+
+    /**
+     * Recherche d'événements avec filtres
+     *
+     * @param string $query
+     * @param array<string, mixed> $filters
+     * @return array<int, array<string, mixed>>
+     */
+    private function searchEvents(string $query = '', array $filters = []): array
+    {
+        $category = $filters['category'] ?? '';
+        $city = $filters['city'] ?? '';
+        $priceMin = $filters['price_min'] ?? null;
+        $priceMax = $filters['price_max'] ?? null;
+        $dateFrom = $filters['date_from'] ?? '';
+        $dateTo = $filters['date_to'] ?? '';
+        $sortBy = $filters['sort_by'] ?? 'date';
+        $sortOrder = $filters['sort_order'] ?? 'asc';
+
+        // Construire la requête SQL avec filtres
+        // Définir les paramètres de recherche même si vides pour éviter les erreurs SQL
+        $exactQuery = $query;
+        $startQuery = $query . '%';
+        $containsQuery = '%' . $query . '%';
+        
+        $sql = <<<SQL
+            SELECT DISTINCT
+                e.id,
+                e.slug,
+                e.title,
+                e.subtitle,
+                e.summary,
+                e.description,
+                COALESCE(e.location_override->>'venue_name', v.name) AS venue_name,
+                COALESCE(e.location_override->>'address', NULLIF(CONCAT_WS(', ', v.address_line1, v.address_line2), '')) AS venue_address,
+                COALESCE(e.location_override->>'city', v.city) AS city,
+                COALESCE(e.location_override->>'region', v.region) AS region,
+                COALESCE(e.location_override->>'country', v.country_code) AS country_code,
+                v.latitude,
+                v.longitude,
+                e.starts_at,
+                e.ends_at,
+                COALESCE(primary_cat.label, cat.label) AS category_label,
+                COALESCE(primary_cat.slug, cat.slug) AS category_slug,
+                COALESCE(media.url, e.cover_image_url) AS image_url,
+                pricing.min_price,
+                pricing.max_price,
+                -- Score de pertinence pour la recherche textuelle (0 si pas de requête)
+                CASE
+                    WHEN :exact_query = '' THEN 0
+                    WHEN e.title ILIKE :exact_query THEN 100
+                    WHEN e.title ILIKE :start_query THEN 80
+                    WHEN e.title ILIKE :contains_query THEN 60
+                    WHEN e.summary ILIKE :contains_query THEN 40
+                    WHEN e.description ILIKE :contains_query THEN 20
+                    WHEN tag.label ILIKE :contains_query THEN 30
+                    ELSE 0
+                END AS relevance_score
+            FROM aiolia.events e
+            LEFT JOIN aiolia.venues v ON v.id = e.venue_id
+            LEFT JOIN aiolia.event_categories primary_cat ON primary_cat.id = e.primary_category_id
+            LEFT JOIN LATERAL (
+                SELECT c.label, c.slug
+                FROM aiolia.event_category_links cl
+                JOIN aiolia.event_categories c ON c.id = cl.category_id
+                WHERE cl.event_id = e.id
+                ORDER BY c.display_order ASC, c.label ASC
+                LIMIT 1
+            ) AS cat ON TRUE
+            LEFT JOIN LATERAL (
+                SELECT m.url
+                FROM aiolia.event_media m
+                WHERE m.event_id = e.id
+                  AND m.is_public IS TRUE
+                ORDER BY m.display_order ASC, m.id ASC
+                LIMIT 1
+            ) AS media ON TRUE
+            LEFT JOIN LATERAL (
+                SELECT
+                    MIN(tt.base_price) AS min_price,
+                    MAX(tt.base_price) AS max_price
+                FROM aiolia.ticket_types tt
+                WHERE tt.event_id = e.id
+            ) AS pricing ON TRUE
+            LEFT JOIN aiolia.event_tag_links etl ON etl.event_id = e.id
+            LEFT JOIN aiolia.event_tags tag ON tag.id = etl.tag_id
+        SQL;
+
+        $where = ["e.status = 'published'", "e.visibility = 'public'"];
+        $params = [
+            'exact_query' => $exactQuery,
+            'start_query' => $startQuery,
+            'contains_query' => $containsQuery,
+        ];
+        $types = [
+            'exact_query' => \PDO::PARAM_STR,
+            'start_query' => \PDO::PARAM_STR,
+            'contains_query' => \PDO::PARAM_STR,
+        ];
+
+        // Recherche textuelle - ajouter condition WHERE seulement si requête non vide
+        if (!empty($query)) {
+            $where[] = <<<SQL
+                (
+                    e.title ILIKE :contains_query
+                    OR e.subtitle ILIKE :contains_query
+                    OR e.summary ILIKE :contains_query
+                    OR e.description ILIKE :contains_query
+                    OR tag.label ILIKE :contains_query
+                )
+            SQL;
+        }
+
+        // Filtre par catégorie - vérifier primary_category_id ET event_category_links
+        if (!empty($category)) {
+            // Utiliser EXISTS pour vérifier si l'événement appartient à la catégorie via primary_category_id OU event_category_links
+            $where[] = <<<SQL
+                (
+                    primary_cat.slug = :category
+                    OR EXISTS (
+                        SELECT 1
+                        FROM aiolia.event_category_links cl
+                        JOIN aiolia.event_categories c ON c.id = cl.category_id
+                        WHERE cl.event_id = e.id
+                          AND c.slug = :category
+                    )
+                )
+            SQL;
+            $params['category'] = $category;
+            $types['category'] = \PDO::PARAM_STR;
+        }
+
+        // Filtre par ville
+        if (!empty($city)) {
+            $where[] = "(COALESCE(e.location_override->>'city', v.city) = :city)";
+            $params['city'] = $city;
+            $types['city'] = \PDO::PARAM_STR;
+        }
+
+        // Filtre par prix
+        if (null !== $priceMin || null !== $priceMax) {
+            if (null !== $priceMin && null !== $priceMax) {
+                $where[] = "(pricing.min_price BETWEEN :price_min AND :price_max OR pricing.max_price BETWEEN :price_min AND :price_max)";
+                $params['price_min'] = $priceMin;
+                $params['price_max'] = $priceMax;
+                $types['price_min'] = \PDO::PARAM_STR;
+                $types['price_max'] = \PDO::PARAM_STR;
+            } elseif (null !== $priceMin) {
+                $where[] = "pricing.max_price >= :price_min";
+                $params['price_min'] = $priceMin;
+                $types['price_min'] = \PDO::PARAM_STR;
+            } elseif (null !== $priceMax) {
+                $where[] = "pricing.min_price <= :price_max";
+                $params['price_max'] = $priceMax;
+                $types['price_max'] = \PDO::PARAM_STR;
+            }
+        }
+
+        // Filtre par date - conversion du format dd/mm/yyyy vers YYYY-MM-DD si nécessaire
+        if (!empty($dateFrom)) {
+            // Si la date est au format dd/mm/yyyy, la convertir
+            if (preg_match('/^(\d{2})\/(\d{2})\/(\d{4})$/', $dateFrom, $matches)) {
+                $dateFrom = $matches[3] . '-' . $matches[2] . '-' . $matches[1];
+            }
+            // Ajouter l'heure à minuit si seulement la date est fournie
+            if (strlen($dateFrom) === 10) {
+                $dateFrom .= ' 00:00:00';
+            }
+            $where[] = "e.starts_at >= :date_from::timestamptz";
+            $params['date_from'] = $dateFrom;
+            $types['date_from'] = \PDO::PARAM_STR;
+        }
+        if (!empty($dateTo)) {
+            // Si la date est au format dd/mm/yyyy, la convertir
+            if (preg_match('/^(\d{2})\/(\d{2})\/(\d{4})$/', $dateTo, $matches)) {
+                $dateTo = $matches[3] . '-' . $matches[2] . '-' . $matches[1];
+            }
+            // Ajouter l'heure à 23:59:59 si seulement la date est fournie
+            if (strlen($dateTo) === 10) {
+                $dateTo .= ' 23:59:59';
+            }
+            $where[] = "e.ends_at <= :date_to::timestamptz";
+            $params['date_to'] = $dateTo;
+            $types['date_to'] = \PDO::PARAM_STR;
+        }
+
+        $sql .= ' WHERE ' . implode(' AND ', $where);
+
+        // Tri
+        $orderBy = [];
+        if (!empty($query)) {
+            $orderBy[] = "relevance_score DESC";
+        }
+        switch ($sortBy) {
+            case 'price_asc':
+                $orderBy[] = "pricing.min_price ASC NULLS LAST";
+                break;
+            case 'price_desc':
+                $orderBy[] = "pricing.max_price DESC NULLS LAST";
+                break;
+            case 'popularity':
+                // TODO: Ajouter un compteur de vues ou de billets vendus
+                $orderBy[] = "e.starts_at ASC NULLS LAST";
+                break;
+            case 'date':
+            default:
+                $orderBy[] = "e.starts_at " . strtoupper($sortOrder) . " NULLS LAST";
+                break;
+        }
+        $orderBy[] = "e.title ASC";
+        $sql .= ' ORDER BY ' . implode(', ', $orderBy);
+
+        try {
+            // Log pour debug
+            $this->logger->debug('Recherche d\'événements', [
+                'query' => $query,
+                'filters' => $filters,
+                'sql' => $sql,
+                'where' => $where,
+                'params' => $params,
+            ]);
+
+            $rows = $this->connection->executeQuery($sql, $params, $types)->fetchAllAssociative();
+
+            $this->logger->debug('Résultats de recherche', [
+                'count' => count($rows),
+                'first_row' => $rows[0] ?? null,
+            ]);
+
+            return array_map(static function (array $row): array {
+                $startsAt = isset($row['starts_at']) ? new \DateTimeImmutable($row['starts_at']) : null;
+                $endsAt = isset($row['ends_at']) ? new \DateTimeImmutable($row['ends_at']) : null;
+
+                return [
+                    'id' => (int) $row['id'],
+                    'slug' => $row['slug'],
+                    'title' => $row['title'],
+                    'subtitle' => $row['subtitle'],
+                    'summary' => $row['summary'],
+                    'description' => $row['description'] ?? null,
+                    'venue_name' => $row['venue_name'],
+                    'venue_address' => $row['venue_address'],
+                    'city' => $row['city'],
+                    'region' => $row['region'],
+                    'country_code' => $row['country_code'],
+                    'category_label' => $row['category_label'] ?? 'Événement',
+                    'category_slug' => $row['category_slug'] ?? null,
+                    'image_url' => $row['image_url'],
+                    'starts_at' => $startsAt,
+                    'ends_at' => $endsAt,
+                    'min_price' => null !== $row['min_price'] ? (float) $row['min_price'] : null,
+                    'max_price' => null !== $row['max_price'] ? (float) $row['max_price'] : null,
+                    'latitude' => isset($row['latitude']) ? (float) $row['latitude'] : null,
+                    'longitude' => isset($row['longitude']) ? (float) $row['longitude'] : null,
+                    'relevance_score' => isset($row['relevance_score']) ? (int) $row['relevance_score'] : 0,
+                ];
+            }, $rows);
+        } catch (\Exception $e) {
+            $this->logger->error('Erreur lors de la recherche d\'événements', [
+                'error' => $e->getMessage(),
+                'query' => $query,
+                'filters' => $filters,
+            ]);
+            return [];
+        }
+    }
+
+    /**
+     * Sauvegarde l'historique de recherche
+     */
+    private function saveSearchHistory(int $userId, string $keywords, array $filters = []): void
+    {
+        try {
+            $this->connection->insert('aiolia.user_search_history', [
+                'user_id' => $userId,
+                'keywords' => $keywords,
+                'filters' => json_encode($filters, JSON_THROW_ON_ERROR),
+                'searched_at' => (new \DateTimeImmutable())->format('Y-m-d H:i:s'),
+            ]);
+        } catch (\Exception $e) {
+            $this->logger->error('Erreur lors de la sauvegarde de l\'historique de recherche', [
+                'error' => $e->getMessage(),
+                'user_id' => $userId,
+                'keywords' => $keywords,
+            ]);
+        }
     }
 
     #[Route('/api/events/{id}/tickets', name: 'api_events_tickets', methods: ['GET'])]
