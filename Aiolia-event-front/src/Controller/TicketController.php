@@ -32,6 +32,34 @@ class TicketController extends AbstractController
         ]);
     }
 
+    #[Route('/cart/remove/{cartKey}', name: 'remove_from_cart', methods: ['POST', 'DELETE'])]
+    public function removeCartItem(string $cartKey, Request $request): Response
+    {
+        $session = $request->getSession();
+        if (!$session->isStarted()) {
+            $session->start();
+        }
+
+        $cartItems = $session->get('cart_items', []);
+
+        if (isset($cartItems[$cartKey])) {
+            unset($cartItems[$cartKey]);
+            $session->set('cart_items', $cartItems);
+            $this->addFlash('success', 'Élément retiré du panier avec succès.');
+        } else {
+            $this->addFlash('error', 'Élément introuvable dans le panier.');
+        }
+
+        if ($request->isXmlHttpRequest()) {
+            return new JsonResponse([
+                'status' => 'success',
+                'message' => 'Élément retiré du panier avec succès.',
+            ]);
+        }
+
+        return $this->redirectToRoute('cart');
+    }
+
     #[Route('/add-to-cart', name: 'add_to_cart', methods: ['POST'])]
     public function addToCart(Request $request): Response
     {
@@ -313,7 +341,7 @@ class TicketController extends AbstractController
     {
         $formattedItems = [];
 
-        foreach ($cartItems as $cartItem) {
+        foreach ($cartItems as $cartKey => $cartItem) {
             $eventId = $cartItem['eventId'];
             $event = $this->fetchEventDetails($eventId);
 
@@ -349,6 +377,7 @@ class TicketController extends AbstractController
             }
 
             $formattedItems[] = [
+                'cart_key' => $cartKey,
                 'event' => [
                     'id' => $eventId,
                     'image' => $image,

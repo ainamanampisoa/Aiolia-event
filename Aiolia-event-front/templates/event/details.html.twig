@@ -444,14 +444,55 @@
                 // Vérifier si on est en mode "quantité unique" 
                 // - Pas de distinction adulte/enfant (hasOnlyAllCategory)
                 // - Seulement des billets adultes OU seulement des billets enfants
-                const hasOnlyAllCategory = window.ticketConfig ? window.ticketConfig.hasOnlyAllCategory === 'true' : false;
-                const eventHasAdultTickets = window.ticketConfig ? window.ticketConfig.eventHasAdultTickets === 'true' : false;
-                const eventHasChildTickets = window.ticketConfig ? window.ticketConfig.eventHasChildTickets === 'true' : false;
-                const hasOnlyOneCategory = hasOnlyAllCategory || (eventHasAdultTickets && !eventHasChildTickets) || (eventHasChildTickets && !eventHasAdultTickets);
+                const hasOnlyAllCategory = window.ticketConfig ? (window.ticketConfig.hasOnlyAllCategory === 'true' || window.ticketConfig.hasOnlyAllCategory === true) : false;
+                const eventHasAdultTickets = window.ticketConfig ? (window.ticketConfig.eventHasAdultTickets === 'true' || window.ticketConfig.eventHasAdultTickets === true) : false;
+                const eventHasChildTickets = window.ticketConfig ? (window.ticketConfig.eventHasChildTickets === 'true' || window.ticketConfig.eventHasChildTickets === true) : false;
                 
+                // Vérifier si les inputs adult/enfant existent dans le DOM pour déterminer le mode
+                const adultInputExists = !!document.getElementById('adult_qtt');
+                const childInputExists = !!document.getElementById('child_qtt');
+                const quantityInputExists = !!document.getElementById('quantity_qtt');
+                
+                // Déterminer le mode en fonction de ce qui existe réellement dans le DOM
+                // Si l'input quantity_qtt existe et que les inputs adult/child n'existent pas, on est en mode quantité unique
+                // Sinon, si les inputs adult/child existent, on est en mode adulte/enfant
+                let hasOnlyOneCategory = false;
+                if (quantityInputExists && !adultInputExists && !childInputExists) {
+                    // Mode quantité unique détecté dans le DOM
+                    hasOnlyOneCategory = true;
+                } else if (hasOnlyAllCategory || (eventHasAdultTickets && !eventHasChildTickets) || (eventHasChildTickets && !eventHasAdultTickets)) {
+                    // Mode quantité unique basé sur la configuration
+                    hasOnlyOneCategory = true;
+                } else if (adultInputExists && childInputExists) {
+                    // Mode adulte/enfant détecté dans le DOM
+                    hasOnlyOneCategory = false;
+                }
+                
+                console.log('Mode détection:', {
+                    hasOnlyAllCategory,
+                    eventHasAdultTickets,
+                    eventHasChildTickets,
+                    adultInputExists,
+                    childInputExists,
+                    quantityInputExists,
+                    hasOnlyOneCategory
+                });
+                
+                // Chercher les inputs - certains peuvent être null selon le mode
                 const adultQtyInput = document.getElementById('adult_qtt');
                 const childQtyInput = document.getElementById('child_qtt');
                 const quantityQtyInput = document.getElementById('quantity_qtt');
+                
+                // Debug: vérifier que les bons inputs existent
+                if (hasOnlyOneCategory && !quantityQtyInput) {
+                    console.error('Mode quantité unique activé mais input quantity_qtt introuvable');
+                }
+                if (!hasOnlyOneCategory && (!adultQtyInput || !childQtyInput)) {
+                    console.warn('Mode adulte/enfant activé mais certains inputs manquent:', {
+                        adultQtyInput: !!adultQtyInput,
+                        childQtyInput: !!childQtyInput
+                    });
+                }
                 const adultTicketTypeIdInput = document.getElementById('adult-ticket-type-id');
                 const childTicketTypeIdInput = document.getElementById('child-ticket-type-id');
                 const allTicketTypeIdInput = document.getElementById('all-ticket-type-id');
@@ -849,18 +890,39 @@
                         return;
                     }
                     
-                    const adultQty = parseInt(adultQtyInput?.value) || 0;
-                    const childQty = parseInt(childQtyInput?.value) || 0;
+                    // Vérifier que les inputs existent avant de les utiliser
+                    if (!adultQtyInput || !childQtyInput) {
+                        console.warn('updateButtonsState: inputs adulte/enfant manquants');
+                        return;
+                    }
+                    
+                    const adultQty = parseInt(adultQtyInput.value) || 0;
+                    const childQty = parseInt(childQtyInput.value) || 0;
                     
                     // Boutons adultes
                     if (adultQtyInput && !adultQtyInput.disabled) {
                         if (adultDecBtn) adultDecBtn.style.pointerEvents = adultQty > 0 ? 'auto' : 'none';
                         if (adultIncBtn) {
                             let canInc = true;
-                            if (selectedTicketGroup.allId && selectedTicketGroup.allAvailable) {
-                                canInc = (adultQty + childQty) < selectedTicketGroup.allAvailable;
-                            } else if (selectedTicketGroup.adultId && selectedTicketGroup.adultAvailable) {
-                                canInc = adultQty < selectedTicketGroup.adultAvailable;
+                            const ticketMapping = window.ticketConfig ? window.ticketConfig.ticketMapping : {};
+                            let maxAvailable = null;
+                            
+                            if (selectedTicketGroup.allId && selectedTicketGroup.allAvailable !== null) {
+                                maxAvailable = selectedTicketGroup.allAvailable;
+                                canInc = (adultQty + childQty) < maxAvailable;
+                            } else if (selectedTicketGroup.adultId && selectedTicketGroup.adultAvailable !== null) {
+                                maxAvailable = selectedTicketGroup.adultAvailable;
+                                canInc = adultQty < maxAvailable;
+                            } else if (ticketMapping.adult_ticket_ids) {
+                                // Chercher dans le mapping
+                                const selectedName = selectedTicketGroup.name;
+                                for (const [ticketId, ticketData] of Object.entries(ticketMapping.adult_ticket_ids)) {
+                                    if (ticketData.name === selectedName && ticketData.available !== null) {
+                                        maxAvailable = ticketData.available;
+                                        canInc = adultQty < maxAvailable;
+                                        break;
+                                    }
+                                }
                             }
                             adultIncBtn.style.pointerEvents = canInc ? 'auto' : 'none';
                         }
@@ -874,10 +936,25 @@
                         if (childDecBtn) childDecBtn.style.pointerEvents = childQty > 0 ? 'auto' : 'none';
                         if (childIncBtn) {
                             let canInc = true;
-                            if (selectedTicketGroup.allId && selectedTicketGroup.allAvailable) {
-                                canInc = (adultQty + childQty) < selectedTicketGroup.allAvailable;
-                            } else if (selectedTicketGroup.childId && selectedTicketGroup.childAvailable) {
-                                canInc = childQty < selectedTicketGroup.childAvailable;
+                            const ticketMapping = window.ticketConfig ? window.ticketConfig.ticketMapping : {};
+                            let maxAvailable = null;
+                            
+                            if (selectedTicketGroup.allId && selectedTicketGroup.allAvailable !== null) {
+                                maxAvailable = selectedTicketGroup.allAvailable;
+                                canInc = (adultQty + childQty) < maxAvailable;
+                            } else if (selectedTicketGroup.childId && selectedTicketGroup.childAvailable !== null) {
+                                maxAvailable = selectedTicketGroup.childAvailable;
+                                canInc = childQty < maxAvailable;
+                            } else if (ticketMapping.child_ticket_ids) {
+                                // Chercher dans le mapping
+                                const selectedName = selectedTicketGroup.name;
+                                for (const [ticketId, ticketData] of Object.entries(ticketMapping.child_ticket_ids)) {
+                                    if (ticketData.name === selectedName && ticketData.available !== null) {
+                                        maxAvailable = ticketData.available;
+                                        canInc = childQty < maxAvailable;
+                                        break;
+                                    }
+                                }
                             }
                             childIncBtn.style.pointerEvents = canInc ? 'auto' : 'none';
                         }
@@ -932,8 +1009,12 @@
                             }
                         } else {
                             // Mode adulte/enfant
-                            const adultQty = parseInt(adultQtyInput?.value) || 0;
-                            const childQty = parseInt(childQtyInput?.value) || 0;
+                            if (!adultQtyInput || !childQtyInput) {
+                                console.error('Gestion boutons +/-: inputs adulte/enfant manquants');
+                                return;
+                            }
+                            const adultQty = parseInt(adultQtyInput.value) || 0;
+                            const childQty = parseInt(childQtyInput.value) || 0;
                             const totalQty = adultQty + childQty;
                             
                             if (this.classList.contains('dec')) {
@@ -941,23 +1022,43 @@
                             } else {
                                 // Vérifier la limite selon le type
                                 let maxAvailable = null;
+                                const ticketMapping = window.ticketConfig ? window.ticketConfig.ticketMapping : {};
+                                
                                 if (selectedTicketGroup) {
-                                    if (selectedTicketGroup.allId) {
+                                    if (selectedTicketGroup.allId && selectedTicketGroup.allAvailable !== null) {
                                         maxAvailable = selectedTicketGroup.allAvailable;
-                                    } else if (type === 'adult' && selectedTicketGroup.adultId) {
+                                    } else if (type === 'adult' && selectedTicketGroup.adultId && selectedTicketGroup.adultAvailable !== null) {
                                         maxAvailable = selectedTicketGroup.adultAvailable;
-                                    } else if (type === 'child' && selectedTicketGroup.childId) {
+                                    } else if (type === 'adult' && ticketMapping.adult_ticket_ids) {
+                                        // Chercher dans le mapping
+                                        const selectedName = selectedTicketGroup.name;
+                                        for (const [ticketId, ticketData] of Object.entries(ticketMapping.adult_ticket_ids)) {
+                                            if (ticketData.name === selectedName && ticketData.available !== null) {
+                                                maxAvailable = ticketData.available;
+                                                break;
+                                            }
+                                        }
+                                    } else if (type === 'child' && selectedTicketGroup.childId && selectedTicketGroup.childAvailable !== null) {
                                         maxAvailable = selectedTicketGroup.childAvailable;
+                                    } else if (type === 'child' && ticketMapping.child_ticket_ids) {
+                                        // Chercher dans le mapping
+                                        const selectedName = selectedTicketGroup.name;
+                                        for (const [ticketId, ticketData] of Object.entries(ticketMapping.child_ticket_ids)) {
+                                            if (ticketData.name === selectedName && ticketData.available !== null) {
+                                                maxAvailable = ticketData.available;
+                                                break;
+                                            }
+                                        }
                                     }
                                 }
                                 
-                                if (selectedTicketGroup && selectedTicketGroup.allId && maxAvailable) {
+                                if (selectedTicketGroup && selectedTicketGroup.allId && maxAvailable !== null) {
                                     // Type "all" - vérifier le total
                                     if (totalQty >= maxAvailable) {
                                         alert('Quantité maximale disponible atteinte: ' + maxAvailable);
                                         return;
                                     }
-                                } else if (maxAvailable) {
+                                } else if (maxAvailable !== null) {
                                     // Type séparé - vérifier selon le type
                                     if ((type === 'adult' && adultQty >= maxAvailable) || 
                                         (type === 'child' && childQty >= maxAvailable)) {
@@ -986,17 +1087,35 @@
                         if (value < 0) value = 0;
                         
                         if (selectedTicketGroup) {
-                            if (selectedTicketGroup.allId && selectedTicketGroup.allAvailable) {
+                            const ticketMapping = window.ticketConfig ? window.ticketConfig.ticketMapping : {};
+                            let maxAvailable = null;
+                            
+                            if (selectedTicketGroup.allId && selectedTicketGroup.allAvailable !== null) {
                                 // Type "all" - vérifier le total
-                                if (totalQty > selectedTicketGroup.allAvailable) {
-                                    value = Math.max(0, selectedTicketGroup.allAvailable - childQty);
-                                    alert('Quantité maximale disponible: ' + selectedTicketGroup.allAvailable);
+                                maxAvailable = selectedTicketGroup.allAvailable;
+                                if (totalQty > maxAvailable) {
+                                    value = Math.max(0, maxAvailable - childQty);
+                                    alert('Quantité maximale disponible: ' + maxAvailable);
                                 }
-                            } else if (selectedTicketGroup.adultId && selectedTicketGroup.adultAvailable) {
-                                // Type adulte séparé
-                                if (value > selectedTicketGroup.adultAvailable) {
-                                    value = selectedTicketGroup.adultAvailable;
-                                    alert('Quantité maximale disponible: ' + selectedTicketGroup.adultAvailable);
+                            } else if (selectedTicketGroup.adultId && selectedTicketGroup.adultAvailable !== null) {
+                                // Type adulte séparé - disponibilité dans le groupe
+                                maxAvailable = selectedTicketGroup.adultAvailable;
+                                if (value > maxAvailable) {
+                                    value = maxAvailable;
+                                    alert('Quantité maximale disponible: ' + maxAvailable);
+                                }
+                            } else if (ticketMapping.adult_ticket_ids) {
+                                // Chercher dans le mapping pour trouver la disponibilité
+                                const selectedName = selectedTicketGroup.name;
+                                for (const [ticketId, ticketData] of Object.entries(ticketMapping.adult_ticket_ids)) {
+                                    if (ticketData.name === selectedName && ticketData.available !== null) {
+                                        maxAvailable = ticketData.available;
+                                        if (value > maxAvailable) {
+                                            value = maxAvailable;
+                                            alert('Quantité maximale disponible: ' + maxAvailable);
+                                        }
+                                        break;
+                                    }
                                 }
                             }
                         }
@@ -1017,17 +1136,35 @@
                         if (value < 0) value = 0;
                         
                         if (selectedTicketGroup) {
-                            if (selectedTicketGroup.allId && selectedTicketGroup.allAvailable) {
+                            const ticketMapping = window.ticketConfig ? window.ticketConfig.ticketMapping : {};
+                            let maxAvailable = null;
+                            
+                            if (selectedTicketGroup.allId && selectedTicketGroup.allAvailable !== null) {
                                 // Type "all" - vérifier le total
-                                if (totalQty > selectedTicketGroup.allAvailable) {
-                                    value = Math.max(0, selectedTicketGroup.allAvailable - adultQty);
-                                    alert('Quantité maximale disponible: ' + selectedTicketGroup.allAvailable);
+                                maxAvailable = selectedTicketGroup.allAvailable;
+                                if (totalQty > maxAvailable) {
+                                    value = Math.max(0, maxAvailable - adultQty);
+                                    alert('Quantité maximale disponible: ' + maxAvailable);
                                 }
-                            } else if (selectedTicketGroup.childId && selectedTicketGroup.childAvailable) {
-                                // Type enfant séparé
-                                if (value > selectedTicketGroup.childAvailable) {
-                                    value = selectedTicketGroup.childAvailable;
-                                    alert('Quantité maximale disponible: ' + selectedTicketGroup.childAvailable);
+                            } else if (selectedTicketGroup.childId && selectedTicketGroup.childAvailable !== null) {
+                                // Type enfant séparé - disponibilité dans le groupe
+                                maxAvailable = selectedTicketGroup.childAvailable;
+                                if (value > maxAvailable) {
+                                    value = maxAvailable;
+                                    alert('Quantité maximale disponible: ' + maxAvailable);
+                                }
+                            } else if (ticketMapping.child_ticket_ids) {
+                                // Chercher dans le mapping pour trouver la disponibilité
+                                const selectedName = selectedTicketGroup.name;
+                                for (const [ticketId, ticketData] of Object.entries(ticketMapping.child_ticket_ids)) {
+                                    if (ticketData.name === selectedName && ticketData.available !== null) {
+                                        maxAvailable = ticketData.available;
+                                        if (value > maxAvailable) {
+                                            value = maxAvailable;
+                                            alert('Quantité maximale disponible: ' + maxAvailable);
+                                        }
+                                        break;
+                                    }
                                 }
                             }
                         }
@@ -1079,24 +1216,34 @@
                         
                         // Mode quantité unique (pas de distinction adulte/enfant, ou seulement un type)
                         if (hasOnlyOneCategory) {
-                            const quantity = parseInt(quantityQtyInput?.value) || 0;
+                            // Chercher l'input de quantité s'il n'a pas été trouvé précédemment
+                            const qtyInput = quantityQtyInput || document.getElementById('quantity_qtt');
                             
-                            if (quantity === 0) {
+                            if (!qtyInput) {
+                                alert('Erreur: input de quantité introuvable.');
+                                console.error('Input quantity_qtt introuvable dans le DOM');
+                                return;
+                            }
+                            
+                            const quantityStr = (qtyInput.value || '').trim();
+                            const quantity = parseInt(quantityStr) || 0;
+                            
+                            if (quantity <= 0) {
                                 alert('Veuillez sélectionner au moins une quantité.');
                                 return;
                             }
                             
                             // Vérifier disponibilité selon le type disponible
                             let maxAvailable = null;
-                            if (selectedTicketGroup.allId && selectedTicketGroup.allAvailable) {
+                            if (selectedTicketGroup.allId && selectedTicketGroup.allAvailable !== null) {
                                 maxAvailable = selectedTicketGroup.allAvailable;
-                            } else if (selectedTicketGroup.adultId && selectedTicketGroup.adultAvailable) {
+                            } else if (selectedTicketGroup.adultId && selectedTicketGroup.adultAvailable !== null) {
                                 maxAvailable = selectedTicketGroup.adultAvailable;
-                            } else if (selectedTicketGroup.childId && selectedTicketGroup.childAvailable) {
+                            } else if (selectedTicketGroup.childId && selectedTicketGroup.childAvailable !== null) {
                                 maxAvailable = selectedTicketGroup.childAvailable;
                             }
                             
-                            if (maxAvailable && quantity > maxAvailable) {
+                            if (maxAvailable !== null && quantity > maxAvailable) {
                                 alert('Quantité demandée (' + quantity + ') dépasse la disponibilité (' + maxAvailable + ').');
                                 return;
                             }
@@ -1130,6 +1277,11 @@
                                 ticketTypeId = selectedTicketGroup.childId;
                                 adultQty = 0;
                                 childQty = quantity;
+                            } else {
+                                alert('Erreur: impossible de déterminer le type de billet.');
+                                addToCartBtn.disabled = false;
+                                addToCartBtn.textContent = 'OK';
+                                return;
                             }
                             
                             const fields = {
@@ -1153,14 +1305,39 @@
                         }
                         
                         // Mode adulte/enfant
-                        const adultQty = parseInt(adultQtyInput?.value) || 0;
-                        const childQty = parseInt(childQtyInput?.value) || 0;
+                        // Ne vérifier les inputs que si on n'est PAS en mode quantité unique
+                        if (!hasOnlyOneCategory) {
+                            if (!adultQtyInput || !childQtyInput) {
+                                alert('Erreur: inputs de quantité introuvables.');
+                                console.error('Mode adulte/enfant mais inputs manquants:', {
+                                    adultQtyInput: !!adultQtyInput,
+                                    childQtyInput: !!childQtyInput,
+                                    hasOnlyOneCategory: hasOnlyOneCategory
+                                });
+                                return;
+                            }
+                        } else {
+                            // Si on arrive ici en mode quantité unique, c'est une erreur de logique
+                            alert('Erreur: mode quantité unique mais code adulte/enfant exécuté.');
+                            console.error('Erreur de logique: hasOnlyOneCategory est vrai mais on est dans le bloc adulte/enfant');
+                            return;
+                        }
+                        
+                        const adultQtyStr = (adultQtyInput.value || '').trim();
+                        const childQtyStr = (childQtyInput.value || '').trim();
+                        const adultQty = parseInt(adultQtyStr) || 0;
+                        const childQty = parseInt(childQtyStr) || 0;
                         const totalQty = adultQty + childQty;
                         
                         if (totalQty === 0) {
                             alert('Veuillez sélectionner au moins une quantité.');
                             return;
                         }
+                        
+                        // Récupérer le mapping des tickets de l'événement
+                        const ticketMapping = window.ticketConfig ? window.ticketConfig.ticketMapping : {};
+                        const eventHasAdultTickets = window.ticketConfig ? (window.ticketConfig.eventHasAdultTickets === 'true' || window.ticketConfig.eventHasAdultTickets === true) : false;
+                        const eventHasChildTickets = window.ticketConfig ? (window.ticketConfig.eventHasChildTickets === 'true' || window.ticketConfig.eventHasChildTickets === true) : false;
                         
                         // Vérifier selon le type de billet
                         if (selectedTicketGroup.allId) {
@@ -1174,45 +1351,101 @@
                                 alert('Quantité demandée (' + totalQty + ') dépasse la disponibilité (' + selectedTicketGroup.allAvailable + ').');
                                 return;
                             }
-                        } else {
-                            // Types séparés - vérifier selon le type sélectionné et les disponibilités de l'événement
-                            const hasAdult = selectedTicketGroup.adultId !== null && selectedTicketGroup.adultId !== '' && selectedTicketGroup.adultId !== undefined;
-                            const hasChild = selectedTicketGroup.childId !== null && selectedTicketGroup.childId !== '' && selectedTicketGroup.childId !== undefined;
-                            const eventHasAdultTickets = window.ticketConfig ? window.ticketConfig.eventHasAdultTickets === 'true' : false;
-                            const eventHasChildTickets = window.ticketConfig ? window.ticketConfig.eventHasChildTickets === 'true' : false;
                             
-                            // Si l'événement a les deux types de billets, on peut choisir les deux quantités
-                            // Sinon, vérifier selon le type sélectionné
-                            if (!eventHasAdultTickets && !eventHasChildTickets) {
-                                alert('Aucun billet disponible pour cet événement.');
-                                return;
+                            // Désactiver le bouton pendant l'envoi
+                            addToCartBtn.disabled = true;
+                            addToCartBtn.textContent = 'Ajout en cours...';
+                            
+                            // Créer un formulaire pour envoyer les données
+                            const form = document.createElement('form');
+                            form.method = 'POST';
+                            form.action = '{{ path("add_to_cart") }}';
+                            
+                            const fields = {
+                                'event_id': '{{ event.id }}',
+                                'ticket_type_id': selectedTicketGroup.allId,
+                                'adult_quantity': adultQty,
+                                'child_quantity': childQty
+                            };
+                            
+                            for (const [name, value] of Object.entries(fields)) {
+                                const input = document.createElement('input');
+                                input.type = 'hidden';
+                                input.name = name;
+                                input.value = value;
+                                form.appendChild(input);
                             }
                             
-                            // Si l'événement n'a que des billets adultes
-                            if (eventHasAdultTickets && !eventHasChildTickets && adultQty === 0) {
-                                alert('Veuillez sélectionner une quantité pour les billets adultes.');
+                            document.body.appendChild(form);
+                            form.submit();
+                            return;
+                        }
+                        
+                        // Types séparés - vérifier selon le type sélectionné et les disponibilités de l'événement
+                        const hasAdult = selectedTicketGroup.adultId !== null && selectedTicketGroup.adultId !== '' && selectedTicketGroup.adultId !== undefined;
+                        const hasChild = selectedTicketGroup.childId !== null && selectedTicketGroup.childId !== '' && selectedTicketGroup.childId !== undefined;
+                        
+                        // Note: On a déjà vérifié que totalQty > 0 plus haut, donc on a forcément des quantités sélectionnées
+                        // Les vérifications ci-dessous ne sont que des validations supplémentaires pour s'assurer que
+                        // les quantités correspondent aux types de billets disponibles
+                        
+                        // Si l'événement n'a que des billets adultes, on doit avoir une quantité adulte
+                        if (eventHasAdultTickets && !eventHasChildTickets && adultQty === 0) {
+                            alert('Veuillez sélectionner une quantité pour les billets adultes.');
+                            return;
+                        }
+                        
+                        // Si l'événement n'a que des billets enfants, on doit avoir une quantité enfant
+                        if (eventHasChildTickets && !eventHasAdultTickets && childQty === 0) {
+                            alert('Veuillez sélectionner une quantité pour les billets enfants.');
+                            return;
+                        }
+                        
+                        // Si les flags indiquent qu'il n'y a pas de billets disponibles mais qu'on a des quantités,
+                        // c'est probablement une erreur de configuration, mais on continue quand même
+                        // (cela peut arriver si eventHasAdultTickets/eventHasChildTickets ne sont pas correctement définis)
+                        if (!eventHasAdultTickets && !eventHasChildTickets) {
+                            // Si vraiment aucun flag n'est vrai, on affiche un avertissement mais on continue
+                            console.warn('Attention: Les flags eventHasAdultTickets et eventHasChildTickets sont tous les deux faux, mais des quantités ont été sélectionnées. Continuons quand même.');
+                        }
+                        
+                        // Vérifier les disponibilités
+                        if (adultQty > 0) {
+                            let maxAdultAvailable = null;
+                            if (hasAdult && selectedTicketGroup.adultAvailable !== null) {
+                                maxAdultAvailable = selectedTicketGroup.adultAvailable;
+                            } else if (eventHasAdultTickets && ticketMapping.adult_ticket_ids) {
+                                // Chercher dans le mapping pour trouver la disponibilité
+                                const selectedName = selectedTicketGroup.name;
+                                for (const [ticketId, ticketData] of Object.entries(ticketMapping.adult_ticket_ids)) {
+                                    if (ticketData.name === selectedName && ticketData.available !== null) {
+                                        maxAdultAvailable = ticketData.available;
+                                        break;
+                                    }
+                                }
+                            }
+                            if (maxAdultAvailable !== null && adultQty > maxAdultAvailable) {
+                                alert('Quantité adulte demandée (' + adultQty + ') dépasse la disponibilité (' + maxAdultAvailable + ').');
                                 return;
                             }
-                            
-                            // Si l'événement n'a que des billets enfants
-                            if (eventHasChildTickets && !eventHasAdultTickets && childQty === 0) {
-                                alert('Veuillez sélectionner une quantité pour les billets enfants.');
-                                return;
+                        }
+                        
+                        if (childQty > 0) {
+                            let maxChildAvailable = null;
+                            if (hasChild && selectedTicketGroup.childAvailable !== null) {
+                                maxChildAvailable = selectedTicketGroup.childAvailable;
+                            } else if (eventHasChildTickets && ticketMapping.child_ticket_ids) {
+                                // Chercher dans le mapping pour trouver la disponibilité
+                                const selectedName = selectedTicketGroup.name;
+                                for (const [ticketId, ticketData] of Object.entries(ticketMapping.child_ticket_ids)) {
+                                    if (ticketData.name === selectedName && ticketData.available !== null) {
+                                        maxChildAvailable = ticketData.available;
+                                        break;
+                                    }
+                                }
                             }
-                            
-                            // Si l'événement a les deux types mais qu'aucune quantité n'est sélectionnée
-                            if (eventHasAdultTickets && eventHasChildTickets && adultQty === 0 && childQty === 0) {
-                                alert('Veuillez sélectionner au moins une quantité (adulte ou enfant).');
-                                return;
-                            }
-                            
-                            // Vérifier les disponibilités si le type sélectionné a les IDs correspondants
-                            if (adultQty > 0 && hasAdult && selectedTicketGroup.adultAvailable && adultQty > selectedTicketGroup.adultAvailable) {
-                                alert('Quantité adulte demandée (' + adultQty + ') dépasse la disponibilité (' + selectedTicketGroup.adultAvailable + ').');
-                                return;
-                            }
-                            if (childQty > 0 && hasChild && selectedTicketGroup.childAvailable && childQty > selectedTicketGroup.childAvailable) {
-                                alert('Quantité enfant demandée (' + childQty + ') dépasse la disponibilité (' + selectedTicketGroup.childAvailable + ').');
+                            if (maxChildAvailable !== null && childQty > maxChildAvailable) {
+                                alert('Quantité enfant demandée (' + childQty + ') dépasse la disponibilité (' + maxChildAvailable + ').');
                                 return;
                             }
                         }
@@ -1221,119 +1454,140 @@
                         addToCartBtn.disabled = true;
                         addToCartBtn.textContent = 'Ajout en cours...';
                         
-                        // Créer un formulaire pour envoyer les données
-                        const form = document.createElement('form');
-                        form.method = 'POST';
-                        form.action = '{{ path("add_to_cart") }}';
+                        // Trouver les bons IDs selon les quantités choisies
+                        let adultTicketId = null;
+                        let childTicketId = null;
                         
-                        // Ajouter les champs nécessaires
-                        const fields = {
-                            'event_id': '{{ event.id }}'
-                        };
-                        
-                        // Gérer selon le type de billet
-                        // Récupérer le mapping des tickets de l'événement
-                        const ticketMapping = window.ticketConfig ? window.ticketConfig.ticketMapping : {};
-                        const eventHasAdultTickets = window.ticketConfig ? window.ticketConfig.eventHasAdultTickets === 'true' : false;
-                        const eventHasChildTickets = window.ticketConfig ? window.ticketConfig.eventHasChildTickets === 'true' : false;
-                        
-                        if (selectedTicketGroup.allId) {
-                            // Type "all" - utiliser le même ID pour adultes et enfants
-                            fields['ticket_type_id'] = selectedTicketGroup.allId;
-                            fields['adult_quantity'] = adultQty;
-                            fields['child_quantity'] = childQty;
-                        } else {
-                            // Types séparés - trouver les bons IDs selon les quantités choisies
-                            let adultTicketId = null;
-                            let childTicketId = null;
-                            
-                            // Si on a des quantités adultes, trouver l'ID du ticket adulte
-                            if (adultQty > 0) {
-                                if (selectedTicketGroup.adultId) {
-                                    // Le type sélectionné a un ID adulte
-                                    adultTicketId = selectedTicketGroup.adultId;
-                                } else if (eventHasAdultTickets && ticketMapping.adult_ticket_ids) {
-                                    // Le type sélectionné n'a pas d'ID adulte, mais l'événement a des billets adultes
-                                    // Prendre le premier ID adulte disponible (ex: "Billet Adulte" quand on a sélectionné "Billet Enfant")
+                        // Si on a des quantités adultes, trouver l'ID du ticket adulte
+                        if (adultQty > 0) {
+                            if (hasAdult) {
+                                // Le type sélectionné a un ID adulte
+                                adultTicketId = selectedTicketGroup.adultId;
+                            } else if (eventHasAdultTickets && ticketMapping.adult_ticket_ids) {
+                                // Le type sélectionné n'a pas d'ID adulte, mais l'événement a des billets adultes
+                                // Chercher un ticket adulte avec le même nom que le type sélectionné
+                                const selectedName = selectedTicketGroup.name;
+                                for (const [ticketId, ticketData] of Object.entries(ticketMapping.adult_ticket_ids)) {
+                                    if (ticketData.name === selectedName) {
+                                        adultTicketId = ticketId;
+                                        break;
+                                    }
+                                }
+                                // Si pas trouvé, prendre le premier disponible
+                                if (!adultTicketId) {
                                     const adultTicketIds = Object.keys(ticketMapping.adult_ticket_ids);
                                     if (adultTicketIds.length > 0) {
                                         adultTicketId = adultTicketIds[0];
                                     }
                                 }
                             }
-                            
-                            // Si on a des quantités enfants, trouver l'ID du ticket enfant
-                            if (childQty > 0) {
-                                if (selectedTicketGroup.childId) {
-                                    // Le type sélectionné a un ID enfant
-                                    childTicketId = selectedTicketGroup.childId;
-                                } else if (eventHasChildTickets && ticketMapping.child_ticket_ids) {
-                                    // Le type sélectionné n'a pas d'ID enfant, mais l'événement a des billets enfants
-                                    // Prendre le premier ID enfant disponible (ex: "Billet Enfant" quand on a sélectionné "Billet Adulte")
+                        }
+                        
+                        // Si on a des quantités enfants, trouver l'ID du ticket enfant
+                        if (childQty > 0) {
+                            if (hasChild) {
+                                // Le type sélectionné a un ID enfant
+                                childTicketId = selectedTicketGroup.childId;
+                            } else if (eventHasChildTickets && ticketMapping.child_ticket_ids) {
+                                // Le type sélectionné n'a pas d'ID enfant, mais l'événement a des billets enfants
+                                // Chercher un ticket enfant avec le même nom que le type sélectionné
+                                const selectedName = selectedTicketGroup.name;
+                                for (const [ticketId, ticketData] of Object.entries(ticketMapping.child_ticket_ids)) {
+                                    if (ticketData.name === selectedName) {
+                                        childTicketId = ticketId;
+                                        break;
+                                    }
+                                }
+                                // Si pas trouvé, prendre le premier disponible
+                                if (!childTicketId) {
                                     const childTicketIds = Object.keys(ticketMapping.child_ticket_ids);
                                     if (childTicketIds.length > 0) {
                                         childTicketId = childTicketIds[0];
                                     }
                                 }
                             }
+                        }
+                        
+                        // Vérifier qu'on a au moins un ID valide
+                        if (!adultTicketId && !childTicketId) {
+                            alert('Impossible de déterminer le type de billet. Veuillez réessayer.');
+                            addToCartBtn.disabled = false;
+                            addToCartBtn.textContent = 'OK';
+                            return;
+                        }
+                        
+                        // Si on a les deux quantités (adultes ET enfants), faire deux appels séparés
+                        if (adultQty > 0 && childQty > 0 && adultTicketId && childTicketId) {
+                            // Premier appel pour adultes
+                            let firstForm = document.createElement('form');
+                            firstForm.method = 'POST';
+                            firstForm.action = '{{ path("add_to_cart") }}';
+                            firstForm.style.display = 'none';
                             
-                            // Si on a les deux quantités (adultes ET enfants), faire deux appels séparés
-                            if (adultQty > 0 && childQty > 0 && adultTicketId && childTicketId) {
-                                // Premier appel pour adultes
-                                let firstForm = document.createElement('form');
-                                firstForm.method = 'POST';
-                                firstForm.action = '{{ path("add_to_cart") }}';
-                                firstForm.style.display = 'none';
+                            for (const [name, value] of Object.entries({
+                                'event_id': '{{ event.id }}',
+                                'ticket_type_id': adultTicketId,
+                                'adult_quantity': adultQty,
+                                'child_quantity': 0
+                            })) {
+                                const input = document.createElement('input');
+                                input.type = 'hidden';
+                                input.name = name;
+                                input.value = value;
+                                firstForm.appendChild(input);
+                            }
+                            document.body.appendChild(firstForm);
+                            
+                            // Deuxième appel pour enfants
+                            setTimeout(() => {
+                                let secondForm = document.createElement('form');
+                                secondForm.method = 'POST';
+                                secondForm.action = '{{ path("add_to_cart") }}';
                                 
                                 for (const [name, value] of Object.entries({
                                     'event_id': '{{ event.id }}',
-                                    'ticket_type_id': adultTicketId,
-                                    'adult_quantity': adultQty,
-                                    'child_quantity': 0
+                                    'ticket_type_id': childTicketId,
+                                    'adult_quantity': 0,
+                                    'child_quantity': childQty
                                 })) {
                                     const input = document.createElement('input');
                                     input.type = 'hidden';
                                     input.name = name;
                                     input.value = value;
-                                    firstForm.appendChild(input);
+                                    secondForm.appendChild(input);
                                 }
-                                document.body.appendChild(firstForm);
-                                
-                                // Deuxième appel pour enfants
-                                setTimeout(() => {
-                                    let secondForm = document.createElement('form');
-                                    secondForm.method = 'POST';
-                                    secondForm.action = '{{ path("add_to_cart") }}';
-                                    
-                                    for (const [name, value] of Object.entries({
-                                        'event_id': '{{ event.id }}',
-                                        'ticket_type_id': childTicketId,
-                                        'adult_quantity': 0,
-                                        'child_quantity': childQty
-                                    })) {
-                                        const input = document.createElement('input');
-                                        input.type = 'hidden';
-                                        input.name = name;
-                                        input.value = value;
-                                        secondForm.appendChild(input);
-                                    }
-                                    document.body.appendChild(secondForm);
-                                    secondForm.submit();
-                                }, 100);
-                                
-                                firstForm.submit();
-                                return;
-                            } else if (adultQty > 0 && adultTicketId) {
-                                // Seulement des adultes
-                                fields['ticket_type_id'] = adultTicketId;
-                                fields['adult_quantity'] = adultQty;
-                                fields['child_quantity'] = 0;
-                            } else if (childQty > 0 && childTicketId) {
-                                // Seulement des enfants
-                                fields['ticket_type_id'] = childTicketId;
-                                fields['adult_quantity'] = 0;
-                                fields['child_quantity'] = childQty;
-                            }
+                                document.body.appendChild(secondForm);
+                                secondForm.submit();
+                            }, 100);
+                            
+                            firstForm.submit();
+                            return;
+                        }
+                        
+                        // Un seul type de quantité
+                        const form = document.createElement('form');
+                        form.method = 'POST';
+                        form.action = '{{ path("add_to_cart") }}';
+                        
+                        const fields = {
+                            'event_id': '{{ event.id }}'
+                        };
+                        
+                        if (adultQty > 0 && adultTicketId) {
+                            // Seulement des adultes
+                            fields['ticket_type_id'] = adultTicketId;
+                            fields['adult_quantity'] = adultQty;
+                            fields['child_quantity'] = 0;
+                        } else if (childQty > 0 && childTicketId) {
+                            // Seulement des enfants
+                            fields['ticket_type_id'] = childTicketId;
+                            fields['adult_quantity'] = 0;
+                            fields['child_quantity'] = childQty;
+                        } else {
+                            alert('Erreur: impossible de déterminer le type de billet.');
+                            addToCartBtn.disabled = false;
+                            addToCartBtn.textContent = 'OK';
+                            return;
                         }
                         
                         for (const [name, value] of Object.entries(fields)) {

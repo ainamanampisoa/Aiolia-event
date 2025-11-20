@@ -39,7 +39,7 @@
                 <div class="wow fadeInUp cart-wrap" data-wow-delay="200ms">
                     <div class="cart-items">
                         {% for item in items %}
-                        <div class="cart-card" data-event-id="{{ item.event.id }}-{{ loop.index0 }}">
+                        <div class="cart-card" data-event-id="{{ item.event.id }}-{{ loop.index0 }}" data-cart-key="{{ item.cart_key|default('') }}">
                             <!-- En-tête de la carte -->
                             <div class="cart-card-header">
                                 <div class="cart-image">
@@ -154,7 +154,7 @@
                                     </div>
                                     
                                     <div class="summary-actions">
-                                        <button class="btn-icon btn-remove remove-item" data-event-id="{{ item.event.id }}-{{ loop.index0 }}" title="Retirer du panier">
+                                        <button class="btn-icon btn-remove remove-item" data-event-id="{{ item.event.id }}-{{ loop.index0 }}" data-cart-key="{{ item.cart_key|default('') }}" title="Retirer du panier">
                                             <i class="fas fa-trash"></i>
                                         </button>
                                         <!-- ICÔNE VERTE POUR VALIDER -->
@@ -373,22 +373,57 @@
         document.querySelectorAll('.remove-item').forEach(button => {
             button.addEventListener('click', function() {
                 const eventId = this.dataset.eventId;
+                const cartKey = this.dataset.cartKey;
                 const card = this.closest('.cart-card');
+                
+                if (!cartKey) {
+                    alert('Erreur: impossible de retirer cet élément.');
+                    console.error('Cart key manquante pour eventId:', eventId);
+                    return;
+                }
                 
                 // Arrêter le timer
                 if (eventTimers[eventId]) {
                     clearInterval(eventTimers[eventId]);
                 }
                 
-                // Animation de suppression
-                card.style.transform = 'scale(0.8)';
-                card.style.opacity = '0';
+                // Désactiver le bouton pendant la requête
+                this.disabled = true;
+                this.innerHTML = '<i class="fas fa-spinner fa-spin"></i>';
                 
-                setTimeout(() => {
-                    card.remove();
-                    checkEmptyCart();
-                    updatePaginationDisplay();
-                }, 300);
+                // Appel AJAX pour supprimer de la session
+                const removeUrl = '{{ path("remove_from_cart", {"cartKey": "CART_KEY_PLACEHOLDER"}) }}'.replace('CART_KEY_PLACEHOLDER', encodeURIComponent(cartKey));
+                fetch(removeUrl, {
+                    method: 'POST',
+                    headers: {
+                        'X-Requested-With': 'XMLHttpRequest',
+                        'Content-Type': 'application/json',
+                    },
+                })
+                .then(response => response.json())
+                .then(data => {
+                    if (data.status === 'success') {
+                        // Animation de suppression
+                        card.style.transform = 'scale(0.8)';
+                        card.style.opacity = '0';
+                        
+                        setTimeout(() => {
+                            card.remove();
+                            checkEmptyCart();
+                            updatePaginationDisplay();
+                        }, 300);
+                    } else {
+                        alert('Erreur: ' + (data.message || 'Impossible de retirer cet élément.'));
+                        this.disabled = false;
+                        this.innerHTML = '<i class="fas fa-trash"></i>';
+                    }
+                })
+                .catch(error => {
+                    console.error('Erreur lors de la suppression:', error);
+                    alert('Erreur lors de la suppression. Veuillez réessayer.');
+                    this.disabled = false;
+                    this.innerHTML = '<i class="fas fa-trash"></i>';
+                });
             });
         });
 
