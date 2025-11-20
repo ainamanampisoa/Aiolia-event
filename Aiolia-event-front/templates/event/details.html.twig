@@ -1204,6 +1204,84 @@
                     });
                 }
                 
+                // Fonction helper pour sauvegarder dans LocalStorage
+                function saveToLocalStorage(eventId, ticketTypeId, adultTicketTypeId, childTicketTypeId, adultQuantity, childQuantity, formFields) {
+                    if (typeof CartStorage === 'undefined') {
+                        console.warn('CartStorage n\'est pas défini. Impossible de sauvegarder dans LocalStorage.');
+                        return;
+                    }
+                    
+                    // Déterminer la clé du panier
+                    let cartKey;
+                    if (adultTicketTypeId && childTicketTypeId && adultQuantity > 0 && childQuantity > 0) {
+                        // Si on a les deux types, utiliser la clé basée uniquement sur l'événement
+                        cartKey = 'event_' + eventId;
+                    } else {
+                        // Sinon, utiliser la clé classique
+                        const finalTicketTypeId = ticketTypeId || adultTicketTypeId || childTicketTypeId;
+                        cartKey = 'event_' + eventId + '_ticket_' + finalTicketTypeId;
+                    }
+                    
+                    // Récupérer les prix depuis le mapping si disponible
+                    let adultPrice = 0;
+                    let childPrice = 0;
+                    const currency = 'MGA';
+                    
+                    const ticketMapping = window.ticketConfig ? window.ticketConfig.ticketMapping : {};
+                    const selectedTicketGroup = window.selectedTicketGroup || null;
+                    
+                    if (selectedTicketGroup) {
+                        if (selectedTicketGroup.adultPrice) {
+                            adultPrice = parseFloat(selectedTicketGroup.adultPrice) || 0;
+                        }
+                        if (selectedTicketGroup.childPrice) {
+                            childPrice = parseFloat(selectedTicketGroup.childPrice) || 0;
+                        }
+                    }
+                    
+                    // Construire l'item du panier
+                    const cartItem = {
+                        eventId: parseInt(eventId),
+                        ticketTypeId: ticketTypeId ? parseInt(ticketTypeId) : null,
+                        adultTicketTypeId: adultTicketTypeId ? parseInt(adultTicketTypeId) : null,
+                        childTicketTypeId: childTicketTypeId ? parseInt(childTicketTypeId) : null,
+                        adultQuantity: parseInt(adultQuantity) || 0,
+                        childQuantity: parseInt(childQuantity) || 0,
+                        adultPrice: adultPrice > 0 ? adultPrice : null,
+                        childPrice: childPrice > 0 ? childPrice : null,
+                        currency: currency,
+                    };
+                    
+                    // Récupérer les items existants
+                    const existingItems = CartStorage.getItems();
+                    
+                    // Si l'item existe déjà, ajouter les quantités
+                    if (existingItems[cartKey]) {
+                        existingItems[cartKey].adultQuantity += cartItem.adultQuantity;
+                        existingItems[cartKey].childQuantity += cartItem.childQuantity;
+                        // Mettre à jour les prix si nécessaire
+                        if (cartItem.adultPrice) {
+                            existingItems[cartKey].adultPrice = cartItem.adultPrice;
+                        }
+                        if (cartItem.childPrice) {
+                            existingItems[cartKey].childPrice = cartItem.childPrice;
+                        }
+                    } else {
+                        // Nouvel item
+                        existingItems[cartKey] = cartItem;
+                    }
+                    
+                    // Sauvegarder dans LocalStorage
+                    CartStorage.saveItems(existingItems);
+                    
+                    // Synchroniser avec le serveur en arrière-plan
+                    CartStorage.syncWithServer(function(data) {
+                        if (data.status === 'success') {
+                            console.log('Panier synchronisé avec le serveur');
+                        }
+                    });
+                }
+                
                 // Gestion du bouton OK
                 if (addToCartBtn) {
                     addToCartBtn.addEventListener('click', function(e) {
@@ -1299,6 +1377,9 @@
                                 form.appendChild(input);
                             }
                             
+                            // Sauvegarder dans LocalStorage avant de soumettre
+                            saveToLocalStorage('{{ event.id }}', ticketTypeId, null, null, adultQty, childQty, fields);
+                            
                             document.body.appendChild(form);
                             form.submit();
                             return;
@@ -1375,6 +1456,9 @@
                                 input.value = value;
                                 form.appendChild(input);
                             }
+                            
+                            // Sauvegarder dans LocalStorage avant de soumettre
+                            saveToLocalStorage('{{ event.id }}', fields.ticket_type_id, null, null, adultQty, childQty, fields);
                             
                             document.body.appendChild(form);
                             form.submit();
@@ -1540,6 +1624,9 @@
                                 form.appendChild(input);
                             }
                             
+                            // Sauvegarder dans LocalStorage avant de soumettre
+                            saveToLocalStorage('{{ event.id }}', null, adultTicketId, childTicketId, adultQty, childQty, fields);
+                            
                             document.body.appendChild(form);
                             form.submit();
                             return;
@@ -1578,6 +1665,9 @@
                             input.value = value;
                             form.appendChild(input);
                         }
+                        
+                        // Sauvegarder dans LocalStorage avant de soumettre
+                        saveToLocalStorage('{{ event.id }}', fields.ticket_type_id, fields.adult_ticket_type_id || null, fields.child_ticket_type_id || null, fields.adult_quantity || 0, fields.child_quantity || 0, fields);
                         
                         // Ajouter le formulaire au DOM et le soumettre
                         document.body.appendChild(form);

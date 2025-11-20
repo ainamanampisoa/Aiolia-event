@@ -524,8 +524,168 @@
 
     {% block javascripts %}{% endblock %}
 
-    {# Fonction globale pour mettre à jour le badge du panier #}
+    {# Gestion du panier avec LocalStorage #}
     <script>
+        // ============================================
+        // Gestion du panier dans LocalStorage
+        // ============================================
+        const CartStorage = {
+            STORAGE_KEY: 'aiolia_cart_items',
+            
+            /**
+             * Récupère les items du panier depuis LocalStorage
+             * @returns {Object} Objet avec les items du panier
+             */
+            getItems: function() {
+                try {
+                    const stored = localStorage.getItem(this.STORAGE_KEY);
+                    return stored ? JSON.parse(stored) : {};
+                } catch (e) {
+                    console.error('Erreur lors de la lecture du panier depuis LocalStorage:', e);
+                    return {};
+                }
+            },
+            
+            /**
+             * Sauvegarde les items du panier dans LocalStorage
+             * @param {Object} items - Items du panier à sauvegarder
+             */
+            saveItems: function(items) {
+                try {
+                    localStorage.setItem(this.STORAGE_KEY, JSON.stringify(items));
+                    // Déclencher un événement pour informer les autres composants
+                    document.dispatchEvent(new CustomEvent('cartUpdated', { 
+                        detail: { count: Object.keys(items).length, source: 'localStorage' }
+                    }));
+                } catch (e) {
+                    console.error('Erreur lors de la sauvegarde du panier dans LocalStorage:', e);
+                }
+            },
+            
+            /**
+             * Ajoute ou met à jour un item dans le panier
+             * @param {string} cartKey - Clé unique de l'item (ex: 'event_123')
+             * @param {Object} item - Données de l'item
+             */
+            addItem: function(cartKey, item) {
+                const items = this.getItems();
+                items[cartKey] = item;
+                this.saveItems(items);
+            },
+            
+            /**
+             * Supprime un item du panier
+             * @param {string} cartKey - Clé unique de l'item à supprimer
+             */
+            removeItem: function(cartKey) {
+                const items = this.getItems();
+                delete items[cartKey];
+                this.saveItems(items);
+            },
+            
+            /**
+             * Vide le panier
+             */
+            clear: function() {
+                try {
+                    localStorage.removeItem(this.STORAGE_KEY);
+                    document.dispatchEvent(new CustomEvent('cartUpdated', { 
+                        detail: { count: 0, source: 'localStorage' }
+                    }));
+                } catch (e) {
+                    console.error('Erreur lors de la suppression du panier:', e);
+                }
+            },
+            
+            /**
+             * Récupère le nombre d'items dans le panier
+             * @returns {number} Nombre d'items
+             */
+            getCount: function() {
+                return Object.keys(this.getItems()).length;
+            },
+            
+            /**
+             * Synchronise le panier avec le serveur
+             * @param {Function} callback - Callback appelé après la synchronisation
+             */
+            syncWithServer: function(callback) {
+                const items = this.getItems();
+                const syncUrl = '{{ path("api_tickets_cart_sync") }}';
+                
+                fetch(syncUrl, {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'X-Requested-With': 'XMLHttpRequest',
+                    },
+                    body: JSON.stringify({ items: items }),
+                })
+                .then(response => response.json())
+                .then(data => {
+                    if (data.status === 'success') {
+                        // Mettre à jour LocalStorage avec les items fusionnés depuis le serveur
+                        // Le serveur retourne les items formatés, on doit les convertir
+                        if (data.items && Array.isArray(data.items)) {
+                            // Si le serveur retourne les items formatés, on doit récupérer les items bruts
+                            // Pour l'instant, on garde les items de LocalStorage
+                            console.log('Panier synchronisé avec succès', data);
+                        }
+                        if (callback) callback(data);
+                    }
+                })
+                .catch(error => {
+                    console.error('Erreur lors de la synchronisation du panier:', error);
+                    if (callback) callback({ status: 'error', error: error });
+                });
+            },
+            
+            /**
+             * Charge le panier depuis le serveur et fusionne avec LocalStorage
+             * @param {Function} callback - Callback appelé après le chargement
+             */
+            loadFromServer: function(callback) {
+                const loadUrl = '{{ path("api_tickets_cart_load") }}';
+                
+                fetch(loadUrl, {
+                    method: 'GET',
+                    headers: {
+                        'X-Requested-With': 'XMLHttpRequest',
+                    },
+                })
+                .then(response => response.json())
+                .then(data => {
+                    if (data.status === 'success') {
+                        // Fusionner avec les items de LocalStorage
+                        const localItems = this.getItems();
+                        const serverItems = {}; // Convertir data.items en format session si nécessaire
+                        
+                        // Pour l'instant, on garde les items de LocalStorage en priorité
+                        // Le serveur a déjà fusionné lors du chargement
+                        if (callback) callback(data);
+                    }
+                })
+                .catch(error => {
+                    console.error('Erreur lors du chargement du panier:', error);
+                    if (callback) callback({ status: 'error', error: error });
+                });
+            }
+        };
+        
+        // Initialiser le panier au chargement de la page
+        document.addEventListener('DOMContentLoaded', function() {
+            // Charger le panier depuis le serveur si disponible
+            CartStorage.loadFromServer(function(data) {
+                if (data.status === 'success') {
+                    // Mettre à jour le badge
+                    updateCartBadge(data.count);
+                }
+            });
+        });
+        
+        // ============================================
+        // Fonction globale pour mettre à jour le badge du panier
+        // ============================================
         // Fonction globale pour mettre à jour le badge du panier
         // Cette fonction peut être appelée depuis n'importe quelle page
         function updateCartBadge(count) {
@@ -533,15 +693,16 @@
             if (!cartBadge) return;
             
             // Si un count est fourni, l'utiliser directement
-            // Sinon, compter dans le DOM (si on est sur la page du panier)
-            // Ou faire une requête API pour obtenir le nombre depuis la session
+            // Sinon, compter depuis LocalStorage, DOM ou API
             if (typeof count === 'undefined' || count === null) {
                 // D'abord, essayer de compter dans le DOM (page du panier)
                 const cartCards = document.querySelectorAll('.cart-card');
                 if (cartCards.length > 0 || window.location.pathname.includes('/cart')) {
                     count = cartCards.length;
                 } else {
-                    // Sinon, faire une requête API pour obtenir le nombre depuis la session
+                    // Sinon, utiliser LocalStorage pour un affichage immédiat
+                    count = CartStorage.getCount();
+                    // Puis charger depuis le serveur en arrière-plan
                     fetch('{{ path("api_tickets_cart_count") }}', {
                         method: 'GET',
                         headers: {
@@ -551,14 +712,15 @@
                     .then(response => response.json())
                     .then(data => {
                         if (data.status === 'success') {
-                            count = data.count;
-                            displayCartBadge(count);
+                            const serverCount = data.count;
+                            if (serverCount !== count) {
+                                displayCartBadge(serverCount);
+                            }
                         }
                     })
                     .catch(error => {
                         console.error('Erreur lors de la récupération du nombre d\'éléments du panier:', error);
                     });
-                    return; // Sortir car on attend la réponse API
                 }
             }
             
@@ -580,17 +742,18 @@
         
         // Mettre à jour le badge au chargement de la page
         document.addEventListener('DOMContentLoaded', function() {
-            const cartBadge = document.getElementById('cart-badge');
-            if (cartBadge) {
-                const currentText = cartBadge.textContent.trim();
-                if (currentText && !isNaN(parseInt(currentText))) {
-                    const count = parseInt(currentText);
-                    displayCartBadge(count);
-                } else {
-                    // Si pas de valeur, récupérer depuis l'API
-                    updateCartBadge();
-                }
+            // D'abord, utiliser LocalStorage pour un chargement rapide
+            const localCount = CartStorage.getCount();
+            if (localCount > 0) {
+                displayCartBadge(localCount);
             }
+            
+            // Ensuite, charger depuis le serveur et fusionner
+            CartStorage.loadFromServer(function(data) {
+                if (data.status === 'success') {
+                    updateCartBadge(data.count);
+                }
+            });
         });
         
         // Écouter les événements de mise à jour du panier
@@ -598,7 +761,9 @@
             if (event.detail && typeof event.detail.count !== 'undefined') {
                 updateCartBadge(event.detail.count);
             } else {
-                updateCartBadge();
+                // Compter depuis LocalStorage
+                const count = CartStorage.getCount();
+                updateCartBadge(count);
             }
         });
     </script>

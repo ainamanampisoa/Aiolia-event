@@ -2,6 +2,7 @@
 
 namespace App\Controller;
 
+use App\Service\CartSyncService;
 use Doctrine\DBAL\Connection;
 use Symfony\Bundle\FrameworkBundle\Controller\AbstractController;
 use Symfony\Component\HttpFoundation\JsonResponse;
@@ -12,7 +13,8 @@ use Symfony\Component\Routing\Annotation\Route;
 class TicketController extends AbstractController
 {
     public function __construct(
-        private readonly Connection $connection
+        private readonly Connection $connection,
+        private readonly CartSyncService $cartSyncService
     ) {
     }
 
@@ -24,7 +26,30 @@ class TicketController extends AbstractController
             $session->start();
         }
 
+        // Récupérer le panier depuis la session
         $cartItems = $session->get('cart_items', []);
+        
+        // Tenter de synchroniser avec la DB si utilisateur connecté
+        $user = $session->get('user');
+        $userId = $user && is_array($user) ? ($user['id'] ?? null) : null;
+        
+        if ($userId) {
+            // Récupérer le panier depuis la DB
+            $dbCart = $this->cartSyncService->getOrCreateCart($userId, null);
+            if ($dbCart && !empty($dbCart['items'])) {
+                $dbItems = $this->cartSyncService->convertDbItemsToSessionFormat($dbCart['items']);
+                // Fusionner les deux paniers (priorité au plus récent)
+                $cartItems = $this->cartSyncService->mergeCarts($cartItems, $dbItems);
+                // Mettre à jour la session avec les items fusionnés
+                $session->set('cart_items', $cartItems);
+                // Sauvegarder dans la DB
+                $this->cartSyncService->saveCartItems((int) $dbCart['id'], $cartItems);
+            } elseif ($dbCart && !empty($cartItems)) {
+                // Sauvegarder les items de la session dans la DB
+                $this->cartSyncService->saveCartItems((int) $dbCart['id'], $cartItems);
+            }
+        }
+        
         $items = $this->formatCartItemsForTemplate($cartItems);
 
         return $this->render('ticket/cart.html.twig', [
@@ -45,6 +70,24 @@ class TicketController extends AbstractController
         if (isset($cartItems[$cartKey])) {
             unset($cartItems[$cartKey]);
             $session->set('cart_items', $cartItems);
+            
+            // Synchroniser avec la DB
+            $user = $session->get('user');
+            $userId = $user && is_array($user) ? ($user['id'] ?? null) : null;
+            $sessionToken = $session->get('cart_session_token');
+            
+            if ($userId) {
+                $dbCart = $this->cartSyncService->getOrCreateCart($userId, null);
+                if ($dbCart) {
+                    $this->cartSyncService->removeCartItem((int) $dbCart['id'], $cartKey);
+                }
+            } elseif ($sessionToken) {
+                $dbCart = $this->cartSyncService->getOrCreateCart(null, $sessionToken);
+                if ($dbCart) {
+                    $this->cartSyncService->removeCartItem((int) $dbCart['id'], $cartKey);
+                }
+            }
+            
             $this->addFlash('success', 'Élément retiré du panier avec succès.');
         } else {
             $this->addFlash('error', 'Élément introuvable dans le panier.');
@@ -211,6 +254,33 @@ class TicketController extends AbstractController
 
         // Sauvegarder le panier en session
         $session->set('cart_items', $cartItems);
+
+        // Synchroniser avec la DB si utilisateur connecté
+        $user = $session->get('user');
+        $userId = $user && is_array($user) ? ($user['id'] ?? null) : null;
+        
+        if ($userId) {
+            // Récupérer ou créer le panier DB
+            $dbCart = $this->cartSyncService->getOrCreateCart($userId, null);
+            if ($dbCart) {
+                // Sauvegarder les items dans la DB
+                $this->cartSyncService->saveCartItems((int) $dbCart['id'], $cartItems);
+            }
+        } else {
+            // Pour les utilisateurs non connectés, utiliser un session_token
+            $sessionToken = $session->get('cart_session_token');
+            if (!$sessionToken) {
+                $sessionToken = $this->cartSyncService->generateSessionToken();
+                $session->set('cart_session_token', $sessionToken);
+            }
+            
+            // Créer ou récupérer le panier avec session_token
+            $dbCart = $this->cartSyncService->getOrCreateCart(null, $sessionToken);
+            if ($dbCart) {
+                // Sauvegarder les items dans la DB
+                $this->cartSyncService->saveCartItems((int) $dbCart['id'], $cartItems);
+            }
+        }
 
         $this->addFlash('success', 'Événement ajouté au panier avec succès.');
         return $this->redirectToRoute('cart');
@@ -401,6 +471,95 @@ class TicketController extends AbstractController
         return new JsonResponse([
             'status' => 'success',
             'count' => count($cartItems),
+        ]);
+    }
+
+    #[Route('/api/tickets/cart/sync', name: 'api_tickets_cart_sync', methods: ['POST'])]
+    public function syncCart(Request $request): JsonResponse
+    {
+        $session = $request->getSession();
+        if (!$session->isStarted()) {
+            $session->start();
+        }
+
+        $data = json_decode($request->getContent(), true);
+        $localStorageItems = $data['items'] ?? [];
+
+        // Récupérer les items de la session
+        $sessionItems = $session->get('cart_items', []);
+
+        // Fusionner LocalStorage et Session
+        $mergedItems = $this->cartSyncService->mergeCarts($localStorageItems, $sessionItems);
+
+        // Mettre à jour la session
+        $session->set('cart_items', $mergedItems);
+
+        // Synchroniser avec la DB si utilisateur connecté
+        $user = $session->get('user');
+        $userId = $user && is_array($user) ? ($user['id'] ?? null) : null;
+        $sessionToken = $session->get('cart_session_token');
+
+        if ($userId) {
+            $dbCart = $this->cartSyncService->getOrCreateCart($userId, null);
+            if ($dbCart) {
+                $this->cartSyncService->saveCartItems((int) $dbCart['id'], $mergedItems);
+            }
+        } elseif ($sessionToken) {
+            $dbCart = $this->cartSyncService->getOrCreateCart(null, $sessionToken);
+            if ($dbCart) {
+                $this->cartSyncService->saveCartItems((int) $dbCart['id'], $mergedItems);
+            }
+        }
+
+        // Récupérer les items formatés pour la réponse
+        $items = $this->formatCartItemsForTemplate($mergedItems);
+
+        return new JsonResponse([
+            'status' => 'success',
+            'count' => count($mergedItems),
+            'items' => $items,
+            'message' => 'Panier synchronisé avec succès.',
+        ]);
+    }
+
+    #[Route('/api/tickets/cart/load', name: 'api_tickets_cart_load', methods: ['GET'])]
+    public function loadCart(Request $request): JsonResponse
+    {
+        $session = $request->getSession();
+        if (!$session->isStarted()) {
+            $session->start();
+        }
+
+        // Récupérer depuis la session
+        $cartItems = $session->get('cart_items', []);
+
+        // Tenter de récupérer depuis la DB
+        $user = $session->get('user');
+        $userId = $user && is_array($user) ? ($user['id'] ?? null) : null;
+        $sessionToken = $session->get('cart_session_token');
+
+        if ($userId) {
+            $dbCart = $this->cartSyncService->getOrCreateCart($userId, null);
+            if ($dbCart && !empty($dbCart['items'])) {
+                $dbItems = $this->cartSyncService->convertDbItemsToSessionFormat($dbCart['items']);
+                $cartItems = $this->cartSyncService->mergeCarts($cartItems, $dbItems);
+                $session->set('cart_items', $cartItems);
+            }
+        } elseif ($sessionToken) {
+            $dbCart = $this->cartSyncService->getOrCreateCart(null, $sessionToken);
+            if ($dbCart && !empty($dbCart['items'])) {
+                $dbItems = $this->cartSyncService->convertDbItemsToSessionFormat($dbCart['items']);
+                $cartItems = $this->cartSyncService->mergeCarts($cartItems, $dbItems);
+                $session->set('cart_items', $cartItems);
+            }
+        }
+
+        $items = $this->formatCartItemsForTemplate($cartItems);
+
+        return new JsonResponse([
+            'status' => 'success',
+            'count' => count($cartItems),
+            'items' => $items,
         ]);
     }
 

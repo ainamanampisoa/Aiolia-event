@@ -285,6 +285,24 @@
     <script type="text/javascript" src="{{ asset('vente-ticket/js/jquery-ui.js') }}"></script>  
     <script type="text/javascript" src="{{ asset('vente-ticket/js/custom.js') }}"></script>
 <script>
+    // Charger le panier depuis LocalStorage au démarrage si disponible
+    document.addEventListener('DOMContentLoaded', function() {
+        if (typeof CartStorage !== 'undefined') {
+            // Charger depuis LocalStorage immédiatement pour un affichage rapide
+            const localItems = CartStorage.getItems();
+            if (Object.keys(localItems).length > 0) {
+                // Synchroniser avec le serveur
+                CartStorage.loadFromServer(function(data) {
+                    if (data.status === 'success') {
+                        // Recharger la page pour afficher les items fusionnés
+                        // ou mettre à jour le DOM directement
+                        console.log('Panier chargé depuis le serveur:', data);
+                    }
+                });
+            }
+        }
+    });
+    
     // Timers individuels par événement
     const eventTimers = {};
     
@@ -464,6 +482,13 @@
                         card.style.opacity = '0';
                         
                         setTimeout(() => {
+                            // Supprimer de LocalStorage aussi
+                            if (typeof CartStorage !== 'undefined') {
+                                CartStorage.removeItem(cartKey);
+                                // Synchroniser avec le serveur
+                                CartStorage.syncWithServer();
+                            }
+                            
                             card.remove();
                             checkEmptyCart();
                             updatePaginationDisplay();
