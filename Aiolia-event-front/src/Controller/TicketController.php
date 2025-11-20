@@ -371,13 +371,36 @@ class TicketController extends AbstractController
     }
 
     #[Route('/api/tickets/cart', name: 'api_tickets_cart', methods: ['GET'])]
-    public function getCart(): JsonResponse
+    public function getCart(Request $request): JsonResponse
     {
-        // TODO: Récupérer le panier d'achat
+        $session = $request->getSession();
+        if (!$session->isStarted()) {
+            $session->start();
+        }
+
+        $cartItems = $session->get('cart_items', []);
+        $items = $this->formatCartItemsForTemplate($cartItems);
+
         return new JsonResponse([
-            'message' => 'Panier d\'achat - À implémenter',
             'status' => 'success',
-            'data' => []
+            'count' => count($cartItems),
+            'items' => $items,
+        ]);
+    }
+
+    #[Route('/api/tickets/cart/count', name: 'api_tickets_cart_count', methods: ['GET'])]
+    public function getCartCount(Request $request): JsonResponse
+    {
+        $session = $request->getSession();
+        if (!$session->isStarted()) {
+            $session->start();
+        }
+
+        $cartItems = $session->get('cart_items', []);
+
+        return new JsonResponse([
+            'status' => 'success',
+            'count' => count($cartItems),
         ]);
     }
 

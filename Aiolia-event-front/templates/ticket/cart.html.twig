@@ -467,6 +467,11 @@
                             card.remove();
                             checkEmptyCart();
                             updatePaginationDisplay();
+                            // Mettre à jour le badge du panier
+                            const remainingItems = document.querySelectorAll('.cart-card').length;
+                            updateCartBadge(remainingItems);
+                            // Déclencher un événement pour mettre à jour le badge sur toutes les pages
+                            document.dispatchEvent(new CustomEvent('cartUpdated', { detail: { count: remainingItems } }));
                         }, 300);
                     } else {
                         alert('Erreur: ' + (data.message || 'Impossible de retirer cet élément.'));
@@ -654,10 +659,14 @@
     function checkEmptyCart() {
         const items = document.querySelectorAll('.cart-card');
         if (items.length === 0) {
+            updateCartBadge();
             setTimeout(() => {
                 window.location.reload();
             }, 1000);
         }
     }
+    
+    // La fonction updateCartBadge est définie globalement dans base.html.twig
+    // On peut l'appeler directement ici
 </script>
 {% endblock %}
