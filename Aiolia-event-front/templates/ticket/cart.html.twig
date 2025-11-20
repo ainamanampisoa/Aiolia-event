@@ -178,21 +178,47 @@
                                         Résumé de commande
                                     </div>
                                     
-                                    <div class="summary-item">
-                                        <span class="adult-quantity">{{ item.adultQuantity }} billet(s) adulte</span>
-                                        <span class="adult-total">{{ (item.adultQuantity * item.event.adultPrice)|number_format(0, ',', ' ') }}MGA</span>
-                                    </div>
+                                    {# Vérifier si c'est un type "all" (même prix ou un seul type) #}
+                                    {% set totalQuantity = item.adultQuantity + item.childQuantity %}
+                                    {% set hasOnlyOneType = (hasAdultPrice and not hasChildPrice) or (not hasAdultPrice and hasChildPrice) or (not hasAdultPrice and not hasChildPrice) %}
+                                    {% set hasSamePrice = hasAdultPrice and hasChildPrice and item.event.adultPrice == item.event.childPrice %}
+                                    {% set isAllType = hasOnlyOneType or hasSamePrice %}
+                                    {% set unitPrice = hasAdultPrice ? item.event.adultPrice : (hasChildPrice ? item.event.childPrice : 0) %}
                                     
-                                    <div class="summary-item">
-                                        <span class="child-quantity">{{ item.childQuantity }} billet(s) enfant</span>
-                                        <span class="child-total">
-                                            {% if item.event.childPrice and item.event.childPrice > 0 %}
-                                                {{ (item.childQuantity * item.event.childPrice)|number_format(0, ',', ' ') }}MGA
-                                            {% else %}
-                                                0MGA
-                                            {% endif %}
-                                        </span>
-                                    </div>
+                                    {% if isAllType %}
+                                        {# Affichage pour type "all" - juste le nombre total de billets #}
+                                        <div class="summary-item">
+                                            <span class="total-quantity">{{ totalQuantity }} billet(s)</span>
+                                            <span class="total-price">{{ (totalQuantity * unitPrice)|number_format(0, ',', ' ') }}MGA</span>
+                                        </div>
+                                    {% else %}
+                                        {# Affichage séparé adulte/enfant #}
+                                        {% if item.adultQuantity > 0 or (hasAdultPrice and not hasChildPrice) %}
+                                        <div class="summary-item">
+                                            <span class="adult-quantity">{{ item.adultQuantity }} billet(s) adulte</span>
+                                            <span class="adult-total">
+                                                {% if item.event.adultPrice and item.event.adultPrice > 0 %}
+                                                    {{ (item.adultQuantity * item.event.adultPrice)|number_format(0, ',', ' ') }}MGA
+                                                {% else %}
+                                                    0MGA
+                                                {% endif %}
+                                            </span>
+                                        </div>
+                                        {% endif %}
+                                        
+                                        {% if item.childQuantity > 0 or (hasChildPrice and not hasAdultPrice) %}
+                                        <div class="summary-item">
+                                            <span class="child-quantity">{{ item.childQuantity }} billet(s) enfant</span>
+                                            <span class="child-total">
+                                                {% if item.event.childPrice and item.event.childPrice > 0 %}
+                                                    {{ (item.childQuantity * item.event.childPrice)|number_format(0, ',', ' ') }}MGA
+                                                {% else %}
+                                                    0MGA
+                                                {% endif %}
+                                            </span>
+                                        </div>
+                                        {% endif %}
+                                    {% endif %}
                                     
                                     <div class="summary-item">
                                         <span>Frais de service</span>
@@ -203,8 +229,8 @@
                                     <div class="summary-item total">
                                         <span class="total-label">Total</span>
                                         <span class="total-amount" id="subtotal-{{ item.event.id }}-{{ loop.index0 }}">
-                                            {% set adultTotal = item.adultQuantity * item.event.adultPrice %}
-                                            {% set childTotal = (item.event.childPrice and item.event.childPrice > 0) ? item.childQuantity * item.event.childPrice : 0 %}
+                                            {% set adultTotal = (item.adultQuantity * (item.event.adultPrice ?? 0)) %}
+                                            {% set childTotal = (item.childQuantity * (item.event.childPrice ?? 0)) %}
                                             {{ (adultTotal + childTotal)|number_format(0, ',', ' ') }}MGA
                                         </span>
                                     </div>
@@ -637,48 +663,157 @@
         // Récupérer les inputs adultes et enfants
         const adultInput = card.querySelector('.qtt[data-type="adult"]');
         const childInput = card.querySelector('.qtt[data-type="child"]');
+        const quantityInput = card.querySelector('.qtt[data-type="quantity"]');
         
-        // Récupérer les quantités actuelles
-        const adultQty = parseInt(adultInput.value) || 0;
-        const adultPrice = parseInt(adultInput.dataset.price) || 0;
-        const childQty = childInput.disabled ? 0 : (parseInt(childInput.value) || 0);
-        const childPrice = childInput.disabled ? 0 : (parseInt(childInput.dataset.price) || 0);
+        // Déterminer les quantités et les prix
+        let adultQty = 0;
+        let childQty = 0;
+        let adultPrice = 0;
+        let childPrice = 0;
+        let isAllType = false;
         
-        // Calculer les totaux
+        if (quantityInput) {
+            // Mode quantité unique (type "all")
+            adultQty = parseInt(quantityInput.value) || 0;
+            childQty = 0;
+            adultPrice = parseFloat(quantityInput.dataset.price) || 0;
+            childPrice = 0;
+            isAllType = true;
+        } else {
+            // Mode adulte/enfant
+            if (adultInput) {
+                adultQty = parseInt(adultInput.value) || 0;
+                adultPrice = parseFloat(adultInput.dataset.price) || 0;
+            }
+            if (childInput && !childInput.disabled) {
+                childQty = parseInt(childInput.value) || 0;
+                childPrice = parseFloat(childInput.dataset.price) || 0;
+            }
+            
+            // Vérifier si c'est un type "all" (mêmes prix ou un seul type)
+            const hasAdultPrice = adultPrice > 0;
+            const hasChildPrice = childPrice > 0;
+            const hasOnlyOneType = (hasAdultPrice && !hasChildPrice) || (!hasAdultPrice && hasChildPrice);
+            const hasSamePrice = hasAdultPrice && hasChildPrice && adultPrice === childPrice;
+            isAllType = hasOnlyOneType || hasSamePrice;
+        }
+        
+        const totalQty = adultQty + childQty;
         const adultTotal = adultQty * adultPrice;
         const childTotal = childQty * childPrice;
         const subtotal = adultTotal + childTotal;
+        const unitPrice = adultPrice || childPrice || 0;
         
         // METTRE À JOUR LE RÉSUMÉ
         const adultQuantityElement = card.querySelector('.adult-quantity');
         const adultTotalElement = card.querySelector('.adult-total');
         const childQuantityElement = card.querySelector('.child-quantity');
         const childTotalElement = card.querySelector('.child-total');
+        const totalQuantityElement = card.querySelector('.total-quantity');
+        const totalPriceElement = card.querySelector('.total-price');
         const subtotalElement = card.querySelector('.total-amount');
         
-        // Synchroniser les quantités dans le résumé
-        if (adultQuantityElement) {
-            adultQuantityElement.textContent = `${adultQty} billet(s) adulte`;
+        if (isAllType) {
+            // Affichage pour type "all" - juste le nombre total
+            // Cacher les éléments adulte/enfant si présents
+            const adultItem = adultQuantityElement?.closest('.summary-item');
+            const childItem = childQuantityElement?.closest('.summary-item');
+            if (adultItem && adultItem !== card.querySelector('.summary-item.total')) {
+                adultItem.style.display = 'none';
+            }
+            if (childItem && childItem !== card.querySelector('.summary-item.total')) {
+                childItem.style.display = 'none';
+            }
+            
+            // Afficher ou créer l'élément total
+            let quantitySpan = totalQuantityElement;
+            let priceSpan = totalPriceElement;
+            
+            if (!quantitySpan || !priceSpan) {
+                // Créer l'élément si il n'existe pas
+                const summaryItemsContainer = card.querySelector('.event-summary');
+                const existingItems = summaryItemsContainer.querySelectorAll('.summary-item:not(.total)');
+                let firstItem = null;
+                
+                // Trouver le premier élément non masqué
+                for (let item of existingItems) {
+                    if (item.style.display !== 'none' && !item.querySelector('.total-quantity')) {
+                        firstItem = item;
+                        break;
+                    }
+                }
+                
+                // Créer un nouvel élément pour le total
+                const newItem = document.createElement('div');
+                newItem.className = 'summary-item';
+                quantitySpan = document.createElement('span');
+                quantitySpan.className = 'total-quantity';
+                priceSpan = document.createElement('span');
+                priceSpan.className = 'total-price';
+                newItem.appendChild(quantitySpan);
+                newItem.appendChild(priceSpan);
+                
+                if (firstItem) {
+                    summaryItemsContainer.insertBefore(newItem, firstItem);
+                } else {
+                    const summaryTitle = summaryItemsContainer.querySelector('.summary-title');
+                    if (summaryTitle && summaryTitle.nextSibling) {
+                        summaryItemsContainer.insertBefore(newItem, summaryTitle.nextSibling);
+                    } else {
+                        summaryItemsContainer.appendChild(newItem);
+                    }
+                }
+            }
+            
+            // Afficher l'élément si il était masqué
+            const totalItem = quantitySpan.closest('.summary-item');
+            if (totalItem) {
+                totalItem.style.display = '';
+            }
+            
+            if (quantitySpan) {
+                quantitySpan.textContent = `${totalQty} billet(s)`;
+            }
+            if (priceSpan) {
+                priceSpan.textContent = `${(totalQty * unitPrice).toLocaleString('fr-FR')}MGA`;
+            }
+        } else {
+            // Affichage séparé adulte/enfant
+            // Cacher l'élément total si présent
+            const totalItem = totalQuantityElement?.closest('.summary-item');
+            if (totalItem && totalItem !== card.querySelector('.summary-item.total')) {
+                totalItem.style.display = 'none';
+            }
+            
+            // Afficher les éléments adulte/enfant
+            const adultItem = adultQuantityElement?.closest('.summary-item');
+            const childItem = childQuantityElement?.closest('.summary-item');
+            if (adultItem && adultItem !== card.querySelector('.summary-item.total')) {
+                adultItem.style.display = '';
+            }
+            if (childItem && childItem !== card.querySelector('.summary-item.total')) {
+                childItem.style.display = '';
+            }
+            
+            // Synchroniser les quantités dans le résumé
+            if (adultQuantityElement) {
+                adultQuantityElement.textContent = `${adultQty} billet(s) adulte`;
+            }
+            if (adultTotalElement) {
+                adultTotalElement.textContent = `${adultTotal.toLocaleString('fr-FR')}MGA`;
+            }
+            if (childQuantityElement) {
+                childQuantityElement.textContent = `${childQty} billet(s) enfant`;
+            }
+            if (childTotalElement) {
+                childTotalElement.textContent = `${childTotal.toLocaleString('fr-FR')}MGA`;
+            }
         }
-        if (adultTotalElement) {
-            adultTotalElement.textContent = `${adultTotal.toLocaleString('fr-FR')}MGA`;
-        }
-        if (childQuantityElement) {
-            childQuantityElement.textContent = `${childQty} billet(s) enfant`;
-        }
-        if (childTotalElement) {
-            childTotalElement.textContent = `${childTotal.toLocaleString('fr-FR')}MGA`;
-        }
+        
+        // Mettre à jour le total dans tous les cas
         if (subtotalElement) {
             subtotalElement.textContent = `${subtotal.toLocaleString('fr-FR')}MGA`;
         }
-        
-        console.log('Synchronisation réussie:', {
-            inputAdulte: adultQty,
-            spanAdulte: adultQuantityElement?.textContent,
-            inputEnfant: childQty,
-            spanEnfant: childQuantityElement?.textContent
-        });
     }
 
     function checkEmptyCart() {
