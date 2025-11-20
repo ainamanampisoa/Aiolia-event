@@ -466,7 +466,29 @@ class TicketController extends AbstractController
             $session->start();
         }
 
+        // Récupérer le panier depuis la session
         $cartItems = $session->get('cart_items', []);
+        
+        // Tenter de synchroniser avec la DB si utilisateur connecté
+        $user = $session->get('user');
+        $userId = $user && is_array($user) ? ($user['id'] ?? null) : null;
+        
+        if ($userId) {
+            // Récupérer le panier depuis la DB
+            $dbCart = $this->cartSyncService->getOrCreateCart($userId, null);
+            if ($dbCart && !empty($dbCart['items'])) {
+                $dbItems = $this->cartSyncService->convertDbItemsToSessionFormat($dbCart['items']);
+                // Fusionner les deux paniers (priorité au plus récent)
+                $cartItems = $this->cartSyncService->mergeCarts($cartItems, $dbItems);
+                // Mettre à jour la session avec les items fusionnés
+                $session->set('cart_items', $cartItems);
+                // Sauvegarder dans la DB
+                $this->cartSyncService->saveCartItems((int) $dbCart['id'], $cartItems);
+            } elseif ($dbCart && !empty($cartItems)) {
+                // Sauvegarder les items de la session dans la DB
+                $this->cartSyncService->saveCartItems((int) $dbCart['id'], $cartItems);
+            }
+        }
 
         return new JsonResponse([
             'status' => 'success',

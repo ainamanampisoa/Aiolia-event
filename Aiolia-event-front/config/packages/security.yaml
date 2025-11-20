@@ -27,6 +27,7 @@ security:
     access_control:
         - { path: ^/api/auth/(login|register|refresh)$, roles: PUBLIC_ACCESS }
         - { path: ^/api/auth/logout$, roles: ROLE_USER }
+        - { path: ^/api/tickets/cart/(count|sync|load)$, roles: PUBLIC_ACCESS }
         - { path: ^/api, roles: ROLE_USER }
 
 when@test:

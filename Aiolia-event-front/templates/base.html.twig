@@ -239,13 +239,27 @@
             background:rgb(230, 50, 50);
             color: white;
             border-radius: 50%;
-            width: 18px;
+            min-width: 20px;
+            width: auto;
             height: 18px;
+            padding: 0 5px;
             display: flex;
             align-items: center;
             justify-content: center;
-            font-size: 11px;
+            font-size: 10px;
             font-weight: bold;
+            line-height: 1;
+            box-sizing: border-box;
+            transition: opacity 0.15s ease;
+            font-variant-numeric: tabular-nums;
+            letter-spacing: 0;
+            will-change: opacity;
+            backface-visibility: hidden;
+            text-align: center;
+        }
+        
+        .panier span:empty {
+            min-width: 20px;
         }
 
         @media (max-width: 992px) {
@@ -362,9 +376,9 @@
                                 {% set cartItems = app.session.get('cart_items', {}) %}
                                 {% set cartCount = cartItems|length %}
                                 {% if cartCount > 0 %}
-                                <span id="cart-badge">{{ cartCount|number_format(0, '', '') }}</span>
+                                <span id="cart-badge">{{ "%02d"|format(cartCount) }}</span>
                                 {% else %}
-                                <span id="cart-badge" style="display: none;">0</span>
+                                <span id="cart-badge" style="display: none;">00</span>
                                 {% endif %}
                             </div>
                         </div>
@@ -672,17 +686,6 @@
             }
         };
         
-        // Initialiser le panier au chargement de la page
-        document.addEventListener('DOMContentLoaded', function() {
-            // Charger le panier depuis le serveur si disponible
-            CartStorage.loadFromServer(function(data) {
-                if (data.status === 'success') {
-                    // Mettre à jour le badge
-                    updateCartBadge(data.count);
-                }
-            });
-        });
-        
         // ============================================
         // Fonction globale pour mettre à jour le badge du panier
         // ============================================
@@ -702,119 +705,222 @@
                 } else {
                     // Sinon, utiliser LocalStorage pour un affichage immédiat
                     count = CartStorage.getCount();
-                    // Puis charger depuis le serveur en arrière-plan
-                    fetch('{{ path("api_tickets_cart_count") }}', {
-                        method: 'GET',
-                        headers: {
-                            'X-Requested-With': 'XMLHttpRequest',
-                        },
-                    })
-                    .then(response => response.json())
-                    .then(data => {
-                        if (data.status === 'success') {
-                            const serverCount = data.count;
-                            if (serverCount !== count) {
-                                displayCartBadge(serverCount);
-                            }
-                        }
-                    })
-                    .catch(error => {
-                        console.error('Erreur lors de la récupération du nombre d\'éléments du panier:', error);
-                    });
+                    // Mettre à jour le cache
+                    lastCartCount = count;
+                    lastCartCountTime = Date.now();
                 }
             }
             
-            displayCartBadge(count);
+            // Vérifier si le count a changé avant de mettre à jour
+            // Comparer les valeurs formatées pour éviter les mises à jour inutiles
+            const formattedCount = count > 0 ? count.toString().padStart(2, '0') : '00';
+            const currentText = cartBadge.textContent.trim();
+            if (currentText !== formattedCount) {
+                displayCartBadge(count);
+            }
         }
         
         function displayCartBadge(count) {
             const cartBadge = document.getElementById('cart-badge');
-            if (!cartBadge) return;
+            if (!cartBadge) {
+                console.warn('Cart badge element not found');
+                return;
+            }
+            
+            count = parseInt(count) || 0;
+            
+            // Formater avec 2 chiffres (01, 02, 10, etc.)
+            const formattedCount = count > 0 ? count.toString().padStart(2, '0') : '00';
+            
+            // Ne mettre à jour que si le count a changé pour éviter les flashs
+            const currentText = cartBadge.textContent.trim();
+            const isCurrentlyVisible = cartBadge.style.display !== 'none' && cartBadge.offsetParent !== null;
             
             if (count > 0) {
-                // Formater avec 2 chiffres (01, 02, 10, etc.)
-                cartBadge.textContent = count.toString().padStart(2, '0');
-                cartBadge.style.display = 'flex';
+                // Mettre à jour le texte seulement si nécessaire
+                if (currentText !== formattedCount) {
+                    // Mettre à jour directement sans transition pour éviter les flashs
+                    cartBadge.textContent = formattedCount;
+                }
+                // Forcer l'affichage du badge même s'il était initialement caché
+                if (!isCurrentlyVisible) {
+                    cartBadge.style.display = 'flex';
+                    cartBadge.style.visibility = 'visible';
+                    cartBadge.style.opacity = '1';
+                }
             } else {
-                cartBadge.style.display = 'none';
+                // Cacher le badge seulement s'il est actuellement visible
+                if (isCurrentlyVisible) {
+                    cartBadge.style.opacity = '0';
+                    setTimeout(() => {
+                        cartBadge.style.display = 'none';
+                    }, 150);
+                }
             }
         }
         
+        // Cache pour éviter les rechargements inutiles
+        let lastCartCount = null;
+        let lastCartCountTime = 0;
+        const CART_COUNT_CACHE_DURATION = 2000; // 2 secondes
+        
         // Mettre à jour le badge au chargement de la page
         document.addEventListener('DOMContentLoaded', function() {
-            {% if just_logged_in is defined and just_logged_in %}
-            // L'utilisateur vient de se connecter - synchroniser le panier immédiatement
-            // D'abord synchroniser LocalStorage avec le serveur
-            const localItems = CartStorage.getItems();
-            
-            // Envoyer le panier LocalStorage au serveur pour fusion
-            fetch('{{ path("api_tickets_cart_sync") }}', {
-                method: 'POST',
-                headers: {
-                    'Content-Type': 'application/json',
-                    'X-Requested-With': 'XMLHttpRequest',
-                },
-                body: JSON.stringify({
-                    items: localItems
-                })
-            })
-            .then(response => response.json())
-            .then(data => {
-                if (data.status === 'success') {
-                    // Maintenant charger le panier fusionné depuis le serveur
-                    return fetch('{{ path("api_tickets_cart_load") }}', {
-                        method: 'GET',
-                        headers: {
-                            'X-Requested-With': 'XMLHttpRequest',
-                        }
-                    });
+            {% set just_logged_in = app.session.get('just_logged_in', false) %}
+            {% if isAuthenticated %}
+            // Fonction pour charger et afficher le count du panier
+            function loadAndDisplayCartCount(force = false) {
+                // Vérifier le cache pour éviter les requêtes inutiles
+                const now = Date.now();
+                if (!force && lastCartCount !== null && (now - lastCartCountTime) < CART_COUNT_CACHE_DURATION) {
+                    // Utiliser le count en cache
+                    displayCartBadge(lastCartCount);
+                    return;
                 }
-                throw new Error('Échec de la synchronisation');
-            })
-            .then(response => response.json())
-            .then(data => {
-                if (data.status === 'success') {
-                    // Mettre à jour LocalStorage avec les données du serveur si disponible
-                    if (data.items) {
-                        CartStorage.saveItems(data.items);
-                    }
-                    // Mettre à jour le badge immédiatement
-                    updateCartBadge(data.count || 0);
-                }
-            })
-            .catch(error => {
-                console.error('Erreur lors de la synchronisation du panier après connexion:', error);
-                // En cas d'erreur, essayer quand même de charger le count
+                
                 fetch('{{ path("api_tickets_cart_count") }}', {
                     method: 'GET',
                     headers: {
                         'X-Requested-With': 'XMLHttpRequest',
                     },
                 })
+                .then(response => {
+                    // Vérifier si la réponse est OK
+                    if (!response.ok) {
+                        throw new Error(`HTTP error! status: ${response.status}`);
+                    }
+                    // Vérifier si la réponse est du JSON
+                    const contentType = response.headers.get('content-type');
+                    if (!contentType || !contentType.includes('application/json')) {
+                        throw new Error('Response is not JSON');
+                    }
+                    return response.json();
+                })
+                .then(data => {
+                    if (data && data.status === 'success') {
+                        const count = data.count || 0;
+                        // Mettre en cache le count
+                        lastCartCount = count;
+                        lastCartCountTime = Date.now();
+                        // Mettre à jour le badge seulement si le count a changé
+                        updateCartBadge(count);
+                    }
+                })
+                .catch(error => {
+                    console.error('Erreur lors du chargement du count:', error);
+                    // En cas d'erreur, utiliser LocalStorage comme fallback
+                    const localCount = CartStorage.getCount();
+                    if (localCount > 0) {
+                        displayCartBadge(localCount);
+                    }
+                });
+            }
+            
+            {% if just_logged_in %}
+            // L'utilisateur vient de se connecter - synchroniser d'abord, puis charger le count
+            console.log('User just logged in, syncing cart...');
+            const localItems = CartStorage.getItems();
+            
+            if (Object.keys(localItems).length > 0) {
+                // Envoyer le panier LocalStorage au serveur pour fusion
+                fetch('{{ path("api_tickets_cart_sync") }}', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'X-Requested-With': 'XMLHttpRequest',
+                    },
+                    body: JSON.stringify({
+                        items: localItems
+                    })
+                })
                 .then(response => response.json())
                 .then(data => {
                     if (data.status === 'success') {
+                        console.log('Cart synced successfully');
+                        // Charger le panier fusionné depuis le serveur
+                        return fetch('{{ path("api_tickets_cart_load") }}', {
+                            method: 'GET',
+                            headers: {
+                                'X-Requested-With': 'XMLHttpRequest',
+                            }
+                        });
+                    }
+                    return null;
+                })
+                .then(response => {
+                    if (response) {
+                        return response.json();
+                    }
+                    return null;
+                })
+                .then(data => {
+                    if (data && data.status === 'success') {
+                        console.log('Cart loaded from server:', data);
+                        // Mettre à jour LocalStorage avec les données du serveur si disponible
+                        if (data.items) {
+                            CartStorage.saveItems(data.items);
+                        }
+                        // Mettre à jour le badge avec le count final
                         updateCartBadge(data.count || 0);
+                    } else {
+                        // Si le chargement échoue, charger le count directement
+                        loadAndDisplayCartCount();
                     }
                 })
-                .catch(err => {
-                    console.error('Erreur lors du chargement du count:', err);
+                .catch(error => {
+                    console.error('Erreur lors de la synchronisation du panier après connexion:', error);
+                    // En cas d'erreur, charger le count directement
+                    loadAndDisplayCartCount();
                 });
-            });
+            } else {
+                // Pas d'items dans LocalStorage, charger depuis le serveur
+                console.log('No local items, loading from server...');
+                CartStorage.loadFromServer(function(data) {
+                    if (data.status === 'success') {
+                        console.log('Cart loaded from server:', data);
+                        updateCartBadge(data.count || 0);
+                    } else {
+                        // Si le chargement échoue, charger le count directement
+                        loadAndDisplayCartCount();
+                    }
+                });
+            }
+            
+            // Toujours charger le count après un court délai pour s'assurer que la synchronisation est terminée
+            setTimeout(function() {
+                loadAndDisplayCartCount();
+            }, 500);
             {% else %}
-            // Comportement normal - charger le panier progressivement
-            // D'abord, utiliser LocalStorage pour un chargement rapide
+            // Comportement normal pour utilisateur connecté
+            // D'abord, afficher le count depuis LocalStorage pour un affichage immédiat
+            const localCount = CartStorage.getCount();
+            if (localCount > 0) {
+                displayCartBadge(localCount);
+                lastCartCount = localCount;
+                lastCartCountTime = Date.now();
+            }
+            
+            // Charger le count depuis le serveur en arrière-plan (avec cache)
+            loadAndDisplayCartCount();
+            
+            // Synchroniser en arrière-plan si nécessaire
+            const localItems = CartStorage.getItems();
+            if (Object.keys(localItems).length > 0) {
+                // Synchroniser LocalStorage avec le serveur en arrière-plan
+                CartStorage.syncWithServer(function(data) {
+                    if (data.status === 'success') {
+                        // Recharger le count après synchronisation (forcer le rechargement)
+                        loadAndDisplayCartCount(true);
+                    }
+                });
+            }
+            {% endif %}
+            {% else %}
+            // Utilisateur non connecté - utiliser LocalStorage uniquement
             const localCount = CartStorage.getCount();
             if (localCount > 0) {
                 displayCartBadge(localCount);
             }
-            
-            // Ensuite, charger depuis le serveur et fusionner
-            CartStorage.loadFromServer(function(data) {
-                if (data.status === 'success') {
-                    updateCartBadge(data.count || 0);
-                }
-            });
             {% endif %}
         });
         
