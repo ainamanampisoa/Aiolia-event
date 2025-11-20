@@ -79,53 +79,66 @@
 {% block javascripts %}
     <script type="text/javascript" src="{{ asset('vente-ticket/js/jquery.min.js') }}"></script>
     <script type="text/javascript" src="{{ asset('vente-ticket/js/wow.js') }}"></script>
-    <script>
-        document.addEventListener('DOMContentLoaded', () => {
-            // Gestion du retrait des favoris
-            document.querySelectorAll('.favorite-remove').forEach(btn => {
-                btn.addEventListener('click', function(e) {
-                    e.preventDefault();
-                    e.stopPropagation();
-                    
-                    const eventId = this.dataset.eventId;
-                    const card = this.closest('.favorite-card');
-                    
-                    if (!confirm('Voulez-vous retirer cet événement de vos favoris ?')) {
-                        return;
+<script type="text/javascript" src="{{ asset('vente-ticket/js/jquery.min.js') }}"></script>
+<script type="text/javascript" src="{{ asset('vente-ticket/js/wow.js') }}"></script>
+<script type="text/javascript" src="{{ asset('vente-ticket/js/jquery.min.js') }}"></script>
+<script type="text/javascript" src="{{ asset('vente-ticket/js/wow.js') }}"></script>
+<script>
+    document.addEventListener('DOMContentLoaded', () => {
+        // Gestion du retrait des favoris
+        document.querySelectorAll('.favorite-remove').forEach(btn => {
+            btn.addEventListener('click', function(e) {
+                e.preventDefault();
+                e.stopPropagation();
+                
+                const eventId = this.dataset.eventId;
+                const card = this.closest('.favorite-card');
+                
+                if (!confirm('Voulez-vous retirer cet événement de vos favoris ?')) {
+                    return;
+                }
+                
+                // Animation de suppression
+                card.style.transform = 'scale(0.8)';
+                card.style.opacity = '0';
+                
+                // Appel API pour retirer des favoris
+                fetch(`/events/${eventId}/favorite`, {
+                    method: 'DELETE',
+                    headers: {
+                        'X-Requested-With': 'XMLHttpRequest',
+                        'Content-Type': 'application/json',
+                    },
+                })
+                .then(response => response.json())
+                .then(data => {
+                    if (data.status === 'success') {
+                        // Supprimer la carte après l'animation
+                        setTimeout(() => {
+                            card.remove();
+                            
+                            // Vérifier s'il reste des favoris
+                            const remainingFavorites = document.querySelectorAll('.favorite-card').length;
+                            if (remainingFavorites === 0) {
+                                location.reload(); // Recharger pour afficher le message "Aucun favori"
+                            }
+                        }, 300);
+                    } else {
+                        // Annimer l'animation en cas d'erreur
+                        card.style.transform = 'scale(1)';
+                        card.style.opacity = '1';
+                        alert('Erreur lors du retrait des favoris: ' + (data.message || 'Erreur inconnue'));
                     }
-                    
-                    // Appel API pour retirer des favoris
-                    fetch(`/events/${eventId}/favorite`, {
-                        method: 'DELETE',
-                        headers: {
-                            'X-Requested-With': 'XMLHttpRequest',
-                            'Content-Type': 'application/json',
-                        },
-                    })
-                    .then(response => response.json())
-                    .then(data => {
-                        if (data.status === 'success') {
-                            // Animation de suppression
-                            card.style.transform = 'scale(0.95)';
-                            card.style.opacity = '0.5';
-                            setTimeout(() => {
-                                card.remove();
-                                // Vérifier s'il reste des favoris
-                                const remainingFavorites = document.querySelectorAll('.favorite-card').length;
-                                if (remainingFavorites === 0) {
-                                    location.reload(); // Recharger pour afficher le message "Aucun favori"
-                                }
-                            }, 300);
-                        } else {
-                            alert('Erreur lors du retrait des favoris: ' + (data.message || 'Erreur inconnue'));
-                        }
-                    })
-                    .catch(error => {
-                        console.error('Erreur lors du retrait des favoris:', error);
-                        alert('Erreur lors du retrait des favoris. Veuillez réessayer.');
-                    });
+                })
+                .catch(error => {
+                    console.error('Erreur lors du retrait des favoris:', error);
+                    // Annimer l'animation en cas d'erreur
+                    card.style.transform = 'scale(1)';
+                    card.style.opacity = '1';
+                    alert('Erreur lors du retrait des favoris. Veuillez réessayer.');
                 });
             });
         });
-    </script>
+    });
+</script>
 {% endblock %}
