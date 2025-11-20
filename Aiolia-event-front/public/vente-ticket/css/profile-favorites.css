@@ -17,7 +17,7 @@
 .favorites-header h1 {
     margin: 0;
     font-size: 28px;
-    color: #10398C;
+    color: #1F2D3D; /* Nouveau bleu principal */
 }
 
 .favorites-header p {
@@ -33,11 +33,11 @@
     gap: 8px;
     padding: 12px 20px;
     border-radius: 16px;
-    background: linear-gradient(135deg, #10398C, #0B2B6A);
+    background: linear-gradient(135deg, #1F2D3D, #15202B); /* Nouveau bleu principal */
     color: #ffffff;
     text-decoration: none;
     font-weight: 600;
-    box-shadow: 0 14px 30px -22px rgba(16, 57, 140, 0.6);
+    box-shadow: 0 14px 30px -22px rgba(31, 45, 61, 0.6); /* Nouveau bleu principal */
 }
 
 .btn-discover:hover {
@@ -54,13 +54,13 @@
 
 .favorites-empty i {
     font-size: 48px;
-    color: rgba(16, 57, 140, 0.3);
+    color: rgba(31, 45, 61, 0.3); /* Nouveau bleu principal */
     margin-bottom: 18px;
 }
 
 .favorites-empty h2 {
     margin-bottom: 12px;
-    color: #0F234A;
+    color: #1F2D3D; /* Nouveau bleu principal */
 }
 
 .favorites-empty p {
@@ -75,7 +75,7 @@
     padding: 12px 22px;
     border-radius: 999px;
     border: none;
-    background: linear-gradient(135deg, #10398C, #0B2B6A);
+    background: linear-gradient(135deg, #1F2D3D, #15202B); /* Nouveau bleu principal */
     color: #ffffff;
     font-weight: 600;
     cursor: pointer;
@@ -86,26 +86,26 @@
     grid-template-columns: repeat(3, 1fr);
     gap: 24px;
     width: 100%;
-    align-items: start; /* Aligne les cartes en haut */
+    align-items: start;
 }
 
 /* Taille fixe pour toutes les cartes */
 .favorite-card {
     background: #ffffff;
     border-radius: 22px;
-    box-shadow: 0 24px 60px -40px rgba(15, 35, 74, 0.45);
+    box-shadow: 0 24px 60px -40px rgba(31, 45, 61, 0.45); /* Nouveau bleu principal */
     overflow: hidden;
     display: flex;
     flex-direction: column;
-    height: 100%; /* Prend toute la hauteur disponible */
+    height: 100%;
     min-height: 420px;
-    transition: all 0.3s ease; /* Animation fluide */
+    transition: all 0.3s ease;
 }
 
 .favorite-cover {
     position: relative;
     height: 180px;
-    background: #0F234A;
+    background: #1F2D3D; /* Nouveau bleu principal */
     flex-shrink: 0;
 }
 
@@ -124,9 +124,9 @@
     border-radius: 50%;
     border: none;
     background: rgba(255, 255, 255, 0.92);
-    color: #10398C;
+    color: #1F2D3D; /* Nouveau bleu principal */
     cursor: pointer;
-    box-shadow: 0 12px 24px -20px rgba(15, 35, 74, 0.5);
+    box-shadow: 0 12px 24px -20px rgba(31, 45, 61, 0.5); /* Nouveau bleu principal */
     transition: all 0.2s ease;
 }
 
@@ -152,15 +152,15 @@
     border-radius: 999px;
     padding: 6px 12px;
     font-size: 12px;
-    background: rgba(16, 57, 140, 0.08);
-    color: #10398C;
+    background: rgba(31, 45, 61, 0.08); /* Nouveau bleu principal */
+    color: #1F2D3D; /* Nouveau bleu principal */
     font-weight: 600;
 }
 
 .favorite-content h2 {
     margin: 0;
     font-size: 20px;
-    color: #0F234A;
+    color: #1F2D3D; /* Nouveau bleu principal */
     line-height: 1.3;
 }
 
@@ -173,7 +173,7 @@
 }
 
 .favorite-meta i {
-    color: #10398C;
+    color: #1F2D3D; /* Nouveau bleu principal */
 }
 
 .favorite-status {
@@ -201,7 +201,7 @@
 
 .favorite-price {
     font-weight: 700;
-    color: #10398C;
+    color: #1F2D3D; /* Nouveau bleu principal */
     font-size: 16px;
 }
 
@@ -226,8 +226,8 @@
 }
 
 .btn-details {
-    background: rgba(16, 57, 140, 0.08);
-    color: #10398C;
+    background: rgba(31, 45, 61, 0.08); /* Nouveau bleu principal */
+    color: #1F2D3D; /* Nouveau bleu principal */
     text-decoration: none;
 }
 
