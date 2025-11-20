@@ -14,44 +14,8 @@
 {% block hero %}{% endblock %}
 
 {% block body %}
-    {% set notifications = notifications|default([
-        {
-            id: 1,
-            title: 'Vos billets pour <span>Afro Jazz Experience</span> sont disponibles',
-            time: 'Il y a 5 minutes',
-            date: '07 novembre 2025 · 14:32',
-            type: 'ticket',
-            read: false,
-            description: 'Téléchargez vos billets et partagez-les avec vos invités avant l\'évènement de samedi.'
-        },
-        {
-            id: 2,
-            title: 'Nouvelle offre exclusive sur <span>Madagascar Fashion Night</span>',
-            time: 'Il y a 2 heures',
-            date: '07 novembre 2025 · 12:08',
-            type: 'offer',
-            read: false,
-            description: 'Profitez de -20 % sur vos billets VIP jusqu\'à ce soir minuit avec le code FASHION20.'
-        },
-        {
-            id: 3,
-            title: 'Rappel : Validation requise pour <span>Festival des Arts Urbains</span>',
-            time: 'Hier',
-            date: '06 novembre 2025 · 18:45',
-            type: 'reminder',
-            read: true,
-            description: 'Votre panier expire dans 12 heures. Validez vos billets pour garantir vos places.'
-        },
-        {
-            id: 4,
-            title: 'Confirmation : paiement reçu pour <span>Soirée Electro Rooftop</span>',
-            time: 'Il y a 3 jours',
-            date: '04 novembre 2025 · 09:22',
-            type: 'payment',
-            read: true,
-            description: 'Votre paiement est confirmé. Nous vous enverrons un rappel le jour de l\'évènement.'
-        }
-    ]) %}
+    {% set notifications = notifications|default([]) %}
+    {% set unreadCount = unreadCount|default(0) %}
 
     <main class="notifications-wrapper">
         <div class="container">
@@ -69,7 +33,7 @@
 
                 <div class="notifications-tabs">
                     <button class="notifications-tab active" data-filter="all">Tous <span class="notifications-counter">{{ notifications|length }}</span></button>
-                    <button class="notifications-tab" data-filter="unread">Non lus <span class="notifications-counter">{{ notifications|filter(n => not n.read)|length }}</span></button>
+                    <button class="notifications-tab" data-filter="unread">Non lus <span class="notifications-counter">{{ unreadCount }}</span></button>
                     <button class="notifications-tab" data-filter="read">Archives <span class="notifications-counter">{{ notifications|filter(n => n.read)|length }}</span></button>
                 </div>
 
@@ -112,7 +76,7 @@
                         <i class="fas fa-bell-slash"></i>
                         <h3>Aucune notification pour le moment</h3>
                         <p>Les nouvelles activités apparaîtront ici : validation de panier, billets disponibles, rappels d'évènements...</p>
-                        <button class="btn-solid" data-action="explore">Explorer les évènements</button>
+                        <a href="{{ path('events') }}" class="btn-solid">Explorer les évènements</a>
                     </div>
                 {% endif %}
             </div>
@@ -121,11 +85,14 @@
 {% endblock %}
 
 {% block javascripts %}
+    <script type="text/javascript" src="{{ asset('vente-ticket/js/jquery.min.js') }}"></script>
+    <script type="text/javascript" src="{{ asset('vente-ticket/js/wow.js') }}"></script>
     <script>
         document.addEventListener('DOMContentLoaded', () => {
             const tabs = document.querySelectorAll('.notifications-tab');
             const items = document.querySelectorAll('.notification-item');
 
+            // Filtrage par onglets
             tabs.forEach(tab => {
                 tab.addEventListener('click', () => {
                     tabs.forEach(t => t.classList.remove('active'));
@@ -145,28 +112,156 @@
                 });
             });
 
+            // Marquer une notification comme lue
             document.querySelectorAll('[data-action="mark-single"]').forEach(button => {
-                button.addEventListener('click', () => {
-                    const item = button.closest('.notification-item');
-                    if (!item) return;
-                    item.dataset.state = 'read';
-                    item.classList.remove('is-unread');
-                    button.remove();
+                button.addEventListener('click', function() {
+                    const notificationId = this.dataset.id;
+                    const item = this.closest('.notification-item');
+                    
+                    if (!item || !notificationId) return;
+
+                    fetch(`/api/notifications/${notificationId}/read`, {
+                        method: 'POST',
+                        headers: {
+                            'X-Requested-With': 'XMLHttpRequest',
+                            'Content-Type': 'application/json',
+                        },
+                    })
+                    .then(response => response.json())
+                    .then(data => {
+                        if (data.status === 'success') {
+                            item.dataset.state = 'read';
+                            item.classList.remove('is-unread');
+                            this.remove();
+                            
+                            // Mettre à jour les compteurs
+                            updateCounters();
+                        } else {
+                            alert('Erreur: ' + (data.message || 'Erreur inconnue'));
+                        }
+                    })
+                    .catch(error => {
+                        console.error('Erreur:', error);
+                        alert('Erreur lors du marquage comme lu. Veuillez réessayer.');
+                    });
                 });
             });
 
+            // Marquer toutes les notifications comme lues
             const markAll = document.querySelector('[data-action="mark-read"]');
             if (markAll) {
                 markAll.addEventListener('click', () => {
-                    items.forEach(item => {
-                        item.dataset.state = 'read';
-                        item.classList.remove('is-unread');
-                        const singleButton = item.querySelector('[data-action="mark-single"]');
-                        if (singleButton) {
-                            singleButton.remove();
+                    fetch('/api/notifications/read-all', {
+                        method: 'POST',
+                        headers: {
+                            'X-Requested-With': 'XMLHttpRequest',
+                            'Content-Type': 'application/json',
+                        },
+                    })
+                    .then(response => response.json())
+                    .then(data => {
+                        if (data.status === 'success') {
+                            items.forEach(item => {
+                                item.dataset.state = 'read';
+                                item.classList.remove('is-unread');
+                                const singleButton = item.querySelector('[data-action="mark-single"]');
+                                if (singleButton) {
+                                    singleButton.remove();
+                                }
+                            });
+                            
+                            // Mettre à jour les compteurs
+                            updateCounters();
+                        } else {
+                            alert('Erreur: ' + (data.message || 'Erreur inconnue'));
                         }
+                    })
+                    .catch(error => {
+                        console.error('Erreur:', error);
+                        alert('Erreur lors du marquage. Veuillez réessayer.');
                     });
                 });
+            }
+
+            // Supprimer/Archiver une notification
+            document.querySelectorAll('[data-action="archive"]').forEach(button => {
+                button.addEventListener('click', function() {
+                    const notificationId = this.dataset.id;
+                    const item = this.closest('.notification-item');
+                    
+                    if (!item || !notificationId) return;
+
+                    if (!confirm('Voulez-vous supprimer cette notification ?')) {
+                        return;
+                    }
+
+                    // Animation de suppression
+                    item.style.transform = 'scale(0.95)';
+                    item.style.opacity = '0.5';
+
+                    fetch(`/api/notifications/${notificationId}/delete`, {
+                        method: 'DELETE',
+                        headers: {
+                            'X-Requested-With': 'XMLHttpRequest',
+                            'Content-Type': 'application/json',
+                        },
+                    })
+                    .then(response => response.json())
+                    .then(data => {
+                        if (data.status === 'success') {
+                            setTimeout(() => {
+                                item.remove();
+                                
+                                // Vérifier s'il reste des notifications
+                                const remainingItems = document.querySelectorAll('.notification-item').length;
+                                if (remainingItems === 0) {
+                                    location.reload();
+                                }
+                                
+                                // Mettre à jour les compteurs
+                                updateCounters();
+                            }, 300);
+                        } else {
+                            // Annuler l'animation en cas d'erreur
+                            item.style.transform = 'scale(1)';
+                            item.style.opacity = '1';
+                            alert('Erreur: ' + (data.message || 'Erreur inconnue'));
+                        }
+                    })
+                    .catch(error => {
+                        console.error('Erreur:', error);
+                        // Annuler l'animation en cas d'erreur
+                        item.style.transform = 'scale(1)';
+                        item.style.opacity = '1';
+                        alert('Erreur lors de la suppression. Veuillez réessayer.');
+                    });
+                });
+            });
+
+            // Redirection vers les paramètres
+            const settingsBtn = document.querySelector('[data-action="settings"]');
+            if (settingsBtn) {
+                settingsBtn.addEventListener('click', () => {
+                    window.location.href = '{{ path("profile_settings") }}';
+                });
+            }
+
+            // Fonction pour mettre à jour les compteurs
+            function updateCounters() {
+                fetch('/api/notifications/count')
+                    .then(response => response.json())
+                    .then(data => {
+                        if (data.status === 'success') {
+                            // Mettre à jour le compteur dans l'onglet "Non lus"
+                            const unreadTab = document.querySelector('[data-filter="unread"] .notifications-counter');
+                            if (unreadTab) {
+                                unreadTab.textContent = data.count;
+                            }
+                        }
+                    })
+                    .catch(error => {
+                        console.error('Erreur lors de la mise à jour des compteurs:', error);
+                    });
             }
         });
     </script>

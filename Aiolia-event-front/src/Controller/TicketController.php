@@ -249,6 +249,7 @@ class TicketController extends AbstractController
                 'adultPrice' => $adultPrice > 0 ? $adultPrice : null,
                 'childPrice' => $childPrice > 0 ? $childPrice : null,
                 'currency' => $currency,
+                'added_at' => (new \DateTimeImmutable())->format('Y-m-d H:i:s'),
             ];
         }
 
@@ -650,6 +651,16 @@ class TicketController extends AbstractController
                 }
             }
 
+            // Récupérer la date d'ajout au panier (ou utiliser maintenant si absente pour compatibilité)
+            $addedAt = isset($cartItem['added_at']) 
+                ? new \DateTimeImmutable($cartItem['added_at'])
+                : new \DateTimeImmutable();
+            
+            // Récupérer la date de l'événement
+            $eventDate = $event['starts_at'] instanceof \DateTimeImmutable 
+                ? $event['starts_at']
+                : ($event['starts_at'] ? new \DateTimeImmutable($event['starts_at']) : new \DateTimeImmutable());
+
             $formattedItems[] = [
                 'cart_key' => $cartKey,
                 'event' => [
@@ -658,9 +669,11 @@ class TicketController extends AbstractController
                     'title' => $event['title'],
                     'category' => $event['category_label'] ?? 'Événement',
                     'location' => $location,
-                    'date' => $event['starts_at'] instanceof \DateTimeImmutable 
-                        ? \DateTime::createFromImmutable($event['starts_at'])
-                        : ($event['starts_at'] ?? new \DateTime()),
+                    'date' => $eventDate instanceof \DateTimeImmutable 
+                        ? \DateTime::createFromImmutable($eventDate)
+                        : ($eventDate ?? new \DateTime()),
+                    'starts_at' => $eventDate,
+                    'added_at' => $addedAt,
                     'adultPrice' => $cartItem['adultPrice'],
                     'childPrice' => $cartItem['childPrice'],
                 ],

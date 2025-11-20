@@ -360,8 +360,9 @@
                                 </nav>
                             </div>
                             <div class="user-connected">
-                                <a href="{{ path('notifications') }}" title="Notifications" class="user-connected-link">
+                                <a href="{{ path('notifications') }}" title="Notifications" class="user-connected-link" style="position: relative;">
                                     <span class="icon-notifications"></span>
+                                    <span id="notification-badge" style="display: none; position: absolute; top: -5px; right: -5px; background: rgb(230, 50, 50); color: white; border-radius: 50%; min-width: 18px; height: 18px; padding: 2px 4px; display: flex; align-items: center; justify-content: center; font-size: 11px; font-weight: bold; font-variant-numeric: tabular-nums;">0</span>
                                 </a>
                                 <a href="{{ path('profile_index') }}" title="Mon profil" class="user-connected-link profile-link">
                                     <span class="icon-profile"></span>
@@ -768,6 +769,43 @@
         document.addEventListener('DOMContentLoaded', function() {
             {% set just_logged_in = app.session.get('just_logged_in', false) %}
             {% if isAuthenticated %}
+            // Fonction pour charger et afficher le compteur de notifications
+            function updateNotificationBadge(count) {
+                const badge = document.getElementById('notification-badge');
+                if (!badge) return;
+                
+                if (count > 0) {
+                    badge.textContent = count > 99 ? '99+' : count.toString();
+                    badge.style.display = 'flex';
+                } else {
+                    badge.style.display = 'none';
+                }
+            }
+            
+            function loadNotificationCount() {
+                fetch('/api/notifications/count', {
+                    method: 'GET',
+                    headers: {
+                        'X-Requested-With': 'XMLHttpRequest',
+                    },
+                })
+                .then(response => response.json())
+                .then(data => {
+                    if (data && data.status === 'success') {
+                        updateNotificationBadge(data.count || 0);
+                    }
+                })
+                .catch(error => {
+                    console.error('Erreur lors du chargement du compteur de notifications:', error);
+                });
+            }
+            
+            // Charger le compteur de notifications au chargement de la page
+            loadNotificationCount();
+            
+            // Recharger le compteur toutes les 30 secondes
+            setInterval(loadNotificationCount, 30000);
+            
             // Fonction pour charger et afficher le count du panier
             function loadAndDisplayCartCount(force = false) {
                 // Vérifier le cache pour éviter les requêtes inutiles

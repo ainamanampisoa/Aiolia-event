@@ -153,6 +153,31 @@
     border-radius: 4px;
 }
 
+/* Styles pour le timer critique (moins d'1 heure) */
+.event-timer.critical {
+    background: #e74c3c;
+    animation: pulse 2s infinite;
+}
+
+@keyframes pulse {
+    0%, 100% {
+        opacity: 1;
+    }
+    50% {
+        opacity: 0.8;
+    }
+}
+
+/* Styles pour le timer expiré */
+.event-timer.expired {
+    background: #95a5a6;
+    opacity: 0.7;
+}
+
+.event-timer.expired .timer-value {
+    background: rgba(255, 255, 255, 0.3);
+}
+
 /* Contenu principal */
 .cart-card-body {
     padding: 20px;
