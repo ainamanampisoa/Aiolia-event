@@ -1516,51 +1516,32 @@
                             return;
                         }
                         
-                        // Si on a les deux quantités (adultes ET enfants), faire deux appels séparés
+                        // Si on a les deux quantités (adultes ET enfants), faire un seul appel avec les deux types
                         if (adultQty > 0 && childQty > 0 && adultTicketId && childTicketId) {
-                            // Premier appel pour adultes
-                            let firstForm = document.createElement('form');
-                            firstForm.method = 'POST';
-                            firstForm.action = '{{ path("add_to_cart") }}';
-                            firstForm.style.display = 'none';
+                            // Un seul appel avec les deux ticket_type_id et les deux quantités
+                            const form = document.createElement('form');
+                            form.method = 'POST';
+                            form.action = '{{ path("add_to_cart") }}';
                             
-                            for (const [name, value] of Object.entries({
+                            const fields = {
                                 'event_id': '{{ event.id }}',
-                                'ticket_type_id': adultTicketId,
+                                'ticket_type_id': adultTicketId, // Pour compatibilité
+                                'adult_ticket_type_id': adultTicketId,
+                                'child_ticket_type_id': childTicketId,
                                 'adult_quantity': adultQty,
-                                'child_quantity': 0
-                            })) {
+                                'child_quantity': childQty
+                            };
+                            
+                            for (const [name, value] of Object.entries(fields)) {
                                 const input = document.createElement('input');
                                 input.type = 'hidden';
                                 input.name = name;
                                 input.value = value;
-                                firstForm.appendChild(input);
+                                form.appendChild(input);
                             }
-                            document.body.appendChild(firstForm);
                             
-                            // Deuxième appel pour enfants
-                            setTimeout(() => {
-                                let secondForm = document.createElement('form');
-                                secondForm.method = 'POST';
-                                secondForm.action = '{{ path("add_to_cart") }}';
-                                
-                                for (const [name, value] of Object.entries({
-                                    'event_id': '{{ event.id }}',
-                                    'ticket_type_id': childTicketId,
-                                    'adult_quantity': 0,
-                                    'child_quantity': childQty
-                                })) {
-                                    const input = document.createElement('input');
-                                    input.type = 'hidden';
-                                    input.name = name;
-                                    input.value = value;
-                                    secondForm.appendChild(input);
-                                }
-                                document.body.appendChild(secondForm);
-                                secondForm.submit();
-                            }, 100);
-                            
-                            firstForm.submit();
+                            document.body.appendChild(form);
+                            form.submit();
                             return;
                         }
                         

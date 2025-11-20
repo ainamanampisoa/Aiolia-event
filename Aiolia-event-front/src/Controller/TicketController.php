@@ -70,10 +70,12 @@ class TicketController extends AbstractController
 
         $eventId = (int) $request->request->get('event_id', 0);
         $ticketTypeId = (int) $request->request->get('ticket_type_id', 0);
+        $adultTicketTypeId = (int) $request->request->get('adult_ticket_type_id', 0);
+        $childTicketTypeId = (int) $request->request->get('child_ticket_type_id', 0);
         $adultQuantity = (int) $request->request->get('adult_quantity', 0);
         $childQuantity = (int) $request->request->get('child_quantity', 0);
 
-        if ($eventId <= 0 || $ticketTypeId <= 0) {
+        if ($eventId <= 0) {
             $this->addFlash('error', 'Données invalides.');
             return $this->redirectToRoute('events');
         }
@@ -81,6 +83,22 @@ class TicketController extends AbstractController
         if ($adultQuantity <= 0 && $childQuantity <= 0) {
             $this->addFlash('error', 'Veuillez sélectionner au moins une quantité.');
             return $this->redirectToRoute('event_details', ['id' => $eventId]);
+        }
+
+        // Si on a les deux ticket_type_id séparés (adulte et enfant), utiliser celui qui a une quantité > 0
+        if ($adultTicketTypeId > 0 && $childTicketTypeId > 0) {
+            // Mode avec deux types séparés - utiliser la clé basée uniquement sur l'événement
+            $ticketTypeId = $adultTicketTypeId; // Garder pour compatibilité, mais utiliser pour la clé
+        } elseif ($ticketTypeId <= 0) {
+            // Si aucun ticket_type_id n'est fourni, essayer de le déterminer
+            if ($adultTicketTypeId > 0) {
+                $ticketTypeId = $adultTicketTypeId;
+            } elseif ($childTicketTypeId > 0) {
+                $ticketTypeId = $childTicketTypeId;
+            } else {
+                $this->addFlash('error', 'Type de billet invalide.');
+                return $this->redirectToRoute('event_details', ['id' => $eventId]);
+            }
         }
 
         // Récupérer les détails de l'événement
@@ -92,50 +110,102 @@ class TicketController extends AbstractController
 
         // Récupérer les types de billets
         $ticketTypes = $this->fetchTicketTypes($eventId);
-        $selectedTicketType = null;
-        foreach ($ticketTypes as $ticketType) {
-            if ($ticketType['id'] === $ticketTypeId) {
-                $selectedTicketType = $ticketType;
-                break;
-            }
-        }
-
-        if (null === $selectedTicketType) {
-            $this->addFlash('error', 'Type de billet introuvable.');
-            return $this->redirectToRoute('event_details', ['id' => $eventId]);
-        }
-
+        
         // Calculer les prix adultes et enfants
         $adultPrice = 0;
         $childPrice = 0;
+        $currency = 'MGA';
         
-        if ($selectedTicketType['age_category'] === 'adult' || $selectedTicketType['age_category'] === 'all') {
-            $adultPrice = $selectedTicketType['base_price'];
-        }
-        if ($selectedTicketType['age_category'] === 'child' || $selectedTicketType['age_category'] === 'all') {
-            $childPrice = $selectedTicketType['base_price'];
+        // Si on a les deux types séparés, récupérer les prix de chaque type
+        if ($adultTicketTypeId > 0 && $childTicketTypeId > 0) {
+            $adultTicketType = null;
+            $childTicketType = null;
+            foreach ($ticketTypes as $ticketType) {
+                if ($ticketType['id'] === $adultTicketTypeId) {
+                    $adultTicketType = $ticketType;
+                }
+                if ($ticketType['id'] === $childTicketTypeId) {
+                    $childTicketType = $ticketType;
+                }
+            }
+            
+            if ($adultTicketType && $adultQuantity > 0) {
+                $adultPrice = $adultTicketType['base_price'];
+                $currency = $adultTicketType['currency'] ?? 'MGA';
+            }
+            if ($childTicketType && $childQuantity > 0) {
+                $childPrice = $childTicketType['base_price'];
+                if ($adultPrice === 0) {
+                    $currency = $childTicketType['currency'] ?? 'MGA';
+                }
+            }
+        } else {
+            // Mode classique avec un seul ticket_type_id
+            $selectedTicketType = null;
+            foreach ($ticketTypes as $ticketType) {
+                if ($ticketType['id'] === $ticketTypeId) {
+                    $selectedTicketType = $ticketType;
+                    break;
+                }
+            }
+
+            if (null === $selectedTicketType) {
+                $this->addFlash('error', 'Type de billet introuvable.');
+                return $this->redirectToRoute('event_details', ['id' => $eventId]);
+            }
+
+            if ($selectedTicketType['age_category'] === 'adult' || $selectedTicketType['age_category'] === 'all') {
+                $adultPrice = $selectedTicketType['base_price'];
+            }
+            if ($selectedTicketType['age_category'] === 'child' || $selectedTicketType['age_category'] === 'all') {
+                $childPrice = $selectedTicketType['base_price'];
+            }
+            $currency = $selectedTicketType['currency'] ?? 'MGA';
         }
 
         // Récupérer le panier existant
         $cartItems = $session->get('cart_items', []);
 
-        // Vérifier si l'événement existe déjà dans le panier avec le même type de billet
-        $cartKey = 'event_' . $eventId . '_ticket_' . $ticketTypeId;
+        // Si on a les deux types (adulte et enfant), utiliser une clé basée uniquement sur l'événement
+        // Cela permet de regrouper les billets adultes et enfants du même événement dans une seule entrée
+        $hasBothTypes = $adultTicketTypeId > 0 && $childTicketTypeId > 0;
+        
+        // Vérifier si un événement avec cette clé existe déjà (même si on n'a qu'un seul type maintenant)
+        $eventKey = 'event_' . $eventId;
+        $hasEventKey = isset($cartItems[$eventKey]);
+        
+        // Si on a les deux types OU si la clé événement existe déjà, utiliser la clé basée sur l'événement
+        if ($hasBothTypes || $hasEventKey) {
+            // Clé basée uniquement sur l'événement pour regrouper les deux types
+            $cartKey = $eventKey;
+        } else {
+            // Clé classique avec ticket_type_id
+            $cartKey = 'event_' . $eventId . '_ticket_' . $ticketTypeId;
+        }
         
         if (isset($cartItems[$cartKey])) {
             // Mettre à jour les quantités
             $cartItems[$cartKey]['adultQuantity'] += $adultQuantity;
             $cartItems[$cartKey]['childQuantity'] += $childQuantity;
+            // Mettre à jour les prix si nécessaire (prendre les plus récents)
+            if ($adultPrice > 0) {
+                $cartItems[$cartKey]['adultPrice'] = $adultPrice;
+            }
+            if ($childPrice > 0) {
+                $cartItems[$cartKey]['childPrice'] = $childPrice;
+            }
         } else {
             // Ajouter un nouvel élément au panier
             $cartItems[$cartKey] = [
                 'eventId' => $eventId,
                 'ticketTypeId' => $ticketTypeId,
+                'adultTicketTypeId' => $adultTicketTypeId > 0 ? $adultTicketTypeId : null,
+                'childTicketTypeId' => $childTicketTypeId > 0 ? $childTicketTypeId : null,
                 'adultQuantity' => $adultQuantity,
                 'childQuantity' => $childQuantity,
-                'adultPrice' => $adultPrice,
+                'adultPrice' => $adultPrice > 0 ? $adultPrice : null,
                 'childPrice' => $childPrice > 0 ? $childPrice : null,
-                'currency' => $selectedTicketType['currency'] ?? 'MGA',
+                'currency' => $currency,
             ];
         }
 
