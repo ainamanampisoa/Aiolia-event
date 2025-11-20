@@ -1,0 +1,386 @@
+{% extends 'base.html.twig' %}
+
+{% block title %}Tableau de bord - Aiolia Event{% endblock %}
+
+{% block body %}
+<div class="dashboard">
+    <!-- En-tête du dashboard -->
+    <div class="dashboard-header">
+        <div>
+            <h1 data-i18n-fr="Tableau de bord" data-i18n-en="Dashboard">Tableau de bord</h1>
+            <p
+                style="color: var(--text-secondary); margin-top: 8px; font-size: 1rem;"
+                data-i18n-target="html"
+                data-i18n-fr="Bienvenue, <strong>{{ app.user.prenom }} {{ app.user.nom }}</strong> 👋"
+                data-i18n-en="Welcome, <strong>{{ app.user.prenom }} {{ app.user.nom }}</strong> 👋"
+            >
+                Bienvenue, <strong>{{ app.user.prenom }} {{ app.user.nom }}</strong> 👋
+            </p>
+        </div>
+    </div>
+
+    <div class="dashboard-summary-card">
+        <div class="summary-header">
+            <div>
+                <h2 data-i18n-fr="Vue synthétique" data-i18n-en="Summary view">Vue synthétique</h2>
+                <p data-i18n-fr="Analyse rapide par période" data-i18n-en="Quick analysis per period">Analyse rapide par période</p>
+            </div>
+            <form class="summary-filters" method="get">
+                <label>
+                    <span data-i18n-fr="Mois" data-i18n-en="Month">Mois</span>
+                    <select name="month" class="filter-select">
+                        {% for m in (filters.months ?? ['Janvier','Février','Mars','Avril','Mai','Juin','Juillet','Août','Septembre','Octobre','Novembre','Décembre']) %}
+                            <option value="{{ loop.index }}" {{ (currentFilters.month ?? '11') == loop.index ? 'selected' : '' }}>{{ m }}</option>
+                        {% endfor %}
+                    </select>
+                </label>
+                <label>
+                    <span data-i18n-fr="Année" data-i18n-en="Year">Année</span>
+                    <select name="year" class="filter-select">
+                        {% for y in (filters.years ?? [date().format('Y'), date('-1 year').format('Y'), date('-2 year').format('Y')]) %}
+                            <option value="{{ y }}" {{ (currentFilters.year ?? date().format('Y')) == y ? 'selected' : '' }}>{{ y }}</option>
+                        {% endfor %}
+                    </select>
+                </label>
+                <button type="submit" class="filter-cta" data-i18n-fr="Appliquer" data-i18n-en="Apply">Appliquer</button>
+            </form>
+        </div>
+
+        <div class="summary-widgets">
+            <div class="summary-widget">
+                <div class="widget-icon"><i class="fas fa-users"></i></div>
+                <div>
+                    <p data-i18n-fr="Organisateurs actifs" data-i18n-en="Active organizers">Organisateurs actifs</p>
+                    <h3>{{ stats.summary.active_organizers ?? '128' }}</h3>
+                </div>
+            </div>
+            <div class="summary-widget">
+                <div class="widget-icon widget-icon-accent"><i class="fas fa-user-plus"></i></div>
+                <div>
+                    <p data-i18n-fr="Nouveaux organisateurs" data-i18n-en="New organizers">Nouveaux organisateurs</p>
+                    <h3>{{ stats.summary.new_organizers ?? '32' }}</h3>
+                </div>
+            </div>
+            <div class="summary-widget">
+                <div class="widget-icon widget-icon-warning"><i class="fas fa-crown"></i></div>
+                <div>
+                    <p data-i18n-fr="Abonnement le plus populaire" data-i18n-en="Most popular subscription">Abonnement le plus populaire</p>
+                    <h3>{{ stats.summary.top_subscription ?? 'Plan Pro' }}</h3>
+                </div>
+            </div>
+            <div class="summary-widget">
+                <div class="widget-icon widget-icon-success"><i class="fas fa-bolt"></i></div>
+                <div>
+                    <p data-i18n-fr="Taux d’activité global" data-i18n-en="Global activity rate">Taux d’activité global</p>
+                    <h3>{{ stats.summary.global_activity_rate ?? '82 %' }}</h3>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="charts-grid">
+        <div class="chart-card chart-card-lg">
+            <div class="card-header">
+                <div>
+                    <h3 data-i18n-fr="Courbe des nouveaux organisateurs" data-i18n-en="New organizers trend">Courbe des nouveaux organisateurs</h3>
+                    <p data-i18n-fr="Variation des inscriptions sur la période" data-i18n-en="New registrations over time">Variation des inscriptions sur la période</p>
+                </div>
+            </div>
+            <div class="card-body">
+                <canvas id="newOrganizersChart" height="140"></canvas>
+            </div>
+        </div>
+
+        <div class="chart-card">
+            <div class="card-header">
+                <div>
+                    <h3 data-i18n-fr="Histogramme des abonnements" data-i18n-en="Subscriptions histogram">Histogramme des abonnements</h3>
+                    <p data-i18n-fr="Répartition des plans souscrits" data-i18n-en="Plans distribution">Répartition des plans souscrits</p>
+                </div>
+            </div>
+            <div class="card-body">
+                <canvas id="subscriptionsHistogram" height="140"></canvas>
+            </div>
+        </div>
+
+        <div class="chart-card">
+            <div class="card-header">
+                <div>
+                    <h3 data-i18n-fr="Courbe du taux d’activité" data-i18n-en="Activity rate trend">Courbe du taux d’activité</h3>
+                    <p data-i18n-fr="Niveau d’engagement global" data-i18n-en="Overall engagement level">Niveau d’engagement global</p>
+                </div>
+            </div>
+            <div class="card-body">
+                <canvas id="activityRateChart" height="140"></canvas>
+            </div>
+        </div>
+    </div>
+</div>
+
+<style>
+.dashboard-summary-card {
+    margin-top: 20px;
+    background: var(--bg-card);
+    border: 1px solid var(--border-color);
+    border-radius: var(--border-radius-lg);
+    padding: 20px 24px;
+    box-shadow: var(--shadow-sm);
+}
+
+.summary-header {
+    display: flex;
+    justify-content: space-between;
+    gap: 16px;
+    flex-wrap: wrap;
+    align-items: flex-start;
+    margin-bottom: 24px;
+}
+
+.summary-header h2 {
+    margin: 0;
+    font-size: 1.5rem;
+}
+
+.summary-header p {
+    margin: 4px 0 0;
+    color: var(--text-secondary);
+}
+
+.summary-filters {
+    display: flex;
+    gap: 12px;
+    align-items: flex-end;
+    flex-wrap: wrap;
+}
+
+.summary-filters label {
+    display: flex;
+    flex-direction: column;
+    font-size: 0.8rem;
+    color: var(--text-secondary);
+    gap: 6px;
+}
+
+.filter-select {
+    min-width: 130px;
+    padding: 8px 12px;
+    border-radius: 8px;
+    border: 1px solid var(--border-color);
+    background: var(--bg-secondary);
+    color: var(--text-primary);
+}
+
+.filter-cta {
+    padding: 10px 24px;
+    border-radius: 10px;
+    border: none;
+    background: var(--accent);
+    color: var(--text-inverse);
+    font-weight: 600;
+    cursor: pointer;
+}
+
+.summary-widgets {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+    gap: 12px;
+}
+
+.summary-widget {
+    display: flex;
+    gap: 12px;
+    align-items: center;
+    padding: 16px;
+    border-radius: var(--border-radius-md);
+    border: 1px solid var(--border-color);
+    background: var(--bg-secondary);
+}
+
+.summary-widget p {
+    margin: 0;
+    font-size: 0.85rem;
+    color: var(--text-secondary);
+}
+
+.summary-widget h3 {
+    margin: 4px 0 0;
+    font-size: 1.6rem;
+    font-weight: 700;
+}
+
+.widget-icon {
+    width: 42px;
+    height: 42px;
+    border-radius: 12px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    background: rgba(52, 152, 219, 0.2);
+    color: #3498db;
+    font-size: 1.1rem;
+}
+
+.widget-icon-accent {
+    background: rgba(155, 89, 182, 0.2);
+    color: #9b59b6;
+}
+
+.widget-icon-warning {
+    background: rgba(243, 156, 18, 0.2);
+    color: #f39c12;
+}
+
+.widget-icon-success {
+    background: rgba(46, 204, 113, 0.2);
+    color: #2ecc71;
+}
+
+.charts-grid {
+    margin-top: 24px;
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(320px, 1fr));
+    gap: 16px;
+}
+
+.chart-card {
+    background: var(--bg-card);
+    border: 1px solid var(--border-color);
+    border-radius: var(--border-radius-lg);
+    overflow: hidden;
+    display: flex;
+    flex-direction: column;
+}
+
+.chart-card-lg {
+    grid-column: span 2;
+}
+
+.chart-card .card-header {
+    padding: 18px 20px;
+    border-bottom: 1px solid var(--border-color);
+}
+
+.chart-card .card-header h3 {
+    font-size: 1.05rem;
+    margin-bottom: 4px;
+}
+
+.chart-card .card-header p {
+    margin: 0;
+    font-size: 0.85rem;
+    color: var(--text-secondary);
+}
+
+.chart-card .card-body {
+    padding: 18px 20px;
+    height: 260px;
+}
+
+@media (max-width: 992px) {
+    .chart-card-lg {
+        grid-column: span 1;
+    }
+    .summary-filters {
+        width: 100%;
+    }
+    .filter-select {
+        width: 100%;
+        min-width: 0;
+    }
+}
+</style>
+<script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.1/dist/chart.umd.min.js"></script>
+<script>
+document.addEventListener('DOMContentLoaded', renderDashboardCharts);
+document.addEventListener('turbo:load', renderDashboardCharts);
+
+function renderDashboardCharts() {
+    const chartBlocks = [
+        { id: 'newOrganizersChart', type: 'line', datasetKey: 'newOrganizers' },
+        { id: 'subscriptionsHistogram', type: 'bar', datasetKey: 'subscriptions' },
+        { id: 'activityRateChart', type: 'line', datasetKey: 'activityRate' }
+    ];
+
+    const payload = {
+        newOrganizers: {{ (stats.charts.new_organizers ?? {
+            labels: ['S1','S2','S3','S4'],
+            values: [12, 18, 15, 22]
+        })|json_encode|raw }},
+        subscriptions: {{ (stats.charts.subscriptions ?? {
+            labels: ['Basic','Pro','Entreprise'],
+            values: [45, 72, 18]
+        })|json_encode|raw }},
+        activityRate: {{ (stats.charts.activity_rate ?? {
+            labels: ['Jan','Fév','Mar','Avr','Mai','Jun'],
+            values: [68, 70, 74, 78, 80, 82]
+        })|json_encode|raw }}
+    };
+
+    const gridColor = 'rgba(128, 128, 128, 0.2)';
+    const textColor = getComputedStyle(document.documentElement).getPropertyValue('--text-secondary') || '#666';
+    const palette = ['#3498db', '#9b59b6', '#f39c12', '#2ecc71', '#e74c3c'];
+
+    chartBlocks.forEach((block, index) => {
+        const canvas = document.getElementById(block.id);
+        if (!canvas) return;
+        if (canvas._chartInstance) {
+            try { canvas._chartInstance.destroy(); } catch (e) {}
+        }
+
+        const dataset = payload[block.datasetKey] || { labels: [], values: [] };
+        const color = palette[index % palette.length];
+        const config = {
+            type: block.type,
+            data: {
+                labels: dataset.labels || [],
+                datasets: [{
+                    data: dataset.values || [],
+                    label: dataset.label || '',
+                    backgroundColor: block.type === 'bar' ? color + '55' : color + '33',
+                    borderColor: color,
+                    borderWidth: 2,
+                    tension: 0.35,
+                    fill: block.type === 'line',
+                    maxBarThickness: 34
+                }]
+            },
+            options: {
+                responsive: true,
+                maintainAspectRatio: false,
+                scales: {
+                    x: {
+                        grid: { color: gridColor },
+                        ticks: { color: textColor }
+                    },
+                    y: {
+                        beginAtZero: true,
+                        grid: { color: gridColor },
+                        ticks: { color: textColor,
+                            callback: block.datasetKey === 'activityRate'
+                                ? (value) => value + ' %'
+                                : undefined
+                        }
+                    }
+                },
+                plugins: {
+                    legend: { display: false },
+                    tooltip: {
+                        callbacks: {
+                            label: (ctx) => {
+                                const v = ctx.parsed.y ?? ctx.parsed;
+                                if (block.datasetKey === 'activityRate') {
+                                    return ` ${v.toLocaleString('fr-FR')} %`;
+                                }
+                                return ` ${v.toLocaleString('fr-FR')}`;
+                            }
+                        }
+                    }
+                }
+            }
+        };
+
+        canvas._chartInstance = new Chart(canvas.getContext('2d'), config);
+    });
+}
+</script>
+{% endblock %}

@@ -6,7 +6,7 @@ use App\Entity\User;
 use App\Enum\Role as UserRoleEnum;
 use App\Repository\UserRepository;
 use App\Service\AuditLogService;
-use App\Service\UserNotificationService;
+use App\Service\Organisateur\UserNotificationService;
 use Doctrine\ORM\EntityManagerInterface;
 use Symfony\Bundle\FrameworkBundle\Controller\AbstractController;
 use Symfony\Component\HttpFoundation\Request;
@@ -48,7 +48,7 @@ class UserValidationController extends AbstractController
         $pendingOrganizers = array_filter($pendingAccounts, static fn(User $user) => $user->getRole() === UserRoleEnum::ORGANIZER);
         $pendingSimpleUsers = array_filter($pendingAccounts, static fn(User $user) => $user->getRole() === UserRoleEnum::USER);
 
-        return $this->render('admin/validation/pending.html.twig', [
+        return $this->render('@Admin/validation/pending.html.twig', [
             'pendingAccounts' => $pendingAccounts,
             'paginatedPendingAccounts' => $paginatedPendingAccounts,
             'pendingStats' => [

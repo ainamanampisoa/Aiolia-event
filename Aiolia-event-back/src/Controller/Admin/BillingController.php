@@ -4,11 +4,11 @@ namespace App\Controller\Admin;
 
 use App\Entity\TicketInvoice;
 use App\Entity\SubscriptionInvoice;
-use App\Repository\TicketInvoiceRepository;
-use App\Repository\SubscriptionInvoiceRepository;
-use App\Service\BillingInvoiceDetailService;
-use App\Service\InvoicePdfService;
-use App\Service\InvoiceEmailService;
+use App\Repository\Organisateur\TicketInvoiceRepository;
+use App\Repository\Admin\SubscriptionInvoiceRepository;
+use App\Service\Admin\BillingInvoiceDetailService;
+use App\Service\Organisateur\InvoicePdfService;
+use App\Service\Organisateur\InvoiceEmailService;
 use Symfony\Bundle\FrameworkBundle\Controller\AbstractController;
 use Symfony\Component\HttpFoundation\Request;
 use Symfony\Component\HttpFoundation\Response;
@@ -114,7 +114,7 @@ class BillingController extends AbstractController
             'cancelled' => $this->countByStatus('void', $search, $dateFromObj, $dateToObj) + $this->countByStatus('refunded', $search, $dateFromObj, $dateToObj),
         ];
 
-        return $this->render('admin/billing/invoices.html.twig', [
+        return $this->render('@Admin/billing/invoices.html.twig', [
             'ticketInvoices' => $ticketInvoices,
             'subscriptionInvoices' => $subscriptionInvoices,
             'allInvoices' => $allInvoices,
@@ -143,7 +143,7 @@ class BillingController extends AbstractController
             return $this->redirectToRoute('admin_billing_invoices');
         }
 
-        return $this->render('admin/billing/invoice_show.html.twig', [
+        return $this->render('@Admin/billing/invoice_show.html.twig', [
             'invoice' => $invoice,
             'type' => 'ticket',
             'invoiceItems' => [],
@@ -206,7 +206,7 @@ class BillingController extends AbstractController
         $invoiceItems = $this->invoiceDetailService->getInvoiceItems($invoice);
         $paymentMethod = $this->invoiceDetailService->getPaymentMethod($invoice);
 
-        return $this->render('admin/billing/invoice_show.html.twig', [
+        return $this->render('@Admin/billing/invoice_show.html.twig', [
             'invoice' => $invoice,
             'type' => 'subscription',
             'planTier' => $planTier,

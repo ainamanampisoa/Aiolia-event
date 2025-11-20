@@ -2,7 +2,7 @@
 
 namespace App\Command;
 
-use App\Service\SubscriptionInvoiceGenerationService;
+use App\Service\Admin\SubscriptionInvoiceGenerationService;
 use Doctrine\DBAL\Connection;
 use Doctrine\ORM\EntityManagerInterface;
 use Psr\Log\LoggerInterface;

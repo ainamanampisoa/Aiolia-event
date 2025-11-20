@@ -6,7 +6,7 @@ use App\Entity\User;
 use App\Enum\Role as UserRoleEnum;
 use App\Form\RegistrationFormType;
 use App\Service\AuditLogService;
-use App\Service\UserStatsService;
+use App\Service\Admin\DashboardStatsService;
 use Doctrine\ORM\EntityManagerInterface;
 use Symfony\Bundle\FrameworkBundle\Controller\AbstractController;
 use Symfony\Component\HttpFoundation\Request;
@@ -153,18 +153,48 @@ class AuthController extends AbstractController
     }
 
     #[Route('/dashboard', name: 'app_dashboard')]
-    public function dashboard(UserStatsService $userStatsService): Response
+    public function dashboard(Request $request, DashboardStatsService $dashboardStatsService): Response
     {
-        // Cette route nécessite une authentification (accepte aussi remember-me)
         $this->denyAccessUnlessGranted('IS_AUTHENTICATED_REMEMBERED');
 
-        // Récupérer les statistiques calculées dynamiquement
-        $stats = $userStatsService->getUserStatistics($this->getUser());
+        $now = new \DateTimeImmutable('first day of this month');
+        $month = (int) $request->query->get('month', (int) $now->format('n'));
+        $year = (int) $request->query->get('year', (int) $now->format('Y'));
 
-        return $this->render('dashboard/index.html.twig', [
+        $month = max(1, min(12, $month));
+        $year = max(1970, $year);
+
+        $stats = $dashboardStatsService->getDashboardData($month, $year);
+
+        $filters = [
+            'months' => [
+                'Janvier', 'Février', 'Mars', 'Avril', 'Mai', 'Juin',
+                'Juillet', 'Août', 'Septembre', 'Octobre', 'Novembre', 'Décembre',
+            ],
+            'years' => $this->buildYearOptions((int) $now->format('Y')),
+        ];
+
+        return $this->render('@Admin/dashboard/index.html.twig', [
             'user' => $this->getUser(),
             'stats' => $stats,
+            'filters' => $filters,
+            'currentFilters' => [
+                'month' => $month,
+                'year' => $year,
+            ],
         ]);
+    }
+
+    /**
+     * @return list<int>
+     */
+    private function buildYearOptions(int $currentYear): array
+    {
+        return [
+            $currentYear,
+            $currentYear - 1,
+            $currentYear - 2,
+        ];
     }
 
     /**

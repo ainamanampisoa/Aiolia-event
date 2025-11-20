@@ -2,9 +2,11 @@
 
 namespace App\Controller\Api;
 
-use App\Service\UserStatsService;
+use App\Service\Admin\DashboardStatsService;
+use App\Service\Organisateur\UserStatsService;
 use Symfony\Bundle\FrameworkBundle\Controller\AbstractController;
 use Symfony\Component\HttpFoundation\JsonResponse;
+use Symfony\Component\HttpFoundation\Request;
 use Symfony\Component\Routing\Attribute\Route;
 
 /**
@@ -14,7 +16,8 @@ use Symfony\Component\Routing\Attribute\Route;
 class UserStatsApiController extends AbstractController
 {
     public function __construct(
-        private UserStatsService $userStatsService
+        private UserStatsService $userStatsService,
+        private DashboardStatsService $dashboardStatsService
     ) {
     }
 
@@ -38,15 +41,26 @@ class UserStatsApiController extends AbstractController
      * Récupère le résumé complet pour le dashboard
      */
     #[Route('/dashboard', name: 'dashboard', methods: ['GET'])]
-    public function dashboard(): JsonResponse
+    public function dashboard(Request $request): JsonResponse
     {
         $this->denyAccessUnlessGranted('IS_AUTHENTICATED_FULLY');
 
-        $summary = $this->userStatsService->getDashboardSummary($this->getUser());
+        $now = new \DateTimeImmutable('first day of this month');
+        $month = (int) $request->query->get('month', (int) $now->format('n'));
+        $year = (int) $request->query->get('year', (int) $now->format('Y'));
+
+        $month = max(1, min(12, $month));
+        $year = max(1970, $year);
+
+        $summary = $this->dashboardStatsService->getDashboardData($month, $year);
 
         return $this->json([
             'success' => true,
             'data' => $summary,
+            'filters' => [
+                'month' => $month,
+                'year' => $year,
+            ],
         ]);
     }
 

@@ -6,9 +6,9 @@ use App\Entity\User;
 use App\Enum\Role as UserRoleEnum;
 use App\Repository\UserRepository;
 use App\Repository\AuditLogRepository;
-use App\Repository\EventRepository;
+use App\Repository\Organisateur\EventRepository;
 use App\Service\AuditLogService;
-use App\Service\UserNotificationService;
+use App\Service\Organisateur\UserNotificationService;
 use Doctrine\ORM\EntityManagerInterface;
 use Symfony\Bundle\FrameworkBundle\Controller\AbstractController;
 use Symfony\Component\HttpFoundation\JsonResponse;
@@ -176,7 +176,7 @@ class UserManagementController extends AbstractController
             ->getQuery()
             ->getSingleScalarResult();
 
-        return $this->render('admin/users/list.html.twig', [
+        return $this->render('@Admin/users/list.html.twig', [
             'users' => $users,
             'search' => $search,
             'currentRole' => $role,
@@ -283,7 +283,7 @@ class UserManagementController extends AbstractController
             }
         }
 
-        return $this->render('admin/users/show.html.twig', [
+        return $this->render('@Admin/users/show.html.twig', [
             'user' => $user,
             'auditLogs' => $auditLogs,
             'events' => $events,
@@ -456,7 +456,7 @@ class UserManagementController extends AbstractController
 
         $actionStats = $this->auditLogRepository->getActionStatistics();
 
-        return $this->render('admin/users/audit_history.html.twig', [
+        return $this->render('@Admin/users/audit_history.html.twig', [
             'auditLogs' => $auditLogs,
             'actionStats' => $actionStats,
             'currentAction' => $action,
@@ -572,7 +572,7 @@ class UserManagementController extends AbstractController
         ";
         $payments = $conn->fetchAllAssociative($sqlPayments, ['userId' => $user->getId()]);
 
-        return $this->render('admin/users/payments.html.twig', [
+        return $this->render('@Admin/users/payments.html.twig', [
             'user' => $user,
             'payments' => $payments,
             'subscriptionInfo' => $subscriptionInfo,
@@ -595,7 +595,7 @@ class UserManagementController extends AbstractController
             throw $this->createNotFoundException('Utilisateur non trouvé');
         }
 
-        return $this->render('admin/users/info.html.twig', [
+        return $this->render('@Admin/users/info.html.twig', [
             'user' => $user,
         ]);
     }
@@ -634,7 +634,7 @@ class UserManagementController extends AbstractController
         $eventsCount = $totalEvents;
         $publishedEventsCount = count(array_filter($allEvents, fn($e) => $e->getStatus() === 'published'));
 
-        return $this->render('admin/users/events.html.twig', [
+        return $this->render('@Admin/users/events.html.twig', [
             'user' => $user,
             'events' => $events,
             'eventsCount' => $eventsCount,

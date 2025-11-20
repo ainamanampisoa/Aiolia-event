@@ -2,7 +2,7 @@
 
 namespace App\Entity;
 
-use App\Repository\SubscriptionInvoiceRepository;
+use App\Repository\Admin\SubscriptionInvoiceRepository;
 use Doctrine\DBAL\Types\Types;
 use Doctrine\ORM\Mapping as ORM;
 

@@ -4,8 +4,8 @@ namespace App\Controller\Api;
 
 use App\DTO\EventFilterDTO;
 use App\Entity\Event;
-use App\Repository\EventRepository;
-use App\Service\EventService;
+use App\Repository\Organisateur\EventRepository;
+use App\Service\Organisateur\EventService;
 use Symfony\Bundle\FrameworkBundle\Controller\AbstractController;
 use Symfony\Component\HttpFoundation\JsonResponse;
 use Symfony\Component\HttpFoundation\Request;

@@ -3,8 +3,8 @@
 namespace App\Twig;
 
 use App\Entity\EventMedia;
-use App\Service\CloudinaryService;
-use App\Service\MediaService;
+use App\Service\Admin\CloudinaryService;
+use App\Service\Organisateur\MediaService;
 use Twig\Extension\AbstractExtension;
 use Twig\TwigFilter;
 use Twig\TwigFunction;

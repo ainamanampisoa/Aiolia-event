@@ -2,7 +2,7 @@
 
 namespace App\Entity;
 
-use App\Repository\TicketInvoiceRepository;
+use App\Repository\Organisateur\TicketInvoiceRepository;
 use Doctrine\DBAL\Types\Types;
 use Doctrine\ORM\Mapping as ORM;
 

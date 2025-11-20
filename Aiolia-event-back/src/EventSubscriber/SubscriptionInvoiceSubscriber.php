@@ -3,7 +3,7 @@
 namespace App\EventSubscriber;
 
 use App\Entity\SubscriptionInvoice;
-use App\Service\InvoiceEmailService;
+use App\Service\Organisateur\InvoiceEmailService;
 use Doctrine\Bundle\DoctrineBundle\Attribute\AsDoctrineListener;
 use Doctrine\ORM\Event\PreUpdateEventArgs;
 use Doctrine\ORM\Event\PostUpdateEventArgs;

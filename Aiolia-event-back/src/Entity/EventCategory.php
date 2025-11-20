@@ -2,7 +2,7 @@
 
 namespace App\Entity;
 
-use App\Repository\EventCategoryRepository;
+use App\Repository\Organisateur\EventCategoryRepository;
 use Doctrine\DBAL\Types\Types;
 use Doctrine\ORM\Mapping as ORM;
 
