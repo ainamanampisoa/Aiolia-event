@@ -14,10 +14,12 @@
 {% block hero %}{% endblock %}
 
 {% block body %}
-    {% set user = app.session.get('user') %}
-    {% set displayName = user and user.username ? user.username : 'Rachel Andrianina' %}
-    {% set displayMail = user and user.email ? user.email : 'rachel.andrianina@example.com' %}
-    {% set initial = displayName|slice(0, 1)|upper %}
+    {% set sessionUser = app.session.get('user') %}
+    {% set userInfo = user|default({}) %}
+    {% set displayName = userInfo.full_name|default(sessionUser.username|default('Utilisateur')) %}
+    {% set displayMail = userInfo.email|default(sessionUser.email|default('')) %}
+    {% set initial = (userInfo.first_name|default(displayName))|slice(0, 1)|upper %}
+    {% set memberSince = (userInfo.created_at is defined and userInfo.created_at) ? userInfo.created_at|date('Y') : '2023' %}
 
     <main class="profile-wrapper">
         <div class="container">
@@ -30,21 +32,17 @@
                     </div>
                     <div class="profile-tags">
                         {# <span class="profile-tag"><i class="fas fa-crown"></i> Membre premium</span> #}
-                        <span class="profile-tag"><i class="fas fa-user-clock"></i> Depuis 2023</span>
+                        <span class="profile-tag"><i class="fas fa-user-clock"></i> Depuis {{ memberSince }}</span>
                     </div>
                     <div class="profile-actions">
-                        <button class="profile-action">
+                        <a href="{{ path('profile_settings') }}" class="profile-action" style="text-decoration: none; color: inherit; display: flex; align-items: center; justify-content: space-between; width: 100%;">
                             <span><i class="fas fa-user-edit"></i> Modifier mes informations</span>
                             <i class="fas fa-chevron-right"></i>
-                        {# </button>
-                        <button class="profile-action">
-                            <span><i class="fas fa-lock"></i> Sécurité & mot de passe</span>
-                            <i class="fas fa-chevron-right"></i>
-                        </button> #}
-                        <button class="profile-action">
+                        </a>
+                        <a href="{{ path('profile_settings') }}#notifications" class="profile-action" style="text-decoration: none; color: inherit; display: flex; align-items: center; justify-content: space-between; width: 100%;">
                             <span><i class="fas fa-bell"></i> Préférences de notifications</span>
                             <i class="fas fa-chevron-right"></i>
-                        </button>
+                        </a>
                     </div>
                 </aside>
 
@@ -54,19 +52,19 @@
                         <div class="profile-stats">
                             <div class="profile-stat">
                                 <span>Billets actifs</span>
-                                <strong>03</strong>
+                                <strong>{{ stats.active_tickets|default(0)|number_format(0, ',', ' ') }}</strong>
                             </div>
                             <div class="profile-stat">
                                 <span>Évènements favoris</span>
-                                <strong>12</strong>
+                                <strong>{{ stats.favorite_events|default(0)|number_format(0, ',', ' ') }}</strong>
                             </div>
                             <div class="profile-stat">
                                 <span>Panier en cours</span>
-                                <strong>02</strong>
+                                <strong>{{ stats.cart_items|default(0)|number_format(0, ',', ' ') }}</strong>
                             </div>
                             <div class="profile-stat">
                                 <span>Points fidélité</span>
-                                <strong>1 250</strong>
+                                <strong>{{ stats.loyalty_points|default(0)|number_format(0, ',', ' ') }}</strong>
                             </div>
                         </div>
                     </div>
@@ -74,27 +72,25 @@
                     <div class="profile-section">
                         <h3>Activités récentes</h3>
                         <div class="profile-timeline">
-                            <div class="profile-timeline-item">
-                                <div class="timeline-icon"><i class="fas fa-ticket-alt"></i></div>
-                                <div class="timeline-content">
-                                    <h4>2 billets confirmés pour <strong>Afro Jazz Experience</strong></h4>
-                                    <div class="timeline-meta">07 novembre 2025 · Paiement réussi · Ref. #VTE-548211</div>
+                            {% if activities is defined and activities|length > 0 %}
+                                {% for activity in activities %}
+                                    <div class="profile-timeline-item">
+                                        <div class="timeline-icon"><i class="{{ activity.icon }}"></i></div>
+                                        <div class="timeline-content">
+                                            <h4>{{ activity.title|raw }}</h4>
+                                            <div class="timeline-meta">{{ activity.meta }}</div>
+                                        </div>
+                                    </div>
+                                {% endfor %}
+                            {% else %}
+                                <div class="profile-timeline-item">
+                                    <div class="timeline-icon"><i class="fas fa-info-circle"></i></div>
+                                    <div class="timeline-content">
+                                        <h4>Aucune activité récente</h4>
+                                        <div class="timeline-meta">Vos activités apparaîtront ici</div>
+                                    </div>
                                 </div>
-                            </div>
-                            <div class="profile-timeline-item">
-                                <div class="timeline-icon"><i class="fas fa-heart"></i></div>
-                                <div class="timeline-content">
-                                    <h4>Nouvel évènement favori : <strong>Madagascar Fashion Night</strong></h4>
-                                    <div class="timeline-meta">05 novembre 2025 · Favoris</div>
-                                </div>
-                            </div>
-                            <div class="profile-timeline-item">
-                                <div class="timeline-icon"><i class="fas fa-clock"></i></div>
-                                <div class="timeline-content">
-                                    <h4>Panier en attente pour <strong>Festival des Arts Urbains</strong></h4>
-                                    <div class="timeline-meta">04 novembre 2025 · Expire dans 8 heures</div>
-                                </div>
-                            </div>
+                            {% endif %}
                         </div>
                     </div>
 
