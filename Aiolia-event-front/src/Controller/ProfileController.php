@@ -572,9 +572,213 @@ class ProfileController extends AbstractController
     }
 
     #[Route('/profile/settings', name: 'profile_settings')]
-    public function settings(): Response
+    public function settings(Request $request): Response
     {
-        return $this->render('profile/settings.html.twig');
+        $session = $request->getSession();
+        if (!$session->isStarted()) {
+            $session->start();
+        }
+
+        $sessionUser = $session->get('user');
+        $isAuthenticated = is_array($sessionUser) && isset($sessionUser['id']);
+
+        if (!$isAuthenticated) {
+            return $this->redirectToRoute('login');
+        }
+
+        $userId = (int) $sessionUser['id'];
+
+        // Récupérer les informations utilisateur
+        $userInfo = $this->fetchUserInfo($userId);
+        
+        // Récupérer les préférences utilisateur
+        $preferences = $this->fetchUserPreferences($userId);
+
+        return $this->render('profile/settings.html.twig', [
+            'user' => $userInfo,
+            'preferences' => $preferences,
+            'isAuthenticated' => $isAuthenticated,
+        ]);
+    }
+
+    #[Route('/profile/settings/update', name: 'profile_settings_update', methods: ['POST'])]
+    public function updateSettings(Request $request): JsonResponse
+    {
+        $session = $request->getSession();
+        if (!$session->isStarted()) {
+            $session->start();
+        }
+
+        $sessionUser = $session->get('user');
+        if (!is_array($sessionUser) || !isset($sessionUser['id'])) {
+            return new JsonResponse([
+                'status' => 'error',
+                'message' => 'Vous devez être connecté'
+            ], 401);
+        }
+
+        $userId = (int) $sessionUser['id'];
+        $data = json_decode($request->getContent(), true);
+
+        try {
+            // Mettre à jour les informations personnelles
+            if (isset($data['personal_info'])) {
+                $personalInfo = $data['personal_info'];
+                $updateFields = [];
+                $params = ['userId' => $userId];
+
+                if (isset($personalInfo['first_name'])) {
+                    $updateFields[] = 'first_name = :first_name';
+                    $params['first_name'] = $personalInfo['first_name'];
+                }
+                if (isset($personalInfo['last_name'])) {
+                    $updateFields[] = 'last_name = :last_name';
+                    $params['last_name'] = $personalInfo['last_name'];
+                }
+                if (isset($personalInfo['phone'])) {
+                    $updateFields[] = 'phone = :phone';
+                    $params['phone'] = $personalInfo['phone'];
+                }
+                if (isset($personalInfo['language_code'])) {
+                    $updateFields[] = 'language_code = :language_code';
+                    $params['language_code'] = $personalInfo['language_code'];
+                }
+
+                if (!empty($updateFields)) {
+                    $sql = 'UPDATE aiolia.users SET ' . implode(', ', $updateFields) . ' WHERE id = :userId';
+                    $this->connection->executeStatement($sql, $params);
+                }
+            }
+
+            // Mettre à jour les préférences
+            if (isset($data['preferences'])) {
+                foreach ($data['preferences'] as $key => $value) {
+                    $this->connection->executeStatement(
+                        'INSERT INTO aiolia.user_preferences (user_id, preference_key, preference_value, updated_at)
+                         VALUES (:userId, :key, :value::jsonb, NOW())
+                         ON CONFLICT (user_id, preference_key)
+                         DO UPDATE SET preference_value = :value::jsonb, updated_at = NOW()',
+                        [
+                            'userId' => $userId,
+                            'key' => $key,
+                            'value' => json_encode($value, JSON_THROW_ON_ERROR),
+                        ]
+                    );
+                }
+            }
+
+            return new JsonResponse([
+                'status' => 'success',
+                'message' => 'Paramètres mis à jour avec succès'
+            ]);
+        } catch (\Exception $e) {
+            return new JsonResponse([
+                'status' => 'error',
+                'message' => 'Erreur lors de la mise à jour: ' . $e->getMessage()
+            ], 500);
+        }
+    }
+
+    /**
+     * Récupère les informations utilisateur
+     *
+     * @return array<string, mixed>
+     */
+    private function fetchUserInfo(int $userId): array
+    {
+        $sql = <<<SQL
+            SELECT 
+                id,
+                email,
+                first_name,
+                last_name,
+                phone,
+                language_code,
+                timezone,
+                avatar_url,
+                password_hash,
+                created_at
+            FROM aiolia.users
+            WHERE id = :userId
+        SQL;
+
+        $row = $this->connection->executeQuery($sql, ['userId' => $userId])->fetchAssociative();
+
+        if (false === $row) {
+            return [];
+        }
+
+        // Formater le nom complet
+        $fullName = trim(($row['first_name'] ?? '') . ' ' . ($row['last_name'] ?? ''));
+
+        // Formater la date de création
+        $createdAt = isset($row['created_at']) ? new \DateTimeImmutable($row['created_at']) : null;
+        $createdAtFormatted = $createdAt ? $createdAt->format('d M Y') : '';
+
+        // Récupérer la date de dernière modification du mot de passe (si disponible)
+        // Note: On ne peut pas vraiment connaître la date de modification du mot de passe
+        // sans un champ dédié, donc on utilisera la date de création comme approximation
+        $passwordLastModified = $createdAtFormatted;
+
+        return [
+            'id' => (int) $row['id'],
+            'email' => $row['email'],
+            'first_name' => $row['first_name'] ?? '',
+            'last_name' => $row['last_name'] ?? '',
+            'full_name' => $fullName,
+            'phone' => $row['phone'] ?? '',
+            'language_code' => $row['language_code'] ?? 'fr-FR',
+            'timezone' => $row['timezone'] ?? 'Indian/Antananarivo',
+            'avatar_url' => $row['avatar_url'],
+            'password_last_modified' => $passwordLastModified,
+        ];
+    }
+
+    /**
+     * Récupère les préférences utilisateur
+     *
+     * @return array<string, mixed>
+     */
+    private function fetchUserPreferences(int $userId): array
+    {
+        $sql = <<<SQL
+            SELECT preference_key, preference_value
+            FROM aiolia.user_preferences
+            WHERE user_id = :userId
+        SQL;
+
+        $rows = $this->connection->executeQuery($sql, ['userId' => $userId])->fetchAllAssociative();
+
+        $preferences = [
+            'notifications' => [
+                'ticket_alerts' => true,
+                'event_reminders' => true,
+                'newsletters' => false,
+            ],
+            'security' => [
+                'two_factor_enabled' => false,
+            ],
+            'appearance' => [
+                'theme' => 'light',
+            ],
+        ];
+
+        foreach ($rows as $row) {
+            $key = $row['preference_key'];
+            $value = json_decode($row['preference_value'], true);
+            
+            if ($key === 'notifications') {
+                $preferences['notifications'] = array_merge($preferences['notifications'], $value ?? []);
+            } elseif ($key === 'security') {
+                $preferences['security'] = array_merge($preferences['security'], $value ?? []);
+            } elseif ($key === 'appearance') {
+                $preferences['appearance'] = array_merge($preferences['appearance'], $value ?? []);
+            } else {
+                $preferences[$key] = $value;
+            }
+        }
+
+        return $preferences;
     }
 
     #[Route('/profile/financial-history', name: 'profile_financial')]
