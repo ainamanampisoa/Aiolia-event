@@ -71,48 +71,104 @@
                                         <h4>Quantités des billets</h4>
                                     </div>
                                     
-                                    <!-- Quantité adultes -->
-                                    <div class="quantity-control">
-                                        <label><i class="fas fa-user"></i> Billets Adultes</label>
-                                        <div class="quantity-input-group">
-                                            <div class="numbers-row">
-                                                <button type="button" class="dec button" data-type="adult">-</button>
-                                                <input type="text" name="adult_qtt" value="{{ item.adultQuantity }}" class="qtt" data-price="{{ item.event.adultPrice }}" data-type="adult">
-                                                <button type="button" class="inc button" data-type="adult">+</button>
-                                            </div>
-                                            <div class="price-indicator">
-                                                {{ item.event.adultPrice|number_format(0, ',', ' ') }}MGA / unité
-                                            </div>
-                                        </div>
-                                    </div>
+                                    {# Vérifier les prix disponibles #}
+                                    {% set hasAdultPrice = item.event.adultPrice is defined and item.event.adultPrice is not null and item.event.adultPrice > 0 %}
+                                    {% set hasChildPrice = item.event.childPrice is defined and item.event.childPrice is not null and item.event.childPrice > 0 %}
                                     
-                                    <!-- Quantité enfants -->
-                                    <div class="quantity-control {% if not item.event.childPrice or item.event.childPrice == 0 %}disabled{% endif %}">
-                                        <label>
-                                            <i class="fas fa-child"></i> 
-                                            Billets Enfants
-                                            {% if not item.event.childPrice or item.event.childPrice == 0 %}
-                                            <span style="color: var(--danger); font-size: 10px; margin-left: 5px;">(Non disponible)</span>
-                                            {% endif %}
-                                        </label>
-                                        <div class="quantity-input-group">
-                                            <div class="numbers-row">
-                                                <button type="button" class="dec button {% if not item.event.childPrice or item.event.childPrice == 0 %}disabled{% endif %}" data-type="child">-</button>
-                                                <input type="text" name="child_qtt" value="{{ item.childQuantity }}" class="qtt {% if not item.event.childPrice or item.event.childPrice == 0 %}disabled{% endif %}" 
-                                                       data-price="{{ item.event.childPrice ? item.event.childPrice : 0 }}" 
-                                                       data-type="child"
-                                                       {% if not item.event.childPrice or item.event.childPrice == 0 %}disabled{% endif %}>
-                                                <button type="button" class="inc button {% if not item.event.childPrice or item.event.childPrice == 0 %}disabled{% endif %}" data-type="child">+</button>
-                                            </div>
-                                            <div class="price-indicator">
-                                                {% if item.event.childPrice and item.event.childPrice > 0 %}
-                                                    {{ item.event.childPrice|number_format(0, ',', ' ') }}MGA / unité
-                                                {% else %}
-                                                    Non disponible
-                                                {% endif %}
+                                    {# Vérifier si c'est un type "all" (même prix pour adulte et enfant, ou seulement un prix) #}
+                                    {% set hasNoPrices = not hasAdultPrice and not hasChildPrice %}
+                                    {% set hasBothPrices = hasAdultPrice and hasChildPrice %}
+                                    {% set hasSamePrice = hasBothPrices and item.event.adultPrice == item.event.childPrice %}
+                                    {% set isAllType = hasSamePrice or (hasAdultPrice and not hasChildPrice) or (not hasAdultPrice and hasChildPrice) or hasNoPrices %}
+                                    {% set uniquePrice = hasAdultPrice ? item.event.adultPrice : (hasChildPrice ? item.event.childPrice : 0) %}
+                                    
+                                    {# Si c'est un type "all" (même prix, ou seulement un prix, ou aucun prix), afficher juste "Quantité" #}
+                                    {% if isAllType %}
+                                        {# Cas : Type "all" ou aucun type - afficher juste "Quantité" #}
+                                        <div class="quantity-control" style="justify-content: center;">
+                                            <label style="text-align: center; width: 100%;">
+                                                <i class="fas fa-ticket-alt"></i> Quantité
+                                            </label>
+                                            <div class="quantity-input-group">
+                                                <div class="numbers-row">
+                                                    <button type="button" class="dec button" data-type="quantity">-</button>
+                                                    <input type="text" name="quantity_qtt" value="{{ item.adultQuantity + item.childQuantity }}" class="qtt" data-price="{{ uniquePrice }}" data-type="quantity">
+                                                    <button type="button" class="inc button" data-type="quantity">+</button>
+                                                </div>
+                                                <div class="price-indicator">
+                                                    {% if uniquePrice > 0 %}
+                                                        {{ uniquePrice|number_format(0, ',', ' ') }}MGA / unité
+                                                    {% else %}
+                                                        Prix non disponible
+                                                    {% endif %}
+                                                </div>
                                             </div>
                                         </div>
-                                    </div>
+                                    {% else %}
+                                        {# Cas : Afficher les inputs adulte et/ou enfant #}
+                                        
+                                        {# Quantité adultes - afficher seulement si prix adulte existe #}
+                                        {% if hasAdultPrice %}
+                                        <div class="quantity-control">
+                                            <label><i class="fas fa-user"></i> Billets Adultes</label>
+                                            <div class="quantity-input-group">
+                                                <div class="numbers-row">
+                                                    <button type="button" class="dec button" data-type="adult">-</button>
+                                                    <input type="text" name="adult_qtt" value="{{ item.adultQuantity }}" class="qtt" data-price="{{ item.event.adultPrice }}" data-type="adult">
+                                                    <button type="button" class="inc button" data-type="adult">+</button>
+                                                </div>
+                                                <div class="price-indicator">
+                                                    {{ item.event.adultPrice|number_format(0, ',', ' ') }}MGA / unité
+                                                </div>
+                                            </div>
+                                        </div>
+                                        {% endif %}
+                                        
+                                        {# Quantité enfants #}
+                                        {% if hasChildPrice %}
+                                        {# Prix enfant disponible - afficher l'input normal #}
+                                        <div class="quantity-control">
+                                            <label>
+                                                <i class="fas fa-child"></i> 
+                                                Billets Enfants
+                                            </label>
+                                            <div class="quantity-input-group">
+                                                <div class="numbers-row">
+                                                    <button type="button" class="dec button" data-type="child">-</button>
+                                                    <input type="text" name="child_qtt" value="{{ item.childQuantity }}" class="qtt" 
+                                                           data-price="{{ item.event.childPrice }}" 
+                                                           data-type="child">
+                                                    <button type="button" class="inc button" data-type="child">+</button>
+                                                </div>
+                                                <div class="price-indicator">
+                                                    {{ item.event.childPrice|number_format(0, ',', ' ') }}MGA / unité
+                                                </div>
+                                            </div>
+                                        </div>
+                                        {% elseif hasAdultPrice %}
+                                        {# Prix enfant non disponible mais prix adulte existe - afficher avec "(Non disponible)" en rouge #}
+                                        <div class="quantity-control disabled">
+                                            <label>
+                                                <i class="fas fa-child"></i> 
+                                                Billets Enfants
+                                                <span style="color: #FF0000; font-size: 12px; margin-left: 5px; font-weight: normal;">(Non disponible)</span>
+                                            </label>
+                                            <div class="quantity-input-group">
+                                                <div class="numbers-row">
+                                                    <button type="button" class="dec button disabled" data-type="child" disabled>-</button>
+                                                    <input type="text" name="child_qtt" value="0" class="qtt disabled" 
+                                                           data-price="0" 
+                                                           data-type="child"
+                                                           disabled>
+                                                    <button type="button" class="inc button disabled" data-type="child" disabled>+</button>
+                                                </div>
+                                                <div class="price-indicator" style="color: #999;">
+                                                    Non disponible
+                                                </div>
+                                            </div>
+                                        </div>
+                                        {% endif %}
+                                    {% endif %}
                                 </div>
                                 
                                 <!-- Résumé par événement -->
