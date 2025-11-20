@@ -35,7 +35,39 @@
                 <div class="search-input">
                     <i class="fas fa-search"></i>
                     <input type="search" placeholder="Rechercher dans votre historique">
-                    <button class="btn-solid"><i class="fas fa-bell"></i> Créer une alerte</button>
+                    <div class="sort-container">
+                        <button class="btn-solid" id="sortByDateBtn"><i class="fas fa-sort"></i> Trier par date</button>
+                        <div class="date-picker-dropdown" id="datePickerDropdown">
+                            <div class="date-options">
+                                <button class="date-option active" data-sort="newest">
+                                    <i class="fas fa-arrow-down"></i>
+                                    <span>Plus récentes</span>
+                                </button>
+                                <button class="date-option" data-sort="oldest">
+                                    <i class="fas fa-arrow-up"></i>
+                                    <span>Plus anciennes</span>
+                                </button>
+                                <div class="date-separator"></div>
+                                <button class="date-option" data-sort="custom">
+                                    <i class="fas fa-calendar-alt"></i>
+                                    <span>Période personnalisée</span>
+                                </button>
+                            </div>
+                            <div class="custom-date-picker">
+                                <div class="date-inputs">
+                                    <div class="input-group">
+                                        <label>Du</label>
+                                        <input type="date" id="startDate">
+                                    </div>
+                                    <div class="input-group">
+                                        <label>Au</label>
+                                        <input type="date" id="endDate">
+                                    </div>
+                                </div>
+                                <button class="btn-apply-date">Appliquer</button>
+                            </div>
+                        </div>
+                    </div>
                 </div>
                 <ul class="search-list">
                     {% for item in searches %}
@@ -60,4 +92,94 @@
             </section>
         </div>
     </main>
+{% endblock %}
+
+{% block javascripts %}
+    <script type="text/javascript" src="{{ asset('vente-ticket/js/jquery.min.js') }}"></script>
+    <script type="text/javascript" src="{{ asset('vente-ticket/js/wow.js') }}"></script>
+    <script>
+        document.addEventListener('DOMContentLoaded', function() {
+            const sortBtn = document.getElementById('sortByDateBtn');
+            const dateDropdown = document.getElementById('datePickerDropdown');
+            const dateOptions = document.querySelectorAll('.date-option');
+            const applyDateBtn = document.querySelector('.btn-apply-date');
+            
+            // Toggle dropdown
+            sortBtn.addEventListener('click', function(e) {
+                e.stopPropagation();
+                dateDropdown.classList.toggle('active');
+            });
+            
+            // Gestion des options de tri
+            dateOptions.forEach(option => {
+                option.addEventListener('click', function() {
+                    // Retirer la classe active de toutes les options
+                    dateOptions.forEach(opt => opt.classList.remove('active'));
+                    // Ajouter la classe active à l'option cliquée
+                    this.classList.add('active');
+                    
+                    const sortType = this.dataset.sort;
+                    
+                    if (sortType === 'custom') {
+                        // Afficher le sélecteur de date personnalisé
+                        document.querySelector('.custom-date-picker').style.display = 'block';
+                    } else {
+                        // Masquer le sélecteur de date personnalisé
+                        document.querySelector('.custom-date-picker').style.display = 'none';
+                        // Appliquer le tri
+                        applySort(sortType);
+                        // Fermer le dropdown
+                        dateDropdown.classList.remove('active');
+                    }
+                });
+            });
+            
+            // Appliquer la période personnalisée
+            applyDateBtn.addEventListener('click', function() {
+                const startDate = document.getElementById('startDate').value;
+                const endDate = document.getElementById('endDate').value;
+                
+                if (startDate && endDate) {
+                    applySort('custom', { startDate, endDate });
+                    dateDropdown.classList.remove('active');
+                } else {
+                    alert('Veuillez sélectionner une période complète');
+                }
+            });
+            
+            // Fermer le dropdown en cliquant ailleurs
+            document.addEventListener('click', function() {
+                dateDropdown.classList.remove('active');
+            });
+            
+            // Empêcher la fermeture quand on clique dans le dropdown
+            dateDropdown.addEventListener('click', function(e) {
+                e.stopPropagation();
+            });
+            
+            function applySort(sortType, customDates = null) {
+                // Ici vous pouvez implémenter la logique de tri
+                console.log('Tri appliqué:', sortType, customDates);
+                
+                // Mettre à jour le texte du bouton
+                let buttonText = 'Trier par date';
+                switch(sortType) {
+                    case 'newest':
+                        buttonText = 'Plus récentes';
+                        break;
+                    case 'oldest':
+                        buttonText = 'Plus anciennes';
+                        break;
+                    case 'custom':
+                        buttonText = 'Période personnalisée';
+                        break;
+                }
+                
+                sortBtn.innerHTML = `<i class="fas fa-sort"></i> ${buttonText}`;
+                
+                // Ajouter une classe pour indiquer qu'un tri est actif
+                sortBtn.classList.add('sort-active');
+            }
+        });
+    </script>
 {% endblock %}
