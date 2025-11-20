@@ -109,6 +109,18 @@ class EventController extends AbstractController
             }
         }
 
+        // Charger les favoris de l'utilisateur si connecté
+        $favoriteEventIds = [];
+        if ($isAuthenticated && isset($sessionUser['id'])) {
+            $favoriteEventIds = $this->fetchUserFavoriteEventIds((int) $sessionUser['id']);
+            
+            // Ajouter la propriété isFavorite à chaque événement
+            foreach ($events as &$event) {
+                $event['isFavorite'] = in_array($event['id'], $favoriteEventIds, true);
+            }
+            unset($event);
+        }
+
         $groupedEvents = $this->groupEventsByCategory($events);
         $categories = $this->fetchCategories();
         $locations = $this->fetchLocations();
@@ -135,7 +147,159 @@ class EventController extends AbstractController
         ]);
     }
 
-    #[Route('/events/{id}', name: 'event_details')]
+    #[Route('/events/{id}/favorite', name: 'api_events_favorite', methods: ['POST'])]
+    public function addToFavorites(int $id, Request $request): JsonResponse
+    {
+        $session = $request->getSession();
+        if (!$session->isStarted()) {
+            $session->start();
+        }
+
+        $sessionUser = $session->get('user');
+        if (!is_array($sessionUser) || !isset($sessionUser['id'])) {
+            $this->logger->warning('Tentative d\'ajout aux favoris sans authentification', ['event_id' => $id]);
+            return new JsonResponse([
+                'status' => 'error',
+                'message' => 'Vous devez être connecté pour ajouter aux favoris'
+            ], 401);
+        }
+
+        $userId = (int) $sessionUser['id'];
+        $this->logger->debug('Ajout aux favoris', ['event_id' => $id, 'user_id' => $userId]);
+
+        try {
+            // Vérifier si l'événement existe
+            $eventExists = $this->connection->executeQuery(
+                'SELECT id FROM aiolia.events WHERE id = :id',
+                ['id' => $id]
+            )->fetchOne();
+
+            if (!$eventExists) {
+                return new JsonResponse([
+                    'status' => 'error',
+                    'message' => 'Événement introuvable'
+                ], 404);
+            }
+
+            // Récupérer ou créer la wishlist par défaut
+            $wishlistId = $this->connection->executeQuery(
+                'SELECT id FROM aiolia.wishlists WHERE user_id = :userId AND is_default = TRUE LIMIT 1',
+                ['userId' => $userId]
+            )->fetchOne();
+
+            if (!$wishlistId) {
+                // Créer la wishlist par défaut
+                $this->connection->executeStatement(
+                    'INSERT INTO aiolia.wishlists (user_id, title, is_default, created_at) VALUES (:userId, :title, TRUE, NOW())',
+                    ['userId' => $userId, 'title' => 'Favoris']
+                );
+                // Récupérer l'ID de la wishlist créée
+                $wishlistId = $this->connection->executeQuery(
+                    'SELECT id FROM aiolia.wishlists WHERE user_id = :userId AND is_default = TRUE LIMIT 1',
+                    ['userId' => $userId]
+                )->fetchOne();
+            }
+
+            // Vérifier si l'événement est déjà dans les favoris
+            $exists = $this->connection->executeQuery(
+                'SELECT 1 FROM aiolia.wishlist_items WHERE wishlist_id = :wishlistId AND event_id = :eventId',
+                ['wishlistId' => $wishlistId, 'eventId' => $id]
+            )->fetchOne();
+
+            if ($exists) {
+                return new JsonResponse([
+                    'status' => 'success',
+                    'message' => 'Événement déjà dans les favoris'
+                ]);
+            }
+
+            // Ajouter l'événement aux favoris
+            $this->connection->executeStatement(
+                'INSERT INTO aiolia.wishlist_items (wishlist_id, event_id, added_at) VALUES (:wishlistId, :eventId, NOW())',
+                ['wishlistId' => $wishlistId, 'eventId' => $id]
+            );
+
+            $this->logger->info('Événement ajouté aux favoris', ['event_id' => $id, 'user_id' => $userId, 'wishlist_id' => $wishlistId]);
+
+            return new JsonResponse([
+                'status' => 'success',
+                'message' => 'Événement ajouté aux favoris'
+            ]);
+        } catch (\Exception $e) {
+            $this->logger->error('Erreur lors de l\'ajout aux favoris', [
+                'event_id' => $id,
+                'user_id' => $userId,
+                'error' => $e->getMessage()
+            ]);
+
+            return new JsonResponse([
+                'status' => 'error',
+                'message' => 'Erreur lors de l\'ajout aux favoris'
+            ], 500);
+        }
+    }
+
+    #[Route('/events/{id}/favorite', name: 'api_events_unfavorite', methods: ['DELETE'])]
+    public function removeFromFavorites(int $id, Request $request): JsonResponse
+    {
+        $session = $request->getSession();
+        if (!$session->isStarted()) {
+            $session->start();
+        }
+
+        $sessionUser = $session->get('user');
+        if (!is_array($sessionUser) || !isset($sessionUser['id'])) {
+            $this->logger->warning('Tentative de retrait des favoris sans authentification', ['event_id' => $id]);
+            return new JsonResponse([
+                'status' => 'error',
+                'message' => 'Vous devez être connecté pour retirer des favoris'
+            ], 401);
+        }
+
+        $userId = (int) $sessionUser['id'];
+        $this->logger->debug('Retrait des favoris', ['event_id' => $id, 'user_id' => $userId]);
+
+        try {
+            // Récupérer la wishlist par défaut
+            $wishlistId = $this->connection->executeQuery(
+                'SELECT id FROM aiolia.wishlists WHERE user_id = :userId AND is_default = TRUE LIMIT 1',
+                ['userId' => $userId]
+            )->fetchOne();
+
+            if (!$wishlistId) {
+                return new JsonResponse([
+                    'status' => 'success',
+                    'message' => 'Événement retiré des favoris'
+                ]);
+            }
+
+            // Retirer l'événement des favoris
+            $deleted = $this->connection->executeStatement(
+                'DELETE FROM aiolia.wishlist_items WHERE wishlist_id = :wishlistId AND event_id = :eventId',
+                ['wishlistId' => $wishlistId, 'eventId' => $id]
+            );
+
+            $this->logger->info('Événement retiré des favoris', ['event_id' => $id, 'user_id' => $userId, 'wishlist_id' => $wishlistId, 'deleted' => $deleted]);
+
+            return new JsonResponse([
+                'status' => 'success',
+                'message' => 'Événement retiré des favoris'
+            ]);
+        } catch (\Exception $e) {
+            $this->logger->error('Erreur lors du retrait des favoris', [
+                'event_id' => $id,
+                'user_id' => $userId,
+                'error' => $e->getMessage()
+            ]);
+
+            return new JsonResponse([
+                'status' => 'error',
+                'message' => 'Erreur lors du retrait des favoris'
+            ], 500);
+        }
+    }
+
+    #[Route('/events/{id}', name: 'event_details', methods: ['GET'])]
     public function showEvent(int $id, Request $request): Response
     {
         $session = $request->getSession();
@@ -622,26 +786,6 @@ class EventController extends AbstractController
             'message' => "Catégories de billets pour l'événement {$id} - À implémenter",
             'status' => 'success',
             'data' => []
-        ]);
-    }
-
-    #[Route('/api/events/{id}/favorite', name: 'api_events_favorite', methods: ['POST'])]
-    public function addToFavorites(int $id): JsonResponse
-    {
-        // TODO: Ajouter un événement aux favoris
-        return new JsonResponse([
-            'message' => "Ajout aux favoris de l'événement {$id} - À implémenter",
-            'status' => 'success'
-        ]);
-    }
-
-    #[Route('/api/events/{id}/favorite', name: 'api_events_unfavorite', methods: ['DELETE'])]
-    public function removeFromFavorites(int $id): JsonResponse
-    {
-        // TODO: Retirer un événement des favoris
-        return new JsonResponse([
-            'message' => "Suppression des favoris de l'événement {$id} - À implémenter",
-            'status' => 'success'
         ]);
     }
 
@@ -1151,6 +1295,33 @@ class EventController extends AbstractController
         return $this->connection
             ->executeQuery($sql, ['event_id' => $eventId])
             ->fetchFirstColumn();
+    }
+
+    /**
+     * @return int[]
+     */
+    private function fetchUserFavoriteEventIds(int $userId): array
+    {
+        // Vérifier si une wishlist par défaut existe, sinon retourner un tableau vide
+        $checkSql = <<<SQL
+            SELECT id FROM aiolia.wishlists
+            WHERE user_id = :userId AND is_default = TRUE
+            LIMIT 1
+        SQL;
+        
+        $wishlistId = $this->connection->executeQuery($checkSql, ['userId' => $userId])->fetchOne();
+        
+        if (!$wishlistId) {
+            return [];
+        }
+        
+        $sql = <<<SQL
+            SELECT event_id
+            FROM aiolia.wishlist_items
+            WHERE wishlist_id = :wishlistId
+        SQL;
+
+        return $this->connection->executeQuery($sql, ['wishlistId' => $wishlistId])->fetchFirstColumn();
     }
 
     /**

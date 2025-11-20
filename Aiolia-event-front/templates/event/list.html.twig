@@ -277,9 +277,59 @@
             document.addEventListener('DOMContentLoaded', () => {
                 // Gestion des favoris
                 document.querySelectorAll('.favorite-toggle').forEach(btn => {
-                    btn.addEventListener('click', () => {
-                        btn.classList.toggle('is-active');
-                        btn.setAttribute('aria-pressed', btn.classList.contains('is-active'));
+                    btn.addEventListener('click', function(e) {
+                        e.preventDefault();
+                        e.stopPropagation();
+                        
+                        const eventId = this.dataset.eventId;
+                        const isActive = this.classList.contains('is-active');
+                        
+                        // Toggle visuel immédiat
+                        this.classList.toggle('is-active');
+                        this.setAttribute('aria-pressed', this.classList.contains('is-active'));
+                        
+                        // Appel API pour ajouter/retirer des favoris
+                        const method = isActive ? 'DELETE' : 'POST';
+                        const url = `/events/${eventId}/favorite`;
+                        
+                        fetch(url, {
+                            method: method,
+                            headers: {
+                                'X-Requested-With': 'XMLHttpRequest',
+                                'Content-Type': 'application/json',
+                            },
+                        })
+                        .then(response => {
+                            // Vérifier si la réponse est OK
+                            if (!response.ok) {
+                                throw new Error(`HTTP error! status: ${response.status}`);
+                            }
+                            // Vérifier si la réponse est du JSON
+                            const contentType = response.headers.get('content-type');
+                            if (!contentType || !contentType.includes('application/json')) {
+                                throw new Error('Response is not JSON');
+                            }
+                            return response.json();
+                        })
+                        .then(data => {
+                            if (data.status !== 'success') {
+                                // En cas d'erreur, annuler le toggle visuel
+                                this.classList.toggle('is-active');
+                                this.setAttribute('aria-pressed', this.classList.contains('is-active'));
+                                console.error('Erreur lors de la mise à jour des favoris:', data.message || 'Erreur inconnue');
+                                alert('Erreur: ' + (data.message || 'Impossible de mettre à jour les favoris'));
+                            } else {
+                                console.log('Favori mis à jour avec succès:', data.message);
+                                // Le cœur reste dans l'état actuel (rouge si ajouté, normal si retiré)
+                            }
+                        })
+                        .catch(error => {
+                            // En cas d'erreur, annuler le toggle visuel
+                            this.classList.toggle('is-active');
+                            this.setAttribute('aria-pressed', this.classList.contains('is-active'));
+                            console.error('Erreur lors de la mise à jour des favoris:', error);
+                            alert('Erreur lors de la mise à jour des favoris. Veuillez réessayer.');
+                        });
                     });
                 });
                 

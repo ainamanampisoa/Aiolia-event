@@ -14,35 +14,7 @@
 {% block hero %}{% endblock %}
 
 {% block body %}
-    {% set favorites = favorites|default([
-        {
-            title: 'Afro Jazz Experience',
-            date: 'Samedi 14 décembre · 20h00',
-            location: 'Le Grand Café de la Gare, Antananarivo',
-            image: 'vente-ticket/images/img1.png',
-            status: 'Ouvert à la vente',
-            badges: ['Jazz', 'Live band'],
-            price: 'Dès 80 000 MGA'
-        },
-        {
-            title: 'Madagascar Fashion Night',
-            date: 'Vendredi 20 décembre · 19h30',
-            location: 'Carlton, Antananarivo',
-            image: 'vente-ticket/images/img2.png',
-            status: 'Prévente VIP',
-            badges: ['Fashion', 'Premium'],
-            price: 'Dès 150 000 MGA'
-        },
-        {
-            title: 'Festival des Arts Urbains',
-            date: 'Dimanche 05 janvier · 17h00',
-            location: 'Arena Andohatapenaka',
-            image: 'vente-ticket/images/img3.png',
-            status: 'Bientôt disponible',
-            badges: ['Street Art', 'Hip-Hop'],
-            price: 'Notification à l’ouverture'
-        }
-    ]) %}
+    {% set favorites = favorites|default([]) %}
 
     <main class="profile-favorites-wrapper">
         <div class="container">
@@ -64,10 +36,15 @@
             {% else %}
                 <section class="favorites-grid">
                     {% for event in favorites %}
+                        {# Debug: vérifier que l'événement est bien présent #}
+                        {# {{ dump(event) }} #}
+                        {% set imagePath = event.image
+                            ? (event.image starts with 'http' ? event.image : asset(event.image|trim('/')))
+                            : asset('vente-ticket/images/img1.png') %}
                         <article class="favorite-card wow fadeInUp" data-wow-delay="{{ loop.index * 80 }}ms">
                             <div class="favorite-cover">
-                                <img src="{{ asset(event.image) }}" alt="{{ event.title }}">
-                                <button class="favorite-remove" title="Retirer des favoris"><i class="fas fa-times"></i></button>
+                                <img src="{{ imagePath }}" alt="{{ event.title }}">
+                                <button class="favorite-remove" data-event-id="{{ event.id }}" title="Retirer des favoris"><i class="fas fa-times"></i></button>
                             </div>
                             <div class="favorite-content">
                                 <div class="favorite-badges">
@@ -86,7 +63,7 @@
                                 <div class="favorite-footer">
                                     <span class="favorite-price">{{ event.price }}</span>
                                     <div class="favorite-actions">
-                                        <a href="{{ path('my_ticket_details', { id: loop.index }) }}" class="btn-details"><i class="fas fa-info-circle"></i> Détails</a>
+                                        <a href="{{ path('event_details', { id: event.id }) }}" class="btn-details"><i class="fas fa-info-circle"></i> Détails</a>
                                         <button class="btn-notify"><i class="fas fa-bell"></i> Alerte</button>
                                     </div>
                                 </div>
@@ -97,4 +74,58 @@
             {% endif %}
         </div>
     </main>
+{% endblock %}
+
+{% block javascripts %}
+    <script type="text/javascript" src="{{ asset('vente-ticket/js/jquery.min.js') }}"></script>
+    <script type="text/javascript" src="{{ asset('vente-ticket/js/wow.js') }}"></script>
+    <script>
+        document.addEventListener('DOMContentLoaded', () => {
+            // Gestion du retrait des favoris
+            document.querySelectorAll('.favorite-remove').forEach(btn => {
+                btn.addEventListener('click', function(e) {
+                    e.preventDefault();
+                    e.stopPropagation();
+                    
+                    const eventId = this.dataset.eventId;
+                    const card = this.closest('.favorite-card');
+                    
+                    if (!confirm('Voulez-vous retirer cet événement de vos favoris ?')) {
+                        return;
+                    }
+                    
+                    // Appel API pour retirer des favoris
+                    fetch(`/events/${eventId}/favorite`, {
+                        method: 'DELETE',
+                        headers: {
+                            'X-Requested-With': 'XMLHttpRequest',
+                            'Content-Type': 'application/json',
+                        },
+                    })
+                    .then(response => response.json())
+                    .then(data => {
+                        if (data.status === 'success') {
+                            // Animation de suppression
+                            card.style.transform = 'scale(0.95)';
+                            card.style.opacity = '0.5';
+                            setTimeout(() => {
+                                card.remove();
+                                // Vérifier s'il reste des favoris
+                                const remainingFavorites = document.querySelectorAll('.favorite-card').length;
+                                if (remainingFavorites === 0) {
+                                    location.reload(); // Recharger pour afficher le message "Aucun favori"
+                                }
+                            }, 300);
+                        } else {
+                            alert('Erreur lors du retrait des favoris: ' + (data.message || 'Erreur inconnue'));
+                        }
+                    })
+                    .catch(error => {
+                        console.error('Erreur lors du retrait des favoris:', error);
+                        alert('Erreur lors du retrait des favoris. Veuillez réessayer.');
+                    });
+                });
+            });
+        });
+    </script>
 {% endblock %}

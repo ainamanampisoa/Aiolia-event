@@ -83,8 +83,15 @@
 
 .favorites-grid {
     display: grid;
-    grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+    grid-template-columns: repeat(auto-fill, minmax(320px, 1fr));
     gap: 24px;
+    width: 100%;
+}
+
+/* S'assurer que même avec un seul favori, l'affichage reste cohérent */
+.favorites-grid .favorite-card:only-child {
+    max-width: 400px;
+    margin: 0 auto;
 }
 
 .favorite-card {
