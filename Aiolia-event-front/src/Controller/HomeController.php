@@ -37,6 +37,18 @@ class HomeController extends AbstractController
         $events = $this->fetchUpcomingEvents();
         $stats = $this->fetchHeadlineStats();
 
+        // Charger les favoris de l'utilisateur si connecté
+        $favoriteEventIds = [];
+        if ($isAuthenticated && isset($sessionUser['id'])) {
+            $favoriteEventIds = $this->fetchUserFavoriteEventIds((int) $sessionUser['id']);
+            
+            // Ajouter la propriété isFavorite à chaque événement
+            foreach ($events as &$event) {
+                $event['isFavorite'] = in_array($event['id'], $favoriteEventIds, true);
+            }
+            unset($event);
+        }
+
         return $this->render('home/index.html.twig', [
             'events' => $events,
             'stats' => $stats,
@@ -151,5 +163,32 @@ class HomeController extends AbstractController
             'tickets_sold' => (int) ($row['tickets_sold'] ?? 0),
             'organizers' => (int) ($row['organizers'] ?? 0),
         ];
+    }
+
+    /**
+     * @return int[]
+     */
+    private function fetchUserFavoriteEventIds(int $userId): array
+    {
+        // Vérifier si une wishlist par défaut existe, sinon retourner un tableau vide
+        $checkSql = <<<SQL
+            SELECT id FROM aiolia.wishlists
+            WHERE user_id = :userId AND is_default = TRUE
+            LIMIT 1
+        SQL;
+        
+        $wishlistId = $this->connection->executeQuery($checkSql, ['userId' => $userId])->fetchOne();
+        
+        if (!$wishlistId) {
+            return [];
+        }
+        
+        $sql = <<<SQL
+            SELECT event_id
+            FROM aiolia.wishlist_items
+            WHERE wishlist_id = :wishlistId
+        SQL;
+
+        return $this->connection->executeQuery($sql, ['wishlistId' => $wishlistId])->fetchFirstColumn();
     }
 }

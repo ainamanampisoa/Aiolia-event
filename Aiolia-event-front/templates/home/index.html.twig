@@ -7,6 +7,8 @@
         <link rel="stylesheet" type="text/css" href="{{ asset('vente-ticket/css/slick.css') }}">
         <link rel="stylesheet" type="text/css" href="{{ asset('vente-ticket/css/jquery-ui.css') }}">
         <link rel="stylesheet" type="text/css" href="{{ asset('vente-ticket/css/main.css') }}">
+        <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+        <link rel="stylesheet" type="text/css" href="{{ asset('vente-ticket/css/events.css') }}">
 {% endblock %}
 
 {% block body %}
@@ -27,6 +29,11 @@
                                 {% set event_url = isAuthenticated ? path('event_details', { id: event.id }) : path('login') %}
                                 <div class="item wow fadeInUp" data-wow-delay="300ms">
                             <div class="inner">
+                                {% if isAuthenticated %}
+                                <button class="favorite-toggle {% if event.isFavorite is defined and event.isFavorite %}is-active{% endif %}" type="button" data-event-id="{{ event.id }}" title="Ajouter aux favoris">
+                                    <i class="fas fa-heart"></i>
+                                </button>
+                                {% endif %}
                                 <div class="blc-col1">
                                     <div class="col1">
                                         <div class="date">
@@ -278,4 +285,49 @@
             window.AIOLIA_EVENT_DATES = {{ calendar_events|json_encode|raw }};
         </script>
         <script type="text/javascript" src="{{ asset('vente-ticket/js/custom.js') }}"></script>
+        <script>
+            document.addEventListener('DOMContentLoaded', () => {
+                // Gestion des favoris
+                document.querySelectorAll('.favorite-toggle').forEach(btn => {
+                    btn.addEventListener('click', function(e) {
+                        e.preventDefault();
+                        e.stopPropagation();
+                        
+                        const eventId = this.dataset.eventId;
+                        const isActive = this.classList.contains('is-active');
+                        
+                        // Toggle visuel immédiat
+                        this.classList.toggle('is-active');
+                        this.setAttribute('aria-pressed', this.classList.contains('is-active'));
+                        
+                        // Appel API pour ajouter/retirer des favoris
+                        const method = isActive ? 'DELETE' : 'POST';
+                        const url = `/api/events/${eventId}/favorite`;
+                        
+                        fetch(url, {
+                            method: method,
+                            headers: {
+                                'X-Requested-With': 'XMLHttpRequest',
+                                'Content-Type': 'application/json',
+                            },
+                        })
+                        .then(response => response.json())
+                        .then(data => {
+                            if (data.status !== 'success') {
+                                // En cas d'erreur, annuler le toggle visuel
+                                this.classList.toggle('is-active');
+                                this.setAttribute('aria-pressed', this.classList.contains('is-active'));
+                                console.error('Erreur lors de la mise à jour des favoris:', data.message);
+                            }
+                        })
+                        .catch(error => {
+                            // En cas d'erreur, annuler le toggle visuel
+                            this.classList.toggle('is-active');
+                            this.setAttribute('aria-pressed', this.classList.contains('is-active'));
+                            console.error('Erreur lors de la mise à jour des favoris:', error);
+                        });
+                    });
+                });
+            });
+        </script>
 {% endblock %}
