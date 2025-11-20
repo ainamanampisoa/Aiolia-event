@@ -4,6 +4,7 @@ namespace App\Controller;
 
 use Doctrine\DBAL\Connection;
 use Symfony\Bundle\FrameworkBundle\Controller\AbstractController;
+use Symfony\Component\HttpFoundation\JsonResponse;
 use Symfony\Component\HttpFoundation\Request;
 use Symfony\Component\HttpFoundation\Response;
 use Symfony\Component\Routing\Annotation\Route;
@@ -58,9 +59,348 @@ class ProfileController extends AbstractController
     }
 
     #[Route('/profile/search-history', name: 'profile_search_history')]
-    public function searchHistory(): Response
+    public function searchHistory(Request $request): Response
     {
-        return $this->render('profile/search_history.html.twig');
+        $session = $request->getSession();
+        if (!$session->isStarted()) {
+            $session->start();
+        }
+
+        $sessionUser = $session->get('user');
+        $isAuthenticated = is_array($sessionUser) && isset($sessionUser['id']);
+
+        if (!$isAuthenticated) {
+            return $this->redirectToRoute('login');
+        }
+
+        $userId = (int) $sessionUser['id'];
+
+        // Récupérer les paramètres de filtrage et tri
+        $searchQuery = trim((string) $request->query->get('q', ''));
+        $sortBy = $request->query->get('sort', 'newest'); // newest, oldest, custom
+        $dateFrom = trim((string) $request->query->get('date_from', ''));
+        $dateTo = trim((string) $request->query->get('date_to', ''));
+
+        // Récupérer l'historique de recherche
+        $searchHistory = $this->fetchUserSearchHistory($userId, $searchQuery, $sortBy, $dateFrom, $dateTo);
+
+        // Compter le nombre de résultats pour chaque recherche
+        $searchHistoryWithResults = $this->countResultsForSearches($searchHistory);
+
+        return $this->render('profile/search_history.html.twig', [
+            'searches' => $searchHistoryWithResults,
+            'isAuthenticated' => $isAuthenticated,
+            'currentSearchQuery' => $searchQuery,
+            'currentSort' => $sortBy,
+            'currentDateFrom' => $dateFrom,
+            'currentDateTo' => $dateTo,
+        ]);
+    }
+
+    #[Route('/profile/search-history/{id}/delete', name: 'profile_search_history_delete', methods: ['DELETE'])]
+    public function deleteSearchHistoryItem(int $id, Request $request): JsonResponse
+    {
+        $session = $request->getSession();
+        if (!$session->isStarted()) {
+            $session->start();
+        }
+
+        $sessionUser = $session->get('user');
+        if (!is_array($sessionUser) || !isset($sessionUser['id'])) {
+            return new JsonResponse([
+                'status' => 'error',
+                'message' => 'Vous devez être connecté'
+            ], 401);
+        }
+
+        $userId = (int) $sessionUser['id'];
+
+        // Vérifier que l'élément appartient à l'utilisateur
+        $exists = $this->connection->executeQuery(
+            'SELECT id FROM aiolia.user_search_history WHERE id = :id AND user_id = :userId',
+            ['id' => $id, 'userId' => $userId]
+        )->fetchOne();
+
+        if (!$exists) {
+            return new JsonResponse([
+                'status' => 'error',
+                'message' => 'Élément introuvable'
+            ], 404);
+        }
+
+        // Supprimer l'élément
+        $this->connection->executeStatement(
+            'DELETE FROM aiolia.user_search_history WHERE id = :id AND user_id = :userId',
+            ['id' => $id, 'userId' => $userId]
+        );
+
+        return new JsonResponse([
+            'status' => 'success',
+            'message' => 'Recherche supprimée de l\'historique'
+        ]);
+    }
+
+    #[Route('/profile/search-history/clear', name: 'profile_search_history_clear', methods: ['DELETE'])]
+    public function clearSearchHistory(Request $request): JsonResponse
+    {
+        $session = $request->getSession();
+        if (!$session->isStarted()) {
+            $session->start();
+        }
+
+        $sessionUser = $session->get('user');
+        if (!is_array($sessionUser) || !isset($sessionUser['id'])) {
+            return new JsonResponse([
+                'status' => 'error',
+                'message' => 'Vous devez être connecté'
+            ], 401);
+        }
+
+        $userId = (int) $sessionUser['id'];
+
+        // Supprimer tout l'historique de l'utilisateur
+        $this->connection->executeStatement(
+            'DELETE FROM aiolia.user_search_history WHERE user_id = :userId',
+            ['userId' => $userId]
+        );
+
+        return new JsonResponse([
+            'status' => 'success',
+            'message' => 'Historique de recherche effacé'
+        ]);
+    }
+
+    /**
+     * Récupère l'historique de recherche de l'utilisateur avec filtres et tri
+     *
+     * @return array<int, array<string, mixed>>
+     */
+    private function fetchUserSearchHistory(int $userId, string $searchQuery = '', string $sortBy = 'newest', string $dateFrom = '', string $dateTo = ''): array
+    {
+        $sql = 'SELECT id, keywords, filters, searched_at FROM aiolia.user_search_history WHERE user_id = :userId';
+        $params = ['userId' => $userId];
+        $where = [];
+
+        // Filtre par mots-clés
+        if (!empty($searchQuery)) {
+            $where[] = 'keywords ILIKE :search_query';
+            $params['search_query'] = '%' . $searchQuery . '%';
+        }
+
+        // Filtre par période
+        if (!empty($dateFrom)) {
+            $where[] = 'searched_at >= :date_from::timestamptz';
+            $params['date_from'] = $dateFrom;
+        }
+        if (!empty($dateTo)) {
+            $where[] = 'searched_at <= :date_to::timestamptz';
+            $params['date_to'] = $dateTo . ' 23:59:59';
+        }
+
+        if (!empty($where)) {
+            $sql .= ' AND ' . implode(' AND ', $where);
+        }
+
+        // Tri
+        switch ($sortBy) {
+            case 'oldest':
+                $sql .= ' ORDER BY searched_at ASC';
+                break;
+            case 'newest':
+            default:
+                $sql .= ' ORDER BY searched_at DESC';
+                break;
+        }
+
+        $rows = $this->connection->executeQuery($sql, $params)->fetchAllAssociative();
+
+        return array_map(static function (array $row): array {
+            $searchedAt = isset($row['searched_at']) ? new \DateTimeImmutable($row['searched_at']) : new \DateTimeImmutable();
+            $filters = [];
+            if (!empty($row['filters'])) {
+                $decoded = json_decode($row['filters'], true);
+                if (is_array($decoded)) {
+                    $filters = $decoded;
+                }
+            }
+
+            // Formater la date
+            $days = ['Dimanche', 'Lundi', 'Mardi', 'Mercredi', 'Jeudi', 'Vendredi', 'Samedi'];
+            $months = ['janv.', 'févr.', 'mars', 'avr.', 'mai', 'juin', 'juil.', 'août', 'sept.', 'oct.', 'nov.', 'déc.'];
+            $day = $searchedAt->format('d');
+            $month = $months[(int) $searchedAt->format('n') - 1];
+            $year = $searchedAt->format('Y');
+            $time = $searchedAt->format('H:i');
+            $dateFormatted = $day . ' ' . $month . ' ' . $year . ' · ' . $time;
+
+            return [
+                'id' => (int) $row['id'],
+                'query' => $row['keywords'],
+                'date' => $dateFormatted,
+                'filters' => $filters,
+                'searched_at' => $searchedAt,
+            ];
+        }, $rows);
+    }
+
+    /**
+     * Compte le nombre de résultats pour chaque recherche en utilisant la méthode searchEvents d'EventController
+     * Note: On utilise une approche simplifiée en comptant directement depuis la base de données
+     *
+     * @param array<int, array<string, mixed>> $searches
+     * @return array<int, array<string, mixed>>
+     */
+    private function countResultsForSearches(array $searches): array
+    {
+        // Pour chaque recherche, on va compter les résultats en utilisant une requête similaire à searchEvents
+        foreach ($searches as &$search) {
+            $query = $search['query'];
+            $filters = $search['filters'] ?? [];
+
+            $category = $filters['category'] ?? '';
+            $city = $filters['city'] ?? '';
+            $priceMin = $filters['price_min'] ?? null;
+            $priceMax = $filters['price_max'] ?? null;
+            $dateFrom = $filters['date_from'] ?? '';
+            $dateTo = $filters['date_to'] ?? '';
+
+            // Construire une requête SQL simplifiée pour compter les résultats
+            $count = $this->countSearchResults($query, $category, $city, $priceMin, $priceMax, $dateFrom, $dateTo);
+            $search['results'] = $count;
+        }
+        unset($search);
+
+        return $searches;
+    }
+
+    /**
+     * Compte le nombre de résultats pour une recherche donnée
+     */
+    private function countSearchResults(string $query = '', string $category = '', string $city = '', ?float $priceMin = null, ?float $priceMax = null, string $dateFrom = '', string $dateTo = ''): int
+    {
+        $exactQuery = $query;
+        $startQuery = $query . '%';
+        $containsQuery = '%' . $query . '%';
+
+        $sql = <<<SQL
+            SELECT COUNT(DISTINCT e.id)
+            FROM aiolia.events e
+            LEFT JOIN aiolia.venues v ON v.id = e.venue_id
+            LEFT JOIN aiolia.event_categories primary_cat ON primary_cat.id = e.primary_category_id
+            LEFT JOIN LATERAL (
+                SELECT c.slug, c.label
+                FROM aiolia.event_category_links cl
+                JOIN aiolia.event_categories c ON c.id = cl.category_id
+                WHERE cl.event_id = e.id
+                ORDER BY c.display_order ASC, c.label ASC
+                LIMIT 1
+            ) AS cat ON TRUE
+            LEFT JOIN LATERAL (
+                SELECT
+                    MIN(tt.base_price) AS min_price,
+                    MAX(tt.base_price) AS max_price
+                FROM aiolia.ticket_types tt
+                WHERE tt.event_id = e.id
+            ) AS pricing ON TRUE
+            LEFT JOIN aiolia.event_tag_links etl ON etl.event_id = e.id
+            LEFT JOIN aiolia.event_tags tag ON tag.id = etl.tag_id
+        SQL;
+
+        $where = ["e.status = 'published'", "e.visibility = 'public'"];
+        $params = [];
+        $types = [];
+
+        // Recherche textuelle
+        if (!empty($query)) {
+            $where[] = <<<SQL
+                (
+                    e.title ILIKE :contains_query
+                    OR e.subtitle ILIKE :contains_query
+                    OR e.summary ILIKE :contains_query
+                    OR e.description ILIKE :contains_query
+                    OR tag.label ILIKE :contains_query
+                )
+            SQL;
+            $params['contains_query'] = $containsQuery;
+            $types['contains_query'] = \PDO::PARAM_STR;
+        }
+
+        // Filtre par catégorie
+        if (!empty($category)) {
+            $where[] = <<<SQL
+                (
+                    primary_cat.slug = :category
+                    OR EXISTS (
+                        SELECT 1
+                        FROM aiolia.event_category_links cl
+                        JOIN aiolia.event_categories c ON c.id = cl.category_id
+                        WHERE cl.event_id = e.id
+                          AND c.slug = :category
+                    )
+                )
+            SQL;
+            $params['category'] = $category;
+            $types['category'] = \PDO::PARAM_STR;
+        }
+
+        // Filtre par ville
+        if (!empty($city)) {
+            $where[] = "(COALESCE(e.location_override->>'city', v.city) = :city)";
+            $params['city'] = $city;
+            $types['city'] = \PDO::PARAM_STR;
+        }
+
+        // Filtre par prix
+        if (null !== $priceMin || null !== $priceMax) {
+            if (null !== $priceMin && null !== $priceMax) {
+                $where[] = "(pricing.min_price BETWEEN :price_min AND :price_max OR pricing.max_price BETWEEN :price_min AND :price_max)";
+                $params['price_min'] = $priceMin;
+                $params['price_max'] = $priceMax;
+                $types['price_min'] = \PDO::PARAM_STR;
+                $types['price_max'] = \PDO::PARAM_STR;
+            } elseif (null !== $priceMin) {
+                $where[] = "pricing.max_price >= :price_min";
+                $params['price_min'] = $priceMin;
+                $types['price_min'] = \PDO::PARAM_STR;
+            } elseif (null !== $priceMax) {
+                $where[] = "pricing.min_price <= :price_max";
+                $params['price_max'] = $priceMax;
+                $types['price_max'] = \PDO::PARAM_STR;
+            }
+        }
+
+        // Filtre par date
+        if (!empty($dateFrom)) {
+            if (preg_match('/^(\d{2})\/(\d{2})\/(\d{4})$/', $dateFrom, $matches)) {
+                $dateFrom = $matches[3] . '-' . $matches[2] . '-' . $matches[1];
+            }
+            if (strlen($dateFrom) === 10) {
+                $dateFrom .= ' 00:00:00';
+            }
+            $where[] = "e.starts_at >= :date_from::timestamptz";
+            $params['date_from'] = $dateFrom;
+            $types['date_from'] = \PDO::PARAM_STR;
+        }
+        if (!empty($dateTo)) {
+            if (preg_match('/^(\d{2})\/(\d{2})\/(\d{4})$/', $dateTo, $matches)) {
+                $dateTo = $matches[3] . '-' . $matches[2] . '-' . $matches[1];
+            }
+            if (strlen($dateTo) === 10) {
+                $dateTo .= ' 23:59:59';
+            }
+            $where[] = "e.ends_at <= :date_to::timestamptz";
+            $params['date_to'] = $dateTo;
+            $types['date_to'] = \PDO::PARAM_STR;
+        }
+
+        $sql .= ' WHERE ' . implode(' AND ', $where);
+
+        try {
+            $count = (int) $this->connection->executeQuery($sql, $params, $types)->fetchOne();
+            return $count;
+        } catch (\Exception $e) {
+            return 0;
+        }
     }
 
     #[Route('/profile/calendar', name: 'profile_calendar')]

@@ -14,13 +14,6 @@
 {% block hero %}{% endblock %}
 
 {% block body %}
-    {% set searches = searches|default([
-        { query: 'Concert jazz Antananarivo', date: '07 nov. 2025 · 14:10', results: 12 },
-        { query: 'Festival urbain 2025', date: '05 nov. 2025 · 22:45', results: 8 },
-        { query: 'Afterwork networking', date: '02 nov. 2025 · 09:02', results: 5 },
-        { query: 'Spectacle enfants décembre', date: '29 oct. 2025 · 19:18', results: 9 }
-    ]) %}
-
     <main class="profile-search-wrapper">
         <div class="container">
             <header class="search-header wow fadeIn" data-wow-delay="100ms">
@@ -28,66 +21,96 @@
                     <h1>Historique de recherche</h1>
                     <p>Retrouvez vos mots-clés récents pour rejouer une recherche ou créer une alerte personnalisée.</p>
                 </div>
-                <button class="btn-outline"><i class="fas fa-trash"></i> Effacer l'historique</button>
+                <button class="btn-outline" id="clearAllBtn"><i class="fas fa-trash"></i> Effacer l'historique</button>
             </header>
 
             <section class="search-card wow fadeInUp" data-wow-delay="150ms">
-                <div class="search-input">
-                    <i class="fas fa-search"></i>
-                    <input type="search" placeholder="Rechercher dans votre historique">
-                    <div class="sort-container">
-                        <button class="btn-solid" id="sortByDateBtn"><i class="fas fa-sort"></i> Trier par date</button>
-                        <div class="date-picker-dropdown" id="datePickerDropdown">
-                            <div class="date-options">
-                                <button class="date-option active" data-sort="newest">
-                                    <i class="fas fa-arrow-down"></i>
-                                    <span>Plus récentes</span>
-                                </button>
-                                <button class="date-option" data-sort="oldest">
-                                    <i class="fas fa-arrow-up"></i>
-                                    <span>Plus anciennes</span>
-                                </button>
-                                <div class="date-separator"></div>
-                                <button class="date-option" data-sort="custom">
-                                    <i class="fas fa-calendar-alt"></i>
-                                    <span>Période personnalisée</span>
-                                </button>
-                            </div>
-                            <div class="custom-date-picker">
-                                <div class="date-inputs">
-                                    <div class="input-group">
-                                        <label>Du</label>
-                                        <input type="date" id="startDate">
-                                    </div>
-                                    <div class="input-group">
-                                        <label>Au</label>
-                                        <input type="date" id="endDate">
-                                    </div>
+                <form method="GET" action="{{ path('profile_search_history') }}" id="searchHistoryForm">
+                    <div class="search-input">
+                        <i class="fas fa-search"></i>
+                        <input type="search" name="q" placeholder="Rechercher dans votre historique" value="{{ currentSearchQuery }}" id="searchInput">
+                        <input type="hidden" name="sort" id="sortInput" value="{{ currentSort }}">
+                        <input type="hidden" name="date_from" id="dateFromInput" value="{{ currentDateFrom }}">
+                        <input type="hidden" name="date_to" id="dateToInput" value="{{ currentDateTo }}">
+                        <div class="sort-container">
+                            <button type="button" class="btn-solid" id="sortByDateBtn"><i class="fas fa-sort"></i> Trier par date</button>
+                            <div class="date-picker-dropdown" id="datePickerDropdown">
+                                <div class="date-options">
+                                    <button type="button" class="date-option {% if currentSort == 'newest' %}active{% endif %}" data-sort="newest">
+                                        <i class="fas fa-arrow-down"></i>
+                                        <span>Plus récentes</span>
+                                    </button>
+                                    <button type="button" class="date-option {% if currentSort == 'oldest' %}active{% endif %}" data-sort="oldest">
+                                        <i class="fas fa-arrow-up"></i>
+                                        <span>Plus anciennes</span>
+                                    </button>
+                                    <div class="date-separator"></div>
+                                    <button type="button" class="date-option {% if currentSort == 'custom' %}active{% endif %}" data-sort="custom">
+                                        <i class="fas fa-calendar-alt"></i>
+                                        <span>Période personnalisée</span>
+                                    </button>
                                 </div>
-                                <button class="btn-apply-date">Appliquer</button>
+                                <div class="custom-date-picker">
+                                    <div class="date-inputs">
+                                        <div class="input-group">
+                                            <label>Du</label>
+                                            <input type="date" id="startDate" value="{{ currentDateFrom }}">
+                                        </div>
+                                        <div class="input-group">
+                                            <label>Au</label>
+                                            <input type="date" id="endDate" value="{{ currentDateTo }}">
+                                        </div>
+                                    </div>
+                                    <button type="button" class="btn-apply-date">Appliquer</button>
+                                </div>
                             </div>
                         </div>
                     </div>
-                </div>
-                <ul class="search-list">
-                    {% for item in searches %}
-                        <li>
-                            <div class="search-query">
-                                <i class="fas fa-clock"></i>
-                                <div>
-                                    <strong>{{ item.query }}</strong>
-                                    <span>{{ item.date }}</span>
-                                </div>
-                            </div>
-                            <div class="search-actions">
-                                <span class="results">{{ item.results }} résultats</span>
-                                <div class="search-buttons">
-                                    <a href="{{ path('events') }}" class="btn-outline">Relancer</a>
-                                    <button class="btn-link">Créer alerte</button>
-                                </div>
-                            </div>
+                </form>
+                <ul class="search-list" id="searchList">
+                    {% if searches is empty %}
+                        <li style="text-align: center; padding: 40px;">
+                            <p style="color: #8A9BA8; font-size: 14px;">Aucune recherche dans votre historique</p>
                         </li>
-                    {% endfor %}
+                    {% else %}
+                        {% for item in searches %}
+                            <li data-search-id="{{ item.id }}">
+                                <div class="search-query">
+                                    <i class="fas fa-clock"></i>
+                                    <div>
+                                        <strong>{{ item.query }}</strong>
+                                        <span>{{ item.date }}</span>
+                                    </div>
+                                </div>
+                                <div class="search-actions">
+                                    <span class="results">{{ item.results }} résultat{{ item.results > 1 ? 's' : '' }}</span>
+                                    <div class="search-buttons">
+                                        {% set relaunchParams = {q: item.query} %}
+                                        {% if item.filters.category is defined and item.filters.category %}
+                                            {% set relaunchParams = relaunchParams|merge({category: item.filters.category}) %}
+                                        {% endif %}
+                                        {% if item.filters.city is defined and item.filters.city %}
+                                            {% set relaunchParams = relaunchParams|merge({city: item.filters.city}) %}
+                                        {% endif %}
+                                        {% if item.filters.price_min is defined and item.filters.price_min %}
+                                            {% set relaunchParams = relaunchParams|merge({price_min: item.filters.price_min}) %}
+                                        {% endif %}
+                                        {% if item.filters.price_max is defined and item.filters.price_max %}
+                                            {% set relaunchParams = relaunchParams|merge({price_max: item.filters.price_max}) %}
+                                        {% endif %}
+                                        {% if item.filters.date_from is defined and item.filters.date_from %}
+                                            {% set relaunchParams = relaunchParams|merge({date_from: item.filters.date_from}) %}
+                                        {% endif %}
+                                        {% if item.filters.date_to is defined and item.filters.date_to %}
+                                            {% set relaunchParams = relaunchParams|merge({date_to: item.filters.date_to}) %}
+                                        {% endif %}
+                                        <a href="{{ path('events', relaunchParams) }}" class="btn-link relaunch" title="Relancer la recherche"><i class="fas fa-redo"></i></a>
+                                        <button type="button" class="btn-link delete" data-search-id="{{ item.id }}" title="Supprimer"><i class="fas fa-trash"></i></button>
+                                    </div>
+                                </div>
+                            </li>
+                        {% endfor %}
+                    {% endif %}
                 </ul>
             </section>
         </div>
@@ -103,6 +126,21 @@
             const dateDropdown = document.getElementById('datePickerDropdown');
             const dateOptions = document.querySelectorAll('.date-option');
             const applyDateBtn = document.querySelector('.btn-apply-date');
+            const searchInput = document.getElementById('searchInput');
+            const searchHistoryForm = document.getElementById('searchHistoryForm');
+            const sortInput = document.getElementById('sortInput');
+            const dateFromInput = document.getElementById('dateFromInput');
+            const dateToInput = document.getElementById('dateToInput');
+            const clearAllBtn = document.getElementById('clearAllBtn');
+            
+            // Recherche dans l'historique avec debounce
+            let searchTimeout;
+            searchInput.addEventListener('input', function() {
+                clearTimeout(searchTimeout);
+                searchTimeout = setTimeout(function() {
+                    searchHistoryForm.submit();
+                }, 500);
+            });
             
             // Toggle dropdown
             sortBtn.addEventListener('click', function(e) {
@@ -140,16 +178,20 @@
                 const endDate = document.getElementById('endDate').value;
                 
                 if (startDate && endDate) {
-                    applySort('custom', { startDate, endDate });
-                    dateDropdown.classList.remove('active');
+                    dateFromInput.value = startDate;
+                    dateToInput.value = endDate;
+                    sortInput.value = 'custom';
+                    searchHistoryForm.submit();
                 } else {
                     alert('Veuillez sélectionner une période complète');
                 }
             });
             
             // Fermer le dropdown en cliquant ailleurs
-            document.addEventListener('click', function() {
-                dateDropdown.classList.remove('active');
+            document.addEventListener('click', function(e) {
+                if (!dateDropdown.contains(e.target) && !sortBtn.contains(e.target)) {
+                    dateDropdown.classList.remove('active');
+                }
             });
             
             // Empêcher la fermeture quand on clique dans le dropdown
@@ -158,8 +200,7 @@
             });
             
             function applySort(sortType, customDates = null) {
-                // Ici vous pouvez implémenter la logique de tri
-                console.log('Tri appliqué:', sortType, customDates);
+                sortInput.value = sortType;
                 
                 // Mettre à jour le texte du bouton
                 let buttonText = 'Trier par date';
@@ -179,7 +220,92 @@
                 
                 // Ajouter une classe pour indiquer qu'un tri est actif
                 sortBtn.classList.add('sort-active');
+                
+                // Soumettre le formulaire pour appliquer le tri
+                searchHistoryForm.submit();
             }
+            
+            // Supprimer un élément de l'historique
+            document.querySelectorAll('.btn-link.delete').forEach(btn => {
+                btn.addEventListener('click', function(e) {
+                    e.preventDefault();
+                    e.stopPropagation();
+                    
+                    const searchId = this.dataset.searchId;
+                    const listItem = this.closest('li');
+                    
+                    if (!confirm('Voulez-vous supprimer cette recherche de votre historique ?')) {
+                        return;
+                    }
+                    
+                    // Animation de suppression
+                    listItem.style.transform = 'scale(0.95)';
+                    listItem.style.opacity = '0.5';
+                    
+                    fetch(`/profile/search-history/${searchId}/delete`, {
+                        method: 'DELETE',
+                        headers: {
+                            'X-Requested-With': 'XMLHttpRequest',
+                            'Content-Type': 'application/json',
+                        },
+                    })
+                    .then(response => response.json())
+                    .then(data => {
+                        if (data.status === 'success') {
+                            setTimeout(() => {
+                                listItem.remove();
+                                
+                                // Vérifier s'il reste des éléments
+                                const remainingItems = document.querySelectorAll('#searchList li[data-search-id]').length;
+                                if (remainingItems === 0) {
+                                    location.reload();
+                                }
+                            }, 300);
+                        } else {
+                            // Annuler l'animation en cas d'erreur
+                            listItem.style.transform = 'scale(1)';
+                            listItem.style.opacity = '1';
+                            alert('Erreur lors de la suppression: ' + (data.message || 'Erreur inconnue'));
+                        }
+                    })
+                    .catch(error => {
+                        console.error('Erreur lors de la suppression:', error);
+                        // Annuler l'animation en cas d'erreur
+                        listItem.style.transform = 'scale(1)';
+                        listItem.style.opacity = '1';
+                        alert('Erreur lors de la suppression. Veuillez réessayer.');
+                    });
+                });
+            });
+            
+            // Effacer tout l'historique
+            clearAllBtn.addEventListener('click', function(e) {
+                e.preventDefault();
+                
+                if (!confirm('Voulez-vous effacer tout votre historique de recherche ? Cette action est irréversible.')) {
+                    return;
+                }
+                
+                fetch('/profile/search-history/clear', {
+                    method: 'DELETE',
+                    headers: {
+                        'X-Requested-With': 'XMLHttpRequest',
+                        'Content-Type': 'application/json',
+                    },
+                })
+                .then(response => response.json())
+                .then(data => {
+                    if (data.status === 'success') {
+                        location.reload();
+                    } else {
+                        alert('Erreur lors de l\'effacement: ' + (data.message || 'Erreur inconnue'));
+                    }
+                })
+                .catch(error => {
+                    console.error('Erreur lors de l\'effacement:', error);
+                    alert('Erreur lors de l\'effacement. Veuillez réessayer.');
+                });
+            });
         });
     </script>
 {% endblock %}

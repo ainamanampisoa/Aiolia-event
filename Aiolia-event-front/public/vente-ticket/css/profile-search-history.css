@@ -193,15 +193,26 @@
 
 /* NOUVEAU : Bouton relancer en violet */
 .btn-link.relaunch {
-    background: linear-gradient(135deg, #9b59b6 0%, #8e44ad 100%);
+    background: linear-gradient(135deg, #6a8996 0%, #5c7b9e 100%);
     color: white;
-    box-shadow: 0 6px 15px -5px rgba(155, 89, 182, 0.4);
+    box-shadow: 0 6px 15px -5px rgba(123, 151, 184, 0.4);
+    min-width: 36px;
+    width: 36px;
+    height: 36px;
+    padding: 0;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
 }
 
 .btn-link.relaunch:hover {
-    background: linear-gradient(135deg, #8e44ad 0%, #9b59b6 100%);
+    background: linear-gradient(135deg, #697a83 0%, #989bbb 100%);
     transform: translateY(-2px);
-    box-shadow: 0 10px 20px -5px rgba(155, 89, 182, 0.5);
+    box-shadow: 0 10px 20px -5px rgba(134, 143, 160, 0.5);
+}
+
+.btn-link.relaunch i {
+    font-size: 14px;
 }
 
 /* NOUVEAU : Bouton supprimer en rouge */
@@ -209,12 +220,23 @@
     background: linear-gradient(135deg, #e74c3c 0%, #c0392b 100%);
     color: white;
     box-shadow: 0 6px 15px -5px rgba(231, 76, 60, 0.4);
+    min-width: 36px;
+    width: 36px;
+    height: 36px;
+    padding: 0;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
 }
 
 .btn-link.delete:hover {
     background: linear-gradient(135deg, #c0392b 0%, #e74c3c 100%);
     transform: translateY(-2px);
     box-shadow: 0 10px 20px -5px rgba(231, 76, 60, 0.5);
+}
+
+.btn-link.delete i {
+    font-size: 14px;
 }
 
 /* Badge pour le nombre de résultats - Version améliorée */
