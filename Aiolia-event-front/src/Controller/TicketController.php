@@ -345,6 +345,16 @@ class TicketController extends AbstractController
             $session->start();
         }
 
+        // Récupérer le paramètre event (optionnel) - format: "eventId-loopIndex" ou juste "eventId"
+        $eventParam = $request->query->get('event');
+        $eventIdToFilter = null;
+        
+        if ($eventParam) {
+            // Extraire l'ID de l'événement (avant le tiret si présent)
+            $parts = explode('-', $eventParam);
+            $eventIdToFilter = (int) $parts[0];
+        }
+
         // Récupérer le panier depuis la session
         $cartItems = $session->get('cart_items', []);
         
@@ -367,13 +377,21 @@ class TicketController extends AbstractController
             }
         }
         
+        // Filtrer les items si un eventId est spécifié
+        if ($eventIdToFilter !== null) {
+            $cartItems = array_filter($cartItems, function($item) use ($eventIdToFilter) {
+                return isset($item['eventId']) && (int) $item['eventId'] === $eventIdToFilter;
+            });
+        }
+        
         $items = $this->formatCartItemsForTemplate($cartItems);
 
         $orderTotal = 0;
         foreach ($items as $item) {
-            $adultTotal = $item['adultQuantity'] * $item['event']['adultPrice'];
+            $adultPrice = $item['event']['adultPrice'] ?? 0;
             $childPrice = $item['event']['childPrice'] ?? 0;
-            $childTotal = $item['childQuantity'] * $childPrice;
+            $adultTotal = ($item['adultQuantity'] ?? 0) * $adultPrice;
+            $childTotal = ($item['childQuantity'] ?? 0) * $childPrice;
             $orderTotal += $adultTotal + $childTotal;
         }
 
