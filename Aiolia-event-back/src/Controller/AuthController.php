@@ -6,7 +6,6 @@ use App\Entity\User;
 use App\Enum\Role as UserRoleEnum;
 use App\Form\RegistrationFormType;
 use App\Service\AuditLogService;
-use App\Service\Admin\DashboardStatsService;
 use Doctrine\ORM\EntityManagerInterface;
 use Symfony\Bundle\FrameworkBundle\Controller\AbstractController;
 use Symfony\Component\HttpFoundation\Request;
@@ -20,9 +19,9 @@ class AuthController extends AbstractController
     #[Route('/login', name: 'app_login')]
     public function login(AuthenticationUtils $authenticationUtils): Response
     {
-        // Si l'utilisateur est déjà connecté, rediriger vers le dashboard
+        // Si l'utilisateur est déjà connecté, rediriger vers les statistiques
         if ($this->getUser()) {
-            return $this->redirectToRoute('app_dashboard');
+            return $this->redirectToRoute('app_reports_statistiques');
         }
 
         // Récupérer l'erreur de connexion s'il y en a une
@@ -43,9 +42,9 @@ class AuthController extends AbstractController
         EntityManagerInterface $entityManager,
         AuditLogService $auditLogService
     ): Response {
-        // Si l'utilisateur est déjà connecté, rediriger vers le dashboard
+        // Si l'utilisateur est déjà connecté, rediriger vers les statistiques
         if ($this->getUser()) {
-            return $this->redirectToRoute('app_dashboard');
+            return $this->redirectToRoute('app_reports_statistiques');
         }
 
         $user = new User();
@@ -114,9 +113,9 @@ class AuthController extends AbstractController
     #[Route('/forgot-password', name: 'app_forgot_password_request')]
     public function forgotPasswordRequest(Request $request): Response
     {
-        // Si l'utilisateur est déjà connecté, rediriger vers le dashboard
+        // Si l'utilisateur est déjà connecté, rediriger vers les statistiques
         if ($this->getUser()) {
-            return $this->redirectToRoute('app_dashboard');
+            return $this->redirectToRoute('app_reports_statistiques');
         }
 
         if ($request->isMethod('POST')) {
@@ -143,9 +142,9 @@ class AuthController extends AbstractController
     #[Route('/', name: 'app_home')]
     public function home(): Response
     {
-        // Si l'utilisateur est connecté, rediriger vers le dashboard
+        // Si l'utilisateur est connecté, rediriger vers les statistiques
         if ($this->getUser()) {
-            return $this->redirectToRoute('app_dashboard');
+            return $this->redirectToRoute('app_reports_statistiques');
         }
 
         // Sinon, rediriger vers la page de connexion
@@ -153,48 +152,10 @@ class AuthController extends AbstractController
     }
 
     #[Route('/dashboard', name: 'app_dashboard')]
-    public function dashboard(Request $request, DashboardStatsService $dashboardStatsService): Response
+    public function dashboard(): Response
     {
-        $this->denyAccessUnlessGranted('IS_AUTHENTICATED_REMEMBERED');
-
-        $now = new \DateTimeImmutable('first day of this month');
-        $month = (int) $request->query->get('month', (int) $now->format('n'));
-        $year = (int) $request->query->get('year', (int) $now->format('Y'));
-
-        $month = max(1, min(12, $month));
-        $year = max(1970, $year);
-
-        $stats = $dashboardStatsService->getDashboardData($month, $year);
-
-        $filters = [
-            'months' => [
-                'Janvier', 'Février', 'Mars', 'Avril', 'Mai', 'Juin',
-                'Juillet', 'Août', 'Septembre', 'Octobre', 'Novembre', 'Décembre',
-            ],
-            'years' => $this->buildYearOptions((int) $now->format('Y')),
-        ];
-
-        return $this->render('@Admin/dashboard/index.html.twig', [
-            'user' => $this->getUser(),
-            'stats' => $stats,
-            'filters' => $filters,
-            'currentFilters' => [
-                'month' => $month,
-                'year' => $year,
-            ],
-        ]);
-    }
-
-    /**
-     * @return list<int>
-     */
-    private function buildYearOptions(int $currentYear): array
-    {
-        return [
-            $currentYear,
-            $currentYear - 1,
-            $currentYear - 2,
-        ];
+        // Rediriger vers les statistiques
+        return $this->redirectToRoute('app_reports_statistiques');
     }
 
     /**

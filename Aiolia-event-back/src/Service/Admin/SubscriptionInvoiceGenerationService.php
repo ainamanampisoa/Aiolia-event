@@ -4,9 +4,9 @@ namespace App\Service\Admin;
 
 use App\Entity\SubscriptionInvoice;
 use App\Entity\User;
+use App\Repository\Admin\OrganizerSubscriptionRepository;
 use App\Repository\Admin\SubscriptionInvoiceRepository;
 use App\Service\Organisateur\InvoiceNumberService;
-use Doctrine\DBAL\Connection;
 use Doctrine\ORM\EntityManagerInterface;
 use Psr\Log\LoggerInterface;
 
@@ -15,18 +15,20 @@ class SubscriptionInvoiceGenerationService
     public function __construct(
         private EntityManagerInterface $entityManager,
         private InvoiceNumberService $invoiceNumberService,
+        private SubscriptionInvoiceRepository $invoiceRepository,
+        private OrganizerSubscriptionRepository $subscriptionRepository,
         private ?LoggerInterface $logger = null,
     ) {
     }
 
     /**
-     * Génère automatiquement les factures du mois suivant pour tous les organisateurs avec abonnements actifs
-     * Cette méthode doit être appelée pendant les 7 derniers jours du mois
+     * Génère automatiquement les factures du 1er du mois pour tous les organisateurs avec abonnements actifs
+     * Règle : Les factures sont créées le 1er du mois si elles n'existent pas encore
      * 
-     * Pour les abonnements mensuels : crée la facture du mois suivant
+     * Pour les abonnements mensuels : crée la facture du mois courant
      * Pour les abonnements annuels : crée toutes les factures de l'année (12 factures)
      * 
-     * @param \DateTimeInterface $targetMonth Le mois pour lequel générer les factures (le mois suivant)
+     * @param \DateTimeInterface $targetMonth Le mois pour lequel générer les factures (1er du mois)
      * @return array{created: int, skipped: int, errors: array}
      */
     public function generateMonthlyInvoices(\DateTimeInterface $targetMonth): array
@@ -37,37 +39,16 @@ class SubscriptionInvoiceGenerationService
             'errors' => [],
         ];
 
-        $connection = $this->entityManager->getConnection();
-
         try {
-            // Récupérer tous les organisateurs avec abonnements actifs (mensuels et annuels)
-            // Requête SQL directe car nous n'avons pas d'entité OrganizerSubscription
-            $sql = "
-                SELECT 
-                    os.id as subscription_id,
-                    os.organizer_profile_id,
-                    op.user_id,
-                    sp.price,
-                    sp.vat_rate,
-                    sp.currency,
-                    sp.billing_period
-                FROM aiolia.organizer_subscriptions os
-                INNER JOIN aiolia.organizer_profiles op ON op.id = os.organizer_profile_id
-                INNER JOIN aiolia.subscription_plans sp ON sp.id = os.plan_id
-                WHERE os.status = 'active'
-                    AND sp.billing_period IN ('monthly', 'yearly')
-                    AND sp.is_active = true
-                    AND os.cancelled_at IS NULL
-                    AND (os.cancel_at_period_end = false OR os.current_period_end > :now)
-            ";
-
-            $subscriptions = $connection->fetchAllAssociative($sql, [
-                'now' => new \DateTimeImmutable(),
-            ]);
+            // Récupérer tous les organisateurs avec abonnements actifs via le repository
+            $subscriptions = $this->subscriptionRepository->findActiveSubscriptionsForInvoiceGeneration();
 
             $year = (int) $targetMonth->format('Y');
             $month = (int) $targetMonth->format('m');
-            $billingPeriod = $subscriptions[0]['billing_period'] ?? 'monthly';
+            // Le 1er du mois pour l'émission de la facture
+            $firstDayOfMonth = new \DateTimeImmutable(sprintf('%d-%02d-01 00:00:00', $year, $month));
+            // Date d'échéance : 10ème jour du mois (date limite de paiement)
+            $dueDate = new \DateTimeImmutable(sprintf('%d-%02d-10 23:59:59', $year, $month));
 
             foreach ($subscriptions as $subscription) {
                 try {
@@ -102,30 +83,19 @@ class SubscriptionInvoiceGenerationService
                             $results
                         );
                     } else {
-                        // Pour les abonnements mensuels : créer uniquement la facture du mois suivant
-                        $firstDayOfMonth = new \DateTimeImmutable(sprintf('%d-%02d-01 00:00:00', $year, $month));
-                        // Date d'échéance : 10ème jour du mois (date limite de paiement)
-                        $dueDate = new \DateTimeImmutable(sprintf('%d-%02d-10 23:59:59', $year, $month));
-
-                        // Vérifier si une facture existe déjà pour ce mois et cette abonnement
-                        $existingInvoice = $this->entityManager
-                            ->getRepository(SubscriptionInvoice::class)
-                            ->createQueryBuilder('si')
-                            ->where('si.subscriptionId = :subscriptionId')
-                            ->andWhere('si.issuedAt >= :monthStart')
-                            ->andWhere('si.issuedAt < :monthEnd')
-                            ->setParameter('subscriptionId', (string) $subscription['subscription_id'])
-                            ->setParameter('monthStart', $firstDayOfMonth)
-                            ->setParameter('monthEnd', $firstDayOfMonth->modify('+1 month'))
-                            ->getQuery()
-                            ->getOneOrNullResult();
+                        // Pour les abonnements mensuels : créer uniquement la facture du mois courant
+                        // Vérifier si une facture existe déjà pour ce mois et cet abonnement via le repository
+                        $existingInvoice = $this->invoiceRepository->findInvoiceForMonth(
+                            (string) $subscription['subscription_id'],
+                            $firstDayOfMonth
+                        );
 
                         if ($existingInvoice) {
                             $results['skipped']++;
                             continue;
                         }
 
-                        // Créer la facture mensuelle
+                        // Créer la facture mensuelle le 1er du mois
                         $invoice = new SubscriptionInvoice();
                         $invoice->setInvoiceNumber($this->invoiceNumberService->generateSubscriptionInvoiceNumber());
                         $invoice->setSubscriptionId((string) $subscription['subscription_id']);
@@ -134,9 +104,9 @@ class SubscriptionInvoiceGenerationService
                         $invoice->setSubtotalAmount((string) $subtotal);
                         $invoice->setTaxAmount((string) $taxAmount);
                         $invoice->setTotalAmount((string) $totalAmount);
-                        $invoice->setStatus(SubscriptionInvoice::STATUS_DRAFT);
+                        $invoice->setStatus(SubscriptionInvoice::STATUS_ISSUED); // Émise le 1er du mois
                         $invoice->setIssuedAt($firstDayOfMonth);
-                        $invoice->setDueAt($dueDate);
+                        $invoice->setDueAt($dueDate); // Échéance le 10ème jour
                         $invoice->setMetadata([
                             'month' => $month,
                             'year' => $year,
@@ -148,12 +118,14 @@ class SubscriptionInvoiceGenerationService
                         $results['created']++;
 
                         if ($this->logger) {
-                            $this->logger->info('Facture d\'abonnement mensuelle générée', [
+                            $this->logger->info('Facture d\'abonnement mensuelle générée le 1er du mois', [
                                 'invoice_number' => $invoice->getInvoiceNumber(),
                                 'subscription_id' => $subscription['subscription_id'],
                                 'customer_email' => $user->getEmail(),
                                 'month' => $month,
                                 'year' => $year,
+                                'issued_at' => $firstDayOfMonth->format('Y-m-d'),
+                                'due_at' => $dueDate->format('Y-m-d'),
                             ]);
                         }
                     }
@@ -220,18 +192,11 @@ class SubscriptionInvoiceGenerationService
                 $firstDayOfMonth = new \DateTimeImmutable(sprintf('%d-%02d-01 00:00:00', $year, $month));
                 $dueDate = new \DateTimeImmutable(sprintf('%d-%02d-10 23:59:59', $year, $month));
 
-                // Vérifier si une facture existe déjà pour ce mois et cette abonnement
-                $existingInvoice = $this->entityManager
-                    ->getRepository(SubscriptionInvoice::class)
-                    ->createQueryBuilder('si')
-                    ->where('si.subscriptionId = :subscriptionId')
-                    ->andWhere('si.issuedAt >= :monthStart')
-                    ->andWhere('si.issuedAt < :monthEnd')
-                    ->setParameter('subscriptionId', (string) $subscription['subscription_id'])
-                    ->setParameter('monthStart', $firstDayOfMonth)
-                    ->setParameter('monthEnd', $firstDayOfMonth->modify('+1 month'))
-                    ->getQuery()
-                    ->getOneOrNullResult();
+                // Vérifier si une facture existe déjà pour ce mois et cet abonnement via le repository
+                $existingInvoice = $this->invoiceRepository->findInvoiceForMonth(
+                    (string) $subscription['subscription_id'],
+                    $firstDayOfMonth
+                );
 
                 if ($existingInvoice) {
                     $results['skipped']++;
@@ -292,65 +257,70 @@ class SubscriptionInvoiceGenerationService
     }
 
     /**
-     * Met à jour le statut des factures non payées en "overdue" (retard)
-     * Cette méthode doit être appelée entre le 10ème et 15ème jour du mois
-     * Marque les factures non payées en retard à partir du 10ème jour du mois (date limite de paiement)
+     * Met à jour le statut des factures non payées en "overdue" (retard) et met en pause les organisateurs
+     * Règle : Si une facture n'est pas payée dans les 10 jours (après échéance),
+     *         le statut devient "overdue" et l'organisateur est automatiquement mis en pause
+     * 
+     * Cette méthode doit être appelée après le 10ème jour du mois
      * 
      * @param \DateTimeInterface $currentDate La date actuelle
-     * @return array{updated: int, errors: array}
+     * @return array{updated: int, paused: int, errors: array}
      */
     public function markOverdueInvoices(\DateTimeInterface $currentDate): array
     {
         $results = [
             'updated' => 0,
+            'paused' => 0,
             'errors' => [],
         ];
 
         try {
-            $currentMonth = (int) $currentDate->format('n');
-            $currentYear = (int) $currentDate->format('Y');
-            $dayOfMonth = (int) $currentDate->format('d');
-            
-            // Calculer le 10ème jour du mois (date limite de paiement)
-            $paymentDeadline = new \DateTimeImmutable(sprintf('%d-%d-10 23:59:59', $currentYear, $currentMonth));
-            
-            // Récupérer toutes les factures du mois courant en "issued" ou "draft" non payées
-            // qui sont après le 10ème jour (date limite)
-            $firstDayOfMonth = new \DateTimeImmutable(sprintf('%d-%d-01 00:00:00', $currentYear, $currentMonth));
-            $lastDayOfMonth = new \DateTimeImmutable(sprintf('%d-%d-%d 23:59:59', $currentYear, $currentMonth, (int) $firstDayOfMonth->format('t')));
-            
-            $overdueInvoices = $this->entityManager
-                ->getRepository(SubscriptionInvoice::class)
-                ->createQueryBuilder('si')
-                ->where('si.status IN (:statuses)')
-                ->andWhere('si.issuedAt >= :monthStart')
-                ->andWhere('si.issuedAt <= :monthEnd')
-                ->andWhere('si.issuedAt <= :paymentDeadline')
-                ->andWhere('si.paidAt IS NULL')
-                ->setParameter('statuses', [SubscriptionInvoice::STATUS_DRAFT, SubscriptionInvoice::STATUS_ISSUED])
-                ->setParameter('monthStart', $firstDayOfMonth)
-                ->setParameter('monthEnd', $lastDayOfMonth)
-                ->setParameter('paymentDeadline', $paymentDeadline)
-                ->getQuery()
-                ->getResult();
-            
-            // Filtrer pour ne garder que celles qui sont après le 10ème jour
-            $overdueInvoices = array_filter($overdueInvoices, function($invoice) use ($currentDate, $paymentDeadline) {
-                return $currentDate > $paymentDeadline && $invoice->getStatus() !== SubscriptionInvoice::STATUS_PAID;
-            });
+            // Récupérer toutes les factures en retard via le repository
+            $overdueInvoices = $this->invoiceRepository->findOverdueInvoices($currentDate);
 
             foreach ($overdueInvoices as $invoice) {
                 try {
+                    // Marquer la facture comme en retard
                     $invoice->setStatus(SubscriptionInvoice::STATUS_OVERDUE);
                     $this->entityManager->persist($invoice);
                     $results['updated']++;
 
+                    // Mettre en pause l'organisateur automatiquement
+                    $subscriptionId = (int) $invoice->getSubscriptionId();
+                    $subscription = $this->subscriptionRepository->findSubscription($subscriptionId);
+                    
+                    if ($subscription && $subscription['statut'] === 'active') {
+                        // Mettre en pause l'abonnement
+                        $this->subscriptionRepository->pauseSubscription(
+                            $subscriptionId,
+                            $currentDate,
+                            [
+                                'auto_paused_reason' => 'invoice_overdue',
+                                'auto_paused_at' => $currentDate->format('Y-m-d H:i:s'),
+                                'overdue_invoice_id' => $invoice->getId(),
+                                'overdue_invoice_number' => $invoice->getInvoiceNumber(),
+                                'overdue_invoice_month' => $invoice->getIssuedAt()->format('Y-m'),
+                            ]
+                        );
+                        $results['paused']++;
+
+                        if ($this->logger) {
+                            $this->logger->info('Organisateur mis en pause automatiquement pour facture en retard', [
+                                'subscription_id' => $subscriptionId,
+                                'invoice_number' => $invoice->getInvoiceNumber(),
+                                'invoice_id' => $invoice->getId(),
+                            ]);
+                        }
+                    }
+
                     if ($this->logger) {
-                        $daysOverdue = $invoice->getDaysOverdue($currentDate);
-                        $this->logger->info('Facture marquée comme en retard', [
+                        $daysOverdue = $this->calculateDaysOverdue($invoice, $currentDate);
+                        $this->logger->info('Facture marquée comme en retard et organisateur mis en pause', [
                             'invoice_number' => $invoice->getInvoiceNumber(),
                             'invoice_id' => $invoice->getId(),
+                            'subscription_id' => $subscriptionId,
                             'issued_at' => $invoice->getIssuedAt()->format('Y-m-d'),
+                            'due_at' => $invoice->getDueAt()?->format('Y-m-d'),
                             'days_overdue' => $daysOverdue,
                         ]);
                     }

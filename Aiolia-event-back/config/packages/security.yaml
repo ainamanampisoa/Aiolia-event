@@ -30,7 +30,7 @@ security:
                 login_path: app_login
                 check_path: app_login
                 enable_csrf: true
-                default_target_path: app_home
+                success_handler: App\Security\AuthenticationSuccessHandler
                 username_parameter: identifier
                 password_parameter: password
             logout:

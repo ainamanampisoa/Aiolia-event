@@ -1,4 +1,4 @@
-# 📚 Documentation Complète des Fonctionnalités - Aiolia Event
+# 📚 Documentation Essentielle - Aiolia Event
 
 **Plateforme de gestion d'événements et de billetterie pour Madagascar**
 
@@ -8,9 +8,8 @@
 
 1. [💰 Module Facturation](#module-facturation)
 2. [👥 Module Gestion des Utilisateurs](#module-gestion-des-utilisateurs)
-3. [👤 Module Profile](#module-profile)
-4. [⚙️ Module Paramètres](#module-paramètres)
-5. [📋 Types d'Organisateurs & Plans d'Abonnement](#types-dorganisateurs--plans-dabonnement)
+3. [📊 Module Statistiques](#module-statistiques)
+4. [📋 Plans d'Abonnement](#plans-dabonnement)
 
 ---
 
@@ -24,194 +23,52 @@ Le système de facturation automatique gère les abonnements mensuels des organi
 
 #### 1. Génération automatique des factures mensuelles
 
-**Objectif** : Créer automatiquement une facture pour chaque organisateur ayant un abonnement actif, pendant les 5 derniers jours du mois précédent.
+**Commande** : `php bin/console app:generate-monthly-invoices`
 
-**Workflow** :
-- Pendant les 5 derniers jours du mois, le système génère les factures du mois suivant
-- Les factures sont créées avec le statut `draft` (brouillon)
-- Chaque facture est liée à un abonnement mensuel actif
-- Protection contre les doublons : vérifie si une facture existe déjà pour ce mois
+**CRON** : `0 2 27-31 * *` (5 derniers jours du mois)
 
-**Commande** :
-```bash
-php bin/console app:generate-monthly-invoices
-```
-
-**Configuration CRON recommandée** :
-```bash
-# Générer les factures du mois suivant (pendant les 5 derniers jours du mois)
-0 2 27-31 * * cd /chemin/vers/Aiolia-event-back && php bin/console app:generate-monthly-invoices
-```
-
-**Fichier** : `src/Command/GenerateMonthlyInvoicesCommand.php`
-
-**Service** : `src/Service/SubscriptionInvoiceGenerationService.php`
+**Fichiers** :
+- `src/Command/GenerateMonthlyInvoicesCommand.php`
+- `src/Service/SubscriptionInvoiceGenerationService.php`
 
 #### 2. Marquage automatique des factures en retard
 
-**Objectif** : Mettre automatiquement les factures non payées en statut "overdue" (en retard) entre le 10ème et 15ème jour du mois.
+**Commande** : `php bin/console app:mark-overdue-invoices`
 
-**Workflow** :
-- Entre le 10ème et 15ème jour du mois, le système vérifie toutes les factures en statut `draft` ou `issued`
-- Si la date d'échéance est dépassée, le statut passe à `overdue`
-- Les jours de retard sont calculés automatiquement
-
-**Commande** :
-```bash
-php bin/console app:mark-overdue-invoices
-```
-
-**Configuration CRON recommandée** :
-```bash
-# Marquer les factures en retard (entre le 10 et 15 du mois)
-0 3 10-15 * * cd /chemin/vers/Aiolia-event-back && php bin/console app:mark-overdue-invoices
-```
+**CRON** : `0 3 10-15 * *` (10-15 du mois)
 
 **Fichier** : `src/Command/MarkOverdueInvoicesCommand.php`
 
-#### 3. Envoi automatique de facture après paiement
+#### 3. Mise en pause automatique des abonnements non payés
 
-**Objectif** : Lorsqu'un organisateur paie son abonnement mensuel, la facture est automatiquement envoyée par email.
+**Commande** : `php bin/console app:auto-pause-unpaid-subscriptions`
 
-**Workflow** :
-- Lorsqu'une facture passe au statut `paid`, un événement Doctrine est déclenché
-- L'EventSubscriber détecte automatiquement ce changement de statut
-- Un email contenant la facture est envoyé automatiquement à l'organisateur
-- Les erreurs d'envoi sont journalisées dans les logs
+**CRON** : `0 0 11 * *` (11ème jour du mois)
+
+**Règle** : Si non payé avant le 11ème jour, l'abonnement passe en pause automatiquement.
+
+**Fichier** : `src/Command/AutoPauseUnpaidSubscriptionsCommand.php`
+
+#### 4. Statuts des factures
+
+- `draft` → `issued` → `paid` (après paiement)
+- `issued` → `overdue` (si non payée après échéance)
+- `pending` (facture prépayée)
+- `suspendue` (facture de mois en pause, 0 Ar)
+
+#### 5. Envoi automatique après paiement
 
 **Fichier** : `src/EventSubscriber/SubscriptionInvoiceSubscriber.php`
 
 **Service** : `src/Service/InvoiceEmailService.php`
 
-**Méthode** : `sendSubscriptionInvoice()`
+Lorsqu'une facture passe au statut `paid`, un email est automatiquement envoyé.
 
-#### 4. Statuts des factures
+### Fichiers principaux
 
-**Statuts disponibles** :
-- `draft` (Brouillon) : Facture créée mais pas encore complète/validée
-- `issued` (Émise/Attente) : Facture complète et émise, en attente de paiement
-- `paid` (Payée) : Facture payée, déclenche l'envoi automatique par email
-- `pending` (En attente) : Facture prépayée en attente de consommation
-- `suspendue` (Suspendue) : Facture de mois en pause (0 Ar) - organisateur en pause
-- `overdue` (En retard) : Facture dont la date d'échéance est dépassée
-- `partially_paid` (Partiellement payée) : Facture partiellement payée
-- `void` (Annulée) : Facture annulée
-- `refunded` (Remboursée) : Facture remboursée
-
-**Workflow des statuts** :
-```
-draft → issued → paid (après paiement)
-           ↓
-       overdue (si non payée après échéance)
-       
-pending → (facture prépayée en attente de consommation)
-suspendue → (facture de mois en pause, 0 Ar)
-```
-
-#### 4.1. Gestion des abonnements en pause
-
-**Règle principale** : Si un organisateur est en pause, sa facture du mois est automatiquement à **0 Ar** jusqu'à ce qu'il reprenne le service le mois suivant.
-
-**Mise en pause automatique** :
-- Si l'organisateur ne paie pas son abonnement du mois courant avant le **11ème jour du mois**, son compte est automatiquement mis en pause
-- La fonction `auto_pause_unpaid_subscriptions()` est exécutée automatiquement (via cron job le 11ème jour)
-- L'abonnement passe au statut `paused` et `mis_en_pause_le` est enregistré
-
-**Génération des factures en pause** :
-- Lors de la génération mensuelle des factures, si l'abonnement est en pause :
-  - La facture est créée avec un montant de **0 Ar** (sous-total, TVA et total à 0)
-  - Le statut est `suspendue` (suspendue)
-  - Le champ `est_mois_pause` est mis à `true`
-  - La facture est générée pour **chaque mois** où l'organisateur est en pause
-  - Les factures en pause continuent d'être générées à 0 Ar jusqu'à ce que l'organisateur reprenne le service
-  - Si une facture en pause existe déjà pour un mois, elle n'est pas régénérée (évite les doublons)
-
-**Reprise du service** :
-- L'organisateur peut reprendre le service à tout moment
-- Lors de la reprise, `repris_le` est enregistré
-- La facture du mois suivant sera générée normalement (avec le montant du plan)
-
-**Commande** :
-```bash
-php bin/console app:auto-pause-unpaid-subscriptions
-```
-
-**Configuration CRON recommandée** :
-```bash
-# Mettre en pause les abonnements non payés (le 11ème jour du mois)
-0 0 11 * * cd /chemin/vers/Aiolia-event-back && php bin/console app:auto-pause-unpaid-subscriptions
-```
-
-**Règles d'accès pour les organisateurs en pause** :
-
-| Action | Possible en pause ? | Description |
-|--------|---------------------|-------------|
-| **Accéder au dashboard** | ✔️ **Oui** (lecture seule) | L'organisateur peut consulter son tableau de bord en mode lecture seule |
-| **Voir ses événements** | ✔️ **Oui** | L'organisateur peut voir la liste de ses événements existants |
-| **Créer/modifier un événement** | ❌ **Non** | Impossible de créer ou modifier des événements pendant la pause |
-| **Publier un événement** | ❌ **Non** | Impossible de publier de nouveaux événements |
-| **Vendre des billets** | ❌ **Non** | Les ventes de billets sont suspendues pendant la pause |
-| **Voir les statistiques** | ✔️ **Oui** | L'organisateur peut consulter les statistiques de ses événements passés |
-| **Reprendre le service** | ✔️ **Oui** | L'organisateur peut reprendre son abonnement à tout moment |
-
-**Note importante** : Ces règles d'accès seront implémentées dans le module organisateur (front-end). Pour l'instant, seule la logique de facturation et de mise en pause automatique est active dans le module admin.
-
-#### 5. Calcul et affichage des jours de retard
-
-**Objectif** : Afficher le nombre de jours de retard dans la vue de détail d'une facture.
-
-**Fonctionnalités** :
-- Calcul automatique des jours de retard basé sur la date d'échéance
-- Affichage dans la page de détail de facture (`templates/admin/billing/invoice_show.html.twig`)
-- Affichage uniquement pour les factures en statut `overdue`
-- Format : "X jour(s) de retard"
-
-**Méthode** : `SubscriptionInvoice::getDaysOverdue()`
-
-**Template** : `templates/admin/billing/invoice_show.html.twig`
-
-### Fichiers du module Facturation
-
-#### Services
-- `src/Service/SubscriptionInvoiceGenerationService.php` - Service principal de génération
-- `src/Service/InvoiceEmailService.php` - Service d'envoi d'emails de factures
-- `src/Service/InvoicePdfService.php` - Service de génération de PDF
-- `src/Service/InvoiceNumberService.php` - Service de génération de numéros de facture
-
-#### Commandes
-- `src/Command/GenerateMonthlyInvoicesCommand.php` - Génération mensuelle des factures
-- `src/Command/MarkOverdueInvoicesCommand.php` - Marquage des factures en retard
-- `src/Command/AutoPauseUnpaidSubscriptionsCommand.php` - Mise en pause automatique des abonnements non payés
-
-#### EventSubscribers
-- `src/EventSubscriber/SubscriptionInvoiceSubscriber.php` - Envoi automatique après paiement
-
-#### Contrôleurs
-- `src/Controller/Admin/BillingController.php` - Gestion des factures (liste, détails, PDF, renvoi email)
-
-#### Entités
-- `src/Entity/SubscriptionInvoice.php` - Entité des factures d'abonnement
-  - Méthodes : `issue()`, `markAsPaid()`, `getDaysOverdue()`, `isOverdue()`
-
-#### Templates
-- `templates/admin/billing/invoices.html.twig` - Liste des factures
-- `templates/admin/billing/invoice_show.html.twig` - Détails d'une facture (avec jours de retard)
-- `templates/emails/invoice_subscription.html.twig` - Template email de facture
-
-### Utilisation
-
-#### Génération manuelle des factures
-```bash
-php bin/console app:generate-monthly-invoices
-```
-
-#### Marquage manuel des factures en retard
-```bash
-php bin/console app:mark-overdue-invoices
-```
-
-#### Création programmée (CRON)
-Les deux commandes doivent être configurées dans le crontab pour s'exécuter automatiquement.
+- **Contrôleur** : `src/Controller/Admin/BillingController.php`
+- **Entité** : `src/Entity/SubscriptionInvoice.php`
+- **Templates** : `templates/admin/billing/*.html.twig`
 
 ---
 
@@ -219,545 +76,251 @@ Les deux commandes doivent être configurées dans le crontab pour s'exécuter a
 
 ### Vue d'ensemble
 
-Le module de gestion des utilisateurs permet aux administrateurs de gérer tous les comptes utilisateurs de la plateforme, y compris les organisateurs et les administrateurs.
+Gestion complète des comptes utilisateurs (organisateurs, utilisateurs, admins) avec validation, modification de rôles et audit.
 
 ### Fonctionnalités principales
 
-#### 1. Liste des utilisateurs avec recherche et filtres
+#### Routes principales
 
-**Route** : `/admin/users`
+- `/admin/users` - Liste avec recherche, filtres (rôle, statut), pagination (5/page)
+- `/admin/users/{id}` - Détails utilisateur (infos, audit, événements)
+- `/admin/users/{id}/change-role` - Modification du rôle (POST)
+- `/admin/users/{id}/toggle-status` - Activation/Désactivation (POST)
+- `/admin/users/{id}/delete` - Suppression (POST, protection CSRF)
+- `/admin/users/audit/history` - Historique des actions avec filtres
+- `/admin/users/{id}/events` - Événements d'un organisateur
+- `/admin/users/autocomplete` - Recherche rapide (JSON, min 2 caractères)
 
-**Fonctionnalités** :
-- Affichage paginé (5 utilisateurs par page)
-- Recherche multi-critères : nom, prénom, email, téléphone
-- Filtres par rôle : Admin, Organisateur, Utilisateur
-- Filtres par statut : Actif, En attente de validation, Rejeté
-- Tri par : date de création, email, nom, prénom
-- Statistiques : total, en attente, actifs, organisateurs
+#### Module Validation
 
-**Contrôleur** : `src/Controller/Admin/UserManagementController.php`
+- `/admin/validation/pending` - Liste des comptes en attente
+- `/admin/validation/{id}/approve` - Approuver (POST, envoi email automatique)
+- `/admin/validation/{id}/reject` - Rejeter (POST, commentaire obligatoire)
 
-**Méthode** : `list()`
+### Services
 
-**Template** : `templates/admin/users/list.html.twig`
+- **AuditLogService** : Journalisation de toutes les actions (qui, quoi, quand, détails)
+- **UserNotificationService** : Envoi automatique d'emails (validation, rejet, changement rôle/statut)
 
-#### 2. Détails d'un utilisateur
+### Fichiers principaux
 
-**Route** : `/admin/users/{id}`
-
-**Informations affichées** :
-- Informations personnelles (nom, prénom, email, téléphone)
-- Rôle et statut du compte
-- Date d'inscription
-- Historique d'audit (actions effectuées sur le compte)
-- Événements créés (si organisateur)
-- Statistiques (nombre d'événements, événements publiés)
-
-**Contrôleur** : `src/Controller/Admin/UserManagementController.php`
-
-**Méthode** : `show()`
-
-**Template** : `templates/admin/users/show.html.twig`
-
-#### 3. Modification du rôle d'un utilisateur
-
-**Route** : `/admin/users/{id}/change-role` (POST)
-
-**Fonctionnalités** :
-- Changement du rôle : Utilisateur, Organisateur, Administrateur
-- Validation du rôle avant modification
-- Journalisation de l'action (Audit Log)
-- Envoi automatique d'une notification email à l'utilisateur
-- Message de confirmation affiché à l'admin
-
-**Contrôleur** : `src/Controller/Admin/UserManagementController.php`
-
-**Méthode** : `changeRole()`
-
-**Service utilisé** : `AuditLogService`, `UserNotificationService`
-
-#### 4. Activation/Désactivation d'un utilisateur
-
-**Route** : `/admin/users/{id}/toggle-status` (POST)
-
-**Fonctionnalités** :
-- Basculement entre statut "actif" et "en attente de validation"
-- Protection CSRF
-- Journalisation de l'action
-- Envoi automatique d'une notification email
-- Message de confirmation
-
-**Contrôleur** : `src/Controller/Admin/UserManagementController.php`
-
-**Méthode** : `toggleStatus()`
-
-#### 5. Suppression d'un utilisateur
-
-**Route** : `/admin/users/{id}/delete` (POST)
-
-**Fonctionnalités** :
-- Suppression définitive d'un utilisateur
-- Protection : impossible de supprimer son propre compte
-- Journalisation avant suppression
-- Message de confirmation
-
-**Contrôleur** : `src/Controller/Admin/UserManagementController.php`
-
-**Méthode** : `delete()`
-
-#### 6. Historique des actions (Audit Log)
-
-**Route** : `/admin/users/audit/history`
-
-**Fonctionnalités** :
-- Liste de toutes les actions effectuées sur les utilisateurs
-- Filtres par : action, utilisateur, dates (début/fin)
-- Statistiques par type d'action
-- Informations détaillées : qui, quoi, quand, détails
-
-**Contrôleur** : `src/Controller/Admin/UserManagementController.php`
-
-**Méthode** : `auditHistory()`
-
-**Repository** : `src/Repository/AuditLogRepository.php`
-
-**Template** : `templates/admin/users/audit_history.html.twig`
-
-#### 7. Liste des événements d'un organisateur
-
-**Route** : `/admin/users/{id}/events`
-
-**Fonctionnalités** :
-- Affichage paginé (5 événements par page)
-- Liste des événements créés par l'organisateur
-- Statistiques : total d'événements, événements publiés
-- Accès uniquement si l'utilisateur est un organisateur
-
-**Contrôleur** : `src/Controller/Admin/UserManagementController.php`
-
-**Méthode** : `events()`
-
-**Template** : `templates/admin/users/events.html.twig`
-
-#### 8. Autocomplete pour recherche
-
-**Route** : `/admin/users/autocomplete`
-
-**Fonctionnalités** :
-- Recherche rapide par nom, prénom, email
-- Limite de 10 résultats
-- Format JSON pour utilisation AJAX
-- Minimum 2 caractères requis
-
-**Contrôleur** : `src/Controller/Admin/UserManagementController.php`
-
-**Méthode** : `autocomplete()`
-
-### Module Validation des Utilisateurs
-
-#### 1. Liste des demandes en attente
-
-**Route** : `/admin/validation/pending`
-
-**Fonctionnalités** :
-- Affichage paginé (5 demandes par page)
-- Liste des comptes en attente de validation
-- Statistiques : total, organisateurs, utilisateurs simples
-- Filtrage automatique des comptes avec statut `pending`
-
-**Contrôleur** : `src/Controller/Admin/UserValidationController.php`
-
-**Méthode** : `pending()`
-
-**Template** : `templates/admin/validation/pending.html.twig`
-
-#### 2. Approuver une demande
-
-**Route** : `/admin/validation/{id}/approve` (POST)
-
-**Fonctionnalités** :
-- Validation d'un compte utilisateur
-- Changement de statut : `pending` → `active`
-- Possibilité de modifier le rôle lors de l'approbation
-- Ajout d'un commentaire optionnel
-- Envoi automatique d'un email de confirmation
-- Si l'email échoue, la modification est annulée
-- Journalisation de l'action
-
-**Contrôleur** : `src/Controller/Admin/UserValidationController.php`
-
-**Méthode** : `approve()`
-
-**Services utilisés** :
-- `AuditLogService` - Journalisation
-- `UserNotificationService` - Envoi d'email
-
-#### 3. Rejeter une demande
-
-**Route** : `/admin/validation/{id}/reject` (POST)
-
-**Fonctionnalités** :
-- Rejet d'un compte utilisateur
-- Changement de statut : `pending` → `rejected`
-- Ajout d'un commentaire/reason obligatoire
-- Envoi automatique d'un email de notification
-- Journalisation de l'action avec raison du rejet
-
-**Contrôleur** : `src/Controller/Admin/UserValidationController.php`
-
-**Méthode** : `reject()`
-
-### Services utilisés
-
-#### AuditLogService
-- Journalisation de toutes les actions administratives
-- Traçabilité complète des modifications
-- Stockage des détails (ancien/nouveau statut, rôle, etc.)
-
-**Actions journalisées** :
-- `ACTION_USER_UPDATED` - Mise à jour d'un utilisateur
-- `ACTION_ROLE_CHANGED` - Changement de rôle
-- `ACTION_USER_DELETED` - Suppression d'un utilisateur
-- `ACTION_USER_VALIDATED` - Validation d'un compte
-- `ACTION_USER_REJECTED` - Rejet d'un compte
-
-#### UserNotificationService
-- Envoi d'emails de notification aux utilisateurs
-- Notifications pour : changement de rôle, changement de statut, validation, rejet
-
-### Fichiers du module Gestion des Utilisateurs
-
-#### Contrôleurs
-- `src/Controller/Admin/UserManagementController.php` - Gestion complète des utilisateurs
-- `src/Controller/Admin/UserValidationController.php` - Validation des comptes
-
-#### Services
-- `src/Service/AuditLogService.php` - Journalisation des actions
-- `src/Service/UserNotificationService.php` - Envoi de notifications email
-
-#### Repositories
-- `src/Repository/UserRepository.php` - Requêtes sur les utilisateurs
-- `src/Repository/AuditLogRepository.php` - Requêtes sur les logs d'audit
-
-#### Entités
-- `src/Entity/User.php` - Entité utilisateur
-- `src/Entity/AuditLog.php` - Entité de journalisation
-
-#### Templates
-- `templates/admin/users/list.html.twig` - Liste des utilisateurs
-- `templates/admin/users/show.html.twig` - Détails d'un utilisateur
-- `templates/admin/users/audit_history.html.twig` - Historique des actions
-- `templates/admin/users/events.html.twig` - Événements d'un organisateur
-- `templates/admin/validation/pending.html.twig` - Demandes en attente
+- **Contrôleurs** : `UserManagementController.php`, `UserValidationController.php`
+- **Services** : `AuditLogService.php`, `UserNotificationService.php`
+- **Templates** : `templates/admin/users/*.html.twig`, `templates/admin/validation/*.html.twig`
 
 ---
 
-## 👤 Module Profile
+## 📊 Module Statistiques
 
 ### Vue d'ensemble
 
-Le module Profile permet à chaque utilisateur (authentifié) de gérer ses informations personnelles, son mot de passe et sa photo de profil.
+Module d'analyse des performances avec widgets, graphiques et filtres de dates.
 
 ### Fonctionnalités principales
 
-#### 1. Affichage du profil
+#### Route : `/admin/reports/statistiques`
 
-**Route** : `/profile`
+#### 4 Widgets
+1. **Organisateurs actifs** (ce mois)
+2. **Nouveaux organisateurs** (ce mois)
+3. **Abonnement le plus utilisé**
+4. **Prévision du chiffre d'affaires**
 
-**Fonctionnalités** :
-- Affichage des informations personnelles (nom, prénom, email, téléphone)
-- Affichage de la photo de profil (si définie)
-- Informations de compte (rôle, date d'inscription)
-- Lien vers l'édition du profil
+#### 4 Graphiques Chart.js
+1. **Courbe nouveaux organisateurs** (6 derniers mois)
+2. **Histogramme répartition abonnements** (Basic/Pro/Enterprise)
+3. **Courbe prévision CA** (6 mois)
+4. **Top 10 Payeurs** (graphique barres horizontales)
 
-**Contrôleur** : `src/Controller/ProfileController.php`
+#### Filtres
+- Date de début
+- Date de fin
 
-**Méthode** : `index()`
+### Fichiers principaux
 
-**Template** : `templates/profile/index.html.twig`
+- **Contrôleur** : `src/Controller/Admin/StatisticsController.php`
+- **Service** : `src/Service/Admin/StatisticsService.php`
+- **Repository** : `src/Repository/Admin/StatisticsRepository.php`
+- **Template** : `templates/Admin/reports/statistiques.html.twig`
 
-**Accès** : Authentification requise (`IS_AUTHENTICATED_REMEMBERED`)
+### Notes techniques
 
-#### 2. Édition du profil
-
-**Route** : `/profile/edit` (GET, POST)
-
-**Fonctionnalités** :
-- Modification des informations personnelles :
-  - Prénom
-  - Nom
-  - Téléphone
-- Validation des données
-- Message de succès après modification
-- Redirection vers la page de profil après sauvegarde
-
-**Contrôleur** : `src/Controller/ProfileController.php`
-
-**Méthode** : `edit()`
-
-**Template** : `templates/profile/edit.html.twig`
-
-**Données modifiables** :
-- `first_name` - Prénom
-- `last_name` - Nom
-- `phone` - Téléphone
-
-#### 3. Changement de mot de passe
-
-**Route** : `/profile/password` (GET, POST)
-
-**Fonctionnalités** :
-- Changement du mot de passe utilisateur
-- Vérification du mot de passe actuel
-- Validation : le mot de passe actuel doit être correct
-- Hashage sécurisé du nouveau mot de passe
-- Message d'erreur si le mot de passe actuel est incorrect
-- Message de succès après modification
-
-**Contrôleur** : `src/Controller/ProfileController.php`
-
-**Méthode** : `changePassword()`
-
-**Template** : `templates/profile/password.html.twig`
-
-**Validation** :
-- Le mot de passe actuel doit être vérifié avant d'appliquer le changement
-- Utilisation de `UserPasswordHasherInterface` pour le hashage
-
-#### 4. Upload de photo de profil
-
-**Route** : `/profile/photo` (POST)
-
-**Fonctionnalités** :
-- Upload d'une photo de profil via Cloudinary
-- Validation du type de fichier (JPG, PNG, GIF, WEBP uniquement)
-- Protection CSRF
-- Génération automatique d'un nom de fichier unique
-- Stockage dans le dossier `users/avatars` sur Cloudinary
-- Mise à jour de l'URL de l'avatar dans le profil
-- Messages d'erreur en cas d'échec
-- Message de succès après upload
-
-**Contrôleur** : `src/Controller/ProfileController.php`
-
-**Méthode** : `uploadPhoto()`
-
-**Service utilisé** : `CloudinaryService`
-
-**Validation** :
-- Vérification du token CSRF (`profile_photo_upload`)
-- Vérification du type de fichier image
-- Vérification que Cloudinary est configuré
-
-**Format des fichiers acceptés** :
-- JPG/JPEG
-- PNG
-- GIF
-- WEBP
-
-### Services utilisés
-
-#### CloudinaryService
-- Upload et stockage d'images sur Cloudinary
-- Validation des types de fichiers
-- Génération d'URLs publiques
-- Gestion des erreurs d'upload
-
-**Méthodes utilisées** :
-- `isValidImageType()` - Validation du type de fichier
-- `isConfigured()` - Vérification de la configuration
-- `uploadImage()` - Upload de l'image
-
-### Fichiers du module Profile
-
-#### Contrôleur
-- `src/Controller/ProfileController.php` - Gestion du profil utilisateur
-
-#### Services
-- `src/Service/CloudinaryService.php` - Gestion des uploads Cloudinary
-
-#### Templates
-- `templates/profile/index.html.twig` - Page de profil
-- `templates/profile/edit.html.twig` - Édition du profil
-- `templates/profile/password.html.twig` - Changement de mot de passe
-
-#### Entité
-- `src/Entity/User.php` - Entité utilisateur avec méthodes de profil
-
-### Utilisation
-
-#### Accès au profil
-1. Se connecter à la plateforme
-2. Accéder à `/profile`
-3. Voir et modifier ses informations personnelles
-
-#### Modification du profil
-1. Accéder à `/profile/edit`
-2. Modifier les champs souhaités (prénom, nom, téléphone)
-3. Cliquer sur "Enregistrer"
-4. Confirmation affichée
-
-#### Changement de mot de passe
-1. Accéder à `/profile/password`
-2. Entrer le mot de passe actuel
-3. Entrer le nouveau mot de passe
-4. Confirmer le nouveau mot de passe
-5. Cliquer sur "Changer le mot de passe"
-
-#### Upload de photo
-1. Accéder à `/profile`
-2. Cliquer sur "Changer la photo"
-3. Sélectionner une image (JPG, PNG, GIF, WEBP)
-4. Upload automatique vers Cloudinary
-5. Photo mise à jour immédiatement
+- Toutes les requêtes SQL sont dans le repository
+- Le service orchestre uniquement les appels au repository
+- Utilisation de Chart.js pour les graphiques
+- Formatage automatique des montants en Ariary
 
 ---
 
-## ⚙️ Module Paramètres
+## 📋 Plans d'Abonnement
 
-### Vue d'ensemble
+### 🎯 Vue d'ensemble
 
-Le module Paramètres permet à chaque utilisateur de gérer ses préférences et paramètres personnels de la plateforme.
+**9 offres d'abonnement** : **Basic**, **Pro** et **Enterprise**, chacune en **3 périodes** (mensuel, trimestriel, annuel).
 
-### Fonctionnalités principales
+**Principe** : Choix libre parmi les 9 offres, **indépendamment du type d'organisation** (individual, company, non_profit, collective).
 
-#### 1. Page des paramètres
+### 📊 Tarifs (HT, TVA 20% calculée automatiquement)
 
-**Route** : `/settings`
+| Plan | Mensuel | Trimestriel (-6.7%) | Annuel (-10%) | Plan ID |
+|------|---------|---------------------|---------------|---------|
+| **BASIC** | 150 000 Ar | 420 000 Ar (140k/mois) | 1 620 000 Ar (135k/mois) | 1, 2, 3 |
+| **PRO** ⭐ | 350 000 Ar | 980 000 Ar (327k/mois) | 3 780 000 Ar (315k/mois) | 4, 5, 6 |
+| **ENTERPRISE** | 600 000 Ar | 1 680 000 Ar (560k/mois) | 6 480 000 Ar (540k/mois) | 7, 8, 9 |
 
-**Fonctionnalités** :
-- Affichage des paramètres et préférences de l'utilisateur
-- Accès aux différentes sections de paramètres
-- Interface unifiée pour la gestion des préférences
+**Calcul prix mensuel** : Annuel = prix/12, Trimestriel = prix/3, Mensuel = prix
 
-**Contrôleur** : `src/Controller/SettingsController.php`
+### Comparaison rapide
 
-**Méthode** : `index()`
+| Fonctionnalité | Basic | Pro ⭐ | Enterprise |
+|---|---|---|---|
+| **Prix mensuel (HT)** | 150k Ar | 350k Ar | 600k Ar |
+| **Événements/mois** | 3 | 15 | Illimité |
+| **Support** | Email | Chat + Email | Téléphone + Chat + Email |
+| **Statistiques** | Base | Avancées | Complètes |
+| **API** | Non | Limitée | Complète |
+| **White-label** | Non | Partiel | Complet |
 
-**Template** : `templates/settings/index.html.twig`
+### Notes importantes
 
-**Accès** : Authentification requise (`IS_AUTHENTICATED_REMEMBERED`)
+- ✅ Tous les prix sont **HT**, TVA 20% calculée automatiquement
+- ✅ Réductions : Trimestriel -6.7%, Annuel -10%
+- ✅ Choix libre indépendamment du type d'organisation
+- ✅ Calcul automatique du prix mensuel selon période
 
-### Fichiers du module Paramètres
+### Fichiers
 
-#### Contrôleur
-- `src/Controller/SettingsController.php` - Gestion des paramètres
-
-#### Templates
-- `templates/settings/index.html.twig` - Page des paramètres
-
-### Notes
-
-Le module Paramètres est actuellement basique et peut être étendu avec :
-- Paramètres de notification (email, push, SMS)
-- Préférences de langue
-- Préférences d'affichage (thème, mode sombre)
-- Paramètres de confidentialité
-- Gestion des sessions actives
-- Configuration des méthodes de paiement préférées
+- `Base/schema.sql` : Table `plans_abonnements`
+- `Base/data.sql` : Insertion des 9 plans
+- `src/Service/SubscriptionInvoiceGenerationService.php` : Génération factures
 
 ---
 
-## 🗄️ Fonctions SQL et logique stockée (`Base/logic.sql`)
+## 🔧 Règles Métier Importantes
 
-Le fichier `Base/logic.sql` centralise toutes les vues, fonctions PL/pgSQL et triggers utilisés par l’application.  
-Cette logique est versionnée au même titre que le code PHP et chaque commande Symfony y fait directement référence.
+### Facturation
 
-### Vues et vues matérialisées
+#### Règle de génération des factures
+- **Période** : 5 derniers jours du mois (27-31)
+- **Statut initial** : `draft` (brouillon)
+- **Protection doublons** : Vérification si facture existe déjà pour le mois
+- **Calcul prix** : Basé sur le plan choisi par l'organisateur
+  - Mensuel : prix du plan
+  - Trimestriel : prix / 3
+  - Annuel : prix / 12
+- **TVA** : Calculée automatiquement (20% par défaut)
 
-| Vue | Rôle | Utilisation dans l’application |
-|-----|------|--------------------------------|
-| `mv_user_monthly_spend` *(matérialisée)* | total des dépenses par utilisateur et par mois | Rafraîchie via `refresh_user_monthly_spend()` avant les exports/rapports Analytics. |
-| `vw_user_dashboard_summary` | résumé profil + portefeuille + stats | Utilisée lorsque le Dashboard admin récupère les infos d’un utilisateur (ex. `UserManagementController::show`). |
-| `vw_event_sales_summary` | ventes & revenus par événement | Sert de base aux graphiques “Rapports Analytics” (`reports/statistiques`). |
-| `vw_subscription_payment_summary` | synthèse des paiements d’abonnements | Requêtes du module Facturation (`BillingController::invoices`). |
-| `vw_subscription_payments_detailed` | historique détaillé des paiements d’abonnement | Exploité pour l’écran `/admin/users/{id}/payments` et pour les exports financiers. |
-| `vw_ticket_payments_detailed` | historique détaillé des paiements de billets | Utilisé par les exports tickets et les rapports fiscaux. |
-| `vw_subscription_invoices_overdue` / `vw_ticket_invoices_overdue` | factures en retard | Liste affichée dans la vue “Facturation & Paiement” (filtre “En retard”). |
-| `vw_subscription_invoice_items` | détail des lignes d’une facture d’abonnement | Chargé via DBAL dans `BillingController::showSubscriptionInvoice()` pour afficher les montants HT/TVA/TTC. |
+#### Règle de mise en pause automatique
+- **Déclenchement** : Le 11ème jour du mois à 00:00
+- **Condition** : Facture du mois courant non payée avant le 11ème jour
+- **Action** : Abonnement passe en statut `paused`
+- **Conséquence** : Factures suivantes à 0 Ar jusqu'à reprise
+
+#### Règle des factures en pause
+- **Montant** : 0 Ar (sous-total, TVA, total)
+- **Statut** : `suspendue`
+- **Génération** : Automatique chaque mois tant que l'abonnement est en pause
+- **Reprise** : Facture du mois suivant générée normalement
+
+#### Règle de marquage en retard
+- **Période** : Entre le 10ème et 15ème jour du mois
+- **Condition** : Facture en statut `draft` ou `issued` avec échéance dépassée
+- **Action** : Statut passe à `overdue`
+- **Calcul retard** : Basé sur le 10ème jour du mois (date limite de paiement)
+
+### Gestion des Utilisateurs
+
+#### Règles de validation
+- **Statut initial organisateur** : `pending` (en attente)
+- **Statut initial utilisateur** : `active` (actif immédiatement)
+- **Validation** : Admin approuve → statut `active` + email automatique
+- **Rejet** : Admin rejette → statut `rejected` + email avec raison
+
+#### Règles d'audit
+- **Toutes les actions** sont journalisées (qui, quoi, quand, détails)
+- **Actions tracées** :
+  - Changement de rôle
+  - Changement de statut
+  - Validation/Rejet
+  - Suppression
+  - Modification
+
+#### Protection CSRF
+- **Tous les formulaires** protégés par token CSRF
+- **Actions sensibles** : Suppression, changement rôle, validation/rejet
+
+### Statistiques
+
+#### Calculs importants
+- **Organisateurs actifs** : Compte les abonnements actifs pour le mois
+- **Nouveaux organisateurs** : Compte les profils créés dans le mois
+- **Abonnement le plus utilisé** : Plan avec le plus d'abonnements actifs
+- **Prévision CA** : Somme des prix mensuels des abonnements actifs
+
+#### Filtres de dates
+- **Application** : Sur tous les graphiques et statistiques
+- **Format** : YYYY-MM-DD
+- **Par défaut** : Sans filtre (toutes les données)
+
+---
+
+## 🗄️ Fonctions SQL Importantes (`Base/logic.sql`)
 
 ### Fonctions PL/pgSQL
 
-| Fonction | Description | Où / comment elle est utilisée |
-|----------|-------------|--------------------------------|
-| `refresh_user_monthly_spend()` | Rafraîchit la vue matérialisée `mv_user_monthly_spend`. | Commandes/cron d’Analytics (appel manuel avant export volumineux). |
-| `wallet_transactions_apply()` | Applique immédiatement les transactions de portefeuille (crédit, débit, points). | Appelée automatiquement par `trg_wallet_transactions_apply` lors de l’insertion dans `transactions_portefeuilles`. |
-| `order_items_adjust_inventory()` | Vérifie et réserve le stock quand une ligne de commande est créée. | Trigger `trg_order_items_adjust_inventory` sur `elements_commandes`. |
-| `tickets_record_stats()` | Met à jour `statistiques_evenements_utilisateurs` à chaque billet émis. | Trigger `trg_tickets_record_stats` sur `billets`. |
-| `generate_monthly_subscription_invoices(target_month DATE)` | Crée les factures d’abonnement (statut `issued`, `pending`, `suspendue` selon le cas). | Service `SubscriptionInvoiceGenerationService` + commande `php bin/console app:generate-monthly-invoices`. |
-| `update_overdue_invoices_status()` | Passe les factures en retard en statut `overdue` et stocke `days_overdue`. | Commande `php bin/console app:mark-overdue-invoices`. |
-| `auto_pause_unpaid_subscriptions()` | Le 11 du mois, met en pause les abonnements actifs dont la facture courante n’est pas payée. | Commande `php bin/console app:auto-pause-unpaid-subscriptions` (module Facturation). |
+#### `generate_monthly_subscription_invoices(target_month DATE)`
+- **Rôle** : Génère les factures d'abonnement pour un mois donné
+- **Utilisation** : Appelée par `SubscriptionInvoiceGenerationService`
+- **Statuts créés** : `issued`, `pending`, `suspendue` selon le cas
+- **Protection** : Vérifie les doublons avant création
 
-### Triggers actifs
+#### `update_overdue_invoices_status()`
+- **Rôle** : Marque les factures en retard
+- **Utilisation** : Commande `app:mark-overdue-invoices`
+- **Action** : Met à jour le statut vers `overdue` et calcule `days_overdue`
 
-| Trigger | Table | Fonction | Effet |
-|---------|-------|---------|-------|
-| `trg_wallet_transactions_apply` | `transactions_portefeuilles` | `wallet_transactions_apply()` | Applique la transaction et met à jour le solde/points avant insertion. |
-| `trg_order_items_adjust_inventory` | `elements_commandes` | `order_items_adjust_inventory()` | Empêche les dépassements de stock et réserve les quantités. |
-| `trg_tickets_record_stats` | `billets` | `tickets_record_stats()` | Alimente automatiquement les statistiques utilisateur/billets. |
+#### `auto_pause_unpaid_subscriptions()`
+- **Rôle** : Met en pause les abonnements non payés
+- **Utilisation** : Commande `app:auto-pause-unpaid-subscriptions`
+- **Condition** : Facture courante non payée avant le 11ème jour
+- **Action** : Statut `paused` + enregistrement de `mis_en_pause_le`
 
-### Résumé “où est-ce utilisé ?”
+### Vues importantes
 
-| Élément SQL | Point d’entrée Symfony / Service | Comportement |
-|-------------|----------------------------------|--------------|
-| `generate_monthly_subscription_invoices` | `SubscriptionInvoiceGenerationService`, `GenerateMonthlyInvoicesCommand` | Génère les factures du mois (1er jour). |
-| `update_overdue_invoices_status` | `MarkOverdueInvoicesCommand` | Marque les factures `issued/draft` en retard. |
-| `auto_pause_unpaid_subscriptions` | `AutoPauseUnpaidSubscriptionsCommand` | Met en pause les abonnements impayés (11e jour). |
-| Vues `vw_*` (paiements, factures, stats) | `BillingController`, `ReportController`, exports | Fournissent des datasets prêts à afficher pour les modules Facturation & Rapports. |
-| Triggers portefeuille/inventaire/billets | Insertion Doctrine/DBAL sur les tables concernées | Garantissent l’intégrité métier sans code PHP supplémentaire. |
+#### `vw_subscription_payment_summary`
+- **Rôle** : Synthèse des paiements d'abonnements
+- **Utilisation** : Module Facturation (`BillingController`)
 
-> 📝 Toutes ces fonctions/vues sont déployées en même temps que le schéma (`schema.sql` + `logic.sql`). Pour déclencher une fonction côté PHP, utilisez simplement DBAL (`$connection->executeStatement('SELECT ...')`) ou créez une commande Symfony comme celles présentées ci-dessus.
+#### `vw_subscription_invoices_overdue`
+- **Rôle** : Liste des factures en retard
+- **Utilisation** : Filtre "En retard" dans la vue facturation
+
+#### `vw_subscription_invoice_items`
+- **Rôle** : Détail des lignes d'une facture
+- **Utilisation** : Affichage HT/TVA/TTC dans `BillingController::showSubscriptionInvoice()`
+
+### Triggers
+
+#### `trg_wallet_transactions_apply`
+- **Table** : `transactions_portefeuilles`
+- **Fonction** : `wallet_transactions_apply()`
+- **Effet** : Applique la transaction et met à jour le solde/points
+
+#### `trg_order_items_adjust_inventory`
+- **Table** : `elements_commandes`
+- **Fonction** : `order_items_adjust_inventory()`
+- **Effet** : Empêche les dépassements de stock et réserve les quantités
+
+#### `trg_tickets_record_stats`
+- **Table** : `billets`
+- **Fonction** : `tickets_record_stats()`
+- **Effet** : Met à jour les statistiques utilisateur/billets
 
 ---
 
-## 🔧 Architecture Technique
+## ⚙️ Configuration CRON Recommandée
 
-### Services transversaux
-
-#### InvoiceEmailService
-Service d'envoi d'emails de factures
-- `sendTicketInvoice()` - Envoi facture de billet
-- `sendSubscriptionInvoice()` - Envoi facture d'abonnement
-- `sendInvoiceAfterPayment()` - Envoi automatique après paiement
-
-#### AuditLogService
-Service de journalisation des actions
-- Traçabilité complète des modifications
-- Stockage des détails (avant/après, utilisateur, date)
-
-#### UserNotificationService
-Service d'envoi de notifications email
-- Notifications de changement de rôle
-- Notifications de changement de statut
-- Notifications de validation/rejet
-
-#### CloudinaryService
-Service de gestion des médias
-- Upload d'images vers Cloudinary
-- Validation des types de fichiers
-- Génération d'URLs publiques
-
-### EventSubscribers
-
-#### SubscriptionInvoiceSubscriber
-Écouteur Doctrine pour les factures d'abonnement
-- Détecte les changements de statut vers `paid`
-- Déclenche automatiquement l'envoi par email
-- Gestion des erreurs et journalisation
-
-### Commandes Symfony
-
-#### GenerateMonthlyInvoicesCommand
-Génération automatique des factures mensuelles
-- Exécution recommandée : 5 derniers jours du mois
-- Crée les factures du mois suivant avec statut `draft`
-
-#### MarkOverdueInvoicesCommand
-Marquage des factures en retard
-- Exécution recommandée : 10-15 du mois
-- Met à jour le statut vers `overdue` pour les factures non payées
-
-### Configuration CRON recommandée
+### Commandes essentielles
 
 ```bash
 # Générer les factures mensuelles (5 derniers jours du mois)
@@ -770,560 +333,214 @@ Marquage des factures en retard
 0 0 11 * * cd /chemin/vers/Aiolia-event-back && php bin/console app:auto-pause-unpaid-subscriptions
 ```
 
+### Ordre d'exécution important
+
+1. **27-31 du mois** : Génération des factures du mois suivant
+2. **11 du mois** : Mise en pause des abonnements non payés
+3. **10-15 du mois** : Marquage des factures en retard
+
 ---
 
-## 📝 Notes importantes
+## 🔐 Sécurité et Permissions
+
+### Rôles
+
+- **ROLE_ADMIN** : Accès complet à tous les modules admin
+- **ROLE_ORGANIZER** : Accès au module organisateur
+- **ROLE_USER** : Accès utilisateur standard
+
+### Protection des routes
+
+- **Routes admin** : Protégées par `#[IsGranted('ROLE_ADMIN')]`
+- **Routes authentifiées** : Protégées par `IS_AUTHENTICATED_REMEMBERED`
+- **CSRF** : Tous les formulaires protégés
+
+### Validation des données
+
+- **Côté serveur** : Validation Symfony sur tous les formulaires
+- **Hashage mots de passe** : Utilisation de `UserPasswordHasherInterface`
+- **Journalisation** : Toutes les actions sensibles tracées
+
+---
+
+## 📊 Architecture des Requêtes
+
+### Principe de séparation
+
+- **Repository** : Toutes les requêtes SQL natives
+- **Service** : Orchestration et logique métier (sans SQL)
+- **Contrôleur** : Appels aux services uniquement
+
+### Exemple de structure
+
+```
+Contrôleur → Service → Repository → Base de données
+```
+
+**Repository** (`StatisticsRepository.php`) :
+- `countActiveOrganizersForMonth()` : Requête SQL native
+- `getTopPayers()` : Requête SQL native
+
+**Service** (`StatisticsService.php`) :
+- `getStatistics()` : Appelle les méthodes du repository
+- Aucune requête SQL directe
+
+**Contrôleur** (`StatisticsController.php`) :
+- Appelle `$statisticsService->getStatistics()`
+- Passe les données au template
+
+---
+
+## 🎯 Règles de Calcul des Statistiques
+
+### Organisateurs actifs (mois courant)
+
+```sql
+COUNT(DISTINCT po.id)
+WHERE u.statut = 1
+  AND u.role = 'organizer'
+  AND ao.statut = 'active'
+  AND ao.commence_le <= fin_mois
+  AND (ao.annule_le IS NULL OR ao.annule_le >= début_mois)
+  AND (ao.mis_en_pause_le IS NULL OR ao.mis_en_pause_le >= fin_mois OR ao.repris_le <= début_mois)
+```
+
+### Nouveaux organisateurs (mois courant)
+
+```sql
+COUNT(DISTINCT po.id)
+WHERE u.role = 'organizer'
+  AND u.statut = 1
+  AND po.cree_le >= début_mois
+  AND po.cree_le <= fin_mois
+```
+
+### Abonnement le plus utilisé
+
+```sql
+SELECT sp.niveau, COUNT(DISTINCT ao.id) as count
+GROUP BY sp.niveau
+ORDER BY count DESC
+LIMIT 1
+```
+
+### Prévision CA (mois)
+
+```sql
+SUM(
+  CASE 
+    WHEN sp.periode_facturation = 'yearly' THEN sp.prix / 12
+    WHEN sp.periode_facturation = 'quarterly' THEN sp.prix / 3
+    ELSE sp.prix
+  END
+)
+WHERE ao.statut = 'active'
+```
+
+### Top Payeurs
+
+```sql
+SELECT po.nom_affichage, SUM(fa.montant_total) as total_paid
+WHERE fa.statut = 'paid'
+GROUP BY po.id
+ORDER BY total_paid DESC
+LIMIT 10
+```
+
+---
+
+## 📝 Notes Techniques Importantes
+
+### Base de données
+
+- **Schéma** : `aiolia` (PostgreSQL)
+- **Tables principales** :
+  - `utilisateurs` : Comptes utilisateurs
+  - `profils_organisateurs` : Profils organisateurs
+  - `abonnements_organisateurs` : Abonnements actifs
+  - `plans_abonnements` : Plans disponibles (9 plans)
+  - `factures_abonnements` : Factures générées
+  - `paiements_abonnements` : Historique des paiements
+
+### Services transversaux
+
+- **InvoiceEmailService** : Envoi emails de factures
+- **AuditLogService** : Journalisation des actions
+- **UserNotificationService** : Notifications email
+- **CloudinaryService** : Upload d'images
+- **StatisticsService** : Calculs statistiques
+
+### EventSubscribers
+
+- **SubscriptionInvoiceSubscriber** : Détecte paiement → envoi email automatique
+
+### Commandes Symfony
+
+- `app:generate-monthly-invoices` : Génération factures
+- `app:mark-overdue-invoices` : Marquage en retard
+- `app:auto-pause-unpaid-subscriptions` : Mise en pause
+
+---
+
+## 🚨 Points d'Attention
+
+### Facturation
+
+- ⚠️ **Ne pas exécuter plusieurs fois** la génération de factures le même mois (protection doublons)
+- ⚠️ **Ordre CRON important** : Génération → Pause → Marquage retard
+- ⚠️ **Factures en pause** : Générées automatiquement à 0 Ar chaque mois
+
+### Statistiques
+
+- ⚠️ **Requêtes SQL** : Toujours dans le repository, jamais dans le service
+- ⚠️ **Performance** : Utiliser des index sur les colonnes fréquemment requêtées
+- ⚠️ **Filtres dates** : Appliqués sur toutes les statistiques si fournis
 
 ### Sécurité
 
-- Toutes les actions administratives sont protégées par `ROLE_ADMIN`
-- Protection CSRF sur les formulaires
-- Validation des données côté serveur
-- Hashage sécurisé des mots de passe
-- Journalisation des actions sensibles
+- ⚠️ **CSRF** : Obligatoire sur tous les formulaires POST
+- ⚠️ **Validation** : Toujours côté serveur, jamais uniquement côté client
+- ⚠️ **Audit** : Toutes les actions sensibles doivent être journalisées
 
-### Performance
+### Données de test
 
-- Pagination systématique (5 éléments par page)
-- Index sur les colonnes fréquemment utilisées
-- Requêtes optimisées avec Doctrine QueryBuilder
-
-### Logs et Audit
-
-- Toutes les actions administratives sont journalisées
-- Historique complet accessible via l'interface admin
-- Détails complets (qui, quoi, quand, avant/après)
-
-### Notifications
-
-- Envoi automatique d'emails lors des modifications importantes
-- Notifications pour : validation, rejet, changement de rôle, changement de statut
-- Gestion des erreurs d'envoi avec annulation des modifications si nécessaire
+- ⚠️ **Contrainte unique** : `uq_utilisateurs_nom_complet` sur (prenom, nom)
+- ⚠️ **Noms uniques** : Utiliser des préfixes différents (NomOrg, NomUser, NomAdmin)
+- ⚠️ **Format** : 3 chiffres pour les IDs (LPAD avec 3)
 
 ---
 
-## 📋 Plans d'Abonnement - 3 Offres Indépendantes
+## 📚 Références Rapides
 
-### 🎯 Vue d'ensemble
+### Routes principales
 
-Le système propose **9 offres d'abonnement** indépendantes : **Basic**, **Pro** et **Enterprise**, chacune disponible en **3 périodes de facturation** (mensuel, trimestriel, annuel).
+- `/admin/reports/statistiques` : Page statistiques (redirection après login)
+- `/admin/billing/invoices` : Liste des factures
+- `/admin/users` : Liste des utilisateurs
+- `/admin/validation/pending` : Demandes en attente
 
-**Principe fondamental** : Les organisateurs peuvent **choisir librement** leur plan d'abonnement parmi les 9 offres disponibles, **indépendamment de leur type d'organisation** (`organization_type` : individual, company, non_profit, collective). 
+### Commandes essentielles
 
-Chaque offre propose des fonctionnalités, limites et avantages adaptés à différents besoins et budgets, permettant à chaque organisateur de sélectionner la solution la plus adaptée à son activité. Les abonnements trimestriels et annuels bénéficient de réductions par rapport au tarif mensuel.
+```bash
+# Génération factures
+php bin/console app:generate-monthly-invoices
 
-### Système de tarification
+# Marquage retard
+php bin/console app:mark-overdue-invoices
 
-Les factures mensuelles sont générées automatiquement avec le prix correspondant au plan choisi par l'organisateur.
+# Mise en pause
+php bin/console app:auto-pause-unpaid-subscriptions
+```
 
-#### 📊 Tableau des tarifs par période de facturation
+### Fichiers clés
 
-| Plan | Période | Prix total | Prix mensuel équivalent | Réduction | Plan ID |
-|------|---------|------------|-------------------------|-----------|---------|
-| **BASIC** | Mensuel | 150 000 Ar | 150 000 Ar/mois | - | 1 |
-| | Trimestriel | 420 000 Ar | 140 000 Ar/mois | -6.7% | 2 |
-| | Annuel | 1 620 000 Ar | 135 000 Ar/mois | -10% | 3 |
-| **PRO** ⭐ | Mensuel | 350 000 Ar | 350 000 Ar/mois | - | 4 |
-| | Trimestriel | 980 000 Ar | 326 667 Ar/mois | -6.7% | 5 |
-| | Annuel | 3 780 000 Ar | 315 000 Ar/mois | -10% | 6 |
-| **ENTERPRISE** | Mensuel | 600 000 Ar | 600 000 Ar/mois | - | 7 |
-| | Trimestriel | 1 680 000 Ar | 560 000 Ar/mois | -6.7% | 8 |
-| | Annuel | 6 480 000 Ar | 540 000 Ar/mois | -10% | 9 |
-
-**Notes importantes** :
-- ✅ Tous les prix sont **HT** (Hors Taxes)
-- ✅ La **TVA (20%)** est calculée automatiquement lors de la génération des factures
-- ✅ Les réductions sont appliquées par rapport au tarif mensuel
-- ✅ Les abonnements **trimestriels** bénéficient d'une réduction de **6.7%**
-- ✅ Les abonnements **annuels** bénéficient d'une réduction de **10%**
-- ✅ Le calcul du prix mensuel est automatique selon la période :
-  - **Annuel** : `prix_total / 12`
-  - **Trimestriel** : `prix_total / 3`
-  - **Mensuel** : `prix_total`
+- **Facturation** : `BillingController.php`, `SubscriptionInvoiceGenerationService.php`
+- **Utilisateurs** : `UserManagementController.php`, `UserValidationController.php`
+- **Statistiques** : `StatisticsController.php`, `StatisticsService.php`, `StatisticsRepository.php`
+- **Plans** : `Base/schema.sql`, `Base/data.sql`
 
 ---
 
-#### 1. 💼 **BASIC** (Plan Basic)
-
-**Tarifs disponibles** :
-- **Mensuel** : 150 000 Ar/mois (HT) - Plan ID 1
-- **Trimestriel** : 420 000 Ar/trimestre (140 000 Ar/mois, -6.7%) - Plan ID 2
-- **Annuel** : 1 620 000 Ar/an (135 000 Ar/mois, -10%) - Plan ID 3
-
-**Limite d'événements** : 3 événements par mois  
-**Support** : Email uniquement
-
-**Description** : Offre de base idéale pour démarrer vos événements. Parfait pour les organisateurs débutants ou ceux qui organisent occasionnellement des événements.
-
-**Avantages principaux** :
-- ✅ **Tarif le plus abordable** : Accès à toutes les fonctionnalités essentielles à un prix accessible
-- ✅ **Facilité d'utilisation** : Interface simplifiée pour une prise en main rapide
-- ✅ **Fonctionnalités essentielles** : Création d'événements, billetterie, statistiques de base
-- ✅ **Pour tous les types** : Accessible à tous les organisateurs, qu'ils soient individus, entreprises, associations ou collectifs
-
-**Fonctionnalités incluses** :
-- 📅 Gestion d'événements (jusqu'à 3 par mois)
-- 🎫 Billetterie en ligne
-- 📊 Tableau de bord avec statistiques essentielles
-- 📧 Support par email
-
-**Améliorations futures prévues** :
-- 🚀 **Templates d'événements pré-configurés** : Bibliothèque de modèles prêts à l'emploi pour accélérer la création (réduction de 30 min à 5 min)
-- 📱 **Widget intégré personnalisé** : Code embed pour intégrer la billetterie sur site personnel ou blog
-- 🎨 **Personnalisation visuelle simplifiée** : Interface drag-and-drop pour personnaliser rapidement les pages d'événement
-- 💡 **Assistant de tarification intelligent** : Suggestions automatiques de prix basées sur les événements similaires dans la plateforme
-- 📊 **Statistiques essentielles améliorées** : Dashboard simplifié avec KPI clés (ventes, taux de conversion, revenus)
-- 🔔 **Notifications intelligentes** : Alertes proactives sur les opportunités d'amélioration (meilleur jour pour publier, optimisations de prix)
-
-**Optimisations techniques futures** :
-- Interface simplifiée réduisant le temps de chargement de 50%
-- Templates pré-configurés en cache pour accélération
-- Caching intelligent des statistiques réduisant les requêtes DB de 80%
-
-**Idéal pour** :
-- Organisateurs débutants
-- Événements occasionnels (concerts, spectacles, ateliers)
-- Petits budgets
-- Tous types d'organisateurs recherchant une solution simple et économique
-
----
-
-#### 2. ⭐ **PRO** (Plan Pro) - Populaire
-
-**Tarifs disponibles** :
-- **Mensuel** : 350 000 Ar/mois (HT) - Plan ID 4 ⭐ (Populaire)
-- **Trimestriel** : 980 000 Ar/trimestre (326 667 Ar/mois, -6.7%) - Plan ID 5
-- **Annuel** : 3 780 000 Ar/an (315 000 Ar/mois, -10%) - Plan ID 6
-
-**Limite d'événements** : 15 événements par mois  
-**Support** : Chat en direct + Email prioritaire
-
-**Description** : Offre professionnelle avec fonctionnalités avancées pour les organisateurs actifs nécessitant plus de flexibilité et de support.
-
-**Avantages principaux** :
-- ✅ **Volume d'événements élevé** : Jusqu'à 15 événements par mois
-- ✅ **Support réactif** : Chat en direct pour résolution rapide des problèmes
-- ✅ **Fonctionnalités avancées** : Statistiques détaillées, outils de gestion avancés
-- ✅ **Support prioritaire** : Accès prioritaire au support client
-- ✅ **Pour tous les types** : Adapté aux organisateurs actifs, quels que soient leur type d'organisation
-
-**Fonctionnalités incluses** :
-- 📅 Gestion d'événements (jusqu'à 15 par mois)
-- 🎫 Billetterie avancée avec options multiples
-- 📊 Tableau de bord avec statistiques avancées
-- 💬 Support par chat en direct
-- 📧 Support par email prioritaire
-- 🎯 Outils de gestion et reporting améliorés
-
-**Améliorations futures prévues** :
-- 👥 **Gestion d'équipe multi-utilisateurs** : Ajout de co-organisateurs avec permissions granulaires (création, édition, ventes, rapports, finances)
-- 📈 **Tableaux de bord avancés** : Analytics en temps réel avec comparaisons période/précédente, prévisions de ventes basées sur ML
-- 🔄 **API complète** : Intégration avec CRM, ERP, systèmes comptables (webhooks pour synchronisation bidirectionnelle)
-- 📋 **Gestion multi-lieux** : Gestion centralisée de plusieurs lieux d'événements avec allocation automatique des ressources
-- 💼 **Rapports comptables automatisés** : Export comptable mensuel (TVA, revenus nets, charges) compatible avec logiciels comptables locaux
-- 🎯 **Stratégie de tarification avancée** : A/B testing automatique des prix, optimisation dynamique selon la demande en temps réel
-- 📧 **E-mail marketing intégré** : Campagnes email ciblées, segmentation automatique des participants, automations
-- 🔐 **Sécurité renforcée** : 2FA optionnel, logs d'audit détaillés
-
-**Optimisations techniques futures** :
-- API complète permettant l'intégration sans surcharge serveur
-- Cache distribué pour analytics multi-utilisateurs (support de 50+ utilisateurs simultanés)
-- Traitement asynchrone des exports CSV/PDF pour éviter les timeouts
-- Architecture scalable pour supporter des centaines d'événements simultanés
-
-**Idéal pour** :
-- Organisateurs actifs organisant régulièrement des événements
-- Entreprises, associations et collectifs ayant besoin de plus de flexibilité
-- Organisateurs nécessitant un support réactif
-- Ceux qui veulent des statistiques et outils de gestion avancés
-
----
-
-#### 3. 🏢 **ENTERPRISE** (Plan Enterprise)
-
-**Tarifs disponibles** :
-- **Mensuel** : 600 000 Ar/mois (HT) - Plan ID 7
-- **Trimestriel** : 1 680 000 Ar/trimestre (560 000 Ar/mois, -6.7%) - Plan ID 8
-- **Annuel** : 6 480 000 Ar/an (540 000 Ar/mois, -10%) - Plan ID 9
-
-**Limite d'événements** : **Illimité**  
-**Support** : Téléphone prioritaire + Chat + Email
-
-**Description** : Offre entreprise avec toutes les fonctionnalités pour les organisateurs professionnels nécessitant une solution complète et évolutive.
-
-**Avantages principaux** :
-- ✅ **Événements illimités** : Aucune limite sur le nombre d'événements
-- ✅ **Support premium** : Support téléphonique prioritaire disponible 24/7
-- ✅ **Fonctionnalités complètes** : Accès à toutes les fonctionnalités avancées
-- ✅ **Personnalisation** : Options de personnalisation et d'intégration avancées
-- ✅ **Pour tous les types** : Adapté aux grands organisateurs professionnels, quelle que soit leur structure
-
-**Fonctionnalités incluses** :
-- 📅 Gestion d'événements **illimitée**
-- 🎫 Billetterie avancée avec toutes les options
-- 📊 Tableau de bord avec analytics complets
-- 📞 Support téléphonique prioritaire
-- 💬 Support par chat en direct
-- 📧 Support par email prioritaire
-- 🔄 API complète pour intégrations
-- 👥 Gestion d'équipe multi-utilisateurs
-- 🎨 Personnalisation avancée (white-label)
-- 📋 Gestion multi-lieux
-- 💼 Rapports comptables automatisés
-- 🔐 Sécurité renforcée (2FA, SSO, audit complet)
-
-**Améliorations futures prévues** :
-- 🔄 **API complète étendue** : Intégration poussée avec CRM, ERP, systèmes comptables (webhooks bidirectionnels)
-- 🎨 **White-label complet** : Personnalisation totale de la marque (logo, couleurs, domaines personnalisés)
-- 👥 **Gestion d'équipe avancée** : Permissions granulaires, rôles personnalisés, workflows d'approbation
-- 📈 **Business Intelligence** : Analytics prédictifs, intelligence artificielle pour optimisation automatique
-- 🔐 **Sécurité de niveau entreprise** : 2FA obligatoire, SSO, accès par IP restreint, chiffrement de bout en bout
-- 📊 **Rapports personnalisés** : Création de rapports sur mesure, exports automatisés vers systèmes tiers
-- 🌐 **Multi-langue et multi-devise** : Support complet pour événements internationaux
-- 🤝 **Dédié Account Manager** : Gestionnaire de compte dédié pour accompagnement personnalisé
-
-**Optimisations techniques futures** :
-- API complète haute performance permettant l'intégration intensive sans impact
-- Cache distribué multi-niveau pour analytics enterprise (support de 500+ utilisateurs simultanés)
-- Infrastructure scalable pour supporter des milliers d'événements simultanés
-- SLA garanti 99.9% de disponibilité
-- CDN global pour performance mondiale optimale
-
-**Idéal pour** :
-- Grandes entreprises organisant de nombreux événements
-- Organisateurs professionnels nécessitant une solution complète
-- Structures nécessitant des intégrations avancées
-- Ceux qui ont besoin d'un support premium et d'une personnalisation totale
-
----
-
-### 🚀 Avantages du Système à 3 Offres Indépendantes
-
-#### 🎯 Flexibilité et Choix Libre
-
-**Avantages** :
-- ✅ **Choix adapté à chaque besoin** : Les organisateurs sélectionnent l'offre qui correspond le mieux à leur activité, indépendamment de leur type d'organisation
-- ✅ **Pas de restriction** : Un individu peut choisir Enterprise s'il en a les moyens, une entreprise peut choisir Basic pour commencer
-- ✅ **Évolution naturelle** : Passage facile d'une offre à l'autre selon l'évolution des besoins (upgrade/downgrade)
-- ✅ **Simplicité** : 3 offres claires au lieu de 4 plans complexes basés sur le type d'organisation
-
-#### 💰 Optimisation des Coûts
-
-**Avantages** :
-- ✅ **Prix transparents** : Tarifs fixes et clairs pour chaque offre, sans distinction de type
-- ✅ **Meilleur rapport qualité/prix** : Chaque organisateur paie uniquement pour ce dont il a besoin
-- ✅ **Évolutivité financière** : Possibilité de commencer avec Basic et d'évoluer vers Pro ou Enterprise selon la croissance
-- ✅ **Pas de surcoût injustifié** : Une association peut choisir Basic si elle n'a besoin que des fonctionnalités de base
-
-#### 📈 Business Impact
-
-**Avantages** :
-- ✅ **Adoption facilitée** : Offres simples et claires augmentent l'engagement (taux d'adoption +30%)
-- ✅ **Rétention améliorée** : Choix libre et flexibilité réduisent le taux de churn de 20%
-- ✅ **Upgrade naturel** : 25% des utilisateurs Basic upgradent vers Pro après 6 mois
-- ✅ **Satisfaction client** : Les organisateurs apprécient la liberté de choix sans contrainte de type
-
-#### 🔧 Avantages Techniques
-
-**Avantages** :
-- ✅ **Simplicité d'implémentation** : Architecture plus simple sans dépendance entre plans et types d'organisateurs
-- ✅ **Maintenance facilitée** : Moins de complexité dans la génération de factures et la gestion des abonnements
-- ✅ **Scalabilité** : Facilité d'ajout de nouvelles offres (annuelles, trimestrielles) sans modifier la structure
-- ✅ **Flexibilité future** : Possibilité d'ajouter des options ou modules complémentaires par offre
-
-#### 🔐 Sécurité et Conformité
-
-**Avantages** :
-- ✅ **Uniformisation** : Mêmes règles de sécurité appliquées à tous les plans
-- ✅ **Audit simplifié** : Traçabilité unifiée indépendamment du type d'organisateur
-- ✅ **Conformité** : Respect des obligations comptables et fiscales sans distinction de plan
-
-### 📊 Comparaison des Offres
-
-| Fonctionnalité | Basic | Pro | Enterprise |
-|---|---|---|---|
-| **Prix mensuel (HT)** | 150 000 Ar | 350 000 Ar | 600 000 Ar |
-| **Prix trimestriel (HT)** | 420 000 Ar (-6.7%) | 980 000 Ar (-6.7%) | 1 680 000 Ar (-6.7%) |
-| **Prix annuel (HT)** | 1 620 000 Ar (-10%) | 3 780 000 Ar (-10%) | 6 480 000 Ar (-10%) |
-| **Événements/mois** | 3 | 15 | Illimité |
-| **Support** | Email | Chat + Email | Téléphone + Chat + Email |
-| **Statistiques** | Base | Avancées | Complètes |
-| **API** | Non | Limitée | Complète |
-| **White-label** | Non | Partiel | Complet |
-| **Gestion équipe** | Non | Oui | Avancée |
-| **Multi-lieux** | Non | Oui | Oui |
-| **Rapports comptables** | Non | Base | Automatisés |
-| **Sécurité** | Standard | Renforcée | Enterprise |
-
-### Fichiers associés
-
-#### Base de données
-- `Base/schema.sql` : Définition de la table `subscription_plans` avec champs `tier`, `display_order`, `is_popular`
-- `Base/data.sql` : Insertion des 3 plans (Basic, Pro, Enterprise) avec choix libre pour les organisateurs
-
-#### Services
-- `src/Service/SubscriptionInvoiceGenerationService.php` : Génération des factures avec prix basé sur le plan choisi par l'organisateur
-
----
-
-## 📊 Module Statistiques de Données
-
-### Vue d'ensemble
-
-Le module Statistiques de Données permet d'afficher des statistiques en temps réel basées sur les données de la base de données. Toutes les statistiques sont calculées dynamiquement à partir des données réelles.
-
-### Fonctionnalités principales
-
-#### 1. Statistiques globales (KPIs)
-
-**Route** : `/reports/statistiques`
-
-**KPIs affichés** :
-- **Organisateurs** : Nombre total d'utilisateurs avec rôle `organizer` et statut `active`
-- **Utilisateurs** : Nombre total d'utilisateurs avec statut `active`
-- **Abonnements actifs** : Nombre d'abonnements avec statut `active`
-- **Revenus abonnements** : Somme totale des factures d'abonnement payées
-
-**Contrôleur** : `src/Controller/ReportController.php`
-
-**Méthode** : `statistiques()`
-
-**Service** : `src/Service/StatisticsService.php`
-
-**Repository** : `src/Repository/StatisticsRepository.php`
-
-#### 2. Graphiques et analyses
-
-**Graphiques disponibles** :
-- **Évolution des abonnements** : Courbe linéaire montrant le nombre d'abonnements actifs par jour (7 derniers jours)
-- **Revenus par plan** : Graphique en donut montrant la répartition des revenus par plan (Basic, Pro, Enterprise)
-- **Top payeurs** : Graphique en barres montrant les 10 organisateurs ayant payé le plus sur les 30 derniers jours
-
-#### 3. Statistiques fiscales
-
-**Route** : `/reports/rapports`
-
-**Statistiques calculées** :
-- **Revenus bruts** : Somme de toutes les factures payées
-- **TVA** : Revenus bruts × taux TVA (par défaut 20%)
-- **Commissions plateforme** : Revenus bruts × taux commission (par défaut 5%)
-- **Revenus nets** : Revenus bruts - TVA - Commissions plateforme
-
-### Formules de calcul
-
-#### Formules des statistiques fiscales
-
-**Service** : `src/Service/StatisticsService.php`
-
-**Méthode** : `getTaxStatistics(float $vatRate = 0.20, float $commissionRate = 0.05)`
-
-**Formules appliquées** :
-
-```
-Revenus bruts = Σ(total_amount) 
-                WHERE status = 'paid'
-                FROM subscription_invoices
-
-TVA = Revenus bruts × taux_TVA
-     où taux_TVA = 0.20 (20% par défaut)
-
-Commissions plateforme = Revenus bruts × taux_commission
-                        où taux_commission = 0.05 (5% par défaut)
-
-Revenus nets = Revenus bruts - TVA - Commissions plateforme
-```
-
-**Exemple de calcul** :
-```
-Si Revenus bruts = 1 000 000 MGA
-TVA = 1 000 000 × 0.20 = 200 000 MGA
-Commissions = 1 000 000 × 0.05 = 50 000 MGA
-Revenus nets = 1 000 000 - 200 000 - 50 000 = 750 000 MGA
-```
-
-#### Formules des compteurs globaux
-
-**Repository** : `src/Repository/StatisticsRepository.php`
-
-**Méthodes** :
-- `countOrganizers()` : `COUNT(*) WHERE role = 'organizer' AND status = 1`
-- `countUsers()` : `COUNT(*) WHERE status = 1`
-- `countActiveSubscriptions()` : `COUNT(*) WHERE status = 'active' FROM organizer_subscriptions`
-- `getSubscriptionRevenueTotal()` : `SUM(total_amount) WHERE status = 'paid' FROM subscription_invoices`
-
-#### Formule de l'évolution des abonnements
-
-**Méthode** : `getSubscriptionsEvolution(int $days = 7)`
-
-**Formule** :
-```
-Pour chaque jour dans les N derniers jours :
-  Nombre d'abonnements actifs = COUNT(DISTINCT os.id)
-    WHERE os.status = 'active'
-      AND DATE(os.created_at) <= date_jour
-      AND (os.ended_at IS NULL OR DATE(os.ended_at) >= date_jour)
-```
-
-**Requête SQL** :
-```sql
-WITH date_series AS (
-    SELECT generate_series(
-        CURRENT_DATE - INTERVAL '1 day' * :days,
-        CURRENT_DATE,
-        '1 day'::interval
-    )::date AS date
-)
-SELECT 
-    ds.date,
-    COALESCE(COUNT(DISTINCT os.id), 0) AS count
-FROM date_series ds
-LEFT JOIN organizer_subscriptions os 
-    ON os.status = 'active' 
-    AND DATE(os.created_at) <= ds.date
-    AND (os.ended_at IS NULL OR DATE(os.ended_at) >= ds.date)
-GROUP BY ds.date
-ORDER BY ds.date ASC
-```
-
-#### Formule des revenus par plan
-
-**Méthode** : `getRevenueByPlan()`
-
-**Formule** :
-```
-Pour chaque plan (Basic, Pro, Enterprise) :
-  Revenus = SUM(si.total_amount)
-    WHERE si.status = 'paid'
-      AND si.subscription_id IN (
-        SELECT os.id 
-        FROM organizer_subscriptions os 
-        WHERE os.plan_id = sp.id
-      )
-```
-
-**Requête SQL** :
-```sql
-SELECT 
-    sp.tier,
-    sp.name,
-    COALESCE(SUM(si.total_amount::numeric), 0) AS revenue
-FROM subscription_plans sp
-LEFT JOIN organizer_subscriptions os ON os.plan_id = sp.id
-LEFT JOIN subscription_invoices si 
-    ON si.subscription_id = os.id 
-    AND si.status = 'paid'
-GROUP BY sp.id, sp.tier, sp.name
-ORDER BY sp.display_order ASC
-```
-
-#### Formule des top payeurs
-
-**Méthode** : `getTopPayers(int $limit = 10, int $days = 30)`
-
-**Formule** :
-```
-Top payeurs = SELECT 
-    u.first_name || ' ' || u.last_name AS organizer_name,
-    SUM(si.total_amount) AS total_paid
-  FROM subscription_invoices si
-  INNER JOIN users u ON u.id = si.customer_id
-  WHERE si.status = 'paid'
-    AND si.paid_at >= CURRENT_DATE - INTERVAL '1 day' * :days
-  GROUP BY u.id, u.first_name, u.last_name
-  ORDER BY total_paid DESC
-  LIMIT :limit
-```
-
-### Fichiers du module Statistiques
-
-#### Service
-- `src/Service/StatisticsService.php` - Service principal de calcul des statistiques
-  - `getAllStatistics()` - Récupère toutes les statistiques
-  - `getCounts()` - Compteurs globaux
-  - `getOrganizersStatistics()` - Statistiques des organisateurs
-  - `getSubscriptionsStatistics()` - Statistiques des abonnements
-  - `getTaxStatistics()` - Statistiques fiscales avec formules de calcul
-
-#### Repository
-- `src/Repository/StatisticsRepository.php` - Requêtes SQL pour les statistiques
-  - `countOrganizers()` - Compte les organisateurs actifs
-  - `countUsers()` - Compte les utilisateurs actifs
-  - `countActiveSubscriptions()` - Compte les abonnements actifs
-  - `getSubscriptionRevenueTotal()` - Total des revenus d'abonnements
-  - `getSubscriptionsEvolution()` - Évolution des abonnements par jour
-  - `getRevenueByPlan()` - Revenus par plan d'abonnement
-  - `getTopPayers()` - Top payeurs sur N jours
-  - `getTaxStatistics()` - Statistiques fiscales (revenus bruts, TVA, commissions, revenus nets)
-
-#### Contrôleur
-- `src/Controller/ReportController.php` - Contrôleur des rapports et statistiques
-  - `statistiques()` - Page des statistiques avec graphiques
-  - `rapports()` - Page des rapports avec statistiques fiscales
-
-#### Templates
-- `templates/reports/statistiques.html.twig` - Page des statistiques avec graphiques
-- `templates/reports/rapports.html.twig` - Page des rapports avec statistiques fiscales
-
-### Configuration
-
-**Taux par défaut** (modifiables dans `StatisticsService::getTaxStatistics()`) :
-- **Taux TVA** : 20% (0.20)
-- **Taux commission plateforme** : 5% (0.05)
-
-**Périodes par défaut** :
-- **Évolution abonnements** : 7 derniers jours
-- **Top payeurs** : 30 derniers jours
-- **Limite top payeurs** : 10 organisateurs
-
-### Utilisation
-
-#### Accès aux statistiques
-1. Se connecter à la plateforme
-2. Accéder à `/reports/statistiques` pour voir les graphiques
-3. Accéder à `/reports/rapports` pour voir les statistiques fiscales
-
-#### Personnalisation des taux
-Pour modifier les taux de TVA ou de commission, modifier les paramètres dans :
-```php
-$stats = $this->statisticsService->getTaxStatistics(
-    $vatRate = 0.20,        // 20% TVA
-    $commissionRate = 0.05  // 5% commission
-);
-```
-
----
-
-## 🚀 Évolutions futures possibles
-
-### Module Facturation
-- Génération automatique de factures PDF jointes aux emails
-- Intégration avec des systèmes de paiement automatique
-- Rappels automatiques avant échéance
-- Statistiques financières avancées
-
-### Module Gestion des Utilisateurs
-- Export CSV/Excel des listes d'utilisateurs
-- Import en masse d'utilisateurs
-- Gestion de groupes d'utilisateurs
-- Historique des paiements par utilisateur
-
-### Module Profile
-- Gestion de plusieurs adresses
-- Préférences de notification détaillées
-- Historique des commandes et billets
-- Intégration avec réseaux sociaux
-
-### Module Paramètres
-- Paramètres de notification (email, push, SMS)
-- Préférences de langue et région
-- Thèmes personnalisables (mode sombre)
-- Paramètres de confidentialité avancés
-- Gestion des sessions actives
-
----
-
-**Documentation générée le** : {{ date }}
-**Version** : 1.0.0
+**Documentation version** : 1.0.0  
+**Dernière mise à jour** : 2025  
 **Auteur** : Aiolia Event Development Team
-
----

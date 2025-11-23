@@ -4,9 +4,9 @@ namespace App\Service\Admin;
 
 use App\Entity\SubscriptionInvoice;
 use App\Entity\User;
+use App\Repository\Admin\OrganizerSubscriptionRepository;
 use App\Repository\Admin\SubscriptionInvoiceRepository;
 use App\Service\Organisateur\InvoiceNumberService;
-use Doctrine\DBAL\Connection;
 use Doctrine\ORM\EntityManagerInterface;
 use Psr\Log\LoggerInterface;
 
@@ -22,6 +22,8 @@ class PrepaidSubscriptionPaymentService
     public function __construct(
         private EntityManagerInterface $entityManager,
         private InvoiceNumberService $invoiceNumberService,
+        private SubscriptionInvoiceRepository $invoiceRepository,
+        private OrganizerSubscriptionRepository $subscriptionRepository,
         private ?LoggerInterface $logger = null,
     ) {
     }
@@ -53,13 +55,9 @@ class PrepaidSubscriptionPaymentService
             'errors' => [],
         ];
 
-        $connection = $this->entityManager->getConnection();
-
         try {
-            $connection->beginTransaction();
-
-            // Récupérer les informations de l'abonnement
-            $subscription = $this->getSubscriptionInfo($subscriptionId);
+            // Récupérer les informations de l'abonnement via le repository
+            $subscription = $this->subscriptionRepository->findSubscription($subscriptionId);
             if (!$subscription) {
                 $result['errors'][] = "Abonnement introuvable : {$subscriptionId}";
                 return $result;
@@ -114,24 +112,24 @@ class PrepaidSubscriptionPaymentService
                 $billingMonth = $currentDate->modify("first day of +{$i} month");
                 $monthStart = $billingMonth->format('Y-m-01');
                 
-                // Vérifier si une facture existe déjà pour ce mois
-                $existingInvoice = $this->findExistingInvoice($subscriptionId, $monthStart);
+                // Vérifier si une facture existe déjà pour ce mois via le repository
+                $existingInvoice = $this->invoiceRepository->findInvoiceBySubscriptionAndMonth($subscriptionId, $monthStart);
                 
                 if ($existingInvoice) {
                     // Si la facture existe déjà et n'est pas prépayée, on la met à jour
-                    if (!$existingInvoice['est_prepayee']) {
-                        $this->updateInvoiceToPrepaid($existingInvoice['id'], $plan, $monthStart);
+                    if (!$existingInvoice->isPrepaid()) {
+                        $this->updateInvoiceToPrepaid($existingInvoice, $plan, $monthStart);
                         $invoicesCreated[] = [
-                            'invoice_id' => $existingInvoice['id'],
-                            'invoice_number' => $existingInvoice['numero_facture'],
+                            'invoice_id' => $existingInvoice->getId(),
+                            'invoice_number' => $existingInvoice->getInvoiceNumber(),
                             'billing_month' => $monthStart,
                             'action' => 'updated',
                         ];
                     } else {
                         // Facture prépayée déjà existante, on la skip
                         $invoicesCreated[] = [
-                            'invoice_id' => $existingInvoice['id'],
-                            'invoice_number' => $existingInvoice['numero_facture'],
+                            'invoice_id' => $existingInvoice->getId(),
+                            'invoice_number' => $existingInvoice->getInvoiceNumber(),
                             'billing_month' => $monthStart,
                             'action' => 'skipped',
                         ];
@@ -168,10 +166,8 @@ class PrepaidSubscriptionPaymentService
                 $metadata
             );
 
-            // Mettre à jour le crédit prépayé dans l'abonnement
-            $this->updatePrepaidCredit($subscriptionId, $numberOfMonths);
-
-            $connection->commit();
+            // Mettre à jour le crédit prépayé dans l'abonnement via le repository
+            $this->subscriptionRepository->updatePrepaidCredit($subscriptionId, $numberOfMonths);
 
             $result['success'] = true;
             $result['prepaid_months'] = $numberOfMonths;
@@ -188,7 +184,6 @@ class PrepaidSubscriptionPaymentService
             }
 
         } catch (\Exception $e) {
-            $connection->rollBack();
             $result['errors'][] = "Erreur lors du traitement du paiement prépayé : " . $e->getMessage();
             
             if ($this->logger) {
@@ -202,30 +197,6 @@ class PrepaidSubscriptionPaymentService
         return $result;
     }
 
-    /**
-     * Récupère les informations d'un abonnement
-     */
-    private function getSubscriptionInfo(int $subscriptionId): ?array
-    {
-        $connection = $this->entityManager->getConnection();
-        
-        $sql = "
-            SELECT 
-                os.id,
-                os.id_profil_organisateur,
-                os.statut,
-                os.mois_prepayes_restants,
-                os.id_plan,
-                op.id_utilisateur
-            FROM aiolia.abonnements_organisateurs os
-            INNER JOIN aiolia.profils_organisateurs op ON op.id = os.id_profil_organisateur
-            WHERE os.id = :subscription_id
-        ";
-        
-        $result = $connection->fetchAssociative($sql, ['subscription_id' => $subscriptionId]);
-        
-        return $result ?: null;
-    }
 
     /**
      * Récupère les informations d'un plan d'abonnement
@@ -288,40 +259,13 @@ class PrepaidSubscriptionPaymentService
         return (float) $total;
     }
 
-    /**
-     * Trouve une facture existante pour un mois donné
-     */
-    private function findExistingInvoice(int $subscriptionId, string $billingMonth): ?array
-    {
-        $connection = $this->entityManager->getConnection();
-        
-        $sql = "
-            SELECT 
-                id,
-                numero_facture,
-                est_prepayee,
-                statut
-            FROM aiolia.factures_abonnements
-            WHERE id_abonnement = :subscription_id
-                AND mois_facturation = :billing_month
-        ";
-        
-        $result = $connection->fetchAssociative($sql, [
-            'subscription_id' => $subscriptionId,
-            'billing_month' => $billingMonth,
-        ]);
-        
-        return $result ?: null;
-    }
 
     /**
      * Met à jour une facture existante pour la marquer comme prépayée
      * Prend en compte le type d'offre (niveau) et la période de facturation
      */
-    private function updateInvoiceToPrepaid(int $invoiceId, array $plan, string $billingMonth): void
+    private function updateInvoiceToPrepaid(SubscriptionInvoice $invoice, array $plan, string $billingMonth): void
     {
-        $connection = $this->entityManager->getConnection();
-        
         $vatRate = (float) ($plan['taux_tva'] ?? 20);
         $monthlyPrice = $plan['prix'];
         
@@ -346,37 +290,25 @@ class PrepaidSubscriptionPaymentService
         $taxAmount = $subtotal * ($vatRate / 100);
         $total = $subtotal + $taxAmount;
         
-        $sql = "
-            UPDATE aiolia.factures_abonnements
-            SET est_prepayee = true,
-                statut = 'pending',
-                montant_sous_total = :subtotal,
-                montant_tva = :tax_amount,
-                montant_total = :total,
-                montant_ht = :subtotal,
-                montant_tva_detail = :tax_amount,
-                montant_ttc = :total,
-                modifie_le = now(),
-                metadonnees = COALESCE(metadonnees, '{}'::jsonb) || jsonb_build_object(
-                    'prepaid_at', now(),
-                    'billing_month', :billing_month,
-                    'plan_level', :plan_level,
-                    'plan_code', :plan_code,
-                    'plan_name', :plan_name
-                )
-            WHERE id = :invoice_id
-        ";
+        // Mettre à jour la facture via l'entité
+        $invoice->setIsPrepaid(true);
+        $invoice->setStatus('pending');
+        $invoice->setSubtotalAmount((string) $subtotal);
+        $invoice->setTaxAmount((string) $taxAmount);
+        $invoice->setTotalAmount((string) $total);
+        $invoice->setAmountHt((string) $subtotal);
+        $invoice->setAmountTva((string) $taxAmount);
+        $invoice->setAmountTtc((string) $total);
         
-        $connection->executeStatement($sql, [
-            'invoice_id' => $invoiceId,
-            'subtotal' => $subtotal,
-            'tax_amount' => $taxAmount,
-            'total' => $total,
-            'billing_month' => $billingMonth,
-            'plan_level' => $plan['niveau'] ?? 'basic',
-            'plan_code' => $plan['code'] ?? null,
-            'plan_name' => $plan['nom'] ?? null,
-        ]);
+        $metadata = $invoice->getMetadata() ?? [];
+        $metadata['prepaid_at'] = (new \DateTimeImmutable())->format('Y-m-d H:i:s');
+        $metadata['billing_month'] = $billingMonth;
+        $metadata['plan_level'] = $plan['niveau'] ?? 'basic';
+        $metadata['plan_code'] = $plan['code'] ?? null;
+        $metadata['plan_name'] = $plan['nom'] ?? null;
+        $invoice->setMetadata($metadata);
+        
+        $this->entityManager->persist($invoice);
     }
 
     /**
@@ -534,41 +466,11 @@ class PrepaidSubscriptionPaymentService
     }
 
     /**
-     * Met à jour le crédit prépayé dans l'abonnement
-     */
-    private function updatePrepaidCredit(int $subscriptionId, int $numberOfMonths): void
-    {
-        $connection = $this->entityManager->getConnection();
-        
-        $sql = "
-            UPDATE aiolia.abonnements_organisateurs
-            SET mois_prepayes_restants = mois_prepayes_restants + :months,
-                modifie_le = now()
-            WHERE id = :subscription_id
-        ";
-        
-        $connection->executeStatement($sql, [
-            'subscription_id' => $subscriptionId,
-            'months' => $numberOfMonths,
-        ]);
-    }
-
-    /**
      * Récupère le nombre de mois prépayés restants pour un abonnement
      */
     public function getRemainingPrepaidMonths(int $subscriptionId): int
     {
-        $connection = $this->entityManager->getConnection();
-        
-        $sql = "
-            SELECT mois_prepayes_restants
-            FROM aiolia.abonnements_organisateurs
-            WHERE id = :subscription_id
-        ";
-        
-        $result = $connection->fetchOne($sql, ['subscription_id' => $subscriptionId]);
-        
-        return (int) ($result ?? 0);
+        return $this->subscriptionRepository->getRemainingPrepaidMonths($subscriptionId);
     }
 
     /**

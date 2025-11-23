@@ -333,5 +333,82 @@ class SubscriptionInvoiceRepository extends ServiceEntityRepository
                 ->setParameter('search', $searchPattern);
         }
     }
+
+    /**
+     * Trouve une facture existante pour un abonnement et un mois donné
+     * 
+     * @param string $subscriptionId ID de l'abonnement
+     * @param \DateTimeInterface $billingMonth Mois de facturation (1er du mois)
+     * @return SubscriptionInvoice|null
+     */
+    public function findInvoiceForMonth(string $subscriptionId, \DateTimeInterface $billingMonth): ?SubscriptionInvoice
+    {
+        $monthStart = (clone $billingMonth)->modify('first day of this month')->setTime(0, 0, 0);
+        $monthEnd = (clone $monthStart)->modify('+1 month');
+
+        return $this->createQueryBuilder('si')
+            ->where('si.subscriptionId = :subscriptionId')
+            ->andWhere('si.issuedAt >= :monthStart')
+            ->andWhere('si.issuedAt < :monthEnd')
+            ->setParameter('subscriptionId', $subscriptionId)
+            ->setParameter('monthStart', $monthStart)
+            ->setParameter('monthEnd', $monthEnd)
+            ->getQuery()
+            ->getOneOrNullResult();
+    }
+
+    /**
+     * Trouve toutes les factures en retard (non payées après l'échéance)
+     * 
+     * @param \DateTimeInterface $currentDate Date actuelle
+     * @return SubscriptionInvoice[]
+     */
+    public function findOverdueInvoices(\DateTimeInterface $currentDate): array
+    {
+        // Calculer le 10ème jour du mois courant (date limite de paiement)
+        $currentMonth = (int) $currentDate->format('n');
+        $currentYear = (int) $currentDate->format('Y');
+        $paymentDeadline = new \DateTimeImmutable(sprintf('%d-%d-10 23:59:59', $currentYear, $currentMonth));
+        
+        // Récupérer les factures du mois courant non payées et après l'échéance
+        $firstDayOfMonth = new \DateTimeImmutable(sprintf('%d-%d-01 00:00:00', $currentYear, $currentMonth));
+        $lastDayOfMonth = new \DateTimeImmutable(sprintf('%d-%d-%d 23:59:59', $currentYear, $currentMonth, (int) $firstDayOfMonth->format('t')));
+
+        return $this->createQueryBuilder('si')
+            ->where('si.status IN (:statuses)')
+            ->andWhere('si.issuedAt >= :monthStart')
+            ->andWhere('si.issuedAt <= :monthEnd')
+            ->andWhere('si.paidAt IS NULL')
+            ->andWhere(':currentDate > si.dueAt')
+            ->setParameter('statuses', [SubscriptionInvoice::STATUS_DRAFT, SubscriptionInvoice::STATUS_ISSUED])
+            ->setParameter('monthStart', $firstDayOfMonth)
+            ->setParameter('monthEnd', $lastDayOfMonth)
+            ->setParameter('currentDate', $currentDate)
+            ->getQuery()
+            ->getResult();
+    }
+
+    /**
+     * Trouve une facture existante pour un mois donné (par ID d'abonnement et mois)
+     * 
+     * @param int $subscriptionId ID de l'abonnement
+     * @param string $billingMonth Mois de facturation au format 'Y-m-01'
+     * @return SubscriptionInvoice|null
+     */
+    public function findInvoiceBySubscriptionAndMonth(int $subscriptionId, string $billingMonth): ?SubscriptionInvoice
+    {
+        $monthStart = new \DateTimeImmutable($billingMonth);
+        $monthEnd = $monthStart->modify('+1 month');
+
+        return $this->createQueryBuilder('si')
+            ->where('si.subscriptionId = :subscriptionId')
+            ->andWhere('si.issuedAt >= :monthStart')
+            ->andWhere('si.issuedAt < :monthEnd')
+            ->setParameter('subscriptionId', (string) $subscriptionId)
+            ->setParameter('monthStart', $monthStart)
+            ->setParameter('monthEnd', $monthEnd)
+            ->getQuery()
+            ->getOneOrNullResult();
+    }
 }
 

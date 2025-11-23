@@ -146,37 +146,34 @@ php bin/console debug:router | grep admin
 
 **Important** : Pour vous connecter, utilisez l'**email** comme identifiant et le mot de passe correspondant.
 
-#### Administrateurs (5 comptes disponibles)
+#### Administrateurs (2 comptes disponibles)
 | Email | Mot de passe | Statut | ID |
 |-------|--------------|--------|-----|
-| admin01@yopmail.com | Admin#Test123 | Actif | 76 |
-| admin02@yopmail.com | Admin#Test123 | Actif | 77 |
-| admin03@yopmail.com | Admin#Test123 | Actif | 78 |
-| admin04@yopmail.com | Admin#Test123 | Actif | 79 |
-| admin05@yopmail.com | Admin#Test123 | Actif | 80 |
+| admin001@yopmail.com | Admin#Test123 | Actif | 158 |
+| admin002@yopmail.com | Admin#Test123 | Actif | 159 |
 
-#### Organisateurs (60 comptes disponibles)
+#### Organisateurs (79 comptes disponibles)
 | Email | Mot de passe | Statut | ID | Notes |
 |-------|--------------|--------|-----|-------|
-| organisateur01@yopmail.com | Org#Test123 | Validé | 1 | Actif |
-| organisateur02@yopmail.com | Org#Test123 | Validé | 2 | Actif |
-| organisateur03@yopmail.com | Org#Test123 | Validé | 3 | Actif |
-| organisateur04@yopmail.com | Org#Test123 | Validé | 4 | Actif |
-| ... | ... | ... | ... | ... |
-| organisateur46@yopmail.com | Org#Test123 | Validé | 46 | En pause (almost_late) |
-| organisateur47@yopmail.com | Org#Test123 | Validé | 47 | En pause (almost_late) |
-| organisateur48@yopmail.com | Org#Test123 | Validé | 48 | En pause (almost_late) |
-| organisateur49@yopmail.com | Org#Test123 | Validé | 49 | En pause (almost_late) |
-| organisateur50@yopmail.com | Org#Test123 | Validé | 50 | En pause (almost_late) |
-| organisateur51@yopmail.com | Org#Test123 | Validé | 51 | En pause (almost_late) |
-| organisateur52@yopmail.com | Org#Test123 | Validé | 52 | En pause (almost_late) |
-| organisateur53@yopmail.com | Org#Test123 | En attente | 53 | Non validé |
-| ... | ... | ... | ... | ... |
-| organisateur60@yopmail.com | Org#Test123 | En attente | 60 | Non validé |
+| organisateur001@yopmail.com | Org#Test123 | Validé | 1 | Actif - Juillet 2025 |
+| organisateur046@yopmail.com | Org#Test123 | Validé | 46 | En pause (Août) - Reprend en Octobre |
+| organisateur064@yopmail.com | Org#Test123 | Validé | 64 | En pause (Octobre) - Reprend en Décembre |
+| organisateur079@yopmail.com | Org#Test123 | Validé | 79 | Actif - Novembre 2025 |
+| ... | ... | ... | ... | ... (75 autres organisateurs) |
 
 **Notes importantes** :
-- Les organisateurs 1 à 52 sont validés et peuvent se connecter
-- Les organisateurs 53 à 60 sont en attente de validation (statut = 0)
+- Les organisateurs 1 à 79 sont tous validés et peuvent se connecter
+- **Répartition par mois** :
+  - Juillet 2025 : 45 organisateurs (IDs 1-45)
+  - Août 2025 : +5 organisateurs (IDs 46-50)
+  - Septembre 2025 : +13 organisateurs (IDs 51-63)
+  - Octobre 2025 : +6 organisateurs (IDs 64-69)
+  - Novembre 2025 : +10 organisateurs (IDs 70-79)
+- **Pauses** :
+  - Août : 5 organisateurs en pause (IDs 46-50)
+    - 3 reprennent en octobre (IDs 46-48, mensuel)
+    - 2 reprennent en décembre (IDs 49-50, trimestriel avec décalage prépayé)
+  - Octobre : 5 organisateurs en pause (IDs 64-68), reprennent en décembre (mensuel)
 - Les organisateurs 46 à 52 sont en pause (abonnement non payé avant le 11ème jour)
 - Tous les organisateurs en pause **peuvent se connecter**, mais avec des accès limités (voir section ci-dessous)
 
@@ -364,3 +361,23 @@ explication : https://chatgpt.com/c/691c09da-a1b0-8328-b7a2-1b815d4289f6
 
 📊 Rapports mensuels (abonnements)
 Synthèse des abonnements et revenus par mois
+
+redonne moi le @data.sql avec ces critere
+# pour le nombre organisateur:
+-juillet 2025 : 45
+-aout : + 5
+-septembre :  + 13
+-octobre : + 6
+-novembre 2025: +10
+# 78 utilisateur 
+# 2 admin
+# Abonnement le plus utilisé
+-juillet 2025: basic mensuelle
+-aout : basic trimestre
+-septembre :  entreprise trimestre
+-octobre : entreprise mensuelle
+-novembre 2025: pro ,mesuelle
+# pausse organisateur :
+-aout 2025 : * 3 organisateur et revient octobre (mensuelle)
+                        * 2 organisateur et revient dec (trimestre ,alors il y a de decalage date pour le prepaid)
+-octobre :  * 5 organisateur et revient dec (mensuelle)
