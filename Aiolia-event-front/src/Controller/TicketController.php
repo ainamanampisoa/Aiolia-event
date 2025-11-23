@@ -395,7 +395,7 @@ class TicketController extends AbstractController
             $orderTotal += $adultTotal + $childTotal;
         }
 
-        $serviceFees = 3000;
+        $serviceFees = 0;
         $paymentDeadline = new \DateTime('+15 minutes');
         $reference = 'CMD-' . date('Ymd') . '-0001';
 
