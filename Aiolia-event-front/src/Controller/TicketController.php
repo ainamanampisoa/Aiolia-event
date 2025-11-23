@@ -206,7 +206,7 @@ class TicketController extends AbstractController
             $currency = $selectedTicketType['currency'] ?? 'MGA';
         }
 
-        // Récupérer le panier existant
+        // Récupérer le panier existant depuis la session
         $cartItems = $session->get('cart_items', []);
 
         // Si on a les deux types (adulte et enfant), utiliser une clé basée uniquement sur l'événement
@@ -217,13 +217,35 @@ class TicketController extends AbstractController
         $eventKey = 'event_' . $eventId;
         $hasEventKey = isset($cartItems[$eventKey]);
         
+        // Vérifier aussi si un item avec la clé classique existe déjà
+        $classicKey = 'event_' . $eventId . '_ticket_' . $ticketTypeId;
+        $hasClassicKey = isset($cartItems[$classicKey]);
+        
         // Si on a les deux types OU si la clé événement existe déjà, utiliser la clé basée sur l'événement
         if ($hasBothTypes || $hasEventKey) {
             // Clé basée uniquement sur l'événement pour regrouper les deux types
             $cartKey = $eventKey;
+            
+            // Si un item avec la clé classique existe, le migrer vers la clé événement
+            if ($hasClassicKey && !$hasEventKey) {
+                $cartItems[$cartKey] = $cartItems[$classicKey];
+                unset($cartItems[$classicKey]);
+                // Mettre à jour les IDs de ticket types si nécessaire
+                if (!isset($cartItems[$cartKey]['adultTicketTypeId']) && $adultTicketTypeId > 0) {
+                    $cartItems[$cartKey]['adultTicketTypeId'] = $adultTicketTypeId;
+                }
+                if (!isset($cartItems[$cartKey]['childTicketTypeId']) && $childTicketTypeId > 0) {
+                    $cartItems[$cartKey]['childTicketTypeId'] = $childTicketTypeId;
+                }
+            }
         } else {
             // Clé classique avec ticket_type_id
-            $cartKey = 'event_' . $eventId . '_ticket_' . $ticketTypeId;
+            $cartKey = $classicKey;
+            
+            // Si un item avec la clé événement existe, utiliser cette clé à la place
+            if ($hasEventKey) {
+                $cartKey = $eventKey;
+            }
         }
         
         if (isset($cartItems[$cartKey])) {
@@ -323,7 +345,28 @@ class TicketController extends AbstractController
             $session->start();
         }
 
+        // Récupérer le panier depuis la session
         $cartItems = $session->get('cart_items', []);
+        
+        // Tenter de synchroniser avec la DB si utilisateur connecté
+        $user = $session->get('user');
+        $userId = $user && is_array($user) ? ($user['id'] ?? null) : null;
+        
+        if ($userId) {
+            // Récupérer le panier depuis la DB
+            $dbCart = $this->cartSyncService->getOrCreateCart($userId, null);
+            if ($dbCart && !empty($dbCart['items'])) {
+                $dbItems = $this->cartSyncService->convertDbItemsToSessionFormat($dbCart['items']);
+                // Fusionner les deux paniers (priorité au plus récent)
+                $cartItems = $this->cartSyncService->mergeCarts($cartItems, $dbItems);
+                // Mettre à jour la session avec les items fusionnés
+                $session->set('cart_items', $cartItems);
+            } elseif ($dbCart && !empty($cartItems)) {
+                // Sauvegarder les items de la session dans la DB
+                $this->cartSyncService->saveCartItems((int) $dbCart['id'], $cartItems);
+            }
+        }
+        
         $items = $this->formatCartItemsForTemplate($cartItems);
 
         $orderTotal = 0;
@@ -661,6 +704,26 @@ class TicketController extends AbstractController
                 ? $event['starts_at']
                 : ($event['starts_at'] ? new \DateTimeImmutable($event['starts_at']) : new \DateTimeImmutable());
 
+            // Récupérer les prix depuis les ticket_types si absents
+            $adultPrice = $cartItem['adultPrice'] ?? null;
+            $childPrice = $cartItem['childPrice'] ?? null;
+            
+            // Si les prix sont absents ou 0, les récupérer depuis les ticket_types
+            if (($adultPrice === null || $adultPrice === 0) && isset($cartItem['adultTicketTypeId'])) {
+                $adultPrice = $this->getTicketTypePrice($cartItem['adultTicketTypeId']);
+            }
+            if (($childPrice === null || $childPrice === 0) && isset($cartItem['childTicketTypeId'])) {
+                $childPrice = $this->getTicketTypePrice($cartItem['childTicketTypeId']);
+            }
+            
+            // Si toujours null, utiliser le prix du ticket_type principal
+            if (($adultPrice === null || $adultPrice === 0) && isset($cartItem['ticketTypeId'])) {
+                $adultPrice = $this->getTicketTypePrice($cartItem['ticketTypeId']);
+            }
+            if (($childPrice === null || $childPrice === 0) && isset($cartItem['ticketTypeId'])) {
+                $childPrice = $this->getTicketTypePrice($cartItem['ticketTypeId']);
+            }
+            
             $formattedItems[] = [
                 'cart_key' => $cartKey,
                 'event' => [
@@ -674,11 +737,11 @@ class TicketController extends AbstractController
                         : ($eventDate ?? new \DateTime()),
                     'starts_at' => $eventDate,
                     'added_at' => $addedAt,
-                    'adultPrice' => $cartItem['adultPrice'],
-                    'childPrice' => $cartItem['childPrice'],
+                    'adultPrice' => $adultPrice ?? 0,
+                    'childPrice' => $childPrice ?? 0,
                 ],
-                'adultQuantity' => $cartItem['adultQuantity'],
-                'childQuantity' => $cartItem['childQuantity'],
+                'adultQuantity' => $cartItem['adultQuantity'] ?? 0,
+                'childQuantity' => $cartItem['childQuantity'] ?? 0,
             ];
         }
 
@@ -901,6 +964,26 @@ class TicketController extends AbstractController
                 'is_available' => null === $available || $available > 0,
             ];
         }, $rows);
+    }
+
+    /**
+     * Récupère le prix d'un type de billet depuis la base de données.
+     */
+    private function getTicketTypePrice(int $ticketTypeId): ?float
+    {
+        try {
+            $sql = 'SELECT base_price FROM aiolia.ticket_types WHERE id = :ticket_type_id LIMIT 1';
+            $result = $this->connection->executeQuery($sql, ['ticket_type_id' => $ticketTypeId])->fetchAssociative();
+            
+            if ($result && isset($result['base_price'])) {
+                return (float) $result['base_price'];
+            }
+            
+            return null;
+        } catch (\Exception $e) {
+            error_log('Erreur lors de la récupération du prix du type de billet: ' . $e->getMessage());
+            return null;
+        }
     }
 }
 

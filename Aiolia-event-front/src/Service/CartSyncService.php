@@ -117,14 +117,19 @@ class CartSyncService
                         ci.adult_price,
                         ci.child_price,
                         ci.total_price,
-                        ci.cart_key
+                        ci.cart_key,
+                        ci.created_at
                     FROM aiolia.cart_items ci
                     WHERE ci.cart_id = :cart_id
                     ORDER BY ci.created_at ASC';
             
             $items = $this->connection->executeQuery($sql, ['cart_id' => $cartId])->fetchAllAssociative();
             
-            return array_map(static function (array $item): array {
+            return array_map(function (array $item): array {
+                $createdAt = isset($item['created_at']) 
+                    ? (is_string($item['created_at']) ? $item['created_at'] : $item['created_at']->format('Y-m-d H:i:s'))
+                    : null;
+                
                 return [
                     'id' => (int) $item['id'],
                     'cartId' => (int) $item['cart_id'],
@@ -136,10 +141,11 @@ class CartSyncService
                     'adultQuantity' => isset($item['adult_quantity']) ? (int) $item['adult_quantity'] : 0,
                     'childQuantity' => isset($item['child_quantity']) ? (int) $item['child_quantity'] : 0,
                     'unitPrice' => isset($item['unit_price']) ? (float) $item['unit_price'] : 0,
-                    'adultPrice' => isset($item['adult_price']) ? (float) $item['adult_price'] : 0,
-                    'childPrice' => isset($item['child_price']) ? (float) $item['child_price'] : 0,
+                    'adultPrice' => isset($item['adult_price']) && $item['adult_price'] > 0 ? (float) $item['adult_price'] : null,
+                    'childPrice' => isset($item['child_price']) && $item['child_price'] > 0 ? (float) $item['child_price'] : null,
                     'totalPrice' => isset($item['total_price']) ? (float) $item['total_price'] : 0,
                     'cartKey' => $item['cart_key'] ?? null,
+                    'createdAt' => $createdAt,
                 ];
             }, $items);
         } catch (Exception $e) {
@@ -168,11 +174,6 @@ class CartSyncService
                 // Insérer les nouveaux items
                 $totalAmount = 0;
                 foreach ($cartItems as $cartKey => $item) {
-                    $adultTotal = ($item['adultQuantity'] ?? 0) * ($item['adultPrice'] ?? 0);
-                    $childTotal = ($item['childQuantity'] ?? 0) * ($item['childPrice'] ?? 0);
-                    $itemTotal = $adultTotal + $childTotal;
-                    $totalAmount += $itemTotal;
-                    
                     // Déterminer le ticket_type_id principal (pour compatibilité)
                     $ticketTypeId = $item['ticketTypeId'] ?? null;
                     if (!$ticketTypeId && isset($item['adultTicketTypeId'])) {
@@ -195,6 +196,31 @@ class CartSyncService
                         continue; // Skip si données insuffisantes
                     }
                     
+                    // Récupérer les prix depuis les ticket_types si absents
+                    $adultPrice = $item['adultPrice'] ?? null;
+                    $childPrice = $item['childPrice'] ?? null;
+                    
+                    if (($adultPrice === null || $adultPrice === 0) && isset($item['adultTicketTypeId'])) {
+                        $adultPrice = $this->getTicketTypePrice($item['adultTicketTypeId']);
+                    }
+                    if (($childPrice === null || $childPrice === 0) && isset($item['childTicketTypeId'])) {
+                        $childPrice = $this->getTicketTypePrice($item['childTicketTypeId']);
+                    }
+                    
+                    // Si toujours null, utiliser le prix du ticket_type principal
+                    if (($adultPrice === null || $adultPrice === 0) && $ticketTypeId) {
+                        $adultPrice = $this->getTicketTypePrice($ticketTypeId);
+                    }
+                    if (($childPrice === null || $childPrice === 0) && $ticketTypeId) {
+                        $childPrice = $this->getTicketTypePrice($ticketTypeId);
+                    }
+                    
+                    // Utiliser les prix récupérés pour recalculer le total
+                    $adultTotal = ($item['adultQuantity'] ?? 0) * ($adultPrice ?? 0);
+                    $childTotal = ($item['childQuantity'] ?? 0) * ($childPrice ?? 0);
+                    $itemTotal = $adultTotal + $childTotal;
+                    $totalAmount += $itemTotal;
+                    
                     $quantity = ($item['adultQuantity'] ?? 0) + ($item['childQuantity'] ?? 0);
                     
                     $this->connection->insert('aiolia.cart_items', [
@@ -206,9 +232,9 @@ class CartSyncService
                         'quantity' => $quantity > 0 ? $quantity : 1,
                         'adult_quantity' => $item['adultQuantity'] ?? 0,
                         'child_quantity' => $item['childQuantity'] ?? 0,
-                        'unit_price' => $item['adultPrice'] ?? $item['childPrice'] ?? 0,
-                        'adult_price' => $item['adultPrice'] ?? 0,
-                        'child_price' => $item['childPrice'] ?? 0,
+                        'unit_price' => $adultPrice ?? $childPrice ?? 0,
+                        'adult_price' => $adultPrice ?? 0,
+                        'child_price' => $childPrice ?? 0,
                         'total_price' => $itemTotal,
                         'cart_key' => $cartKey,
                     ]);
@@ -294,7 +320,32 @@ class CartSyncService
         $sessionItems = [];
         
         foreach ($dbItems as $item) {
-            $cartKey = $item['cartKey'] ?? ('event_' . $item['eventId'] . '_ticket_' . $item['ticketTypeId']);
+            // Si on a une clé sauvegardée dans la DB, l'utiliser
+            // Sinon, générer une clé cohérente avec la logique d'ajout
+            if (!empty($item['cartKey'])) {
+                $cartKey = $item['cartKey'];
+            } else {
+                // Si l'item a à la fois adultTicketTypeId et childTicketTypeId, utiliser la clé basée sur l'événement
+                // Sinon, utiliser la clé classique avec ticket_type_id
+                if (isset($item['adultTicketTypeId']) && $item['adultTicketTypeId'] > 0 
+                    && isset($item['childTicketTypeId']) && $item['childTicketTypeId'] > 0) {
+                    $cartKey = 'event_' . $item['eventId'];
+                } else {
+                    $cartKey = 'event_' . $item['eventId'] . '_ticket_' . $item['ticketTypeId'];
+                }
+            }
+            
+            // Si les prix sont 0 ou null, essayer de les récupérer depuis les ticket_types
+            $adultPrice = $item['adultPrice'] ?? null;
+            $childPrice = $item['childPrice'] ?? null;
+            
+            // Si les prix ne sont pas disponibles, les récupérer depuis les ticket_types
+            if (($adultPrice === null || $adultPrice === 0) && isset($item['adultTicketTypeId'])) {
+                $adultPrice = $this->getTicketTypePrice($item['adultTicketTypeId']);
+            }
+            if (($childPrice === null || $childPrice === 0) && isset($item['childTicketTypeId'])) {
+                $childPrice = $this->getTicketTypePrice($item['childTicketTypeId']);
+            }
             
             $sessionItems[$cartKey] = [
                 'eventId' => $item['eventId'],
@@ -303,13 +354,34 @@ class CartSyncService
                 'childTicketTypeId' => $item['childTicketTypeId'],
                 'adultQuantity' => $item['adultQuantity'],
                 'childQuantity' => $item['childQuantity'],
-                'adultPrice' => $item['adultPrice'],
-                'childPrice' => $item['childPrice'],
+                'adultPrice' => $adultPrice,
+                'childPrice' => $childPrice,
                 'currency' => 'MGA', // À récupérer depuis le panier si nécessaire
+                'added_at' => $item['createdAt'] ?? (new \DateTimeImmutable())->format('Y-m-d H:i:s'),
             ];
         }
         
         return $sessionItems;
+    }
+    
+    /**
+     * Récupère le prix d'un type de billet depuis la base de données.
+     */
+    private function getTicketTypePrice(int $ticketTypeId): ?float
+    {
+        try {
+            $sql = 'SELECT base_price FROM aiolia.ticket_types WHERE id = :ticket_type_id LIMIT 1';
+            $result = $this->connection->executeQuery($sql, ['ticket_type_id' => $ticketTypeId])->fetchAssociative();
+            
+            if ($result && isset($result['base_price'])) {
+                return (float) $result['base_price'];
+            }
+            
+            return null;
+        } catch (Exception $e) {
+            error_log('Erreur lors de la récupération du prix du type de billet: ' . $e->getMessage());
+            return null;
+        }
     }
 
     /**
@@ -323,12 +395,19 @@ class CartSyncService
     {
         $merged = $dbItems; // Commencer avec les items de la DB
         
-        // Fusionner avec les items du LocalStorage (priorité au plus récent)
+        // Fusionner avec les items du LocalStorage
         foreach ($localStorageItems as $cartKey => $localItem) {
             if (isset($merged[$cartKey])) {
-                // Si l'item existe dans les deux, prendre la version la plus récente
-                // Pour simplifier, on prend celle du LocalStorage (plus récente)
-                $merged[$cartKey] = $localItem;
+                // Si l'item existe dans les deux, comparer les dates d'ajout pour déterminer la version la plus récente
+                $localAddedAt = isset($localItem['added_at']) ? strtotime($localItem['added_at']) : 0;
+                $dbAddedAt = isset($merged[$cartKey]['added_at']) ? strtotime($merged[$cartKey]['added_at']) : 0;
+                
+                // Si la version locale est plus récente, la prendre
+                // Sinon, garder celle de la DB (qui est déjà dans $merged)
+                if ($localAddedAt > $dbAddedAt) {
+                    $merged[$cartKey] = $localItem;
+                }
+                // Sinon, on garde celle de la DB qui est déjà dans $merged
             } else {
                 // Nouvel item du LocalStorage
                 $merged[$cartKey] = $localItem;
