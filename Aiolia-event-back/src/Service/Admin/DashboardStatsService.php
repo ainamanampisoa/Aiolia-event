@@ -4,6 +4,7 @@ namespace App\Service\Admin;
 
 use App\Entity\User;
 use App\Enum\Role as UserRoleEnum;
+use App\Repository\Admin\StatisticsRepository;
 use Doctrine\DBAL\Connection;
 use Doctrine\DBAL\ParameterType;
 use Doctrine\DBAL\Types\Types;
@@ -12,7 +13,9 @@ use Doctrine\ORM\EntityManagerInterface;
 class DashboardStatsService
 {
     public function __construct(
-        private EntityManagerInterface $entityManager
+        private EntityManagerInterface $entityManager,
+        private RevenueForecastService $revenueForecastService,
+        private StatisticsRepository $statisticsRepository
     ) {
     }
 
@@ -21,20 +24,221 @@ class DashboardStatsService
         $periodStart = $this->createPeriodStart($month, $year);
         $periodEnd = $periodStart->modify('first day of next month');
 
+        // Calculer les revenus du mois en cours
+        $currentMonthRevenue = $this->getCurrentMonthRevenue($periodStart, $periodEnd);
+        
+        // Calculer les revenus du mois précédent pour la variation
+        $previousMonthStart = $periodStart->modify('-1 month');
+        $previousMonthEnd = $periodStart;
+        $previousMonthRevenue = $this->getCurrentMonthRevenue($previousMonthStart, $previousMonthEnd);
+        
+        // Calculer la variation
+        $variation = $previousMonthRevenue > 0 
+            ? (($currentMonthRevenue - $previousMonthRevenue) / $previousMonthRevenue) * 100 
+            : 0;
+        
+        // Obtenir la prévision
+        $forecast = $this->revenueForecastService->getNextMonthForecast(new \DateTime());
+
         $summary = [
             'active_organizers' => $this->countActiveOrganizers(),
             'new_organizers' => $this->countNewOrganizers($periodStart, $periodEnd),
             'top_subscription' => $this->getMostPopularSubscription($periodStart, $periodEnd),
             'global_activity_rate' => $this->formatPercentage($this->computeActivityRate()),
+            'current_month_revenue' => $currentMonthRevenue,
+            'revenue_variation' => $variation,
+            'revenue_forecast' => $forecast,
         ];
+
+        // Construire les données de revenus avec prévision pour le graphique
+        $revenueChart = $this->buildRevenueChartWithForecast($periodStart);
+        
+        // Récupérer le top 5 des contributeurs fiscaux (12 derniers mois)
+        $topVatContributors = $this->buildTopVatContributors($periodStart);
+        
+        // Calculer les statistiques fiscales du mois
+        $fiscalStats = $this->getFiscalStatsForMonth($periodStart, $periodEnd);
 
         return [
             'summary' => $summary,
+            'fiscal' => $fiscalStats,
             'charts' => [
                 'new_organizers' => $this->buildNewOrganizersSeries($periodStart, $periodEnd),
                 'subscriptions' => $this->buildSubscriptionsHistogram($periodStart, $periodEnd),
                 'activity_rate' => $this->buildActivityRateTrend($periodStart, $periodEnd),
+                'revenue_forecast' => $revenueChart,
+                'top_vat_contributors' => $topVatContributors,
             ],
+        ];
+    }
+    
+    /**
+     * Construit les données du top 5 des contributeurs fiscaux (TVA)
+     */
+    private function buildTopVatContributors(\DateTimeImmutable $periodStart): array
+    {
+        // Récupérer les top 5 contributeurs pour les 12 derniers mois
+        $dateFrom = $periodStart->modify('-11 months');
+        $dateTo = $periodStart->modify('+1 month');
+        
+        $topContributors = $this->statisticsRepository->getTopVatContributors(5, $dateFrom, $dateTo);
+        
+        // Calculer la TVA à partir du TTC (TVA = TTC - HT, où HT = TTC / 1.2)
+        $labels = [];
+        $vatValues = [];
+        
+        foreach ($topContributors['labels'] as $index => $label) {
+            $ttc = $topContributors['ttc_values'][$index] ?? 0;
+            $ht = $ttc / 1.2;
+            $vat = $ttc - $ht;
+            
+            $labels[] = $label;
+            $vatValues[] = $vat;
+        }
+        
+        return [
+            'label' => 'Top 5 Contributeurs TVA',
+            'labels' => $labels,
+            'vat_values' => $vatValues,
+        ];
+    }
+    
+    /**
+     * Récupère les statistiques fiscales (HT, TVA, TTC) pour le mois
+     */
+    private function getFiscalStatsForMonth(\DateTimeImmutable $start, \DateTimeImmutable $end): array
+    {
+        $sql = <<<SQL
+            SELECT 
+                COALESCE(SUM(si.montant_total::numeric), 0) AS ttc_total
+            FROM aiolia.factures_abonnements si
+            WHERE si.statut = 'paid'
+                AND si.payee_le >= :start
+                AND si.payee_le < :end
+        SQL;
+
+        $result = $this->getConnection()->executeQuery(
+            $sql,
+            [
+                'start' => $start->format('Y-m-d H:i:s'),
+                'end' => $end->format('Y-m-d H:i:s'),
+            ],
+            [
+                'start' => ParameterType::STRING,
+                'end' => ParameterType::STRING,
+            ]
+        )->fetchAssociative();
+
+        $ttc = (float) ($result['ttc_total'] ?? 0);
+        $ht = $ttc / 1.2;
+        $tva = $ttc - $ht;
+
+        return [
+            'ht' => $ht,
+            'tva' => $tva,
+            'ttc' => $ttc,
+        ];
+    }
+
+    /**
+     * Récupère les revenus TTC du mois donné
+     */
+    private function getCurrentMonthRevenue(\DateTimeImmutable $start, \DateTimeImmutable $end): float
+    {
+        $sql = <<<SQL
+            SELECT COALESCE(SUM(si.montant_total::numeric), 0) AS total
+            FROM aiolia.factures_abonnements si
+            WHERE si.statut = 'paid'
+                AND si.payee_le >= :start
+                AND si.payee_le < :end
+        SQL;
+
+        $result = $this->getConnection()->executeQuery(
+            $sql,
+            [
+                'start' => $start->format('Y-m-d H:i:s'),
+                'end' => $end->format('Y-m-d H:i:s'),
+            ],
+            [
+                'start' => ParameterType::STRING,
+                'end' => ParameterType::STRING,
+            ]
+        )->fetchAssociative();
+
+        return (float) ($result['total'] ?? 0);
+    }
+
+    /**
+     * Construit les données de graphique de revenus avec prévision
+     */
+    private function buildRevenueChartWithForecast(\DateTimeImmutable $periodStart): array
+    {
+        // Récupérer les revenus des 6 derniers mois
+        $startDate = $periodStart->modify('-5 months');
+        $endDate = $periodStart->modify('+1 month');
+        
+        $sql = <<<SQL
+            SELECT 
+                DATE_TRUNC('month', si.payee_le) AS month,
+                COALESCE(SUM(si.montant_total::numeric), 0) AS total
+            FROM aiolia.factures_abonnements si
+            WHERE si.statut = 'paid'
+                AND si.payee_le >= :start
+                AND si.payee_le < :end
+            GROUP BY DATE_TRUNC('month', si.payee_le)
+            ORDER BY month ASC
+        SQL;
+
+        $rows = $this->getConnection()->executeQuery(
+            $sql,
+            [
+                'start' => $startDate->format('Y-m-d H:i:s'),
+                'end' => $endDate->format('Y-m-d H:i:s'),
+            ],
+            [
+                'start' => ParameterType::STRING,
+                'end' => ParameterType::STRING,
+            ]
+        )->fetchAllAssociative();
+
+        $labels = [];
+        $values = [];
+        $forecastValues = [];
+
+        // Créer un map des revenus par mois
+        $revenueMap = [];
+        foreach ($rows as $row) {
+            $monthKey = (new \DateTimeImmutable($row['month']))->format('Y-m');
+            $revenueMap[$monthKey] = (float) $row['total'];
+        }
+
+        // Construire les 6 derniers mois + 1 mois de prévision
+        $current = clone $startDate;
+        $forecast = $this->revenueForecastService->getRevenueForecast(1, new \DateTime());
+        $nextMonthForecast = $forecast['forecast'] ?? 0;
+
+        for ($i = 0; $i < 7; $i++) {
+            $monthKey = $current->format('Y-m');
+            $labels[] = ucfirst($current->format('M'));
+            
+            if ($i < 6) {
+                // Données réelles
+                $values[] = $revenueMap[$monthKey] ?? 0;
+                $forecastValues[] = null; // Pas de prévision pour les mois passés
+            } else {
+                // Mois suivant avec prévision
+                $values[] = null; // Pas encore de données réelles
+                $forecastValues[] = $nextMonthForecast;
+            }
+            
+            $current = $current->modify('+1 month');
+        }
+
+        return [
+            'label' => 'Revenus TTC',
+            'labels' => $labels,
+            'values' => $values,
+            'forecast_values' => $forecastValues,
         ];
     }
 

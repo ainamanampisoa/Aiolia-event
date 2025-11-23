@@ -4,291 +4,520 @@
 
 {% block body %}
 <div class="dashboard">
-    <!-- En-tête du dashboard -->
+    <!-- En-tête -->
     <div class="dashboard-header">
         <div>
-            <h1 data-i18n-fr="Tableau de bord" data-i18n-en="Dashboard">Tableau de bord</h1>
-            <p
-                style="color: var(--text-secondary); margin-top: 8px; font-size: 1rem;"
-                data-i18n-target="html"
-                data-i18n-fr="Bienvenue, <strong>{{ app.user.prenom }} {{ app.user.nom }}</strong> 👋"
-                data-i18n-en="Welcome, <strong>{{ app.user.prenom }} {{ app.user.nom }}</strong> 👋"
-            >
-                Bienvenue, <strong>{{ app.user.prenom }} {{ app.user.nom }}</strong> 👋
+            <h1><i class="fas fa-chart-pie"></i> Tableau de bord</h1>
+            <p class="dashboard-subtitle">
+                Vue d'ensemble des statistiques et indicateurs clés
             </p>
         </div>
     </div>
 
-    <div class="dashboard-summary-card">
-        <div class="summary-header">
-            <div>
-                <h2 data-i18n-fr="Vue synthétique" data-i18n-en="Summary view">Vue synthétique</h2>
-                <p data-i18n-fr="Analyse rapide par période" data-i18n-en="Quick analysis per period">Analyse rapide par période</p>
+    <!-- Cartes de statistiques rapides (6 widgets) -->
+    <div class="stats-grid stats-grid-compact">
+        <!-- Widget 1: Organisateurs Actifs -->
+        <div class="stat-card stat-card-compact">
+            <div class="stat-icon stat-icon-compact bg-primary">
+                <i class="fas fa-users"></i>
             </div>
-            <form class="summary-filters" method="get">
-                <label>
-                    <span data-i18n-fr="Mois" data-i18n-en="Month">Mois</span>
-                    <select name="month" class="filter-select">
-                        {% for m in (filters.months ?? ['Janvier','Février','Mars','Avril','Mai','Juin','Juillet','Août','Septembre','Octobre','Novembre','Décembre']) %}
-                            <option value="{{ loop.index }}" {{ (currentFilters.month ?? '11') == loop.index ? 'selected' : '' }}>{{ m }}</option>
-                        {% endfor %}
-                    </select>
-                </label>
-                <label>
-                    <span data-i18n-fr="Année" data-i18n-en="Year">Année</span>
-                    <select name="year" class="filter-select">
-                        {% for y in (filters.years ?? [date().format('Y'), date('-1 year').format('Y'), date('-2 year').format('Y')]) %}
-                            <option value="{{ y }}" {{ (currentFilters.year ?? date().format('Y')) == y ? 'selected' : '' }}>{{ y }}</option>
-                        {% endfor %}
-                    </select>
-                </label>
-                <button type="submit" class="filter-cta" data-i18n-fr="Appliquer" data-i18n-en="Apply">Appliquer</button>
-            </form>
+            <div class="stat-content">
+                <h3>{{ stats.summary.active_organizers ?? '128' }}</h3>
+                <p>Organisateurs actifs</p>
+                <p style="font-size: 0.75rem; color: var(--text-secondary); margin-top: 4px;">
+                    <i class="fas fa-user-plus"></i> +{{ stats.summary.new_organizers ?? '32' }} ce mois
+                </p>
+            </div>
         </div>
 
-        <div class="summary-widgets">
-            <div class="summary-widget">
-                <div class="widget-icon"><i class="fas fa-users"></i></div>
-                <div>
-                    <p data-i18n-fr="Organisateurs actifs" data-i18n-en="Active organizers">Organisateurs actifs</p>
-                    <h3>{{ stats.summary.active_organizers ?? '128' }}</h3>
+        <!-- Widget 2: Plan Populaire -->
+        <div class="stat-card stat-card-compact">
+            <div class="stat-icon stat-icon-compact bg-warning">
+                <i class="fas fa-crown"></i>
+            </div>
+            <div class="stat-content">
+                <h3>{{ stats.summary.top_subscription ?? 'Plan Pro' }}</h3>
+                <p>Plan le plus populaire</p>
+            </div>
+        </div>
+
+        <!-- Widget 3: Revenus TTC avec Prévision ⭐ -->
+        <div class="stat-card stat-card-compact" style="border: 2px solid var(--accent); background: linear-gradient(135deg, var(--bg-card), rgba(52, 152, 219, 0.1));">
+            <div class="stat-icon stat-icon-compact bg-success">
+                <i class="fas fa-money-bill-wave"></i>
+            </div>
+            <div class="stat-content">
+                <h3>{{ (stats.summary.current_month_revenue ?? 0)|number_format(0, ',', ' ') }} MGA</h3>
+                <p>Revenus TTC ce mois</p>
+                <div style="margin-top: 8px; display: flex; gap: 12px; flex-wrap: wrap;">
+                    {% set variation = stats.summary.revenue_variation ?? 0 %}
+                    <span style="font-size: 0.75rem; color: {{ variation >= 0 ? 'var(--success)' : 'var(--danger)' }};">
+                        <i class="fas fa-arrow-{{ variation >= 0 ? 'up' : 'down' }}"></i>
+                        {{ variation >= 0 ? '+' : '' }}{{ variation|number_format(1, ',', ' ') }}%
+                    </span>
+                    <span style="font-size: 0.75rem; color: var(--accent); font-weight: 600;">
+                        <i class="fas fa-chart-line"></i> Prévision: {{ (stats.summary.revenue_forecast ?? 0)|number_format(0, ',', ' ') }} MGA
+                    </span>
                 </div>
             </div>
-            <div class="summary-widget">
-                <div class="widget-icon widget-icon-accent"><i class="fas fa-user-plus"></i></div>
-                <div>
-                    <p data-i18n-fr="Nouveaux organisateurs" data-i18n-en="New organizers">Nouveaux organisateurs</p>
-                    <h3>{{ stats.summary.new_organizers ?? '32' }}</h3>
-                </div>
+        </div>
+
+        <!-- Widget 4: Taux d'Activité -->
+        <div class="stat-card stat-card-compact">
+            <div class="stat-icon stat-icon-compact bg-success">
+                <i class="fas fa-bolt"></i>
             </div>
-            <div class="summary-widget">
-                <div class="widget-icon widget-icon-warning"><i class="fas fa-crown"></i></div>
-                <div>
-                    <p data-i18n-fr="Abonnement le plus populaire" data-i18n-en="Most popular subscription">Abonnement le plus populaire</p>
-                    <h3>{{ stats.summary.top_subscription ?? 'Plan Pro' }}</h3>
-                </div>
+            <div class="stat-content">
+                <h3>{{ stats.summary.global_activity_rate ?? '82 %' }}</h3>
+                <p>Taux d'activité global</p>
             </div>
-            <div class="summary-widget">
-                <div class="widget-icon widget-icon-success"><i class="fas fa-bolt"></i></div>
-                <div>
-                    <p data-i18n-fr="Taux d’activité global" data-i18n-en="Global activity rate">Taux d’activité global</p>
-                    <h3>{{ stats.summary.global_activity_rate ?? '82 %' }}</h3>
-                </div>
+        </div>
+
+        <!-- Widget 5: Revenus HT -->
+        <div class="stat-card stat-card-compact">
+            <div class="stat-icon stat-icon-compact bg-info">
+                <i class="fas fa-receipt"></i>
             </div>
+            <div class="stat-content">
+                <h3>{{ (stats.fiscal.ht ?? 0)|number_format(0, ',', ' ') }} MGA</h3>
+                <p>Revenus HT ce mois</p>
+                <p style="font-size: 0.75rem; color: var(--text-secondary); margin-top: 4px;">
+                    <i class="fas fa-percent"></i> TVA: {{ (stats.fiscal.tva ?? 0)|number_format(0, ',', ' ') }} MGA
+                </p>
+            </div>
+        </div>
+
+    </div>
+
+    <!-- Recherche et filtres -->
+    <div class="search-section">
+        <div class="search-header">
+            <h3 style="font-size: 1.1rem; color: var(--text-primary); margin: 0; display: flex; align-items: center; gap: 8px;">
+                <i class="fas fa-filter"></i>
+                <span data-i18n-fr="Filtres de recherche" data-i18n-en="Search filters">Filtres de recherche</span>
+            </h3>
+        </div>
+
+        <div class="search-form" id="searchFormDashboard" aria-hidden="false">
+            <form method="get" action="{{ path('app_dashboard') }}">
+                <div class="search-grid">
+                    <div class="search-field">
+                        <label>
+                            <i class="fas fa-calendar"></i>
+                            <span data-i18n-fr="Mois" data-i18n-en="Month">Mois</span>
+                        </label>
+                        <select name="month" class="form-input">
+                            <option value="">Tous les mois</option>
+                            {% for m in (filters.months ?? ['Janvier','Février','Mars','Avril','Mai','Juin','Juillet','Août','Septembre','Octobre','Novembre','Décembre']) %}
+                                <option value="{{ loop.index }}" {{ (currentFilters.month ?? '11') == loop.index ? 'selected' : '' }}>{{ m }}</option>
+                            {% endfor %}
+                        </select>
+                    </div>
+                    <div class="search-field">
+                        <label>
+                            <i class="fas fa-calendar-alt"></i>
+                            <span data-i18n-fr="Année" data-i18n-en="Year">Année</span>
+                        </label>
+                        <select name="year" class="form-input">
+                            {% for y in (filters.years ?? [date().format('Y'), date('-1 year').format('Y'), date('-2 year').format('Y')]) %}
+                                <option value="{{ y }}" {{ (currentFilters.year ?? date().format('Y')) == y ? 'selected' : '' }}>{{ y }}</option>
+                            {% endfor %}
+                        </select>
+                    </div>
+                </div>
+
+                <div class="search-actions">
+                    <button type="submit" class="btn btn-primary" style="background: #3498DB !important; color: var(--text-inverse); border: none; padding: 10px 24px; border-radius: 8px; cursor: pointer; font-weight: 500;">
+                        <i class="fas fa-search"></i>
+                        <span data-i18n-fr="Rechercher" data-i18n-en="Search">Rechercher</span>
+                    </button>
+                    {% if currentFilters.month or currentFilters.year %}
+                    <a href="{{ path('app_dashboard') }}" class="btn btn-secondary" style="background: var(--bg-secondary); color: var(--text-secondary); border: 2px solid var(--border-color); padding: 10px 24px; border-radius: 8px; cursor: pointer; font-weight: 500;">
+                        <i class="fas fa-redo"></i>
+                        <span data-i18n-fr="Réinitialiser" data-i18n-en="Reset">Réinitialiser</span>
+                    </a>
+                    {% endif %}
+                </div>
+            </form>
         </div>
     </div>
 
-    <div class="charts-grid">
-        <div class="chart-card chart-card-lg">
-            <div class="card-header">
-                <div>
-                    <h3 data-i18n-fr="Courbe des nouveaux organisateurs" data-i18n-en="New organizers trend">Courbe des nouveaux organisateurs</h3>
-                    <p data-i18n-fr="Variation des inscriptions sur la période" data-i18n-en="New registrations over time">Variation des inscriptions sur la période</p>
+    <!-- Carte principale avec graphiques -->
+    <div class="card validation-card">
+        <div class="card-body">
+            <!-- Graphiques en grille -->
+            <div class="content-row" style="margin-bottom: 24px;">
+                <div class="content-col">
+                    <div class="chart-card">
+                        <div class="card-header">
+                            <h3 style="display: flex; align-items: center; gap: 8px;">
+                                <i class="fas fa-user-plus" style="color: var(--accent);"></i>
+                                Courbe des nouveaux organisateurs
+                            </h3>
+                            <p style="color: var(--text-secondary); font-size: 0.9rem; margin-top: 4px;">
+                                Variation des inscriptions sur la période
+                            </p>
+                        </div>
+                        <div class="card-body">
+                            <canvas id="newOrganizersChart" height="220"></canvas>
+                        </div>
+                    </div>
+                </div>
+                <div class="content-col">
+                    <div class="chart-card">
+                        <div class="card-header">
+                            <h3 style="display: flex; align-items: center; gap: 8px;">
+                                <i class="fas fa-money-bill-wave" style="color: var(--success);"></i>
+                                Revenus TTC avec Prévision
+                            </h3>
+                            <p style="color: var(--text-secondary); font-size: 0.9rem; margin-top: 4px;">
+                                Évolution et prévision des revenus
+                            </p>
+                        </div>
+                        <div class="card-body">
+                            <canvas id="revenueForecastChart" height="220"></canvas>
+                        </div>
+                    </div>
                 </div>
             </div>
-            <div class="card-body">
-                <canvas id="newOrganizersChart" height="140"></canvas>
-            </div>
-        </div>
 
-        <div class="chart-card">
-            <div class="card-header">
-                <div>
-                    <h3 data-i18n-fr="Histogramme des abonnements" data-i18n-en="Subscriptions histogram">Histogramme des abonnements</h3>
-                    <p data-i18n-fr="Répartition des plans souscrits" data-i18n-en="Plans distribution">Répartition des plans souscrits</p>
+            <div class="content-row" style="margin-bottom: 24px;">
+                <div class="content-col">
+                    <div class="chart-card">
+                        <div class="card-header">
+                            <h3 style="display: flex; align-items: center; gap: 8px;">
+                                <i class="fas fa-chart-bar" style="color: var(--accent);"></i>
+                                Histogramme des abonnements
+                            </h3>
+                            <p style="color: var(--text-secondary); font-size: 0.9rem; margin-top: 4px;">
+                                Répartition des plans souscrits
+                            </p>
+                        </div>
+                        <div class="card-body">
+                            <canvas id="subscriptionsHistogram" height="220"></canvas>
+                        </div>
+                    </div>
                 </div>
-            </div>
-            <div class="card-body">
-                <canvas id="subscriptionsHistogram" height="140"></canvas>
-            </div>
-        </div>
-
-        <div class="chart-card">
-            <div class="card-header">
-                <div>
-                    <h3 data-i18n-fr="Courbe du taux d’activité" data-i18n-en="Activity rate trend">Courbe du taux d’activité</h3>
-                    <p data-i18n-fr="Niveau d’engagement global" data-i18n-en="Overall engagement level">Niveau d’engagement global</p>
+                <div class="content-col">
+                    <div class="chart-card">
+                        <div class="card-header">
+                            <h3 style="display: flex; align-items: center; gap: 8px;">
+                                <i class="fas fa-bolt" style="color: var(--success);"></i>
+                                Courbe du taux d'activité
+                            </h3>
+                            <p style="color: var(--text-secondary); font-size: 0.9rem; margin-top: 4px;">
+                                Niveau d'engagement global
+                            </p>
+                        </div>
+                        <div class="card-body">
+                            <canvas id="activityRateChart" height="220"></canvas>
+                        </div>
+                    </div>
                 </div>
-            </div>
-            <div class="card-body">
-                <canvas id="activityRateChart" height="140"></canvas>
             </div>
         </div>
     </div>
 </div>
 
 <style>
-.dashboard-summary-card {
-    margin-top: 20px;
-    background: var(--bg-card);
-    border: 1px solid var(--border-color);
-    border-radius: var(--border-radius-lg);
-    padding: 20px 24px;
-    box-shadow: var(--shadow-sm);
-}
-
-.summary-header {
-    display: flex;
-    justify-content: space-between;
-    gap: 16px;
-    flex-wrap: wrap;
-    align-items: flex-start;
+/* Styles identiques à statistiques.html.twig */
+.dashboard-header {
     margin-bottom: 24px;
 }
 
-.summary-header h2 {
-    margin: 0;
-    font-size: 1.5rem;
-}
-
-.summary-header p {
-    margin: 4px 0 0;
-    color: var(--text-secondary);
-}
-
-.summary-filters {
+.dashboard-header h1 {
     display: flex;
-    gap: 12px;
-    align-items: flex-end;
-    flex-wrap: wrap;
-}
-
-.summary-filters label {
-    display: flex;
-    flex-direction: column;
-    font-size: 0.8rem;
-    color: var(--text-secondary);
-    gap: 6px;
-}
-
-.filter-select {
-    min-width: 130px;
-    padding: 8px 12px;
-    border-radius: 8px;
-    border: 1px solid var(--border-color);
-    background: var(--bg-secondary);
-    color: var(--text-primary);
-}
-
-.filter-cta {
-    padding: 10px 24px;
-    border-radius: 10px;
-    border: none;
-    background: var(--accent);
-    color: var(--text-inverse);
-    font-weight: 600;
-    cursor: pointer;
-}
-
-.summary-widgets {
-    display: grid;
-    grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
-    gap: 12px;
-}
-
-.summary-widget {
-    display: flex;
-    gap: 12px;
     align-items: center;
-    padding: 16px;
-    border-radius: var(--border-radius-md);
-    border: 1px solid var(--border-color);
-    background: var(--bg-secondary);
-}
-
-.summary-widget p {
+    gap: 12px;
     margin: 0;
-    font-size: 0.85rem;
+    font-size: 2rem;
+}
+
+.dashboard-header h1 i {
+    font-size: 2rem;
+    color: var(--accent);
+}
+
+.dashboard-subtitle {
     color: var(--text-secondary);
+    margin-top: 8px;
+    font-size: 1rem;
 }
 
-.summary-widget h3 {
-    margin: 4px 0 0;
-    font-size: 1.6rem;
-    font-weight: 700;
+.stats-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(240px, 1fr));
+    gap: 20px;
+    margin: 12px 0 24px;
 }
 
-.widget-icon {
-    width: 42px;
-    height: 42px;
-    border-radius: 12px;
+.stats-grid-compact {
+    grid-template-columns: repeat(auto-fit, minmax(240px, 1fr));
+    gap: 20px;
+}
+
+.stat-card {
+    background: var(--bg-card);
+    border: 1px solid var(--border-color);
+    border-radius: var(--border-radius-md);
+    padding: 20px;
+    display: flex;
+    align-items: center;
+    gap: 16px;
+    transition: transform 0.2s ease, box-shadow 0.2s ease;
+}
+
+.stat-card:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+}
+
+.stat-card-compact {
+    padding: 20px 24px;
+}
+
+.stat-icon {
+    width: 56px;
+    height: 56px;
+    border-radius: 50%;
     display: flex;
     align-items: center;
     justify-content: center;
-    background: rgba(52, 152, 219, 0.2);
-    color: #3498db;
-    font-size: 1.1rem;
+    font-size: 1.4rem;
+    color: white;
+    flex-shrink: 0;
 }
 
-.widget-icon-accent {
-    background: rgba(155, 89, 182, 0.2);
-    color: #9b59b6;
+.stat-icon-compact {
+    width: 56px;
+    height: 56px;
+    font-size: 1.3rem;
 }
 
-.widget-icon-warning {
-    background: rgba(243, 156, 18, 0.2);
-    color: #f39c12;
+.bg-primary {
+    background: linear-gradient(135deg, #3498DB, #5DADE2);
 }
 
-.widget-icon-success {
-    background: rgba(46, 204, 113, 0.2);
-    color: #2ecc71;
+.bg-success {
+    background: linear-gradient(135deg, #27AE60, #2ECC71);
 }
 
-.charts-grid {
-    margin-top: 24px;
+.bg-warning {
+    background: linear-gradient(135deg, #F39C12, #E67E22);
+}
+
+.bg-info {
+    background: linear-gradient(135deg, #17A2B8, #138496);
+}
+
+.stat-content {
+    flex: 1;
+    min-width: 0;
+}
+
+.stat-content h3 {
+    font-size: 1.6rem;
+    font-weight: var(--font-weight-bold);
+    color: var(--text-primary);
+    margin: 0 0 6px 0;
+    line-height: 1.2;
+}
+
+.stat-card-compact .stat-content h3 {
+    font-size: 1.6rem;
+    margin-bottom: 6px;
+    line-height: 1.2;
+}
+
+.stat-content p {
+    font-size: 0.9rem;
+    color: var(--text-secondary);
+    margin: 0;
+    line-height: 1.4;
+}
+
+.stat-card-compact .stat-content p {
+    font-size: 0.95rem;
+}
+
+.search-section {
+    background: var(--bg-card);
+    border-radius: var(--border-radius-lg);
+    padding: 20px;
+    margin-bottom: 24px;
+    box-shadow: var(--shadow-md);
+    border: 1px solid var(--border-color);
+}
+
+.search-header { 
+    display: flex; 
+    justify-content: space-between; 
+    align-items: center; 
+}
+
+.search-form { 
+    margin-top: 20px; 
+    padding-top: 20px; 
+    border-top: 1px solid var(--border-light);
+    transition: all 0.3s ease;
+    display: block;
+}
+
+.search-grid { 
+    display: grid; 
+    grid-template-columns: repeat(4, 1fr); 
+    gap: 16px; 
+    margin-bottom: 20px; 
+}
+
+.search-field { 
+    display: flex; 
+    flex-direction: column; 
+}
+
+.search-field label { 
+    font-size: 0.85rem; 
+    font-weight: var(--font-weight-medium); 
+    color: var(--text-primary); 
+    margin-bottom: 6px; 
+    display: flex;
+    align-items: center;
+    gap: 6px;
+}
+
+.search-field label i {
+    color: var(--accent);
+    font-size: 0.85rem;
+}
+
+.form-input { 
+    padding: 10px 12px; 
+    border: 2px solid var(--border-color); 
+    border-radius: var(--border-radius-sm); 
+    font-size: 0.9rem; 
+    font-family: var(--font-family); 
+    transition: var(--transition-base); 
+    background: var(--bg-secondary); 
+    color: var(--text-primary); 
+    width: 100%;
+    box-sizing: border-box;
+}
+
+.form-input:focus { 
+    outline: none; 
+    border-color: var(--accent); 
+    box-shadow: 0 0 0 3px rgba(52, 152, 219, 0.1); 
+}
+
+.search-actions {
+    display: flex;
+    gap: 12px;
+    padding-top: 16px;
+    border-top: 1px solid var(--border-light);
+    margin-top: 8px;
+}
+
+.search-actions .btn {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    text-decoration: none;
+}
+
+.validation-card {
+    border: 1px solid var(--border-color);
+    border-radius: var(--border-radius-lg);
+    box-shadow: var(--shadow-sm);
+    overflow: hidden;
+    background: var(--bg-card);
+}
+
+.card-body {
+    padding: 24px;
+}
+
+.content-row {
     display: grid;
-    grid-template-columns: repeat(auto-fit, minmax(320px, 1fr));
-    gap: 16px;
+    grid-template-columns: 1fr 1fr;
+    gap: 20px;
+}
+
+.content-col {
+    display: flex;
 }
 
 .chart-card {
     background: var(--bg-card);
     border: 1px solid var(--border-color);
-    border-radius: var(--border-radius-lg);
-    overflow: hidden;
-    display: flex;
-    flex-direction: column;
+    border-radius: var(--border-radius-md);
+    padding: 20px;
+    width: 100%;
+    transition: var(--transition-base);
 }
 
-.chart-card-lg {
-    grid-column: span 2;
+.chart-card:hover {
+    box-shadow: var(--shadow-md);
+    border-color: var(--accent-light);
 }
 
-.chart-card .card-header {
-    padding: 18px 20px;
-    border-bottom: 1px solid var(--border-color);
+.card-header {
+    margin-bottom: 16px;
+    padding-bottom: 12px;
+    border-bottom: 2px solid var(--border-light);
 }
 
-.chart-card .card-header h3 {
-    font-size: 1.05rem;
-    margin-bottom: 4px;
-}
-
-.chart-card .card-header p {
+.card-header h3 {
+    font-size: 1.1rem;
+    font-weight: var(--font-weight-semibold);
+    color: var(--text-primary);
     margin: 0;
-    font-size: 0.85rem;
-    color: var(--text-secondary);
 }
 
-.chart-card .card-body {
-    padding: 18px 20px;
-    height: 260px;
+.card-body {
+    position: relative;
+    min-height: 220px;
+    height: auto;
+}
+
+.card-body canvas[height="280"] {
+    min-height: 280px;
+}
+
+@media (max-width: 1200px) {
+    .stats-grid-compact {
+        grid-template-columns: repeat(2, 1fr);
+        gap: 16px;
+    }
+    .search-grid { 
+        grid-template-columns: repeat(2, 1fr); 
+    }
 }
 
 @media (max-width: 992px) {
-    .chart-card-lg {
-        grid-column: span 1;
+    .content-row {
+        grid-template-columns: 1fr;
     }
-    .summary-filters {
-        width: 100%;
+    .stats-grid-compact {
+        grid-template-columns: 1fr;
+        gap: 16px;
     }
-    .filter-select {
-        width: 100%;
-        min-width: 0;
+    .stat-card-compact {
+        padding: 18px 20px;
+    }
+    .stat-icon-compact {
+        width: 52px;
+        height: 52px;
+        font-size: 1.2rem;
+    }
+    .stat-card-compact .stat-content h3 {
+        font-size: 1.5rem;
+    }
+    .search-grid { 
+        grid-template-columns: 1fr; 
     }
 }
 </style>
+
 <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.1/dist/chart.umd.min.js"></script>
 <script>
 document.addEventListener('DOMContentLoaded', renderDashboardCharts);
@@ -307,12 +536,17 @@ function renderDashboardCharts() {
             values: [12, 18, 15, 22]
         })|json_encode|raw }},
         subscriptions: {{ (stats.charts.subscriptions ?? {
-            labels: ['Basic','Pro','Entreprise'],
+            labels: ['Plan Basic','Plan Pro','Plan Entreprise'],
             values: [45, 72, 18]
         })|json_encode|raw }},
         activityRate: {{ (stats.charts.activity_rate ?? {
             labels: ['Jan','Fév','Mar','Avr','Mai','Jun'],
             values: [68, 70, 74, 78, 80, 82]
+        })|json_encode|raw }},
+        revenueForecast: {{ (stats.charts.revenue_forecast ?? {
+            labels: ['Jan','Fév','Mar','Avr','Mai','Jun','Jul'],
+            values: [100000, 120000, 110000, 130000, 125000, 140000, null],
+            forecast_values: [null, null, null, null, null, null, 145000]
         })|json_encode|raw }}
     };
 
@@ -327,8 +561,41 @@ function renderDashboardCharts() {
             try { canvas._chartInstance.destroy(); } catch (e) {}
         }
 
-        const dataset = payload[block.datasetKey] || { labels: [], values: [] };
+        let dataset = payload[block.datasetKey] || { labels: [], values: [] };
+        
+        // S'assurer que les données sont valides
+        if (!dataset.labels || !Array.isArray(dataset.labels)) {
+            dataset.labels = [];
+        }
+        if (!dataset.values || !Array.isArray(dataset.values)) {
+            dataset.values = [];
+        }
+        
+        // Si pas de données, utiliser des valeurs par défaut pour l'affichage
+        if (dataset.labels.length === 0 && block.datasetKey === 'subscriptions') {
+            dataset.labels = ['Plan Basic', 'Plan Pro', 'Plan Entreprise'];
+            dataset.values = [0, 0, 0];
+        }
+        
         const color = palette[index % palette.length];
+        
+        // Pour le graphique des abonnements, utiliser des couleurs différentes par barre
+        let backgroundColor = block.type === 'bar' ? color + '55' : color + '33';
+        let borderColor = color;
+        
+        if (block.datasetKey === 'subscriptions' && block.type === 'bar') {
+            // Couleurs spécifiques pour chaque plan
+            const subscriptionColors = ['#3498db', '#9b59b6', '#e67e22', '#2ecc71', '#e74c3c'];
+            backgroundColor = (ctx) => {
+                const colors = subscriptionColors.slice(0, dataset.labels?.length || 3);
+                return colors[ctx.dataIndex % colors.length] + '88';
+            };
+            borderColor = (ctx) => {
+                const colors = subscriptionColors.slice(0, dataset.labels?.length || 3);
+                return colors[ctx.dataIndex % colors.length];
+            };
+        }
+        
         const config = {
             type: block.type,
             data: {
@@ -336,12 +603,12 @@ function renderDashboardCharts() {
                 datasets: [{
                     data: dataset.values || [],
                     label: dataset.label || '',
-                    backgroundColor: block.type === 'bar' ? color + '55' : color + '33',
-                    borderColor: color,
+                    backgroundColor: backgroundColor,
+                    borderColor: borderColor,
                     borderWidth: 2,
                     tension: 0.35,
                     fill: block.type === 'line',
-                    maxBarThickness: 34
+                    maxBarThickness: block.type === 'bar' ? 50 : 34
                 }]
             },
             options: {
@@ -349,7 +616,7 @@ function renderDashboardCharts() {
                 maintainAspectRatio: false,
                 scales: {
                     x: {
-                        grid: { color: gridColor },
+                        grid: { color: gridColor, display: block.type !== 'bar' },
                         ticks: { color: textColor }
                     },
                     y: {
@@ -358,7 +625,9 @@ function renderDashboardCharts() {
                         ticks: { color: textColor,
                             callback: block.datasetKey === 'activityRate'
                                 ? (value) => value + ' %'
-                                : undefined
+                                : (value) => block.datasetKey === 'subscriptions' 
+                                    ? value.toLocaleString('fr-FR')
+                                    : value.toLocaleString('fr-FR')
                         }
                     }
                 },
@@ -371,6 +640,9 @@ function renderDashboardCharts() {
                                 if (block.datasetKey === 'activityRate') {
                                     return ` ${v.toLocaleString('fr-FR')} %`;
                                 }
+                                if (block.datasetKey === 'subscriptions') {
+                                    return ` ${ctx.label}: ${v.toLocaleString('fr-FR')} abonnements`;
+                                }
                                 return ` ${v.toLocaleString('fr-FR')}`;
                             }
                         }
@@ -381,6 +653,66 @@ function renderDashboardCharts() {
 
         canvas._chartInstance = new Chart(canvas.getContext('2d'), config);
     });
+
+    // Graphique Revenus avec Prévision
+    const revenueEl = document.getElementById('revenueForecastChart');
+    if (revenueEl) {
+        if (revenueEl._chartInstance) { try { revenueEl._chartInstance.destroy(); } catch(e) {} }
+        const revenueData = payload.revenueForecast || { labels: [], values: [], forecast_values: [] };
+        
+        revenueEl._chartInstance = new Chart(revenueEl.getContext('2d'), {
+            type: 'line',
+            data: {
+                labels: revenueData.labels || [],
+                datasets: [
+                    {
+                        label: 'Revenus TTC',
+                        data: revenueData.values || [],
+                        borderColor: '#27ae60',
+                        backgroundColor: '#27ae6033',
+                        tension: 0.35,
+                        fill: false,
+                        pointRadius: 3
+                    },
+                    {
+                        label: 'Prévision',
+                        data: revenueData.forecast_values || [],
+                        borderColor: '#3498db',
+                        backgroundColor: '#3498db33',
+                        borderDash: [5, 5],
+                        tension: 0.35,
+                        fill: false,
+                        pointRadius: 4,
+                        pointStyle: 'circle'
+                    }
+                ]
+            },
+            options: {
+                responsive: true,
+                maintainAspectRatio: false,
+                scales: {
+                    x: { grid: { color: gridColor }, ticks: { color: textColor } },
+                    y: {
+                        beginAtZero: true,
+                        grid: { color: gridColor },
+                        ticks: { color: textColor, callback: (v) => (v/1000).toFixed(0) + 'k MGA' }
+                    }
+                },
+                plugins: {
+                    legend: { labels: { color: textColor } },
+                    tooltip: {
+                        callbacks: {
+                            label: (ctx) => {
+                                const v = ctx.parsed.y ?? 0;
+                                return ctx.dataset.label + ': ' + v.toLocaleString('fr-FR') + ' MGA';
+                            }
+                        }
+                    }
+                }
+            }
+        });
+    }
 }
 </script>
 {% endblock %}
+
