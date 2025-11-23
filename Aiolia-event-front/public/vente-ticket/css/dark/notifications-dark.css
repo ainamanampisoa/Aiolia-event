@@ -1,0 +1,188 @@
+/* Dark mode support */
+html[data-theme="dark"] .notifications-wrapper,
+html.theme-dark .notifications-wrapper,
+body.theme-dark .notifications-wrapper {
+    background: linear-gradient(135deg, #0f172a 0%, #1a2432 100%);
+}
+
+html[data-theme="dark"] .notifications-panel,
+html.theme-dark .notifications-panel,
+body.theme-dark .notifications-panel {
+    background: linear-gradient(145deg, #1a2432 0%, #1F2D3D 100%);
+    border-color: rgba(255, 255, 255, 0.1);
+}
+
+html[data-theme="dark"] .notifications-header,
+html.theme-dark .notifications-header,
+body.theme-dark .notifications-header {
+    background: linear-gradient(135deg, rgba(31, 45, 61, 0.1) 0%, rgba(31, 45, 61, 0.05) 100%);
+}
+
+html[data-theme="dark"] .notification-title,
+html.theme-dark .notification-title,
+body.theme-dark .notification-title {
+    color: #f1f5f9;
+}
+
+html[data-theme="dark"] .notification-item:hover,
+html.theme-dark .notification-item:hover,
+body.theme-dark .notification-item:hover {
+    background: linear-gradient(90deg, rgba(31, 45, 61, 0.1) 0%, rgba(10, 160, 110, 0.05) 100%);
+}
+
+html[data-theme="dark"] .btn-outline,
+html.theme-dark .btn-outline,
+body.theme-dark .btn-outline {
+    border-color: rgba(74, 158, 255, 0.6);
+    color: #4a9eff;
+    background: rgba(74, 158, 255, 0.05);
+    font-weight: 600;
+}
+
+html[data-theme="dark"] .btn-outline:hover,
+html.theme-dark .btn-outline:hover,
+body.theme-dark .btn-outline:hover {
+    background: rgba(74, 158, 255, 0.15);
+    border-color: #4a9eff;
+    color: #6bb0ff;
+}
+
+html[data-theme="dark"] .notification-actions button,
+html.theme-dark .notification-actions button,
+body.theme-dark .notification-actions button {
+    color: #4a9eff;
+    background: rgba(74, 158, 255, 0.05);
+    border: 1px solid rgba(74, 158, 255, 0.3);
+    font-weight: 500;
+}
+
+html[data-theme="dark"] .notification-actions button:hover,
+html.theme-dark .notification-actions button:hover,
+body.theme-dark .notification-actions button:hover {
+    background: rgba(74, 158, 255, 0.15);
+    border-color: #4a9eff;
+    color: #6bb0ff;
+}
+
+/* Styles supplémentaires pour le mode sombre */
+html[data-theme="dark"] .notification-item,
+html.theme-dark .notification-item,
+body.theme-dark .notification-item {
+    border-color: rgba(255, 255, 255, 0.1);
+}
+
+html[data-theme="dark"] .notification-message,
+html.theme-dark .notification-message,
+body.theme-dark .notification-message {
+    color: rgba(255, 255, 255, 0.8);
+}
+
+html[data-theme="dark"] .notification-date,
+html.theme-dark .notification-date,
+body.theme-dark .notification-date {
+    color: rgba(255, 255, 255, 0.6);
+}
+
+/* Styles supplémentaires pour les notifications */
+html[data-theme="dark"] .notifications-tabs,
+html.theme-dark .notifications-tabs,
+body.theme-dark .notifications-tabs {
+    background: rgba(255, 255, 255, 0.05);
+    border-bottom-color: rgba(255, 255, 255, 0.1);
+}
+
+html[data-theme="dark"] .notifications-tab,
+html.theme-dark .notifications-tab,
+body.theme-dark .notifications-tab {
+    color: rgba(255, 255, 255, 0.85);
+}
+
+html[data-theme="dark"] .notifications-tab:hover,
+html.theme-dark .notifications-tab:hover,
+body.theme-dark .notifications-tab:hover {
+    color: #ffffff;
+    background: rgba(255, 255, 255, 0.1);
+}
+
+html[data-theme="dark"] .notifications-tab.active,
+html.theme-dark .notifications-tab.active,
+body.theme-dark .notifications-tab.active {
+    background: linear-gradient(135deg, rgba(74, 158, 255, 0.2) 0%, rgba(74, 158, 255, 0.1) 100%);
+    color: #ffffff;
+}
+
+html[data-theme="dark"] .notifications-tab.active::before,
+html.theme-dark .notifications-tab.active::before,
+body.theme-dark .notifications-tab.active::before {
+    background: #4a9eff;
+    box-shadow: 0 0 0 4px rgba(74, 158, 255, 0.3);
+}
+
+html[data-theme="dark"] .notification-item,
+html.theme-dark .notification-item,
+body.theme-dark .notification-item {
+    border-bottom-color: rgba(255, 255, 255, 0.1);
+}
+
+html[data-theme="dark"] .notification-item.is-unread,
+html.theme-dark .notification-item.is-unread,
+body.theme-dark .notification-item.is-unread {
+    background: linear-gradient(90deg, rgba(74, 158, 255, 0.1) 0%, transparent 100%);
+}
+
+html[data-theme="dark"] .notification-icon,
+html.theme-dark .notification-icon,
+body.theme-dark .notification-icon {
+    background: linear-gradient(135deg, rgba(255, 255, 255, 0.15) 0%, rgba(255, 255, 255, 0.08) 100%);
+    color: #ffffff;
+    border-color: rgba(255, 255, 255, 0.2);
+}
+
+html[data-theme="dark"] .notification-item.is-unread .notification-icon,
+html.theme-dark .notification-item.is-unread .notification-icon,
+body.theme-dark .notification-item.is-unread .notification-icon {
+    background: linear-gradient(135deg, rgba(10, 160, 110, 0.25) 0%, rgba(10, 160, 110, 0.1) 100%);
+    color: #0AA06E;
+}
+
+html[data-theme="dark"] .notification-title,
+html.theme-dark .notification-title,
+body.theme-dark .notification-title {
+    color: #ffffff;
+}
+
+html[data-theme="dark"] .notification-meta,
+html.theme-dark .notification-meta,
+body.theme-dark .notification-meta {
+    color: rgba(255, 255, 255, 0.8);
+}
+
+html[data-theme="dark"] .notification-time,
+html.theme-dark .notification-time,
+body.theme-dark .notification-time {
+    color: rgba(255, 255, 255, 0.85);
+}
+
+html[data-theme="dark"] .notifications-empty,
+html.theme-dark .notifications-empty,
+body.theme-dark .notifications-empty {
+    color: rgba(255, 255, 255, 0.8);
+}
+
+html[data-theme="dark"] .notifications-empty h3,
+html.theme-dark .notifications-empty h3,
+body.theme-dark .notifications-empty h3 {
+    color: #ffffff;
+}
+
+html[data-theme="dark"] .notifications-empty p,
+html.theme-dark .notifications-empty p,
+body.theme-dark .notifications-empty p {
+    color: rgba(255, 255, 255, 0.85);
+}
+
+html[data-theme="dark"] .notifications-empty i,
+html.theme-dark .notifications-empty i,
+body.theme-dark .notifications-empty i {
+    color: rgba(255, 255, 255, 0.6);
+}

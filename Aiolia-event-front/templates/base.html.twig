@@ -1,11 +1,238 @@
 <!DOCTYPE html>
-<html lang="fr">
+<html lang="fr" data-user-theme="{{ preferences.appearance.theme|default('light') }}">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>{% block title %}Aiolia Event{% endblock %}</title>
     {% block stylesheets %}{% endblock %}
     <link rel="stylesheet" type="text/css" href="{{ asset('vente-ticket/css/sidebar.css') }}">
+    {# Script inline pour appliquer le thème immédiatement et éviter le FOUC #}
+    <script>
+        (function() {
+            // Fonction pour appliquer le thème
+            function applyTheme(theme) {
+                const html = document.documentElement;
+                // Vérifier que body existe avant d'essayer d'y accéder
+                const body = document.body;
+                
+                if (!html) {
+                    console.warn('document.documentElement n\'existe pas encore');
+                    return;
+                }
+                
+                // Retirer les classes existantes
+                html.classList.remove('theme-light', 'theme-dark');
+                if (body) {
+                    body.classList.remove('theme-light', 'theme-dark');
+                }
+                
+                // Appliquer le thème
+                if (theme === 'dark') {
+                    html.classList.add('theme-dark');
+                    if (body) {
+                        body.classList.add('theme-dark');
+                    }
+                    html.setAttribute('data-theme', 'dark');
+                } else {
+                    html.classList.add('theme-light');
+                    if (body) {
+                        body.classList.add('theme-light');
+                    }
+                    html.setAttribute('data-theme', 'light');
+                }
+            }
+            
+            // Déterminer le thème à utiliser
+            // Priorité : localStorage > préférences serveur > light par défaut
+            let theme = 'light';
+            
+            // 1. Vérifier localStorage en premier (plus rapide et persistant)
+            try {
+                const storedTheme = localStorage.getItem('aiolia_theme');
+                if (storedTheme === 'dark' || storedTheme === 'light') {
+                    theme = storedTheme;
+                }
+            } catch(e) {
+                console.warn('Impossible d\'accéder à localStorage:', e);
+            }
+            
+            // 2. Si pas de thème dans localStorage, utiliser les préférences serveur
+            if (theme === 'light') {
+                const serverTheme = '{{ preferences.appearance.theme|default('light') }}';
+                if (serverTheme === 'dark' || serverTheme === 'light') {
+                    theme = serverTheme;
+                    // Sauvegarder dans localStorage pour la prochaine fois
+                    try {
+                        localStorage.setItem('aiolia_theme', theme);
+                    } catch(e) {}
+                }
+            }
+            
+            // Appliquer le thème immédiatement
+            applyTheme(theme);
+            console.log('Thème appliqué:', theme);
+            
+            // Charger les fichiers CSS du mode sombre si nécessaire
+            if (theme === 'dark') {
+                console.log('Mode sombre détecté, chargement des CSS dark...');
+                // Charger immédiatement
+                loadDarkModeCSS();
+                // Recharger après un court délai pour s'assurer que tout est bien chargé
+                setTimeout(function() {
+                    loadDarkModeCSS();
+                    // Vérifier que les fichiers sont bien chargés
+                    const darkLinks = document.querySelectorAll('link[data-dark-theme="true"]');
+                    console.log('Nombre de fichiers CSS dark chargés:', darkLinks.length);
+                    if (darkLinks.length === 0) {
+                        console.warn('Aucun fichier CSS dark chargé, nouvelle tentative...');
+                        loadDarkModeCSS();
+                    } else {
+                        console.log('Mode sombre activé, CSS dark chargés avec succès');
+                    }
+                }, 200);
+            }
+        })();
+        
+        // Fonction pour charger les fichiers CSS du mode sombre
+        function loadDarkModeCSS() {
+            // Fichiers CSS du mode sombre toujours nécessaires
+            const baseDarkCSSFiles = [
+                '{{ asset("vente-ticket/css/dark/main-dark.css") }}',
+                '{{ asset("vente-ticket/css/dark/sidebar-dark.css") }}'
+            ];
+            
+            // Fichiers CSS du mode sombre spécifiques selon la page
+            const pageSpecificCSS = {
+                'cart': '{{ asset("vente-ticket/css/dark/cart-dark.css") }}',
+                'notifications': '{{ asset("vente-ticket/css/dark/notifications-dark.css") }}',
+                'profile': '{{ asset("vente-ticket/css/dark/profile-dark.css") }}',
+                'profile-settings': '{{ asset("vente-ticket/css/dark/profile-settings-dark.css") }}',
+                'events': '{{ asset("vente-ticket/css/dark/events-dark.css") }}'
+            };
+            
+            // Détecter la page actuelle
+            const path = window.location.pathname;
+            let additionalCSS = [];
+            
+            if (path.includes('/cart')) {
+                additionalCSS.push(pageSpecificCSS.cart);
+            } else if (path.includes('/notifications')) {
+                additionalCSS.push(pageSpecificCSS.notifications);
+            } else if (path.includes('/profile') && path.includes('/settings')) {
+                additionalCSS.push(pageSpecificCSS.profile);
+                additionalCSS.push(pageSpecificCSS['profile-settings']);
+            } else if (path.includes('/profile')) {
+                additionalCSS.push(pageSpecificCSS.profile);
+            } else if (path.includes('/events') || path.includes('/event')) {
+                additionalCSS.push(pageSpecificCSS.events);
+            }
+            
+            // Charger tous les fichiers CSS
+            const allCSSFiles = baseDarkCSSFiles.concat(additionalCSS);
+            
+            allCSSFiles.forEach(function(href) {
+                // Vérifier si le fichier n'est pas déjà chargé
+                const existingLink = document.querySelector('link[href="' + href + '"]');
+                if (!existingLink) {
+                    const link = document.createElement('link');
+                    link.rel = 'stylesheet';
+                    link.type = 'text/css';
+                    link.href = href;
+                    link.media = 'all';
+                    // Ajouter un attribut pour identifier les fichiers dark
+                    link.setAttribute('data-dark-theme', 'true');
+                    
+                    // Gérer les erreurs de chargement
+                    link.onerror = function() {
+                        console.error('Erreur lors du chargement du fichier CSS dark:', href);
+                    };
+                    
+                    link.onload = function() {
+                        console.log('Fichier CSS dark chargé avec succès:', href);
+                    };
+                    
+                    document.head.appendChild(link);
+                    console.log('Tentative de chargement du fichier CSS dark:', href);
+                } else {
+                    console.log('Fichier CSS dark déjà chargé:', href);
+                }
+            });
+        }
+        
+        // Fonction globale pour forcer le rechargement des CSS dark
+        window.reloadDarkModeCSS = function() {
+            const darkLinks = document.querySelectorAll('link[data-dark-theme="true"]');
+            darkLinks.forEach(function(link) {
+                link.remove();
+            });
+            loadDarkModeCSS();
+        };
+        
+        // Écouter les changements de thème pour charger/décharger les CSS
+        document.addEventListener('DOMContentLoaded', function() {
+            // Écouter l'événement personnalisé themeChanged
+            document.addEventListener('themeChanged', function(event) {
+                const theme = event.detail.theme;
+                const darkLinks = document.querySelectorAll('link[href*="/dark/"]');
+                
+                if (theme === 'dark') {
+                    // Charger les CSS du mode sombre si pas déjà chargés
+                    if (darkLinks.length === 0) {
+                        loadDarkModeCSS();
+                    }
+                } else {
+                    // Retirer les CSS du mode sombre
+                    darkLinks.forEach(function(link) {
+                        link.remove();
+                    });
+                }
+            });
+            
+            // Observer les changements de thème via MutationObserver (fallback)
+            const observer = new MutationObserver(function(mutations) {
+                mutations.forEach(function(mutation) {
+                    if (mutation.type === 'attributes' && (mutation.attributeName === 'data-theme' || mutation.attributeName === 'class')) {
+                        const currentTheme = document.documentElement.getAttribute('data-theme');
+                        const darkLinks = document.querySelectorAll('link[href*="/dark/"]');
+                        
+                        if (currentTheme === 'dark') {
+                            // Charger les CSS du mode sombre si pas déjà chargés
+                            if (darkLinks.length === 0) {
+                                loadDarkModeCSS();
+                            }
+                        } else {
+                            // Retirer les CSS du mode sombre
+                            darkLinks.forEach(function(link) {
+                                link.remove();
+                            });
+                        }
+                    }
+                });
+            });
+            
+            // Observer les changements sur l'élément html
+            observer.observe(document.documentElement, {
+                attributes: true,
+                attributeFilter: ['data-theme', 'class']
+            });
+            
+            // Vérifier le thème actuel au chargement
+            const currentTheme = document.documentElement.getAttribute('data-theme');
+            const hasThemeDarkClass = document.documentElement.classList.contains('theme-dark');
+            
+            if (currentTheme === 'dark' || hasThemeDarkClass) {
+                const darkLinks = document.querySelectorAll('link[data-dark-theme="true"]');
+                console.log('Thème dark détecté, liens CSS dark trouvés:', darkLinks.length);
+                if (darkLinks.length === 0) {
+                    console.log('Chargement des fichiers CSS dark...');
+                    loadDarkModeCSS();
+                } else {
+                    console.log('Fichiers CSS dark déjà chargés');
+                }
+            }
+        });
+    </script>
+    <script src="{{ asset('js/theme-manager.js') }}" defer></script>
     <style>
         /* Uniform overlay across the full banner width */
         .txt-banner:after { width: 100% !important; }

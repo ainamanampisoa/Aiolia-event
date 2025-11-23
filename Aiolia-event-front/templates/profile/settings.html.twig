@@ -142,7 +142,7 @@
                         <label class="appearance-card">
                             <input type="radio" name="theme" value="dark" {% if preferences.appearance.theme == 'dark' %}checked{% endif %}>
                             <span>
-                                <strong>Sombre <span class="status-indicator status-developing">Bientôt</span></strong>
+                                <strong>Sombre</strong>
                                 <small>Mode sombre confortable</small>
                             </span>
                         </label>
@@ -157,9 +157,82 @@
     <script type="text/javascript" src="{{ asset('vente-ticket/js/jquery.min.js') }}"></script>
     <script type="text/javascript" src="{{ asset('vente-ticket/js/wow.js') }}"></script>
     <script>
+        // Fonction pour appliquer le thème (définie globalement pour être accessible partout)
+        function applyThemeImmediately(theme) {
+            console.log('Application du thème:', theme);
+            const htmlElement = document.documentElement;
+            const bodyElement = document.body;
+            
+            // Vérifier que les éléments existent
+            if (!htmlElement) {
+                console.warn('document.documentElement n\'existe pas encore');
+                return;
+            }
+            
+            // Retirer les classes existantes
+            htmlElement.classList.remove('theme-light', 'theme-dark');
+            if (bodyElement) {
+                bodyElement.classList.remove('theme-light', 'theme-dark');
+            }
+            
+            // Ajouter la classe du thème
+            htmlElement.classList.add(`theme-${theme}`);
+            if (bodyElement) {
+                bodyElement.classList.add(`theme-${theme}`);
+            }
+            
+            // Ajouter un attribut data pour faciliter le ciblage CSS
+            htmlElement.setAttribute('data-theme', theme);
+            
+            // Sauvegarder dans localStorage
+            try {
+                localStorage.setItem('aiolia_theme', theme);
+                console.log('Thème sauvegardé dans localStorage:', theme);
+            } catch(e) {
+                console.error('Erreur localStorage:', e);
+            }
+            
+            // Utiliser themeManager si disponible
+            if (window.themeManager) {
+                console.log('Utilisation de themeManager');
+                window.themeManager.setTheme(theme);
+            } else {
+                console.log('themeManager non disponible, application manuelle du thème');
+            }
+            
+            // Déclencher l'événement themeChanged pour charger les CSS dark
+            document.dispatchEvent(new CustomEvent('themeChanged', {
+                detail: { theme: theme }
+            }));
+        }
+        
         document.addEventListener('DOMContentLoaded', function() {
             const saveBtn = document.getElementById('saveSettingsBtn');
             const personalInfoForm = document.getElementById('personalInfoForm');
+            
+            // Appliquer le thème immédiatement quand l'utilisateur change le radio button
+            const themeRadios = document.querySelectorAll('[name="theme"]');
+            console.log('Nombre de boutons radio trouvés:', themeRadios.length);
+            
+            themeRadios.forEach((radio, index) => {
+                console.log(`Bouton radio ${index}:`, radio.value, radio.checked);
+                radio.addEventListener('change', function() {
+                    const selectedTheme = this.value;
+                    console.log('Changement de thème détecté:', selectedTheme);
+                    applyThemeImmediately(selectedTheme);
+                    
+                    // Vérification visuelle
+                    setTimeout(() => {
+                        const html = document.documentElement;
+                        const body = document.body;
+                        console.log('Vérification après application:');
+                        console.log('- HTML classes:', html.className);
+                        console.log('- Body classes:', body.className);
+                        console.log('- HTML data-theme:', html.getAttribute('data-theme'));
+                        console.log('- localStorage:', localStorage.getItem('aiolia_theme'));
+                    }, 100);
+                });
+            });
             
             saveBtn.addEventListener('click', function() {
                 // Collecter les informations personnelles
@@ -213,6 +286,12 @@
                 .then(response => response.json())
                 .then(result => {
                     if (result.status === 'success') {
+                        // Le thème a déjà été appliqué lors du changement du radio button
+                        // Mais on s'assure qu'il est bien appliqué après la sauvegarde
+                        if (appearance.theme) {
+                            applyThemeImmediately(appearance.theme);
+                        }
+                        
                         // Afficher un message de succès
                         const successMsg = document.createElement('div');
                         successMsg.style.cssText = 'position: fixed; top: 20px; right: 20px; background: #27ae60; color: white; padding: 16px 24px; border-radius: 8px; box-shadow: 0 4px 12px rgba(0,0,0,0.15); z-index: 10000;';

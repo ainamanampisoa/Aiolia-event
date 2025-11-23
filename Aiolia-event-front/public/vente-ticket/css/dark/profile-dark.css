@@ -1,0 +1,91 @@
+/* Dark mode support */
+html[data-theme="dark"] .profile-wrapper,
+html.theme-dark .profile-wrapper,
+body.theme-dark .profile-wrapper {
+    background: linear-gradient(135deg, #0f172a 0%, #1a2432 100%);
+}
+
+html[data-theme="dark"] .profile-card,
+html.theme-dark .profile-card,
+body.theme-dark .profile-card,
+html[data-theme="dark"] .profile-section,
+html.theme-dark .profile-section,
+body.theme-dark .profile-section,
+html[data-theme="dark"] .profile-card-link,
+html.theme-dark .profile-card-link,
+body.theme-dark .profile-card-link {
+    background: linear-gradient(145deg, #1a2432 0%, #1F2D3D 100%);
+    border-color: rgba(255, 255, 255, 0.1);
+}
+
+html[data-theme="dark"] .profile-email,
+html.theme-dark .profile-email,
+body.theme-dark .profile-email,
+html[data-theme="dark"] .profile-card-link span,
+html.theme-dark .profile-card-link span,
+body.theme-dark .profile-card-link span,
+html[data-theme="dark"] .timeline-meta,
+html.theme-dark .timeline-meta,
+body.theme-dark .timeline-meta {
+    color: rgba(255, 255, 255, 0.85);
+}
+
+html[data-theme="dark"] .timeline-content h4,
+html.theme-dark .timeline-content h4,
+body.theme-dark .timeline-content h4 {
+    color: #f1f5f9;
+}
+
+html[data-theme="dark"] .profile-tag,
+html.theme-dark .profile-tag,
+body.theme-dark .profile-tag {
+    background: linear-gradient(135deg, rgba(255, 255, 255, 0.12) 0%, rgba(255, 255, 255, 0.08) 100%);
+    color: #ffffff;
+    border-color: rgba(255, 255, 255, 0.15);
+}
+
+html[data-theme="dark"] .profile-action,
+html.theme-dark .profile-action,
+body.theme-dark .profile-action {
+    background: linear-gradient(135deg, rgba(255, 255, 255, 0.08) 0%, rgba(255, 255, 255, 0.05) 100%);
+    color: #ffffff;
+    border-color: rgba(255, 255, 255, 0.1);
+}
+
+html[data-theme="dark"] .profile-action i,
+html.theme-dark .profile-action i,
+body.theme-dark .profile-action i {
+    color: #ffffff;
+}
+
+html[data-theme="dark"] .timeline-icon,
+html.theme-dark .timeline-icon,
+body.theme-dark .timeline-icon {
+    background: linear-gradient(135deg, rgba(255, 255, 255, 0.12) 0%, rgba(255, 255, 255, 0.08) 100%);
+    color: #ffffff;
+}
+
+/* Styles supplémentaires pour le mode sombre */
+html[data-theme="dark"] .profile-name,
+html.theme-dark .profile-name,
+body.theme-dark .profile-name,
+html[data-theme="dark"] .profile-section h3,
+html.theme-dark .profile-section h3,
+body.theme-dark .profile-section h3,
+html[data-theme="dark"] .profile-card-link strong,
+html.theme-dark .profile-card-link strong,
+body.theme-dark .profile-card-link strong {
+    color: #ffffff;
+}
+
+html[data-theme="dark"] .profile-stat span,
+html.theme-dark .profile-stat span,
+body.theme-dark .profile-stat span {
+    color: rgba(255, 255, 255, 0.7);
+}
+
+html[data-theme="dark"] .profile-stat strong,
+html.theme-dark .profile-stat strong,
+body.theme-dark .profile-stat strong {
+    color: #ffffff;
+}

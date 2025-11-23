@@ -1,0 +1,119 @@
+/* ============================================
+   MODE SOMBRE (DARK MODE) - Sidebar
+   ============================================ */
+
+html[data-theme="dark"] .user-secondary-sidebar,
+html.theme-dark .user-secondary-sidebar,
+body.theme-dark .user-secondary-sidebar {
+    background: linear-gradient(165deg, rgba(31, 31, 31, 0.98) 0%, rgba(26, 26, 26, 0.98) 45%, rgba(20, 20, 20, 0.98) 100%);
+    box-shadow: 
+        -8px 0 40px rgba(0, 0, 0, 0.3),
+        -2px 0 0 rgba(74, 158, 255, 0.1);
+    border-left: 1px solid rgba(255, 255, 255, 0.1);
+}
+
+html[data-theme="dark"] .user-secondary-sidebar h3,
+html.theme-dark .user-secondary-sidebar h3,
+body.theme-dark .user-secondary-sidebar h3 {
+    background: linear-gradient(135deg, #4a9eff 0%, #6bb0ff 100%);
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+    background-clip: text;
+}
+
+html[data-theme="dark"] .user-secondary-sidebar p,
+html.theme-dark .user-secondary-sidebar p,
+body.theme-dark .user-secondary-sidebar p {
+    color: rgba(224, 224, 224, 0.7);
+}
+
+html[data-theme="dark"] .user-sidebar-nav a,
+html.theme-dark .user-sidebar-nav a,
+body.theme-dark .user-sidebar-nav a {
+    color: #e0e0e0;
+    background: rgba(42, 42, 42, 0.6);
+    border-color: rgba(74, 158, 255, 0.15);
+}
+
+html[data-theme="dark"] .user-sidebar-nav a:hover,
+html.theme-dark .user-sidebar-nav a:hover,
+body.theme-dark .user-sidebar-nav a:hover {
+    background: rgba(42, 42, 42, 0.9);
+    border-color: rgba(74, 158, 255, 0.3);
+    box-shadow: 
+        0 8px 25px rgba(0, 0, 0, 0.2),
+        0 0 0 1px rgba(74, 158, 255, 0.1);
+}
+
+html[data-theme="dark"] .user-sidebar-nav a::after,
+html.theme-dark .user-sidebar-nav a::after,
+body.theme-dark .user-sidebar-nav a::after {
+    color: rgba(74, 158, 255, 0.5);
+}
+
+html[data-theme="dark"] .user-sidebar-footer,
+html.theme-dark .user-sidebar-footer,
+body.theme-dark .user-sidebar-footer {
+    border-top-color: rgba(255, 255, 255, 0.1);
+}
+
+html[data-theme="dark"] .user-sidebar-footer::before,
+html.theme-dark .user-sidebar-footer::before,
+body.theme-dark .user-sidebar-footer::before {
+    background: linear-gradient(90deg, transparent, rgba(74, 158, 255, 0.3), transparent);
+}
+
+html[data-theme="dark"] .user-sidebar-logout,
+html.theme-dark .user-sidebar-logout,
+body.theme-dark .user-sidebar-logout {
+    background: linear-gradient(135deg, rgba(255, 107, 107, 0.15), rgba(255, 80, 80, 0.1));
+    color: #ff8a8a;
+    border-color: rgba(255, 107, 107, 0.2);
+}
+
+html[data-theme="dark"] .user-sidebar-logout:hover,
+html.theme-dark .user-sidebar-logout:hover,
+body.theme-dark .user-sidebar-logout:hover {
+    background: linear-gradient(135deg, rgba(255, 107, 107, 0.2), rgba(255, 80, 80, 0.15));
+    color: #ff7070;
+    border-color: rgba(255, 107, 107, 0.3);
+}
+
+html[data-theme="dark"] .user-sidebar-close,
+html.theme-dark .user-sidebar-close,
+body.theme-dark .user-sidebar-close {
+    background: linear-gradient(135deg, rgba(74, 158, 255, 0.15), rgba(74, 158, 255, 0.08));
+    color: #4a9eff;
+    border-color: rgba(74, 158, 255, 0.2);
+}
+
+html[data-theme="dark"] .user-sidebar-close:hover,
+html.theme-dark .user-sidebar-close:hover,
+body.theme-dark .user-sidebar-close:hover {
+    background: linear-gradient(135deg, rgba(74, 158, 255, 0.25), rgba(74, 158, 255, 0.15));
+    color: #6bb0ff;
+}
+
+html[data-theme="dark"] .user-sidebar-overlay,
+html.theme-dark .user-sidebar-overlay,
+body.theme-dark .user-sidebar-overlay {
+    background: linear-gradient(135deg, rgba(0, 0, 0, 0.8), rgba(0, 0, 0, 0.9));
+}
+
+html[data-theme="dark"] .user-secondary-sidebar::-webkit-scrollbar-track,
+html.theme-dark .user-secondary-sidebar::-webkit-scrollbar-track,
+body.theme-dark .user-secondary-sidebar::-webkit-scrollbar-track {
+    background: rgba(74, 158, 255, 0.08);
+}
+
+html[data-theme="dark"] .user-secondary-sidebar::-webkit-scrollbar-thumb,
+html.theme-dark .user-secondary-sidebar::-webkit-scrollbar-thumb,
+body.theme-dark .user-secondary-sidebar::-webkit-scrollbar-thumb {
+    background: linear-gradient(135deg, rgba(74, 158, 255, 0.4), rgba(74, 158, 255, 0.6));
+}
+
+html[data-theme="dark"] .user-secondary-sidebar::-webkit-scrollbar-thumb:hover,
+html.theme-dark .user-secondary-sidebar::-webkit-scrollbar-thumb:hover,
+body.theme-dark .user-secondary-sidebar::-webkit-scrollbar-thumb:hover {
+    background: linear-gradient(135deg, rgba(74, 158, 255, 0.6), rgba(74, 158, 255, 0.8));
+}
