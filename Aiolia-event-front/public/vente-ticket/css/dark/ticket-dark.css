@@ -1,0 +1,433 @@
+/* ============================================
+   MODE SOMBRE (DARK MODE) - Tickets (Payment, Summary, Confirmation, My Tickets)
+   ============================================ */
+
+/* Variables pour une maintenance facile */
+:root[data-theme="dark"],
+html.theme-dark,
+body.theme-dark {
+  --bg-primary: #121212;
+  --bg-secondary: #1e1e1e;
+  --bg-card: #1e1e1e;
+  --text-primary: #ffffff;
+  --text-secondary: #e8e8e8;
+  --text-muted: rgba(240, 240, 240, 0.7);
+  --border-color: rgba(255, 255, 255, 0.15);
+  --accent-color: #4a9eff;
+  --success-color: #a0b896;
+  --danger-color: #ff6b81;
+}
+
+/* Page de paiement */
+html[data-theme="dark"] .payment-page,
+html.theme-dark .payment-page,
+body.theme-dark .payment-page {
+  background-color: var(--bg-primary);
+  color: var(--text-secondary);
+}
+
+html[data-theme="dark"] .payment-header,
+html.theme-dark .payment-header,
+body.theme-dark .payment-header {
+  color: var(--text-secondary);
+}
+
+html[data-theme="dark"] .payment-header h1,
+html.theme-dark .payment-header h1,
+body.theme-dark .payment-header h1 {
+  color: var(--text-primary);
+}
+
+html[data-theme="dark"] .payment-header p,
+html.theme-dark .payment-header p,
+body.theme-dark .payment-header p {
+  color: var(--text-secondary);
+}
+
+html[data-theme="dark"] .payment-header strong,
+html.theme-dark .payment-header strong,
+body.theme-dark .payment-header strong {
+  color: var(--accent-color);
+}
+
+html[data-theme="dark"] .badge-step,
+html.theme-dark .badge-step,
+body.theme-dark .badge-step {
+  background-color: var(--accent-color);
+  color: var(--text-primary);
+}
+
+/* Résumé de commande */
+html[data-theme="dark"] .payment-summary,
+html.theme-dark .payment-summary,
+body.theme-dark .payment-summary {
+  background-color: var(--bg-card);
+  border: 1px solid var(--border-color);
+}
+
+html[data-theme="dark"] .payment-summary h2,
+html.theme-dark .payment-summary h2,
+body.theme-dark .payment-summary h2 {
+  color: var(--text-primary);
+}
+
+html[data-theme="dark"] .summary-card,
+html.theme-dark .summary-card,
+body.theme-dark .summary-card {
+  background-color: var(--bg-secondary);
+  border: 1px solid var(--border-color);
+}
+
+html[data-theme="dark"] .summary-item,
+html.theme-dark .summary-item,
+body.theme-dark .summary-item {
+  border-bottom: 1px solid var(--border-color);
+}
+
+html[data-theme="dark"] .summary-info h3,
+html.theme-dark .summary-info h3,
+body.theme-dark .summary-info h3 {
+  color: var(--text-primary);
+}
+
+html[data-theme="dark"] .summary-info p,
+html.theme-dark .summary-info p,
+body.theme-dark .summary-info p {
+  color: var(--text-secondary);
+}
+
+html[data-theme="dark"] .event-category,
+html.theme-dark .event-category,
+body.theme-dark .event-category {
+  background-color: var(--accent-color);
+  color: var(--text-primary);
+}
+
+html[data-theme="dark"] .summary-pricing span,
+html.theme-dark .summary-pricing span,
+body.theme-dark .summary-pricing span {
+  color: var(--text-secondary);
+}
+
+html[data-theme="dark"] .summary-pricing strong,
+html.theme-dark .summary-pricing strong,
+body.theme-dark .summary-pricing strong {
+  color: var(--text-primary);
+}
+
+html[data-theme="dark"] .summary-totals,
+html.theme-dark .summary-totals,
+body.theme-dark .summary-totals {
+  border-top: 1px solid var(--border-color);
+}
+
+html[data-theme="dark"] .summary-totals .line,
+html.theme-dark .summary-totals .line,
+body.theme-dark .summary-totals .line {
+  color: var(--text-secondary);
+}
+
+html[data-theme="dark"] .summary-totals .line.total,
+html.theme-dark .summary-totals .line.total,
+body.theme-dark .summary-totals .line.total {
+  color: var(--text-primary);
+  font-weight: 600;
+  border-top: 2px solid var(--border-color);
+}
+
+html[data-theme="dark"] .summary-empty,
+html.theme-dark .summary-empty,
+body.theme-dark .summary-empty {
+  color: var(--text-secondary);
+}
+
+html[data-theme="dark"] .summary-empty i,
+html.theme-dark .summary-empty i,
+body.theme-dark .summary-empty i {
+  color: var(--text-muted);
+}
+
+/* Support card */
+html[data-theme="dark"] .support-card,
+html.theme-dark .support-card,
+body.theme-dark .support-card {
+  background-color: var(--bg-secondary);
+  border: 1px solid var(--border-color);
+}
+
+html[data-theme="dark"] .support-card h3,
+html.theme-dark .support-card h3,
+body.theme-dark .support-card h3 {
+  color: var(--text-primary);
+}
+
+html[data-theme="dark"] .support-card p,
+html.theme-dark .support-card p,
+body.theme-dark .support-card p {
+  color: var(--text-secondary);
+}
+
+html[data-theme="dark"] .support-card strong,
+html.theme-dark .support-card strong,
+body.theme-dark .support-card strong {
+  color: var(--accent-color);
+}
+
+html[data-theme="dark"] .availability,
+html.theme-dark .availability,
+body.theme-dark .availability {
+  color: var(--text-muted);
+}
+
+/* Formulaire de paiement */
+html[data-theme="dark"] .payment-content,
+html.theme-dark .payment-content,
+body.theme-dark .payment-content {
+  background-color: var(--bg-card);
+  border: 1px solid var(--border-color);
+}
+
+html[data-theme="dark"] .payment-form h2,
+html.theme-dark .payment-form h2,
+body.theme-dark .payment-form h2 {
+  color: var(--text-primary);
+}
+
+/* Méthodes de paiement */
+html[data-theme="dark"] .method-option,
+html.theme-dark .method-option,
+body.theme-dark .method-option {
+  background-color: var(--bg-secondary);
+  border: 2px solid var(--border-color);
+  transition: all 0.2s ease;
+}
+
+html[data-theme="dark"] .method-option:hover,
+html.theme-dark .method-option:hover,
+body.theme-dark .method-option:hover {
+  border-color: var(--accent-color);
+  background-color: rgba(74, 158, 255, 0.1);
+}
+
+html[data-theme="dark"] .method-option input[type="radio"]:checked + .method-content,
+html.theme-dark .method-option input[type="radio"]:checked + .method-content,
+body.theme-dark .method-option input[type="radio"]:checked + .method-content {
+  border-color: var(--accent-color);
+}
+
+html[data-theme="dark"] .method-option input[type="radio"]:checked ~ .method-content,
+html.theme-dark .method-option input[type="radio"]:checked ~ .method-content,
+body.theme-dark .method-option input[type="radio"]:checked ~ .method-content {
+  border-color: var(--accent-color);
+  background-color: rgba(74, 158, 255, 0.15);
+}
+
+html[data-theme="dark"] .method-text strong,
+html.theme-dark .method-text strong,
+body.theme-dark .method-text strong {
+  color: var(--text-primary);
+}
+
+html[data-theme="dark"] .method-text small,
+html.theme-dark .method-text small,
+body.theme-dark .method-text small {
+  color: var(--text-secondary);
+}
+
+html[data-theme="dark"] .method-note,
+html.theme-dark .method-note,
+body.theme-dark .method-note {
+  color: var(--text-muted);
+}
+
+/* Champs de formulaire */
+html[data-theme="dark"] .form-group label,
+html.theme-dark .form-group label,
+body.theme-dark .form-group label {
+  color: var(--text-primary);
+  font-weight: 600;
+}
+
+html[data-theme="dark"] .form-group input,
+html.theme-dark .form-group input,
+body.theme-dark .form-group input,
+html[data-theme="dark"] .form-group select,
+html.theme-dark .form-group select,
+body.theme-dark .form-group select,
+html[data-theme="dark"] .form-group textarea,
+html.theme-dark .form-group textarea,
+body.theme-dark .form-group textarea {
+  background-color: rgba(255, 255, 255, 0.08);
+  border: 1px solid var(--border-color);
+  color: var(--text-primary);
+  transition: all 0.2s ease;
+}
+
+html[data-theme="dark"] .form-group input:focus,
+html.theme-dark .form-group input:focus,
+body.theme-dark .form-group input:focus,
+html[data-theme="dark"] .form-group select:focus,
+html.theme-dark .form-group select:focus,
+body.theme-dark .form-group select:focus,
+html[data-theme="dark"] .form-group textarea:focus,
+html.theme-dark .form-group textarea:focus,
+body.theme-dark .form-group textarea:focus {
+  border-color: var(--accent-color);
+  background-color: rgba(255, 255, 255, 0.12);
+  box-shadow: 0 0 0 3px rgba(74, 158, 255, 0.2);
+  outline: none;
+}
+
+html[data-theme="dark"] .form-group input::placeholder,
+html.theme-dark .form-group input::placeholder,
+body.theme-dark .form-group input::placeholder,
+html[data-theme="dark"] .form-group textarea::placeholder,
+html.theme-dark .form-group textarea::placeholder,
+body.theme-dark .form-group textarea::placeholder {
+  color: var(--text-muted);
+}
+
+/* Checkbox */
+html[data-theme="dark"] .checkbox,
+html.theme-dark .checkbox,
+body.theme-dark .checkbox {
+  color: var(--text-secondary);
+}
+
+html[data-theme="dark"] .checkbox input[type="checkbox"],
+html.theme-dark .checkbox input[type="checkbox"],
+body.theme-dark .checkbox input[type="checkbox"] {
+  accent-color: var(--accent-color);
+}
+
+/* Boutons */
+html[data-theme="dark"] .btn-primary,
+html.theme-dark .btn-primary,
+body.theme-dark .btn-primary {
+  background: linear-gradient(135deg, var(--accent-color) 0%, #2a5fa0 100%);
+  color: var(--text-primary);
+  border: none;
+  font-weight: 600;
+  box-shadow: 0 4px 12px rgba(74, 158, 255, 0.3);
+  transition: all 0.3s ease;
+}
+
+html[data-theme="dark"] .btn-primary:hover,
+html.theme-dark .btn-primary:hover,
+body.theme-dark .btn-primary:hover {
+  background: linear-gradient(135deg, #5bb0ff 0%, var(--accent-color) 100%);
+  box-shadow: 0 6px 16px rgba(74, 158, 255, 0.4);
+  transform: translateY(-1px);
+}
+
+html[data-theme="dark"] .btn-secondary,
+html.theme-dark .btn-secondary,
+body.theme-dark .btn-secondary {
+  background-color: rgba(255, 255, 255, 0.08);
+  border: 1px solid var(--border-color);
+  color: var(--text-secondary);
+  transition: all 0.2s ease;
+}
+
+html[data-theme="dark"] .btn-secondary:hover,
+html.theme-dark .btn-secondary:hover,
+body.theme-dark .btn-secondary:hover {
+  background-color: rgba(255, 255, 255, 0.12);
+  border-color: var(--accent-color);
+  color: var(--accent-color);
+}
+
+html[data-theme="dark"] .btn-link,
+html.theme-dark .btn-link,
+body.theme-dark .btn-link {
+  color: var(--accent-color);
+  text-decoration: none;
+}
+
+html[data-theme="dark"] .btn-link:hover,
+html.theme-dark .btn-link:hover,
+body.theme-dark .btn-link:hover {
+  color: #6bb0ff;
+}
+
+/* Security note */
+html[data-theme="dark"] .security-note,
+html.theme-dark .security-note,
+body.theme-dark .security-note {
+  background-color: var(--bg-secondary);
+  border: 1px solid var(--border-color);
+  color: var(--text-secondary);
+}
+
+html[data-theme="dark"] .security-note strong,
+html.theme-dark .security-note strong,
+body.theme-dark .security-note strong {
+  color: var(--text-primary);
+}
+
+html[data-theme="dark"] .security-note i,
+html.theme-dark .security-note i,
+body.theme-dark .security-note i {
+  color: var(--success-color);
+}
+
+/* Mes billets */
+html[data-theme="dark"] .ticket-filters,
+html.theme-dark .ticket-filters,
+body.theme-dark .ticket-filters {
+  color: var(--text-secondary);
+}
+
+html[data-theme="dark"] .ticket-filter-active,
+html.theme-dark .ticket-filter-active,
+body.theme-dark .ticket-filter-active {
+  background: linear-gradient(135deg, var(--accent-color) 0%, #2a5fa0 100%);
+  color: var(--text-primary);
+}
+
+html[data-theme="dark"] .ticket-badge,
+html.theme-dark .ticket-badge,
+body.theme-dark .ticket-badge {
+  background-color: var(--accent-color);
+  color: var(--text-primary);
+}
+
+html[data-theme="dark"] .ticket-empty,
+html.theme-dark .ticket-empty,
+body.theme-dark .ticket-empty {
+  color: var(--text-secondary);
+}
+
+html[data-theme="dark"] .ticket-empty-title,
+html.theme-dark .ticket-empty-title,
+body.theme-dark .ticket-empty-title {
+  color: var(--text-primary);
+}
+
+/* Summary et Confirmation pages */
+html[data-theme="dark"] .pt-100.pb-100,
+html.theme-dark .pt-100.pb-100,
+body.theme-dark .pt-100.pb-100 {
+  background-color: var(--bg-primary);
+  color: var(--text-secondary);
+}
+
+html[data-theme="dark"] .pt-100.pb-100 h2,
+html.theme-dark .pt-100.pb-100 h2,
+body.theme-dark .pt-100.pb-100 h2 {
+  color: var(--text-primary);
+}
+
+html[data-theme="dark"] .pt-100.pb-100 p,
+html.theme-dark .pt-100.pb-100 p,
+body.theme-dark .pt-100.pb-100 p {
+  color: var(--text-secondary);
+}
+
+/* Transitions */
+html[data-theme="dark"] .payment-page *,
+html.theme-dark .payment-page *,
+body.theme-dark .payment-page * {
+  transition: background-color 0.2s ease, border-color 0.2s ease, color 0.2s ease;
+}
+

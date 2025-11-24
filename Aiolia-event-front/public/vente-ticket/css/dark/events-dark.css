@@ -445,6 +445,206 @@ body.theme-dark .container {
   color: var(--text-secondary);
 }
 
+/* ========== SECTION CALENDRIER ========== */
+html[data-theme="dark"] .sec-calendar,
+html.theme-dark .sec-calendar,
+body.theme-dark .sec-calendar {
+  background-color: var(--bg-secondary);
+}
+
+html[data-theme="dark"] .sec-calendar h2,
+html.theme-dark .sec-calendar h2,
+body.theme-dark .sec-calendar h2 {
+  color: var(--text-primary);
+}
+
+html[data-theme="dark"] .sec-calendar .txt,
+html.theme-dark .sec-calendar .txt,
+body.theme-dark .sec-calendar .txt {
+  color: var(--text-secondary);
+}
+
+html[data-theme="dark"] .sec-calendar .txt p,
+html.theme-dark .sec-calendar .txt p,
+body.theme-dark .sec-calendar .txt p {
+  color: var(--text-secondary);
+}
+
+/* Calendrier - Bloc gauche (datepicker) */
+html[data-theme="dark"] .calendar .blcLeft,
+html.theme-dark .calendar .blcLeft,
+body.theme-dark .calendar .blcLeft {
+  background-color: var(--bg-card);
+  border: 1px solid var(--border-color);
+}
+
+/* Calendrier - Bloc droit (liste des événements) */
+html[data-theme="dark"] .calendar .blcRight,
+html.theme-dark .calendar .blcRight,
+body.theme-dark .calendar .blcRight {
+  background-color: var(--bg-card);
+  border: 1px solid var(--border-color);
+}
+
+html[data-theme="dark"] .calendar .blcRight h3,
+html.theme-dark .calendar .blcRight h3,
+body.theme-dark .calendar .blcRight h3 {
+  color: var(--text-primary);
+}
+
+/* Liste des prochains événements dans le calendrier */
+html[data-theme="dark"] .lst-pro-event .item,
+html.theme-dark .lst-pro-event .item,
+body.theme-dark .lst-pro-event .item {
+  background-color: rgba(255, 255, 255, 0.05);
+  border: 1px solid var(--border-color);
+  transition: all 0.2s ease;
+}
+
+html[data-theme="dark"] .lst-pro-event .item:hover,
+html.theme-dark .lst-pro-event .item:hover,
+body.theme-dark .lst-pro-event .item:hover {
+  background-color: rgba(255, 255, 255, 0.1);
+  border-color: var(--accent-color);
+}
+
+html[data-theme="dark"] .lst-pro-event .item h4,
+html.theme-dark .lst-pro-event .item h4,
+body.theme-dark .lst-pro-event .item h4 {
+  color: var(--text-primary);
+}
+
+html[data-theme="dark"] .lst-pro-event .item .date,
+html.theme-dark .lst-pro-event .item .date,
+body.theme-dark .lst-pro-event .item .date {
+  color: var(--text-secondary);
+}
+
+html[data-theme="dark"] .lst-pro-event .item .hour,
+html.theme-dark .lst-pro-event .item .hour,
+body.theme-dark .lst-pro-event .item .hour {
+  color: var(--text-secondary);
+  background-color: rgba(255, 255, 255, 0.1);
+}
+
+html[data-theme="dark"] .lst-pro-event .item .link,
+html.theme-dark .lst-pro-event .item .link,
+body.theme-dark .lst-pro-event .item .link {
+  color: var(--accent-color);
+}
+
+/* Datepicker jQuery UI en mode sombre */
+html[data-theme="dark"] .ui-datepicker,
+html.theme-dark .ui-datepicker,
+body.theme-dark .ui-datepicker {
+  background-color: var(--bg-card);
+  border: 1px solid var(--border-color);
+  color: var(--text-primary);
+}
+
+html[data-theme="dark"] .ui-datepicker-header,
+html.theme-dark .ui-datepicker-header,
+body.theme-dark .ui-datepicker-header {
+  background-color: var(--bg-tertiary);
+  border-bottom: 1px solid var(--border-color);
+}
+
+html[data-theme="dark"] .ui-datepicker-title,
+html.theme-dark .ui-datepicker-title,
+body.theme-dark .ui-datepicker-title {
+  color: var(--text-primary);
+}
+
+html[data-theme="dark"] .ui-datepicker-prev,
+html.theme-dark .ui-datepicker-prev,
+body.theme-dark .ui-datepicker-prev,
+html[data-theme="dark"] .ui-datepicker-next,
+html.theme-dark .ui-datepicker-next,
+body.theme-dark .ui-datepicker-next {
+  background-color: transparent;
+  border: none;
+  color: var(--text-primary);
+}
+
+html[data-theme="dark"] .ui-datepicker-prev:hover,
+html.theme-dark .ui-datepicker-prev:hover,
+body.theme-dark .ui-datepicker-prev:hover,
+html[data-theme="dark"] .ui-datepicker-next:hover,
+html.theme-dark .ui-datepicker-next:hover,
+body.theme-dark .ui-datepicker-next:hover {
+  background-color: rgba(255, 255, 255, 0.1);
+  color: var(--accent-color);
+}
+
+html[data-theme="dark"] .ui-datepicker-calendar th,
+html.theme-dark .ui-datepicker-calendar th,
+body.theme-dark .ui-datepicker-calendar th {
+  color: var(--text-secondary);
+  border-color: var(--border-color);
+}
+
+html[data-theme="dark"] .ui-datepicker-calendar td,
+html.theme-dark .ui-datepicker-calendar td,
+body.theme-dark .ui-datepicker-calendar td {
+  border-color: var(--border-color);
+}
+
+html[data-theme="dark"] .ui-datepicker-calendar td a,
+html.theme-dark .ui-datepicker-calendar td a,
+body.theme-dark .ui-datepicker-calendar td a {
+  color: var(--text-primary);
+  background-color: transparent;
+}
+
+html[data-theme="dark"] .ui-datepicker-calendar td a:hover,
+html.theme-dark .ui-datepicker-calendar td a:hover,
+body.theme-dark .ui-datepicker-calendar td a:hover {
+  background-color: rgba(74, 158, 255, 0.2);
+  color: var(--accent-color);
+}
+
+html[data-theme="dark"] .ui-datepicker-calendar td.ui-datepicker-today a,
+html.theme-dark .ui-datepicker-calendar td.ui-datepicker-today a,
+body.theme-dark .ui-datepicker-calendar td.ui-datepicker-today a {
+  background-color: rgba(74, 158, 255, 0.3);
+  color: var(--accent-color);
+  font-weight: 600;
+}
+
+html[data-theme="dark"] .ui-datepicker-calendar td.ui-datepicker-current-day a,
+html.theme-dark .ui-datepicker-calendar td.ui-datepicker-current-day a,
+body.theme-dark .ui-datepicker-calendar td.ui-datepicker-current-day a {
+  background-color: var(--accent-color);
+  color: var(--text-primary);
+  font-weight: 600;
+}
+
+html[data-theme="dark"] .ui-datepicker-calendar td.has-event a,
+html.theme-dark .ui-datepicker-calendar td.has-event a,
+body.theme-dark .ui-datepicker-calendar td.has-event a {
+  background-color: var(--success-color);
+  color: var(--text-primary);
+}
+
+html[data-theme="dark"] .ui-datepicker-calendar td.has-event a:hover,
+html.theme-dark .ui-datepicker-calendar td.has-event a:hover,
+body.theme-dark .ui-datepicker-calendar td.has-event a:hover {
+  background-color: #9a966f;
+  color: var(--text-primary);
+}
+
+html[data-theme="dark"] .ui-datepicker-calendar td.ui-state-disabled,
+html.theme-dark .ui-datepicker-calendar td.ui-state-disabled,
+body.theme-dark .ui-datepicker-calendar td.ui-state-disabled {
+  opacity: 0.3;
+}
+
+html[data-theme="dark"] .ui-datepicker-calendar td.ui-state-disabled a,
+html.theme-dark .ui-datepicker-calendar td.ui-state-disabled a,
+body.theme-dark .ui-datepicker-calendar td.ui-state-disabled a {
+  color: var(--text-muted);
+}
+
 /* Amélioration des transitions pour une expérience plus fluide */
 html[data-theme="dark"] *,
 html.theme-dark *,

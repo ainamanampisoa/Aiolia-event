@@ -1,0 +1,140 @@
+/* ============================================
+   MODE SOMBRE (DARK MODE) - À propos
+   ============================================ */
+
+/* Variables pour une maintenance facile */
+:root[data-theme="dark"],
+html.theme-dark,
+body.theme-dark {
+  --bg-primary: #121212;
+  --bg-secondary: #1e1e1e;
+  --bg-card: #1e1e1e;
+  --text-primary: #ffffff;
+  --text-secondary: #e8e8e8;
+  --text-muted: rgba(240, 240, 240, 0.7);
+  --border-color: rgba(255, 255, 255, 0.15);
+  --accent-color: #4a9eff;
+  --success-color: #a0b896;
+}
+
+/* Section À propos */
+html[data-theme="dark"] .sec-apropos,
+html.theme-dark .sec-apropos,
+body.theme-dark .sec-apropos {
+  background-color: var(--bg-primary);
+  color: var(--text-secondary);
+}
+
+html[data-theme="dark"] .sec-apropos h2,
+html.theme-dark .sec-apropos h2,
+body.theme-dark .sec-apropos h2,
+html[data-theme="dark"] .sec-apropos h3,
+html.theme-dark .sec-apropos h3,
+body.theme-dark .sec-apropos h3 {
+  color: var(--text-primary);
+}
+
+html[data-theme="dark"] .sec-apropos p,
+html.theme-dark .sec-apropos p,
+body.theme-dark .sec-apropos p {
+  color: var(--text-secondary);
+}
+
+html[data-theme="dark"] .sec-apropos strong,
+html.theme-dark .sec-apropos strong,
+body.theme-dark .sec-apropos strong {
+  color: var(--accent-color);
+  font-weight: 600;
+}
+
+/* Bloc texte */
+html[data-theme="dark"] .modular-texte,
+html.theme-dark .modular-texte,
+body.theme-dark .modular-texte {
+  color: var(--text-secondary);
+}
+
+html[data-theme="dark"] .blc-left,
+html.theme-dark .blc-left,
+body.theme-dark .blc-left {
+  color: var(--text-secondary);
+}
+
+html[data-theme="dark"] .blc-left .texte,
+html.theme-dark .blc-left .texte,
+body.theme-dark .blc-left .texte {
+  color: var(--text-secondary);
+}
+
+/* Images */
+html[data-theme="dark"] .blc-right .img img,
+html.theme-dark .blc-right .img img,
+body.theme-dark .blc-right .img img {
+  filter: brightness(0.9) contrast(1.1);
+  border-radius: 8px;
+}
+
+/* Liste des atouts */
+html[data-theme="dark"] .lstAtout,
+html.theme-dark .lstAtout,
+body.theme-dark .lstAtout {
+  background-color: transparent;
+}
+
+html[data-theme="dark"] .lstAtout .item,
+html.theme-dark .lstAtout .item,
+body.theme-dark .lstAtout .item {
+  background-color: var(--bg-card);
+  border: 1px solid var(--border-color);
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.4);
+  transition: all 0.3s ease;
+}
+
+html[data-theme="dark"] .lstAtout .item:hover,
+html.theme-dark .lstAtout .item:hover,
+body.theme-dark .lstAtout .item:hover {
+  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.5);
+  transform: translateY(-2px);
+  border-color: rgba(255, 255, 255, 0.25);
+}
+
+html[data-theme="dark"] .lstAtout .item .inner,
+html.theme-dark .lstAtout .item .inner,
+body.theme-dark .lstAtout .item .inner {
+  color: var(--text-secondary);
+}
+
+html[data-theme="dark"] .lstAtout .item strong,
+html.theme-dark .lstAtout .item strong,
+body.theme-dark .lstAtout .item strong {
+  color: var(--accent-color);
+  font-weight: 700;
+}
+
+html[data-theme="dark"] .lstAtout .item span,
+html.theme-dark .lstAtout .item span,
+body.theme-dark .lstAtout .item span {
+  color: var(--text-secondary);
+}
+
+/* Icônes */
+html[data-theme="dark"] .lstAtout .item .ico img,
+html.theme-dark .lstAtout .item .ico img,
+body.theme-dark .lstAtout .item .ico img {
+  filter: brightness(0) invert(1) opacity(0.9);
+}
+
+/* Espace */
+html[data-theme="dark"] .espace,
+html.theme-dark .espace,
+body.theme-dark .espace {
+  border-color: var(--border-color);
+}
+
+/* Transitions */
+html[data-theme="dark"] .sec-apropos *,
+html.theme-dark .sec-apropos *,
+body.theme-dark .sec-apropos * {
+  transition: background-color 0.2s ease, border-color 0.2s ease, color 0.2s ease;
+}
+

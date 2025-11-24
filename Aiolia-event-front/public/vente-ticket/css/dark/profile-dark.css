@@ -1,8 +1,28 @@
-/* Dark mode support */
+/* ============================================
+   MODE SOMBRE PROFIL - Contraste amélioré
+   ============================================ */
+
+/* Variables pour la cohérence */
+:root[data-theme="dark"],
+html.theme-dark,
+body.theme-dark {
+  --profile-bg-primary: #121212;
+  --profile-bg-secondary: #1a1a1a;
+  --profile-bg-tertiary: #1e1e1e;
+  --profile-text-primary: #ffffff;
+  --profile-text-secondary: #f0f0f0;
+  --profile-text-muted: rgba(255, 255, 255, 0.85);
+  --profile-border-color: rgba(255, 255, 255, 0.2);
+  --profile-accent-color: #3c8ae4;
+  --profile-success-color: #a0b896;
+}
+
+/* Conteneurs principaux */
 html[data-theme="dark"] .profile-wrapper,
 html.theme-dark .profile-wrapper,
 body.theme-dark .profile-wrapper {
-    background: linear-gradient(135deg, #0f172a 0%, #1a2432 100%);
+    background: var(--profile-bg-primary);
+    color: var(--profile-text-secondary);
 }
 
 html[data-theme="dark"] .profile-card,
@@ -14,10 +34,46 @@ body.theme-dark .profile-section,
 html[data-theme="dark"] .profile-card-link,
 html.theme-dark .profile-card-link,
 body.theme-dark .profile-card-link {
-    background: linear-gradient(145deg, #1a2432 0%, #1F2D3D 100%);
-    border-color: rgba(255, 255, 255, 0.1);
+    background: var(--profile-bg-secondary);
+    border: 1px solid var(--profile-border-color);
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.4);
 }
 
+/* ========== TITRES ET TEXTES AMÉLIORÉS ========== */
+
+/* Titres h3 - CONTRASTE RENFORCÉ */
+html[data-theme="dark"] .profile-section h3,
+html.theme-dark .profile-section h3,
+body.theme-dark .profile-section h3,
+html[data-theme="dark"] .profile-card h3,
+html.theme-dark .profile-card h3,
+body.theme-dark .profile-card h3,
+html[data-theme="dark"] .profile-wrapper h3,
+html.theme-dark .profile-wrapper h3,
+body.theme-dark .profile-wrapper h3 {
+    color: var(--profile-text-primary) !important;
+    font-weight: 700 !important;
+    font-size: 1.5rem !important;
+    margin-bottom: 1rem !important;
+    border-bottom: 2px solid var(--profile-accent-color);
+    padding-bottom: 0.5rem;
+}
+
+/* Tous les titres */
+html[data-theme="dark"] .profile-name,
+html.theme-dark .profile-name,
+body.theme-dark .profile-name,
+html[data-theme="dark"] .profile-card-link strong,
+html.theme-dark .profile-card-link strong,
+body.theme-dark .profile-card-link strong,
+html[data-theme="dark"] .timeline-content h4,
+html.theme-dark .timeline-content h4,
+body.theme-dark .timeline-content h4 {
+    color: var(--profile-text-primary) !important;
+    font-weight: 600;
+}
+
+/* Textes secondaires - PLUS CLAIRS */
 html[data-theme="dark"] .profile-email,
 html.theme-dark .profile-email,
 body.theme-dark .profile-email,
@@ -26,66 +82,188 @@ html.theme-dark .profile-card-link span,
 body.theme-dark .profile-card-link span,
 html[data-theme="dark"] .timeline-meta,
 html.theme-dark .timeline-meta,
-body.theme-dark .timeline-meta {
-    color: rgba(255, 255, 255, 0.85);
+body.theme-dark .timeline-meta,
+html[data-theme="dark"] .profile-stat span,
+html.theme-dark .profile-stat span,
+body.theme-dark .profile-stat span {
+    color: var(--profile-text-secondary) !important;
+    font-weight: 500;
 }
 
-html[data-theme="dark"] .timeline-content h4,
-html.theme-dark .timeline-content h4,
-body.theme-dark .timeline-content h4 {
-    color: #f1f5f9;
+/* Statistiques */
+html[data-theme="dark"] .profile-stat strong,
+html.theme-dark .profile-stat strong,
+body.theme-dark .profile-stat strong {
+    color: var(--profile-text-primary) !important;
+    font-weight: 700;
+    font-size: 1.25rem;
 }
 
+/* ========== ÉLÉMENTS VISUELS ========== */
+
+/* Badges et tags */
 html[data-theme="dark"] .profile-tag,
 html.theme-dark .profile-tag,
 body.theme-dark .profile-tag {
-    background: linear-gradient(135deg, rgba(255, 255, 255, 0.12) 0%, rgba(255, 255, 255, 0.08) 100%);
-    color: #ffffff;
-    border-color: rgba(255, 255, 255, 0.15);
+    background: rgba(255, 255, 255, 0.15);
+    color: var(--profile-text-primary) !important;
+    border: 1px solid var(--profile-border-color);
+    font-weight: 600;
+    padding: 0.5rem 1rem;
 }
 
+/* Actions et boutons */
 html[data-theme="dark"] .profile-action,
 html.theme-dark .profile-action,
 body.theme-dark .profile-action {
-    background: linear-gradient(135deg, rgba(255, 255, 255, 0.08) 0%, rgba(255, 255, 255, 0.05) 100%);
-    color: #ffffff;
-    border-color: rgba(255, 255, 255, 0.1);
+    background: rgba(255, 255, 255, 0.12);
+    color: var(--profile-text-primary) !important;
+    border: 1px solid var(--profile-border-color);
+    transition: all 0.3s ease;
+    font-weight: 600;
+}
+
+html[data-theme="dark"] .profile-action:hover,
+html.theme-dark .profile-action:hover,
+body.theme-dark .profile-action:hover {
+    background: rgba(255, 255, 255, 0.2);
+    border-color: var(--profile-accent-color);
+    transform: translateY(-2px);
+    box-shadow: 0 4px 12px rgba(74, 158, 255, 0.3);
 }
 
 html[data-theme="dark"] .profile-action i,
 html.theme-dark .profile-action i,
 body.theme-dark .profile-action i {
-    color: #ffffff;
+    color: inherit !important;
 }
 
+/* Icônes */
 html[data-theme="dark"] .timeline-icon,
 html.theme-dark .timeline-icon,
 body.theme-dark .timeline-icon {
-    background: linear-gradient(135deg, rgba(255, 255, 255, 0.12) 0%, rgba(255, 255, 255, 0.08) 100%);
-    color: #ffffff;
+    background: rgba(255, 255, 255, 0.15);
+    color: var(--profile-text-primary) !important;
+    border: 1px solid var(--profile-border-color);
+    box-shadow: 0 4px 8px rgba(0, 0, 0, 0.3);
 }
 
-/* Styles supplémentaires pour le mode sombre */
-html[data-theme="dark"] .profile-name,
-html.theme-dark .profile-name,
-body.theme-dark .profile-name,
-html[data-theme="dark"] .profile-section h3,
-html.theme-dark .profile-section h3,
-body.theme-dark .profile-section h3,
-html[data-theme="dark"] .profile-card-link strong,
-html.theme-dark .profile-card-link strong,
-body.theme-dark .profile-card-link strong {
-    color: #ffffff;
+/* ========== OVERRIDES CRITIQUES POUR LA VISIBILITÉ ========== */
+
+/* Assurer que TOUS les textes sont visibles */
+html[data-theme="dark"] .profile-wrapper,
+html.theme-dark .profile-wrapper,
+body.theme-dark .profile-wrapper {
+    color: var(--profile-text-secondary) !important;
 }
 
-html[data-theme="dark"] .profile-stat span,
-html.theme-dark .profile-stat span,
-body.theme-dark .profile-stat span {
-    color: rgba(255, 255, 255, 0.7);
+html[data-theme="dark"] .profile-wrapper p,
+html.theme-dark .profile-wrapper p,
+body.theme-dark .profile-wrapper p,
+html[data-theme="dark"] .profile-wrapper span,
+html.theme-dark .profile-wrapper span,
+body.theme-dark .profile-wrapper span,
+html[data-theme="dark"] .profile-wrapper div,
+html.theme-dark .profile-wrapper div,
+body.theme-dark .profile-wrapper div,
+html[data-theme="dark"] .profile-wrapper li,
+html.theme-dark .profile-wrapper li,
+body.theme-dark .profile-wrapper li {
+    color: inherit !important;
 }
 
-html[data-theme="dark"] .profile-stat strong,
-html.theme-dark .profile-stat strong,
-body.theme-dark .profile-stat strong {
-    color: #ffffff;
+/* Textes spécifiques qui pourraient être problématiques */
+html[data-theme="dark"] .profile-description,
+html.theme-dark .profile-description,
+body.theme-dark .profile-description,
+html[data-theme="dark"] .profile-bio,
+html.theme-dark .profile-bio,
+body.theme-dark .profile-bio,
+html[data-theme="dark"] .profile-info,
+html.theme-dark .profile-info,
+body.theme-dark .profile-info {
+    color: var(--profile-text-secondary) !important;
+    line-height: 1.6;
+    font-size: 1rem;
+}
+
+/* Cartes de lien avec hover amélioré */
+html[data-theme="dark"] .profile-card-link:hover,
+html.theme-dark .profile-card-link:hover,
+body.theme-dark .profile-card-link:hover {
+    background: rgba(255, 255, 255, 0.15);
+    border-color: var(--profile-accent-color);
+    transform: translateY(-2px);
+    box-shadow: 0 8px 24px rgba(0, 0, 0, 0.5);
+}
+
+html[data-theme="dark"] .profile-card-link:hover strong,
+html.theme-dark .profile-card-link:hover strong,
+body.theme-dark .profile-card-link:hover strong {
+    color: var(--profile-accent-color) !important;
+}
+
+/* ========== CORRECTIONS SPÉCIFIQUES ========== */
+
+/* Si certains textes utilisent des couleurs inline */
+html[data-theme="dark"] [style*="color: #666"],
+html.theme-dark [style*="color: #666"],
+body.theme-dark [style*="color: #666"],
+html[data-theme="dark"] [style*="color: #999"],
+html.theme-dark [style*="color: #999"],
+body.theme-dark [style*="color: #999"],
+html[data-theme="dark"] [style*="color: #ccc"],
+html.theme-dark [style*="color: #ccc"],
+body.theme-dark [style*="color: #ccc"] {
+    color: var(--profile-text-muted) !important;
+}
+
+/* Textes en gris clair */
+html[data-theme="dark"] [style*="color: #f1f5f9"],
+html.theme-dark [style*="color: #f1f5f9"],
+body.theme-dark [style*="color: #f1f5f9"],
+html[data-theme="dark"] [style*="color: #e8e8e8"],
+html.theme-dark [style*="color: #e8e8e8"],
+body.theme-dark [style*="color: #e8e8e8"] {
+    color: var(--profile-text-secondary) !important;
+}
+
+/* Responsive */
+@media (max-width: 768px) {
+    html[data-theme="dark"] .profile-card,
+    html.theme-dark .profile-card,
+    body.theme-dark .profile-card {
+        margin: 0.5rem;
+    }
+    
+    html[data-theme="dark"] .profile-section h3,
+    html.theme-dark .profile-section h3,
+    body.theme-dark .profile-section h3 {
+        font-size: 1.3rem !important;
+    }
+}
+
+/* ========== RENFORCEMENT DU CONTRASTE ========== */
+
+/* Augmenter le contraste des textes importants */
+html[data-theme="dark"] .profile-important,
+html.theme-dark .profile-important,
+body.theme-dark .profile-important,
+html[data-theme="dark"] .profile-highlight,
+html.theme-dark .profile-highlight,
+body.theme-dark .profile-highlight {
+    color: var(--profile-text-primary) !important;
+    font-weight: 700;
+    background: rgba(255, 255, 255, 0.1);
+    padding: 0.25rem 0.5rem;
+    border-radius: 4px;
+}
+
+/* Améliorer la lisibilité des longs textes */
+html[data-theme="dark"] .profile-long-text,
+html.theme-dark .profile-long-text,
+body.theme-dark .profile-long-text {
+    line-height: 1.7;
+    color: var(--profile-text-secondary) !important;
+    font-size: 1.05rem;
 }

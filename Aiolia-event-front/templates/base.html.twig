@@ -107,7 +107,17 @@
                 'notifications': '{{ asset("vente-ticket/css/dark/notifications-dark.css") }}',
                 'profile': '{{ asset("vente-ticket/css/dark/profile-dark.css") }}',
                 'profile-settings': '{{ asset("vente-ticket/css/dark/profile-settings-dark.css") }}',
-                'events': '{{ asset("vente-ticket/css/dark/events-dark.css") }}'
+                'profile-calendar': '{{ asset("vente-ticket/css/dark/profile-calendar-dark.css") }}',
+                'profile-wallet': '{{ asset("vente-ticket/css/dark/profile-wallet-dark.css") }}',
+                'profile-ticket-chance': '{{ asset("vente-ticket/css/dark/profile-ticket-chance-dark.css") }}',
+                'events': '{{ asset("vente-ticket/css/dark/events-dark.css") }}',
+                'auth': '{{ asset("vente-ticket/css/dark/auth-dark.css") }}',
+                'about': '{{ asset("vente-ticket/css/dark/about-dark.css") }}',
+                'organizer': '{{ asset("vente-ticket/css/dark/organizer-dark.css") }}',
+                'ticket': '{{ asset("vente-ticket/css/dark/ticket-dark.css") }}',
+                'social': '{{ asset("vente-ticket/css/dark/social-dark.css") }}',
+                'game': '{{ asset("vente-ticket/css/dark/game-dark.css") }}',
+                'admin': '{{ asset("vente-ticket/css/dark/admin-dark.css") }}'
             };
             
             // Détecter la page actuelle
@@ -121,10 +131,33 @@
             } else if (path.includes('/profile') && path.includes('/settings')) {
                 additionalCSS.push(pageSpecificCSS.profile);
                 additionalCSS.push(pageSpecificCSS['profile-settings']);
+            } else if (path.includes('/profile') && path.includes('/calendar')) {
+                additionalCSS.push(pageSpecificCSS.profile);
+                additionalCSS.push(pageSpecificCSS['profile-calendar']);
+            } else if (path.includes('/profile') && path.includes('/wallet')) {
+                additionalCSS.push(pageSpecificCSS.profile);
+                additionalCSS.push(pageSpecificCSS['profile-wallet']);
+            } else if (path.includes('/profile') && path.includes('/ticket_chance')) {
+                additionalCSS.push(pageSpecificCSS.profile);
+                additionalCSS.push(pageSpecificCSS['profile-ticket-chance']);
             } else if (path.includes('/profile')) {
                 additionalCSS.push(pageSpecificCSS.profile);
-            } else if (path.includes('/events') || path.includes('/event')) {
+            } else if (path.includes('/events') || path.includes('/event') || path === '/' || path === '') {
                 additionalCSS.push(pageSpecificCSS.events);
+            } else if (path.includes('/login') || path.includes('/register') || path.includes('/forgot_password')) {
+                additionalCSS.push(pageSpecificCSS.auth);
+            } else if (path.includes('/about')) {
+                additionalCSS.push(pageSpecificCSS.about);
+            } else if (path.includes('/become_organizer') || path.includes('/organizer')) {
+                additionalCSS.push(pageSpecificCSS.organizer);
+            } else if (path.includes('/payment') || path.includes('/summary') || path.includes('/confirmation') || path.includes('/my_tickets') || path.includes('/my_ticket')) {
+                additionalCSS.push(pageSpecificCSS.ticket);
+            } else if (path.includes('/invitations') || path.includes('/social')) {
+                additionalCSS.push(pageSpecificCSS.social);
+            } else if (path.includes('/ticket_chance') || path.includes('/game')) {
+                additionalCSS.push(pageSpecificCSS.game);
+            } else if (path.includes('/admin')) {
+                additionalCSS.push(pageSpecificCSS.admin);
             }
             
             // Charger tous les fichiers CSS

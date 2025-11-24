@@ -1,119 +1,286 @@
 /* ============================================
-   MODE SOMBRE (DARK MODE) - Sidebar
+   MODE SOMBRE (DARK MODE) - Sidebar Améliorée
    ============================================ */
 
+/* Variables pour la cohérence */
+:root[data-theme="dark"],
+html.theme-dark,
+body.theme-dark {
+  --sidebar-bg-primary: #121212;
+  --sidebar-bg-secondary: #1a1a1a;
+  --sidebar-bg-tertiary: #1e1e1e;
+  --sidebar-text-primary: #ffffff;
+  --sidebar-text-secondary: #f0f0f0;
+  --sidebar-text-muted: rgba(255, 255, 255, 0.8);
+  --sidebar-border-color: rgba(255, 255, 255, 0.15);
+  --sidebar-accent-color: #4a9eff;
+  --sidebar-hover-bg: rgba(255, 255, 255, 0.08);
+}
+
+/* Conteneur principal de la sidebar */
 html[data-theme="dark"] .user-secondary-sidebar,
 html.theme-dark .user-secondary-sidebar,
 body.theme-dark .user-secondary-sidebar {
-    background: linear-gradient(165deg, rgba(31, 31, 31, 0.98) 0%, rgba(26, 26, 26, 0.98) 45%, rgba(20, 20, 20, 0.98) 100%);
+    background: var(--sidebar-bg-secondary);
     box-shadow: 
-        -8px 0 40px rgba(0, 0, 0, 0.3),
-        -2px 0 0 rgba(74, 158, 255, 0.1);
-    border-left: 1px solid rgba(255, 255, 255, 0.1);
+        -8px 0 40px rgba(0, 0, 0, 0.4),
+        -2px 0 0 var(--sidebar-accent-color);
+    border-left: 1px solid var(--sidebar-border-color);
+    backdrop-filter: blur(10px);
 }
 
+/* Titres */
 html[data-theme="dark"] .user-secondary-sidebar h3,
 html.theme-dark .user-secondary-sidebar h3,
 body.theme-dark .user-secondary-sidebar h3 {
-    background: linear-gradient(135deg, #4a9eff 0%, #6bb0ff 100%);
-    -webkit-background-clip: text;
-    -webkit-text-fill-color: transparent;
-    background-clip: text;
+    color: var(--sidebar-text-primary) !important;
+    font-weight: 700;
+    font-size: 1.4rem;
+    text-shadow: 0 2px 4px rgba(0, 0, 0, 0.3);
+    border-bottom: 2px solid var(--sidebar-accent-color);
+    padding-bottom: 0.75rem;
+    margin-bottom: 1.5rem;
 }
 
+/* Textes */
 html[data-theme="dark"] .user-secondary-sidebar p,
 html.theme-dark .user-secondary-sidebar p,
 body.theme-dark .user-secondary-sidebar p {
-    color: rgba(224, 224, 224, 0.7);
+    color: var(--sidebar-text-secondary) !important;
+    font-weight: 500;
+    line-height: 1.5;
 }
 
+/* Navigation - Liens */
 html[data-theme="dark"] .user-sidebar-nav a,
 html.theme-dark .user-sidebar-nav a,
 body.theme-dark .user-sidebar-nav a {
-    color: #e0e0e0;
-    background: rgba(42, 42, 42, 0.6);
-    border-color: rgba(74, 158, 255, 0.15);
+    color: var(--sidebar-text-secondary) !important;
+    background: rgba(255, 255, 255, 0.05);
+    border: 1px solid rgba(74, 158, 255, 0.2);
+    font-weight: 600;
+    transition: all 0.3s ease;
+    margin-bottom: 0.5rem;
+    border-radius: 8px;
+    padding: 1rem 1.25rem;
 }
 
 html[data-theme="dark"] .user-sidebar-nav a:hover,
 html.theme-dark .user-sidebar-nav a:hover,
 body.theme-dark .user-sidebar-nav a:hover {
-    background: rgba(42, 42, 42, 0.9);
-    border-color: rgba(74, 158, 255, 0.3);
+    background: rgba(74, 158, 255, 0.15);
+    border-color: var(--sidebar-accent-color);
+    color: var(--sidebar-text-primary) !important;
+    transform: translateX(5px);
     box-shadow: 
-        0 8px 25px rgba(0, 0, 0, 0.2),
+        0 8px 25px rgba(74, 158, 255, 0.2),
         0 0 0 1px rgba(74, 158, 255, 0.1);
 }
 
+/* Icônes dans les liens */
 html[data-theme="dark"] .user-sidebar-nav a::after,
 html.theme-dark .user-sidebar-nav a::after,
 body.theme-dark .user-sidebar-nav a::after {
-    color: rgba(74, 158, 255, 0.5);
+    color: var(--sidebar-accent-color) !important;
+    font-weight: 600;
+    opacity: 0.8;
 }
 
+/* État actif des liens */
+html[data-theme="dark"] .user-sidebar-nav a.active,
+html.theme-dark .user-sidebar-nav a.active,
+body.theme-dark .user-sidebar-nav a.active {
+    background: linear-gradient(135deg, rgba(74, 158, 255, 0.2) 0%, rgba(74, 158, 255, 0.1) 100%);
+    border-color: var(--sidebar-accent-color);
+    color: var(--sidebar-text-primary) !important;
+    box-shadow: 0 4px 15px rgba(74, 158, 255, 0.3);
+}
+
+/* Pied de page de la sidebar */
 html[data-theme="dark"] .user-sidebar-footer,
 html.theme-dark .user-sidebar-footer,
 body.theme-dark .user-sidebar-footer {
-    border-top-color: rgba(255, 255, 255, 0.1);
+    border-top: 2px solid var(--sidebar-border-color);
+    background: rgba(255, 255, 255, 0.03);
+    padding: 1.5rem;
 }
 
 html[data-theme="dark"] .user-sidebar-footer::before,
 html.theme-dark .user-sidebar-footer::before,
 body.theme-dark .user-sidebar-footer::before {
-    background: linear-gradient(90deg, transparent, rgba(74, 158, 255, 0.3), transparent);
+    background: linear-gradient(90deg, transparent, var(--sidebar-accent-color), transparent);
+    height: 2px;
+    opacity: 0.6;
 }
 
+/* Bouton de déconnexion */
 html[data-theme="dark"] .user-sidebar-logout,
 html.theme-dark .user-sidebar-logout,
 body.theme-dark .user-sidebar-logout {
-    background: linear-gradient(135deg, rgba(255, 107, 107, 0.15), rgba(255, 80, 80, 0.1));
-    color: #ff8a8a;
-    border-color: rgba(255, 107, 107, 0.2);
+    background: linear-gradient(135deg, rgba(255, 107, 107, 0.2), rgba(255, 80, 80, 0.15));
+    color: #ff8a8a !important;
+    border: 1px solid rgba(255, 107, 107, 0.3);
+    font-weight: 600;
+    transition: all 0.3s ease;
+    border-radius: 6px;
+    padding: 0.75rem 1.5rem;
 }
 
 html[data-theme="dark"] .user-sidebar-logout:hover,
 html.theme-dark .user-sidebar-logout:hover,
 body.theme-dark .user-sidebar-logout:hover {
-    background: linear-gradient(135deg, rgba(255, 107, 107, 0.2), rgba(255, 80, 80, 0.15));
-    color: #ff7070;
-    border-color: rgba(255, 107, 107, 0.3);
+    background: linear-gradient(135deg, rgba(255, 107, 107, 0.3), rgba(255, 80, 80, 0.25));
+    color: #ff7070 !important;
+    border-color: rgba(255, 107, 107, 0.5);
+    transform: translateY(-2px);
+    box-shadow: 0 6px 20px rgba(255, 107, 107, 0.3);
 }
 
+/* Bouton de fermeture */
 html[data-theme="dark"] .user-sidebar-close,
 html.theme-dark .user-sidebar-close,
 body.theme-dark .user-sidebar-close {
-    background: linear-gradient(135deg, rgba(74, 158, 255, 0.15), rgba(74, 158, 255, 0.08));
-    color: #4a9eff;
-    border-color: rgba(74, 158, 255, 0.2);
+    background: rgba(74, 158, 255, 0.2);
+    color: var(--sidebar-accent-color) !important;
+    border: 1px solid rgba(74, 158, 255, 0.3);
+    font-weight: 600;
+    transition: all 0.3s ease;
+    border-radius: 50%;
+    width: 40px;
+    height: 40px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
 }
 
 html[data-theme="dark"] .user-sidebar-close:hover,
 html.theme-dark .user-sidebar-close:hover,
 body.theme-dark .user-sidebar-close:hover {
-    background: linear-gradient(135deg, rgba(74, 158, 255, 0.25), rgba(74, 158, 255, 0.15));
-    color: #6bb0ff;
+    background: rgba(74, 158, 255, 0.3);
+    color: #6bb0ff !important;
+    border-color: var(--sidebar-accent-color);
+    transform: scale(1.1);
+    box-shadow: 0 4px 15px rgba(74, 158, 255, 0.4);
 }
 
+/* Overlay */
 html[data-theme="dark"] .user-sidebar-overlay,
 html.theme-dark .user-sidebar-overlay,
 body.theme-dark .user-sidebar-overlay {
-    background: linear-gradient(135deg, rgba(0, 0, 0, 0.8), rgba(0, 0, 0, 0.9));
+    background: rgba(0, 0, 0, 0.7);
+    backdrop-filter: blur(5px);
 }
 
+/* Scrollbar personnalisée */
 html[data-theme="dark"] .user-secondary-sidebar::-webkit-scrollbar-track,
 html.theme-dark .user-secondary-sidebar::-webkit-scrollbar-track,
 body.theme-dark .user-secondary-sidebar::-webkit-scrollbar-track {
-    background: rgba(74, 158, 255, 0.08);
+    background: rgba(255, 255, 255, 0.08);
+    border-radius: 10px;
 }
 
 html[data-theme="dark"] .user-secondary-sidebar::-webkit-scrollbar-thumb,
 html.theme-dark .user-secondary-sidebar::-webkit-scrollbar-thumb,
 body.theme-dark .user-secondary-sidebar::-webkit-scrollbar-thumb {
-    background: linear-gradient(135deg, rgba(74, 158, 255, 0.4), rgba(74, 158, 255, 0.6));
+    background: linear-gradient(135deg, var(--sidebar-accent-color), #6bb0ff);
+    border-radius: 10px;
+    border: 2px solid rgba(255, 255, 255, 0.1);
 }
 
 html[data-theme="dark"] .user-secondary-sidebar::-webkit-scrollbar-thumb:hover,
 html.theme-dark .user-secondary-sidebar::-webkit-scrollbar-thumb:hover,
 body.theme-dark .user-secondary-sidebar::-webkit-scrollbar-thumb:hover {
-    background: linear-gradient(135deg, rgba(74, 158, 255, 0.6), rgba(74, 158, 255, 0.8));
+    background: linear-gradient(135deg, #6bb0ff, var(--sidebar-accent-color));
+    box-shadow: 0 0 10px rgba(74, 158, 255, 0.6);
+}
+
+/* ========== AMÉLIORATIONS SUPPLÉMENTAIRES ========== */
+
+/* Informations utilisateur */
+html[data-theme="dark"] .user-sidebar-info,
+html.theme-dark .user-sidebar-info,
+body.theme-dark .user-sidebar-info {
+    background: rgba(255, 255, 255, 0.05);
+    border: 1px solid var(--sidebar-border-color);
+    border-radius: 12px;
+    padding: 1.5rem;
+    margin-bottom: 2rem;
+}
+
+html[data-theme="dark"] .user-sidebar-avatar,
+html.theme-dark .user-sidebar-avatar,
+body.theme-dark .user-sidebar-avatar {
+    border: 3px solid var(--sidebar-accent-color);
+    box-shadow: 0 4px 15px rgba(74, 158, 255, 0.3);
+}
+
+html[data-theme="dark"] .user-sidebar-name,
+html.theme-dark .user-sidebar-name,
+body.theme-dark .user-sidebar-name {
+    color: var(--sidebar-text-primary) !important;
+    font-weight: 700;
+    font-size: 1.3rem;
+}
+
+html[data-theme="dark"] .user-sidebar-role,
+html.theme-dark .user-sidebar-role,
+body.theme-dark .user-sidebar-role {
+    color: var(--sidebar-accent-color) !important;
+    font-weight: 600;
+    background: rgba(74, 158, 255, 0.15);
+    padding: 0.25rem 0.75rem;
+    border-radius: 20px;
+    display: inline-block;
+}
+
+/* Séparateurs */
+html[data-theme="dark"] .sidebar-divider,
+html.theme-dark .sidebar-divider,
+body.theme-dark .sidebar-divider {
+    border-color: var(--sidebar-border-color) !important;
+    margin: 1.5rem 0;
+}
+
+/* Badges et indicateurs */
+html[data-theme="dark"] .sidebar-badge,
+html.theme-dark .sidebar-badge,
+body.theme-dark .sidebar-badge {
+    background: var(--sidebar-accent-color);
+    color: #ffffff !important;
+    font-weight: 600;
+    box-shadow: 0 2px 8px rgba(74, 158, 255, 0.4);
+}
+
+/* États de notification */
+html[data-theme="dark"] .sidebar-notification,
+html.theme-dark .sidebar-notification,
+body.theme-dark .sidebar-notification {
+    background: linear-gradient(135deg, #ff6b81, #e84118);
+    color: #ffffff !important;
+    animation: pulse 2s infinite;
+}
+
+@keyframes pulse {
+    0% { transform: scale(1); }
+    50% { transform: scale(1.1); }
+    100% { transform: scale(1); }
+}
+
+/* Responsive */
+@media (max-width: 768px) {
+    html[data-theme="dark"] .user-secondary-sidebar,
+    html.theme-dark .user-secondary-sidebar,
+    body.theme-dark .user-secondary-sidebar {
+        width: 85%;
+        box-shadow: 
+            -8px 0 30px rgba(0, 0, 0, 0.5),
+            -2px 0 0 var(--sidebar-accent-color);
+    }
+}
+
+/* Override important pour la visibilité */
+html[data-theme="dark"] .user-secondary-sidebar *,
+html.theme-dark .user-secondary-sidebar *,
+body.theme-dark .user-secondary-sidebar * {
+    color: inherit !important;
 }
