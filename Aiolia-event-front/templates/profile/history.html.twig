@@ -14,48 +14,16 @@
 {% block hero %}{% endblock %}
 
 {% block body %}
-    {% set orders = orders|default([
-        {
-            code: 'CMD-548211',
-            title: 'Afro Jazz Experience',
-            date: '07 novembre 2025',
-            hour: '21:00',
-            status: 'confirmée',
-            amount: '320 000 MGA',
-            method: 'Visa',
-            tickets: 2
-        },
-        {
-            code: 'CMD-548105',
-            title: 'Madagascar Fashion Night',
-            date: '28 octobre 2025',
-            hour: '19:30',
-            status: 'remboursée',
-            amount: '240 000 MGA',
-            method: 'Mobile Money',
-            tickets: 3
-        },
-        {
-            code: 'CMD-547998',
-            title: 'Festival des Arts Urbains',
-            date: '14 octobre 2025',
-            hour: '18:00',
-            status: 'confirmée',
-            amount: '180 000 MGA',
-            method: 'Mastercard',
-            tickets: 2
-        },
-        {
-            code: 'CMD-547850',
-            title: 'Soirée Electro Rooftop',
-            date: '02 octobre 2025',
-            hour: '20:00',
-            status: 'annulée',
-            amount: '0 MGA',
-            method: 'Mobile Money',
-            tickets: 2
-        }
-    ]) %}
+    {% set orders = orders|default([]) %}
+    {% set stats = stats|default({
+        total_spent: '0 MGA',
+        confirmed_orders: 0,
+        total_tickets: 0,
+        vip_tickets: 0,
+        refunded_count: 0,
+        refunded_amount: '0 MGA',
+        average_cart: '0 MGA'
+    }) %}
 
     <main class="profile-history-wrapper">
         <div class="container">
@@ -73,18 +41,18 @@
             <section class="profile-history-summary wow fadeInUp" data-wow-delay="150ms">
                 <div class="summary-card">
                     <span class="summary-label">Total dépensé</span>
-                    <strong>1 280 000 MGA</strong>
-                    <small>12 commandes confirmées</small>
+                    <strong>{{ stats.total_spent }}</strong>
+                    <small>{{ stats.confirmed_orders }} commande(s) confirmée(s)</small>
                 </div>
                 <div class="summary-card">
                     <span class="summary-label">Billets achetés</span>
-                    <strong>28 billets</strong>
-                    <small>Dont 6 VIP</small>
+                    <strong>{{ stats.total_tickets }} billet(s)</strong>
+                    <small>{% if stats.vip_tickets > 0 %}Dont {{ stats.vip_tickets }} VIP{% else %}Aucun VIP{% endif %}</small>
                 </div>
                 <div class="summary-card">
                     <span class="summary-label">Remboursements</span>
-                    <strong>2 transactions</strong>
-                    <small>Montant total 240 000 MGA</small>
+                    <strong>{{ stats.refunded_count }} transaction(s)</strong>
+                    <small>Montant total {{ stats.refunded_amount }}</small>
                 </div>
             </section>
 
@@ -115,30 +83,39 @@
                             </tr>
                         </thead>
                         <tbody>
-                            {% for order in orders %}
-                                <tr class="history-row {% if order.status == 'confirmée' %}is-confirmed{% elseif order.status == 'remboursée' %}is-refunded{% else %}is-cancelled{% endif %}">
-                                    <td>
-                                        <div class="order-code">{{ order.code }}</div>
-                                        <span class="order-status">{{ order.status|capitalize }}</span>
-                                    </td>
-                                    <td>
-                                        <strong>{{ order.title }}</strong>
-                                    </td>
-                                    <td>
-                                        <div>{{ order.date }}</div>
-                                        <small>{{ order.hour }}</small>
-                                    </td>
-                                    <td>{{ order.tickets }} billet(s)</td>
-                                    <td>{{ order.amount }}</td>
-                                    <td>
-                                        <i class="fas fa-credit-card"></i> {{ order.method }}
-                                    </td>
-                                    <td class="align-right">
-                                        <button class="link-btn"><i class="fas fa-receipt"></i> Reçu</button>
-                                        <button class="link-btn"><i class="fas fa-print"></i> Imprimer</button>
+                            {% if orders|length > 0 %}
+                                {% for order in orders %}
+                                    <tr class="history-row {% if order.status_key == 'confirmed' %}is-confirmed{% elseif order.status_key == 'refunded' %}is-refunded{% else %}is-cancelled{% endif %}">
+                                        <td>
+                                            <div class="order-code">{{ order.code }}</div>
+                                            <span class="order-status">{{ order.status }}</span>
+                                        </td>
+                                        <td>
+                                            <strong>{{ order.title }}</strong>
+                                        </td>
+                                        <td>
+                                            <div>{{ order.date }}</div>
+                                            <small>{{ order.hour }}</small>
+                                        </td>
+                                        <td>{{ order.tickets }} billet(s)</td>
+                                        <td>{{ order.amount }}</td>
+                                        <td>
+                                            <i class="fas fa-credit-card"></i> {{ order.method }}
+                                        </td>
+                                        <td class="align-right">
+                                            <button class="link-btn"><i class="fas fa-receipt"></i> Reçu</button>
+                                            <button class="link-btn"><i class="fas fa-print"></i> Imprimer</button>
+                                        </td>
+                                    </tr>
+                                {% endfor %}
+                            {% else %}
+                                <tr>
+                                    <td colspan="7" style="text-align: center; padding: 40px;">
+                                        <i class="fas fa-shopping-bag" style="font-size: 48px; color: #ccc; margin-bottom: 16px;"></i>
+                                        <p style="color: #999;">Aucune commande trouvée</p>
                                     </td>
                                 </tr>
-                            {% endfor %}
+                            {% endif %}
                         </tbody>
                     </table>
                 </div>

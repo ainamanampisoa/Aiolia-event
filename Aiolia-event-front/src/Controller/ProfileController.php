@@ -52,9 +52,32 @@ class ProfileController extends AbstractController
     }
 
     #[Route('/profile/history', name: 'profile_history')]
-    public function history(): Response
+    public function history(Request $request): Response
     {
-        return $this->render('profile/history.html.twig');
+        $session = $request->getSession();
+        if (!$session->isStarted()) {
+            $session->start();
+        }
+
+        $sessionUser = $session->get('user');
+        $isAuthenticated = is_array($sessionUser) && isset($sessionUser['id']);
+
+        if (!$isAuthenticated) {
+            return $this->redirectToRoute('login');
+        }
+
+        $userId = (int) $sessionUser['id'];
+        
+        // Récupérer les commandes de l'utilisateur
+        $orders = $this->fetchUserOrders($userId);
+        
+        // Calculer les statistiques
+        $stats = $this->calculatePurchaseStats($userId, $orders);
+
+        return $this->render('profile/history.html.twig', [
+            'orders' => $orders,
+            'stats' => $stats,
+        ]);
     }
 
     #[Route('/profile/wallet', name: 'profile_wallet')]
@@ -439,9 +462,43 @@ class ProfileController extends AbstractController
     }
 
     #[Route('/profile/stats', name: 'profile_stats')]
-    public function stats(): Response
+    public function stats(Request $request): Response
     {
-        return $this->render('profile/stats.html.twig');
+        $session = $request->getSession();
+        if (!$session->isStarted()) {
+            $session->start();
+        }
+
+        $sessionUser = $session->get('user');
+        $isAuthenticated = is_array($sessionUser) && isset($sessionUser['id']);
+
+        if (!$isAuthenticated) {
+            return $this->redirectToRoute('login');
+        }
+
+        $userId = (int) $sessionUser['id'];
+        
+        // Récupérer les statistiques
+        $stats = $this->fetchUserStatistics($userId);
+        
+        // Récupérer les dépenses mensuelles
+        $monthlyExpenses = $this->fetchMonthlyExpenses($userId);
+        
+        // Calculer la valeur maximale pour le graphique
+        $maxExpense = 0;
+        if (!empty($monthlyExpenses)) {
+            $maxExpense = max(array_column($monthlyExpenses, 'total_raw'));
+        }
+        
+        // Récupérer la répartition par type d'événement
+        $eventTypeDistribution = $this->fetchEventTypeDistribution($userId);
+
+        return $this->render('profile/stats.html.twig', [
+            'stats' => $stats,
+            'monthlyExpenses' => $monthlyExpenses,
+            'maxExpense' => $maxExpense,
+            'eventTypeDistribution' => $eventTypeDistribution,
+        ]);
     }
 
     /**
@@ -812,9 +869,36 @@ class ProfileController extends AbstractController
     }
 
     #[Route('/profile/financial-history', name: 'profile_financial')]
-    public function financialHistory(): Response
+    public function financialHistory(Request $request): Response
     {
-        return $this->render('profile/financial.html.twig');
+        $session = $request->getSession();
+        if (!$session->isStarted()) {
+            $session->start();
+        }
+
+        $sessionUser = $session->get('user');
+        $isAuthenticated = is_array($sessionUser) && isset($sessionUser['id']);
+
+        if (!$isAuthenticated) {
+            return $this->redirectToRoute('login');
+        }
+
+        $userId = (int) $sessionUser['id'];
+        
+        // Récupérer l'historique financier
+        $financialData = $this->fetchFinancialHistory($userId);
+        
+        // Récupérer les dépenses mensuelles
+        $monthly = $this->fetchMonthlyFinancialData($userId);
+        
+        // Récupérer la répartition des méthodes de paiement
+        $paymentMethods = $this->fetchPaymentMethodDistribution($userId);
+
+        return $this->render('profile/financial.html.twig', [
+            'financialData' => $financialData,
+            'monthly' => $monthly,
+            'paymentMethods' => $paymentMethods,
+        ]);
     }
 
     #[Route('/profile/ticket-chance', name: 'profile_ticket_chance')]
@@ -1048,5 +1132,337 @@ class ProfileController extends AbstractController
 
         // Limiter à 10 activités
         return array_slice($activities, 0, 10);
+    }
+
+    /**
+     * Récupère les commandes de l'utilisateur avec leurs détails.
+     */
+    private function fetchUserOrders(int $userId): array
+    {
+        $sql = <<<SQL
+            SELECT 
+                o.id,
+                o.status,
+                o.total_amount,
+                o.discount_amount,
+                o.currency,
+                o.promotion_code,
+                o.created_at,
+                o.updated_at,
+                COUNT(DISTINCT oi.id) as items_count,
+                SUM(oi.quantity) as total_tickets,
+                STRING_AGG(DISTINCT e.title, ', ') as event_titles,
+                STRING_AGG(DISTINCT e.starts_at::text, ', ') as event_dates,
+                MAX(tp.provider) as payment_method,
+                MAX(tp.status) as payment_status
+            FROM aiolia.orders o
+            LEFT JOIN aiolia.order_items oi ON oi.order_id = o.id
+            LEFT JOIN aiolia.ticket_types tt ON tt.id = oi.ticket_type_id
+            LEFT JOIN aiolia.events e ON e.id = tt.event_id
+            LEFT JOIN aiolia.ticket_invoices ti ON ti.order_id = o.id
+            LEFT JOIN aiolia.ticket_payments tp ON tp.invoice_id = ti.id
+            WHERE o.user_id = :user_id
+            GROUP BY o.id, o.status, o.total_amount, o.discount_amount, o.currency, 
+                     o.promotion_code, o.created_at, o.updated_at
+            ORDER BY o.created_at DESC
+        SQL;
+
+        $rows = $this->connection->executeQuery($sql, ['user_id' => $userId])->fetchAllAssociative();
+
+        return array_map(function (array $row): array {
+            $status = $row['status'];
+            $statusLabels = [
+                'pending' => 'En attente',
+                'awaiting_payment' => 'En attente de paiement',
+                'paid' => 'Payée',
+                'cancelled' => 'Annulée',
+                'refunded' => 'Remboursée',
+                'failed' => 'Échouée',
+            ];
+
+            $paymentMethodLabels = [
+                'orange' => 'Orange Money',
+                'airtel' => 'Airtel Money',
+                'telma' => 'Telma',
+                'bank_transfer' => 'Virement bancaire',
+            ];
+
+            $eventDates = !empty($row['event_dates']) ? explode(', ', $row['event_dates']) : [];
+            $firstEventDate = !empty($eventDates) ? new \DateTimeImmutable($eventDates[0]) : null;
+
+            return [
+                'id' => (int) $row['id'],
+                'code' => 'CMD-' . str_pad((string) $row['id'], 6, '0', STR_PAD_LEFT),
+                'title' => $row['event_titles'] ?? 'Événement',
+                'date' => $firstEventDate ? $firstEventDate->format('d F Y') : '',
+                'hour' => $firstEventDate ? $firstEventDate->format('H:i') : '',
+                'status' => $statusLabels[$status] ?? ucfirst($status),
+                'status_key' => $status,
+                'amount' => number_format((float) $row['total_amount'], 0, ',', ' ') . ' MGA',
+                'amount_raw' => (float) $row['total_amount'],
+                'method' => $paymentMethodLabels[$row['payment_method'] ?? ''] ?? 'Non spécifié',
+                'tickets' => (int) ($row['total_tickets'] ?? 0),
+                'items_count' => (int) ($row['items_count'] ?? 0),
+                'created_at' => new \DateTimeImmutable($row['created_at']),
+            ];
+        }, $rows);
+    }
+
+    /**
+     * Calcule les statistiques d'achat de l'utilisateur.
+     */
+    private function calculatePurchaseStats(int $userId, array $orders): array
+    {
+        $confirmedOrders = array_filter($orders, fn($o) => $o['status_key'] === 'paid');
+        $refundedOrders = array_filter($orders, fn($o) => $o['status_key'] === 'refunded');
+        
+        $totalSpent = array_sum(array_column($confirmedOrders, 'amount_raw'));
+        $totalRefunded = array_sum(array_column($refundedOrders, 'amount_raw'));
+        $totalTickets = array_sum(array_column($confirmedOrders, 'tickets'));
+        
+        // Compter les billets VIP (approximation basée sur le montant)
+        $vipTickets = 0;
+        foreach ($confirmedOrders as $order) {
+            if ($order['amount_raw'] > 200000) { // Si montant élevé, probablement VIP
+                $vipTickets += (int) ($order['tickets'] * 0.3); // Estimation 30% VIP
+            }
+        }
+
+        return [
+            'total_spent' => number_format($totalSpent, 0, ',', ' ') . ' MGA',
+            'total_spent_raw' => $totalSpent,
+            'confirmed_orders' => count($confirmedOrders),
+            'total_tickets' => $totalTickets,
+            'vip_tickets' => $vipTickets,
+            'refunded_count' => count($refundedOrders),
+            'refunded_amount' => number_format($totalRefunded, 0, ',', ' ') . ' MGA',
+            'average_cart' => count($confirmedOrders) > 0 
+                ? number_format($totalSpent / count($confirmedOrders), 0, ',', ' ') . ' MGA'
+                : '0 MGA',
+        ];
+    }
+
+    /**
+     * Récupère les statistiques personnelles de l'utilisateur.
+     */
+    private function fetchUserStatistics(int $userId): array
+    {
+        $sql = <<<SQL
+            SELECT 
+                COUNT(DISTINCT t.id) as total_tickets,
+                COUNT(DISTINCT o.id) as total_orders,
+                COUNT(DISTINCT e.id) as unique_events,
+                SUM(CASE WHEN o.status = 'paid' THEN o.total_amount ELSE 0 END) as total_spent,
+                AVG(CASE WHEN o.status = 'paid' THEN o.total_amount ELSE NULL END) as avg_cart
+            FROM aiolia.orders o
+            LEFT JOIN aiolia.order_items oi ON oi.order_id = o.id
+            LEFT JOIN aiolia.tickets t ON t.order_item_id = oi.id
+            LEFT JOIN aiolia.ticket_types tt ON tt.id = oi.ticket_type_id
+            LEFT JOIN aiolia.events e ON e.id = tt.event_id
+            WHERE o.user_id = :user_id
+        SQL;
+
+        $row = $this->connection->executeQuery($sql, ['user_id' => $userId])->fetchAssociative();
+
+        if (!$row) {
+            return [
+                'total_tickets' => 0,
+                'total_spent' => 0,
+                'unique_events' => 0,
+                'avg_cart' => 0,
+            ];
+        }
+
+        $totalSpent = (float) ($row['total_spent'] ?? 0);
+        $avgCart = (float) ($row['avg_cart'] ?? 0);
+
+        return [
+            'total_tickets' => (int) ($row['total_tickets'] ?? 0),
+            'total_spent' => number_format($totalSpent, 0, ',', ' ') . ' MGA',
+            'total_spent_raw' => $totalSpent,
+            'unique_events' => (int) ($row['unique_events'] ?? 0),
+            'avg_cart' => number_format($avgCart, 0, ',', ' ') . ' MGA',
+            'total_orders' => (int) ($row['total_orders'] ?? 0),
+        ];
+    }
+
+    /**
+     * Récupère les dépenses mensuelles de l'utilisateur.
+     */
+    private function fetchMonthlyExpenses(int $userId): array
+    {
+        $sql = <<<SQL
+            SELECT 
+                TO_CHAR(o.created_at, 'Month YYYY') as month_name,
+                TO_CHAR(o.created_at, 'YYYY-MM') as month_key,
+                SUM(o.total_amount) as total
+            FROM aiolia.orders o
+            WHERE o.user_id = :user_id 
+              AND o.status = 'paid'
+              AND o.created_at >= NOW() - INTERVAL '6 months'
+            GROUP BY TO_CHAR(o.created_at, 'Month YYYY'), TO_CHAR(o.created_at, 'YYYY-MM')
+            ORDER BY month_key DESC
+            LIMIT 6
+        SQL;
+
+        $rows = $this->connection->executeQuery($sql, ['user_id' => $userId])->fetchAllAssociative();
+
+        return array_map(function (array $row): array {
+            return [
+                'month' => trim($row['month_name']),
+                'total' => number_format((float) $row['total'], 0, ',', ' ') . ' MGA',
+                'total_raw' => (float) $row['total'],
+            ];
+        }, $rows);
+    }
+
+    /**
+     * Récupère la répartition par type d'événement.
+     */
+    private function fetchEventTypeDistribution(int $userId): array
+    {
+        $sql = <<<SQL
+            SELECT 
+                COALESCE(ec.label, 'Autres') as category,
+                COUNT(DISTINCT o.id) as order_count,
+                SUM(o.total_amount) as total_amount
+            FROM aiolia.orders o
+            JOIN aiolia.order_items oi ON oi.order_id = o.id
+            JOIN aiolia.ticket_types tt ON tt.id = oi.ticket_type_id
+            JOIN aiolia.events e ON e.id = tt.event_id
+            LEFT JOIN aiolia.event_categories ec ON ec.id = e.primary_category_id
+            WHERE o.user_id = :user_id 
+              AND o.status = 'paid'
+            GROUP BY ec.label
+            ORDER BY total_amount DESC
+        SQL;
+
+        $rows = $this->connection->executeQuery($sql, ['user_id' => $userId])->fetchAllAssociative();
+
+        $total = array_sum(array_column($rows, 'total_amount'));
+
+        return array_map(function (array $row) use ($total): array {
+            $percentage = $total > 0 ? round((float) $row['total_amount'] / $total * 100) : 0;
+            return [
+                'category' => $row['category'],
+                'percentage' => $percentage,
+                'order_count' => (int) $row['order_count'],
+            ];
+        }, $rows);
+    }
+
+    /**
+     * Récupère l'historique financier détaillé.
+     */
+    private function fetchFinancialHistory(int $userId): array
+    {
+        // Récupérer le total des dépenses de l'année en cours
+        $sql = <<<SQL
+            SELECT 
+                SUM(CASE WHEN o.status = 'paid' THEN o.total_amount ELSE 0 END) as total_spent,
+                SUM(CASE WHEN o.status = 'refunded' THEN o.total_amount ELSE 0 END) as total_refunded,
+                COUNT(CASE WHEN o.status = 'refunded' THEN 1 END) as refund_count
+            FROM aiolia.orders o
+            WHERE o.user_id = :user_id
+              AND EXTRACT(YEAR FROM o.created_at) = EXTRACT(YEAR FROM NOW())
+        SQL;
+
+        $row = $this->connection->executeQuery($sql, ['user_id' => $userId])->fetchAssociative();
+
+        // Récupérer le solde du wallet
+        $walletSql = <<<SQL
+            SELECT balance, points_balance
+            FROM aiolia.wallets
+            WHERE user_id = :user_id
+            LIMIT 1
+        SQL;
+
+        $walletRow = $this->connection->executeQuery($walletSql, ['user_id' => $userId])->fetchAssociative();
+
+        return [
+            'total_spent' => number_format((float) ($row['total_spent'] ?? 0), 0, ',', ' ') . ' MGA',
+            'total_refunded' => number_format((float) ($row['total_refunded'] ?? 0), 0, ',', ' ') . ' MGA',
+            'refund_count' => (int) ($row['refund_count'] ?? 0),
+            'wallet_balance' => number_format((float) ($walletRow['balance'] ?? 0), 0, ',', ' ') . ' MGA',
+            'wallet_points' => (int) ($walletRow['points_balance'] ?? 0),
+        ];
+    }
+
+    /**
+     * Récupère les données financières mensuelles.
+     */
+    private function fetchMonthlyFinancialData(int $userId): array
+    {
+        $sql = <<<SQL
+            SELECT 
+                TO_CHAR(o.created_at, 'Month') as month_name,
+                TO_CHAR(o.created_at, 'YYYY-MM') as month_key,
+                SUM(o.total_amount) as total
+            FROM aiolia.orders o
+            WHERE o.user_id = :user_id 
+              AND o.status = 'paid'
+              AND o.created_at >= NOW() - INTERVAL '6 months'
+            GROUP BY TO_CHAR(o.created_at, 'Month'), TO_CHAR(o.created_at, 'YYYY-MM')
+            ORDER BY month_key DESC
+            LIMIT 6
+        SQL;
+
+        $rows = $this->connection->executeQuery($sql, ['user_id' => $userId])->fetchAllAssociative();
+
+        return array_map(function (array $row): array {
+            return [
+                'month' => trim($row['month_name']),
+                'total' => number_format((float) $row['total'], 0, ',', ' ') . ' MGA',
+            ];
+        }, $rows);
+    }
+
+    /**
+     * Récupère la répartition des méthodes de paiement.
+     */
+    private function fetchPaymentMethodDistribution(int $userId): array
+    {
+        $sql = <<<SQL
+            SELECT 
+                tp.provider,
+                COUNT(*) as count,
+                SUM(tp.amount) as total_amount
+            FROM aiolia.ticket_payments tp
+            JOIN aiolia.ticket_invoices ti ON ti.id = tp.invoice_id
+            JOIN aiolia.orders o ON o.id = ti.order_id
+            WHERE o.user_id = :user_id
+              AND tp.status = 'paid'
+            GROUP BY tp.provider
+        SQL;
+
+        $rows = $this->connection->executeQuery($sql, ['user_id' => $userId])->fetchAllAssociative();
+
+        $total = array_sum(array_column($rows, 'total_amount'));
+        $providerLabels = [
+            'orange' => 'Orange Money',
+            'airtel' => 'Airtel Money',
+            'telma' => 'M-Vola',
+        ];
+
+        $distribution = [];
+        foreach ($rows as $row) {
+            $provider = $row['provider'];
+            $label = $providerLabels[$provider] ?? 'Autres';
+            $amount = (float) $row['total_amount'];
+            $percentage = $total > 0 ? round($amount / $total * 100) : 0;
+
+            if (!isset($distribution[$label])) {
+                $distribution[$label] = [
+                    'label' => $label,
+                    'percentage' => 0,
+                    'count' => 0,
+                ];
+            }
+
+            $distribution[$label]['percentage'] += $percentage;
+            $distribution[$label]['count'] += (int) $row['count'];
+        }
+
+        return array_values($distribution);
     }
 }

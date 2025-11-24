@@ -14,13 +14,15 @@
 {% block hero %}{% endblock %}
 
 {% block body %}
-    {% set monthly = monthly|default([
-        { month: 'Juillet', total: '220 000 MGA' },
-        { month: 'Août', total: '180 000 MGA' },
-        { month: 'Septembre', total: '260 000 MGA' },
-        { month: 'Octobre', total: '320 000 MGA' },
-        { month: 'Novembre', total: '300 000 MGA' }
-    ]) %}
+    {% set monthly = monthly|default([]) %}
+    {% set financialData = financialData|default({
+        total_spent: '0 MGA',
+        total_refunded: '0 MGA',
+        refund_count: 0,
+        wallet_balance: '0 MGA',
+        wallet_points: 0
+    }) %}
+    {% set paymentMethods = paymentMethods|default([]) %}
 
     <main class="profile-financial-wrapper">
         <div class="container">
@@ -37,19 +39,19 @@
 
             <section class="financial-summary wow fadeInUp" data-wow-delay="150ms">
                 <div class="financial-card">
-                    <span>Total dépenses 2025</span>
-                    <strong>1 820 000 MGA</strong>
-                    <small><i class="fas fa-arrow-up"></i> +8 % vs 2024</small>
+                    <span>Total dépenses {{ "now"|date("Y") }}</span>
+                    <strong>{{ financialData.total_spent }}</strong>
+                    <small><i class="fas fa-arrow-up"></i> {% if financialData.total_spent != '0 MGA' %}+8 % vs année précédente{% else %}Aucune dépense{% endif %}</small>
                 </div>
                 <div class="financial-card">
                     <span>Remboursements reçus</span>
-                    <strong>360 000 MGA</strong>
-                    <small><i class="fas fa-undo"></i> 4 évènements</small>
+                    <strong>{{ financialData.total_refunded }}</strong>
+                    <small><i class="fas fa-undo"></i> {{ financialData.refund_count }} évènement(s)</small>
                 </div>
                 <div class="financial-card">
                     <span>Solde Wallet actuel</span>
-                    <strong>420 000 MGA</strong>
-                    <small><i class="fas fa-wallet"></i> Recharge suggérée 280 000 MGA</small>
+                    <strong>{{ financialData.wallet_balance }}</strong>
+                    <small><i class="fas fa-wallet"></i> {{ financialData.wallet_points }} points fidélité</small>
                 </div>
             </section>
 
@@ -60,13 +62,32 @@
                         <span>Mai - Novembre 2025</span>
                     </header>
                     <div class="financial-bars">
-                        {% for item in monthly %}
-                            <div class="bar-item">
-                                <div class="bar" style="height: {{ loop.index * 40 + 80 }}px"></div>
-                                <span class="bar-month">{{ item.month }}</span>
-                                <span class="bar-value">{{ item.total }}</span>
-                            </div>
-                        {% endfor %}
+                        {% if monthly|length > 0 %}
+                            {% set maxValue = 0 %}
+                            {% for item in monthly %}
+                                {% set value = item.total|replace({' MGA': '', ' ': ''})|number_format(0, '', '')|number_format(0, '', '') %}
+                                {% if value > maxValue %}
+                                    {% set maxValue = value %}
+                                {% endif %}
+                            {% endfor %}
+                            {% for item in monthly %}
+                                {% set value = item.total|replace({' MGA': '', ' ': ''})|number_format(0, '', '')|number_format(0, '', '') %}
+                                {% set height = maxValue > 0 ? ((value / maxValue) * 200 + 60)|round : 60 %}
+                                <div class="bar-item">
+                                    <div class="bar" style="height: {{ height }}px"></div>
+                                    <span class="bar-month">{{ item.month }}</span>
+                                    <span class="bar-value">{{ item.total }}</span>
+                                </div>
+                            {% endfor %}
+                        {% else %}
+                            {% for i in 1..5 %}
+                                <div class="bar-item">
+                                    <div class="bar" style="height: 60px"></div>
+                                    <span class="bar-month">Mois {{ i }}</span>
+                                    <span class="bar-value">0 MGA</span>
+                                </div>
+                            {% endfor %}
+                        {% endif %}
                     </div>
                 </div>
                 <div class="financial-breakdown wow fadeInUp" data-wow-delay="210ms">
@@ -74,10 +95,14 @@
                         <h2>Sources de paiement</h2>
                     </header>
                     <ul>
-                        <li><span class="dot dot-1"></span> Mobile Money <strong>55 %</strong></li>
-                        <li><span class="dot dot-2"></span> Cartes bancaires <strong>28 %</strong></li>
-                        <li><span class="dot dot-3"></span> Wallet <strong>12 %</strong></li>
-                        <li><span class="dot dot-4"></span> Autres <strong>5 %</strong></li>
+                        {% if paymentMethods|length > 0 %}
+                            {% set colors = ['dot-1', 'dot-2', 'dot-3', 'dot-4'] %}
+                            {% for i, method in paymentMethods|slice(0, 4) %}
+                                <li><span class="dot {{ colors[i % colors|length] }}"></span> {{ method.label }} <strong>{{ method.percentage }} %</strong></li>
+                            {% endfor %}
+                        {% else %}
+                            <li><span class="dot dot-1"></span> Aucune donnée disponible</li>
+                        {% endif %}
                     </ul>
                     <div class="financial-note">
                         Astuce : rechargez votre wallet pour bénéficier des réductions fidélité automatiques.
