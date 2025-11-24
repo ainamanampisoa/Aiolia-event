@@ -16,7 +16,7 @@
 .stats-header h1 {
     margin: 0;
     font-size: 28px;
-    color: #10398C;
+    color: #1F2D3D;
 }
 
 .stats-header p {
@@ -46,19 +46,19 @@
 
 .btn-outline {
     background: transparent;
-    border-color: rgba(16, 57, 140, 0.24);
-    color: #10398C;
+    border-color: rgba(31, 45, 61, 0.24);
+    color: #1F2D3D;
 }
 
 .btn-solid {
-    background: linear-gradient(135deg, #10398C, #0B2B6A);
+    background: linear-gradient(135deg, #1F2D3D, #152536);
     color: #ffffff;
 }
 
 .btn-outline:hover,
 .btn-solid:hover {
     transform: translateY(-1px);
-    box-shadow: 0 12px 25px -18px rgba(16, 57, 140, 0.45);
+    box-shadow: 0 12px 25px -18px rgba(31, 45, 61, 0.45);
 }
 
 .stats-cards {
@@ -147,7 +147,7 @@
 .chart-placeholder .bars span {
     flex: 1;
     border-radius: 12px 12px 0 0;
-    background: linear-gradient(180deg, rgba(16, 57, 140, 0.8), rgba(16, 57, 140, 0.45));
+    background: linear-gradient(180deg, rgba(31, 45, 61, 0.8), rgba(31, 45, 61, 0.45));
 }
 
 .chart-legend {
@@ -165,7 +165,7 @@
     width: 12px;
     height: 12px;
     border-radius: 50%;
-    background: rgba(16, 57, 140, 0.85);
+    background: rgba(31, 45, 61, 0.85);
     margin-right: 6px;
 }
 
@@ -192,7 +192,7 @@
     stroke-width: 6;
 }
 
-.slice-1 { stroke: #10398C; stroke-dasharray: 22 78; }
+.slice-1 { stroke: #1F2D3D; stroke-dasharray: 22 78; }
 .slice-2 { stroke: #27ae60; stroke-dasharray: 35 65; }
 
 .donut-hole {
@@ -208,7 +208,7 @@
     align-items: center;
     justify-content: center;
     font-weight: 700;
-    color: #10398C;
+    color: #1F2D3D;
 }
 
 .donut-value span {
@@ -231,7 +231,7 @@
     margin-right: 8px;
 }
 
-.dot-1 { background: #10398C; }
+.dot-1 { background: #1F2D3D; }
 .dot-2 { background: #27ae60; }
 .dot-3 { background: #f39c12; }
 .dot-4 { background: #8e44ad; }
@@ -283,8 +283,8 @@
 }
 
 .insight-tags span {
-    background: rgba(16, 57, 140, 0.08);
-    color: #10398C;
+    background: rgba(31, 45, 61, 0.08);
+    color: #1F2D3D;
     border-radius: 999px;
     padding: 6px 12px;
     font-weight: 600;

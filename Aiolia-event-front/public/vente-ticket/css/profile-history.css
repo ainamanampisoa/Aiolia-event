@@ -17,7 +17,7 @@
 .profile-history-header h1 {
     margin: 0;
     font-size: 28px;
-    color: #10398C;
+    color: #1F2D3D;
 }
 
 .profile-history-header p {
@@ -48,23 +48,23 @@
 
 .btn-outline {
     background: transparent;
-    border-color: rgba(16, 57, 140, 0.24);
-    color: #10398C;
+    border-color: rgba(31, 45, 61, 0.24);
+    color: #1F2D3D;
 }
 
 .btn-outline:hover {
     transform: translateY(-1px);
-    box-shadow: 0 8px 16px -14px rgba(16, 57, 140, 0.5);
+    box-shadow: 0 8px 16px -14px rgba(31, 45, 61, 0.5);
 }
 
 .btn-solid {
-    background: linear-gradient(135deg, #10398C, #0B2B6A);
+    background: linear-gradient(135deg, #1F2D3D, #152536);
     color: #ffffff;
 }
 
 .btn-solid:hover {
     transform: translateY(-1px);
-    box-shadow: 0 12px 24px -18px rgba(16, 57, 140, 0.5);
+    box-shadow: 0 12px 24px -18px rgba(31, 45, 61, 0.5);
 }
 
 .profile-history-summary {
@@ -119,10 +119,10 @@
     display: flex;
     align-items: center;
     gap: 10px;
-    background: rgba(16, 57, 140, 0.06);
+    background: rgba(31, 45, 61, 0.06);
     padding: 10px 16px;
     border-radius: 12px;
-    border: 1px solid rgba(16, 57, 140, 0.12);
+    border: 1px solid rgba(31, 45, 61, 0.12);
     flex: 1;
 }
 
@@ -143,14 +143,14 @@
     border: none;
     border-radius: 999px;
     padding: 8px 16px;
-    background: rgba(16, 57, 140, 0.08);
-    color: #10398C;
+    background: rgba(31, 45, 61, 0.08);
+    color: #1F2D3D;
     font-weight: 600;
     cursor: pointer;
 }
 
 .history-filters .tag.active {
-    background: linear-gradient(135deg, #10398C, #0B2B6A);
+    background: linear-gradient(135deg, #1F2D3D, #152536);
     color: #ffffff;
 }
 
@@ -168,7 +168,7 @@
 .history-table-wrapper td {
     padding: 14px 12px;
     text-align: left;
-    border-bottom: 1px solid rgba(16, 57, 140, 0.06);
+    border-bottom: 1px solid rgba(31, 45, 61, 0.06);
     font-size: 14px;
 }
 
@@ -180,7 +180,7 @@
 }
 
 .history-row:nth-child(even) {
-    background: rgba(16, 57, 140, 0.03);
+    background: rgba(31, 45, 61, 0.03);
 }
 
 .history-row.is-confirmed .order-status {
@@ -214,7 +214,7 @@
 .link-btn {
     border: none;
     background: transparent;
-    color: #10398C;
+    color: #1F2D3D;
     font-weight: 600;
     font-size: 13px;
     cursor: pointer;
