@@ -1,6 +1,6 @@
 {% extends 'base.html.twig' %}
 
-{% block title %}Accueil - Vente tickets{% endblock %}
+{% block title %}{{ 'home.page_title'|trans }}{% endblock %}
 
 {% block stylesheets %}
         <link rel="stylesheet" type="text/css" href="{{ asset('vente-ticket/css/animate.min.css') }}">
@@ -18,7 +18,7 @@
 
             <section class="sec-event">
                 <div class="container">
-                    <h2 class="wow fadeIn" data-wow-delay="300ms">Evènements</h2>
+                    <h2 class="wow fadeIn" data-wow-delay="300ms">{{ 'home.events_title'|trans }}</h2>
                     <div class="lst-event">
                         {% if events is not empty %}
                             {% for event in events %}
@@ -76,23 +76,28 @@
                                                 {% endif %}
                                                 {% if location_parts is not empty %}
                                                     <div class="adresse">
-                                                        Lieu : {{ location_parts|join(', ') }}
+                                                        {{ 'events.location_prefix'|trans }} {{ location_parts|join(', ') }}
                                                     </div>
                                                 {% endif %}
                                                 <div class="tarif">
                                                     {% if event.min_price is not null %}
                                                         {% if event.max_price is not null and event.max_price > event.min_price %}
-                                                            Tarifs : {{ event.min_price|number_format(0, '.', ' ') }} MGA - {{ event.max_price|number_format(0, '.', ' ') }} MGA
+                                                            {{ 'events.price_range'|trans({
+                                                                '{min}': event.min_price|number_format(0, '.', ' '),
+                                                                '{max}': event.max_price|number_format(0, '.', ' ')
+                                                            })|raw }}
                                                         {% else %}
-                                                            Tarif : {{ event.min_price|number_format(0, '.', ' ') }} MGA
+                                                            {{ 'events.price_single'|trans({
+                                                                '{price}': event.min_price|number_format(0, '.', ' ')
+                                                            })|raw }}
                                                         {% endif %}
                                                     {% else %}
-                                                        Tarifs : non communiqué
+                                                        {{ 'events.price_not_set'|trans }}
                                                     {% endif %}
                                                 </div>
                                                 <div class="blcBtn">
-                                                    <a href="{{ event_url }}" class="btn ticket">Acheter un ticket</a>
-                                                    <a href="{{ event_url }}" class="btn details">détails</a>
+                                                    <a href="{{ event_url }}" class="btn ticket">{{ 'events.buy_ticket'|trans }}</a>
+                                                    <a href="{{ event_url }}" class="btn details">{{ 'events.details'|trans }}</a>
                                                 </div>
                                     </div>
                                     
@@ -106,7 +111,7 @@
                                 </div>
                             {% endfor %}
                         {% else %}
-                            <p class="text-center">Aucun événement disponible pour le moment.</p>
+                            <p class="text-center">{{ 'home.no_events'|trans }}</p>
                         {% endif %}
                     </div>
                     <div class="pagination">
@@ -121,34 +126,34 @@
                     </div>
 
                     <div class="blcBtn-bot text-center">
-                        <a href="#" class="btn" title="Voir tous les évènements">voir tous les évènements</a>
+                        <a href="#" class="btn" title="{{ 'home.see_all_events'|trans }}">{{ 'home.see_all_events'|trans }}</a>
                     </div>
                 </div>
             </section>
 
             <section class="sec-bandeau">
                 <div class="container">
-                    <h2 class="wow fadeIn" data-wow-delay="300ms">Comment acheter votre ticket ?</h2>
+                    <h2 class="wow fadeIn" data-wow-delay="300ms">{{ 'home.how_to_buy_title'|trans }}</h2>
                     <div class="lst-step d-flex justify-content-center wow fadeInUp" data-wow-delay="300ms">
                         <div class="item">
                             <div class="inner">
                                 <div class="ico"><img src="{{ asset('vente-ticket/images/ico1.svg') }}"></div>
-                                <h3><strong>01</strong> Réservez vos billets</h3>
-                                <p>Choisissez l’événement et le nombre de places souhaitées directement en ligne.</p>
+                                <h3><strong>01</strong> {{ 'home.how_to_buy_step1_title'|trans }}</h3>
+                                <p>{{ 'home.how_to_buy_step1_desc'|trans }}</p>
                             </div>
                         </div>
                         <div class="item">
                             <div class="inner">
                                 <div class="ico"><img src="{{ asset('vente-ticket/images/ico2.svg') }}"></div>
-                                <h3><strong>02</strong> Confirmez la réservation</h3>
-                                <p>Remplissez vos informations et vérifiez les détails avant validation.</p>
+                                <h3><strong>02</strong> {{ 'home.how_to_buy_step2_title'|trans }}</h3>
+                                <p>{{ 'home.how_to_buy_step2_desc'|trans }}</p>
                             </div>
                         </div>
                         <div class="item">
                             <div class="inner">
                                 <div class="ico"><img src="{{ asset('vente-ticket/images/ico3.svg') }}"></div>
-                                <h3><strong>03</strong> Choisissez le mode de paiement</h3>
-                                <p>Paiement sécurisé par mobile money ou sur place.</p>
+                                <h3><strong>03</strong> {{ 'home.how_to_buy_step3_title'|trans }}</h3>
+                                <p>{{ 'home.how_to_buy_step3_desc'|trans }}</p>
                             </div>
                         </div>
                     </div>
@@ -157,9 +162,9 @@
 
             <section class="sec-calendar">
                 <div class="container">
-                    <h2 class="wow fadeIn" data-wow-delay="300ms">Calendrier des évènements</h2>
+                    <h2 class="wow fadeIn" data-wow-delay="300ms">{{ 'home.calendar_title'|trans }}</h2>
                     <div class="txt wow fadeInUp" data-wow-delay="400ms">
-                        <p>Consultez la liste de nos prochains événements et ne manquez aucun rendez-vous à venir.</p>
+                        <p>{{ 'home.calendar_desc'|trans }}</p>
                     </div>
 
                     <div class="calendar wow fadeInUp" data-wow-delay="400ms">
@@ -172,7 +177,7 @@
                         </div>
                         <div class="col">
                             <div class="blcRight">
-                                <h3>Prochains évènements</h3>
+                                <h3>{{ 'home.upcoming_events'|trans }}</h3>
                                 <div class="lst-pro-event">
                                     {% if events is not empty %}
                                         {% for event in events|slice(0, 4) %}
@@ -198,7 +203,7 @@
                                             </div>
                                         {% endfor %}
                                     {% else %}
-                                        <p class="text-center">Aucun événement à afficher pour le moment.</p>
+                                        <p class="text-center">{{ 'events.calendar_no_events'|trans }}</p>
                                     {% endif %}
                                 </div>
                             </div>
@@ -209,13 +214,13 @@
 
             <section class="sec-bandeau-v2">
                 <div class="container text-center wow fadeIn" data-wow-delay="300ms">
-                    <h2 class="wow fadeIn" data-wow-delay="300ms">Vous êtes un organisateur ?</h2>
-                    <div class="s-titre">Publiez vos événements et touchez un large public en quelques clics.</div>
-                    <p>Inscrivez-vous pour promouvoir vos concerts, festivals, conférences ou spectacles. Gagnez en visibilité et gérez facilement vos réservations en ligne.</p>
-                    <h4>Je souhaite créer un évènement</h4>
+                    <h2 class="wow fadeIn" data-wow-delay="300ms">{{ 'home.organizer_banner_title'|trans }}</h2>
+                    <div class="s-titre">{{ 'home.organizer_banner_subtitle'|trans }}</div>
+                    <p>{{ 'home.organizer_banner_desc'|trans }}</p>
+                    <h4>{{ 'home.organizer_banner_cta_title'|trans }}</h4>
                     <div class="blcBtn d-flex justify-content-center">
-                        <a href="#" class="btn" title="S'inscrire">S'inscrire</a>
-                        <a href="#" class="btn btn-secondary" title="Déjà inscrit">Déjà inscrit</a>
+                        <a href="#" class="btn" title="{{ 'home.organizer_banner_cta_signup'|trans }}">{{ 'home.organizer_banner_cta_signup'|trans }}</a>
+                        <a href="#" class="btn btn-secondary" title="{{ 'home.organizer_banner_cta_already'|trans }}">{{ 'home.organizer_banner_cta_already'|trans }}</a>
                     </div>
                 </div>
             </section>
@@ -224,9 +229,9 @@
             <section class="sec-texte">
                 <div class="container d-flex">
                     <div class="left wow fadeInLeft" data-wow-delay="300ms">
-                        <h2>À propos</h2>
-                        <p>Notre plateforme simplifie la découverte, la création et la gestion d’événements. Que vous soyez spectateur ou organisateur, profitez d’un espace unique pour partager, réserver et vivre pleinement chaque expérience.</p>
-                        <a href="{{ path('about') }}" class="btn plus" title="Lire plus">lire plus</a>
+                        <h2>{{ 'home.about_title'|trans }}</h2>
+                        <p>{{ 'home.about_desc'|trans }}</p>
+                        <a href="{{ path('about') }}" class="btn plus" title="{{ 'home.about_read_more'|trans }}">{{ 'home.about_read_more'|trans }}</a>
                     </div>
 
                     <div class="right wow fadeInRight" data-wow-delay="300ms">
@@ -237,7 +242,7 @@
                                        <img src="{{ asset('vente-ticket/images/ico4.svg') }}">
                                    </div>
                                     <strong class="count percent" data-count="{{ stats.total_events ?? 0 }}">{{ (stats.total_events ?? 0)|number_format(0, '.', ' ') }}</strong>
-                                    <span>Evènements <br>crées</span>
+                                    <span>{{ 'home.stats_events'|trans|raw }}</span>
                                </div>
                            </div>
                            <div class="item">
@@ -246,7 +251,7 @@
                                        <img src="{{ asset('vente-ticket/images/ico5.svg') }}">
                                    </div>
                                     <strong class="count percent" data-count="{{ stats.tickets_sold ?? 0 }}">{{ (stats.tickets_sold ?? 0)|number_format(0, '.', ' ') }}</strong>
-                                    <span>Tickets <br>vendus</span>
+                                    <span>{{ 'home.stats_tickets'|trans|raw }}</span>
                                </div>
                            </div>
                            <div class="item">
@@ -255,7 +260,7 @@
                                        <img src="{{ asset('vente-ticket/images/ico6.svg') }}">
                                    </div>
                                     <strong class="count percent" data-count="{{ stats.organizers ?? 0 }}">{{ (stats.organizers ?? 0)|number_format(0, '.', ' ') }}</strong>
-                                    <span>Organisateurs <br>inscrits</span>
+                                    <span>{{ 'home.stats_organizers'|trans|raw }}</span>
                                </div>
                            </div>
 

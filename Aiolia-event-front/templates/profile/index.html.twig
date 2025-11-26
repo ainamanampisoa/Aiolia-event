@@ -1,6 +1,6 @@
 {% extends 'base.html.twig' %}
 
-{% block title %}Profil - Vente tickets{% endblock %}
+{% block title %}{{ 'profile.page_title'|trans }}{% endblock %}
 
 {% block stylesheets %}
     <link rel="stylesheet" type="text/css" href="{{ asset('vente-ticket/css/animate.min.css') }}">
@@ -32,15 +32,15 @@
                     </div>
                     <div class="profile-tags">
                         {# <span class="profile-tag"><i class="fas fa-crown"></i> Membre premium</span> #}
-                        <span class="profile-tag"><i class="fas fa-user-clock"></i> Depuis {{ memberSince }}</span>
+                        <span class="profile-tag"><i class="fas fa-user-clock"></i> {{ 'profile.member_since'|trans({'{year}': memberSince})|raw }}</span>
                     </div>
                     <div class="profile-actions">
                         <a href="{{ path('profile_settings') }}" class="profile-action" style="text-decoration: none; color: inherit; display: flex; align-items: center; justify-content: space-between; width: 100%;">
-                            <span><i class="fas fa-user-edit"></i> Modifier mes informations</span>
+                            <span><i class="fas fa-user-edit"></i> {{ 'profile.card_edit_profile'|trans }}</span>
                             <i class="fas fa-chevron-right"></i>
                         </a>
                         <a href="{{ path('profile_settings') }}#notifications" class="profile-action" style="text-decoration: none; color: inherit; display: flex; align-items: center; justify-content: space-between; width: 100%;">
-                            <span><i class="fas fa-bell"></i> Préférences de notifications</span>
+                            <span><i class="fas fa-bell"></i> {{ 'profile.card_notifications_prefs'|trans }}</span>
                             <i class="fas fa-chevron-right"></i>
                         </a>
                     </div>
@@ -48,29 +48,29 @@
 
                 <section class="profile-main wow fadeInRight" data-wow-delay="200ms">
                     <div class="profile-section">
-                        <h3>Vue d'ensemble</h3>
+                        <h3>{{ 'profile.overview_title'|trans }}</h3>
                         <div class="profile-stats">
                             <div class="profile-stat">
-                                <span>Billets actifs</span>
+                                <span>{{ 'profile.stat_active_tickets'|trans }}</span>
                                 <strong>{{ stats.active_tickets|default(0)|number_format(0, ',', ' ') }}</strong>
                             </div>
                             <div class="profile-stat">
-                                <span>Évènements favoris</span>
+                                <span>{{ 'profile.stat_favorite_events'|trans }}</span>
                                 <strong>{{ stats.favorite_events|default(0)|number_format(0, ',', ' ') }}</strong>
                             </div>
                             <div class="profile-stat">
-                                <span>Panier en cours</span>
+                                <span>{{ 'profile.stat_cart_items'|trans }}</span>
                                 <strong>{{ stats.cart_items|default(0)|number_format(0, ',', ' ') }}</strong>
                             </div>
                             <div class="profile-stat">
-                                <span>Points fidélité</span>
+                                <span>{{ 'profile.stat_loyalty_points'|trans }}</span>
                                 <strong>{{ stats.loyalty_points|default(0)|number_format(0, ',', ' ') }}</strong>
                             </div>
                         </div>
                     </div>
 
                     <div class="profile-section">
-                        <h3>Activités récentes</h3>
+                        <h3>{{ 'profile.recent_activity_title'|trans }}</h3>
                         <div class="profile-timeline">
                             {% if activities is defined and activities|length > 0 %}
                                 {% for activity in activities %}
@@ -86,8 +86,8 @@
                                 <div class="profile-timeline-item">
                                     <div class="timeline-icon"><i class="fas fa-info-circle"></i></div>
                                     <div class="timeline-content">
-                                        <h4>Aucune activité récente</h4>
-                                        <div class="timeline-meta">Vos activités apparaîtront ici</div>
+                                        <h4>{{ 'profile.recent_activity_empty_title'|trans }}</h4>
+                                        <div class="timeline-meta">{{ 'profile.recent_activity_empty_desc'|trans }}</div>
                                     </div>
                                 </div>
                             {% endif %}
@@ -95,37 +95,37 @@
                     </div>
 
                     <div class="profile-section">
-                        <h3>Accès rapide</h3>
+                        <h3>{{ 'profile.quick_access_title'|trans }}</h3>
                         <div class="profile-grid-secondary">
                             <a href="{{ path('my_tickets') }}" class="profile-card-link">
                                 <i class="fas fa-layer-group"></i>
-                                <strong>Mes billets</strong>
-                                <span>Suivez vos évènements confirmés et téléchargez vos tickets.</span>
+                                <strong>{{ 'profile.quick_access_my_tickets_title'|trans }}</strong>
+                                <span>{{ 'profile.quick_access_my_tickets_desc'|trans }}</span>
                             </a>
                             <a href="{{ path('cart') }}" class="profile-card-link">
                                 <i class="fas fa-shopping-bag"></i>
-                                <strong>Mon panier</strong>
-                                <span>Validez vos réservations en attente et appliquez vos codes promo.</span>
+                                <strong>{{ 'profile.quick_access_cart_title'|trans }}</strong>
+                                <span>{{ 'profile.quick_access_cart_desc'|trans }}</span>
                             </a>
                             <a href="{{ path('profile_history') }}" class="profile-card-link">
                                 <i class="fas fa-history"></i>
-                                <strong>Historique d'achats</strong>
-                                <span>Retrouvez vos achats passés, factures et reçus.</span>
+                                <strong>{{ 'profile.quick_access_history_title'|trans }}</strong>
+                                <span>{{ 'profile.quick_access_history_desc'|trans }}</span>
                             </a>
                             <a href="{{ path('profile_wallet') }}" class="profile-card-link">
                                 <i class="fas fa-wallet"></i>
-                                <strong>Mon portefeuille</strong>
-                                <span>Consultez votre solde, vos coupons et vos avoirs disponibles.</span>
+                                <strong>{{ 'profile.quick_access_wallet_title'|trans }}</strong>
+                                <span>{{ 'profile.quick_access_wallet_desc'|trans }}</span>
                             </a>
                             <a href="{{ path('profile_favorites') }}" class="profile-card-link">
                                 <i class="fas fa-star"></i>
-                                <strong>Évènements favoris</strong>
-                                <span>Gérez les évènements mis de côté pour ne rien manquer.</span>
+                                <strong>{{ 'profile.quick_access_favorites_title'|trans }}</strong>
+                                <span>{{ 'profile.quick_access_favorites_desc'|trans }}</span>
                             </a>
                             <a href="{{ path('profile_settings') }}" class="profile-card-link">
                                 <i class="fas fa-cog"></i>
-                                <strong>Paramètres du compte</strong>
-                                <span>Mettre à jour vos informations et préférences de sécurité.</span>
+                                <strong>{{ 'profile.quick_access_settings_title'|trans }}</strong>
+                                <span>{{ 'profile.quick_access_settings_desc'|trans }}</span>
                             </a>
                         </div>
                     </div>

@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<html lang="fr" data-user-theme="{{ preferences.appearance.theme|default('light') }}">
+<html lang="{{ app.request.locale }}" data-user-theme="{{ preferences.appearance.theme|default('light') }}">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
@@ -574,7 +574,7 @@
 <body>
         {% set currentUser = app.session.get('user') %}
         {% set isAuthenticated = currentUser is not null %}
-        {% set profileName = 'Profil' %}
+        {% set profileName = 'common.profile'|trans %}
         {% if isAuthenticated and currentUser.username is defined and currentUser.username %}
             {% set profileName = currentUser.username %}
         {% elseif isAuthenticated and currentUser.email is defined and currentUser.email %}
@@ -587,8 +587,8 @@
                         <div class="head-top">
                             <a href="{{ path('home') }}" class="logo"><img src="{{ asset('vente-ticket/images/aiolia_event.png') }}" alt="Powered by"></a>
                             <form method="get" action="{{ path('events') }}" class="user-connected-search">
-                                <input type="search" name="q" placeholder="Rechercher un évènement">
-                                <button type="submit" title="Rechercher" aria-label="Rechercher">
+                                <input type="search" name="q" placeholder="{{ 'common.search_event'|trans }}">
+                                <button type="submit" title="{{ 'common.search'|trans }}" aria-label="{{ 'common.search'|trans }}">
                                     <svg viewBox="0 0 24 24" fill="none" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
                                         <circle cx="11" cy="11" r="7"></circle>
                                         <line x1="16.65" y1="16.65" x2="21" y2="21"></line>
@@ -608,27 +608,27 @@
                                 <nav class="menu">
                                     <ul>
                                         <li>
-                                            <a href="{{ path('events') }}" title="Evènements">évènements</a>
+                                            <a href="{{ path('events') }}" title="{{ 'common.events'|trans }}">{{ 'common.events'|trans }}</a>
                                         </li>
                                         <li>
-                                            <a href="{{ path('become_organizer') }}" title="Devenir organisateur">devenir organisateur</a>
+                                            <a href="{{ path('become_organizer') }}" title="{{ 'common.become_organizer'|trans }}">{{ 'common.become_organizer'|trans }}</a>
                                         </li>
                                         <li>
-                                            <a href="{{ path('contact') }}" title="Contact">contact</a>
+                                            <a href="{{ path('contact') }}" title="{{ 'common.contact'|trans }}">{{ 'common.contact'|trans }}</a>
                                         </li>
                                     </ul>
                                 </nav>
                             </div>
                             <div class="user-connected">
-                                <a href="{{ path('notifications') }}" title="Notifications" class="user-connected-link" style="position: relative;">
+                                <a href="{{ path('notifications') }}" title="{{ 'common.notifications'|trans }}" class="user-connected-link" style="position: relative;">
                                     <span class="icon-notifications"></span>
                                     <span id="notification-badge" style="display: none; position: absolute; top: -5px; right: -5px; background: rgb(230, 50, 50); color: white; border-radius: 50%; min-width: 18px; height: 18px; padding: 2px 4px; display: flex; align-items: center; justify-content: center; font-size: 11px; font-weight: bold; font-variant-numeric: tabular-nums;">0</span>
                                 </a>
-                                <a href="{{ path('profile_index') }}" title="Mon profil" class="user-connected-link profile-link">
+                                <a href="{{ path('profile_index') }}" title="{{ 'common.my_profile'|trans }}" class="user-connected-link profile-link">
                                     <span class="icon-profile"></span>
                                     {{ profileName }}
                                 </a>
-                                <button type="button" title="Menu" class="user-connected-menu" aria-expanded="false" aria-controls="userSecondarySidebar">
+                                <button type="button" title="{{ 'common.menu'|trans }}" class="user-connected-menu" aria-expanded="false" aria-controls="userSecondarySidebar">
                                     <span class="icon-menu"></span>
                                 </button>
                             </div>
@@ -650,18 +650,18 @@
                                 <nav class="menu">
                                     <ul>
                                         <li>
-                                            <a href="{{ path('events') }}" title="Evènements">évènements</a>
+                                            <a href="{{ path('events') }}" title="{{ 'common.events'|trans }}">{{ 'common.events'|trans }}</a>
                                         </li>
                                         <li>
-                                            <a href="{{ path('become_organizer') }}" title="Devenir organisateur">devenir organisateur</a>
+                                            <a href="{{ path('become_organizer') }}" title="{{ 'common.become_organizer'|trans }}">{{ 'common.become_organizer'|trans }}</a>
                                         </li>
                                         <li>
-                                            <a href="{{ path('contact') }}" title="Contact">contact</a>
+                                            <a href="{{ path('contact') }}" title="{{ 'common.contact'|trans }}">{{ 'common.contact'|trans }}</a>
                                         </li>
                                     </ul>
                                 </nav>
                                 <div class="login">
-                                    <a href="{{ path('login') }}">se connecter</a>
+                                    <a href="{{ path('login') }}">{{ 'common.login'|trans }}</a>
                                 </div>
                             </div>
                         </div>
@@ -708,55 +708,55 @@
     <aside class="user-secondary-sidebar" id="userSecondarySidebar" aria-hidden="true">
         <div class="user-sidebar-header">
             <div>
-                <h3>Navigation rapide</h3>
-                <p>Retrouvez vos espaces personnels et outils.</p>
+                <h3>{{ 'navigation.quick_navigation'|trans }}</h3>
+                <p>{{ 'navigation.quick_navigation_desc'|trans }}</p>
             </div>
-            <button class="user-sidebar-close" type="button" aria-label="Fermer">×</button>
+            <button class="user-sidebar-close" type="button" aria-label="{{ 'common.close'|trans }}">×</button>
         </div>
         
         <ul class="user-sidebar-nav">
             <li><a href="{{ path('my_tickets') }}" class="nav-item-tickets">
                 <i class="fas fa-layer-group"></i>
-                <span>Mes billets</span>
+                <span>{{ 'navigation.my_tickets'|trans }}</span>
             </a></li>
             <li><a href="{{ path('profile_history') }}" class="nav-item-history">
                 <i class="fas fa-shopping-bag"></i>
-                <span>Historique d'achat</span>
+                <span>{{ 'navigation.purchase_history'|trans }}</span>
             </a></li>
             <li><a href="{{ path('profile_favorites') }}" class="nav-item-favorites">
                 <i class="fas fa-star"></i>
-                <span>Favoris</span>
+                <span>{{ 'navigation.favorites'|trans }}</span>
             </a></li>
             <li><a href="{{ path('profile_search_history') }}" class="nav-item-search">
                 <i class="fas fa-search"></i>
-                <span>Historique de recherche</span>
+                <span>{{ 'navigation.search_history'|trans }}</span>
             </a></li>
             <li><a href="{{ path('profile_stats') }}" class="nav-item-stats">
                 <i class="fas fa-chart-line"></i>
-                <span>Statistique personnelle</span>
+                <span>{{ 'navigation.personal_stats'|trans }}</span>
             </a></li>
             <li><a href="{{ path('profile_financial') }}" class="nav-item-financial">
                 <i class="fas fa-file-invoice-dollar"></i>
-                <span>Historique financier détaillé</span>
+                <span>{{ 'navigation.financial_history'|trans }}</span>
             </a></li>
             <li><a href="{{ path('profile_calendar') }}" class="nav-item-calendar">
                 <i class="fas fa-calendar-alt"></i>
-                <span>Vue calendrier des évènements</span>
+                <span>{{ 'navigation.calendar_view'|trans }}</span>
             </a></li>
             <li><a href="{{ path('profile_settings') }}" class="nav-item-settings">
                 <i class="fas fa-sliders-h"></i>
-                <span>Paramètres</span>
+                <span>{{ 'navigation.settings'|trans }}</span>
             </a></li>
             <li><a href="{{ path('profile_ticket_chance') }}" class="nav-item-chance">
                 <i class="fas fa-dice"></i>
-                <span>Ticket Chance</span>
+                <span>{{ 'navigation.ticket_chance'|trans }}</span>
             </a></li>
         </ul>
         
         <div class="user-sidebar-footer">
             <a href="{{ path('logout') }}" class="user-sidebar-logout">
                 <i class="fas fa-sign-out-alt"></i>
-                <span>Se déconnecter</span>
+                <span>{{ 'common.logout'|trans }}</span>
             </a>
         </div>
     </aside>
@@ -772,24 +772,24 @@
                         </div>
                         <div class="menu-ftr">
                             <ul>
-                                <li><a href="{{ path('events') }}" title="Evènements">évènements</a></li>
-                                <li><a href="{{ path('become_organizer') }}" title="Devenir organisateur">devenir organisateur</a></li>
-                                <li><a href="{{ path('contact') }}" title="Contact">contact</a></li>
-                                <li><a href="{{ path('about') }}" title="A propos">à propos</a></li>
+                                <li><a href="{{ path('events') }}" title="{{ 'footer.events'|trans }}">{{ 'footer.events'|trans }}</a></li>
+                                <li><a href="{{ path('become_organizer') }}" title="{{ 'footer.become_organizer'|trans }}">{{ 'footer.become_organizer'|trans }}</a></li>
+                                <li><a href="{{ path('contact') }}" title="{{ 'footer.contact'|trans }}">{{ 'footer.contact'|trans }}</a></li>
+                                <li><a href="{{ path('about') }}" title="{{ 'footer.about'|trans }}">{{ 'footer.about'|trans }}</a></li>
                             </ul>
                         </div>
                     </div>
                     <div class="ftr-bottom d-flex justify-content-between">
                         <div class="left">
-                            <div class="copy">Tous droits réservés © 2025 </div>
+                            <div class="copy">{{ 'common.all_rights_reserved'|trans }} © 2025 </div>
                             <ul>
-                                <li><a href="#" title="Mentions légales">Mentions légales</a></li>
-                                <li><a href="#" title="Politique de confidentialité">Politique de confidentialité</a></li>
-                                <li><a href="#" title="Conditions générales d'utilisation">Conditions générales d'utilisation</a></li>  
+                                <li><a href="#" title="{{ 'common.legal_notice'|trans }}">{{ 'common.legal_notice'|trans }}</a></li>
+                                <li><a href="#" title="{{ 'common.privacy_policy'|trans }}">{{ 'common.privacy_policy'|trans }}</a></li>
+                                <li><a href="#" title="{{ 'common.terms_of_use'|trans }}">{{ 'common.terms_of_use'|trans }}</a></li>  
                             </ul>
                         </div>
                         <div class="powered">
-                            <span>Powered by</span>
+                            <span>{{ 'common.powered_by'|trans }}</span>
                             <a href="#"><img src="{{ asset('vente-ticket/images/powered.svg') }}"></a>
                         </div>
                     </div>

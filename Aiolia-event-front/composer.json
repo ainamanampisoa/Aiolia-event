@@ -21,6 +21,7 @@
         "symfony/rate-limiter": "7.0.*",
         "symfony/runtime": "7.0.*",
         "symfony/serializer": "7.0.*",
+        "symfony/translation": "7.0.*",
         "symfony/uid": "7.0.*",
         "symfony/workflow": "7.0.*",
         "symfony/yaml": "7.0.*"

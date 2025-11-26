@@ -1,6 +1,6 @@
 {% extends 'base.html.twig' %}
 
-{% block title %}Notifications - Vente tickets{% endblock %}
+{% block title %}{{ 'notifications.page_title'|trans }}{% endblock %}
 
 {% block stylesheets %}
     <link rel="stylesheet" type="text/css" href="{{ asset('vente-ticket/css/animate.min.css') }}">
@@ -22,19 +22,19 @@
             <div class="notifications-panel">
                 <div class="notifications-header">
                     <div>
-                        <h2>Mes notifications</h2>
-                        <p>Retrouvez vos alertes, rappels et confirmations liées à vos évènements.</p>
+                        <h2>{{ 'notifications.header_title'|trans }}</h2>
+                        <p>{{ 'notifications.header_desc'|trans }}</p>
                     </div>
                     <div class="notifications-actions">
-                        <button class="btn-outline" data-action="mark-read"><i class="fas fa-check"></i> Tout marquer comme lu</button>
-                        <button class="btn-solid" data-action="settings"><i class="fas fa-sliders-h"></i> Préférences</button>
+                        <button class="btn-outline" data-action="mark-read"><i class="fas fa-check"></i> {{ 'notifications.mark_all_read'|trans }}</button>
+                        <button class="btn-solid" data-action="settings"><i class="fas fa-sliders-h"></i> {{ 'notifications.preferences'|trans }}</button>
                     </div>
                 </div>
 
                 <div class="notifications-tabs">
-                    <button class="notifications-tab active" data-filter="all">Tous <span class="notifications-counter">{{ notifications|length }}</span></button>
-                    <button class="notifications-tab" data-filter="unread">Non lus <span class="notifications-counter">{{ unreadCount }}</span></button>
-                    <button class="notifications-tab" data-filter="read">Archives <span class="notifications-counter">{{ notifications|filter(n => n.read)|length }}</span></button>
+                    <button class="notifications-tab active" data-filter="all">{{ 'notifications.tab_all'|trans }} <span class="notifications-counter">{{ notifications|length }}</span></button>
+                    <button class="notifications-tab" data-filter="unread">{{ 'notifications.tab_unread'|trans }} <span class="notifications-counter">{{ unreadCount }}</span></button>
+                    <button class="notifications-tab" data-filter="read">{{ 'notifications.tab_read'|trans }} <span class="notifications-counter">{{ notifications|filter(n => n.read)|length }}</span></button>
                 </div>
 
                 {% set hasNotifications = notifications|length > 0 %}
@@ -62,22 +62,22 @@
                                     <p>{{ notification.description }}</p>
                                     <div class="notification-actions">
                                         {% if not notification.read %}
-                                            <button data-action="mark-single" data-id="{{ notification.id }}">Marquer comme lu</button>
+                                            <button data-action="mark-single" data-id="{{ notification.id }}">{{ 'notifications.btn_mark_single'|trans }}</button>
                                         {% endif %}
-                                        <button data-action="view" data-id="{{ notification.id }}">Voir le détail</button>
-                                        <button data-action="archive" data-id="{{ notification.id }}">Archiver</button>
+                                        <button data-action="view" data-id="{{ notification.id }}">{{ 'notifications.btn_view'|trans }}</button>
+                                        <button data-action="archive" data-id="{{ notification.id }}">{{ 'notifications.btn_archive'|trans }}</button>
                                     </div>
                                 </div>
                             </li>
                         {% endfor %}
                     </ul>
                 {% else %}
-                    <div class="notifications-empty">
-                        <i class="fas fa-bell-slash"></i>
-                        <h3>Aucune notification pour le moment</h3>
-                        <p>Les nouvelles activités apparaîtront ici : validation de panier, billets disponibles, rappels d'évènements...</p>
-                        <a href="{{ path('events') }}" class="btn-solid">Explorer les évènements</a>
-                    </div>
+                        <div class="notifications-empty">
+                            <i class="fas fa-bell-slash"></i>
+                            <h3>{{ 'notifications.empty_title'|trans }}</h3>
+                            <p>{{ 'notifications.empty_desc'|trans }}</p>
+                            <a href="{{ path('events') }}" class="btn-solid">{{ 'notifications.empty_cta'|trans }}</a>
+                        </div>
                 {% endif %}
             </div>
         </div>
@@ -137,12 +137,12 @@
                             // Mettre à jour les compteurs
                             updateCounters();
                         } else {
-                            alert('Erreur: ' + (data.message || 'Erreur inconnue'));
+                            alert('{{ 'notifications.error_prefix'|trans }}: ' + (data.message || '{{ 'notifications.error_unknown'|trans }}'));
                         }
                     })
                     .catch(error => {
                         console.error('Erreur:', error);
-                        alert('Erreur lors du marquage comme lu. Veuillez réessayer.');
+                        alert('{{ 'notifications.error_mark_read'|trans }}');
                     });
                 });
             });
@@ -173,12 +173,12 @@
                             // Mettre à jour les compteurs
                             updateCounters();
                         } else {
-                            alert('Erreur: ' + (data.message || 'Erreur inconnue'));
+                            alert('{{ 'notifications.error_prefix'|trans }}: ' + (data.message || '{{ 'notifications.error_unknown'|trans }}'));
                         }
                     })
                     .catch(error => {
                         console.error('Erreur:', error);
-                        alert('Erreur lors du marquage. Veuillez réessayer.');
+                        alert('{{ 'notifications.error_mark_all'|trans }}');
                     });
                 });
             }
@@ -191,7 +191,7 @@
                     
                     if (!item || !notificationId) return;
 
-                    if (!confirm('Voulez-vous supprimer cette notification ?')) {
+                    if (!confirm('{{ 'notifications.confirm_delete'|trans }}')) {
                         return;
                     }
 
@@ -225,7 +225,7 @@
                             // Annuler l'animation en cas d'erreur
                             item.style.transform = 'scale(1)';
                             item.style.opacity = '1';
-                            alert('Erreur: ' + (data.message || 'Erreur inconnue'));
+                            alert('{{ 'notifications.error_prefix'|trans }}: ' + (data.message || '{{ 'notifications.error_unknown'|trans }}'));
                         }
                     })
                     .catch(error => {
@@ -233,7 +233,7 @@
                         // Annuler l'animation en cas d'erreur
                         item.style.transform = 'scale(1)';
                         item.style.opacity = '1';
-                        alert('Erreur lors de la suppression. Veuillez réessayer.');
+                        alert('{{ 'notifications.error_delete'|trans }}');
                     });
                 });
             });

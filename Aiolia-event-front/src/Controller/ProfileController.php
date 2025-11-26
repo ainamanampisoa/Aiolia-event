@@ -8,11 +8,13 @@ use Symfony\Component\HttpFoundation\JsonResponse;
 use Symfony\Component\HttpFoundation\Request;
 use Symfony\Component\HttpFoundation\Response;
 use Symfony\Component\Routing\Annotation\Route;
+use Symfony\Contracts\Translation\TranslatorInterface;
 
 class ProfileController extends AbstractController
 {
     public function __construct(
-        private readonly Connection $connection
+        private readonly Connection $connection,
+        private readonly TranslatorInterface $translator
     ) {
     }
 
@@ -755,7 +757,7 @@ class ProfileController extends AbstractController
 
             return new JsonResponse([
                 'status' => 'success',
-                'message' => 'Paramètres mis à jour avec succès'
+                'message' => $this->translator->trans('settings.update_success')
             ]);
         } catch (\Exception $e) {
             return new JsonResponse([

@@ -1,6 +1,6 @@
 {% extends 'base.html.twig' %}
 
-{% block title %}Historique de recherche - Vente tickets{% endblock %}
+{% block title %}{{ 'profile_search_history.page_title'|trans }}{% endblock %}
 
 {% block stylesheets %}
     <link rel="stylesheet" type="text/css" href="{{ asset('vente-ticket/css/animate.min.css') }}">
@@ -18,50 +18,50 @@
         <div class="container">
             <header class="search-header wow fadeIn" data-wow-delay="100ms">
                 <div>
-                    <h1>Historique de recherche</h1>
-                    <p>Retrouvez vos mots-clés récents pour rejouer une recherche ou créer une alerte personnalisée.</p>
+                    <h1>{{ 'profile_search_history.header_title'|trans }}</h1>
+                    <p>{{ 'profile_search_history.header_desc'|trans }}</p>
                 </div>
-                <button class="btn-outline" id="clearAllBtn"><i class="fas fa-trash"></i> Effacer l'historique</button>
+                <button class="btn-outline" id="clearAllBtn"><i class="fas fa-trash"></i> {{ 'profile_search_history.btn_clear_all'|trans }}</button>
             </header>
 
             <section class="search-card wow fadeInUp" data-wow-delay="150ms">
                 <form method="GET" action="{{ path('profile_search_history') }}" id="searchHistoryForm">
-                    <div class="search-input">
-                        <i class="fas fa-search"></i>
-                        <input type="search" name="q" placeholder="Rechercher dans votre historique" value="{{ currentSearchQuery }}" id="searchInput">
+                        <div class="search-input">
+                            <i class="fas fa-search"></i>
+                            <input type="search" name="q" placeholder="{{ 'profile_search_history.search_placeholder'|trans }}" value="{{ currentSearchQuery }}" id="searchInput">
                         <input type="hidden" name="sort" id="sortInput" value="{{ currentSort }}">
                         <input type="hidden" name="date_from" id="dateFromInput" value="{{ currentDateFrom }}">
                         <input type="hidden" name="date_to" id="dateToInput" value="{{ currentDateTo }}">
-                        <div class="sort-container">
-                            <button type="button" class="btn-solid" id="sortByDateBtn"><i class="fas fa-sort"></i> Trier par date</button>
-                            <div class="date-picker-dropdown" id="datePickerDropdown">
+                            <div class="sort-container">
+                                <button type="button" class="btn-solid" id="sortByDateBtn"><i class="fas fa-sort"></i> {{ 'profile_search_history.sort_by_date'|trans }}</button>
+                                <div class="date-picker-dropdown" id="datePickerDropdown">
                                 <div class="date-options">
-                                    <button type="button" class="date-option {% if currentSort == 'newest' %}active{% endif %}" data-sort="newest">
+                                        <button type="button" class="date-option {% if currentSort == 'newest' %}active{% endif %}" data-sort="newest">
                                         <i class="fas fa-arrow-down"></i>
-                                        <span>Plus récentes</span>
+                                            <span>{{ 'profile_search_history.sort_newest'|trans }}</span>
                                     </button>
-                                    <button type="button" class="date-option {% if currentSort == 'oldest' %}active{% endif %}" data-sort="oldest">
+                                        <button type="button" class="date-option {% if currentSort == 'oldest' %}active{% endif %}" data-sort="oldest">
                                         <i class="fas fa-arrow-up"></i>
-                                        <span>Plus anciennes</span>
+                                            <span>{{ 'profile_search_history.sort_oldest'|trans }}</span>
                                     </button>
                                     <div class="date-separator"></div>
-                                    <button type="button" class="date-option {% if currentSort == 'custom' %}active{% endif %}" data-sort="custom">
+                                        <button type="button" class="date-option {% if currentSort == 'custom' %}active{% endif %}" data-sort="custom">
                                         <i class="fas fa-calendar-alt"></i>
-                                        <span>Période personnalisée</span>
+                                            <span>{{ 'profile_search_history.sort_custom'|trans }}</span>
                                     </button>
                                 </div>
                                 <div class="custom-date-picker">
                                     <div class="date-inputs">
-                                        <div class="input-group">
-                                            <label>Du</label>
-                                            <input type="date" id="startDate" value="{{ currentDateFrom }}">
-                                        </div>
-                                        <div class="input-group">
-                                            <label>Au</label>
-                                            <input type="date" id="endDate" value="{{ currentDateTo }}">
-                                        </div>
+                                            <div class="input-group">
+                                                <label>{{ 'profile_search_history.custom_from'|trans }}</label>
+                                                <input type="date" id="startDate" value="{{ currentDateFrom }}">
+                                            </div>
+                                            <div class="input-group">
+                                                <label>{{ 'profile_search_history.custom_to'|trans }}</label>
+                                                <input type="date" id="endDate" value="{{ currentDateTo }}">
+                                            </div>
                                     </div>
-                                    <button type="button" class="btn-apply-date">Appliquer</button>
+                                        <button type="button" class="btn-apply-date">{{ 'profile_search_history.custom_apply'|trans }}</button>
                                 </div>
                             </div>
                         </div>
@@ -70,7 +70,7 @@
                 <ul class="search-list" id="searchList">
                     {% if searches is empty %}
                         <li style="text-align: center; padding: 40px;">
-                            <p style="color: #8A9BA8; font-size: 14px;">Aucune recherche dans votre historique</p>
+                            <p style="color: #8A9BA8; font-size: 14px;">{{ 'profile_search_history.empty_text'|trans }}</p>
                         </li>
                     {% else %}
                         {% for item in searches %}
@@ -83,7 +83,7 @@
                                     </div>
                                 </div>
                                 <div class="search-actions">
-                                    <span class="results">{{ item.results }} résultat{{ item.results > 1 ? 's' : '' }}</span>
+                                        <span class="results">{{ item.results }} résultat{{ item.results > 1 ? 's' : '' }}</span>
                                     <div class="search-buttons">
                                         {% set relaunchParams = {q: item.query} %}
                                         {% if item.filters.category is defined and item.filters.category %}
@@ -104,8 +104,8 @@
                                         {% if item.filters.date_to is defined and item.filters.date_to %}
                                             {% set relaunchParams = relaunchParams|merge({date_to: item.filters.date_to}) %}
                                         {% endif %}
-                                        <a href="{{ path('events', relaunchParams) }}" class="btn-link relaunch" title="Relancer la recherche"><i class="fas fa-redo"></i></a>
-                                        <button type="button" class="btn-link delete" data-search-id="{{ item.id }}" title="Supprimer"><i class="fas fa-trash"></i></button>
+                                        <a href="{{ path('events', relaunchParams) }}" class="btn-link relaunch" title="{{ 'profile_search_history.relaunch_title'|trans }}"><i class="fas fa-redo"></i></a>
+                                        <button type="button" class="btn-link delete" data-search-id="{{ item.id }}" title="{{ 'profile_search_history.delete_title'|trans }}"><i class="fas fa-trash"></i></button>
                                     </div>
                                 </div>
                             </li>
@@ -199,20 +199,20 @@
                 e.stopPropagation();
             });
             
-            function applySort(sortType, customDates = null) {
+                function applySort(sortType, customDates = null) {
                 sortInput.value = sortType;
                 
                 // Mettre à jour le texte du bouton
-                let buttonText = 'Trier par date';
+                let buttonText = '{{ 'profile_search_history.sort_by_date'|trans }}';
                 switch(sortType) {
                     case 'newest':
-                        buttonText = 'Plus récentes';
+                        buttonText = '{{ 'profile_search_history.sort_newest'|trans }}';
                         break;
                     case 'oldest':
-                        buttonText = 'Plus anciennes';
+                        buttonText = '{{ 'profile_search_history.sort_oldest'|trans }}';
                         break;
                     case 'custom':
-                        buttonText = 'Période personnalisée';
+                        buttonText = '{{ 'profile_search_history.sort_custom'|trans }}';
                         break;
                 }
                 
@@ -234,7 +234,7 @@
                     const searchId = this.dataset.searchId;
                     const listItem = this.closest('li');
                     
-                    if (!confirm('Voulez-vous supprimer cette recherche de votre historique ?')) {
+                    if (!confirm('{{ 'profile_search_history.confirm_delete_one'|trans }}')) {
                         return;
                     }
                     
@@ -265,7 +265,7 @@
                             // Annuler l'animation en cas d'erreur
                             listItem.style.transform = 'scale(1)';
                             listItem.style.opacity = '1';
-                            alert('Erreur lors de la suppression: ' + (data.message || 'Erreur inconnue'));
+                            alert('{{ 'profile_search_history.error_delete_prefix'|trans }}: ' + (data.message || '{{ 'profile_search_history.error_unknown'|trans }}'));
                         }
                     })
                     .catch(error => {
@@ -273,7 +273,7 @@
                         // Annuler l'animation en cas d'erreur
                         listItem.style.transform = 'scale(1)';
                         listItem.style.opacity = '1';
-                        alert('Erreur lors de la suppression. Veuillez réessayer.');
+                        alert('{{ 'profile_search_history.error_delete_retry'|trans }}');
                     });
                 });
             });
@@ -282,7 +282,7 @@
             clearAllBtn.addEventListener('click', function(e) {
                 e.preventDefault();
                 
-                if (!confirm('Voulez-vous effacer tout votre historique de recherche ? Cette action est irréversible.')) {
+                if (!confirm('{{ 'profile_search_history.confirm_delete_all'|trans }}')) {
                     return;
                 }
                 
@@ -298,12 +298,12 @@
                     if (data.status === 'success') {
                         location.reload();
                     } else {
-                        alert('Erreur lors de l\'effacement: ' + (data.message || 'Erreur inconnue'));
+                        alert('{{ 'profile_search_history.error_clear_prefix'|trans }}: ' + (data.message || '{{ 'profile_search_history.error_unknown'|trans }}'));
                     }
                 })
                 .catch(error => {
                     console.error('Erreur lors de l\'effacement:', error);
-                    alert('Erreur lors de l\'effacement. Veuillez réessayer.');
+                    alert('{{ 'profile_search_history.error_clear_retry'|trans }}');
                 });
             });
         });

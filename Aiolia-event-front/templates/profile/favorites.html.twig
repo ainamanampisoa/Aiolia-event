@@ -1,6 +1,6 @@
 {% extends 'base.html.twig' %}
 
-{% block title %}Favoris - Vente tickets{% endblock %}
+{% block title %}{{ 'profile_favorites.page_title'|trans }}{% endblock %}
 
 {% block stylesheets %}
     <link rel="stylesheet" type="text/css" href="{{ asset('vente-ticket/css/animate.min.css') }}">
@@ -20,18 +20,18 @@
         <div class="container">
             <header class="favorites-header wow fadeIn" data-wow-delay="100ms">
                 <div>
-                    <h1>Évènements favoris</h1>
-                    <p>Retrouvez vos coups de cœur et recevez des alertes dès que des billets sont disponibles.</p>
+                    <h1>{{ 'profile_favorites.header_title'|trans }}</h1>
+                    <p>{{ 'profile_favorites.header_desc'|trans }}</p>
                 </div>
-                <a href="{{ path('events') }}" class="btn-discover"><i class="fas fa-compass"></i> Découvrir de nouveaux évènements</a>
+                <a href="{{ path('events') }}" class="btn-discover"><i class="fas fa-compass"></i> {{ 'profile_favorites.discover_cta'|trans }}</a>
             </header>
 
             {% if favorites|length == 0 %}
                 <section class="favorites-empty wow fadeInUp" data-wow-delay="150ms">
                     <i class="fas fa-heart"></i>
-                    <h2>Aucun favori enregistré</h2>
-                    <p>Ajoutez des évènements à vos favoris pour les retrouver facilement et être prévenu des mises en vente.</p>
-                    <a href="{{ path('events') }}" class="btn-solid">Parcourir les évènements</a>
+                    <h2>{{ 'profile_favorites.empty_title'|trans }}</h2>
+                    <p>{{ 'profile_favorites.empty_desc'|trans }}</p>
+                    <a href="{{ path('events') }}" class="btn-solid">{{ 'profile_favorites.empty_cta'|trans }}</a>
                 </section>
             {% else %}
                 <section class="favorites-grid">
@@ -63,8 +63,8 @@
                                 <div class="favorite-footer">
                                     <span class="favorite-price">{{ event.price }}</span>
                                     <div class="favorite-actions">
-                                        <a href="{{ path('event_details', { id: event.id }) }}" class="btn-details"><i class="fas fa-info-circle"></i> Détails</a>
-                                        <button class="btn-notify"><i class="fas fa-bell"></i> Alerte</button>
+                                        <a href="{{ path('event_details', { id: event.id }) }}" class="btn-details"><i class="fas fa-info-circle"></i> {{ 'profile_favorites.btn_details'|trans }}</a>
+                                        <button class="btn-notify"><i class="fas fa-bell"></i> {{ 'profile_favorites.btn_alert'|trans }}</button>
                                     </div>
                                 </div>
                             </div>
@@ -94,7 +94,7 @@
                 const eventId = this.dataset.eventId;
                 const card = this.closest('.favorite-card');
                 
-                if (!confirm('Voulez-vous retirer cet événement de vos favoris ?')) {
+                if (!confirm('{{ 'profile_favorites.confirm_remove'|trans }}')) {
                     return;
                 }
                 
@@ -124,18 +124,18 @@
                             }
                         }, 300);
                     } else {
-                        // Annimer l'animation en cas d'erreur
+                        // Annuler l'animation en cas d'erreur
                         card.style.transform = 'scale(1)';
                         card.style.opacity = '1';
-                        alert('Erreur lors du retrait des favoris: ' + (data.message || 'Erreur inconnue'));
+                        alert('{{ 'profile_favorites.error_remove_prefix'|trans }}: ' + (data.message || '{{ 'profile_favorites.error_unknown'|trans }}'));
                     }
                 })
                 .catch(error => {
                     console.error('Erreur lors du retrait des favoris:', error);
-                    // Annimer l'animation en cas d'erreur
+                    // Annuler l'animation en cas d'erreur
                     card.style.transform = 'scale(1)';
                     card.style.opacity = '1';
-                    alert('Erreur lors du retrait des favoris. Veuillez réessayer.');
+                    alert('{{ 'profile_favorites.error_remove_retry'|trans }}');
                 });
             });
         });

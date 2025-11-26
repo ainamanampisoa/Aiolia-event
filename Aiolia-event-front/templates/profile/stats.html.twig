@@ -1,6 +1,6 @@
 {% extends 'base.html.twig' %}
 
-{% block title %}Statistiques - Vente tickets{% endblock %}
+{% block title %}{{ 'profile_stats.page_title'|trans }}{% endblock %}
 
 {% block stylesheets %}
     <link rel="stylesheet" type="text/css" href="{{ asset('vente-ticket/css/animate.min.css') }}">
@@ -18,43 +18,55 @@
         <div class="container">
             <header class="stats-header wow fadeIn" data-wow-delay="100ms">
                 <div>
-                    <h1>Statistiques personnelles</h1>
-                    <p>Suivez votre activité, vos dépenses et vos habitudes d’achat pour optimiser vos prochaines sorties.</p>
+                    <h1>{{ 'profile_stats.header_title'|trans }}</h1>
+                    <p>{{ 'profile_stats.header_desc'|trans }}</p>
                 </div>
                 <div class="stats-actions">
-                    <button class="btn-outline"><i class="fas fa-calendar-alt"></i> 90 derniers jours</button>
-                    <button class="btn-solid"><i class="fas fa-download"></i> Exporter</button>
+                    <button class="btn-outline"><i class="fas fa-calendar-alt"></i> {{ 'profile_stats.btn_last_90_days'|trans }}</button>
+                    <button class="btn-solid"><i class="fas fa-download"></i> {{ 'profile_stats.btn_export'|trans }}</button>
                 </div>
             </header>
 
             <section class="stats-cards wow fadeInUp" data-wow-delay="150ms">
                 <article class="stat-card">
-                    <span class="stat-label">Billets achetés</span>
+                    <span class="stat-label">{{ 'profile_stats.card_tickets_label'|trans }}</span>
                     <strong>{{ stats.total_tickets|default(0) }}</strong>
-                    <small><i class="fas fa-arrow-up"></i> {% if stats.total_tickets > 0 %}+12 % vs trimestre précédent{% else %}Aucun achat{% endif %}</small>
+                    <small><i class="fas fa-arrow-up"></i>
+                        {% if stats.total_tickets > 0 %}
+                            {{ 'profile_stats.card_tickets_suffix_increase'|trans }}
+                        {% else %}
+                            {{ 'profile_stats.card_tickets_suffix_none'|trans }}
+                        {% endif %}
+                    </small>
                 </article>
                 <article class="stat-card">
-                    <span class="stat-label">Montant dépensé</span>
+                    <span class="stat-label">{{ 'profile_stats.card_spent_label'|trans }}</span>
                     <strong>{{ stats.total_spent|default('0 MGA') }}</strong>
-                    <small><i class="fas fa-wallet"></i> Panier moyen {{ stats.avg_cart|default('0 MGA') }}</small>
+                    <small><i class="fas fa-wallet"></i> {{ 'profile_stats.card_spent_avg_prefix'|trans }} {{ stats.avg_cart|default('0 MGA') }}</small>
                 </article>
                 <article class="stat-card">
-                    <span class="stat-label">Évènements différents</span>
+                    <span class="stat-label">{{ 'profile_stats.card_events_label'|trans }}</span>
                     <strong>{{ stats.unique_events|default(0) }}</strong>
-                    <small><i class="fas fa-calendar-check"></i> {% if stats.unique_events > 0 %}{{ (stats.unique_events / 6)|round }} par mois en moyenne{% else %}Aucun événement{% endif %}</small>
+                    <small><i class="fas fa-calendar-check"></i>
+                        {% if stats.unique_events > 0 %}
+                            {{ 'profile_stats.card_events_suffix'|trans({'{count}': (stats.unique_events / 6)|round})|raw }}
+                        {% else %}
+                            {{ 'profile_stats.card_events_none'|trans }}
+                        {% endif %}
+                    </small>
                 </article>
                 <article class="stat-card">
-                    <span class="stat-label">Commandes totales</span>
+                    <span class="stat-label">{{ 'profile_stats.card_orders_label'|trans }}</span>
                     <strong>{{ stats.total_orders|default(0) }}</strong>
-                    <small><i class="fas fa-shopping-bag"></i> Commandes confirmées</small>
+                    <small><i class="fas fa-shopping-bag"></i> {{ 'profile_stats.card_orders_suffix'|trans }}</small>
                 </article>
             </section>
 
             <section class="stats-charts">
                 <div class="chart-card wow fadeInUp" data-wow-delay="200ms">
                     <header>
-                        <h2>Dépenses mensuelles</h2>
-                        <span class="chart-period">Mai - Novembre 2025</span>
+                        <h2>{{ 'profile_stats.chart_expenses_title'|trans }}</h2>
+                        <span class="chart-period">{{ 'profile_stats.chart_expenses_period'|trans }}</span>
                     </header>
                     <div class="chart-placeholder">
                         <div class="bars">
@@ -71,14 +83,14 @@
                             {% endif %}
                         </div>
                         <div class="chart-legend">
-                            <span><i></i> Dépenses (MGA x 1 000)</span>
+                            <span><i></i> {{ 'profile_stats.chart_expenses_legend'|trans }}</span>
                         </div>
                     </div>
                 </div>
                 <div class="chart-card wow fadeInUp" data-wow-delay="240ms">
                     <header>
-                        <h2>Types d’évènements</h2>
-                        <span class="chart-period">Répartition 2025</span>
+                        <h2>{{ 'profile_stats.chart_types_title'|trans }}</h2>
+                        <span class="chart-period">{{ 'profile_stats.chart_types_period'|trans }}</span>
                     </header>
                     <div class="chart-placeholder donut">
                         <div class="donut-chart">
@@ -96,7 +108,7 @@
                                     <li><span class="dot {{ colors[i % colors|length] }}"></span> {{ dist.category }} ({{ dist.percentage }} %)</li>
                                 {% endfor %}
                             {% else %}
-                                <li><span class="dot dot-1"></span> Aucune donnée disponible</li>
+                                <li><span class="dot dot-1"></span> {{ 'profile_stats.chart_types_no_data'|trans }}</li>
                             {% endif %}
                         </ul>
                     </div>
@@ -105,23 +117,22 @@
 
             <section class="stats-insights wow fadeInUp" data-wow-delay="260ms">
                 <div class="insight-card">
-                    <h3>Moments privilégiés</h3>
-                    <p>Vos achats se concentrent le mercredi et jeudi entre 10h et 12h. Les évènements du samedi soir sont les plus réservés.</p>
+                    <h3>{{ 'profile_stats.insights_moments_title'|trans }}</h3>
+                    <p>{{ 'profile_stats.insights_moments_text'|trans }}</p>
                     <ul>
-                        <li><i class="fas fa-check"></i> Téléchargez vos billets dès confirmation pour éviter les oublis.</li>
-                        <li><i class="fas fa-check"></i> Utilisez vos 1 250 points fidélité sur une prochaine commande.</li>
+                        <li><i class="fas fa-check"></i> {{ 'profile_stats.insights_moments_li1'|trans }}</li>
+                        <li><i class="fas fa-check"></i> {{ 'profile_stats.insights_moments_li2'|trans }}</li>
                     </ul>
                 </div>
                 <div class="insight-card">
-                    <h3>Suggestions personnalisées</h3>
-                    <p>Nous avons sélectionné des évènements qui correspondent à vos goûts récents.</p>
+                    <h3>{{ 'profile_stats.insights_suggestions_title'|trans }}</h3>
+                    <p>{{ 'profile_stats.insights_suggestions_text'|trans }}</p>
                     <div class="insight-tags">
-                        <span>#Jazz</span>
-                        <span>#Fashion</span>
-                        <span>#Networking</span>
-                        <span>#Afterwork</span>
+                        {% for tag in 'profile_stats.insights_suggestions_tags'|trans|split(',') %}
+                            <span>{{ tag }}</span>
+                        {% endfor %}
                     </div>
-                    <a href="{{ path('events') }}" class="btn-solid">Voir les recommandations</a>
+                    <a href="{{ path('events') }}" class="btn-solid">{{ 'profile_stats.insights_suggestions_cta'|trans }}</a>
                 </div>
             </section>
         </div>

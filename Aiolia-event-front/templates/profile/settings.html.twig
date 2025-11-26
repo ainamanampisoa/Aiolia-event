@@ -18,40 +18,45 @@
         <div class="container">
             <header class="settings-header wow fadeIn" data-wow-delay="100ms">
                 <div>
-                    <h1>Paramètres du compte</h1>
-                    <p>Gérez vos informations personnelles, vos préférences de notification et la sécurité de votre compte.</p>
+                    <h1>{{ 'settings.title'|trans }}</h1>
+                    <p>{{ 'settings.description'|trans }}</p>
                 </div>
-                <button class="btn-solid" id="saveSettingsBtn"><i class="fas fa-save"></i> Sauvegarder les modifications</button>
+                <button class="btn-solid" id="saveSettingsBtn"><i class="fas fa-save"></i> {{ 'common.save_changes'|trans }}</button>
             </header>
 
             <div class="settings-grid">
                 <section class="settings-card wow fadeInUp" data-wow-delay="150ms">
-                    <h2><i class="fas fa-user-circle"></i> Informations personnelles</h2>
+                    <h2><i class="fas fa-user-circle"></i> {{ 'settings.personal_info'|trans }}</h2>
                     <form class="settings-form" id="personalInfoForm">
                         <div class="form-group">
-                            <label>Prénom</label>
-                            <input type="text" name="first_name" value="{{ user.first_name }}" placeholder="Votre prénom" required>
+                            <label>{{ 'settings.first_name'|trans }}</label>
+                            <input type="text" name="first_name" value="{{ user.first_name }}" placeholder="{{ 'settings.first_name'|trans }}" required>
                         </div>
                         <div class="form-group">
-                            <label>Nom</label>
-                            <input type="text" name="last_name" value="{{ user.last_name }}" placeholder="Votre nom">
+                            <label>{{ 'settings.last_name'|trans }}</label>
+                            <input type="text" name="last_name" value="{{ user.last_name }}" placeholder="{{ 'settings.last_name'|trans }}">
                         </div>
                         <div class="form-group">
-                            <label>Adresse e-mail</label>
+                            <label>{{ 'settings.email'|trans }}</label>
                             <input type="email" value="{{ user.email }}" placeholder="email@exemple.com" disabled>
-                            <small style="color: #8A9BA8; font-size: 12px; margin-top: 4px; display: block;">L'adresse e-mail ne peut pas être modifiée</small>
+                            <small style="color: #8A9BA8; font-size: 12px; margin-top: 4px; display: block;">{{ 'settings.email_cannot_be_changed'|trans }}</small>
                         </div>
                         <div class="form-row">
                             <div class="form-group">
-                                <label>Téléphone</label>
+                                <label>{{ 'settings.phone'|trans }}</label>
                                 <input type="tel" name="phone" value="{{ user.phone }}" placeholder="032 12 345 67">
                             </div>
                             <div class="form-group">
-                                <label>Langue</label>
+                                <label>{{ 'settings.language'|trans }}</label>
                                 <select name="language_code">
-                                    <option value="fr-FR" {% if user.language_code == 'fr-FR' %}selected{% endif %}>Français</option>
-                                    <option value="en-US" {% if user.language_code == 'en-US' %}selected{% endif %}>Anglais</option>
-                                    <option value="mg-MG" {% if user.language_code == 'mg-MG' %}selected{% endif %}>Malagasy</option>
+                                    {# Quand l'interface est en anglais, afficher les noms en anglais, sinon en français #}
+                                    {% if app.request.locale == 'en' %}
+                                        <option value="en-US" {% if user.language_code == 'en-US' %}selected{% endif %}>English</option>
+                                        <option value="fr-FR" {% if user.language_code == 'fr-FR' or user.language_code is not defined %}selected{% endif %}>French</option>
+                                    {% else %}
+                                        <option value="en-US" {% if user.language_code == 'en-US' %}selected{% endif %}>Anglais</option>
+                                        <option value="fr-FR" {% if user.language_code == 'fr-FR' or user.language_code is not defined %}selected{% endif %}>Français</option>
+                                    {% endif %}
                                 </select>
                             </div>
                         </div>
@@ -59,15 +64,15 @@
                 </section>
 
                 <section class="settings-card wow fadeInUp" data-wow-delay="180ms">
-                    <h2><i class="fas fa-bell"></i> Notifications</h2>
+                    <h2><i class="fas fa-bell"></i> {{ 'settings.notifications'|trans }}</h2>
                     <div class="settings-toggle">
                         <div>
-                            <strong>Alertes billets disponibles 
+                            <strong>{{ 'settings.ticket_alerts'|trans }} 
                                 <span class="status-indicator {% if preferences.notifications.ticket_alerts %}status-active{% else %}status-inactive{% endif %}">
-                                    {% if preferences.notifications.ticket_alerts %}Activé{% else %}Désactivé{% endif %}
+                                    {% if preferences.notifications.ticket_alerts %}{{ 'settings.enabled'|trans }}{% else %}{{ 'settings.disabled'|trans }}{% endif %}
                                 </span>
                             </strong>
-                            <span>Recevoir un email dès qu'un billet est à nouveau disponible.</span>
+                            <span>{{ 'settings.ticket_alerts_desc'|trans }}</span>
                         </div>
                         <label class="switch">
                             <input type="checkbox" name="ticket_alerts" {% if preferences.notifications.ticket_alerts %}checked{% endif %}>
@@ -76,12 +81,12 @@
                     </div>
                     <div class="settings-toggle">
                         <div>
-                            <strong>Rappels d'évènement 
+                            <strong>{{ 'settings.event_reminders'|trans }} 
                                 <span class="status-indicator {% if preferences.notifications.event_reminders %}status-active{% else %}status-inactive{% endif %}">
-                                    {% if preferences.notifications.event_reminders %}Activé{% else %}Désactivé{% endif %}
+                                    {% if preferences.notifications.event_reminders %}{{ 'settings.enabled'|trans }}{% else %}{{ 'settings.disabled'|trans }}{% endif %}
                                 </span>
                             </strong>
-                            <span>Notification 24h et 2h avant chaque évènement.</span>
+                            <span>{{ 'settings.event_reminders_desc'|trans }}</span>
                         </div>
                         <label class="switch">
                             <input type="checkbox" name="event_reminders" {% if preferences.notifications.event_reminders %}checked{% endif %}>
@@ -90,12 +95,12 @@
                     </div>
                     <div class="settings-toggle">
                         <div>
-                            <strong>Actualités & offres 
+                            <strong>{{ 'settings.newsletters'|trans }} 
                                 <span class="status-indicator {% if preferences.notifications.newsletters %}status-active{% else %}status-inactive{% endif %}">
-                                    {% if preferences.notifications.newsletters %}Activé{% else %}Désactivé{% endif %}
+                                    {% if preferences.notifications.newsletters %}{{ 'settings.enabled'|trans }}{% else %}{{ 'settings.disabled'|trans }}{% endif %}
                                 </span>
                             </strong>
-                            <span>Promotions personnalisées et newsletters.</span>
+                            <span>{{ 'settings.newsletters_desc'|trans }}</span>
                         </div>
                         <label class="switch">
                             <input type="checkbox" name="newsletters" {% if preferences.notifications.newsletters %}checked{% endif %}>
@@ -105,22 +110,22 @@
                 </section>
 
                 <section class="settings-card wow fadeInUp" data-wow-delay="210ms">
-                    <h2><i class="fas fa-shield-alt"></i> Sécurité</h2>
+                    <h2><i class="fas fa-shield-alt"></i> {{ 'settings.security'|trans }}</h2>
                     <div class="settings-security">
                         <div>
-                            <strong>Mot de passe</strong>
-                            <span>Dernière modification : {{ user.password_last_modified }}</span>
+                            <strong>{{ 'settings.password'|trans }}</strong>
+                            <span>{{ 'settings.last_modified'|trans }} : {{ user.password_last_modified }}</span>
                         </div>
-                        <button class="btn-outline" onclick="alert('Fonctionnalité à venir')"><i class="fas fa-lock"></i> Modifier</button>
+                        <button class="btn-outline" onclick="alert('Fonctionnalité à venir')"><i class="fas fa-lock"></i> {{ 'common.edit'|trans }}</button>
                     </div>
                     <div class="settings-security">
                         <div>
-                            <strong>Double authentification 
+                            <strong>{{ 'settings.two_factor_auth'|trans }} 
                                 <span class="status-indicator {% if preferences.security.two_factor_enabled %}status-active{% else %}status-inactive{% endif %}">
-                                    {% if preferences.security.two_factor_enabled %}Activé{% else %}Désactivé{% endif %}
+                                    {% if preferences.security.two_factor_enabled %}{{ 'settings.enabled'|trans }}{% else %}{{ 'settings.disabled'|trans }}{% endif %}
                                 </span>
                             </strong>
-                            <span>Ajoutez une couche de sécurité via SMS.</span>
+                            <span>{{ 'settings.two_factor_auth_desc'|trans }}</span>
                         </div>
                         <label class="switch">
                             <input type="checkbox" name="two_factor_enabled" {% if preferences.security.two_factor_enabled %}checked{% endif %}>
@@ -130,20 +135,20 @@
                 </section>
 
                 <section class="settings-card wow fadeInUp" data-wow-delay="240ms">
-                    <h2><i class="fas fa-palette"></i> Apparence</h2>
+                    <h2><i class="fas fa-palette"></i> {{ 'settings.appearance'|trans }}</h2>
                     <div class="appearance-options">
                         <label class="appearance-card">
                             <input type="radio" name="theme" value="light" {% if preferences.appearance.theme == 'light' %}checked{% endif %}>
                             <span>
-                                <strong>Clair</strong>
-                                <small>Interface claire et lumineuse</small>
+                                <strong>{{ 'settings.light_theme'|trans }}</strong>
+                                <small>{{ 'settings.light_theme_desc'|trans }}</small>
                             </span>
                         </label>
                         <label class="appearance-card">
                             <input type="radio" name="theme" value="dark" {% if preferences.appearance.theme == 'dark' %}checked{% endif %}>
                             <span>
-                                <strong>Sombre</strong>
-                                <small>Mode sombre confortable</small>
+                                <strong>{{ 'settings.dark_theme'|trans }}</strong>
+                                <small>{{ 'settings.dark_theme_desc'|trans }}</small>
                             </span>
                         </label>
                     </div>
@@ -272,7 +277,7 @@
                 
                 // Désactiver le bouton pendant la sauvegarde
                 saveBtn.disabled = true;
-                saveBtn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Sauvegarde...';
+                saveBtn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> {{ 'common.loading'|trans }}';
                 
                 // Envoyer les données
                 fetch('{{ path("profile_settings_update") }}', {
@@ -292,6 +297,10 @@
                             applyThemeImmediately(appearance.theme);
                         }
                         
+                        // Si la langue a changé, recharger la page pour appliquer la nouvelle langue
+                        const currentLang = personalInfo.language_code;
+                        const needsReload = currentLang && currentLang !== '{{ user.language_code }}';
+                        
                         // Afficher un message de succès
                         const successMsg = document.createElement('div');
                         successMsg.style.cssText = 'position: fixed; top: 20px; right: 20px; background: #27ae60; color: white; padding: 16px 24px; border-radius: 8px; box-shadow: 0 4px 12px rgba(0,0,0,0.15); z-index: 10000;';
@@ -300,19 +309,20 @@
                         
                         setTimeout(() => {
                             successMsg.remove();
+                            // Recharger la page pour appliquer la nouvelle langue si nécessaire
                             location.reload();
                         }, 2000);
                     } else {
-                        alert('Erreur: ' + (result.message || 'Erreur inconnue'));
+                        alert('{{ 'common.error'|trans }}: ' + (result.message || '{{ 'settings.update_error'|trans }}'));
                         saveBtn.disabled = false;
-                        saveBtn.innerHTML = '<i class="fas fa-save"></i> Sauvegarder les modifications';
+                        saveBtn.innerHTML = '<i class="fas fa-save"></i> {{ 'common.save_changes'|trans }}';
                     }
                 })
                 .catch(error => {
                     console.error('Erreur:', error);
-                    alert('Erreur lors de la sauvegarde. Veuillez réessayer.');
+                    alert('{{ 'common.error'|trans }}');
                     saveBtn.disabled = false;
-                    saveBtn.innerHTML = '<i class="fas fa-save"></i> Sauvegarder les modifications';
+                    saveBtn.innerHTML = '<i class="fas fa-save"></i> {{ 'common.save_changes'|trans }}';
                 });
             });
         });

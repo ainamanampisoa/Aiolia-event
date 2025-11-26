@@ -1,6 +1,6 @@
 {% extends 'base.html.twig' %}
 
-{% block title %}Calendrier - Vente tickets{% endblock %}
+{% block title %}{{ 'profile_calendar.page_title'|trans }}{% endblock %}
 
 {% block stylesheets %}
     <link rel="stylesheet" type="text/css" href="{{ asset('vente-ticket/css/animate.min.css') }}">
@@ -45,24 +45,27 @@
         <div class="container">
             <header class="calendar-header wow fadeIn" data-wow-delay="100ms">
                 <div>
-                    <h1>Calendrier des évènements</h1>
-                    <p>Visualisez vos prochains évènements, ajoutez-les à votre agenda et retrouvez vos billets en un clic.</p>
+                    <h1>{{ 'profile_calendar.header_title'|trans }}</h1>
+                    <p>{{ 'profile_calendar.header_desc'|trans }}</p>
                 </div>
                 <div class="calendar-actions">
-                    <button class="btn-outline"><i class="fas fa-calendar-plus"></i> Ajouter un évènement externe</button>
-                    <button class="btn-solid"><i class="fas fa-sync"></i> Synchroniser</button>
+                    <button class="btn-outline"><i class="fas fa-calendar-plus"></i> {{ 'profile_calendar.btn_add_external'|trans }}</button>
+                    <button class="btn-solid"><i class="fas fa-sync"></i> {{ 'profile_calendar.btn_sync'|trans }}</button>
                 </div>
             </header>
 
             <section class="calendar-grid">
                 <div class="calendar-month wow fadeInLeft" data-wow-delay="150ms">
                     <div class="calendar-month-header">
-                        <button class="nav prev" aria-label="Mois précédent"><i class="fas fa-chevron-left"></i></button>
-                        <div class="month">Décembre 2025</div>
-                        <button class="nav next" aria-label="Mois suivant"><i class="fas fa-chevron-right"></i></button>
+                        <button class="nav prev" aria-label="{{ 'profile_calendar.month_prev_aria'|trans }}"><i class="fas fa-chevron-left"></i></button>
+                        <div class="month">{{ 'profile_calendar.month_label'|trans }}</div>
+                        <button class="nav next" aria-label="{{ 'profile_calendar.month_next_aria'|trans }}"><i class="fas fa-chevron-right"></i></button>
                     </div>
                     <div class="calendar-weekdays">
-                        <span>L</span><span>M</span><span>M</span><span>J</span><span>V</span><span>S</span><span>D</span>
+                        {% set weekdays = 'profile_calendar.weekdays_short'|trans|split(',') %}
+                        {% for wd in weekdays %}
+                            <span>{{ wd }}</span>
+                        {% endfor %}
                     </div>
                     <div class="calendar-days">
                         {% for day in [0,0,0,0,1,2,3,4,5,6,7,8,9,10,11,12,13,14,15,16,17,18,19,20,21,22,23,24,25,26,27,28,29,30,31] %}
@@ -81,11 +84,11 @@
 
                 <div class="calendar-agenda wow fadeInRight" data-wow-delay="180ms">
                     <header>
-                        <h2>Agenda personnel</h2>
+                        <h2>{{ 'profile_calendar.agenda_title'|trans }}</h2>
                         <div class="agenda-filters">
-                            <button class="tag active">Tous</button>
-                            <button class="tag">À venir</button>
-                            <button class="tag">Passés</button>
+                            <button class="tag active">{{ 'profile_calendar.agenda_filter_all'|trans }}</button>
+                            <button class="tag">{{ 'profile_calendar.agenda_filter_upcoming'|trans }}</button>
+                            <button class="tag">{{ 'profile_calendar.agenda_filter_past'|trans }}</button>
                         </div>
                     </header>
                     <div class="agenda-list">
@@ -107,7 +110,7 @@
                                     </div>
                                 </div>
                                 <div class="agenda-actions">
-                                    <a href="{{ path('my_ticket_details', { id: loop.index }) }}" class="btn-details"><i class="fas fa-ticket-alt"></i> Billets</a>
+                                    <a href="{{ path('my_ticket_details', { id: loop.index }) }}" class="btn-details"><i class="fas fa-ticket-alt"></i> {{ 'profile_calendar.btn_tickets'|trans }}</a>
                                     <button class="btn-outline"><i class="fas fa-calendar-plus"></i></button>
                                 </div>
                             </article>

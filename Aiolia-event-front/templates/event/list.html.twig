@@ -1,6 +1,6 @@
 {% extends 'base.html.twig' %}
 
-{% block title %}Tous les évènements - Vente tickets{% endblock %}
+{% block title %}{{ 'events.all_page_title'|trans }}{% endblock %}
 
 {% block stylesheets %}
         <link rel="stylesheet" type="text/css" href="{{ asset('vente-ticket/css/animate.min.css') }}">
@@ -27,9 +27,9 @@
                         
                             <div class="col">
                                 <div class="blc-chp">
-                                    <label>Type d'évènement <small style="font-weight: normal; color: #999;">(optionnel)</small></label>
+                                    <label>{{ 'events.filter_type_label'|trans }} <small style="font-weight: normal; color: #999;">{{ 'events.filter_type_optional'|trans }}</small></label>
                                     <select name="category">
-                                        <option value="">Tous les types</option>
+                                        <option value="">{{ 'events.filter_type_all'|trans }}</option>
                                         {% for category in categories %}
                                             <option value="{{ category.slug }}" {% if filters.category is defined and filters.category == category.slug %}selected{% endif %}>
                                                 {{ category.label }}
@@ -39,8 +39,8 @@
                                 </div>
 
                                 <div class="blc-chp">
-                                    <label for="amount">Prix <small style="font-weight: normal; color: #999;">(optionnel)</small></label>
-                                    <input type="text" id="amount" readonly value="" placeholder="Tous les prix">
+                                    <label for="amount">{{ 'events.filter_price_label'|trans }} <small style="font-weight: normal; color: #999;">{{ 'events.filter_type_optional'|trans }}</small></label>
+                                    <input type="text" id="amount" readonly value="" placeholder="{{ 'events.filter_price_placeholder'|trans }}">
                                     <input type="hidden" id="price_min" name="price_min" value="{{ filters.price_min ?? '' }}">
                                     <input type="hidden" id="price_max" name="price_max" value="{{ filters.price_max ?? '' }}">
                                     <div id="slider-range"
@@ -51,15 +51,15 @@
                                         <span class="max">{{ price_bounds.max|number_format(0, '.', ' ') }} MGA</span>
 
                                     </div>
-                                    <small style="font-size: 11px; color: #999; display: block; margin-top: 4px;">Laissez vide pour tous les prix</small>
+                                    <small style="font-size: 11px; color: #999; display: block; margin-top: 4px;">{{ 'events.filter_price_hint'|trans }}</small>
                                 </div>
 
                             </div>
                             <div class="col">
                                 <div class="blc-chp">
-                                    <label>Localité <small style="font-weight: normal; color: #999;">(optionnel)</small></label>
+                                    <label>{{ 'events.filter_location_label'|trans }} <small style="font-weight: normal; color: #999;">{{ 'events.filter_type_optional'|trans }}</small></label>
                                     <select name="city">
-                                        <option value="">Toutes les villes</option>
+                                        <option value="">{{ 'events.filter_location_all'|trans }}</option>
                                         {% for city in locations %}
                                             <option value="{{ city }}" {% if filters.city is defined and filters.city == city %}selected{% endif %}>
                                                 {{ city }}
@@ -68,37 +68,37 @@
                                     </select>
                                 </div>
                                  <div class="blc-chp">
-                                    <label>Public</label>
+                                    <label>{{ 'events.filter_audience_label'|trans }}</label>
                                     <select name="audience" disabled>
-                                        <option>Famille (tout public)</option>
-                                        <option>Famille </option>
+                                        <option>{{ 'events.filter_audience_family'|trans }}</option>
+                                        <option>{{ 'events.filter_audience_family_short'|trans }}</option>
                                     </select>
-                                    <small style="font-size: 11px; color: #999; display: block; margin-top: 4px;">Fonctionnalité à venir</small>
+                                    <small style="font-size: 11px; color: #999; display: block; margin-top: 4px;">{{ 'events.filter_audience_coming_soon'|trans }}</small>
                                 </div>
                             </div>
                             <div class="col">
                                 <div class="blc-chp">
-                                    <label>Date <small style="font-weight: normal; color: #999;">(optionnel)</small></label>
+                                    <label>{{ 'events.filter_date_label'|trans }} <small style="font-weight: normal; color: #999;">{{ 'events.filter_type_optional'|trans }}</small></label>
                                     <div class="blc-date">
-                                        <label for="from">Du</label>
-                                        <input type="text" id="from" name="date_from" class="chp date" value="{{ filters.date_from ?? '' }}" placeholder="JJ/MM/AAAA">
-                                        <label for="to">Au</label>
-                                        <input type="text" id="to" name="date_to" class="chp date" value="{{ filters.date_to ?? '' }}" placeholder="JJ/MM/AAAA">
+                                        <label for="from">{{ 'events.filter_date_from'|trans }}</label>
+                                        <input type="text" id="from" name="date_from" class="chp date" value="{{ filters.date_from ?? '' }}" placeholder="{{ 'events.filter_date_placeholder'|trans }}">
+                                        <label for="to">{{ 'events.filter_date_to'|trans }}</label>
+                                        <input type="text" id="to" name="date_to" class="chp date" value="{{ filters.date_to ?? '' }}" placeholder="{{ 'events.filter_date_placeholder'|trans }}">
                                     </div>
-                                    <small style="font-size: 11px; color: #999; display: block; margin-top: 4px;">Laissez vide pour toutes les dates</small>
+                                    <small style="font-size: 11px; color: #999; display: block; margin-top: 4px;">{{ 'events.filter_date_hint'|trans }}</small>
                                 </div> 
                                 <div class="blc-chp">
-                                    <label>Afficher par</label>
+                                    <label>{{ 'events.filter_sort_label'|trans }}</label>
                                     
                                     <div class="blc-option d-flex">
                                        <div class="option">
                                          <div class="check">
                                             <input type="radio" id="prix-croissant" name="sort_by" value="price_asc" {% if filters.sort_by is defined and filters.sort_by == 'price_asc' or (filters.sort_by is not defined) %}checked{% endif %}>
-                                            <label for="prix-croissant">Prix croissant</label>
+                                            <label for="prix-croissant">{{ 'events.filter_sort_price_asc'|trans }}</label>
                                           </div>
                                           <div class="check">
                                             <input type="radio" id="prix-decroissant" name="sort_by" value="price_desc" {% if filters.sort_by is defined and filters.sort_by == 'price_desc' %}checked{% endif %}>
-                                            <label for="prix-decroissant">Prix décroissant</label>
+                                            <label for="prix-decroissant">{{ 'events.filter_sort_price_desc'|trans }}</label>
                                           </div>
                                         </div>
 
@@ -107,11 +107,11 @@
                                         <div class="option">
                                             <div class="check">
                                                 <input type="radio" id="nouveaute" name="sort_by" value="date" {% if filters.sort_by is defined and filters.sort_by == 'date' %}checked{% endif %}>
-                                                <label for="nouveaute">Nouveautés</label>
+                                                <label for="nouveaute">{{ 'events.filter_sort_new'|trans }}</label>
                                             </div>
                                             <div class="check">
                                                 <input type="radio" id="popularite" name="sort_by" value="popularity" {% if filters.sort_by is defined and filters.sort_by == 'popularity' %}checked{% endif %}>
-                                                <label for="popularite">Popularité</label>
+                                                <label for="popularite">{{ 'events.filter_sort_popularity'|trans }}</label>
                                             </div>
                                         </div> 
 
@@ -123,7 +123,7 @@
                         
                     </div>
                     <div class="blcBtn text-center">
-                        <button type="submit" class="btn submit">Affiner ma recherche</button>
+                        <button type="submit" class="btn submit">{{ 'events.filter_submit'|trans }}</button>
                     </div>
                     </form>
                 </div>
@@ -134,12 +134,12 @@
                     {# Afficher le message de recherche si une requête est présente #}
                     {% if searchQuery is defined and searchQuery %}
                         <div class="search-results-header wow fadeIn" data-wow-delay="200ms" style="margin-bottom: 30px;">
-                            <h2>Résultats de recherche pour "{{ searchQuery }}"</h2>
+                            <h2>{{ 'events.search_results_title'|trans({'{query}': searchQuery})|raw }}</h2>
                             {% set totalResults = 0 %}
                             {% for categoryName, eventsByCategory in groupedEvents %}
                                 {% set totalResults = totalResults + eventsByCategory|length %}
                             {% endfor %}
-                            <p style="color: #666; margin-top: 10px;">{{ totalResults }} événement(s) trouvé(s)</p>
+                            <p style="color: #666; margin-top: 10px;">{{ 'events.search_results_count'|trans({'{count}': totalResults})|raw }}</p>
                         </div>
                     {% endif %}
                     
@@ -147,10 +147,10 @@
                         {% if groupedEvents|length == 0 %}
                             <div class="no-results wow fadeIn" data-wow-delay="200ms" style="text-align: center; padding: 60px 20px;">
                                 <i class="fas fa-search" style="font-size: 48px; color: #ccc; margin-bottom: 20px;"></i>
-                                <h3>Aucun événement trouvé</h3>
-                                <p style="color: #666; margin-top: 10px;">Essayez de modifier vos critères de recherche</p>
+                                <h3>{{ 'events.no_results_title'|trans }}</h3>
+                                <p style="color: #666; margin-top: 10px;">{{ 'events.no_results_desc'|trans }}</p>
                                 <a href="{{ path('events') }}" class="btn" style="margin-top: 20px; display: inline-block;">
-                                    Voir tous les événements
+                                    {{ 'events.no_results_button'|trans }}
                                 </a>
                             </div>
                         {% else %}
@@ -177,14 +177,14 @@
                                                         <strong>{{ startsAt|date('d') }}</strong>
                                                         <span class="text-upper">{{ startsAt|date('M Y')|upper }}</span>
                                                     {% else %}
-                                                        <span>À venir</span>
+                                                        <span>{{ 'events.date_coming_soon'|trans }}</span>
                                                     {% endif %}
                                                 </div>
                                                 <div class="hour">
                                                     {% if startsAt %}
-                                                        à {{ startsAt|date('H\\hi') }}
+                                                        {{ 'events.time_prefix'|trans }} {{ startsAt|date('H\\hi') }}
                                                     {% else %}
-                                                        Horaire à confirmer
+                                                        {{ 'events.time_unknown'|trans }}
                                                     {% endif %}
                                                 </div>
                                                 <div class="code-barre">
@@ -213,18 +213,23 @@
                                                 <div class="tarif">
                                                     {% if event.min_price is not null %}
                                                         {% if event.max_price is not null and event.max_price > event.min_price %}
-                                                            Tarifs : {{ event.min_price|number_format(0, '.', ' ') }} MGA - {{ event.max_price|number_format(0, '.', ' ') }} MGA
+                                                            {{ 'events.price_range'|trans({
+                                                                '{min}': event.min_price|number_format(0, '.', ' '),
+                                                                '{max}': event.max_price|number_format(0, '.', ' ')
+                                                            })|raw }}
                                                         {% else %}
-                                                            Tarif : {{ event.min_price|number_format(0, '.', ' ') }} MGA
+                                                            {{ 'events.price_single'|trans({
+                                                                '{price}': event.min_price|number_format(0, '.', ' ')
+                                                            })|raw }}
                                                         {% endif %}
                                                     {% else %}
-                                                        Tarifs : non communiqué
+                                                        {{ 'events.price_not_set'|trans }}
                                                     {% endif %}
                                                 </div>
                                                 {% set event_url = (isAuthenticated ?? false) ? path('event_details', { id: event.id }) : path('login') %}
                                                 <div class="blcBtn ">
-                                                    <a href="{{ event_url }}" class="btn ticket">Acheter un ticket</a>
-                                                    <a href="{{ event_url }}" class="btn details">détails</a>
+                                                    <a href="{{ event_url }}" class="btn ticket">{{ 'events.buy_ticket'|trans }}</a>
+                                                    <a href="{{ event_url }}" class="btn details">{{ 'events.details'|trans }}</a>
                                                 </div>
                                             </div>
                                         </div>
@@ -242,10 +247,10 @@
                     {% else %}
                         <div class="no-results wow fadeIn" data-wow-delay="200ms" style="text-align: center; padding: 60px 20px;">
                             <i class="fas fa-calendar-alt" style="font-size: 48px; color: #ccc; margin-bottom: 20px;"></i>
-                            <h3>Aucun événement disponible</h3>
-                            <p style="color: #666; margin-top: 10px;">Aucun événement ne correspond à vos critères</p>
+                            <h3>{{ 'events.no_events_available_title'|trans }}</h3>
+                            <p style="color: #666; margin-top: 10px;">{{ 'events.no_events_available_desc'|trans }}</p>
                             <a href="{{ path('events') }}" class="btn" style="margin-top: 20px; display: inline-block;">
-                                Réinitialiser les filtres
+                                {{ 'events.no_events_reset_filters'|trans }}
                             </a>
                         </div>
                     {% endif %}

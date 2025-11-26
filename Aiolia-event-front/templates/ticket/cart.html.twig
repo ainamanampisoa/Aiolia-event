@@ -1,6 +1,6 @@
 {% extends 'base.html.twig' %}
 
-{% block title %}Panier - Vente tickets{% endblock %}
+{% block title %}{{ 'tickets.cart_page_title'|trans }}{% endblock %}
 
 {% block stylesheets %}
     <link rel="stylesheet" type="text/css" href="{{ asset('vente-ticket/css/animate.min.css') }}">
@@ -19,8 +19,8 @@
             <div class="container">
                 <!-- TITRE CENTRÉ -->
                 <div class="cart-header wow fadeIn" data-wow-delay="300ms">
-                    <h2>Mon panier</h2>
-                    <p>Vérifiez vos billets avant de procéder au paiement</p>
+                    <h2>{{ 'tickets.cart_title'|trans }}</h2>
+                    <p>{{ 'tickets.cart_subtitle'|trans }}</p>
                 </div>
 
                 {% if items is defined and items|length == 0 %}
@@ -28,11 +28,11 @@
                         <div class="empty-cart-icon">
                             <i class="fas fa-shopping-cart"></i>
                         </div>
-                        <div class="empty-cart-title">Votre panier est vide</div>
-                        <p class="empty-cart-desc">Ajoutez des billets pour commencer votre réservation et vivre des expériences inoubliables</p>
+                        <div class="empty-cart-title">{{ 'tickets.cart_empty_title'|trans }}</div>
+                        <p class="empty-cart-desc">{{ 'tickets.cart_empty_desc'|trans }}</p>
                         <a href="{{ path('events') }}" class="btn-checkout-all" style="text-decoration: none; width: fit-content; margin: 0 auto; padding: 12px 24px;">
                             <i class="fas fa-calendar-alt"></i>
-                            Voir les évènements
+                            {{ 'tickets.cart_empty_cta'|trans }}
                         </a>
                     </div>
                 {% else %}
@@ -60,7 +60,7 @@
                                              data-added-at="{{ item.event.added_at|date('Y-m-d H:i:s') }}"
                                              data-event-date="{{ item.event.starts_at|date('Y-m-d H:i:s') }}">
                                             <i class="fas fa-clock"></i>
-                                            <span>Expire dans:</span>
+                                            <span>{{ 'tickets.cart_expires_in'|trans }}</span>
                                             <span class="timer-value" id="timer-{{ item.event.id }}-{{ loop.index0 }}">Calcul...</span>
                                         </div>
                                     </div>

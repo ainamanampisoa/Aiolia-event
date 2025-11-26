@@ -1,6 +1,6 @@
 {% extends 'base.html.twig' %}
 
-{% block title %}Portefeuille - Vente tickets{% endblock %}
+{% block title %}{{ 'profile_wallet.page_title'|trans }}{% endblock %}
 
 {% block stylesheets %}
     <link rel="stylesheet" type="text/css" href="{{ asset('vente-ticket/css/animate.min.css') }}">
@@ -53,60 +53,60 @@
         <div class="container">
             <header class="wallet-header wow fadeIn" data-wow-delay="100ms">
                 <div>
-                    <h1>Mon portefeuille</h1>
-                    <p>Consultez votre solde disponible, vos moyens de paiement et vos transactions récentes.</p>
+                    <h1>{{ 'profile_wallet.header_title'|trans }}</h1>
+                    <p>{{ 'profile_wallet.header_desc'|trans }}</p>
                 </div>
                 <div class="wallet-actions">
-                    <button class="btn-outline"><i class="fas fa-plus"></i> Recharger</button>
-                    <button class="btn-solid"><i class="fas fa-paper-plane"></i> Transférer</button>
+                    <button class="btn-outline"><i class="fas fa-plus"></i> {{ 'profile_wallet.btn_recharge'|trans }}</button>
+                    <button class="btn-solid"><i class="fas fa-paper-plane"></i> {{ 'profile_wallet.btn_transfer'|trans }}</button>
                 </div>
             </header>
 
             <section class="wallet-balance wow fadeInUp" data-wow-delay="150ms">
                 <div class="balance-card">
                     <div class="balance-header">
-                        <span>Solde wallet</span>
-                        <button class="link-btn"><i class="fas fa-history"></i> Historique complet</button>
+                        <span>{{ 'profile_wallet.balance_label'|trans }}</span>
+                        <button class="link-btn"><i class="fas fa-history"></i> {{ 'profile_wallet.balance_history'|trans }}</button>
                     </div>
                     <strong>420 000 MGA</strong>
-                    <small>Dernière mise à jour : 07 novembre 2025 à 14:32</small>
+                    <small>{{ 'profile_wallet.balance_last_update'|trans({'{date}': '07 novembre 2025 à 14:32'})|raw }}</small>
                     <div class="balance-progress">
                         <div class="progress-fill" style="width: 65%"></div>
                     </div>
                     <div class="balance-meta">
-                        <span>Limite mensuelle : <strong>700 000 MGA</strong></span>
-                        <span>Points fidélité : <strong>1 250 pts</strong></span>
+                        <span>{{ 'profile_wallet.balance_monthly_limit'|trans }} <strong>700 000 MGA</strong></span>
+                        <span>{{ 'profile_wallet.balance_loyalty_points'|trans }} <strong>1 250 pts</strong></span>
                     </div>
                 </div>
                 <div class="balance-card methods">
-                    <h2>Moyens de paiement</h2>
+                    <h2>{{ 'profile_wallet.methods_title'|trans }}</h2>
                     <ul>
-                        <li><i class="fas fa-mobile-alt"></i> Mobile Money (primaire) <button class="link-btn">Modifier</button></li>
-                        <li><i class="fas fa-credit-card"></i> Visa se terminant par 1123 <button class="link-btn">Retirer</button></li>
-                        <li><i class="fas fa-wallet"></i> Ajouter une carte <button class="btn-outline">Ajouter</button></li>
+                        <li><i class="fas fa-mobile-alt"></i> {{ 'profile_wallet.methods_primary_mobile'|trans }} <button class="link-btn">{{ 'profile_wallet.methods_edit'|trans }}</button></li>
+                        <li><i class="fas fa-credit-card"></i> {{ 'profile_wallet.methods_visa_suffix'|trans }} <button class="link-btn">{{ 'profile_wallet.methods_remove'|trans }}</button></li>
+                        <li><i class="fas fa-wallet"></i> {{ 'profile_wallet.methods_add_card'|trans }} <button class="btn-outline">{{ 'profile_wallet.methods_add_btn'|trans }}</button></li>
                     </ul>
                 </div>
             </section>
 
             <section class="wallet-transactions wow fadeInUp" data-wow-delay="200ms">
                 <header>
-                    <h2>Mouvements récents</h2>
+                    <h2>{{ 'profile_wallet.movements_title'|trans }}</h2>
                     <div class="wallet-filters">
-                        <button class="tag active">Tous</button>
-                        <button class="tag">Débits</button>
-                        <button class="tag">Crédits</button>
+                        <button class="tag active">{{ 'profile_wallet.movements_tag_all'|trans }}</button>
+                        <button class="tag">{{ 'profile_wallet.movements_tag_debits'|trans }}</button>
+                        <button class="tag">{{ 'profile_wallet.movements_tag_credits'|trans }}</button>
                     </div>
                 </header>
                 <div class="transactions-table">
                     <table>
                         <thead>
                             <tr>
-                                <th>Date</th>
-                                <th>Libellé</th>
-                                <th>Type</th>
-                                <th>Montant</th>
-                                <th>Statut</th>
-                                <th>Détails</th>
+                                <th>{{ 'profile_wallet.col_date'|trans }}</th>
+                                <th>{{ 'profile_wallet.col_label'|trans }}</th>
+                                <th>{{ 'profile_wallet.col_type'|trans }}</th>
+                                <th>{{ 'profile_wallet.col_amount'|trans }}</th>
+                                <th>{{ 'profile_wallet.col_status'|trans }}</th>
+                                <th>{{ 'profile_wallet.col_details'|trans }}</th>
                             </tr>
                         </thead>
                         <tbody>

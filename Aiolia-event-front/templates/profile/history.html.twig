@@ -1,6 +1,6 @@
 {% extends 'base.html.twig' %}
 
-{% block title %}Historique d’achat - Vente tickets{% endblock %}
+{% block title %}{{ 'profile_history.page_title'|trans }}{% endblock %}
 
 {% block stylesheets %}
     <link rel="stylesheet" type="text/css" href="{{ asset('vente-ticket/css/animate.min.css') }}">
@@ -29,57 +29,63 @@
         <div class="container">
             <header class="profile-history-header wow fadeIn" data-wow-delay="100ms">
                 <div>
-                    <h1>Historique d’achat</h1>
-                    <p>Retrouvez toutes vos commandes passées, remboursements et reçus téléchargeables.</p>
+                    <h1>{{ 'profile_history.header_title'|trans }}</h1>
+                    <p>{{ 'profile_history.header_desc'|trans }}</p>
                 </div>
                 <div class="profile-history-actions">
-                    <button class="btn-outline"><i class="fas fa-file-download"></i> Exporter (PDF)</button>
-                    <button class="btn-solid"><i class="fas fa-filter"></i> Filtrer</button>
+                    <button class="btn-outline"><i class="fas fa-file-download"></i> {{ 'profile_history.export_pdf'|trans }}</button>
+                    <button class="btn-solid"><i class="fas fa-filter"></i> {{ 'profile_history.filter'|trans }}</button>
                 </div>
             </header>
 
             <section class="profile-history-summary wow fadeInUp" data-wow-delay="150ms">
                 <div class="summary-card">
-                    <span class="summary-label">Total dépensé</span>
+                    <span class="summary-label">{{ 'profile_history.total_spent_label'|trans }}</span>
                     <strong>{{ stats.total_spent }}</strong>
-                    <small>{{ stats.confirmed_orders }} commande(s) confirmée(s)</small>
+                    <small>{{ stats.confirmed_orders }} {{ 'profile_history.total_spent_suffix'|trans }}</small>
                 </div>
                 <div class="summary-card">
-                    <span class="summary-label">Billets achetés</span>
-                    <strong>{{ stats.total_tickets }} billet(s)</strong>
-                    <small>{% if stats.vip_tickets > 0 %}Dont {{ stats.vip_tickets }} VIP{% else %}Aucun VIP{% endif %}</small>
+                    <span class="summary-label">{{ 'profile_history.tickets_label'|trans }}</span>
+                    <strong>{{ stats.total_tickets }} {{ 'profile_history.tickets_suffix'|trans }}</strong>
+                    <small>
+                        {% if stats.vip_tickets > 0 %}
+                            {{ 'profile_history.tickets_vip_suffix'|trans({'{vip}': stats.vip_tickets})|raw }}
+                        {% else %}
+                            {{ 'profile_history.tickets_no_vip'|trans }}
+                        {% endif %}
+                    </small>
                 </div>
                 <div class="summary-card">
-                    <span class="summary-label">Remboursements</span>
-                    <strong>{{ stats.refunded_count }} transaction(s)</strong>
-                    <small>Montant total {{ stats.refunded_amount }}</small>
+                    <span class="summary-label">{{ 'profile_history.refunds_label'|trans }}</span>
+                    <strong>{{ stats.refunded_count }} {{ 'profile_history.refunds_transactions'|trans }}</strong>
+                    <small>{{ 'profile_history.refunds_amount_prefix'|trans }} {{ stats.refunded_amount }}</small>
                 </div>
             </section>
 
             <section class="profile-history-table wow fadeInUp" data-wow-delay="200ms">
-                <div class="history-table-head">
-                    <div class="history-search">
-                        <i class="fas fa-search"></i>
-                        <input type="search" placeholder="Rechercher une commande ou un évènement">
-                    </div>
-                    <div class="history-filters">
-                        <button class="tag active">Tous</button>
-                        <button class="tag">Confirmés</button>
-                        <button class="tag">Remboursés</button>
-                        <button class="tag">Annulés</button>
-                    </div>
-                </div>
+                        <div class="history-table-head">
+                            <div class="history-search">
+                                <i class="fas fa-search"></i>
+                                <input type="search" placeholder="{{ 'profile_history.search_placeholder'|trans }}">
+                            </div>
+                            <div class="history-filters">
+                                <button class="tag active">{{ 'profile_history.tag_all'|trans }}</button>
+                                <button class="tag">{{ 'profile_history.tag_confirmed'|trans }}</button>
+                                <button class="tag">{{ 'profile_history.tag_refunded'|trans }}</button>
+                                <button class="tag">{{ 'profile_history.tag_cancelled'|trans }}</button>
+                            </div>
+                        </div>
                 <div class="history-table-wrapper">
                     <table>
                         <thead>
                             <tr>
-                                <th>Commande</th>
-                                <th>Évènement</th>
-                                <th>Date & heure</th>
-                                <th>Billets</th>
-                                <th>Montant</th>
-                                <th>Paiement</th>
-                                <th class="align-right">Actions</th>
+                                <th>{{ 'profile_history.col_order'|trans }}</th>
+                                <th>{{ 'profile_history.col_event'|trans }}</th>
+                                <th>{{ 'profile_history.col_datetime'|trans }}</th>
+                                <th>{{ 'profile_history.col_tickets'|trans }}</th>
+                                <th>{{ 'profile_history.col_amount'|trans }}</th>
+                                <th>{{ 'profile_history.col_payment'|trans }}</th>
+                                <th class="align-right">{{ 'profile_history.col_actions'|trans }}</th>
                             </tr>
                         </thead>
                         <tbody>
@@ -97,14 +103,14 @@
                                             <div>{{ order.date }}</div>
                                             <small>{{ order.hour }}</small>
                                         </td>
-                                        <td>{{ order.tickets }} billet(s)</td>
+                                        <td>{{ order.tickets }} {{ 'profile_history.tickets_suffix'|trans }}</td>
                                         <td>{{ order.amount }}</td>
                                         <td>
                                             <i class="fas fa-credit-card"></i> {{ order.method }}
                                         </td>
                                         <td class="align-right">
-                                            <button class="link-btn"><i class="fas fa-receipt"></i> Reçu</button>
-                                            <button class="link-btn"><i class="fas fa-print"></i> Imprimer</button>
+                                            <button class="link-btn"><i class="fas fa-receipt"></i> {{ 'profile_history.btn_receipt'|trans }}</button>
+                                            <button class="link-btn"><i class="fas fa-print"></i> {{ 'profile_history.btn_print'|trans }}</button>
                                         </td>
                                     </tr>
                                 {% endfor %}
@@ -112,7 +118,7 @@
                                 <tr>
                                     <td colspan="7" style="text-align: center; padding: 40px;">
                                         <i class="fas fa-shopping-bag" style="font-size: 48px; color: #ccc; margin-bottom: 16px;"></i>
-                                        <p style="color: #999;">Aucune commande trouvée</p>
+                                        <p style="color: #999;">{{ 'profile_history.no_orders'|trans }}</p>
                                     </td>
                                 </tr>
                             {% endif %}

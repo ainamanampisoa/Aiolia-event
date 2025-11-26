@@ -1,6 +1,6 @@
 {% extends 'base.html.twig' %}
 
-{% block title %}Login - Vente tickets{% endblock %}
+{% block title %}{{ 'auth.login_page_title'|trans }}{% endblock %}
 
 {% block stylesheets %}
         <link rel="stylesheet" type="text/css" href="{{ asset('vente-ticket/css/animate.min.css') }}">
@@ -13,7 +13,7 @@
         <main>
             <section class="sec-login pt-100 pb-100">
                 <div class="container">
-                    <h2 class="text-center">Se connecter</h2>
+                    <h2 class="text-center">{{ 'auth.login_title'|trans }}</h2>
                     <div class="blc-login bg-beige">
                         {% for message in app.flashes('success') %}
                             <p class="msg-success alert-auto-dismiss">{{ message }}</p>
@@ -26,11 +26,11 @@
                                 <p class="msg-error">{{ error }}</p>
                             {% endif %}
                             <div class="blc-chp">
-                                <label>Votre adresse email</label>
+                                <label>{{ 'auth.email_label'|trans }}</label>
                                 <input type="text" name="email" class="form-control" value="{{ last_email|default('') }}" required>
                             </div>
                             <div class="blc-chp">
-                                <label>Votre mot de passe</label>
+                                <label>{{ 'auth.password_label'|trans }}</label>
                                 <div class="blc-password">
                                     <input type="password" name="password" class="form-control" placeholder="****" required>
                                     <span class="material-symbols-rounded pointer toggle-password"></span>
@@ -39,13 +39,13 @@
                             <div class="blc-check d-flex justify-content-between">
                                 <div class="check-connect">
                                     <input type="checkbox" id="reste-connecte">
-                                    <label for="reste-connecte">Rester connecté</label>
+                                    <label for="reste-connecte">{{ 'auth.remember_me'|trans }}</label>
                                 </div>
-                                <a href="{{ path('forgot_password') }}" class="pass-forgot">J'ai oublié mon mot de passe</a>
+                                <a href="{{ path('forgot_password') }}" class="pass-forgot">{{ 'auth.forgot_password'|trans }}</a>
                             </div>
                             <div class="blc-btn text-center">
-                                <input type="submit" class="btn-submit login" name="" value="se connecter">
-                                <a href="{{ path('register') }}" class="link-form">Créer un nouveau compte</a>
+                                <input type="submit" class="btn-submit login" name="" value="{{ 'auth.submit_login'|trans }}">
+                                <a href="{{ path('register') }}" class="link-form">{{ 'auth.create_account_link'|trans }}</a>
                             </div>
                         </form>
                     </div>
