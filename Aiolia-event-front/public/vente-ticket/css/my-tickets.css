@@ -412,20 +412,20 @@
 
 /* ===== BOUTON DÉTAILS AMÉLIORÉ ===== */
 .btn-details {
-    padding: 14px 22px;
+    padding: 10px 18px; /* fond plus petit autour du texte */
     border-radius: var(--radius-md);
     font-weight: 700;
     font-size: 15px;
     transition: var(--transition);
-    display: flex;
+    display: inline-flex; /* se dimensionne sur le contenu */
     align-items: center;
-    gap: 10px;
+    gap: 8px;
     position: relative;
     overflow: hidden;
     border: 2px solid var(--primary-green);
     background: var(--gradient-green);
     color: white;
-    min-height: 52px;
+    min-height: auto; /* ne force plus une grande hauteur */
     cursor: pointer;
     text-decoration: none;
     box-shadow: var(--shadow-soft);
@@ -474,6 +474,32 @@
     position: relative;
     white-space: nowrap;
     font-size: 15px;
+}
+
+/* Style spécifique au bouton détails dans la carte billet
+   (le bouton HTML a la classe .btn.details) */
+.ticket-actions .btn.details {
+    padding: 10px 18px;        /* réduit la taille du fond */
+    border-radius: var(--radius-md);
+    font-weight: 700;
+    font-size: 15px;
+    display: inline-flex;      /* dimensionné sur le texte */
+    align-items: center;
+    gap: 8px;
+    width: auto;
+    min-width: 0;
+    /* on NE change PAS le background/border ici,
+       il garde donc le style défini auparavant */
+}
+
+.ticket-actions .btn.details i {
+    font-size: 16px;
+}
+
+.ticket-actions {
+    display: flex;
+    align-items: center;
+    gap: 12px;
 }
 
 /* ===== SUPPRESSION DES ANIMATIONS AU CLIC ===== */
@@ -542,31 +568,27 @@
 
 @media (max-width: 480px) {
     .btn-details {
-        width: 100%;
+        width: auto;              /* garde un fond compact aussi sur mobile */
         justify-content: center;
-        padding: 14px 20px;
+        padding: 12px 18px;
     }
 }
 
-/* ===== CONSERVATION DES ANIMATIONS AU SURVOL SEULEMENT ===== */
-/* Les animations au survol sont conservées */
-.btn-pdf:hover i {
-    animation: downloadPulse 1.2s infinite;
-}
-
-.btn-share:hover i {
-    animation: shareBounce 0.8s ease;
-}
-
-/* Mais suppression au clic */
+/* ===== SUPPRESSION TOTALE DES ANIMATIONS SUR PDF & PARTAGER ===== */
+.btn-pdf:hover i,
 .btn-pdf:active i,
-.btn-pdf:focus i {
+.btn-pdf:focus i,
+.btn-pdf.downloading i {
     animation: none !important;
+    transform: none !important;
 }
 
+.btn-share:hover i,
 .btn-share:active i,
-.btn-share:focus i {
+.btn-share:focus i,
+.btn-share.sharing i {
     animation: none !important;
+    transform: none !important;
 }
 /* Métadonnées du billet améliorées */
 .ticket-meta {
@@ -611,12 +633,17 @@
 .blc-col2 {
     width: 200px;
     position: relative;
+    padding: 20px 20px 20px 0;  /* aligne l'image avec le contenu texte */
+    display: flex;
+    align-items: center;        /* centre verticalement l'affiche */
 }
 
 .blc-col2 .img {
+    width: 100%;
     height: 100%;
     position: relative;
     overflow: hidden;
+    border-radius: var(--radius-md);
 }
 
 .blc-col2 img {
