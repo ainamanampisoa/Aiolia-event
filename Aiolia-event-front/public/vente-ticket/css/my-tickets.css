@@ -130,15 +130,15 @@
 
 /* Couleurs spécifiques pour chaque action */
 .btn-pdf {
-    color: #e74c3c !important;
-    border-color: #e74c3c !important;
+    color: var(--text-dark) !important;             /* texte PDF reste neutre */
+    border-color: var(--border-light) !important; /* bordure neutre par défaut */
     background: linear-gradient(135deg, #fff 0%, #f9f9f9 100%) !important;
 }
 
 /* Désactivation des effets de hover pour PDF */
 .btn-pdf:hover {
     background: linear-gradient(135deg, #fff 0%, #f9f9f9 100%) !important;
-    border-color: #e74c3c !important;
+    border-color: var(--border-light) !important; /* pas de bordure rouge au simple survol */
 }
 
 /* Icône et texte PDF complètement statiques (aucune animation) */
@@ -157,15 +157,25 @@
     transform: none !important;
 }
 
+/* Icône PDF neutre (même couleur que le texte) */
+.btn-pdf i {
+    color: var(--text-dark) !important;
+}
+
 .btn-share {
     color: var(--text-dark) !important;              /* plus de bleu par défaut */
     border-color: var(--border-light) !important;
     background: linear-gradient(135deg, #fff 0%, #f9f9f9 100%) !important;
 }
 
-.btn-share:hover {
-    background: var(--gradient-blue);
-    border-color: transparent;
+/* Petite animation : bordure bleue au survol/clic pour Partager */
+.btn-share:hover,
+.btn-share:active,
+.btn-share:focus {
+    background: linear-gradient(135deg, #fff 0%, #f9f9f9 100%) !important; /* fond reste neutre */
+    border-color: var(--secondary-blue) !important;  /* bordure bleue animée */
+    box-shadow: var(--shadow-hover) !important;
+    color: var(--text-dark) !important;
 }
 
 .btn-other {
@@ -535,6 +545,7 @@
 .btn-pdf:active,
 .btn-pdf:focus {
     animation: none !important;
+    border-color: #e74c3c !important; /* bordure rouge seulement au clic / focus */
 }
 
 .btn-pdf:active i,
