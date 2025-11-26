@@ -135,12 +135,6 @@
     background: linear-gradient(135deg, #fff 0%, #f9f9f9 100%) !important;
 }
 
-/* Désactivation des effets de hover pour PDF */
-.btn-pdf:hover {
-    background: linear-gradient(135deg, #fff 0%, #f9f9f9 100%) !important;
-    border-color: var(--border-light) !important; /* pas de bordure rouge au simple survol */
-}
-
 /* Icône et texte PDF complètement statiques (aucune animation) */
 .btn-pdf i,
 .btn-pdf .btn-text {
@@ -174,6 +168,16 @@
 .btn-share:focus {
     background: linear-gradient(135deg, #fff 0%, #f9f9f9 100%) !important; /* fond reste neutre */
     border-color: var(--secondary-blue) !important;  /* bordure bleue animée */
+    box-shadow: var(--shadow-hover) !important;
+    color: var(--text-dark) !important;
+}
+
+/* Petite animation : bordure rouge au survol/clic pour PDF (même style que Partager) */
+.btn-pdf:hover,
+.btn-pdf:active,
+.btn-pdf:focus {
+    background: linear-gradient(135deg, #fff 0%, #f9f9f9 100%) !important; /* fond reste neutre */
+    border-color: #e74c3c !important;              /* bordure rouge animée */
     box-shadow: var(--shadow-hover) !important;
     color: var(--text-dark) !important;
 }
@@ -545,7 +549,9 @@
 .btn-pdf:active,
 .btn-pdf:focus {
     animation: none !important;
-    border-color: #e74c3c !important; /* bordure rouge seulement au clic / focus */
+    border-color: #e74c3c !important;          /* bordure rouge au clic / focus */
+    box-shadow: var(--shadow-hover) !important;/* petite ombre comme feedback */
+    transform: translateY(-1px) !important;    /* léger mouvement vers le haut */
 }
 
 .btn-pdf:active i,
@@ -578,8 +584,8 @@
     animation: none !important; /* Supprime l'animation de bounce */
 }
 
-/* ===== ÉTATS ACTIFS SIMPLIFIÉS ===== */
-.action-btn:active {
+/* ===== ÉTATS ACTIFS SIMPLIFIÉS (sauf PDF/Partager) ===== */
+.action-btn:not(.btn-pdf):not(.btn-share):active {
     transform: none !important;
     transition: none !important;
     background: inherit !important;
@@ -587,7 +593,7 @@
     box-shadow: inherit !important;
 }
 
-.action-btn:active::before {
+.action-btn:not(.btn-pdf):not(.btn-share):active::before {
     transition: none !important;
 }
 
