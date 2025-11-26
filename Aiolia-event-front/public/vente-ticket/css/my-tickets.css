@@ -1,68 +1,856 @@
-/* Mes billets */
+/* ===== VARIABLES ET THEME ===== */
+:root {
+    --primary-green: #05465a;
+    --primary-dark: #667feb;
+    --primary-light: #C8E6C9;
+    --secondary-blue: #1a4466;
+    --secondary-orange: #FF9800;
+    --accent-purple: #9C27B0;
+    --text-dark: #333333;
+    --text-light: #666666;
+    --bg-light: #f8f9fa;
+    --border-light: #e0e0e0;
+    --shadow-soft: 0 4px 12px rgba(0,0,0,0.08);
+    --shadow-hover: 0 8px 24px rgba(0,0,0,0.12);
+    --gradient-green: linear-gradient(135deg, #3e404b 0%, #0b0e38 100%);
+    --gradient-blue: linear-gradient(135deg, #2196F3 0%, #1976D2 100%);
+    --gradient-purple: linear-gradient(135deg, #9C27B0 0%, #7B1FA2 100%);
+    --radius-sm: 8px;
+    --radius-md: 12px;
+    --radius-lg: 16px;
+    --transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+}
 
-.ticket-filters {
+/* ===== AMELIORATION DES BOUTONS D'ACTION ===== */
+.action-group {
+    display: flex;
+    gap: 10px;
+    flex-wrap: wrap;
+    align-items: center;
+    margin: 15px 0;
+}
+
+.action-btn {
+    padding: 12px 18px;
+    border-radius: var(--radius-md);
+    font-weight: 600;
+    font-size: 14px;
+    transition: var(--transition);
     display: flex;
     align-items: center;
-    gap: 16px;
-    margin: 22px 0 28px;
+    gap: 8px;
+    position: relative;
+    overflow: hidden;
+    border: 2px solid transparent;
+    background: white;
+    color: var(--text-dark);
+    min-height: 48px;
+    cursor: pointer;
+    text-decoration: none;
+    box-shadow: var(--shadow-soft);
 }
 
-.ticket-filter-active {
-    background: #2ecc71;
-    border-color: #2ecc71;
+.action-btn::before {
+    content: '';
+    position: absolute;
+    top: 0;
+    left: -100%;
+    width: 100%;
+    height: 100%;
+    background: var(--gradient-green);
+    transition: left 0.4s ease;
+    z-index: 0;
 }
 
-.ticket-badge {
-    margin-left: auto;
-    background: linear-gradient(135deg, #2ecc71, #27ae60);
-    color: #ffffff;
-    border-radius: 999px;
-    padding: 6px 14px;
-    font-size: 12px;
+.action-btn:hover::before {
+    left: 0;
+}
+
+.action-btn:hover {
+    transform: translateY(-3px);
+    box-shadow: var(--shadow-hover);
+    border-color: transparent;
+    color: white;
+}
+
+.action-btn:hover i,
+.action-btn:hover .btn-text {
+    position: relative;
+    z-index: 1;
+    color: white;
+}
+
+/* Icônes et texte */
+.action-btn i {
+    font-size: 16px;
+    transition: var(--transition);
+    z-index: 1;
+    position: relative;
+}
+
+.action-btn .btn-text {
+    font-weight: 600;
+    z-index: 1;
+    position: relative;
+    white-space: nowrap;
+}
+
+/* Couleurs spécifiques pour chaque action */
+.btn-pdf {
+    color: #e74c3c;
+    border-color: #e74c3c;
+    background: linear-gradient(135deg, #fff 0%, #f9f9f9 100%);
+}
+
+.btn-pdf:hover {
+    background: var(--gradient-red);
+    border-color: transparent;
+}
+
+.btn-share {
+    color: var(--secondary-blue);
+    border-color: var(--secondary-blue);
+    background: linear-gradient(135deg, #fff 0%, #f9f9f9 100%);
+}
+
+.btn-share:hover {
+    background: var(--gradient-blue);
+    border-color: transparent;
+}
+
+.btn-other {
+    color: var(--accent-purple);
+    border-color: var(--accent-purple);
+    background: linear-gradient(135deg, #fff 0%, #f9f9f9 100%);
+}
+
+.btn-other:hover {
+    background: var(--gradient-purple);
+    border-color: transparent;
+}
+
+/* Badge de notification */
+.action-badge {
+    position: absolute;
+    top: -8px;
+    right: -8px;
+    background: linear-gradient(135deg, #e74c3c, #c0392b);
+    color: white;
+    border-radius: 50%;
+    width: 20px;
+    height: 20px;
+    font-size: 10px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
     font-weight: 700;
-    box-shadow: 0 8px 16px -12px rgba(39, 174, 96, 0.6);
+    z-index: 2;
+    box-shadow: 0 2px 8px rgba(231, 76, 60, 0.4);
 }
 
+/* Tooltip amélioré */
+.action-btn[data-tooltip] {
+    position: relative;
+}
+
+.action-btn[data-tooltip]::after {
+    content: attr(data-tooltip);
+    position: absolute;
+    bottom: 100%;
+    left: 50%;
+    transform: translateX(-50%) translateY(-8px);
+    background: var(--text-dark);
+    color: white;
+    padding: 8px 14px;
+    border-radius: var(--radius-sm);
+    font-size: 12px;
+    font-weight: 600;
+    white-space: nowrap;
+    opacity: 0;
+    pointer-events: none;
+    transition: var(--transition);
+    z-index: 1000;
+    box-shadow: var(--shadow-soft);
+}
+
+.action-btn[data-tooltip]:hover::after {
+    opacity: 1;
+    transform: translateX(-50%) translateY(-12px);
+}
+
+/* ===== ANIMATIONS SPECIFIQUES ===== */
+/* Animation de téléchargement PDF */
+.btn-pdf.downloading {
+    position: relative;
+    overflow: hidden;
+}
+
+.btn-pdf.downloading::after {
+    content: '';
+    position: absolute;
+    top: 0;
+    left: -100%;
+    width: 100%;
+    height: 100%;
+    background: linear-gradient(90deg, transparent, rgba(255,255,255,0.4), transparent);
+    animation: shimmer 1.5s infinite;
+}
+
+@keyframes shimmer {
+    0% { left: -100%; }
+    100% { left: 100%; }
+}
+
+.btn-pdf.downloading i {
+    animation: downloadPulse 1.2s infinite;
+}
+
+@keyframes downloadPulse {
+    0%, 100% {
+        transform: scale(1);
+        color: #e74c3c;
+    }
+    50% {
+        transform: scale(1.2);
+        color: #c0392b;
+    }
+}
+
+/* Animation de partage */
+.btn-share.sharing i {
+    animation: shareBounce 0.8s ease;
+}
+
+@keyframes shareBounce {
+    0%, 20%, 60%, 100% {
+        transform: scale(1);
+    }
+    40% {
+        transform: scale(1.3);
+    }
+    80% {
+        transform: scale(0.9);
+    }
+}
+
+/* Animation d'échange */
+.btn-other.exchanging i {
+    animation: exchangeSpin 1s ease-in-out;
+}
+
+@keyframes exchangeSpin {
+    0% {
+        transform: rotate(0deg);
+    }
+    50% {
+        transform: rotate(180deg);
+    }
+    100% {
+        transform: rotate(360deg);
+    }
+}
+
+/* ===== ETATS DE CHARGEMENT ===== */
+.action-btn.loading {
+    pointer-events: none;
+    opacity: 0.8;
+}
+
+.action-btn.loading i {
+    animation: spin 1s linear infinite;
+}
+
+@keyframes spin {
+    0% {
+        transform: rotate(0deg);
+    }
+    100% {
+        transform: rotate(360deg);
+    }
+}
+
+/* ===== STYLES RESPONSIVE AMELIORES ===== */
+@media (max-width: 768px) {
+    .action-group {
+        justify-content: center;
+        width: 100%;
+        gap: 8px;
+    }
+    
+    .action-btn {
+        flex: 1;
+        justify-content: center;
+        min-width: 120px;
+        padding: 10px 14px;
+        min-height: 44px;
+    }
+    
+    .action-btn .btn-text {
+        font-size: 13px;
+    }
+    
+    .action-btn i {
+        font-size: 15px;
+    }
+}
+
+@media (max-width: 480px) {
+    .action-group {
+        flex-direction: column;
+        gap: 6px;
+    }
+    
+    .action-btn {
+        width: 100%;
+        justify-content: flex-start;
+        padding: 12px 16px;
+    }
+    
+    /* Mode compact pour mobile */
+    .action-group.compact-mobile .action-btn {
+        padding: 10px 12px;
+        min-height: 42px;
+    }
+    
+    .action-group.compact-mobile .action-btn .btn-text {
+        font-size: 12px;
+    }
+    
+    /* Cacher les tooltips sur mobile très petit */
+    .action-btn[data-tooltip]::after {
+        display: none;
+    }
+}
+
+/* ===== AMELIORATION DES CARTES DE BILLETS ===== */
+.ticket-card {
+    background: white;
+    border-radius: var(--radius-lg);
+    box-shadow: var(--shadow-soft);
+    transition: var(--transition);
+    border: 1px solid var(--border-light);
+    overflow: hidden;
+}
+
+.ticket-card:hover {
+    transform: translateY(-5px);
+    box-shadow: var(--shadow-hover);
+}
+
+.ticket-card .inner {
+    display: flex;
+    align-items: stretch;
+    min-height: 200px;
+}
+
+/* Colonne principale améliorée */
+.blc-col1 {
+    flex: 1;
+    padding: 20px;
+    display: flex;
+    gap: 20px;
+    align-items: flex-start;
+}
+
+.col1 {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 12px;
+    min-width: 100px;
+}
+
+/* Date card améliorée */
+.date-card {
+    background: var(--gradient-green);
+    color: white;
+    border-radius: var(--radius-md);
+    padding: 12px 8px;
+    text-align: center;
+    min-width: 70px;
+    box-shadow: 0 4px 8px rgba(76, 175, 80, 0.3);
+}
+
+.date-day {
+    font-size: 24px;
+    font-weight: 700;
+    line-height: 1;
+}
+
+.date-month {
+    font-size: 12px;
+    font-weight: 600;
+    opacity: 0.9;
+    margin: 4px 0;
+}
+
+.date-year {
+    font-size: 11px;
+    opacity: 0.8;
+}
+
+/* Code barre amélioré */
+.code-barre {
+    text-align: center;
+    padding: 8px;
+    background: var(--bg-light);
+    border-radius: var(--radius-sm);
+    border: 1px solid var(--border-light);
+}
+
+.code-barre img {
+    max-width: 80px;
+    height: auto;
+}
+
+.ticket-id {
+    font-size: 10px;
+    color: var(--text-light);
+    font-weight: 600;
+    margin-top: 4px;
+}
+
+/* ===== BOUTON DÉTAILS AMÉLIORÉ ===== */
+.btn-details {
+    padding: 14px 22px;
+    border-radius: var(--radius-md);
+    font-weight: 700;
+    font-size: 15px;
+    transition: var(--transition);
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    position: relative;
+    overflow: hidden;
+    border: 2px solid var(--primary-green);
+    background: var(--gradient-green);
+    color: white;
+    min-height: 52px;
+    cursor: pointer;
+    text-decoration: none;
+    box-shadow: var(--shadow-soft);
+}
+
+.btn-details::before {
+    content: '';
+    position: absolute;
+    top: 0;
+    left: -100%;
+    width: 100%;
+    height: 100%;
+    background: linear-gradient(135deg, var(--secondary-blue) 0%, var(--primary-green) 100%);
+    transition: left 0.4s ease;
+    z-index: 0;
+}
+
+.btn-details:hover::before {
+    left: 0;
+}
+
+.btn-details:hover {
+    transform: translateY(-3px);
+    box-shadow: var(--shadow-hover);
+    border-color: var(--secondary-blue);
+    color: white;
+}
+
+.btn-details:hover i,
+.btn-details:hover .btn-text {
+    position: relative;
+    z-index: 1;
+    color: white;
+}
+
+.btn-details i {
+    font-size: 18px;
+    transition: var(--transition);
+    z-index: 1;
+    position: relative;
+}
+
+.btn-details .btn-text {
+    font-weight: 700;
+    z-index: 1;
+    position: relative;
+    white-space: nowrap;
+    font-size: 15px;
+}
+
+/* ===== SUPPRESSION DES ANIMATIONS AU CLIC ===== */
+/* Désactivation des animations pour PDF */
+.btn-pdf:active,
+.btn-pdf:focus {
+    animation: none !important;
+}
+
+.btn-pdf:active i,
+.btn-pdf:focus i {
+    animation: none !important;
+    transform: scale(1) !important;
+}
+
+.btn-pdf.downloading::after {
+    display: none; /* Supprime l'effet shimmer */
+}
+
+.btn-pdf.downloading i {
+    animation: none !important; /* Supprime l'animation de pulsation */
+}
+
+/* Désactivation des animations pour Partager */
+.btn-share:active,
+.btn-share:focus {
+    animation: none !important;
+}
+
+.btn-share:active i,
+.btn-share:focus i {
+    animation: none !important;
+    transform: scale(1) !important;
+}
+
+.btn-share.sharing i {
+    animation: none !important; /* Supprime l'animation de bounce */
+}
+
+/* ===== ÉTATS ACTIFS SIMPLIFIÉS ===== */
+.action-btn:active {
+    transform: translateY(-1px) !important;
+    transition: transform 0.1s ease !important;
+}
+
+.action-btn:active::before {
+    transition: left 0.2s ease !important;
+}
+
+/* ===== RESPONSIVE POUR BOUTON DÉTAILS ===== */
+@media (max-width: 768px) {
+    .btn-details {
+        padding: 12px 18px;
+        min-height: 48px;
+        font-size: 14px;
+    }
+    
+    .btn-details i {
+        font-size: 16px;
+    }
+    
+    .btn-details .btn-text {
+        font-size: 14px;
+    }
+}
+
+@media (max-width: 480px) {
+    .btn-details {
+        width: 100%;
+        justify-content: center;
+        padding: 14px 20px;
+    }
+}
+
+/* ===== CONSERVATION DES ANIMATIONS AU SURVOL SEULEMENT ===== */
+/* Les animations au survol sont conservées */
+.btn-pdf:hover i {
+    animation: downloadPulse 1.2s infinite;
+}
+
+.btn-share:hover i {
+    animation: shareBounce 0.8s ease;
+}
+
+/* Mais suppression au clic */
+.btn-pdf:active i,
+.btn-pdf:focus i {
+    animation: none !important;
+}
+
+.btn-share:active i,
+.btn-share:focus i {
+    animation: none !important;
+}
+/* Métadonnées du billet améliorées */
+.ticket-meta {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding-top: 12px;
+    border-top: 1px solid var(--border-light);
+    margin-top: auto;
+}
+
+.ticket-status {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    font-size: 12px;
+    font-weight: 600;
+    padding: 4px 10px;
+    border-radius: 12px;
+    background: var(--bg-light);
+}
+
+.ticket-status-upcoming .status-dot {
+    color: var(--primary-green);
+}
+
+.ticket-status-past .status-dot {
+    color: var(--text-light);
+}
+
+.ticket-status-cancelled .status-dot {
+    color: #e74c3c;
+}
+
+.order-number {
+    font-size: 11px;
+    color: var(--text-light);
+    font-weight: 500;
+}
+
+/* Image d'événement améliorée */
+.blc-col2 {
+    width: 200px;
+    position: relative;
+}
+
+.blc-col2 .img {
+    height: 100%;
+    position: relative;
+    overflow: hidden;
+}
+
+.blc-col2 img {
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+    transition: var(--transition);
+}
+
+.blc-col2:hover img {
+    transform: scale(1.05);
+}
+
+.image-overlay {
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    background: rgba(0,0,0,0.7);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    opacity: 0;
+    transition: var(--transition);
+}
+
+.blc-col2:hover .image-overlay {
+    opacity: 1;
+}
+
+.view-event {
+    color: white;
+    font-weight: 600;
+    font-size: 14px;
+}
+
+/* ===== ETAT VIDE AMELIORE ===== */
 .ticket-empty {
     text-align: center;
-    padding: 48px 24px;
-    background: linear-gradient(180deg, rgba(249, 250, 252, 0.9), rgba(241, 245, 249, 0.95));
-    border-radius: 16px;
-    box-shadow: 0 20px 45px -30px rgba(15, 35, 74, 0.35);
+    padding: 60px 20px;
+    background: white;
+    border-radius: var(--radius-lg);
+    box-shadow: var(--shadow-soft);
+    margin: 40px 0;
+}
+
+.empty-icon {
+    font-size: 64px;
+    color: var(--primary-light);
+    margin-bottom: 20px;
 }
 
 .ticket-empty-title {
-    font-size: 18px;
-    font-weight: 600;
-    margin-bottom: 14px;
-    color: #1f2d3d;
+    font-size: 24px;
+    font-weight: 700;
+    color: var(--text-dark);
+    margin-bottom: 12px;
 }
 
-.ticket-actions {
+.ticket-empty-desc {
+    color: var(--text-light);
+    font-size: 16px;
+    margin-bottom: 30px;
+    max-width: 400px;
+    margin-left: auto;
+    margin-right: auto;
+}
+
+/* ===== PAGINATION AMELIOREE ===== */
+.pagination-wrapper {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-top: 40px;
+    padding: 20px 0;
+    border-top: 1px solid var(--border-light);
+}
+
+.pagination {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+}
+
+.page-nav, .page-number {
+    padding: 10px 16px;
+    border-radius: var(--radius-md);
+    background: white;
+    color: var(--text-dark);
+    text-decoration: none;
+    font-weight: 600;
+    border: 2px solid var(--border-light);
+    transition: var(--transition);
+    display: flex;
+    align-items: center;
+    gap: 6px;
+}
+
+.page-nav:hover, .page-number:hover {
+    border-color: var(--primary-green);
+    color: var(--primary-green);
+    transform: translateY(-2px);
+}
+
+.page-number.active {
+    background: var(--gradient-green);
+    color: white;
+    border-color: transparent;
+}
+
+.pagination-info {
+    color: var(--text-light);
+    font-size: 14px;
+    font-weight: 500;
+}
+
+/* ===== FILTRES AMELIORES ===== */
+.ticket-filters {
+    background: white;
+    padding: 20px;
+    border-radius: var(--radius-lg);
+    box-shadow: var(--shadow-soft);
+    margin-bottom: 30px;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    flex-wrap: wrap;
+    gap: 15px;
+}
+
+.filter-group {
     display: flex;
     gap: 10px;
     flex-wrap: wrap;
 }
 
-.ticket-actions .btn {
-    display: inline-flex;
+.filter-btn {
+    padding: 12px 20px;
+    border-radius: var(--radius-md);
+    font-weight: 600;
+    text-decoration: none;
+    transition: var(--transition);
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    border: 2px solid var(--border-light);
+    background: white;
+    color: var(--text-dark);
+}
+
+.filter-btn:hover {
+    border-color: var(--primary-green);
+    color: var(--primary-green);
+    transform: translateY(-2px);
+}
+
+.ticket-filter-active {
+    background: var(--gradient-green);
+    color: white;
+    border-color: transparent;
+}
+
+.ticket-stats {
+    display: flex;
+    align-items: center;
+    gap: 15px;
+}
+
+.ticket-badge {
+    background: var(--primary-light);
+    color: var(--primary-dark);
+    padding: 8px 16px;
+    border-radius: 20px;
+    font-size: 14px;
+    font-weight: 600;
+    display: flex;
     align-items: center;
     gap: 8px;
 }
 
-.ticket-status {
-    margin-top: 10px;
-    color: #2ecc71;
-    font-weight: 600;
-}
-
+/* ===== RESPONSIVE GENERAL ===== */
 @media (max-width: 768px) {
+    .ticket-card .inner {
+        flex-direction: column;
+    }
+    
+    .blc-col2 {
+        width: 100%;
+        height: 200px;
+    }
+    
+    .blc-col1 {
+        flex-direction: column;
+        gap: 15px;
+    }
+    
+    .col1 {
+        flex-direction: row;
+        justify-content: space-between;
+        width: 100%;
+    }
+    
     .ticket-filters {
-        flex-wrap: wrap;
+        flex-direction: column;
+        align-items: stretch;
+    }
+    
+    .filter-group {
         justify-content: center;
     }
-
-    .ticket-badge {
-        margin-left: 0;
+    
+    .pagination-wrapper {
+        flex-direction: column;
+        gap: 20px;
+        text-align: center;
     }
+}
+
+/* Animation d'apparition */
+.wow.fadeInUp {
+    animation-duration: 0.6s;
+}
+
+/* Amélioration des transitions globales */
+.btn, .action-btn, .filter-btn, .page-nav, .page-number {
+    transition: var(--transition);
+}
+
+/* Effet de focus pour l'accessibilité */
+.action-btn:focus,
+.filter-btn:focus,
+.page-nav:focus,
+.page-number:focus {
+    outline: 2px solid var(--primary-green);
+    outline-offset: 2px;
 }

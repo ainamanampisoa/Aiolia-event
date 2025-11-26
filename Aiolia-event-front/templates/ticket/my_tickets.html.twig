@@ -3,97 +3,289 @@
 {% block title %}Mes Billets - Vente tickets{% endblock %}
 
 {% block stylesheets %}
-        <link rel="stylesheet" type="text/css" href="{{ asset('vente-ticket/css/animate.min.css') }}">
-        <link rel="stylesheet" type="text/css" href="{{ asset('vente-ticket/css/slick.css') }}">
-        <link rel="stylesheet" type="text/css" href="{{ asset('vente-ticket/css/jquery-ui.css') }}">
-        <link rel="stylesheet" type="text/css" href="{{ asset('vente-ticket/css/main.css') }}">
-        <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
-        <link rel="stylesheet" type="text/css" href="{{ asset('vente-ticket/css/my-tickets.css') }}">
+    <link rel="stylesheet" type="text/css" href="{{ asset('vente-ticket/css/animate.min.css') }}">
+    <link rel="stylesheet" type="text/css" href="{{ asset('vente-ticket/css/slick.css') }}">
+    <link rel="stylesheet" type="text/css" href="{{ asset('vente-ticket/css/jquery-ui.css') }}">
+    <link rel="stylesheet" type="text/css" href="{{ asset('vente-ticket/css/main.css') }}">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <link rel="stylesheet" type="text/css" href="{{ asset('vente-ticket/css/my-tickets.css') }}">
 {% endblock %}
 
 {% block hero %}{% endblock %}
 
 {% block body %}
-        <main>
-            <section class="sec-event all-event">
-                <div class="container">
-                    <h2 class="wow fadeIn" data-wow-delay="300ms">Mes billets</h2>
-                    <div class="wow fadeInUp ticket-filters" data-wow-delay="200ms">
-                        <a href="?filter=upcoming" class="btn ticket-filter-active">À venir</a>
-                        <a href="?filter=past" class="btn btn-secondary">Passés</a>
-                        <span class="ticket-badge">{{ upcomingCount|default(2) }} à venir</span>
-                    </div>
+<main>
+    <section class="sec-event all-event">
+        <div class="container">
+            <div class="page-header wow fadeIn" data-wow-delay="300ms">
+                <h2>Mes billets</h2>
+                <p class="page-subtitle">Gérez et consultez tous vos billets en un seul endroit</p>
+            </div>
 
-                    {% if tickets is defined and tickets|length == 0 %}
-                        <div class="wow fadeInUp ticket-empty" data-wow-delay="200ms">
-                            <div class="ticket-empty-title">Aucun billet pour le moment</div>
-                            <a href="{{ path('events') }}" class="btn">Découvrir des évènements</a>
-                        </div>
+            <!-- Filtres et statistiques -->
+            <div class="wow fadeInUp ticket-filters" data-wow-delay="200ms">
+                {% set currentFilter = currentFilter|default('upcoming') %}
+                {% set counts = statusCounts|default({'upcoming': 0, 'past': 0, 'cancelled': 0}) %}
+                
+                <div class="filter-group">
+                    <a href="{{ path('my_tickets', {filter: 'upcoming' }) }}"
+                       class="filter-btn {% if currentFilter == 'upcoming' %}filter-active{% endif %}">
+                        <i class="fas fa-calendar-alt"></i>
+                        À venir ({{ counts.upcoming|default(0) }})
+                    </a>
+                    <a href="{{ path('my_tickets', {filter: 'past' }) }}"
+                       class="filter-btn {% if currentFilter == 'past' %}filter-active{% endif %}">
+                        <i class="fas fa-history"></i>
+                        Passés ({{ counts.past|default(0) }})
+                    </a>
+                    <a href="{{ path('my_tickets', {filter: 'cancelled' }) }}"
+                       class="filter-btn {% if currentFilter == 'cancelled' %}filter-active{% endif %}">
+                        <i class="fas fa-times-circle"></i>
+                        Annulés ({{ counts.cancelled|default(0) }})
+                    </a>
+                </div>
+
+                <div class="ticket-stats">
+                    <span class="ticket-badge">
+                        <i class="fas fa-ticket-alt"></i>
+                        {{ counts.upcoming|default(0) }} billet(s) à venir
+                    </span>
+                </div>
+            </div>
+
+            <!-- État vide -->
+            {% if tickets is defined and tickets|length == 0 %}
+            <div class="wow fadeInUp ticket-empty" data-wow-delay="200ms">
+                <div class="empty-icon">
+                    <i class="fas fa-ticket-alt"></i>
+                </div>
+                <div class="ticket-empty-title">Aucun billet trouvé</div>
+                <p class="ticket-empty-desc">
+                    {% if currentFilter == 'upcoming' %}
+                        Vous n'avez pas de billets à venir. Découvrez nos prochains événements !
+                    {% elseif currentFilter == 'past' %}
+                        Aucun billet passé pour le moment.
                     {% else %}
-                    <div class="lst-event">
-                        {% for i in 1..4 %}
-                        <div class="item  wow fadeInUp" data-wow-delay="300ms">
-                            <div class="inner">
-                                <div class="blc-col1">
-                                    <div class="col1">
-                                        <div class="date">
-                                            <span>Dimanche</span>
-                                            <strong>20</strong>
-                                            <span class="text-upper">juil. 2025</span>
-                                        </div>
-                                        <div class="hour">
-                                            à 20:00
-                                        </div>
-                                        <div class="code-barre">
-                                            <img src="{{ asset('vente-ticket/images/code1.png') }}">
-                                        </div>
-                                    </div>
-                                    <div class="col2">
-                                        <span class="bandeau">Soirée live</span>
-                                        <h3>Music on Sunday</h3>
-                                        <div class="adresse">Lieu : Analakely au Café de la Gare</div>
-                                        <div class="tarif">Tarifs : 50.000MGA - 150.000MGA</div>
-                                        <div class="blcBtn ticket-actions">
-                                            <a href="{{ path('my_ticket_details', {id: i}) }}" class="btn details">détails</a>
-                                            <a href="#" class="btn btn-secondary"><i class="fa fa-file-pdf"></i> Télécharger PDF</a>
-                                            <a href="#" class="btn btn-secondary"><i class="fa fa-share-alt"></i> Partager</a>
-                                            <a href="#" class="btn btn-secondary"><i class="fa fa-exchange-alt"></i> Transférer</a>
-                                        </div>
-                                        <div class="ticket-status">Statut : valide</div>
-                                    </div>
-                                    
+                        Aucun billet annulé.
+                    {% endif %}
+                </p>
+                <a href="{{ path('events') }}" class="btn btn-primary">
+                    <i class="fas fa-calendar-plus"></i>
+                    Découvrir des évènements
+                </a>
+            </div>
+            {% else %}
+            <!-- Liste des billets -->
+            <div class="lst-event tickets-grid">
+                {% for ticket in tickets %}
+                {% set event = ticket.event %}
+                {% set startsAt = event.date %}
+                <div class="item ticket-card wow fadeInUp" data-wow-delay="{{ (loop.index * 0.1) + 0.3 }}s">
+                    <div class="inner">
+                        <!-- Colonne principale -->
+                        <div class="blc-col1">
+                            <!-- Date et code barre -->
+                            <div class="col1">
+                                <div class="date-card">
+                                    {% if startsAt %}
+                                    <div class="date-day">{{ startsAt|date('d') }}</div>
+                                    <div class="date-month">{{ startsAt|date('M')|upper }}</div>
+                                    <div class="date-year">{{ startsAt|date('Y') }}</div>
+                                    {% else %}
+                                    <div class="date-unknown">À confirmer</div>
+                                    {% endif %}
                                 </div>
-                                <div class="blc-col2">
-                                    <div class="img">
-                                        <img src="{{ asset('vente-ticket/images/img1.png') }}" alt="ventes tickets">
-                                    </div>  
+                                <div class="event-time">
+                                    <i class="far fa-clock"></i>
+                                    {% if startsAt %}
+                                        {{ startsAt|date('H\\hi') }}
+                                    {% else %}
+                                        Heure à confirmer
+                                    {% endif %}
+                                </div>
+                                <div class="code-barre">
+                                    <img src="{{ asset('vente-ticket/images/code1.png') }}" alt="Code barre">
+                                    <div class="ticket-id">#{{ ticket.id }}</div>
+                                </div>
+                            </div>
+
+                            <!-- Détails de l'événement -->
+                            <div class="col2">
+                                <span class="bandeau {{ event.category|lower|replace({' ': '-'}) }}">{{ event.category }}</span>
+                                <h3 class="event-title">{{ event.title }}</h3>
+                                
+                                <div class="event-details">
+                                    <div class="detail-item">
+                                        <i class="fas fa-map-marker-alt"></i>
+                                        <span>{{ event.location }}</span>
+                                    </div>
+                                    <div class="detail-item">
+                                        <i class="fas fa-tag"></i>
+                                        <span>
+                                            {% if ticket.price is not null %}
+                                                {{ ticket.price|number_format(0, ',', ' ') }} MGA
+                                            {% else %}
+                                                Gratuit
+                                            {% endif %}
+                                            · {{ ticket.ticket_type }}
+                                        </span>
+                                    </div>
+                                </div>
+
+                                <!-- Actions améliorées -->
+                                <div class="blcBtn ticket-actions">
+                                    <a href="{{ path('my_ticket_details', {id: ticket.id}) }}" class="btn btn-primary details">
+                                        <i class="fas fa-eye"></i>
+                                        Détails
+                                    </a>
+                                    <div class="action-group enhanced compact-mobile">
+                                        <button class="action-btn btn-pdf" data-tooltip="Télécharger PDF" data-ticket-id="{{ ticket.id }}">
+                                            <i class="fas fa-file-pdf"></i>
+                                            <span class="btn-text">PDF</span>
+                                        </button>
+                                        
+                                        <button class="action-btn btn-share" data-tooltip="Partager le billet" data-ticket-id="{{ ticket.id }}">
+                                            <i class="fas fa-share-alt"></i>
+                                            <span class="btn-text">Partager</span>
+                                        </button>
+                                    </div>
+                                </div>
+
+                                <!-- Statut et info commande -->
+                                <div class="ticket-meta">
+                                    <span class="ticket-status ticket-status-{{ ticket.status_key }}">
+                                        <i class="fas fa-circle status-dot"></i>
+                                        {{ ticket.status_label }}
+                                    </span>
+                                    {% if ticket.order_number is defined and ticket.order_number %}
+                                    <span class="order-number">
+                                        Commande #{{ ticket.order_number }}
+                                    </span>
+                                    {% endif %}
                                 </div>
                             </div>
                         </div>
-                        {% endfor %}
-                    </div>
-                    {% endif %}
-                    
-                    <div class="pagination">
-                        <ul>
-                            <li class="prev"><a href="#"></a></li>
-                            <li class="selected"><a href="#">1</a></li>
-                            <li><a href="#">2</a></li>
-                            <li><a href="#">3</a></li>
-                            <li><a href="#">4</a></li>
-                            <li class="next"><a href="#"></a></li>
-                        </ul>
-                    </div>
 
+                        <!-- Image de l'événement -->
+                        <div class="blc-col2">
+                            <div class="img event-image">
+                                {% set imagePath = event.image starts with 'http' ? event.image : asset(event.image|trim('/')) %}
+                                <img src="{{ imagePath }}" alt="{{ event.title }}">
+                                <div class="image-overlay">
+                                    <span class="view-event">Voir l'événement</span>
+                                </div>
+                            </div>  
+                        </div>
+                    </div>
                 </div>
-            </section>
-        </main>
+                {% endfor %}
+            </div>
+            {% endif %}
+
+            <!-- Pagination améliorée -->
+            {% if tickets|length > 0 %}
+            <div class="pagination-wrapper">
+                <div class="pagination">
+                    <a href="#" class="page-nav prev">
+                        <i class="fas fa-chevron-left"></i>
+                        Précédent
+                    </a>
+                    <div class="page-numbers">
+                        <a href="#" class="page-number active">1</a>
+                        <a href="#" class="page-number">2</a>
+                        <a href="#" class="page-number">3</a>
+                        <a href="#" class="page-number">4</a>
+                    </div>
+                    <a href="#" class="page-nav next">
+                        Suivant
+                        <i class="fas fa-chevron-right"></i>
+                    </a>
+                </div>
+                <div class="pagination-info">
+                    Affichage de {{ tickets|length }} billet(s)
+                </div>
+            </div>
+            {% endif %}
+        </div>
+    </section>
+</main>
 {% endblock %}
 
 {% block javascripts %}
-        <script type="text/javascript" src="{{ asset('vente-ticket/js/jquery.min.js') }}"></script>
-        <script type="text/javascript" src="{{ asset('vente-ticket/js/wow.js') }}"></script>
-        <script type="text/javascript" src="{{ asset('vente-ticket/js/slick.min.js') }}"></script>
-        <script type="text/javascript" src="{{ asset('vente-ticket/js/jquery-ui.js') }}"></script>  
-        <script type="text/javascript" src="{{ asset('vente-ticket/js/custom.js') }}"></script>
+    <script type="text/javascript" src="{{ asset('vente-ticket/js/jquery.min.js') }}"></script>
+    <script type="text/javascript" src="{{ asset('vente-ticket/js/wow.js') }}"></script>
+    <script type="text/javascript" src="{{ asset('vente-ticket/js/slick.min.js') }}"></script>
+    <script type="text/javascript" src="{{ asset('vente-ticket/js/jquery-ui.js') }}"></script>  
+    <script type="text/javascript" src="{{ asset('vente-ticket/js/custom.js') }}"></script>
+    
+    <script>
+    document.addEventListener('DOMContentLoaded', function() {
+        // Animation pour le bouton PDF
+        document.querySelectorAll('.btn-pdf').forEach(btn => {
+            btn.addEventListener('click', function(e) {
+                e.preventDefault();
+                const ticketId = this.getAttribute('data-ticket-id');
+                
+                // Ajouter l'état de téléchargement
+                this.classList.add('downloading', 'loading');
+                
+                // Simuler le téléchargement (remplacer par votre logique réelle)
+                setTimeout(() => {
+                    this.classList.remove('downloading', 'loading');
+                    // Ici vous ajouteriez la logique de téléchargement réel
+                    console.log('Téléchargement PDF pour le billet:', ticketId);
+                }, 2000);
+            });
+        });
+
+        // Animation pour le bouton Partage
+        document.querySelectorAll('.btn-share').forEach(btn => {
+            btn.addEventListener('click', function(e) {
+                e.preventDefault();
+                const ticketId = this.getAttribute('data-ticket-id');
+                
+                // Ajouter l'animation de partage
+                this.classList.add('sharing');
+                
+                // Simuler le partage (remplacer par votre logique réelle)
+                setTimeout(() => {
+                    this.classList.remove('sharing');
+                    // Ici vous ajouteriez la logique de partage réel
+                    console.log('Partage du billet:', ticketId);
+                }, 1000);
+            });
+        });
+
+        // Gestion responsive des tooltips
+        function handleTooltips() {
+            if (window.innerWidth <= 480) {
+                document.querySelectorAll('.action-btn[data-tooltip]').forEach(btn => {
+                    btn.setAttribute('title', btn.getAttribute('data-tooltip'));
+                });
+            } else {
+                document.querySelectorAll('.action-btn[data-tooltip]').forEach(btn => {
+                    btn.removeAttribute('title');
+                });
+            }
+        }
+
+        // Initialiser et surveiller les changements de taille
+        handleTooltips();
+        window.addEventListener('resize', handleTooltips);
+
+        // Badge de notification exemple (à adapter selon vos besoins)
+        function addNotificationBadge(button, count) {
+            if (count > 0) {
+                const badge = document.createElement('span');
+                badge.className = 'action-badge';
+                badge.textContent = count;
+                button.style.position = 'relative';
+                button.appendChild(badge);
+            }
+        }
+
+        // Exemple d'ajout de badge (à remplacer par votre logique)
+        // addNotificationBadge(document.querySelector('.btn-other'), 1);
+    });
+    </script>
 {% endblock %}
