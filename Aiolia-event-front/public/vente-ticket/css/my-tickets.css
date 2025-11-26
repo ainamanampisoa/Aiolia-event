@@ -95,6 +95,37 @@
     white-space: nowrap;
 }
 
+/* Désactivation des effets de hover "animés" pour les boutons PDF et Partager */
+.btn-pdf::before,
+.btn-share::before {
+    display: none; /* supprime le voile dégradé qui glisse */
+}
+
+.btn-pdf,
+.btn-share {
+    transition: none; /* plus d’animation de transition de fond/couleur */
+}
+
+.btn-pdf:hover,
+.btn-pdf:active,
+.btn-pdf:focus,
+.btn-share:hover,
+.btn-share:active,
+.btn-share:focus {
+    background: linear-gradient(135deg, #fff 0%, #f9f9f9 100%); /* garde le même fond clair */
+    border-color: inherit;
+    color: inherit;
+    transform: none;
+    box-shadow: var(--shadow-soft);
+}
+
+.btn-pdf:hover i,
+.btn-pdf:hover .btn-text,
+.btn-share:hover i,
+.btn-share:hover .btn-text {
+    color: inherit; /* évite le passage forcé en blanc/bleu */
+}
+
 /* Couleurs spécifiques pour chaque action */
 .btn-pdf {
     color: #e74c3c;
@@ -108,8 +139,8 @@
 }
 
 .btn-share {
-    color: var(--secondary-blue);
-    border-color: var(--secondary-blue);
+    color: var(--text-dark);              /* plus de bleu par défaut */
+    border-color: var(--border-light);
     background: linear-gradient(135deg, #fff 0%, #f9f9f9 100%);
 }
 
