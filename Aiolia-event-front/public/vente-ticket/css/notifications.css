@@ -7,7 +7,7 @@
     position: relative;
 }
 
-.notifications-wrapper::before {
+/* .notifications-wrapper::before {
     content: '';
     position: absolute;
     top: 0;
@@ -15,7 +15,7 @@
     right: 0;
     height: 4px;
     background: linear-gradient(90deg, #1F2D3D 0%, #06073f 50%, #bebcbb 100%);
-}
+} */
 
 .notifications-panel {
     max-width: 880px;
