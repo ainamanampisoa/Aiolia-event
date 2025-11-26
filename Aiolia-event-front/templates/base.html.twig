@@ -319,6 +319,99 @@
             margin: 0;
         }
 
+        .guest-nav {
+            display: flex;
+            align-items: center;
+            gap: 16px;
+        }
+
+        .guest-quick-settings {
+            display: inline-flex;
+            align-items: center;
+            gap: 8px;
+            padding: 4px 6px;
+            border-radius: 999px;
+            background: rgba(255, 255, 255, 0.85);
+            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.06);
+        }
+
+        .guest-quick-settings .icon-btn {
+            width: 32px;
+            height: 32px;
+            border-radius: 50%;
+            border: none;
+            background: linear-gradient(135deg, #ffffff, #f3f6fb);
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            color: #1049A0;
+            cursor: pointer;
+            transition: all 0.2s ease;
+            padding: 0;
+        }
+
+        .guest-quick-settings .icon-btn svg {
+            width: 16px;
+            height: 16px;
+        }
+
+        .guest-quick-settings .icon-btn:hover {
+            background: linear-gradient(135deg, #1049A0, #0b2f6e);
+            color: #ffffff;
+            box-shadow: 0 4px 10px rgba(16, 73, 160, 0.25);
+        }
+
+        .guest-quick-settings .lang-switcher {
+            display: inline-flex;
+            align-items: center;
+            gap: 4px;
+            padding: 2px 6px;
+            border-radius: 999px;
+            background: transparent;
+            font-size: 11px;
+            font-weight: 600;
+            text-transform: uppercase;
+        }
+
+        .guest-quick-settings .lang-switcher span {
+            color: rgba(31, 45, 61, 0.35);
+        }
+
+        .guest-quick-settings .lang-link {
+            text-decoration: none;
+            color: rgba(31, 45, 61, 0.6);
+            padding: 2px 6px;
+            border-radius: 999px;
+            transition: all 0.15s ease;
+        }
+
+        .guest-quick-settings .lang-link:hover {
+            color: #1049A0;
+        }
+
+        .guest-quick-settings .lang-link.active {
+            background: #1049A0;
+            color: #ffffff;
+        }
+
+        @media (max-width: 768px) {
+            .head-guest {
+                flex-direction: column;
+                align-items: flex-start;
+                gap: 12px;
+            }
+
+            .guest-nav {
+                width: 100%;
+                justify-content: space-between;
+                gap: 10px;
+            }
+
+            .guest-quick-settings {
+                margin-left: auto;
+            }
+        }
+
         .head-bottom .blcMenu {
             display: flex;
             align-items: center;
@@ -662,6 +755,29 @@
                                 </nav>
                                 <div class="login">
                                     <a href="{{ path('login') }}">{{ 'common.login'|trans }}</a>
+                                </div>
+                                <div class="guest-quick-settings">
+                                    <button
+                                        type="button"
+                                        class="icon-btn theme-toggle-btn"
+                                        title="{{ 'common.theme'|trans }}"
+                                        aria-label="{{ 'common.theme'|trans }}"
+                                    >
+                                        <svg viewBox="0 0 24 24" aria-hidden="true">
+                                            <path d="M21 12.79A9 9 0 0 1 11.21 3 7 7 0 1 0 21 12.79z" fill="currentColor"/>
+                                        </svg>
+                                    </button>
+                                    <div class="lang-switcher" aria-label="{{ 'common.language'|trans }}">
+                                        <a href="{{ path('set_locale', { locale: 'fr' }) }}"
+                                           class="lang-link {% if app.request.locale == 'fr' %}active{% endif %}">
+                                            FR
+                                        </a>
+                                        <span>|</span>
+                                        <a href="{{ path('set_locale', { locale: 'en' }) }}"
+                                           class="lang-link {% if app.request.locale == 'en' %}active{% endif %}">
+                                            EN
+                                        </a>
+                                    </div>
                                 </div>
                             </div>
                         </div>
@@ -1230,6 +1346,37 @@
                 // Compter depuis LocalStorage
                 const count = CartStorage.getCount();
                 updateCartBadge(count);
+            }
+        });
+    </script>
+    <script>
+        document.addEventListener('DOMContentLoaded', function() {
+            const themeToggleBtn = document.querySelector('.theme-toggle-btn');
+            if (themeToggleBtn) {
+                themeToggleBtn.addEventListener('click', function() {
+                    try {
+                        if (window.themeManager && typeof window.themeManager.toggleTheme === 'function') {
+                            window.themeManager.toggleTheme();
+                        } else {
+                            // Fallback simple: bascule entre light/dark et stocke dans localStorage
+                            const html = document.documentElement;
+                            const current = html.getAttribute('data-theme') === 'dark' ? 'dark' : 'light';
+                            const next = current === 'dark' ? 'light' : 'dark';
+                            html.classList.remove('theme-light', 'theme-dark');
+                            document.body.classList.remove('theme-light', 'theme-dark');
+                            html.classList.add('theme-' + next);
+                            document.body.classList.add('theme-' + next);
+                            html.setAttribute('data-theme', next);
+                            try {
+                                localStorage.setItem('aiolia_theme', next);
+                            } catch (e) {
+                                console.warn('Impossible de sauvegarder le thème:', e);
+                            }
+                        }
+                    } catch (e) {
+                        console.error('Erreur lors du changement de thème:', e);
+                    }
+                });
             }
         });
     </script>

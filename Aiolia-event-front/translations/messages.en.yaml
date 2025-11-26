@@ -27,6 +27,8 @@ common:
   legal_notice: "Legal notice"
   privacy_policy: "Privacy policy"
   terms_of_use: "Terms of use"
+  theme: "Theme"
+  language: "Language"
 
 settings:
   title: "Account settings"

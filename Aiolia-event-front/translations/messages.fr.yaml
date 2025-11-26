@@ -24,6 +24,8 @@ common:
   save_changes: "Sauvegarder les modifications"
   all_rights_reserved: "Tous droits réservés"
   powered_by: "Powered by"
+  theme: "Thème"
+  language: "Langue"
   legal_notice: "Mentions légales"
   privacy_policy: "Politique de confidentialité"
   terms_of_use: "Conditions générales d'utilisation"
