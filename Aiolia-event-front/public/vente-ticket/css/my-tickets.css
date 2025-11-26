@@ -48,6 +48,7 @@
     cursor: pointer;
     text-decoration: none;
     box-shadow: var(--shadow-soft);
+    -webkit-tap-highlight-color: transparent; /* supprime le flash bleu sur mobile */
 }
 
 .action-btn::before {
@@ -112,36 +113,54 @@
 .btn-share:hover,
 .btn-share:active,
 .btn-share:focus {
-    background: linear-gradient(135deg, #fff 0%, #f9f9f9 100%); /* garde le même fond clair */
-    border-color: inherit;
-    color: inherit;
-    transform: none;
-    box-shadow: var(--shadow-soft);
+    background: linear-gradient(135deg, #fff 0%, #f9f9f9 100%) !important; /* garde le même fond clair */
+    border-color: var(--border-light) !important;
+    color: var(--text-dark) !important;
+    transform: none !important;
+    box-shadow: var(--shadow-soft) !important;
+    outline: none !important;
 }
 
 .btn-pdf:hover i,
 .btn-pdf:hover .btn-text,
 .btn-share:hover i,
 .btn-share:hover .btn-text {
-    color: inherit; /* évite le passage forcé en blanc/bleu */
+    color: var(--text-dark) !important; /* évite le passage forcé en blanc/bleu */
 }
 
 /* Couleurs spécifiques pour chaque action */
 .btn-pdf {
-    color: #e74c3c;
-    border-color: #e74c3c;
-    background: linear-gradient(135deg, #fff 0%, #f9f9f9 100%);
+    color: #e74c3c !important;
+    border-color: #e74c3c !important;
+    background: linear-gradient(135deg, #fff 0%, #f9f9f9 100%) !important;
 }
 
+/* Désactivation des effets de hover pour PDF */
 .btn-pdf:hover {
-    background: var(--gradient-red);
-    border-color: transparent;
+    background: linear-gradient(135deg, #fff 0%, #f9f9f9 100%) !important;
+    border-color: #e74c3c !important;
+}
+
+/* Icône et texte PDF complètement statiques (aucune animation) */
+.btn-pdf i,
+.btn-pdf .btn-text {
+    transition: none !important;
+}
+
+.btn-pdf:hover i,
+.btn-pdf:hover .btn-text,
+.btn-pdf:active i,
+.btn-pdf:active .btn-text,
+.btn-pdf:focus i,
+.btn-pdf:focus .btn-text {
+    color: inherit !important;
+    transform: none !important;
 }
 
 .btn-share {
-    color: var(--text-dark);              /* plus de bleu par défaut */
-    border-color: var(--border-light);
-    background: linear-gradient(135deg, #fff 0%, #f9f9f9 100%);
+    color: var(--text-dark) !important;              /* plus de bleu par défaut */
+    border-color: var(--border-light) !important;
+    background: linear-gradient(135deg, #fff 0%, #f9f9f9 100%) !important;
 }
 
 .btn-share:hover {
@@ -209,42 +228,20 @@
     transform: translateX(-50%) translateY(-12px);
 }
 
-/* ===== ANIMATIONS SPECIFIQUES ===== */
-/* Animation de téléchargement PDF */
+/* ===== ANIMATIONS SPECIFIQUES (PDF désactivé) ===== */
+/* On garde les classes pour le JS mais sans aucun effet visuel */
 .btn-pdf.downloading {
     position: relative;
     overflow: hidden;
 }
 
 .btn-pdf.downloading::after {
-    content: '';
-    position: absolute;
-    top: 0;
-    left: -100%;
-    width: 100%;
-    height: 100%;
-    background: linear-gradient(90deg, transparent, rgba(255,255,255,0.4), transparent);
-    animation: shimmer 1.5s infinite;
-}
-
-@keyframes shimmer {
-    0% { left: -100%; }
-    100% { left: 100%; }
+    content: none !important;
 }
 
 .btn-pdf.downloading i {
-    animation: downloadPulse 1.2s infinite;
-}
-
-@keyframes downloadPulse {
-    0%, 100% {
-        transform: scale(1);
-        color: #e74c3c;
-    }
-    50% {
-        transform: scale(1.2);
-        color: #c0392b;
-    }
+    animation: none !important;
+    transform: none !important;
 }
 
 /* Animation de partage */
@@ -572,12 +569,15 @@
 
 /* ===== ÉTATS ACTIFS SIMPLIFIÉS ===== */
 .action-btn:active {
-    transform: translateY(-1px) !important;
-    transition: transform 0.1s ease !important;
+    transform: none !important;
+    transition: none !important;
+    background: inherit !important;
+    color: inherit !important;
+    box-shadow: inherit !important;
 }
 
 .action-btn:active::before {
-    transition: left 0.2s ease !important;
+    transition: none !important;
 }
 
 /* ===== RESPONSIVE POUR BOUTON DÉTAILS ===== */
