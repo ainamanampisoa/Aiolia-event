@@ -75,7 +75,13 @@
     
     <div class="admin-container">
         <!-- Sidebar -->
-        {% include 'includes/sidebar.html.twig' %}
+        {% if is_granted('ROLE_ADMIN') %}
+            {% include 'includes/sidebar.html.twig' %}
+        {% elseif is_granted('ROLE_ORGANIZER') %}
+            {% include 'includes/sidebar-organisateur.html.twig' %}
+        {% else %}
+            {% include 'includes/sidebar.html.twig' %}
+        {% endif %}
         
         <!-- Main Content -->
         <main class="admin-main">

@@ -1,7 +1,7 @@
 -- ============================================================
 -- Migration : Ajout de la colonne niveau à plans_abonnements
 -- ============================================================
--- Cette migration ajoute les colonnes niveau, ordre_affichage, est_populaire
+-- Cette migration ajoute les colonnes niveau, ordre_affichage
 -- et la contrainte UNIQUE si elles n'existent pas déjà
 
 \c aiolia_event;
@@ -46,25 +46,6 @@ BEGIN
 END
 $$;
 
--- Vérifier et ajouter la colonne est_populaire
-DO $$
-BEGIN
-    IF NOT EXISTS (
-        SELECT 1 FROM information_schema.columns 
-        WHERE table_schema = 'aiolia' 
-        AND table_name = 'plans_abonnements' 
-        AND column_name = 'est_populaire'
-    ) THEN
-        ALTER TABLE aiolia.plans_abonnements
-        ADD COLUMN est_populaire BOOLEAN NOT NULL DEFAULT FALSE;
-        
-        RAISE NOTICE 'Colonne est_populaire ajoutée à plans_abonnements';
-    ELSE
-        RAISE NOTICE 'Colonne est_populaire existe déjà dans plans_abonnements';
-    END IF;
-END
-$$;
-
 -- Vérifier et ajouter la contrainte UNIQUE sur (niveau, periode_facturation)
 DO $$
 BEGIN
@@ -98,8 +79,7 @@ ordre_affichage = CASE
     WHEN code = 'PRO' THEN 2
     WHEN code = 'ENTERPRISE' THEN 3
     ELSE 0
-END,
-est_populaire = (code = 'PRO')
+END
 WHERE niveau IS NULL OR niveau = 'basic';
 
 -- Afficher un résumé
@@ -109,7 +89,6 @@ SELECT
     nom,
     niveau,
     ordre_affichage,
-    est_populaire,
     prix,
     devise
 FROM aiolia.plans_abonnements

@@ -6,16 +6,17 @@ use Symfony\Bundle\FrameworkBundle\Controller\AbstractController;
 use Symfony\Component\HttpFoundation\Request;
 use Symfony\Component\HttpFoundation\Response;
 use Symfony\Component\Routing\Attribute\Route;
+use Symfony\Component\Security\Http\Attribute\IsGranted;
 
-#[Route('/promotions')]
+#[Route('/organisateur/promotions')]
+#[IsGranted('ROLE_ORGANIZER')]
 class PromotionController extends AbstractController
 {
-    #[Route('', name: 'app_promotion_index')]
+    #[Route('', name: 'organisateur_promotions_index')]
     public function index(): Response
     {
-        $this->denyAccessUnlessGranted('IS_AUTHENTICATED_REMEMBERED');
-
-        return $this->render('promotion/index.html.twig');
+        // Rediriger vers la page existante des promotions
+        return $this->redirectToRoute('app_promotion_index');
     }
 
     #[Route('/new', name: 'app_promotion_new', methods: ['GET', 'POST'])]

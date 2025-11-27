@@ -1,11 +1,10 @@
 # ✅ Suivi Module 2 – Administrateur
 
 ## Sprint – Gestion utilisateurs & abonnements
-- [ ] Consultation de la liste complète des utilisateurs avec filtres (nom, statut, rôle, tri, ordre)
-- [ ] Validation, modification ou suspension des comptes utilisateurs et organisateurs
-- [ ] Notification automatique par email lors des changements de statut
-- [ ] Tableau de bord avec indicateurs clés : abonnements actifs, revenus, TVA
-- [ ] Statistiques globales sur les abonnements organisateurs
+- [x] Consultation de la liste complète des utilisateurs avec filtres (nom, statut, rôle, tri, ordre)
+- [x] Validation, modification ou suspension des comptes utilisateurs et organisateurs
+- [x] Notification automatique par email lors des changements de statut
+- [x] Statistiques globales sur les abonnements organisateurs
 - [ ] Rapports consolidés sur les performances et les revenus par période
 
 
@@ -14,13 +13,13 @@
 ## Sprint 1 – Connexion & Profils
 - [x] Authentification sécurisée côté organisateur
 - [x] Gestion du profil (nom, email, téléphone, photo)
-- [ ] Support multi-langue pour l’espace organisateur et admin
+- [x] Support multi-langue pour l’espace organisateur et admin
 - [x] Préférence de mode sombre / clair enregistrée dans le profil
 
 ## Sprint 2 – Gestion des événements & médias
 - [ ] Création / modification / suppression d’événements riches (texte, images, vidéos)
 - [ ] Détection automatique des conflits de date et de lieu
-- [ ] Catégorisation des événements (Concert, Sport, Conférence, etc.)
+<!-- - [ ] Catégorisation des événements (Concert, Sport, Conférence, etc.) -->
 - [ ] Duplication d’un événement (template)
 - [ ] Vue calendrier globale des événements organisateur
 - [ ] Upload d’images et de vidéos

@@ -94,22 +94,23 @@ class BillingController extends AbstractController
             return $b->getCreatedAt() <=> $a->getCreatedAt();
         });
         
+        // Appliquer la pagination : limiter à 7 résultats par page
+        $allInvoices = array_slice($allInvoices, ($page - 1) * $perPage, $perPage);
+        
         // Récupérer les informations complètes des plans d'abonnement pour les factures d'abonnement
+        // APRÈS la pagination pour ne récupérer que les factures affichées
         $planInfos = [];
         $subscriptionInvoicesOnly = array_filter($allInvoices, fn($inv) => $inv instanceof SubscriptionInvoice);
         if (!empty($subscriptionInvoicesOnly)) {
             $planInfos = $this->subscriptionInvoiceRepository->getPlanInfosForInvoices($subscriptionInvoicesOnly);
         }
-        
-        // Appliquer la pagination : limiter à 7 résultats par page
-        $allInvoices = array_slice($allInvoices, ($page - 1) * $perPage, $perPage);
 
         // Statistiques basées sur les filtres appliqués
         $stats = [
             'total' => $ticketTotal + $subscriptionTotal,
             'paid' => $this->countByStatus('paid', $search, $dateFromObj, $dateToObj),
-            'pending' => $this->countByStatus('issued', $search, $dateFromObj, $dateToObj) 
-                + $this->countByStatus('draft', $search, $dateFromObj, $dateToObj) 
+            'pending' => $this->countByStatus('issued', $search, $dateFromObj, $dateToObj)
+                + $this->countByStatus('draft', $search, $dateFromObj, $dateToObj)
                 + $this->countByStatus('overdue', $search, $dateFromObj, $dateToObj),
             'cancelled' => $this->countByStatus('void', $search, $dateFromObj, $dateToObj) + $this->countByStatus('refunded', $search, $dateFromObj, $dateToObj),
         ];
@@ -199,7 +200,7 @@ class BillingController extends AbstractController
         if (!empty($previousInvoicesWithPlan)) {
             $previousPlanInfo = $previousInvoicesWithPlan[0]['planInfo'];
             $previousPlanTier = $previousPlanInfo['niveau'] ?? null;
-            $planChanged = ($previousPlanTier !== $planTier) || 
+            $planChanged = ($previousPlanTier !== $planTier) ||
                           ($planInfo['periode_facturation'] ?? null) !== ($previousPlanInfo['periode_facturation'] ?? null);
         }
 
@@ -317,7 +318,7 @@ class BillingController extends AbstractController
         // Envoyer un email de notification spécial pour les factures en retard
         if ($this->emailService->sendSubscriptionInvoice($invoice, true)) {
             $daysOverdue = $invoice->getDaysOverdue();
-            $message = $daysOverdue !== null 
+            $message = $daysOverdue !== null
                 ? sprintf('Signalement de retard envoyé à l\'organisateur pour la facture %s (%d jour(s) de retard)', $invoice->getInvoiceNumber(), $daysOverdue)
                 : sprintf('Signalement de retard envoyé à l\'organisateur pour la facture %s', $invoice->getInvoiceNumber());
             $this->addFlash('success', $message);

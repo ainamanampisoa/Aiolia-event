@@ -149,33 +149,33 @@ php bin/console debug:router | grep admin
 #### Administrateurs (2 comptes disponibles)
 | Email | Mot de passe | Statut | ID |
 |-------|--------------|--------|-----|
-| admin001@yopmail.com | Admin#Test123 | Actif | 158 |
-| admin002@yopmail.com | Admin#Test123 | Actif | 159 |
+| admin001@yopmail.com | Admin#Test123 | Actif | 1 |
+| admin002@yopmail.com | Admin#Test123 | Actif | 2 |
 
-#### Organisateurs (79 comptes disponibles)
+#### Organisateurs (50 comptes validés disponibles sur 66 créés)
 | Email | Mot de passe | Statut | ID | Notes |
 |-------|--------------|--------|-----|-------|
-| organisateur001@yopmail.com | Org#Test123 | Validé | 1 | Actif - Juillet 2025 |
-| organisateur046@yopmail.com | Org#Test123 | Validé | 46 | En pause (Août) - Reprend en Octobre |
-| organisateur064@yopmail.com | Org#Test123 | Validé | 64 | En pause (Octobre) - Reprend en Décembre |
-| organisateur079@yopmail.com | Org#Test123 | Validé | 79 | Actif - Novembre 2025 |
-| ... | ... | ... | ... | ... (75 autres organisateurs) |
+| organisateur001@yopmail.com | Org#Test123 | Validé | 3 | Actif - Juin 2025 |
+| organisateur025@yopmail.com | Org#Test123 | Validé | 27 | Actif - Juin 2025 |
+| organisateur026@yopmail.com | Org#Test123 | Validé | 28 | Actif - Juillet 2025 |
+| organisateur035@yopmail.com | Org#Test123 | Validé | 37 | Actif - Juillet 2025 |
+| ... | ... | ... | ... | ... (42 autres organisateurs) |
 
 **Notes importantes** :
-- Les organisateurs 1 à 79 sont tous validés et peuvent se connecter
-- **Répartition par mois** :
-  - Juillet 2025 : 45 organisateurs (IDs 1-45)
-  - Août 2025 : +5 organisateurs (IDs 46-50)
-  - Septembre 2025 : +13 organisateurs (IDs 51-63)
-  - Octobre 2025 : +6 organisateurs (IDs 64-69)
-  - Novembre 2025 : +10 organisateurs (IDs 70-79)
-- **Pauses** :
-  - Août : 5 organisateurs en pause (IDs 46-50)
-    - 3 reprennent en octobre (IDs 46-48, mensuel)
-    - 2 reprennent en décembre (IDs 49-50, trimestriel avec décalage prépayé)
-  - Octobre : 5 organisateurs en pause (IDs 64-68), reprennent en décembre (mensuel)
-- Les organisateurs 46 à 52 sont en pause (abonnement non payé avant le 11ème jour)
-- Tous les organisateurs en pause **peuvent se connecter**, mais avec des accès limités (voir section ci-dessous)
+- **Total : 50 organisateurs validés** (IDs 3-48, 52-55, 59-61) peuvent se connecter
+- **13 organisateurs non validés** (IDs 49-51, 56-58, 62-68) ne peuvent pas se connecter
+- **Répartition par mois de création** :
+  - Juin 2025 : 25 organisateurs (IDs 3-27) - Tous validés
+  - Juillet 2025 : +10 organisateurs (IDs 28-37) - Tous validés
+  - Août 2025 : +5 organisateurs (IDs 38-42) - Tous validés
+  - Septembre 2025 : +6 organisateurs (IDs 43-48) - Tous validés
+  - Octobre 2025 : +10 organisateurs (IDs 49-58) - 4 validés (52-55), 6 non validés (49-51, 56-58)
+  - Novembre 2025 : +10 organisateurs (IDs 59-68) - 3 validés (59-61), 7 non validés (62-68)
+- **Pauses d'abonnement** (selon les critères) :
+  - Août 2025 : 3 organisateurs en pause qui reprennent en octobre (mensuel)
+  - Septembre 2025 : 2 organisateurs en pause qui reprennent en novembre (trimestriel avec décalage prépayé)
+  - Octobre 2025 : 4 organisateurs en pause qui reprennent en décembre (mensuel)
+- Tous les organisateurs validés en pause **peuvent se connecter**, mais avec des accès limités (voir section ci-dessous)
 
 #### Statuts d'abonnement des organisateurs
 
@@ -363,21 +363,52 @@ explication : https://chatgpt.com/c/691c09da-a1b0-8328-b7a2-1b815d4289f6
 Synthèse des abonnements et revenus par mois
 
 redonne moi le @data.sql avec ces critere
-# pour le nombre organisateur:
--juillet 2025 : 45
--aout : + 5
--septembre :  + 13
--octobre : + 6
--novembre 2025: +10
+# pour le nombre organisateur: 26
+-juin 2025 : 10 (actifs)
+-juillet 2025 : + plus 2 new organisateur 
+-aout 2025: +  plus 4 new organisateur
+-septembre 2025: +  plus 4 new organisateur
+-octobre 2025: +  plus 3 new organisateur(1 non valider)
+-novembre 2025: + plus 3 new organisateur (2 non valider)
 # 78 utilisateur 
 # 2 admin
-# Abonnement le plus utilisé
--juillet 2025: basic mensuelle
--aout : basic trimestre
--septembre :  entreprise trimestre
--octobre : entreprise mensuelle
--novembre 2025: pro ,mesuelle
-# pausse organisateur :
--aout 2025 : * 3 organisateur et revient octobre (mensuelle)
-                        * 2 organisateur et revient dec (trimestre ,alors il y a de decalage date pour le prepaid)
--octobre :  * 5 organisateur et revient dec (mensuelle)
+# Abonnement : facture des mois
+-juin 2025 : mensuelle (5 organisateur basic , 2 organisateur pro,3 organisateur entreprise)
+=> 10 organisateurs actifs ,0 organisateur en pausse ,0 organisateur non valider 
+=> 10 organisateurs paye mensuelle
+=> offre populaire : basic mensuelle
+
+-juillet 2025: mensuelle (4 organisateur basic , 6 organisateur pro,2 organisateur entreprise)
+=> 12 organisateurs actifs ,0 organisateur en pausse ,0 organisateur non valider 
+=> 12 organisateurs paye mensuelle
+=> offre populaire (le plus utiliser): pro mensuelle
+
+-aout 2025: mensuelle ( 4 organisateur basic , 5 organisateur pro,7 organisateur entreprise)
+=> 16 organisateurs actifs ,0 organisateur en pausse ,0 organisateur non valider 
+=> 16 organisateurs paye mensuelle
+=> offre populaire (le plus utiliser): entreprise mensuelle
+* 2 organisateur pausse (2 paye mensuelle ,0 paye trimestre)et revient octobre 
+
+-septembre 2025:  mensuelle (2 organisateur basic , 3 organisateur pro,4 organisateur entreprise)
+-septembre 2025:  trimestre (3 organisateur basic , 4 organisateur pro,2 organisateur entreprise)
+=> 18 organisateurs actifs , 2 organisateur en pausse ,0 organisateur non valider 
+=> 9 organisateurs paye mensuelle ,  9 organisateurs paye trimestre
+=> offre populaire (le plus utiliser): pro trimestre (mensuelle < trimenstre < annulle)
+
+-octobre 2025: mensuelle (3 organisateur basic , 3 organisateur pro,2 organisateur entreprise)
+-octobre 2025: trimestre (1 organisateur basic , 2 organisateur pro,4 organisateur entreprise)
+=> 22 organisateurs actifs ,0 organisateur en pausse ,total 1 organisateur  non valider 
+=> 6 organisateurs paye mensuelle,7 organisateurs paye trimestre , 9 prepraid
+=> offre populaire (le plus utiliser): entreprise trimestre
+* 4 organisateur en pausse (2 paye mensuelle ,2 paye trimestre) et revient dec 
+  
+-novembre 2025: mesuelle (0 organisateur basic , 2 organisateur pro,1 organisateur entreprise)
+-novembre 2025: trimestre (1 organisateur basic , 1 organisateur pro,0 organisateur entreprise)
+=> 19 organisateurs actifs ,4 organisateur en pausse ,total 3 organisateur non valider 
+=> 3 organisateurs paye mensuelle,2 organisateurs paye trimestre ,14 prepraid
+=> offre populaire (le plus utiliser): pro mesuelle
+
+-decembre 2025:
+=> 23 organisateurs actifs ,0 organisateur en pausse ,total 3 organisateur non valider 
+=> 0 organisateurs paye mensuelle,0 organisateurs paye trimestre , 7 prepraid
+=> offre populaire (le plus utiliser): entreprise trimestre

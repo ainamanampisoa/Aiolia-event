@@ -170,6 +170,70 @@ Repository pour les opérations sur les factures d'abonnements.
 - `paused` : En pause (automatique ou manuel)
 - `cancelled` : Annulé
 
+## Tarification et Réductions
+
+Le système applique des réductions automatiques pour les abonnements trimestriels et annuels afin d'encourager les engagements à long terme.
+
+### Réductions appliquées
+
+- **Trimestriel** : 10% de réduction (3 mois au prix de 2,7 mois)
+- **Annuel** : 20% de réduction (12 mois au prix de 9,6 mois)
+
+### Tableau des prix par plan
+
+| Plan | Mensuel | Trimestriel | Réduction trimestriel | Annuel | Réduction annuel |
+|------|---------|-------------|----------------------|--------|------------------|
+| **Basic** | 50 000 MGA | 135 000 MGA | 10% (15 000 MGA économisés) | 480 000 MGA | 20% (120 000 MGA économisés) |
+| **Pro** | 150 000 MGA | 405 000 MGA | 10% (45 000 MGA économisés) | 1 440 000 MGA | 20% (360 000 MGA économisés) |
+| **Enterprise** | 300 000 MGA | 810 000 MGA | 10% (90 000 MGA économisés) | 2 880 000 MGA | 20% (720 000 MGA économisés) |
+
+### Détails des calculs
+
+#### Basic
+- Prix mensuel : 50 000 MGA
+- Prix trimestriel sans réduction : 150 000 MGA (50 000 × 3)
+- Prix trimestriel avec réduction : 135 000 MGA (10% de réduction)
+- Prix annuel sans réduction : 600 000 MGA (50 000 × 12)
+- Prix annuel avec réduction : 480 000 MGA (20% de réduction)
+
+#### Pro
+- Prix mensuel : 150 000 MGA
+- Prix trimestriel sans réduction : 450 000 MGA (150 000 × 3)
+- Prix trimestriel avec réduction : 405 000 MGA (10% de réduction)
+- Prix annuel sans réduction : 1 800 000 MGA (150 000 × 12)
+- Prix annuel avec réduction : 1 440 000 MGA (20% de réduction)
+
+#### Enterprise
+- Prix mensuel : 300 000 MGA
+- Prix trimestriel sans réduction : 900 000 MGA (300 000 × 3)
+- Prix trimestriel avec réduction : 810 000 MGA (10% de réduction)
+- Prix annuel sans réduction : 3 600 000 MGA (300 000 × 12)
+- Prix annuel avec réduction : 2 880 000 MGA (20% de réduction)
+
+### Calcul des factures trimestrielles
+
+Pour les abonnements trimestriels, le montant mensuel facturé est calculé en divisant le prix trimestriel par 3 :
+
+```
+Montant mensuel = Prix trimestriel / 3
+```
+
+Exemple pour Basic :
+- Prix trimestriel : 135 000 MGA
+- Montant facturé chaque mois : 135 000 / 3 = 45 000 MGA
+
+### Calcul des factures annuelles
+
+Pour les abonnements annuels, le montant mensuel facturé est calculé en divisant le prix annuel par 12 :
+
+```
+Montant mensuel = Prix annuel / 12
+```
+
+Exemple pour Basic :
+- Prix annuel : 480 000 MGA
+- Montant facturé chaque mois : 480 000 / 12 = 40 000 MGA
+
 ## Flux de Génération Mensuelle
 
 ### Étape 1 : Génération des Factures (1er du mois)
@@ -281,4 +345,3 @@ Les erreurs courantes incluent :
 - Plan d'abonnement introuvable ou inactif
 - Erreurs de persistance Doctrine
 - Erreurs de calcul des montants
-

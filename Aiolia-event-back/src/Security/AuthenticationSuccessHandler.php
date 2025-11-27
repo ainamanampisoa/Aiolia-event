@@ -17,7 +17,20 @@ class AuthenticationSuccessHandler implements AuthenticationSuccessHandlerInterf
 
     public function onAuthenticationSuccess(Request $request, TokenInterface $token): RedirectResponse
     {
-        // Rediriger vers la page statistiques après connexion
+        $user = $token->getUser();
+        
+        // Rediriger selon le rôle de l'utilisateur
+        if ($user && method_exists($user, 'getRole')) {
+            $role = $user->getRole();
+            
+            if ($role === 'admin') {
+                return new RedirectResponse($this->urlGenerator->generate('app_reports_statistiques'));
+            } elseif ($role === 'organizer') {
+                return new RedirectResponse($this->urlGenerator->generate('organisateur_dashboard_statistiques'));
+            }
+        }
+        
+        // Par défaut, rediriger vers la page statistiques admin
         return new RedirectResponse($this->urlGenerator->generate('app_reports_statistiques'));
     }
 }

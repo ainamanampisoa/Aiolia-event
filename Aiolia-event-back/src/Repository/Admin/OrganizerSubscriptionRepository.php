@@ -18,6 +18,7 @@ class OrganizerSubscriptionRepository
 
     /**
      * Récupère tous les abonnements actifs pour la génération de factures
+     * Optimisé : Utilise directement les tables avec des jointures efficaces
      * 
      * @return array{subscription_id: int, organizer_profile_id: int, user_id: int, plan_id: int, price: float, vat_rate: float, currency: string, billing_period: string}[]
      */
@@ -34,14 +35,17 @@ class OrganizerSubscriptionRepository
                 sp.prix as price,
                 sp.taux_tva as vat_rate,
                 sp.devise as currency,
-                sp.periode_facturation as billing_period
+                sp.periode_facturation as billing_period,
+                os.statut as subscription_status,
+                os.mois_prepayes_restants,
+                os.mis_en_pause_le,
+                os.repris_le
             FROM aiolia.abonnements_organisateurs os
             INNER JOIN aiolia.profils_organisateurs op ON op.id = os.id_profil_organisateur
             INNER JOIN aiolia.plans_abonnements sp ON sp.id = os.id_plan
-            WHERE os.statut = 'active'
+            WHERE os.statut IN ('active', 'paused')
                 AND sp.est_actif = true
                 AND os.annule_le IS NULL
-                AND (os.annuler_a_la_fin_periode = false OR os.renouvellement_le > CURRENT_DATE)
         ";
         
         return $connection->fetchAllAssociative($sql);

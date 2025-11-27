@@ -167,33 +167,40 @@
                                         </div>
                                     </td>
                                     <td class="col-center">
-                                        {% if planTier %}
-                                            {% set tierLabels = {
-                                                'basic': {'fr': 'Basic', 'en': 'Basic', 'icon': 'tag'},
-                                                'pro': {'fr': 'Pro', 'en': 'Pro', 'icon': 'star'},
-                                                'enterprise': {'fr': 'Enterprise', 'en': 'Enterprise', 'icon': 'crown'}
-                                            } %}
-                                            {% set periodLabels = {
-                                                'monthly': {'fr': 'Mensuel', 'en': 'Monthly', 'icon': 'calendar-alt'},
-                                                'quarterly': {'fr': 'Trimestriel', 'en': 'Quarterly', 'icon': 'calendar-week'},
-                                                'yearly': {'fr': 'Annuel', 'en': 'Yearly', 'icon': 'calendar-check'}
-                                            } %}
-                                            {% set tierLabel = tierLabels[planTier] ?? {'fr': planTier|upper, 'en': planTier|upper, 'icon': 'tag'} %}
-                                            {% set periodLabel = billingPeriod ? (periodLabels[billingPeriod] ?? {'fr': billingPeriod|capitalize, 'en': billingPeriod|capitalize, 'icon': 'calendar-alt'}) : null %}
-                                            <div class="plan-display-wrapper plan-display-horizontal">
-                                                <span class="plan-tier-badge plan-tier-{{ planTier }}" data-i18n="billing.plan.tier.{{ planTier }}" title="{{ tierLabel.fr }}">
-                                                    <i class="fas fa-{{ tierLabel.icon }}"></i>
-                                                    <span class="tier-name">{{ tierLabel.fr }}</span>
-                                                </span>
-                                                {% if periodLabel %}
-                                                    <span class="billing-period-badge" data-i18n="billing.plan.period.{{ billingPeriod }}" title="{{ periodLabel.fr }}">
-                                                        <i class="fas fa-{{ periodLabel.icon }}"></i>
-                                                        <span class="period-text">{{ periodLabel.fr }}</span>
+                                        {% if isSubscription %}
+                                            {% if planTier %}
+                                                {% set tierLabels = {
+                                                    'basic': {'fr': 'Basic', 'en': 'Basic', 'icon': 'tag'},
+                                                    'pro': {'fr': 'Pro', 'en': 'Pro', 'icon': 'star'},
+                                                    'enterprise': {'fr': 'Enterprise', 'en': 'Enterprise', 'icon': 'crown'}
+                                                } %}
+                                                {% set periodLabels = {
+                                                    'monthly': {'fr': 'Mensuel', 'en': 'Monthly', 'icon': 'calendar-alt'},
+                                                    'quarterly': {'fr': 'Trimestriel', 'en': 'Quarterly', 'icon': 'calendar-week'},
+                                                    'yearly': {'fr': 'Annuel', 'en': 'Yearly', 'icon': 'calendar-check'}
+                                                } %}
+                                                {% set tierLabel = tierLabels[planTier] ?? {'fr': planTier|upper, 'en': planTier|upper, 'icon': 'tag'} %}
+                                                {% set periodLabel = billingPeriod ? (periodLabels[billingPeriod] ?? {'fr': billingPeriod|capitalize, 'en': billingPeriod|capitalize, 'icon': 'calendar-alt'}) : null %}
+                                                <div class="plan-display-wrapper plan-display-horizontal">
+                                                    <span class="plan-tier-badge plan-tier-{{ planTier }}" data-i18n="billing.plan.tier.{{ planTier }}" title="{{ tierLabel.fr }}">
+                                                        <i class="fas fa-{{ tierLabel.icon }}"></i>
+                                                        <span class="tier-name">{{ tierLabel.fr }}</span>
                                                     </span>
-                                                {% endif %}
-                                            </div>
+                                                    {% if periodLabel %}
+                                                        <span class="billing-period-badge" data-i18n="billing.plan.period.{{ billingPeriod }}" title="{{ periodLabel.fr }}">
+                                                            <i class="fas fa-{{ periodLabel.icon }}"></i>
+                                                            <span class="period-text">{{ periodLabel.fr }}</span>
+                                                        </span>
+                                                    {% endif %}
+                                                </div>
+                                            {% else %}
+                                                <span class="text-muted" style="color: var(--warning);" title="Type d'offre non disponible">
+                                                    <i class="fas fa-exclamation-triangle"></i>
+                                                    <span data-i18n="billing.plan.missing">Non disponible</span>
+                                                </span>
+                                            {% endif %}
                                         {% else %}
-                                            <span class="text-muted" data-i18n="common.na">-</span>
+                                            <span class="text-muted" data-i18n="common.na">N/A</span>
                                         {% endif %}
                                     </td>
                                     <td class="col-right">

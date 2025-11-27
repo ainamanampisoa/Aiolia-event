@@ -3,6 +3,7 @@
 namespace App\Controller\Admin;
 
 use App\Entity\User;
+use App\Entity\OrganizerProfile;
 use App\Enum\Role as UserRoleEnum;
 use App\Repository\UserRepository;
 use App\Repository\AuditLogRepository;
@@ -90,30 +91,67 @@ class UserManagementController extends AbstractController
 
         // Filtre par statut
         if ($status === 'paused') {
-            $pausedCondition = "
-                EXISTS (
-                    SELECT 1
-                    FROM aiolia.abonnements_organisateurs os
-                    INNER JOIN aiolia.profils_organisateurs po ON po.id = os.id_profil_organisateur
-                    WHERE po.id_utilisateur = u.id
-                        AND os.annule_le IS NULL
-                        AND os.statut = 'paused'
-                )
+            // Utiliser SQL natif pour filtrer les organisateurs en pause
+            $conn = $this->entityManager->getConnection();
+            $sql = "
+                SELECT DISTINCT po.id_utilisateur
+                FROM aiolia.abonnements_organisateurs os
+                INNER JOIN aiolia.profils_organisateurs po ON po.id = os.id_profil_organisateur
+                WHERE os.annule_le IS NULL
+                    AND os.statut = 'paused'
             ";
+            $pausedUserIds = $conn->fetchFirstColumn($sql);
+            
+            if (empty($pausedUserIds)) {
+                // Aucun utilisateur en pause, retourner une liste vide
+                $qb->andWhere('1 = 0');
+                $countQb->andWhere('1 = 0');
+            } else {
+                $qb->andWhere('u.role = :pausedRole')
+                   ->setParameter('pausedRole', UserRoleEnum::ORGANIZER)
+                   ->andWhere('u.id IN (:pausedUserIds)')
+                   ->setParameter('pausedUserIds', $pausedUserIds);
 
-            $qb->andWhere('u.role = :pausedRole')
-               ->setParameter('pausedRole', UserRoleEnum::ORGANIZER)
-               ->andWhere($pausedCondition);
-
-            $countQb->andWhere('u.role = :pausedRole')
-                    ->setParameter('pausedRole', UserRoleEnum::ORGANIZER)
-                    ->andWhere($pausedCondition);
+                $countQb->andWhere('u.role = :pausedRole')
+                        ->setParameter('pausedRole', UserRoleEnum::ORGANIZER)
+                        ->andWhere('u.id IN (:pausedUserIds)')
+                        ->setParameter('pausedUserIds', $pausedUserIds);
+            }
         } elseif ($status && in_array($status, ['active', 'pending_validation', 'rejected'], true)) {
-            $databaseStatus = User::accountStatusToDatabaseStatus($status);
-            $qb->andWhere('u.statut = :statut')
-               ->setParameter('statut', $databaseStatus);
-            $countQb->andWhere('u.statut = :statut')
-                    ->setParameter('statut', $databaseStatus);
+            if ($status === 'pending_validation') {
+                // Pour les organisateurs non validés, filtrer par statut_verification du profil organisateur
+                $qb->leftJoin('App\Entity\OrganizerProfile', 'op', 'WITH', 'op.utilisateur = u.id')
+                   ->andWhere('u.role = :organizerRole')
+                   ->andWhere('op.statutVerification = :verificationStatus')
+                   ->setParameter('organizerRole', UserRoleEnum::ORGANIZER)
+                   ->setParameter('verificationStatus', 'pending');
+                
+                $countQb->leftJoin('App\Entity\OrganizerProfile', 'op', 'WITH', 'op.utilisateur = u.id')
+                        ->andWhere('u.role = :organizerRole')
+                        ->andWhere('op.statutVerification = :verificationStatus')
+                        ->setParameter('organizerRole', UserRoleEnum::ORGANIZER)
+                        ->setParameter('verificationStatus', 'pending');
+            } elseif ($status === 'rejected') {
+                // Pour les organisateurs rejetés, filtrer par statut_verification = 'rejected'
+                $qb->leftJoin('App\Entity\OrganizerProfile', 'op', 'WITH', 'op.utilisateur = u.id')
+                   ->andWhere('u.role = :organizerRole')
+                   ->andWhere('op.statutVerification = :verificationStatus')
+                   ->setParameter('organizerRole', UserRoleEnum::ORGANIZER)
+                   ->setParameter('verificationStatus', 'rejected');
+                
+                $countQb->leftJoin('App\Entity\OrganizerProfile', 'op', 'WITH', 'op.utilisateur = u.id')
+                        ->andWhere('u.role = :organizerRole')
+                        ->andWhere('op.statutVerification = :verificationStatus')
+                        ->setParameter('organizerRole', UserRoleEnum::ORGANIZER)
+                        ->setParameter('verificationStatus', 'rejected');
+            } else {
+                // Pour 'active', utiliser le statut du compte utilisateur
+                $databaseStatus = User::accountStatusToDatabaseStatus($status);
+                $qb->andWhere('u.statut = :statut')
+                   ->setParameter('statut', $databaseStatus);
+                $countQb->andWhere('u.statut = :statut')
+                        ->setParameter('statut', $databaseStatus);
+            }
         }
 
         // Tri par défaut : date de création décroissante (plus récents en premier)
@@ -132,7 +170,7 @@ class UserManagementController extends AbstractController
         // Récupérer les utilisateurs de la page courante depuis la base de données
         $users = $qb->getQuery()->getResult();
 
-        // Récupérer le statut d'abonnement des organisateurs affichés
+        // Récupérer le statut d'abonnement et de vérification des organisateurs affichés
         $organizerIds = array_values(array_filter(
             array_map(static function ($user) {
                 return $user instanceof User && $user->getRole() === UserRoleEnum::ORGANIZER ? $user->getId() : null;
@@ -141,6 +179,21 @@ class UserManagementController extends AbstractController
         ));
 
         $subscriptionStatuses = $this->userRepository->getOrganizerSubscriptionStatuses($organizerIds);
+        
+        // Récupérer les statuts de vérification des organisateurs
+        $verificationStatuses = [];
+        if (!empty($organizerIds)) {
+            $conn = $this->entityManager->getConnection();
+            $sql = "
+                SELECT id_utilisateur, statut_verification
+                FROM aiolia.profils_organisateurs
+                WHERE id_utilisateur IN (:userIds)
+            ";
+            $results = $conn->fetchAllAssociative($sql, ['userIds' => $organizerIds], ['userIds' => \Doctrine\DBAL\ArrayParameterType::INTEGER]);
+            foreach ($results as $row) {
+                $verificationStatuses[$row['id_utilisateur']] = $row['statut_verification'];
+            }
+        }
 
         // Calculer les statistiques depuis la base de données
         $statsQb = $this->userRepository->createQueryBuilder('u');
@@ -150,21 +203,27 @@ class UserManagementController extends AbstractController
             ->getQuery()
             ->getSingleScalarResult();
 
-        // Utilisateurs en attente
+        // Utilisateurs en attente (organisateurs avec statut_verification = 'pending')
         $pendingUsers = (int) $this->userRepository->createQueryBuilder('u')
-            ->select('COUNT(u.id)')
-            ->where('u.statut = :statut')
-            ->setParameter('statut', User::STATUS_PENDING)
+            ->select('COUNT(DISTINCT u.id)')
+            ->leftJoin('App\Entity\OrganizerProfile', 'op', 'WITH', 'op.utilisateur = u.id')
+            ->where('u.role = :organizerRole')
+            ->andWhere('op.statutVerification = :verificationStatus')
+            ->setParameter('organizerRole', UserRoleEnum::ORGANIZER)
+            ->setParameter('verificationStatus', 'pending')
             ->getQuery()
             ->getSingleScalarResult();
 
-        // Organisateurs actifs uniquement
+        // Organisateurs actifs uniquement (exclure ceux en attente de validation)
         $activeOrganizers = (int) $this->userRepository->createQueryBuilder('u')
             ->select('COUNT(DISTINCT u.id)')
+            ->leftJoin('App\Entity\OrganizerProfile', 'op', 'WITH', 'op.utilisateur = u.id')
             ->where('u.role = :role')
             ->andWhere('u.statut = :statut')
+            ->andWhere('(op.statutVerification IS NULL OR op.statutVerification != :pendingStatus)')
             ->setParameter('role', UserRoleEnum::ORGANIZER)
             ->setParameter('statut', User::STATUS_ACTIVE)
+            ->setParameter('pendingStatus', 'pending')
             ->getQuery()
             ->getSingleScalarResult();
 
@@ -194,6 +253,7 @@ class UserManagementController extends AbstractController
                 'totalOrganizers' => $totalOrganizers,
             ],
             'subscriptionStatuses' => $subscriptionStatuses,
+            'verificationStatuses' => $verificationStatuses,
         ]);
     }
 

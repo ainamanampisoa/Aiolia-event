@@ -1,0 +1,126 @@
+{% set currentRoute = app.request.attributes.get('_route') %}
+{% set isStats = currentRoute == 'organisateur_dashboard_statistiques' %}
+{% set isReports = currentRoute starts with 'organisateur_reports' %}
+{% set isEvents = currentRoute starts with 'organisateur_events' or currentRoute starts with 'app_event' %}
+{% set isTickets = currentRoute starts with 'organisateur_tickets' or currentRoute starts with 'app_ticket' %}
+{% set isPromotions = currentRoute starts with 'organisateur_promotions' %}
+{% set isWaitlist = currentRoute starts with 'organisateur_waitlist' %}
+{% set isBilling = currentRoute starts with 'organisateur_billing' %}
+{% set isProfile = currentRoute starts with 'app_profile' %}
+{% set isSettings = currentRoute starts with 'app_settings' %}
+
+<aside class="admin-sidebar" id="adminSidebar">
+    <div class="sidebar-header">
+        <div class="sidebar-logo">
+            <img src="{{ asset('images/aiolia-logo.svg') }}" alt="Aiolia Event" class="logo-image">
+        </div>
+    </div>
+    
+    <nav class="sidebar-nav" aria-label="Main navigation">
+        <ul class="nav-menu">
+            <li class="nav-section">
+                <span class="nav-section-title" data-i18n="layout.sidebar.organisateur_section">Tableau de bord</span>
+            </li>
+            
+            <li class="nav-item {{ isStats ? 'active' }}">
+                <a href="{{ path('organisateur_dashboard_statistiques') }}" class="nav-link {{ isStats ? 'active' }}" {% if isStats %}aria-current="page"{% endif %}>
+                    <div class="nav-icon">
+                        <i class="fas fa-chart-line"></i>
+                    </div>
+                    <span class="nav-text" data-i18n="layout.sidebar.organisateur.stats">Statistiques</span>
+                    <span class="nav-tooltip" data-i18n="layout.sidebar.organisateur.stats">Statistiques</span>
+                </a>
+            </li>
+            
+            <li class="nav-item {{ isReports ? 'active' }}">
+                <a href="{{ path('organisateur_reports_index') }}" class="nav-link {{ isReports ? 'active' }}" {% if isReports %}aria-current="page"{% endif %}>
+                    <div class="nav-icon">
+                        <i class="fas fa-file-chart-line"></i>
+                    </div>
+                    <span class="nav-text" data-i18n="layout.sidebar.organisateur.reports">Rapports</span>
+                    <span class="nav-tooltip" data-i18n="layout.sidebar.organisateur.reports">Rapports</span>
+                </a>
+            </li>
+            
+            <li class="nav-section">
+                <span class="nav-section-title" data-i18n="layout.sidebar.organisateur.events_section">Gestion</span>
+            </li>
+            
+            <li class="nav-item {{ isEvents ? 'active' }}">
+                <a href="{{ path('organisateur_events_index') }}" class="nav-link {{ isEvents ? 'active' }}" {% if isEvents %}aria-current="page"{% endif %}>
+                    <div class="nav-icon">
+                        <i class="fas fa-calendar-alt"></i>
+                    </div>
+                    <span class="nav-text" data-i18n="layout.sidebar.organisateur.events">Événement</span>
+                    <span class="nav-tooltip" data-i18n="layout.sidebar.organisateur.events">Événement</span>
+                </a>
+            </li>
+            
+            <li class="nav-item {{ isTickets ? 'active' }}">
+                <a href="{{ path('organisateur_tickets_index') }}" class="nav-link {{ isTickets ? 'active' }}" {% if isTickets %}aria-current="page"{% endif %}>
+                    <div class="nav-icon">
+                        <i class="fas fa-ticket-alt"></i>
+                    </div>
+                    <span class="nav-text" data-i18n="layout.sidebar.organisateur.tickets">Billet</span>
+                    <span class="nav-tooltip" data-i18n="layout.sidebar.organisateur.tickets">Billet</span>
+                </a>
+            </li>
+            
+            <li class="nav-item {{ isPromotions ? 'active' }}">
+                <a href="{{ path('organisateur_promotions_index') }}" class="nav-link {{ isPromotions ? 'active' }}" {% if isPromotions %}aria-current="page"{% endif %}>
+                    <div class="nav-icon">
+                        <i class="fas fa-tags"></i>
+                    </div>
+                    <span class="nav-text" data-i18n="layout.sidebar.organisateur.promotions">Promotions</span>
+                    <span class="nav-tooltip" data-i18n="layout.sidebar.organisateur.promotions">Promotions</span>
+                </a>
+            </li>
+            
+            <li class="nav-item {{ isWaitlist ? 'active' }}">
+                <a href="{{ path('organisateur_waitlist_index') }}" class="nav-link {{ isWaitlist ? 'active' }}" {% if isWaitlist %}aria-current="page"{% endif %}>
+                    <div class="nav-icon">
+                        <i class="fas fa-list-alt"></i>
+                    </div>
+                    <span class="nav-text" data-i18n="layout.sidebar.organisateur.waitlist">Liste d'attente</span>
+                    <span class="nav-tooltip" data-i18n="layout.sidebar.organisateur.waitlist">Liste d'attente</span>
+                </a>
+            </li>
+            
+            <li class="nav-item {{ isBilling ? 'active' }}">
+                <a href="{{ path('organisateur_billing_index') }}" class="nav-link {{ isBilling ? 'active' }}" {% if isBilling %}aria-current="page"{% endif %}>
+                    <div class="nav-icon">
+                        <i class="fas fa-file-invoice-dollar"></i>
+                    </div>
+                    <span class="nav-text" data-i18n="layout.sidebar.organisateur.billing">Facturation</span>
+                    <span class="nav-tooltip" data-i18n="layout.sidebar.organisateur.billing">Facturation</span>
+                </a>
+            </li>
+            
+            <li class="nav-section">
+                <span class="nav-section-title" data-i18n="layout.sidebar.account_section">Compte</span>
+            </li>
+            
+            <li class="nav-item {{ isProfile ? 'active' }}">
+                <a href="{{ path('app_profile_index') }}" class="nav-link {{ isProfile ? 'active' }}" {% if isProfile %}aria-current="page"{% endif %}>
+                    <div class="nav-icon">
+                        <i class="fas fa-user-circle"></i>
+                    </div>
+                    <span class="nav-text" data-i18n="layout.sidebar.profile">Profil</span>
+                    <span class="nav-tooltip" data-i18n="layout.sidebar.profile">Profil</span>
+                </a>
+            </li>
+            
+            <li class="nav-item {{ isSettings ? 'active' }}">
+                <a href="{{ path('app_settings_index') }}" class="nav-link {{ isSettings ? 'active' }}" {% if isSettings %}aria-current="page"{% endif %}>
+                    <div class="nav-icon">
+                        <i class="fas fa-sliders"></i>
+                    </div>
+                    <span class="nav-text" data-i18n="layout.sidebar.settings">Paramètres</span>
+                    <span class="nav-tooltip" data-i18n="layout.sidebar.settings">Paramètres</span>
+                </a>
+            </li>
+        </ul>
+    </nav>
+    
+</aside>
+

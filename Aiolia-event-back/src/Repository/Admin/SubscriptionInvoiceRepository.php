@@ -103,7 +103,8 @@ class SubscriptionInvoiceRepository extends ServiceEntityRepository
     }
 
     /**
-     * Récupère le niveau (tier) du plan d'abonnement pour une facture d'abonnement
+     * Récupère le niveau (tier) du plan d'abonnement pour une facture
+     * Utilise la vue vw_subscription_invoice_items pour optimiser les performances
      * Retourne null si le niveau n'est pas trouvé
      */
     public function getPlanTierForInvoice(SubscriptionInvoice $invoice): ?string
@@ -111,20 +112,33 @@ class SubscriptionInvoiceRepository extends ServiceEntityRepository
         $connection = $this->getEntityManager()->getConnection();
         
         $sql = "
-            SELECT sp.niveau
-            FROM aiolia.factures_abonnements si
-            INNER JOIN aiolia.abonnements_organisateurs os ON os.id = si.id_abonnement
-            INNER JOIN aiolia.plans_abonnements sp ON sp.id = os.id_plan
-            WHERE si.id = :invoice_id
+            SELECT DISTINCT plan_code
+            FROM aiolia.vw_subscription_invoice_items
+            WHERE invoice_id = :invoice_id
+            LIMIT 1
         ";
         
+        // Récupérer le plan_code et déduire le niveau depuis la vue
         $result = $connection->fetchOne($sql, ['invoice_id' => $invoice->getId()]);
+        
+        if ($result === false) {
+            // Fallback sur la requête directe si la vue ne retourne rien
+            $sql = "
+                SELECT sp.niveau
+                FROM aiolia.factures_abonnements si
+                INNER JOIN aiolia.abonnements_organisateurs os ON os.id = si.id_abonnement
+                INNER JOIN aiolia.plans_abonnements sp ON sp.id = os.id_plan
+                WHERE si.id = :invoice_id
+            ";
+            $result = $connection->fetchOne($sql, ['invoice_id' => $invoice->getId()]);
+        }
         
         return $result !== false ? $result : null;
     }
 
     /**
      * Récupère les niveaux (tiers) des plans d'abonnement pour plusieurs factures
+     * Utilise la vue vw_subscription_invoice_items pour optimiser
      * Retourne un array avec invoice_id => plan_tier
      */
     public function getPlanTiersForInvoices(array $invoices): array
@@ -138,28 +152,73 @@ class SubscriptionInvoiceRepository extends ServiceEntityRepository
         
         $placeholders = implode(',', array_fill(0, count($invoiceIds), '?'));
         $sql = "
-            SELECT si.id, sp.niveau
-            FROM aiolia.factures_abonnements si
-            INNER JOIN aiolia.abonnements_organisateurs os ON os.id = si.id_abonnement
-            INNER JOIN aiolia.plans_abonnements sp ON sp.id = os.id_plan
-            WHERE si.id IN ($placeholders)
+            SELECT DISTINCT invoice_id, plan_code
+            FROM aiolia.vw_subscription_invoice_items
+            WHERE invoice_id IN ($placeholders)
         ";
         
         $results = $connection->fetchAllKeyValue($sql, $invoiceIds);
+        
+        // Si certains résultats manquent, utiliser le fallback
+        if (count($results) < count($invoiceIds)) {
+            $missingIds = array_diff($invoiceIds, array_keys($results));
+            if (!empty($missingIds)) {
+                $missingPlaceholders = implode(',', array_fill(0, count($missingIds), '?'));
+                $fallbackSql = "
+                    SELECT si.id, sp.niveau
+                    FROM aiolia.factures_abonnements si
+                    INNER JOIN aiolia.abonnements_organisateurs os ON os.id = si.id_abonnement
+                    INNER JOIN aiolia.plans_abonnements sp ON sp.id = os.id_plan
+                    WHERE si.id IN ($missingPlaceholders)
+                ";
+                $fallbackResults = $connection->fetchAllKeyValue($fallbackSql, array_values($missingIds));
+                $results = array_merge($results, $fallbackResults);
+            }
+        }
         
         return $results;
     }
 
     /**
-     * Récupère les informations complètes du plan (niveau et période) pour une facture
-     * Retourne un array avec 'niveau' et 'periode_facturation' ou null
+     * Récupère les informations complètes du plan pour une facture
+     * Utilise la vue vw_subscription_invoice_items pour optimiser
+     * Retourne un array avec 'niveau', 'periode_facturation', 'nom', 'code' ou null
      */
     public function getPlanInfoForInvoice(SubscriptionInvoice $invoice): ?array
     {
         $connection = $this->getEntityManager()->getConnection();
         
+        // Utiliser la vue pour récupérer les infos du plan
         $sql = "
-            SELECT 
+            SELECT DISTINCT
+                plan_code,
+                plan_name
+            FROM aiolia.vw_subscription_invoice_items
+            WHERE invoice_id = :invoice_id
+            LIMIT 1
+        ";
+        
+        $result = $connection->fetchAssociative($sql, ['invoice_id' => $invoice->getId()]);
+        
+        if ($result) {
+            // Récupérer les infos complètes depuis la table plans_abonnements
+            $planSql = "
+                SELECT
+                    niveau,
+                    periode_facturation,
+                    nom,
+                    code
+                FROM aiolia.plans_abonnements
+                WHERE code = :plan_code
+            ";
+            $planInfo = $connection->fetchAssociative($planSql, ['plan_code' => $result['plan_code']]);
+
+            return $planInfo ?: null;
+        }
+
+        // Fallback sur la requête directe
+        $sql = "
+            SELECT
                 sp.niveau,
                 sp.periode_facturation,
                 sp.nom,
@@ -169,14 +228,15 @@ class SubscriptionInvoiceRepository extends ServiceEntityRepository
             INNER JOIN aiolia.plans_abonnements sp ON sp.id = os.id_plan
             WHERE si.id = :invoice_id
         ";
-        
+
         $result = $connection->fetchAssociative($sql, ['invoice_id' => $invoice->getId()]);
-        
+
         return $result ?: null;
     }
 
     /**
      * Récupère les informations complètes des plans pour plusieurs factures
+     * Utilise la vue vw_subscription_invoice_items pour optimiser
      * Retourne un array avec invoice_id => ['niveau' => ..., 'periode_facturation' => ..., 'nom' => ..., 'code' => ...]
      */
     public function getPlanInfosForInvoices(array $invoices): array
@@ -189,29 +249,95 @@ class SubscriptionInvoiceRepository extends ServiceEntityRepository
         $connection = $this->getEntityManager()->getConnection();
         
         $placeholders = implode(',', array_fill(0, count($invoiceIds), '?'));
-        $sql = "
+        
+        // Essayer d'abord avec la vue pour optimiser
+        $invoicePlanCodes = [];
+        try {
+            $sql = "
+                SELECT DISTINCT invoice_id, plan_code
+                FROM aiolia.vw_subscription_invoice_items
+                WHERE invoice_id IN ($placeholders)
+            ";
+            $invoicePlanCodes = $connection->fetchAllKeyValue($sql, $invoiceIds);
+        } catch (\Exception $e) {
+            // Si la vue n'existe pas ou échoue, on continue avec le fallback
+        }
+        
+        // Fallback direct sur les tables si la vue ne retourne pas toutes les factures
+        $missingInvoiceIds = array_diff($invoiceIds, array_keys($invoicePlanCodes));
+        if (!empty($missingInvoiceIds)) {
+            $missingPlaceholders = implode(',', array_fill(0, count($missingInvoiceIds), '?'));
+            $fallbackSql = "
+                SELECT 
+                    fa.id AS invoice_id,
+                    sp.code AS plan_code
+                FROM aiolia.factures_abonnements fa
+                INNER JOIN aiolia.abonnements_organisateurs ao ON ao.id = fa.id_abonnement
+                INNER JOIN aiolia.plans_abonnements sp ON sp.id = ao.id_plan
+                WHERE fa.id IN ($missingPlaceholders)
+            ";
+            $fallbackResults = $connection->fetchAllAssociative($fallbackSql, array_values($missingInvoiceIds));
+            foreach ($fallbackResults as $row) {
+                $invoicePlanCodes[$row['invoice_id']] = $row['plan_code'];
+            }
+        }
+        
+        if (empty($invoicePlanCodes)) {
+            return [];
+        }
+        
+        // Récupérer les infos complètes des plans
+        $planCodes = array_unique(array_values($invoicePlanCodes));
+        $planPlaceholders = implode(',', array_fill(0, count($planCodes), '?'));
+        $planSql = "
             SELECT 
-                si.id,
-                sp.niveau,
-                sp.periode_facturation,
-                sp.nom,
-                sp.code
-            FROM aiolia.factures_abonnements si
-            INNER JOIN aiolia.abonnements_organisateurs os ON os.id = si.id_abonnement
-            INNER JOIN aiolia.plans_abonnements sp ON sp.id = os.id_plan
-            WHERE si.id IN ($placeholders)
+                code,
+                niveau,
+                periode_facturation,
+                nom
+            FROM aiolia.plans_abonnements
+            WHERE code IN ($planPlaceholders)
         ";
         
-        $results = $connection->fetchAllAssociative($sql, $invoiceIds);
-        
-        $planInfos = [];
-        foreach ($results as $row) {
-            $planInfos[$row['id']] = [
-                'niveau' => $row['niveau'],
-                'periode_facturation' => $row['periode_facturation'],
-                'nom' => $row['nom'],
-                'code' => $row['code'],
+        $plansInfo = $connection->fetchAllAssociative($planSql, $planCodes);
+        $plansByCode = [];
+        foreach ($plansInfo as $plan) {
+            $plansByCode[$plan['code']] = [
+                'niveau' => $plan['niveau'],
+                'periode_facturation' => $plan['periode_facturation'],
+                'nom' => $plan['nom'],
+                'code' => $plan['code'],
             ];
+        }
+        
+        // Mapper les factures aux infos de plans - TOUTES les factures doivent avoir un plan
+        $planInfos = [];
+        foreach ($invoicePlanCodes as $invoiceId => $planCode) {
+            if (isset($plansByCode[$planCode])) {
+                $planInfos[$invoiceId] = $plansByCode[$planCode];
+            } else {
+                // Si le plan n'est pas trouvé, on récupère directement depuis la base
+                $directSql = "
+                    SELECT 
+                        sp.niveau,
+                        sp.periode_facturation,
+                        sp.nom,
+                        sp.code
+                    FROM aiolia.factures_abonnements fa
+                    INNER JOIN aiolia.abonnements_organisateurs ao ON ao.id = fa.id_abonnement
+                    INNER JOIN aiolia.plans_abonnements sp ON sp.id = ao.id_plan
+                    WHERE fa.id = :invoice_id
+                ";
+                $directResult = $connection->fetchAssociative($directSql, ['invoice_id' => $invoiceId]);
+                if ($directResult) {
+                    $planInfos[$invoiceId] = [
+                        'niveau' => $directResult['niveau'],
+                        'periode_facturation' => $directResult['periode_facturation'],
+                        'nom' => $directResult['nom'],
+                        'code' => $directResult['code'],
+                    ];
+                }
+            }
         }
         
         return $planInfos;
@@ -260,24 +386,69 @@ class SubscriptionInvoiceRepository extends ServiceEntityRepository
     }
 
     /**
-     * Récupère le mode de paiement pour une facture depuis la table paiements_abonnements
+     * Récupère le mode de paiement pour une facture
+     * Utilise la vue vw_subscription_payments_detailed pour optimiser
      * Retourne null si aucun paiement n'est trouvé
      */
     public function getPaymentMethodForInvoice(SubscriptionInvoice $invoice): ?string
     {
         $connection = $this->getEntityManager()->getConnection();
         
+        // Utiliser la vue pour récupérer le fournisseur de paiement
         $sql = "
-            SELECT pa.fournisseur
-            FROM aiolia.paiements_abonnements pa
-            WHERE pa.id_facture = :invoice_id
-            ORDER BY pa.paye_le DESC NULLS LAST, pa.cree_le DESC
+            SELECT fournisseur
+            FROM aiolia.vw_subscription_payments_detailed
+            WHERE numero_facture = (
+                SELECT numero_facture 
+                FROM aiolia.factures_abonnements 
+                WHERE id = :invoice_id
+            )
+            ORDER BY paye_le DESC NULLS LAST, modifie_le DESC
             LIMIT 1
         ";
         
         $result = $connection->fetchOne($sql, ['invoice_id' => $invoice->getId()]);
         
+        if ($result === false) {
+            // Fallback sur la requête directe
+            $sql = "
+                SELECT pa.fournisseur
+                FROM aiolia.paiements_abonnements pa
+                WHERE pa.id_facture = :invoice_id
+                ORDER BY pa.paye_le DESC NULLS LAST, pa.cree_le DESC
+                LIMIT 1
+            ";
+            $result = $connection->fetchOne($sql, ['invoice_id' => $invoice->getId()]);
+        }
+        
         return $result !== false ? $result : null;
+    }
+
+    /**
+     * Récupère les factures en retard en utilisant la vue vw_subscription_invoices_overdue
+     * 
+     * @return SubscriptionInvoice[]
+     */
+    public function findOverdueInvoicesUsingView(): array
+    {
+        $connection = $this->getEntityManager()->getConnection();
+        
+        $sql = "
+            SELECT id
+            FROM aiolia.vw_subscription_invoices_overdue
+        ";
+        
+        $invoiceIds = $connection->fetchFirstColumn($sql);
+        
+        if (empty($invoiceIds)) {
+            return [];
+        }
+        
+        return $this->createQueryBuilder('si')
+            ->where('si.id IN (:ids)')
+            ->setParameter('ids', $invoiceIds)
+            ->getQuery()
+            ->getResult();
     }
 
     /**
@@ -343,7 +514,9 @@ class SubscriptionInvoiceRepository extends ServiceEntityRepository
      */
     public function findInvoiceForMonth(string $subscriptionId, \DateTimeInterface $billingMonth): ?SubscriptionInvoice
     {
-        $monthStart = (clone $billingMonth)->modify('first day of this month')->setTime(0, 0, 0);
+        // Créer une instance DateTime pour pouvoir utiliser modify()
+        $billingDate = $billingMonth instanceof \DateTime ? clone $billingMonth : new \DateTime($billingMonth->format('Y-m-d H:i:s'));
+        $monthStart = (clone $billingDate)->modify('first day of this month')->setTime(0, 0, 0);
         $monthEnd = (clone $monthStart)->modify('+1 month');
 
         return $this->createQueryBuilder('si')

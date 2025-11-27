@@ -4,11 +4,15 @@ namespace App\Repository\Admin;
 
 use Doctrine\Persistence\ManagerRegistry;
 use Doctrine\DBAL\Connection;
-use Doctrine\DBAL\ParameterType;
 
 class StatisticsRepository
 {
     private Connection $connection;
+
+    private const DATE_FORMAT = '%04d-%02d-01';
+    private const YEAR_START_FORMAT = '%04d-01-01';
+    private const YEAR_END_FORMAT = '%04d-12-31';
+    private const ORGANIZER_PERIOD_FIELD = "COALESCE(os.debut_periode_courante, os.commence_le)";
 
     public function __construct(ManagerRegistry $registry)
     {
@@ -16,463 +20,201 @@ class StatisticsRepository
     }
 
     /**
-     * Compte les organisateurs actifs pour un mois donné
+     * Arrondit les bornes temporelles à un mois complet.
+     *
+     * @return array{start: string|null, end: string|null}
      */
-    public function countActiveOrganizersForMonth(\DateTimeInterface $date): int
+    private function resolvePeriod(int $mois, int $annee): array
     {
-        $dateObj = $date instanceof \DateTime ? clone $date : new \DateTime($date->format('Y-m-d H:i:s'));
-        $monthStart = (clone $dateObj)->modify('first day of this month')->setTime(0, 0, 0);
-        $monthEnd = (clone $dateObj)->modify('last day of this month')->setTime(23, 59, 59);
+        if ($mois === 0 && $annee === 0) {
+            return ['start' => null, 'end' => null];
+        }
+
+        $annee = $annee > 0 ? $annee : (int) date('Y');
+
+        if ($mois > 0) {
+            $start = sprintf(self::DATE_FORMAT, $annee, $mois);
+            $end   = date('Y-m-t', strtotime($start));
+        } else {
+            $start = sprintf(self::YEAR_START_FORMAT, $annee);
+            $end   = sprintf(self::YEAR_END_FORMAT, $annee);
+        }
+
+        return ['start' => $start, 'end' => $end];
+    }
+
+    private function buildDateCondition(?string $start, ?string $end, string $field): string
+    {
+        if (!$start || !$end) {
+            return '';
+        }
+
+        return " AND ($field BETWEEN :date_start AND :date_end)";
+    }
+
+    private function countOrganisateurs(int $mois, int $annee, string $type): int
+    {
+        $period = $this->resolvePeriod($mois, $annee);
+        $start = $period['start'];
+        $end   = $period['end'];
+
+        if ($type === 'active') {
+            $sql = "
+                SELECT COUNT(DISTINCT os.id_profil_organisateur)
+                FROM aiolia.abonnements_organisateurs os
+                WHERE os.statut = 'active'
+            ";
+            $sql .= $this->buildDateCondition($start, $end, self::ORGANIZER_PERIOD_FIELD);
+        } else {
+            $sql = "
+                SELECT COUNT(*)
+                FROM aiolia.profils_organisateurs po
+                INNER JOIN aiolia.utilisateurs u ON u.id = po.id_utilisateur
+                WHERE po.statut_verification = 'verified'
+                  AND u.role = 'organizer'
+                  AND u.statut = 1
+            ";
+            $sql .= $this->buildDateCondition($start, $end, "po.cree_le");
+        }
+
+        $params = [];
+        if ($start && $end) {
+            $params['date_start'] = $start;
+            $params['date_end']   = $end;
+        }
+
+        return (int) $this->connection->fetchOne($sql, $params);
+    }
+
+    public function organisateurActifs(int $mois, int $annee): int
+    {
+        return $this->countOrganisateurs($mois, $annee, 'active');
+    }
+
+    public function newsOrganisateur(int $mois, int $annee): int
+    {
+        return $this->countOrganisateurs($mois, $annee, 'new');
+    }
+
+    /* ========================================================================== */
+    /*     ABONNEMENT LE PLUS UTILISÉ                                             */
+    /* ========================================================================== */
+    public function abonnemnentPLusActifs(int $mois, int $annee): ?array
+    {
+        $period = $this->resolvePeriod($mois, $annee);
+        $start = $period['start'];
+        $end   = $period['end'];
 
         $sql = "
-            SELECT COUNT(DISTINCT po.id) as count
-            FROM aiolia.profils_organisateurs po
-            INNER JOIN aiolia.utilisateurs u ON u.id = po.id_utilisateur
-            INNER JOIN aiolia.abonnements_organisateurs ao ON ao.id_profil_organisateur = po.id
-            WHERE u.statut = 1
-                AND u.role = 'organizer'
-                AND ao.commence_le <= :monthEnd
-                AND (ao.annule_le IS NULL OR ao.annule_le >= :monthStart)
-                AND (
-                    -- Pas en pause pendant ce mois
-                    (ao.mis_en_pause_le IS NULL OR ao.mis_en_pause_le > :monthEnd)
-                    OR
-                    -- En pause mais repris avant ou pendant le mois
-                    (ao.mis_en_pause_le IS NOT NULL AND ao.repris_le IS NOT NULL AND ao.repris_le <= :monthEnd)
-                )
+            SELECT sp.nom, COUNT(DISTINCT os.id_profil_organisateur) AS count
+            FROM aiolia.abonnements_organisateurs os
+            INNER JOIN aiolia.plans_abonnements sp ON sp.id = os.id_plan
+            WHERE os.statut = 'active'
         ";
 
-        $result = $this->connection->executeQuery($sql, [
-            'monthStart' => $monthStart->format('Y-m-d H:i:s'),
-            'monthEnd' => $monthEnd->format('Y-m-d H:i:s'),
+        $sql .= $this->buildDateCondition($start, $end, self::ORGANIZER_PERIOD_FIELD);
+
+        $sql .= " GROUP BY sp.nom ORDER BY count DESC LIMIT 1";
+
+        $params = [];
+        if ($start && $end) {
+            $params['date_start'] = $start;
+            $params['date_end']   = $end;
+        }
+
+        $result = $this->connection->fetchAssociative($sql, $params);
+
+        return $result ? [
+            'nom'   => $result['nom'],
+            'count' => (int)$result['count'],
+        ] : null;
+    }
+
+    /* ========================================================================== */
+    /*     CHIFFRE D'AFFAIRE                                                      */
+    /* ========================================================================== */
+    public function chiffreAffaireCA(int $mois, int $annee): float
+    {
+        $period = $this->resolvePeriod($mois, $annee);
+        $start = $period['start'];
+        $end   = $period['end'];
+
+        $sql = "
+            SELECT COALESCE(SUM(montant_total), 0)
+            FROM aiolia.factures_abonnements
+            WHERE statut IN ('paid', 'partially_paid')
+        ";
+
+        $sql .= $this->buildDateCondition($start, $end, "mois_facturation");
+
+        $params = [];
+        if ($start && $end) {
+            $params['date_start'] = $start;
+            $params['date_end']   = $end;
+        }
+
+        return (float) $this->connection->fetchOne($sql, $params);
+    }
+
+    /* ========================================================================== */
+    /*     TENDANCE ORGANISATEURS ACTIFS                                          */
+    /* ========================================================================== */
+    public function getActiveOrganizersTrend(int $mois, int $annee): array
+    {
+        $period = $this->resolvePeriod($mois, $annee);
+        $start = $period['start'] ?? date('Y-01-01');
+        $end   = $period['end'] ?? date('Y-12-31');
+
+        $sql = "
+            WITH periods AS (
+                SELECT date_trunc('month', dd)::date AS period_start
+                FROM generate_series(:start::date, :end::date, '1 month') dd
+            )
+            SELECT
+                TO_CHAR(periods.period_start, 'Mon YYYY') AS month_label,
+                COUNT(DISTINCT os.id_profil_organisateur) AS count
+            FROM periods
+            LEFT JOIN aiolia.abonnements_organisateurs os
+                ON os.statut = 'active'
+               AND COALESCE(os.debut_periode_courante, os.commence_le)
+                   BETWEEN periods.period_start AND periods.period_start + INTERVAL '1 month - 1 day'
+            GROUP BY periods.period_start
+            ORDER BY periods.period_start
+        ";
+
+        return $this->connection->fetchAllAssociative($sql, [
+            'start' => $start,
+            'end'   => $end,
         ]);
-
-        $count = $result->fetchOne();
-        return $count !== false && $count !== null ? (int) $count : 0;
     }
 
-    /**
-     * Compte les nouveaux organisateurs pour un mois donné
-     */
-    public function countNewOrganizersForMonth(\DateTimeInterface $date): int
+    /* ========================================================================== */
+    /*     DISTRIBUTION DES NIVEAUX                                               */
+    /* ========================================================================== */
+    public function getSubscriptionUsageByLevel(int $mois, int $annee): array
     {
-        $dateObj = $date instanceof \DateTime ? clone $date : new \DateTime($date->format('Y-m-d H:i:s'));
-        $monthStart = (clone $dateObj)->modify('first day of this month')->setTime(0, 0, 0);
-        $monthEnd = (clone $dateObj)->modify('last day of this month')->setTime(23, 59, 59);
+        $period = $this->resolvePeriod($mois, $annee);
+        $start = $period['start'];
+        $end   = $period['end'];
 
         $sql = "
-            SELECT COUNT(DISTINCT po.id) as count
-            FROM aiolia.profils_organisateurs po
-            INNER JOIN aiolia.utilisateurs u ON u.id = po.id_utilisateur
-            WHERE u.role = 'organizer'
-                AND u.statut = 1
-                AND po.cree_le >= :monthStart
-                AND po.cree_le <= :monthEnd
+            SELECT sp.niveau, COUNT(DISTINCT os.id_profil_organisateur) AS count
+            FROM aiolia.abonnements_organisateurs os
+            INNER JOIN aiolia.plans_abonnements sp ON sp.id = os.id_plan
+            WHERE os.statut = 'active'
         ";
 
-        $result = $this->connection->executeQuery($sql, [
-            'monthStart' => $monthStart->format('Y-m-d H:i:s'),
-            'monthEnd' => $monthEnd->format('Y-m-d H:i:s'),
-        ]);
+        $sql .= $this->buildDateCondition($start, $end, self::ORGANIZER_PERIOD_FIELD);
 
-        $count = $result->fetchOne();
-        return $count !== false && $count !== null ? (int) $count : 0;
-    }
+        $sql .= " GROUP BY sp.niveau";
 
-    /**
-     * Trouve l'abonnement le plus utilisé
-     * @param int $month 0 = tous les mois, 1-12 = mois spécifique
-     * @param int $year Année
-     */
-    public function findMostUsedSubscription(int $month = 0, int $year = 2025): ?array
-    {
-        // Pour l'abonnement le plus utilisé, on cherche les abonnements actifs pendant la période
-        if ($month > 0 && $month <= 12) {
-            $periodStart = sprintf('%d-%02d-01', $year, $month);
-            $periodEnd = (new \DateTime($periodStart))->modify('last day of this month')->format('Y-m-d');
-        } else {
-            $periodStart = sprintf('%d-01-01', $year);
-            $periodEnd = sprintf('%d-12-31', $year);
+        $params = [];
+        if ($start && $end) {
+            $params['date_start'] = $start;
+            $params['date_end']   = $end;
         }
 
-        $sql = "
-            SELECT 
-                sp.niveau as plan_level,
-                sp.periode_facturation as billing_period,
-                COUNT(DISTINCT ao.id) as count,
-                sp.nom as plan_name
-            FROM aiolia.abonnements_organisateurs ao
-            INNER JOIN aiolia.plans_abonnements sp ON sp.id = ao.id_plan
-            INNER JOIN aiolia.profils_organisateurs po ON po.id = ao.id_profil_organisateur
-            INNER JOIN aiolia.utilisateurs u ON u.id = po.id_utilisateur
-            WHERE u.statut = 1
-                AND ao.commence_le <= :periodEnd
-                AND (ao.annule_le IS NULL OR ao.annule_le >= :periodStart)
-                AND (
-                    -- Pas en pause pendant la période
-                    (ao.mis_en_pause_le IS NULL OR ao.mis_en_pause_le > :periodEnd)
-                    OR
-                    -- En pause mais repris avant ou pendant la période
-                    (ao.mis_en_pause_le IS NOT NULL AND ao.repris_le IS NOT NULL AND ao.repris_le <= :periodEnd)
-                )
-        ";
-
-        $params = [
-            'periodStart' => $periodStart,
-            'periodEnd' => $periodEnd,
-        ];
-
-        $sql .= "
-            GROUP BY sp.niveau, sp.periode_facturation, sp.nom
-            ORDER BY count DESC
-            LIMIT 1
-        ";
-
-        $result = $this->connection->executeQuery($sql, $params);
-        $row = $result->fetchAssociative();
-
-        return $row ?: null;
-    }
-
-    /**
-     * Calcule la prévision du chiffre d'affaires pour les 6 prochains mois avec détail HT/TTC/TVA
-     */
-    public function calculateRevenueForecast(\DateTimeInterface $startDate, int $months = 6): array
-    {
-        $forecast = [];
-        $currentDate = $startDate instanceof \DateTime ? clone $startDate : new \DateTime($startDate->format('Y-m-d H:i:s'));
-
-        for ($i = 0; $i < $months; $i++) {
-            $monthStart = (clone $currentDate)->modify('first day of this month')->setTime(0, 0, 0);
-            $monthEnd = (clone $currentDate)->modify('last day of this month')->setTime(23, 59, 59);
-
-            $sql = "
-                SELECT 
-                    COALESCE(SUM(
-                        CASE 
-                            WHEN sp.periode_facturation = 'yearly' THEN sp.prix / 12
-                            WHEN sp.periode_facturation = 'quarterly' THEN sp.prix / 3
-                            ELSE sp.prix
-                        END
-                    ), 0) as forecast_revenue_ht,
-                    COALESCE(SUM(
-                        CASE 
-                            WHEN sp.periode_facturation = 'yearly' THEN (sp.prix / 12) * (sp.taux_tva / 100)
-                            WHEN sp.periode_facturation = 'quarterly' THEN (sp.prix / 3) * (sp.taux_tva / 100)
-                            ELSE sp.prix * (sp.taux_tva / 100)
-                        END
-                    ), 0) as forecast_revenue_tva,
-                    COALESCE(SUM(
-                        CASE 
-                            WHEN sp.periode_facturation = 'yearly' THEN (sp.prix / 12) * (1 + sp.taux_tva / 100)
-                            WHEN sp.periode_facturation = 'quarterly' THEN (sp.prix / 3) * (1 + sp.taux_tva / 100)
-                            ELSE sp.prix * (1 + sp.taux_tva / 100)
-                        END
-                    ), 0) as forecast_revenue_ttc
-                FROM aiolia.abonnements_organisateurs ao
-                INNER JOIN aiolia.plans_abonnements sp ON sp.id = ao.id_plan
-                INNER JOIN aiolia.profils_organisateurs po ON po.id = ao.id_profil_organisateur
-                INNER JOIN aiolia.utilisateurs u ON u.id = po.id_utilisateur
-                WHERE u.statut = 1
-                    AND ao.statut = 'active'
-                    AND ao.commence_le <= :monthEnd
-                    AND (ao.annule_le IS NULL OR ao.annule_le >= :monthStart)
-                    AND (ao.mis_en_pause_le IS NULL OR ao.mis_en_pause_le >= :monthEnd OR ao.repris_le <= :monthStart)
-            ";
-
-            $result = $this->connection->executeQuery($sql, [
-                'monthStart' => $monthStart->format('Y-m-d H:i:s'),
-                'monthEnd' => $monthEnd->format('Y-m-d H:i:s'),
-            ]);
-
-            $row = $result->fetchAssociative();
-
-            $forecast[] = [
-                'month' => $monthStart->format('Y-m'),
-                'month_label' => $monthStart->format('M Y'),
-                'revenue' => (float) ($row['forecast_revenue_ttc'] ?? 0),
-                'revenue_ht' => (float) ($row['forecast_revenue_ht'] ?? 0),
-                'revenue_tva' => (float) ($row['forecast_revenue_tva'] ?? 0),
-                'revenue_ttc' => (float) ($row['forecast_revenue_ttc'] ?? 0),
-            ];
-
-            $currentDate->modify('+1 month');
-        }
-
-        return $forecast;
-    }
-
-    /**
-     * Calcule la prévision du chiffre d'affaires selon la période filtrée
-     * @param int $month 0 = tous les mois, 1-12 = mois spécifique
-     * @param int $year Année
-     */
-    public function calculateRevenueForecastForPeriod(int $month = 0, int $year = 2025): array
-    {
-        if ($month > 0 && $month <= 12) {
-            // Un seul mois
-            $monthStart = new \DateTime(sprintf('%d-%02d-01', $year, $month));
-            $monthEnd = (clone $monthStart)->modify('last day of this month')->setTime(23, 59, 59);
-
-            $sql = "
-                SELECT 
-                    COALESCE(SUM(
-                        CASE 
-                            WHEN sp.periode_facturation = 'yearly' THEN sp.prix / 12
-                            WHEN sp.periode_facturation = 'quarterly' THEN sp.prix / 3
-                            ELSE sp.prix
-                        END
-                    ), 0) as forecast_revenue_ht,
-                    COALESCE(SUM(
-                        CASE 
-                            WHEN sp.periode_facturation = 'yearly' THEN (sp.prix / 12) * (sp.taux_tva / 100)
-                            WHEN sp.periode_facturation = 'quarterly' THEN (sp.prix / 3) * (sp.taux_tva / 100)
-                            ELSE sp.prix * (sp.taux_tva / 100)
-                        END
-                    ), 0) as forecast_revenue_tva,
-                    COALESCE(SUM(
-                        CASE 
-                            WHEN sp.periode_facturation = 'yearly' THEN (sp.prix / 12) * (1 + sp.taux_tva / 100)
-                            WHEN sp.periode_facturation = 'quarterly' THEN (sp.prix / 3) * (1 + sp.taux_tva / 100)
-                            ELSE sp.prix * (1 + sp.taux_tva / 100)
-                        END
-                    ), 0) as forecast_revenue_ttc
-                FROM aiolia.abonnements_organisateurs ao
-                INNER JOIN aiolia.plans_abonnements sp ON sp.id = ao.id_plan
-                INNER JOIN aiolia.profils_organisateurs po ON po.id = ao.id_profil_organisateur
-                INNER JOIN aiolia.utilisateurs u ON u.id = po.id_utilisateur
-                WHERE u.statut = 1
-                    AND ao.commence_le <= :monthEnd
-                    AND (ao.annule_le IS NULL OR ao.annule_le >= :monthStart)
-                    AND (
-                        -- Pas en pause pendant ce mois
-                        (ao.mis_en_pause_le IS NULL OR ao.mis_en_pause_le > :monthEnd)
-                        OR
-                        -- En pause mais repris avant ou pendant le mois
-                        (ao.mis_en_pause_le IS NOT NULL AND ao.repris_le IS NOT NULL AND ao.repris_le <= :monthEnd)
-                    )
-            ";
-
-            $result = $this->connection->executeQuery($sql, [
-                'monthStart' => $monthStart->format('Y-m-d H:i:s'),
-                'monthEnd' => $monthEnd->format('Y-m-d H:i:s'),
-            ]);
-
-            $row = $result->fetchAssociative();
-
-            return [[
-                'month' => $monthStart->format('Y-m'),
-                'month_label' => $monthStart->format('M Y'),
-                'revenue' => (float) ($row['forecast_revenue_ttc'] ?? 0),
-                'revenue_ht' => (float) ($row['forecast_revenue_ht'] ?? 0),
-                'revenue_tva' => (float) ($row['forecast_revenue_tva'] ?? 0),
-                'revenue_ttc' => (float) ($row['forecast_revenue_ttc'] ?? 0),
-            ]];
-        } else {
-            // Toute l'année
-            return $this->calculateRevenueForecastForYear($year);
-        }
-    }
-
-    /**
-     * Calcule la prévision du chiffre d'affaires pour toute l'année (janvier à décembre) avec détail HT/TTC/TVA
-     */
-    public function calculateRevenueForecastForYear(int $year = 2025): array
-    {
-        $forecast = [];
-
-        for ($month = 1; $month <= 12; $month++) {
-            $monthStart = new \DateTime(sprintf('%d-%02d-01', $year, $month));
-            $monthEnd = (clone $monthStart)->modify('last day of this month')->setTime(23, 59, 59);
-
-            $sql = "
-                SELECT 
-                    COALESCE(SUM(
-                        CASE 
-                            WHEN sp.periode_facturation = 'yearly' THEN sp.prix / 12
-                            WHEN sp.periode_facturation = 'quarterly' THEN sp.prix / 3
-                            ELSE sp.prix
-                        END
-                    ), 0) as forecast_revenue_ht,
-                    COALESCE(SUM(
-                        CASE 
-                            WHEN sp.periode_facturation = 'yearly' THEN (sp.prix / 12) * (sp.taux_tva / 100)
-                            WHEN sp.periode_facturation = 'quarterly' THEN (sp.prix / 3) * (sp.taux_tva / 100)
-                            ELSE sp.prix * (sp.taux_tva / 100)
-                        END
-                    ), 0) as forecast_revenue_tva,
-                    COALESCE(SUM(
-                        CASE 
-                            WHEN sp.periode_facturation = 'yearly' THEN (sp.prix / 12) * (1 + sp.taux_tva / 100)
-                            WHEN sp.periode_facturation = 'quarterly' THEN (sp.prix / 3) * (1 + sp.taux_tva / 100)
-                            ELSE sp.prix * (1 + sp.taux_tva / 100)
-                        END
-                    ), 0) as forecast_revenue_ttc
-                FROM aiolia.abonnements_organisateurs ao
-                INNER JOIN aiolia.plans_abonnements sp ON sp.id = ao.id_plan
-                INNER JOIN aiolia.profils_organisateurs po ON po.id = ao.id_profil_organisateur
-                INNER JOIN aiolia.utilisateurs u ON u.id = po.id_utilisateur
-                WHERE u.statut = 1
-                    AND ao.commence_le <= :monthEnd
-                    AND (ao.annule_le IS NULL OR ao.annule_le >= :monthStart)
-                    AND (
-                        -- Pas en pause pendant ce mois
-                        (ao.mis_en_pause_le IS NULL OR ao.mis_en_pause_le > :monthEnd)
-                        OR
-                        -- En pause mais repris avant ou pendant le mois
-                        (ao.mis_en_pause_le IS NOT NULL AND ao.repris_le IS NOT NULL AND ao.repris_le <= :monthEnd)
-                    )
-            ";
-
-            $result = $this->connection->executeQuery($sql, [
-                'monthStart' => $monthStart->format('Y-m-d H:i:s'),
-                'monthEnd' => $monthEnd->format('Y-m-d H:i:s'),
-            ]);
-
-            $row = $result->fetchAssociative();
-
-            $forecast[] = [
-                'month' => $monthStart->format('Y-m'),
-                'month_label' => $monthStart->format('M Y'),
-                'revenue' => (float) ($row['forecast_revenue_ttc'] ?? 0),
-                'revenue_ht' => (float) ($row['forecast_revenue_ht'] ?? 0),
-                'revenue_tva' => (float) ($row['forecast_revenue_tva'] ?? 0),
-                'revenue_ttc' => (float) ($row['forecast_revenue_ttc'] ?? 0),
-            ];
-        }
-
-        return $forecast;
-    }
-
-    /**
-     * Récupère les nouveaux organisateurs par mois pour les 6 derniers mois
-     */
-    public function getNewOrganizersByMonth(\DateTimeInterface $startDate, int $months = 6): array
-    {
-        $data = [];
-        $currentDate = $startDate instanceof \DateTime ? clone $startDate : new \DateTime($startDate->format('Y-m-d H:i:s'));
-
-        for ($i = 0; $i < $months; $i++) {
-            $monthStart = (clone $currentDate)->modify('first day of this month')->setTime(0, 0, 0);
-            $monthEnd = (clone $currentDate)->modify('last day of this month')->setTime(23, 59, 59);
-
-            $count = $this->countNewOrganizersForMonth($currentDate);
-
-            $data[] = [
-                'month' => $monthStart->format('Y-m'),
-                'month_label' => $monthStart->format('M Y'),
-                'count' => $count,
-            ];
-
-            $currentDate->modify('-1 month');
-        }
-
-        return array_reverse($data);
-    }
-
-    /**
-     * Récupère les nouveaux organisateurs par mois pour toute l'année (janvier à décembre)
-     */
-    public function getNewOrganizersByYear(int $year = 2025): array
-    {
-        $data = [];
-        $startDate = new \DateTime(sprintf('%d-01-01', $year));
-
-        for ($month = 1; $month <= 12; $month++) {
-            $monthDate = new \DateTime(sprintf('%d-%02d-01', $year, $month));
-            $count = $this->countNewOrganizersForMonth($monthDate);
-
-            $data[] = [
-                'month' => $monthDate->format('Y-m'),
-                'month_label' => $monthDate->format('M Y'),
-                'count' => $count,
-            ];
-        }
-
-        return $data;
-    }
-
-    /**
-     * Récupère les nouveaux organisateurs selon la période filtrée
-     * @param int $month 0 = tous les mois, 1-12 = mois spécifique
-     * @param int $year Année
-     */
-    public function getNewOrganizersByPeriod(int $month = 0, int $year = 2025): array
-    {
-        if ($month > 0 && $month <= 12) {
-            // Un seul mois
-            $monthDate = new \DateTime(sprintf('%d-%02d-01', $year, $month));
-            $count = $this->countNewOrganizersForMonth($monthDate);
-            
-            return [[
-                'month' => $monthDate->format('Y-m'),
-                'month_label' => $monthDate->format('M Y'),
-                'count' => $count,
-            ]];
-        } else {
-            // Toute l'année
-            return $this->getNewOrganizersByYear($year);
-        }
-    }
-
-    /**
-     * Récupère la répartition des abonnements par niveau (Basic/Pro/Enterprise)
-     * @param int $month 0 = tous les mois, 1-12 = mois spécifique
-     * @param int $year Année
-     */
-    public function getSubscriptionDistribution(int $month = 0, int $year = 2025): array
-    {
-        // Pour la répartition, on cherche les abonnements actifs pendant la période
-        if ($month > 0 && $month <= 12) {
-            $periodStart = sprintf('%d-%02d-01', $year, $month);
-            $periodEnd = (new \DateTime($periodStart))->modify('last day of this month')->format('Y-m-d 23:59:59');
-        } else {
-            // Pour "Tous les mois", on cherche les abonnements actifs à n'importe quel moment de l'année
-            $periodStart = sprintf('%d-01-01', $year);
-            $periodEnd = sprintf('%d-12-31 23:59:59', $year);
-        }
-
-        $sql = "
-            SELECT 
-                sp.niveau as plan_level,
-                COUNT(DISTINCT ao.id) as count
-            FROM aiolia.abonnements_organisateurs ao
-            INNER JOIN aiolia.plans_abonnements sp ON sp.id = ao.id_plan
-            INNER JOIN aiolia.profils_organisateurs po ON po.id = ao.id_profil_organisateur
-            INNER JOIN aiolia.utilisateurs u ON u.id = po.id_utilisateur
-            WHERE u.statut = 1
-                -- Abonnement commencé avant ou pendant la période
-                AND ao.commence_le <= :periodEnd
-                -- Abonnement non annulé ou annulé après le début de la période
-                AND (ao.annule_le IS NULL OR ao.annule_le >= :periodStart)
-                -- Abonnement actif pendant au moins une partie de la période
-                AND (
-                    -- Cas 1 : Jamais en pause (actif pendant toute la période si commencé avant)
-                    (ao.mis_en_pause_le IS NULL)
-                    OR
-                    -- Cas 2 : En pause mais repris pendant ou avant la fin de la période
-                    (ao.mis_en_pause_le IS NOT NULL AND ao.repris_le IS NOT NULL AND ao.repris_le <= :periodEnd)
-                    OR
-                    -- Cas 3 : Commencé avant la période et mis en pause après le début (actif au début de la période)
-                    (ao.commence_le < :periodStart AND ao.mis_en_pause_le IS NOT NULL AND ao.mis_en_pause_le > :periodStart)
-                    OR
-                    -- Cas 4 : Commencé pendant la période et pas encore en pause à la fin
-                    (ao.commence_le >= :periodStart AND (ao.mis_en_pause_le IS NULL OR ao.mis_en_pause_le > :periodEnd))
-                )
-        ";
-
-        $params = [
-            'periodStart' => $periodStart,
-            'periodEnd' => $periodEnd,
-        ];
-
-        $sql .= "
-            GROUP BY sp.niveau
-            ORDER BY sp.niveau
-        ";
-
-        $result = $this->connection->executeQuery($sql, $params);
-        $rows = $result->fetchAllAssociative();
+        $rows = $this->connection->fetchAllAssociative($sql, $params);
 
         $distribution = [
             'basic' => 0,
@@ -481,64 +223,45 @@ class StatisticsRepository
         ];
 
         foreach ($rows as $row) {
-            $level = strtolower($row['plan_level']);
-            if (isset($distribution[$level])) {
-                $distribution[$level] = (int) $row['count'];
+            $niveau = $row['niveau'] ?? null;
+            if ($niveau !== null && array_key_exists($niveau, $distribution)) {
+                $distribution[$niveau] = (int) $row['count'];
             }
         }
 
         return $distribution;
     }
 
-    /**
-     * Récupère le top des payeurs (organisateurs avec le plus de revenus)
-     * @param int $limit Nombre de résultats
-     * @param int $month 0 = tous les mois, 1-12 = mois spécifique
-     * @param int $year Année
-     */
-    public function getTopPayers(int $limit = 10, int $month = 0, int $year = 2025): array
+    /* ========================================================================== */
+    /*     DÉTAIL CA                                                               */
+    /* ========================================================================== */
+    public function getRevenueBreakdownByPeriod(int $mois, int $annee): array
     {
-        // Pour les top payeurs, on cherche les factures payées pendant la période
-        if ($month > 0 && $month <= 12) {
-            $periodStart = sprintf('%d-%02d-01', $year, $month);
-            $periodEnd = (new \DateTime($periodStart))->modify('last day of this month')->format('Y-m-d 23:59:59');
-        } else {
-            $periodStart = sprintf('%d-01-01', $year);
-            $periodEnd = sprintf('%d-12-31 23:59:59', $year);
-        }
+        $period = $this->resolvePeriod($mois, $annee);
+        $start = $period['start'];
+        $end   = $period['end'];
 
         $sql = "
-            SELECT 
-                po.id as organizer_id,
-                po.nom_affichage as organizer_name,
-                u.email,
-                COALESCE(SUM(fa.montant_total), 0) as total_paid
-            FROM aiolia.profils_organisateurs po
-            INNER JOIN aiolia.utilisateurs u ON u.id = po.id_utilisateur
-            LEFT JOIN aiolia.abonnements_organisateurs ao ON ao.id_profil_organisateur = po.id
-            LEFT JOIN aiolia.factures_abonnements fa ON fa.id_abonnement = ao.id
-            WHERE u.statut = 1
-                AND u.role = 'organizer'
-                AND fa.statut = 'paid'
-                AND fa.payee_le >= :periodStart
-                AND fa.payee_le <= :periodEnd
+            SELECT
+                DATE_TRUNC('month', mois_facturation) AS period_start,
+                TO_CHAR(DATE_TRUNC('month', mois_facturation), 'Mon YYYY') AS month_label,
+                SUM(montant_ht)  AS revenue_ht,
+                SUM(montant_tva) AS revenue_tva,
+                SUM(montant_ttc) AS revenue_ttc
+            FROM aiolia.factures_abonnements
+            WHERE statut IN ('paid', 'partially_paid')
         ";
 
-        $params = [
-            'periodStart' => $periodStart,
-            'periodEnd' => $periodEnd,
-        ];
+        $sql .= $this->buildDateCondition($start, $end, "mois_facturation");
 
-        $sql .= "
-            GROUP BY po.id, po.nom_affichage, u.email
-            ORDER BY total_paid DESC
-            LIMIT :limit
-        ";
+        $sql .= " GROUP BY period_start ORDER BY period_start";
 
-        $params['limit'] = $limit;
+        $params = [];
+        if ($start && $end) {
+            $params['date_start'] = $start;
+            $params['date_end']   = $end;
+        }
 
-        $result = $this->connection->executeQuery($sql, $params, ['limit' => ParameterType::INTEGER]);
-        return $result->fetchAllAssociative();
+        return $this->connection->fetchAllAssociative($sql, $params);
     }
 }
-

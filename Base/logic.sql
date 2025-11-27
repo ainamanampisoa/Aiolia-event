@@ -1,6 +1,7 @@
 -- ============================================================
 --  AIOLIA – LOGIQUE APPLICATIVE (FONCTIONS, VUES, TRIGGERS)
 --  Génération : 2025-11-10
+--  Mise à jour : 2025-01-XX (Optimisations)
 -- ============================================================
 
 SET search_path TO aiolia, public;
@@ -46,7 +47,8 @@ SELECT
     e.titre,
     e.commence_le,
     COALESCE(SUM(oi.quantite) FILTER (WHERE o.statut IN ('paid', 'awaiting_payment')), 0) AS tickets_sold,
-    COALESCE(SUM(oi.montant_total) FILTER (WHERE o.statut IN ('paid', 'awaiting_payment')), 0) AS gross_revenue
+    COALESCE(SUM(oi.montant_total) FILTER (WHERE o.statut IN ('paid', 'awaiting_payment')), 0) AS gross_revenue,
+    COUNT(DISTINCT o.id) FILTER (WHERE o.statut IN ('paid', 'awaiting_payment')) AS orders_count
 FROM evenements e
 LEFT JOIN types_billets tt ON tt.id_evenement = e.id
 LEFT JOIN elements_commandes oi ON oi.id_type_billet = tt.id
@@ -209,16 +211,19 @@ DECLARE
     v_new_balance NUMERIC(14,2);
     v_new_points INTEGER;
 BEGIN
+    -- Ignorer les transactions non-pending
     IF NEW.statut <> 'pending' THEN
         RETURN NEW;
     END IF;
 
+    -- Validation des montants
     IF NEW.type_transaction IN ('credit', 'debit') AND NEW.montant <= 0 THEN
         RAISE EXCEPTION 'Le montant doit être strictement positif pour une transaction monétaire (%).', NEW.id;
     ELSIF NEW.type_transaction IN ('points_credit', 'points_debit') AND NEW.variation_points <= 0 THEN
         RAISE EXCEPTION 'La variation de points doit être strictement positive pour une transaction de points (%).', NEW.id;
     END IF;
 
+    -- Verrouillage du portefeuille pour éviter les conditions de course
     SELECT *
       INTO v_wallet
       FROM portefeuilles
@@ -229,6 +234,7 @@ BEGIN
         RAISE EXCEPTION 'Portefeuille % introuvable pour la transaction %.', NEW.id_portefeuille, NEW.id;
     END IF;
 
+    -- Calcul des nouveaux soldes
     v_new_balance := v_wallet.solde;
     v_new_points := v_wallet.solde_points;
 
@@ -249,17 +255,12 @@ BEGIN
             v_new_points := v_wallet.solde_points - NEW.variation_points;
     END CASE;
 
-    IF NEW.type_transaction IN ('credit', 'debit') THEN
-        UPDATE portefeuilles
-           SET solde = v_new_balance,
-               modifie_le = now()
-         WHERE id = NEW.id_portefeuille;
-    ELSE
-        UPDATE portefeuilles
-           SET solde_points = v_new_points,
-               modifie_le = now()
-         WHERE id = NEW.id_portefeuille;
-    END IF;
+    -- Mise à jour atomique du portefeuille
+    UPDATE portefeuilles
+       SET solde = CASE WHEN NEW.type_transaction IN ('credit', 'debit') THEN v_new_balance ELSE solde END,
+           solde_points = CASE WHEN NEW.type_transaction IN ('points_credit', 'points_debit') THEN v_new_points ELSE solde_points END,
+           modifie_le = now()
+     WHERE id = NEW.id_portefeuille;
 
     NEW.statut := 'completed';
     RETURN NEW;
@@ -314,10 +315,12 @@ DECLARE
     v_upcoming_increment INTEGER := 0;
     v_last_event_at TIMESTAMPTZ;
 BEGIN
+    -- Ignorer si pas de propriétaire
     IF NEW.id_utilisateur_proprietaire IS NULL THEN
         RETURN NEW;
     END IF;
 
+    -- Récupération des informations de l'événement et de la commande
     SELECT e.commence_le,
            oi.montant_total,
            oi.quantite
@@ -329,24 +332,25 @@ BEGIN
       LEFT JOIN elements_commandes oi ON oi.id = NEW.id_element_commande
      WHERE tt.id = NEW.id_type_billet;
 
+    -- Calcul de la date du dernier événement
     v_last_event_at := COALESCE(v_event_start, NEW.emis_le);
 
-    IF v_quantity IS NULL OR v_quantity = 0 THEN
-        v_quantity := 1;
-    END IF;
+    -- Normalisation de la quantité (éviter division par zéro)
+    v_quantity := GREATEST(COALESCE(v_quantity, 1), 1);
 
-    IF v_total_amount IS NOT NULL THEN
+    -- Calcul de la valeur unitaire du billet
+    IF v_total_amount IS NOT NULL AND v_total_amount > 0 THEN
         v_ticket_value := v_total_amount / v_quantity;
     END IF;
 
-    IF v_event_start IS NULL THEN
-        v_attended_increment := 1;
-    ELSIF v_event_start <= now() THEN
+    -- Détermination du type d'événement (passé ou à venir)
+    IF v_event_start IS NULL OR v_event_start <= now() THEN
         v_attended_increment := 1;
     ELSE
         v_upcoming_increment := 1;
     END IF;
 
+    -- Mise à jour atomique des statistiques utilisateur
     INSERT INTO statistiques_evenements_utilisateurs (
         id_utilisateur,
         evenements_auxquels_a_participe,
@@ -367,7 +371,10 @@ BEGIN
         SET evenements_auxquels_a_participe = statistiques_evenements_utilisateurs.evenements_auxquels_a_participe + EXCLUDED.evenements_auxquels_a_participe,
             evenements_a_venir = statistiques_evenements_utilisateurs.evenements_a_venir + EXCLUDED.evenements_a_venir,
             depenses_totales = statistiques_evenements_utilisateurs.depenses_totales + EXCLUDED.depenses_totales,
-            dernier_evenement_le = GREATEST(statistiques_evenements_utilisateurs.dernier_evenement_le, EXCLUDED.dernier_evenement_le),
+            dernier_evenement_le = GREATEST(
+                COALESCE(statistiques_evenements_utilisateurs.dernier_evenement_le, '1970-01-01'::TIMESTAMPTZ),
+                EXCLUDED.dernier_evenement_le
+            ),
             modifie_le = now();
 
     RETURN NEW;
@@ -404,433 +411,27 @@ FOR EACH ROW EXECUTE FUNCTION tickets_record_stats();
 COMMENT ON TRIGGER trg_tickets_record_stats ON billets IS
     'Après insertion : met à jour les statistiques utilisateur liées aux billets.';
 
--- ------------------------------------------------------------
--- 4. Fonction de génération automatique des factures mensuelles
--- ------------------------------------------------------------
-CREATE OR REPLACE FUNCTION generate_monthly_subscription_invoices(target_month DATE DEFAULT date_trunc('month', CURRENT_DATE)) 
-RETURNS TABLE(
-    subscription_id BIGINT,
-    invoice_id BIGINT,
-    invoice_number TEXT,
-    status TEXT,
-    amount NUMERIC(12,2),
-    action TEXT
-) AS $$
-DECLARE
-    v_subscription RECORD;
-    v_plan RECORD;
-    v_existing_invoice RECORD;
-    v_invoice_id BIGINT;
-    v_invoice_number TEXT;
-    v_month_start DATE;
-    v_due_date TIMESTAMPTZ;
-    v_subtotal NUMERIC(12,2);
-    v_tax_amount NUMERIC(12,2);
-    v_total_amount NUMERIC(12,2);
-    v_vat_rate NUMERIC(5,2);
-    v_currency TEXT;
-    v_invoice_status TEXT;
-    v_is_pause_month BOOLEAN;
-    v_has_prepaid_credit BOOLEAN;
-BEGIN
-    -- S'assurer que target_month est le premier jour du mois
-    v_month_start := date_trunc('month', target_month)::DATE;
-    v_due_date := (v_month_start + INTERVAL '10 days')::TIMESTAMPTZ;
-
-    -- Parcourir tous les abonnements actifs ou en pause
-    FOR v_subscription IN
-        SELECT 
-            os.id,
-            os.id_profil_organisateur,
-            os.statut,
-            os.mois_prepayes_restants,
-            os.mis_en_pause_le,
-            os.repris_le,
-            op.id_utilisateur,
-            os.id_plan
-        FROM abonnements_organisateurs os
-        INNER JOIN profils_organisateurs op ON op.id = os.id_profil_organisateur
-        WHERE os.statut IN ('active', 'paused')
-            AND os.annule_le IS NULL
-    LOOP
-        -- Récupérer les informations du plan (incluant le niveau/type d'offre)
-        SELECT 
-            sp.id,
-            sp.code,
-            sp.nom,
-            sp.niveau,
-            sp.prix,
-            sp.taux_tva,
-            sp.devise,
-            sp.periode_facturation,
-            sp.nombre_periodes
-        INTO v_plan
-        FROM plans_abonnements sp
-        WHERE sp.id = v_subscription.id_plan
-            AND sp.est_actif = true;
-
-        IF NOT FOUND THEN
-            -- Plan introuvable ou inactif, passer à l'abonnement suivant
-            CONTINUE;
-        END IF;
-
-        -- Vérifier que le niveau du plan est valide
-        IF v_plan.niveau NOT IN ('basic', 'pro', 'enterprise') THEN
-            -- Niveau invalide, passer à l'abonnement suivant
-            CONTINUE;
-        END IF;
-
-        v_vat_rate := COALESCE(v_plan.taux_tva, 20);
-        v_currency := COALESCE(v_plan.devise, 'MGA');
-
-        -- Déterminer si c'est un mois en pause
-        v_is_pause_month := (v_subscription.statut = 'paused') 
-            OR (v_subscription.mis_en_pause_le IS NOT NULL 
-                AND v_subscription.mis_en_pause_le <= v_month_start 
-                AND (v_subscription.repris_le IS NULL OR v_subscription.repris_le > v_month_start));
-
-        -- Vérifier si une facture existe déjà pour ce mois et cet abonnement
-        SELECT id, numero_facture, statut, est_prepayee, est_mois_pause
-        INTO v_existing_invoice
-        FROM factures_abonnements
-        WHERE id_abonnement = v_subscription.id
-            AND mois_facturation = v_month_start;
-
-        -- Si la facture existe déjà et que l'abonnement est actif, ne pas générer
-        IF v_existing_invoice IS NOT NULL AND v_subscription.statut = 'active' AND NOT v_is_pause_month THEN
-            RETURN QUERY SELECT 
-                v_subscription.id::BIGINT,
-                v_existing_invoice.id::BIGINT,
-                v_existing_invoice.numero_facture,
-                v_existing_invoice.statut,
-                0::NUMERIC(12,2),
-                'skipped'::TEXT;
-            CONTINUE;
-        END IF;
-
-        -- Si la facture existe déjà pour un mois en pause, ne pas régénérer
-        IF v_existing_invoice IS NOT NULL AND v_is_pause_month THEN
-            RETURN QUERY SELECT 
-                v_subscription.id::BIGINT,
-                v_existing_invoice.id::BIGINT,
-                v_existing_invoice.numero_facture,
-                v_existing_invoice.statut,
-                0::NUMERIC(12,2),
-                'skipped_pause'::TEXT;
-            CONTINUE;
-        END IF;
-
-        -- Vérifier si l'organisateur a du crédit prépayé
-        v_has_prepaid_credit := (v_subscription.mois_prepayes_restants > 0);
-
-        -- Si période prépayée et facture existe déjà, reporter le mois (ne pas générer)
-        IF v_has_prepaid_credit AND v_existing_invoice IS NOT NULL AND v_existing_invoice.est_prepayee THEN
-            RETURN QUERY SELECT 
-                v_subscription.id::BIGINT,
-                v_existing_invoice.id::BIGINT,
-                v_existing_invoice.numero_facture,
-                v_existing_invoice.statut,
-                0::NUMERIC(12,2),
-                'deferred'::TEXT;
-            CONTINUE;
-        END IF;
-
-        -- Calculer les montants
-        IF v_is_pause_month THEN
-            -- Facture en pause : montant à 0
-            v_subtotal := 0;
-            v_tax_amount := 0;
-            v_total_amount := 0;
-            v_invoice_status := 'suspendue'; -- Statut pour facture suspendue (en pause)
-        ELSE
-            -- Facture normale - calcul selon le type d'offre et la période de facturation
-            IF v_plan.periode_facturation = 'yearly' THEN
-                -- Pour un abonnement annuel, diviser le prix par 12
-                v_subtotal := v_plan.prix / 12;
-            ELSIF v_plan.periode_facturation = 'quarterly' THEN
-                -- Pour un abonnement trimestriel, diviser le prix par 3
-                v_subtotal := v_plan.prix / 3;
-            ELSE
-                -- Abonnement mensuel : prix mensuel
-                v_subtotal := v_plan.prix;
-            END IF;
-            
-            v_tax_amount := v_subtotal * (v_vat_rate / 100);
-            v_total_amount := v_subtotal + v_tax_amount;
-            
-            -- Si crédit prépayé disponible, utiliser le crédit (statut pending)
-            IF v_has_prepaid_credit THEN
-                v_invoice_status := 'pending'; -- Facture prépayée en attente de consommation
-            ELSE
-                v_invoice_status := 'issued'; -- Facture normale émise
-            END IF;
-        END IF;
-
-        -- Générer le numéro de facture
-        v_invoice_number := LPAD(nextval('sequence_numero_facture')::text, 8, '0');
-
-        -- Insérer la facture
-        INSERT INTO factures_abonnements (
-            numero_facture,
-            id_abonnement,
-            id_client,
-            devise,
-            montant_sous_total,
-            montant_tva,
-            montant_total,
-            montant_ht,
-            montant_tva_detail,
-            montant_ttc,
-            mois_facturation,
-            est_mois_pause,
-            est_prepayee,
-            statut,
-            emise_le,
-            echeance_le,
-            metadonnees,
-            cree_le,
-            modifie_le
-        ) VALUES (
-            v_invoice_number,
-            v_subscription.id,
-            v_subscription.id_utilisateur,
-            v_currency,
-            v_subtotal,
-            v_tax_amount,
-            v_total_amount,
-            v_subtotal,
-            v_tax_amount,
-            v_total_amount,
-            v_month_start,
-            v_is_pause_month,
-            v_has_prepaid_credit,
-            v_invoice_status,
-            v_month_start::TIMESTAMPTZ,
-            v_due_date,
-            jsonb_build_object(
-                'auto_generated', true,
-                'month', EXTRACT(MONTH FROM v_month_start),
-                'year', EXTRACT(YEAR FROM v_month_start),
-                'billing_period', v_plan.periode_facturation,
-                'plan_level', v_plan.niveau,
-                'plan_code', v_plan.code,
-                'plan_name', v_plan.nom,
-                'subscription_status', v_subscription.statut
-            ),
-            now(),
-            now()
-        ) RETURNING id INTO v_invoice_id;
-
-        -- Si crédit prépayé utilisé, décrémenter le crédit
-        IF v_has_prepaid_credit AND NOT v_is_pause_month THEN
-            UPDATE abonnements_organisateurs
-            SET mois_prepayes_restants = GREATEST(0, mois_prepayes_restants - 1),
-                modifie_le = now()
-            WHERE id = v_subscription.id;
-        END IF;
-
-        -- Retourner le résultat
-        RETURN QUERY SELECT 
-            v_subscription.id::BIGINT,
-            v_invoice_id::BIGINT,
-            v_invoice_number::TEXT,
-            v_invoice_status::TEXT,
-            v_total_amount::NUMERIC(12,2),
-            CASE 
-                WHEN v_is_pause_month THEN 'created_pause'::TEXT
-                WHEN v_has_prepaid_credit THEN 'created_prepaid'::TEXT
-                ELSE 'created'::TEXT
-            END;
-    END LOOP;
-
-    RETURN;
-END;
-$$ LANGUAGE plpgsql;
-
-COMMENT ON FUNCTION generate_monthly_subscription_invoices(DATE) IS
-    'Génère automatiquement les factures mensuelles pour tous les abonnements actifs ou en pause.
-    - Si actif : facture avec statut "issued", échéance 10 jours après le 1er du mois
-    - Si en pause : facture à 0 Ar avec statut "suspendue" et est_mois_pause = true
-    - Les factures en pause sont générées pour chaque mois où l''organisateur est en pause
-    - Vérifie l''existence d''une facture pour éviter les doublons
-    - Gère les crédits prépayés : mois reportés sans remboursement
-    - À exécuter le 1er jour de chaque mois';
-
--- ------------------------------------------------------------
--- 5. Fonction pour mettre à jour le statut des factures en retard
--- ------------------------------------------------------------
-CREATE OR REPLACE FUNCTION update_overdue_invoices_status() 
-RETURNS TABLE(
-    invoice_id BIGINT,
-    invoice_number TEXT,
-    old_status TEXT,
-    new_status TEXT,
-    days_overdue INTEGER
-) AS $$
-DECLARE
-    v_invoice RECORD;
-    v_current_date DATE;
-    v_due_date DATE;
-    v_days_overdue INTEGER;
-BEGIN
-    v_current_date := CURRENT_DATE;
-
-    -- Parcourir toutes les factures émises non payées
-    FOR v_invoice IN
-        SELECT 
-            si.id,
-            si.numero_facture,
-            si.statut,
-            si.echeance_le,
-            si.mois_facturation
-        FROM factures_abonnements si
-        WHERE si.statut IN ('issued', 'draft')
-            AND si.payee_le IS NULL
-            AND si.echeance_le IS NOT NULL
-    LOOP
-        v_due_date := v_invoice.echeance_le::DATE;
-        
-        -- Vérifier si la date d'échéance est dépassée
-        IF v_current_date > v_due_date THEN
-            v_days_overdue := EXTRACT(DAY FROM (v_current_date - v_due_date))::INTEGER;
-            
-            -- Mettre à jour le statut en "overdue" (retard)
-            UPDATE factures_abonnements
-            SET statut = 'overdue',
-                modifie_le = now(),
-                metadonnees = COALESCE(metadonnees, '{}'::jsonb) || jsonb_build_object(
-                    'marked_overdue_at', now(),
-                    'days_overdue', v_days_overdue
-                )
-            WHERE id = v_invoice.id;
-
-            RETURN QUERY SELECT 
-                v_invoice.id::BIGINT,
-                v_invoice.numero_facture::TEXT,
-                v_invoice.statut::TEXT,
-                'overdue'::TEXT,
-                v_days_overdue::INTEGER;
-        END IF;
-    END LOOP;
-
-    RETURN;
-END;
-$$ LANGUAGE plpgsql;
-
-COMMENT ON FUNCTION update_overdue_invoices_status() IS
-    'Met à jour le statut des factures non payées après la date d''échéance (10 jours après le 1er du mois).
-    Change le statut de "issued" ou "draft" à "overdue" pour les factures en retard.
-    À exécuter quotidiennement après le 10ème jour du mois.';
-
--- ------------------------------------------------------------
--- 6. Fonction pour mettre automatiquement en pause les abonnements non payés
--- ------------------------------------------------------------
-CREATE OR REPLACE FUNCTION auto_pause_unpaid_subscriptions() 
-RETURNS TABLE(
-    subscription_id BIGINT,
-    organizer_profile_id BIGINT,
-    organizer_user_id BIGINT,
-    invoice_id BIGINT,
-    invoice_number TEXT,
-    old_status TEXT,
-    new_status TEXT,
-    paused_at TIMESTAMPTZ
-) AS $$
-DECLARE
-    v_current_date DATE;
-    v_current_day INTEGER;
-    v_current_month DATE;
-    v_subscription RECORD;
-    v_invoice RECORD;
-    v_paused_at TIMESTAMPTZ;
-BEGIN
-    v_current_date := CURRENT_DATE;
-    v_current_day := EXTRACT(DAY FROM v_current_date)::INTEGER;
-    v_current_month := date_trunc('month', v_current_date)::DATE;
-    v_paused_at := now();
-
-    -- Vérifier si on est après le 10ème jour du mois
-    IF v_current_day <= 10 THEN
-        -- Si on est avant ou le 10ème jour, ne rien faire
-        RETURN;
-    END IF;
-
-    -- Parcourir les factures du mois courant non payées
-    FOR v_invoice IN
-        SELECT 
-            si.id AS invoice_id,
-            si.numero_facture,
-            si.id_abonnement,
-            si.mois_facturation,
-            si.statut AS invoice_status,
-            si.payee_le,
-            os.id AS subscription_id,
-            os.id_profil_organisateur,
-            os.statut AS subscription_status,
-            os.mis_en_pause_le,
-            op.id_utilisateur AS organizer_user_id
-        FROM factures_abonnements si
-        INNER JOIN abonnements_organisateurs os ON os.id = si.id_abonnement
-        INNER JOIN profils_organisateurs op ON op.id = os.id_profil_organisateur
-        WHERE si.mois_facturation = v_current_month
-            AND si.statut IN ('issued', 'overdue')
-            AND si.payee_le IS NULL
-            AND os.statut = 'active'  -- Seulement les abonnements actifs
-            AND os.annule_le IS NULL  -- Pas d'abonnements annulés
-            AND os.mis_en_pause_le IS NULL  -- Pas déjà en pause
-    LOOP
-        -- Mettre en pause l'abonnement
-        UPDATE abonnements_organisateurs
-        SET statut = 'paused'::subscription_status_enum,
-            mis_en_pause_le = v_paused_at,
-            modifie_le = now(),
-            metadonnees = COALESCE(metadonnees, '{}'::jsonb) || jsonb_build_object(
-                'auto_paused', true,
-                'auto_paused_at', v_paused_at,
-                'auto_paused_reason', 'Non paiement de la facture du mois courant avant le 11ème jour',
-                'invoice_id', v_invoice.invoice_id,
-                'invoice_number', v_invoice.numero_facture
-            )
-        WHERE id = v_invoice.subscription_id;
-
-        -- Mettre à jour la facture pour indiquer qu'elle est liée à une pause
-        UPDATE factures_abonnements
-        SET metadonnees = COALESCE(metadonnees, '{}'::jsonb) || jsonb_build_object(
-                'subscription_paused', true,
-                'subscription_paused_at', v_paused_at
-            ),
-            modifie_le = now()
-        WHERE id = v_invoice.invoice_id;
-
-        -- Retourner le résultat
-        RETURN QUERY SELECT 
-            v_invoice.subscription_id::BIGINT,
-            v_invoice.id_profil_organisateur::BIGINT,
-            v_invoice.organizer_user_id::BIGINT,
-            v_invoice.invoice_id::BIGINT,
-            v_invoice.numero_facture::TEXT,
-            v_invoice.subscription_status::TEXT,
-            'paused'::TEXT,
-            v_paused_at::TIMESTAMPTZ;
-    END LOOP;
-
-    RETURN;
-END;
-$$ LANGUAGE plpgsql;
-
-COMMENT ON FUNCTION auto_pause_unpaid_subscriptions() IS
-    'Met automatiquement en pause les abonnements dont la facture du mois courant n''a pas été payée avant le 11ème jour du mois.
-    Règle : Si l''organisateur ne paie pas son abonnement du mois courant avant le 11ème jour, son compte est automatiquement mis en pause.
-    À exécuter quotidiennement après le 10ème jour du mois (idéalement le 11ème jour à minuit).';
-
--- ============================================================
--- fin du fichier
--- ============================================================
 
 -- ------------------------------------------------------------
 -- Récapitulatif logique
 -- ------------------------------------------------------------
 -- Vues matérialisées : 1
+--   - mv_user_monthly_spend : Agrégation mensuelle des dépenses utilisateurs
 -- Vues : 8
--- Fonctions : 7
+--   - vw_user_dashboard_summary : Tableau de bord utilisateur
+--   - vw_event_sales_summary : Résumé des ventes par événement
+--   - vw_subscription_payment_summary : Suivi paiements abonnements
+--   - vw_ticket_payments_detailed : Historique détaillé paiements billets
+--   - vw_subscription_payments_detailed : Historique détaillé paiements abonnements
+--   - vw_ticket_invoices_overdue : Factures billets en retard
+--   - vw_subscription_invoices_overdue : Factures abonnements en retard
+--   - vw_subscription_invoice_items : Détails lignes factures abonnements
+-- Fonctions : 4
+--   - refresh_user_monthly_spend() : Rafraîchit la vue matérialisée
+--   - wallet_transactions_apply() : Applique les transactions portefeuille
+--   - order_items_adjust_inventory() : Ajuste l'inventaire lors des commandes
+--   - tickets_record_stats() : Met à jour les statistiques utilisateur
 -- Triggers : 3
+--   - trg_wallet_transactions_apply : Avant INSERT sur transactions_portefeuilles
+--   - trg_order_items_adjust_inventory : Après INSERT sur elements_commandes
+--   - trg_tickets_record_stats : Après INSERT sur billets

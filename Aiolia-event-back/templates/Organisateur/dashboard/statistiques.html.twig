@@ -1,0 +1,320 @@
+{% extends 'base.html.twig' %}
+
+{% block title %}Statistiques - Aiolia Event{% endblock %}
+
+{% block body %}
+<div class="dashboard-container">
+    <div class="dashboard-header">
+        <h1>
+            <i class="fas fa-chart-line"></i>
+            <span data-i18n="organisateur.dashboard.title">Statistiques</span>
+        </h1>
+        <p class="dashboard-subtitle" data-i18n="organisateur.dashboard.subtitle">Vue d'ensemble de vos événements et performances</p>
+    </div>
+
+    <!-- Cards de statistiques -->
+    <div class="stats-grid">
+        <div class="stat-card">
+            <div class="stat-icon">
+                <i class="fas fa-calendar-alt"></i>
+            </div>
+            <div class="stat-content">
+                <h3 class="stat-value">{{ totalEvents }}</h3>
+                <p class="stat-label" data-i18n="organisateur.dashboard.total_events">Total événements</p>
+            </div>
+        </div>
+
+        <div class="stat-card">
+            <div class="stat-icon published">
+                <i class="fas fa-check-circle"></i>
+            </div>
+            <div class="stat-content">
+                <h3 class="stat-value">{{ publishedEvents }}</h3>
+                <p class="stat-label" data-i18n="organisateur.dashboard.published_events">Événements publiés</p>
+            </div>
+        </div>
+
+        <div class="stat-card">
+            <div class="stat-icon draft">
+                <i class="fas fa-edit"></i>
+            </div>
+            <div class="stat-content">
+                <h3 class="stat-value">{{ draftEvents }}</h3>
+                <p class="stat-label" data-i18n="organisateur.dashboard.draft_events">Brouillons</p>
+            </div>
+        </div>
+    </div>
+
+    <!-- Événements récents -->
+    <div class="content-card">
+        <div class="card-header">
+            <h2>
+                <i class="fas fa-clock"></i>
+                <span data-i18n="organisateur.dashboard.recent_events">Événements récents</span>
+            </h2>
+        </div>
+        <div class="card-body">
+            {% if recentEvents|length > 0 %}
+                <div class="events-list">
+                    {% for event in recentEvents %}
+                        <div class="event-item">
+                            <div class="event-info">
+                                <h3>{{ event.title }}</h3>
+                                <p class="event-meta">
+                                    <span class="event-status status-{{ event.status }}">
+                                        {{ event.status|capitalize }}
+                                    </span>
+                                    <span class="event-date">
+                                        <i class="fas fa-calendar"></i>
+                                        {{ event.createdAt|date('d/m/Y') }}
+                                    </span>
+                                </p>
+                            </div>
+                            <div class="event-actions">
+                                <a href="{{ path('app_event_show', {id: event.id}) }}" class="btn btn-sm btn-primary">
+                                    <i class="fas fa-eye"></i>
+                                    <span data-i18n="common.view">Voir</span>
+                                </a>
+                            </div>
+                        </div>
+                    {% endfor %}
+                </div>
+            {% else %}
+                <div class="empty-state">
+                    <i class="fas fa-calendar-times"></i>
+                    <p data-i18n="organisateur.dashboard.no_events">Aucun événement pour le moment</p>
+                    <a href="{{ path('app_event_new') }}" class="btn btn-primary">
+                        <i class="fas fa-plus"></i>
+                        <span data-i18n="organisateur.dashboard.create_event">Créer un événement</span>
+                    </a>
+                </div>
+            {% endif %}
+        </div>
+    </div>
+</div>
+
+<style>
+.dashboard-container {
+    padding: 24px;
+    max-width: 1400px;
+    margin: 0 auto;
+}
+
+.dashboard-header {
+    margin-bottom: 32px;
+}
+
+.dashboard-header h1 {
+    font-size: 2rem;
+    font-weight: 700;
+    color: var(--text-primary);
+    margin-bottom: 8px;
+    display: flex;
+    align-items: center;
+    gap: 12px;
+}
+
+.dashboard-header h1 i {
+    color: var(--accent);
+}
+
+.dashboard-subtitle {
+    color: var(--text-secondary);
+    font-size: 1rem;
+}
+
+.stats-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+    gap: 24px;
+    margin-bottom: 32px;
+}
+
+.stat-card {
+    background: var(--bg-card);
+    border-radius: var(--border-radius-lg);
+    padding: 24px;
+    display: flex;
+    align-items: center;
+    gap: 20px;
+    box-shadow: var(--shadow-md);
+    border: 1px solid var(--border-color);
+    transition: transform 0.2s ease, box-shadow 0.2s ease;
+}
+
+.stat-card:hover {
+    transform: translateY(-2px);
+    box-shadow: var(--shadow-lg);
+}
+
+.stat-icon {
+    width: 60px;
+    height: 60px;
+    border-radius: var(--border-radius-md);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    background: var(--accent-light);
+    color: var(--accent);
+    font-size: 1.5rem;
+}
+
+.stat-icon.published {
+    background: rgba(34, 197, 94, 0.1);
+    color: #22c55e;
+}
+
+.stat-icon.draft {
+    background: rgba(251, 191, 36, 0.1);
+    color: #fbbf24;
+}
+
+.stat-content {
+    flex: 1;
+}
+
+.stat-value {
+    font-size: 2rem;
+    font-weight: 700;
+    color: var(--text-primary);
+    margin: 0 0 4px 0;
+}
+
+.stat-label {
+    font-size: 0.9rem;
+    color: var(--text-secondary);
+    margin: 0;
+}
+
+.content-card {
+    background: var(--bg-card);
+    border-radius: var(--border-radius-lg);
+    box-shadow: var(--shadow-md);
+    border: 1px solid var(--border-color);
+    overflow: hidden;
+}
+
+.card-header {
+    padding: 24px;
+    border-bottom: 1px solid var(--border-color);
+}
+
+.card-header h2 {
+    font-size: 1.25rem;
+    font-weight: 600;
+    color: var(--text-primary);
+    margin: 0;
+    display: flex;
+    align-items: center;
+    gap: 10px;
+}
+
+.card-header h2 i {
+    color: var(--accent);
+}
+
+.card-body {
+    padding: 24px;
+}
+
+.events-list {
+    display: flex;
+    flex-direction: column;
+    gap: 16px;
+}
+
+.event-item {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 16px;
+    background: var(--bg-secondary);
+    border-radius: var(--border-radius-md);
+    border: 1px solid var(--border-color);
+}
+
+.event-info h3 {
+    font-size: 1rem;
+    font-weight: 600;
+    color: var(--text-primary);
+    margin: 0 0 8px 0;
+}
+
+.event-meta {
+    display: flex;
+    gap: 16px;
+    align-items: center;
+    font-size: 0.875rem;
+    color: var(--text-secondary);
+}
+
+.event-status {
+    padding: 4px 12px;
+    border-radius: var(--border-radius-sm);
+    font-size: 0.75rem;
+    font-weight: 600;
+    text-transform: uppercase;
+}
+
+.status-published {
+    background: rgba(34, 197, 94, 0.1);
+    color: #22c55e;
+}
+
+.status-draft {
+    background: rgba(251, 191, 36, 0.1);
+    color: #fbbf24;
+}
+
+.event-date {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+}
+
+.empty-state {
+    text-align: center;
+    padding: 48px 24px;
+}
+
+.empty-state i {
+    font-size: 3rem;
+    color: var(--text-tertiary);
+    margin-bottom: 16px;
+}
+
+.empty-state p {
+    color: var(--text-secondary);
+    margin-bottom: 24px;
+}
+
+.btn {
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+    padding: 10px 20px;
+    border-radius: var(--border-radius-md);
+    font-weight: 500;
+    text-decoration: none;
+    transition: all 0.2s ease;
+    border: none;
+    cursor: pointer;
+}
+
+.btn-primary {
+    background: var(--accent);
+    color: white;
+}
+
+.btn-primary:hover {
+    background: var(--accent-dark);
+    transform: translateY(-1px);
+}
+
+.btn-sm {
+    padding: 6px 12px;
+    font-size: 0.875rem;
+}
+</style>
+{% endblock %}
+
