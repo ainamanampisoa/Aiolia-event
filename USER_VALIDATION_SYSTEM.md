@@ -146,36 +146,92 @@ php bin/console debug:router | grep admin
 
 **Important** : Pour vous connecter, utilisez l'**email** comme identifiant et le mot de passe correspondant.
 
+**Résumé des comptes disponibles** :
+- **2 administrateurs** (tous actifs)
+- **26 organisateurs** (23 validés, 3 en attente de validation)
+- **78 utilisateurs** (tous actifs)
+- **Total : 106 comptes**
+
 #### Administrateurs (2 comptes disponibles)
 | Email | Mot de passe | Statut | ID |
 |-------|--------------|--------|-----|
-| admin001@yopmail.com | Admin#Test123 | Actif | 1 |
-| admin002@yopmail.com | Admin#Test123 | Actif | 2 |
+| admin1@yopmail.com | azerty | Actif | 1 |
+| admin2@yopmail.com | azerty | Actif | 2 |
 
-#### Organisateurs (50 comptes validés disponibles sur 66 créés)
+#### Organisateurs (23 comptes validés disponibles sur 26 créés)
 | Email | Mot de passe | Statut | ID | Notes |
 |-------|--------------|--------|-----|-------|
 | organisateur001@yopmail.com | Org#Test123 | Validé | 3 | Actif - Juin 2025 |
-| organisateur025@yopmail.com | Org#Test123 | Validé | 27 | Actif - Juin 2025 |
-| organisateur026@yopmail.com | Org#Test123 | Validé | 28 | Actif - Juillet 2025 |
-| organisateur035@yopmail.com | Org#Test123 | Validé | 37 | Actif - Juillet 2025 |
-| ... | ... | ... | ... | ... (42 autres organisateurs) |
+| organisateur010@yopmail.com | Org#Test123 | Validé | 12 | Actif - Juin 2025 |
+| organisateur011@yopmail.com | Org#Test123 | Validé | 13 | Actif - Juillet 2025 |
+| organisateur012@yopmail.com | Org#Test123 | Validé | 14 | Actif - Juillet 2025 |
+| organisateur023@yopmail.com | Org#Test123 | Validé | 23 | Actif - Octobre 2025 |
+| organisateur024@yopmail.com | Org#Test123 | Validé | 24 | Actif - Octobre 2025 |
+| organisateur026@yopmail.com | Org#Test123 | Validé | 26 | Actif - Novembre 2025 |
+
 
 **Notes importantes** :
-- **Total : 50 organisateurs validés** (IDs 3-48, 52-55, 59-61) peuvent se connecter
-- **13 organisateurs non validés** (IDs 49-51, 56-58, 62-68) ne peuvent pas se connecter
+- **Total : 23 organisateurs validés** (IDs 3-24, 26) peuvent se connecter
+- **3 organisateurs non validés** (IDs 25, 27-28) ne peuvent pas se connecter
 - **Répartition par mois de création** :
-  - Juin 2025 : 25 organisateurs (IDs 3-27) - Tous validés
-  - Juillet 2025 : +10 organisateurs (IDs 28-37) - Tous validés
-  - Août 2025 : +5 organisateurs (IDs 38-42) - Tous validés
-  - Septembre 2025 : +6 organisateurs (IDs 43-48) - Tous validés
-  - Octobre 2025 : +10 organisateurs (IDs 49-58) - 4 validés (52-55), 6 non validés (49-51, 56-58)
-  - Novembre 2025 : +10 organisateurs (IDs 59-68) - 3 validés (59-61), 7 non validés (62-68)
+  - Juin 2025 : 10 organisateurs (IDs 3-12) - Tous validés
+  - Juillet 2025 : +2 nouveaux organisateurs (IDs 13-14) - Tous validés
+  - Août 2025 : +4 nouveaux organisateurs (IDs 15-18) - Tous validés
+  - Septembre 2025 : +4 nouveaux organisateurs (IDs 19-22) - Tous validés
+  - Octobre 2025 : +3 nouveaux organisateurs (IDs 23-25) - 2 validés (23-24), 1 non validé (25)
+  - Novembre 2025 : +3 nouveaux organisateurs (IDs 26-28) - 1 validé (26), 2 non validés (27-28)
 - **Pauses d'abonnement** (selon les critères) :
-  - Août 2025 : 3 organisateurs en pause qui reprennent en octobre (mensuel)
-  - Septembre 2025 : 2 organisateurs en pause qui reprennent en novembre (trimestriel avec décalage prépayé)
-  - Octobre 2025 : 4 organisateurs en pause qui reprennent en décembre (mensuel)
+  - Août 2025 : 2 organisateurs en pause (payant mensuel) qui reprennent en octobre
+  - Octobre 2025 : 4 organisateurs en pause (2 payant mensuel, 2 payant trimestre) qui reprennent en décembre
 - Tous les organisateurs validés en pause **peuvent se connecter**, mais avec des accès limités (voir section ci-dessous)
+
+#### Détails des abonnements par mois
+
+**Juin 2025** :
+- 10 organisateurs actifs, 0 en pause, 0 non validés
+- Abonnements mensuels : 5 Basic, 2 Pro, 3 Entreprise
+- 10 organisateurs paient mensuellement
+- Offre populaire : Basic Mensuel
+
+**Juillet 2025** :
+- 12 organisateurs actifs, 0 en pause, 0 non validés
+- Abonnements mensuels : 4 Basic, 6 Pro, 2 Entreprise
+- 12 organisateurs paient mensuellement
+- Offre populaire : Pro Mensuel
+
+**Août 2025** :
+- 16 organisateurs actifs, 0 en pause, 0 non validés
+- Abonnements mensuels : 4 Basic, 5 Pro, 7 Entreprise
+- 16 organisateurs paient mensuellement
+- Offre populaire : Entreprise Mensuel
+- 2 organisateurs en pause (payant mensuel) qui reprennent en octobre
+
+**Septembre 2025** :
+- 18 organisateurs actifs, 2 en pause, 0 non validés
+- Abonnements mensuels : 2 Basic, 3 Pro, 4 Entreprise
+- Abonnements trimestriels : 3 Basic, 4 Pro, 2 Entreprise
+- 9 organisateurs paient mensuellement, 9 organisateurs paient trimestriellement
+- Offre populaire : Pro Trimestriel
+
+**Octobre 2025** :
+- 22 organisateurs actifs, 0 en pause, 1 non validé
+- Abonnements mensuels : 3 Basic, 3 Pro, 2 Entreprise
+- Abonnements trimestriels : 1 Basic, 2 Pro, 4 Entreprise
+- 6 organisateurs paient mensuellement, 7 organisateurs paient trimestriellement, 9 prépayés
+- Offre populaire : Entreprise Trimestriel
+- 4 organisateurs en pause (2 payant mensuel, 2 payant trimestre) qui reprennent en décembre
+
+**Novembre 2025** :
+- 19 organisateurs actifs, 4 en pause, 3 non validés
+- Abonnements mensuels : 0 Basic, 2 Pro, 1 Entreprise
+- Abonnements trimestriels : 1 Basic, 1 Pro, 0 Entreprise
+- 3 organisateurs paient mensuellement, 2 organisateurs paient trimestriellement, 14 prépayés
+- Offre populaire : Pro Mensuel
+
+**Décembre 2025** :
+- 23 organisateurs actifs, 0 en pause, 3 non validés
+- 0 organisateurs paient mensuellement, 0 organisateurs paient trimestriellement, 7 prépayés
+- Offre populaire : Entreprise Trimestriel
 
 #### Statuts d'abonnement des organisateurs
 
