@@ -1151,21 +1151,18 @@ class ProfileController extends AbstractController
                 o.promotion_code,
                 o.created_at,
                 o.updated_at,
+                o.notes,
                 COUNT(DISTINCT oi.id) as items_count,
                 SUM(oi.quantity) as total_tickets,
                 STRING_AGG(DISTINCT e.title, ', ') as event_titles,
-                STRING_AGG(DISTINCT e.starts_at::text, ', ') as event_dates,
-                MAX(tp.provider) as payment_method,
-                MAX(tp.status) as payment_status
+                STRING_AGG(DISTINCT e.starts_at::text, ', ') as event_dates
             FROM aiolia.orders o
             LEFT JOIN aiolia.order_items oi ON oi.order_id = o.id
             LEFT JOIN aiolia.ticket_types tt ON tt.id = oi.ticket_type_id
             LEFT JOIN aiolia.events e ON e.id = tt.event_id
-            LEFT JOIN aiolia.ticket_invoices ti ON ti.order_id = o.id
-            LEFT JOIN aiolia.ticket_payments tp ON tp.invoice_id = ti.id
             WHERE o.user_id = :user_id
             GROUP BY o.id, o.status, o.total_amount, o.discount_amount, o.currency, 
-                     o.promotion_code, o.created_at, o.updated_at
+                     o.promotion_code, o.created_at, o.updated_at, o.notes
             ORDER BY o.created_at DESC
         SQL;
 
@@ -1183,11 +1180,23 @@ class ProfileController extends AbstractController
             ];
 
             $paymentMethodLabels = [
+                'mvola' => 'M-Vola',
+                'orange-money' => 'Orange Money',
+                'airtel-money' => 'Airtel Money',
                 'orange' => 'Orange Money',
                 'airtel' => 'Airtel Money',
                 'telma' => 'Telma',
                 'bank_transfer' => 'Virement bancaire',
             ];
+
+            // Extraire le payment_method depuis le champ notes (JSON)
+            $paymentMethod = null;
+            if (!empty($row['notes'])) {
+                $notes = json_decode($row['notes'], true);
+                if (is_array($notes) && isset($notes['payment_method'])) {
+                    $paymentMethod = $notes['payment_method'];
+                }
+            }
 
             $eventDates = !empty($row['event_dates']) ? explode(', ', $row['event_dates']) : [];
             $firstEventDate = !empty($eventDates) ? new \DateTimeImmutable($eventDates[0]) : null;
@@ -1202,7 +1211,7 @@ class ProfileController extends AbstractController
                 'status_key' => $status,
                 'amount' => number_format((float) $row['total_amount'], 0, ',', ' ') . ' MGA',
                 'amount_raw' => (float) $row['total_amount'],
-                'method' => $paymentMethodLabels[$row['payment_method'] ?? ''] ?? 'Non spécifié',
+                'method' => $paymentMethod ? ($paymentMethodLabels[$paymentMethod] ?? ucfirst(str_replace('-', ' ', $paymentMethod))) : 'Non spécifié',
                 'tickets' => (int) ($row['total_tickets'] ?? 0),
                 'items_count' => (int) ($row['items_count'] ?? 0),
                 'created_at' => new \DateTimeImmutable($row['created_at']),
