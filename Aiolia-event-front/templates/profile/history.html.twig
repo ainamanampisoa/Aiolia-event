@@ -24,6 +24,26 @@
         average_cart: '0 MGA'
     }) %}
 
+    {# Script inline pour restaurer la position AVANT le rendu #}
+    <script>
+        (function() {
+            const savedPosition = sessionStorage.getItem('historyTableScrollPosition');
+            if (savedPosition) {
+                // Empêcher le scroll automatique du navigateur
+                if ('scrollRestoration' in history) {
+                    history.scrollRestoration = 'manual';
+                }
+                // Restaurer immédiatement
+                window.addEventListener('DOMContentLoaded', function() {
+                    const position = parseInt(savedPosition, 10);
+                    if (position > 0) {
+                        window.scrollTo(0, position);
+                    }
+                });
+            }
+        })();
+    </script>
+
     <main class="profile-history-wrapper">
         <div class="container">
             <header class="profile-history-header wow fadeIn" data-wow-delay="100ms">
@@ -86,7 +106,7 @@
                 </div>
             </section>
 
-            <section class="profile-history-table wow fadeInUp" data-wow-delay="200ms">
+            <section id="history-table" class="profile-history-table wow fadeInUp" data-wow-delay="200ms">
                 <div class="history-filters-section">
                     <form method="get" action="{{ path('profile_history') }}" class="history-search-form" id="history-filter-form">
                         <div class="filters-container">
@@ -204,7 +224,7 @@
                 </div>
                 
                 {# Pagination style panier #}
-                {% if totalPages is defined and totalPages > 1 %}
+                {% if totalPages is defined and totalResults is defined and totalResults > perPage %}
                 <div class="pagination-container">
                     <div class="pagination">
                         {% if currentPage > 1 %}
@@ -260,15 +280,19 @@
         }
 
         // Gestion de la recherche et soumission automatique des filtres
-        document.addEventListener('DOMContentLoaded', function() {
+        (function() {
             const form = document.getElementById('history-filter-form');
             if (!form) return;
 
+            // Empêcher le scroll automatique du navigateur
+            if ('scrollRestoration' in history) {
+                history.scrollRestoration = 'manual';
+            }
+            
             // Sauvegarder la position de scroll avant la soumission
             function saveScrollPosition() {
-                const tableSection = document.querySelector('.profile-history-table');
-                if (tableSection) {
-                    const scrollPosition = tableSection.getBoundingClientRect().top + window.pageYOffset;
+                const scrollPosition = window.pageYOffset || document.documentElement.scrollTop || document.body.scrollTop;
+                if (scrollPosition > 0) {
                     sessionStorage.setItem('historyTableScrollPosition', scrollPosition.toString());
                 }
             }
@@ -277,21 +301,33 @@
             function restoreScrollPosition() {
                 const savedPosition = sessionStorage.getItem('historyTableScrollPosition');
                 if (savedPosition) {
-                    const tableSection = document.querySelector('.profile-history-table');
-                    if (tableSection) {
+                    const position = parseInt(savedPosition, 10);
+                    if (position > 0) {
+                        // Restaurer immédiatement
+                        window.scrollTo(0, position);
+                        
+                        // Vérifier et ajuster si nécessaire
                         setTimeout(function() {
-                            const position = parseInt(savedPosition, 10);
-                            window.scrollTo({
-                                top: position - 100, // Offset pour ne pas être collé en haut
-                                behavior: 'smooth'
-                            });
+                            const currentScroll = window.pageYOffset || document.documentElement.scrollTop;
+                            if (Math.abs(currentScroll - position) > 10) {
+                                window.scrollTo(0, position);
+                            }
                             sessionStorage.removeItem('historyTableScrollPosition');
-                        }, 100);
+                        }, 10);
+                    } else {
+                        sessionStorage.removeItem('historyTableScrollPosition');
                     }
                 }
             }
 
-            // Restaurer la position au chargement de la page
+            // Restaurer la position dès que possible
+            if (document.readyState === 'loading') {
+                document.addEventListener('DOMContentLoaded', restoreScrollPosition);
+            } else {
+                restoreScrollPosition();
+            }
+            
+            // Aussi essayer immédiatement
             restoreScrollPosition();
 
             // Recherche avec délai (debounce)
@@ -329,7 +365,7 @@
 
             // Initialisation du graphique
             initializeSpendingChart();
-        });
+        })();
 
         // Graphique d'évolution des dépenses
         let spendingChart = null;

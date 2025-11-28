@@ -89,7 +89,7 @@ class ProfileController extends AbstractController
 
         // Paramètres de pagination
         $page = max(1, (int) $request->query->get('page', 1));
-        $perPage = 20; // Nombre d'éléments par page
+        $perPage = 20; // Nombre d'éléments par page (2 pour tester la pagination)
         $totalResults = count($orders);
         $totalPages = max(1, (int) ceil($totalResults / $perPage));
         $startResult = $totalResults > 0 ? (($page - 1) * $perPage) + 1 : 0;
