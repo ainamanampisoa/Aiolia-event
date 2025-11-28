@@ -1252,40 +1252,24 @@
                         currency: currency,
                     };
                     
-                    // Récupérer les items existants
-                    const existingItems = CartStorage.getItems();
-                    
-                    // Si l'item existe déjà, ajouter les quantités
-                    if (existingItems[cartKey]) {
-                        existingItems[cartKey].adultQuantity += cartItem.adultQuantity;
-                        existingItems[cartKey].childQuantity += cartItem.childQuantity;
-                        // Mettre à jour les prix si nécessaire
-                        if (cartItem.adultPrice) {
-                            existingItems[cartKey].adultPrice = cartItem.adultPrice;
-                        }
-                        if (cartItem.childPrice) {
-                            existingItems[cartKey].childPrice = cartItem.childPrice;
-                        }
-                    } else {
-                        // Nouvel item
-                        existingItems[cartKey] = cartItem;
-                    }
-                    
-                    // Sauvegarder dans LocalStorage
-                    CartStorage.saveItems(existingItems);
-                    
-                    // Synchroniser avec le serveur en arrière-plan
-                    CartStorage.syncWithServer(function(data) {
-                        if (data.status === 'success') {
-                            console.log('Panier synchronisé avec le serveur');
-                        }
-                    });
+                    // NE PAS sauvegarder dans LocalStorage avant la soumission du formulaire
+                    // Le serveur gérera l'addition des quantités correctement
+                    // On laisse le serveur gérer cela pour éviter le double ajout
+                    // La synchronisation se fera après la redirection vers le panier
                 }
                 
                 // Gestion du bouton OK
                 if (addToCartBtn) {
+                    let isSubmitting = false; // Protection contre la double soumission
+                    
                     addToCartBtn.addEventListener('click', function(e) {
                         e.preventDefault();
+                        
+                        // Empêcher la double soumission
+                        if (isSubmitting) {
+                            console.log('Soumission déjà en cours, ignore...');
+                            return;
+                        }
                         
                         if (!selectedTicketGroup) {
                             alert('Veuillez sélectionner un type de billet.');
@@ -1326,6 +1310,12 @@
                                 return;
                             }
                             
+                            // Empêcher la double soumission
+                            if (isSubmitting) {
+                                return;
+                            }
+                            isSubmitting = true;
+                            
                             // Désactiver le bouton pendant l'envoi
                             addToCartBtn.disabled = true;
                             addToCartBtn.textContent = 'Ajout en cours...';
@@ -1359,6 +1349,7 @@
                                 alert('Erreur: impossible de déterminer le type de billet.');
                                 addToCartBtn.disabled = false;
                                 addToCartBtn.textContent = 'OK';
+                                isSubmitting = false;
                                 return;
                             }
                             
@@ -1377,8 +1368,8 @@
                                 form.appendChild(input);
                             }
                             
-                            // Sauvegarder dans LocalStorage avant de soumettre
-                            saveToLocalStorage('{{ event.id }}', ticketTypeId, null, null, adultQty, childQty, fields);
+                            // Ne pas sauvegarder dans LocalStorage avant la soumission
+                            // Le serveur gérera l'addition des quantités correctement
                             
                             document.body.appendChild(form);
                             form.submit();
@@ -1433,6 +1424,12 @@
                                 return;
                             }
                             
+                            // Empêcher la double soumission
+                            if (isSubmitting) {
+                                return;
+                            }
+                            isSubmitting = true;
+                            
                             // Désactiver le bouton pendant l'envoi
                             addToCartBtn.disabled = true;
                             addToCartBtn.textContent = 'Ajout en cours...';
@@ -1457,8 +1454,8 @@
                                 form.appendChild(input);
                             }
                             
-                            // Sauvegarder dans LocalStorage avant de soumettre
-                            saveToLocalStorage('{{ event.id }}', fields.ticket_type_id, null, null, adultQty, childQty, fields);
+                            // Ne pas sauvegarder dans LocalStorage avant la soumission
+                            // Le serveur gérera l'addition des quantités correctement
                             
                             document.body.appendChild(form);
                             form.submit();
@@ -1534,6 +1531,12 @@
                             }
                         }
                         
+                        // Empêcher la double soumission
+                        if (isSubmitting) {
+                            return;
+                        }
+                        isSubmitting = true;
+                        
                         // Désactiver le bouton pendant l'envoi
                         addToCartBtn.disabled = true;
                         addToCartBtn.textContent = 'Ajout en cours...';
@@ -1597,6 +1600,7 @@
                             alert('Impossible de déterminer le type de billet. Veuillez réessayer.');
                             addToCartBtn.disabled = false;
                             addToCartBtn.textContent = 'OK';
+                            isSubmitting = false;
                             return;
                         }
                         
@@ -1624,8 +1628,8 @@
                                 form.appendChild(input);
                             }
                             
-                            // Sauvegarder dans LocalStorage avant de soumettre
-                            saveToLocalStorage('{{ event.id }}', null, adultTicketId, childTicketId, adultQty, childQty, fields);
+                            // Ne pas sauvegarder dans LocalStorage avant la soumission
+                            // Le serveur gérera l'addition des quantités correctement
                             
                             document.body.appendChild(form);
                             form.submit();
@@ -1655,6 +1659,7 @@
                             alert('Erreur: impossible de déterminer le type de billet.');
                             addToCartBtn.disabled = false;
                             addToCartBtn.textContent = 'OK';
+                            isSubmitting = false;
                             return;
                         }
                         
@@ -1666,8 +1671,8 @@
                             form.appendChild(input);
                         }
                         
-                        // Sauvegarder dans LocalStorage avant de soumettre
-                        saveToLocalStorage('{{ event.id }}', fields.ticket_type_id, fields.adult_ticket_type_id || null, fields.child_ticket_type_id || null, fields.adult_quantity || 0, fields.child_quantity || 0, fields);
+                        // Ne pas sauvegarder dans LocalStorage avant la soumission
+                        // Le serveur gérera l'addition des quantités correctement
                         
                         // Ajouter le formulaire au DOM et le soumettre
                         document.body.appendChild(form);
