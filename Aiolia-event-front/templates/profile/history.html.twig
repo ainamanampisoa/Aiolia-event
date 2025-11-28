@@ -20,8 +20,7 @@
         confirmed_orders: 0,
         total_tickets: 0,
         vip_tickets: 0,
-        refunded_count: 0,
-        refunded_amount: '0 MGA',
+        upcoming_events: 0,
         average_cart: '0 MGA'
     }) %}
 
@@ -58,9 +57,15 @@
                     </small>
                 </div>
                 <div class="summary-card">
-                    <span class="summary-label">Remboursements</span>
-                    <strong>{{ stats.refunded_count }} transaction(s)</strong>
-                    <small>Total remboursé : {{ stats.refunded_amount }}</small>
+                    <span class="summary-label">Événements à venir</span>
+                    <strong>{{ stats.upcoming_events }} événement(s)</strong>
+                    <small>
+                        {% if stats.upcoming_events > 0 %}
+                            Prochain événement bientôt
+                        {% else %}
+                            Aucun événement à venir
+                        {% endif %}
+                    </small>
                 </div>
             </section>
 
@@ -174,7 +179,7 @@
                         <tbody>
                             {% if orders|length > 0 %}
                                 {% for order in orders %}
-                                    <tr class="history-row {% if order.status_key == 'confirmed' %}is-confirmed{% elseif order.status_key == 'refunded' %}is-refunded{% else %}is-cancelled{% endif %}">
+                                    <tr class="history-row {% if order.status_key == 'paid' %}is-confirmed{% elseif order.status_key == 'cancelled' %}is-cancelled{% elseif order.status_key == 'failed' %}is-failed{% else %}is-pending{% endif %}">
                                         <td>
                                             <div class="order-code">{{ order.code }}</div>
                                             <span class="order-status">{{ order.status }}</span>

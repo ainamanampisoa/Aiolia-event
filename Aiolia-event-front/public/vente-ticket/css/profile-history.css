@@ -196,8 +196,12 @@
     color: #2ecc71;
 }
 
-.history-row.is-refunded .order-status {
-    color: #f39c12;
+.history-row.is-failed .order-status {
+    color: #e67e22;
+}
+
+.history-row.is-pending .order-status {
+    color: #3498db;
 }
 
 .history-row.is-cancelled .order-status {

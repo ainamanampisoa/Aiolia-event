@@ -1223,10 +1223,8 @@ class ProfileController extends AbstractController
             $status = $row['status'];
             $statusLabels = [
                 'pending' => 'En attente',
-                'awaiting_payment' => 'En attente de paiement',
                 'paid' => 'Payée',
                 'cancelled' => 'Annulée',
-                'refunded' => 'Remboursée',
                 'failed' => 'Échouée',
             ];
 
@@ -1274,7 +1272,7 @@ class ProfileController extends AbstractController
      * Récupère les statuts disponibles depuis la base de données pour l'utilisateur.
      * Récupère tous les statuts possibles depuis l'ENUM order_status_enum et compte les commandes pour chaque statut.
      * Utilise les statuts définis dans order_status_enum du schéma :
-     * 'pending', 'awaiting_payment', 'paid', 'cancelled', 'refunded', 'failed'
+     * 'pending', 'paid', 'cancelled', 'failed'
      */
     private function fetchAvailableStatuses(int $userId): array
     {
@@ -1303,13 +1301,11 @@ class ProfileController extends AbstractController
         }
 
         // Utiliser les statuts définis dans order_status_enum du schéma (schema.sql ligne 40)
-        // CREATE TYPE order_status_enum AS ENUM ('pending', 'awaiting_payment', 'paid', 'cancelled', 'refunded', 'failed');
+        // CREATE TYPE order_status_enum AS ENUM ('pending', 'paid', 'cancelled', 'failed');
         $statusLabels = [
             'pending' => 'En attente',
-            'awaiting_payment' => 'En attente de paiement',
             'paid' => 'Payée',
             'cancelled' => 'Annulée',
-            'refunded' => 'Remboursée',
             'failed' => 'Échouée',
         ];
 
@@ -1335,10 +1331,8 @@ class ProfileController extends AbstractController
     private function calculatePurchaseStats(int $userId, array $orders): array
     {
         $confirmedOrders = array_filter($orders, fn($o) => $o['status_key'] === 'paid');
-        $refundedOrders = array_filter($orders, fn($o) => $o['status_key'] === 'refunded');
         
         $totalSpent = array_sum(array_column($confirmedOrders, 'amount_raw'));
-        $totalRefunded = array_sum(array_column($refundedOrders, 'amount_raw'));
         $totalTickets = array_sum(array_column($confirmedOrders, 'tickets'));
         
         // Compter les billets VIP (approximation basée sur le montant)
@@ -1349,18 +1343,41 @@ class ProfileController extends AbstractController
             }
         }
 
+        // Compter les événements à venir pour lesquels l'utilisateur a des billets payés
+        $upcomingEventsCount = $this->countUpcomingEvents($userId);
+
         return [
             'total_spent' => number_format($totalSpent, 0, ',', ' ') . ' MGA',
             'total_spent_raw' => $totalSpent,
             'confirmed_orders' => count($confirmedOrders),
             'total_tickets' => $totalTickets,
             'vip_tickets' => $vipTickets,
-            'refunded_count' => count($refundedOrders),
-            'refunded_amount' => number_format($totalRefunded, 0, ',', ' ') . ' MGA',
+            'upcoming_events' => $upcomingEventsCount,
             'average_cart' => count($confirmedOrders) > 0 
                 ? number_format($totalSpent / count($confirmedOrders), 0, ',', ' ') . ' MGA'
                 : '0 MGA',
         ];
+    }
+
+    /**
+     * Compte le nombre d'événements à venir pour lesquels l'utilisateur a des billets payés.
+     */
+    private function countUpcomingEvents(int $userId): int
+    {
+        $sql = <<<SQL
+            SELECT COUNT(DISTINCT e.id) as upcoming_count
+            FROM aiolia.orders o
+            INNER JOIN aiolia.order_items oi ON oi.order_id = o.id
+            INNER JOIN aiolia.ticket_types tt ON tt.id = oi.ticket_type_id
+            INNER JOIN aiolia.events e ON e.id = tt.event_id
+            WHERE o.user_id = :user_id
+            AND o.status = 'paid'
+            AND e.starts_at > NOW()
+        SQL;
+
+        $result = $this->connection->executeQuery($sql, ['user_id' => $userId])->fetchAssociative();
+        
+        return (int) ($result['upcoming_count'] ?? 0);
     }
 
     /**
@@ -1480,9 +1497,7 @@ class ProfileController extends AbstractController
         // Récupérer le total des dépenses de l'année en cours
         $sql = <<<SQL
             SELECT 
-                SUM(CASE WHEN o.status = 'paid' THEN o.total_amount ELSE 0 END) as total_spent,
-                SUM(CASE WHEN o.status = 'refunded' THEN o.total_amount ELSE 0 END) as total_refunded,
-                COUNT(CASE WHEN o.status = 'refunded' THEN 1 END) as refund_count
+                SUM(CASE WHEN o.status = 'paid' THEN o.total_amount ELSE 0 END) as total_spent
             FROM aiolia.orders o
             WHERE o.user_id = :user_id
               AND EXTRACT(YEAR FROM o.created_at) = EXTRACT(YEAR FROM NOW())
@@ -1502,8 +1517,6 @@ class ProfileController extends AbstractController
 
         return [
             'total_spent' => number_format((float) ($row['total_spent'] ?? 0), 0, ',', ' ') . ' MGA',
-            'total_refunded' => number_format((float) ($row['total_refunded'] ?? 0), 0, ',', ' ') . ' MGA',
-            'refund_count' => (int) ($row['refund_count'] ?? 0),
             'wallet_balance' => number_format((float) ($walletRow['balance'] ?? 0), 0, ',', ' ') . ' MGA',
             'wallet_points' => (int) ($walletRow['points_balance'] ?? 0),
         ];

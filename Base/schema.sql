@@ -37,7 +37,7 @@ CREATE TYPE event_status_enum            AS ENUM ('draft', 'published', 'cancell
 CREATE TYPE event_visibility_enum        AS ENUM ('public', 'private', 'unlisted');
 CREATE TYPE ticket_status_enum           AS ENUM ('valid', 'used', 'cancelled', 'refunded', 'transferred');
 CREATE TYPE ticket_transfer_status_enum  AS ENUM ('pending', 'accepted', 'declined', 'cancelled');
-CREATE TYPE order_status_enum            AS ENUM ('pending', 'awaiting_payment', 'paid', 'cancelled', 'refunded', 'failed');
+CREATE TYPE order_status_enum            AS ENUM ('pending', 'paid', 'cancelled', 'failed');
 CREATE TYPE payment_status_enum          AS ENUM ('initiated', 'processing', 'paid', 'failed', 'refunded');
 CREATE TYPE notification_channel_enum    AS ENUM ('email', 'sms', 'web_push');
 CREATE TYPE notification_status_enum     AS ENUM ('pending', 'queued', 'sent', 'failed', 'read');
