@@ -67,15 +67,40 @@
 
             <section class="profile-history-table wow fadeInUp" data-wow-delay="200ms">
                         <div class="history-table-head">
-                            <div class="history-search">
-                                <i class="fas fa-search"></i>
-                                <input type="search" placeholder="{{ 'profile_history.search_placeholder'|trans }}">
-                            </div>
+                            <form method="get" action="{{ path('profile_history') }}" class="history-search-form">
+                                <div class="history-search">
+                                    <i class="fas fa-search"></i>
+                                    <input type="search" name="search" value="{{ searchQuery|default('') }}" placeholder="{{ 'profile_history.search_placeholder'|trans|default('Rechercher par événement, numéro de commande...') }}">
+                                    {% if searchQuery %}
+                                        <a href="{{ path('profile_history', {status: currentStatusFilter|default('all')}) }}" class="clear-search" title="Effacer la recherche">
+                                            <i class="fas fa-times"></i>
+                                        </a>
+                                    {% endif %}
+                                </div>
+                                <input type="hidden" name="status" id="status-filter-input" value="{{ currentStatusFilter|default('all') }}">
+                            </form>
                             <div class="history-filters">
-                                <button class="tag active">{{ 'profile_history.tag_all'|trans }}</button>
-                                <button class="tag">{{ 'profile_history.tag_confirmed'|trans }}</button>
-                                <button class="tag">{{ 'profile_history.tag_refunded'|trans }}</button>
-                                <button class="tag">{{ 'profile_history.tag_cancelled'|trans }}</button>
+                                <button class="tag {% if currentStatusFilter|default('all') == 'all' %}active{% endif %}" data-status="all" onclick="filterByStatus('all')">
+                                    {{ 'profile_history.tag_all'|trans|default('Tous') }}
+                                </button>
+                                {% if availableStatuses is defined and availableStatuses|length > 0 %}
+                                    {% for status in availableStatuses %}
+                                        <button class="tag {% if currentStatusFilter|default('all') == status.key %}active{% endif %}" data-status="{{ status.key }}" onclick="filterByStatus('{{ status.key }}')">
+                                            {{ status.label }} ({{ status.count }})
+                                        </button>
+                                    {% endfor %}
+                                {% else %}
+                                    {# Fallback si aucun statut n'est disponible #}
+                                    <button class="tag {% if currentStatusFilter|default('all') == 'paid' %}active{% endif %}" data-status="paid" onclick="filterByStatus('paid')">
+                                        Payée
+                                    </button>
+                                    <button class="tag {% if currentStatusFilter|default('all') == 'refunded' %}active{% endif %}" data-status="refunded" onclick="filterByStatus('refunded')">
+                                        Remboursée
+                                    </button>
+                                    <button class="tag {% if currentStatusFilter|default('all') == 'cancelled' %}active{% endif %}" data-status="cancelled" onclick="filterByStatus('cancelled')">
+                                        Annulée
+                                    </button>
+                                {% endif %}
                             </div>
                         </div>
                 <div class="history-table-wrapper">
@@ -131,4 +156,56 @@
             </section>
         </div>
     </main>
+{% endblock %}
+
+{% block javascripts %}
+    <script>
+        // Fonction pour filtrer par statut
+        function filterByStatus(status) {
+            const form = document.querySelector('.history-search-form');
+            if (!form) return;
+            
+            const statusInput = document.getElementById('status-filter-input');
+            if (statusInput) {
+                statusInput.value = status;
+            }
+            
+            // Mettre à jour les boutons actifs
+            document.querySelectorAll('.history-filters .tag').forEach(btn => {
+                btn.classList.remove('active');
+                if (btn.dataset.status === status) {
+                    btn.classList.add('active');
+                }
+            });
+            
+            // Soumettre le formulaire
+            form.submit();
+        }
+
+        // Gestion de la recherche
+        document.addEventListener('DOMContentLoaded', function() {
+            const searchInput = document.querySelector('.history-search input[type="search"]');
+            const form = document.querySelector('.history-search-form');
+            let searchTimeout;
+
+            if (searchInput && form) {
+                // Recherche avec délai (debounce)
+                searchInput.addEventListener('input', function() {
+                    clearTimeout(searchTimeout);
+                    searchTimeout = setTimeout(function() {
+                        form.submit();
+                    }, 500); // Attendre 500ms après la dernière frappe
+                });
+
+                // Recherche immédiate sur Enter
+                searchInput.addEventListener('keydown', function(e) {
+                    if (e.key === 'Enter') {
+                        e.preventDefault();
+                        clearTimeout(searchTimeout);
+                        form.submit();
+                    }
+                });
+            }
+        });
+    </script>
 {% endblock %}

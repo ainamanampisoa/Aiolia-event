@@ -70,15 +70,28 @@ class ProfileController extends AbstractController
 
         $userId = (int) $sessionUser['id'];
         
-        // Récupérer les commandes de l'utilisateur
-        $orders = $this->fetchUserOrders($userId);
+        // Récupérer les paramètres de recherche et de filtre
+        $searchQuery = $request->query->get('search', '');
+        $statusFilter = $request->query->get('status', 'all');
         
-        // Calculer les statistiques
-        $stats = $this->calculatePurchaseStats($userId, $orders);
+        // Récupérer les commandes de l'utilisateur avec filtres (pour l'affichage)
+        $orders = $this->fetchUserOrders($userId, $searchQuery, $statusFilter);
+        
+        // Récupérer toutes les commandes pour les statistiques (sans filtres)
+        $allOrders = $this->fetchUserOrders($userId, '', 'all');
+        
+        // Récupérer les statuts disponibles depuis la base de données
+        $availableStatuses = $this->fetchAvailableStatuses($userId);
+        
+        // Calculer les statistiques avec toutes les commandes
+        $stats = $this->calculatePurchaseStats($userId, $allOrders);
 
         return $this->render('profile/history.html.twig', [
             'orders' => $orders,
             'stats' => $stats,
+            'availableStatuses' => $availableStatuses,
+            'currentStatusFilter' => $statusFilter,
+            'searchQuery' => $searchQuery,
         ]);
     }
 
@@ -1139,7 +1152,7 @@ class ProfileController extends AbstractController
     /**
      * Récupère les commandes de l'utilisateur avec leurs détails.
      */
-    private function fetchUserOrders(int $userId): array
+    private function fetchUserOrders(int $userId, string $searchQuery = '', string $statusFilter = 'all'): array
     {
         $sql = <<<SQL
             SELECT 
@@ -1161,12 +1174,33 @@ class ProfileController extends AbstractController
             LEFT JOIN aiolia.ticket_types tt ON tt.id = oi.ticket_type_id
             LEFT JOIN aiolia.events e ON e.id = tt.event_id
             WHERE o.user_id = :user_id
+        SQL;
+
+        $params = ['user_id' => $userId];
+
+        // Appliquer le filtre de statut
+        if ($statusFilter !== 'all') {
+            $sql .= ' AND o.status = :status';
+            $params['status'] = $statusFilter;
+        }
+
+        // Appliquer la recherche
+        if (!empty($searchQuery)) {
+            $sql .= ' AND (
+                e.title ILIKE :search 
+                OR CAST(o.id AS TEXT) ILIKE :search
+                OR o.notes::text ILIKE :search
+            )';
+            $params['search'] = '%' . $searchQuery . '%';
+        }
+
+        $sql .= <<<SQL
             GROUP BY o.id, o.status, o.total_amount, o.discount_amount, o.currency, 
                      o.promotion_code, o.created_at, o.updated_at, o.notes
             ORDER BY o.created_at DESC
         SQL;
 
-        $rows = $this->connection->executeQuery($sql, ['user_id' => $userId])->fetchAllAssociative();
+        $rows = $this->connection->executeQuery($sql, $params)->fetchAllAssociative();
 
         return array_map(function (array $row): array {
             $status = $row['status'];
@@ -1217,6 +1251,43 @@ class ProfileController extends AbstractController
                 'created_at' => new \DateTimeImmutable($row['created_at']),
             ];
         }, $rows);
+    }
+
+    /**
+     * Récupère les statuts disponibles depuis la base de données pour l'utilisateur.
+     */
+    private function fetchAvailableStatuses(int $userId): array
+    {
+        $sql = <<<SQL
+            SELECT DISTINCT o.status, COUNT(*) as count
+            FROM aiolia.orders o
+            WHERE o.user_id = :user_id
+            GROUP BY o.status
+            ORDER BY o.status
+        SQL;
+
+        $rows = $this->connection->executeQuery($sql, ['user_id' => $userId])->fetchAllAssociative();
+
+        $statusLabels = [
+            'pending' => 'En attente',
+            'awaiting_payment' => 'En attente de paiement',
+            'paid' => 'Payée',
+            'cancelled' => 'Annulée',
+            'refunded' => 'Remboursée',
+            'failed' => 'Échouée',
+        ];
+
+        $availableStatuses = [];
+        foreach ($rows as $row) {
+            $status = $row['status'];
+            $availableStatuses[] = [
+                'key' => $status,
+                'label' => $statusLabels[$status] ?? ucfirst($status),
+                'count' => (int) $row['count'],
+            ];
+        }
+
+        return $availableStatuses;
     }
 
     /**
