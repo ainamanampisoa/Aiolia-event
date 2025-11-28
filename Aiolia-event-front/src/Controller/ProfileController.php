@@ -86,12 +86,29 @@ class ProfileController extends AbstractController
         // Calculer les statistiques avec toutes les commandes
         $stats = $this->calculatePurchaseStats($userId, $allOrders);
 
+        // Paramètres de pagination
+        $page = max(1, (int) $request->query->get('page', 1));
+        $perPage = 20; // Nombre d'éléments par page
+        $totalResults = count($orders);
+        $totalPages = max(1, (int) ceil($totalResults / $perPage));
+        $startResult = $totalResults > 0 ? (($page - 1) * $perPage) + 1 : 0;
+        $endResult = min($page * $perPage, $totalResults);
+        
+        // Paginer les résultats
+        $paginatedOrders = array_slice($orders, ($page - 1) * $perPage, $perPage);
+
         return $this->render('profile/history.html.twig', [
-            'orders' => $orders,
+            'orders' => $paginatedOrders,
             'stats' => $stats,
             'availableStatuses' => $availableStatuses,
             'currentStatusFilter' => $statusFilter,
             'searchQuery' => $searchQuery,
+            'totalPages' => $totalPages,
+            'currentPage' => $page,
+            'totalResults' => $totalResults,
+            'startResult' => $startResult,
+            'endResult' => $endResult,
+            'perPage' => $perPage,
         ]);
     }
 
@@ -1255,19 +1272,38 @@ class ProfileController extends AbstractController
 
     /**
      * Récupère les statuts disponibles depuis la base de données pour l'utilisateur.
+     * Récupère tous les statuts possibles depuis l'ENUM order_status_enum et compte les commandes pour chaque statut.
+     * Utilise les statuts définis dans order_status_enum du schéma :
+     * 'pending', 'awaiting_payment', 'paid', 'cancelled', 'refunded', 'failed'
      */
     private function fetchAvailableStatuses(int $userId): array
     {
-        $sql = <<<SQL
-            SELECT DISTINCT o.status, COUNT(*) as count
+        // Récupérer tous les statuts possibles depuis l'ENUM order_status_enum
+        $sqlEnum = <<<SQL
+            SELECT unnest(enum_range(NULL::aiolia.order_status_enum))::text as status
+            ORDER BY status
+        SQL;
+        
+        $enumStatuses = $this->connection->executeQuery($sqlEnum)->fetchAllAssociative();
+        
+        // Récupérer le nombre de commandes par statut pour cet utilisateur
+        $sqlCounts = <<<SQL
+            SELECT o.status, COUNT(*) as count
             FROM aiolia.orders o
             WHERE o.user_id = :user_id
             GROUP BY o.status
-            ORDER BY o.status
         SQL;
+        
+        $counts = $this->connection->executeQuery($sqlCounts, ['user_id' => $userId])->fetchAllAssociative();
+        
+        // Créer un tableau associatif pour les compteurs
+        $countMap = [];
+        foreach ($counts as $countRow) {
+            $countMap[$countRow['status']] = (int) $countRow['count'];
+        }
 
-        $rows = $this->connection->executeQuery($sql, ['user_id' => $userId])->fetchAllAssociative();
-
+        // Utiliser les statuts définis dans order_status_enum du schéma (schema.sql ligne 40)
+        // CREATE TYPE order_status_enum AS ENUM ('pending', 'awaiting_payment', 'paid', 'cancelled', 'refunded', 'failed');
         $statusLabels = [
             'pending' => 'En attente',
             'awaiting_payment' => 'En attente de paiement',
@@ -1278,12 +1314,15 @@ class ProfileController extends AbstractController
         ];
 
         $availableStatuses = [];
-        foreach ($rows as $row) {
-            $status = $row['status'];
+        foreach ($enumStatuses as $enumRow) {
+            $status = $enumRow['status'];
+            $count = $countMap[$status] ?? 0;
+            
+            // Inclure tous les statuts, même ceux avec 0 commande
             $availableStatuses[] = [
                 'key' => $status,
                 'label' => $statusLabels[$status] ?? ucfirst($status),
-                'count' => (int) $row['count'],
+                'count' => $count,
             ];
         }
 

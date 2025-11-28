@@ -1,6 +1,6 @@
 {% extends 'base.html.twig' %}
 
-{% block title %}{{ 'profile_history.page_title'|trans }}{% endblock %}
+{% block title %}Historique d'achat{% endblock %}
 
 {% block stylesheets %}
     <link rel="stylesheet" type="text/css" href="{{ asset('vente-ticket/css/animate.min.css') }}">
@@ -29,91 +29,146 @@
         <div class="container">
             <header class="profile-history-header wow fadeIn" data-wow-delay="100ms">
                 <div>
-                    <h1>{{ 'profile_history.header_title'|trans }}</h1>
-                    <p>{{ 'profile_history.header_desc'|trans }}</p>
+                    <h1>Historique d'achat</h1>
+                    <p>Consultez l'historique de toutes vos commandes et transactions</p>
                 </div>
                 <div class="profile-history-actions">
                     <a href="{{ path('my_tickets') }}" class="btn-solid">
-                        <i class="fas fa-ticket-alt"></i> {{ 'profile_history.view_tickets'|trans|default('Mes billets') }}
+                        <i class="fas fa-ticket-alt"></i> Mes billets
                     </a>
-                    <button class="btn-outline"><i class="fas fa-file-download"></i> {{ 'profile_history.export_pdf'|trans }}</button>
-                    <button class="btn-solid secondary"><i class="fas fa-filter"></i> {{ 'profile_history.filter'|trans }}</button>
+                    <button class="btn-outline"><i class="fas fa-file-download"></i> Exporter en PDF</button>
                 </div>
             </header>
 
             <section class="profile-history-summary wow fadeInUp" data-wow-delay="150ms">
                 <div class="summary-card">
-                    <span class="summary-label">{{ 'profile_history.total_spent_label'|trans }}</span>
+                    <span class="summary-label">Total dépensé</span>
                     <strong>{{ stats.total_spent }}</strong>
-                    <small>{{ stats.confirmed_orders }} {{ 'profile_history.total_spent_suffix'|trans }}</small>
+                    <small>{{ stats.confirmed_orders }} commande(s)</small>
                 </div>
                 <div class="summary-card">
-                    <span class="summary-label">{{ 'profile_history.tickets_label'|trans }}</span>
-                    <strong>{{ stats.total_tickets }} {{ 'profile_history.tickets_suffix'|trans }}</strong>
+                    <span class="summary-label">Billets achetés</span>
+                    <strong>{{ stats.total_tickets }} billet(s)</strong>
                     <small>
                         {% if stats.vip_tickets > 0 %}
-                            {{ 'profile_history.tickets_vip_suffix'|trans({'{vip}': stats.vip_tickets})|raw }}
+                            dont {{ stats.vip_tickets }} VIP
                         {% else %}
-                            {{ 'profile_history.tickets_no_vip'|trans }}
+                            Aucun billet VIP
                         {% endif %}
                     </small>
                 </div>
                 <div class="summary-card">
-                    <span class="summary-label">{{ 'profile_history.refunds_label'|trans }}</span>
-                    <strong>{{ stats.refunded_count }} {{ 'profile_history.refunds_transactions'|trans }}</strong>
-                    <small>{{ 'profile_history.refunds_amount_prefix'|trans }} {{ stats.refunded_amount }}</small>
+                    <span class="summary-label">Remboursements</span>
+                    <strong>{{ stats.refunded_count }} transaction(s)</strong>
+                    <small>Total remboursé : {{ stats.refunded_amount }}</small>
+                </div>
+            </section>
+
+            {# Section du graphique d'évolution #}
+            <section class="profile-history-chart wow fadeInUp" data-wow-delay="180ms">
+                <div class="chart-header">
+                    <h3>Évolution de vos dépenses</h3>
+                    <div class="chart-actions">
+                        <select id="chart-period" class="chart-select">
+                            <option value="6">6 mois</option>
+                            <option value="12">12 mois</option>
+                            <option value="24">24 mois</option>
+                        </select>
+                    </div>
+                </div>
+                <div class="chart-container">
+                    <canvas id="spendingChart"></canvas>
                 </div>
             </section>
 
             <section class="profile-history-table wow fadeInUp" data-wow-delay="200ms">
-                        <div class="history-table-head">
-                            <form method="get" action="{{ path('profile_history') }}" class="history-search-form">
-                                <div class="history-search">
-                                    <i class="fas fa-search"></i>
-                                    <input type="search" name="search" value="{{ searchQuery|default('') }}" placeholder="{{ 'profile_history.search_placeholder'|trans|default('Rechercher par événement, numéro de commande...') }}">
-                                    {% if searchQuery %}
-                                        <a href="{{ path('profile_history', {status: currentStatusFilter|default('all')}) }}" class="clear-search" title="Effacer la recherche">
-                                            <i class="fas fa-times"></i>
-                                        </a>
-                                    {% endif %}
-                                </div>
-                                <input type="hidden" name="status" id="status-filter-input" value="{{ currentStatusFilter|default('all') }}">
-                            </form>
-                            <div class="history-filters">
-                                <button class="tag {% if currentStatusFilter|default('all') == 'all' %}active{% endif %}" data-status="all" onclick="filterByStatus('all')">
-                                    {{ 'profile_history.tag_all'|trans|default('Tous') }}
-                                </button>
-                                {% if availableStatuses is defined and availableStatuses|length > 0 %}
-                                    {% for status in availableStatuses %}
-                                        <button class="tag {% if currentStatusFilter|default('all') == status.key %}active{% endif %}" data-status="{{ status.key }}" onclick="filterByStatus('{{ status.key }}')">
-                                            {{ status.label }} ({{ status.count }})
-                                        </button>
-                                    {% endfor %}
-                                {% else %}
-                                    {# Fallback si aucun statut n'est disponible #}
-                                    <button class="tag {% if currentStatusFilter|default('all') == 'paid' %}active{% endif %}" data-status="paid" onclick="filterByStatus('paid')">
-                                        Payée
-                                    </button>
-                                    <button class="tag {% if currentStatusFilter|default('all') == 'refunded' %}active{% endif %}" data-status="refunded" onclick="filterByStatus('refunded')">
-                                        Remboursée
-                                    </button>
-                                    <button class="tag {% if currentStatusFilter|default('all') == 'cancelled' %}active{% endif %}" data-status="cancelled" onclick="filterByStatus('cancelled')">
-                                        Annulée
-                                    </button>
+                <div class="history-table-head">
+                    <form method="get" action="{{ path('profile_history') }}" class="history-search-form" id="history-filter-form">
+                        <div class="history-search-filters">
+                            <div class="history-search">
+                                <i class="fas fa-search"></i>
+                                <input type="search" name="search" value="{{ searchQuery|default('') }}" placeholder="Rechercher par événement, numéro de commande...">
+                                {% if searchQuery %}
+                                    <a href="{{ path('profile_history', {status: currentStatusFilter|default('all')}) }}" class="clear-search" title="Effacer la recherche">
+                                        <i class="fas fa-times"></i>
+                                    </a>
                                 {% endif %}
                             </div>
+                            
+                            <div class="advanced-filters">
+                                <div class="filter-group">
+                                    <label>Mode de paiement</label>
+                                    <select name="payment_method" class="filter-select" onchange="this.form.submit()">
+                                        <option value="all">Tous les paiements</option>
+                                        <option value="credit_card" {% if currentPaymentMethodFilter|default('all') == 'credit_card' %}selected{% endif %}>Carte bancaire</option>
+                                        <option value="mobile_money" {% if currentPaymentMethodFilter|default('all') == 'mobile_money' %}selected{% endif %}>Mobile Money</option>
+                                        <option value="bank_transfer" {% if currentPaymentMethodFilter|default('all') == 'bank_transfer' %}selected{% endif %}>Virement bancaire</option>
+                                    </select>
+                                </div>
+                                
+                                <div class="filter-group">
+                                    <label>Période</label>
+                                    <select name="date_range" class="filter-select" onchange="this.form.submit()">
+                                        <option value="all">Toute période</option>
+                                        <option value="today" {% if currentDateFilter|default('all') == 'today' %}selected{% endif %}>Aujourd'hui</option>
+                                        <option value="week" {% if currentDateFilter|default('all') == 'week' %}selected{% endif %}>Cette semaine</option>
+                                        <option value="month" {% if currentDateFilter|default('all') == 'month' %}selected{% endif %}>Ce mois</option>
+                                        <option value="3months" {% if currentDateFilter|default('all') == '3months' %}selected{% endif %}>3 derniers mois</option>
+                                        <option value="year" {% if currentDateFilter|default('all') == 'year' %}selected{% endif %}>Cette année</option>
+                                    </select>
+                                </div>
+                                
+                                <div class="filter-group">
+                                    <label>Dates personnalisées</label>
+                                    <div class="date-inputs">
+                                        <input type="date" name="start_date" value="{{ startDate|default('') }}" class="date-input" placeholder="De">
+                                        <span class="date-separator">à</span>
+                                        <input type="date" name="end_date" value="{{ endDate|default('') }}" class="date-input" placeholder="À">
+                                    </div>
+                                </div>
+                            </div>
                         </div>
+                        
+                        <input type="hidden" name="status" id="status-filter-input" value="{{ currentStatusFilter|default('all') }}">
+                        
+                        <div class="filter-actions">
+                            <button type="submit" class="btn-solid secondary">
+                                <i class="fas fa-filter"></i> Appliquer
+                            </button>
+                            <a href="{{ path('profile_history') }}" class="btn-outline">
+                                <i class="fas fa-redo"></i> Réinitialiser
+                            </a>
+                        </div>
+                    </form>
+                    
+                    <div class="history-filters">
+                        <div class="filter-group">
+                            <label for="status-filter-select">Statut</label>
+                            <select id="status-filter-select" name="status" class="filter-select" onchange="filterByStatus(this.value)">
+                                <option value="all" {% if currentStatusFilter|default('all') == 'all' %}selected{% endif %}>Tous les statuts</option>
+                                {% if availableStatuses is defined and availableStatuses|length > 0 %}
+                                    {% for status in availableStatuses %}
+                                        <option value="{{ status.key }}" {% if currentStatusFilter|default('all') == status.key %}selected{% endif %}>
+                                            {{ status.label }}
+                                        </option>
+                                    {% endfor %}
+                                {% endif %}
+                            </select>
+                        </div>
+                    </div>
+                </div>
+                
                 <div class="history-table-wrapper">
                     <table>
                         <thead>
                             <tr>
-                                <th>{{ 'profile_history.col_order'|trans }}</th>
-                                <th>{{ 'profile_history.col_event'|trans }}</th>
-                                <th>{{ 'profile_history.col_datetime'|trans }}</th>
-                                <th>{{ 'profile_history.col_tickets'|trans }}</th>
-                                <th>{{ 'profile_history.col_amount'|trans }}</th>
-                                <th>{{ 'profile_history.col_payment'|trans }}</th>
-                                <th class="align-right">{{ 'profile_history.col_actions'|trans }}</th>
+                                <th>Commande</th>
+                                <th>Événement</th>
+                                <th>Date et heure</th>
+                                <th>Billets</th>
+                                <th>Montant</th>
+                                <th>Paiement</th>
+                                <th class="align-right">Actions</th>
                             </tr>
                         </thead>
                         <tbody>
@@ -131,14 +186,14 @@
                                             <div>{{ order.date }}</div>
                                             <small>{{ order.hour }}</small>
                                         </td>
-                                        <td>{{ order.tickets }} {{ 'profile_history.tickets_suffix'|trans }}</td>
+                                        <td>{{ order.tickets }} billet(s)</td>
                                         <td>{{ order.amount }}</td>
                                         <td>
                                             <i class="fas fa-credit-card"></i> {{ order.method }}
                                         </td>
                                         <td class="align-right">
-                                            <button class="link-btn"><i class="fas fa-receipt"></i> {{ 'profile_history.btn_receipt'|trans }}</button>
-                                            <button class="link-btn"><i class="fas fa-print"></i> {{ 'profile_history.btn_print'|trans }}</button>
+                                            <button class="link-btn"><i class="fas fa-receipt"></i> Facture</button>
+                                            <button class="link-btn"><i class="fas fa-print"></i> Imprimer</button>
                                         </td>
                                     </tr>
                                 {% endfor %}
@@ -146,37 +201,68 @@
                                 <tr>
                                     <td colspan="7" style="text-align: center; padding: 40px;">
                                         <i class="fas fa-shopping-bag" style="font-size: 48px; color: #ccc; margin-bottom: 16px;"></i>
-                                        <p style="color: #999;">{{ 'profile_history.no_orders'|trans }}</p>
+                                        <p style="color: #999;">Aucune commande trouvée</p>
                                     </td>
                                 </tr>
                             {% endif %}
                         </tbody>
                     </table>
                 </div>
+                
+                {# Pagination #}
+                {% if totalPages > 1 %}
+                <div class="history-pagination">
+                    <div class="pagination-info">
+                        Affichage de {{ startResult }} à {{ endResult }} sur {{ totalResults }} résultat(s)
+                    </div>
+                    <div class="pagination-controls">
+                        {% if currentPage > 1 %}
+                            <a href="{{ path('profile_history', app.request.query.all|merge({page: currentPage - 1})) }}" class="pagination-btn">
+                                <i class="fas fa-chevron-left"></i>
+                            </a>
+                        {% else %}
+                            <span class="pagination-btn disabled">
+                                <i class="fas fa-chevron-left"></i>
+                            </span>
+                        {% endif %}
+                        
+                        {% for page in 1..totalPages %}
+                            {% if page == currentPage %}
+                                <span class="pagination-btn active">{{ page }}</span>
+                            {% else %}
+                                <a href="{{ path('profile_history', app.request.query.all|merge({page: page})) }}" class="pagination-btn">{{ page }}</a>
+                            {% endif %}
+                        {% endfor %}
+                        
+                        {% if currentPage < totalPages %}
+                            <a href="{{ path('profile_history', app.request.query.all|merge({page: currentPage + 1})) }}" class="pagination-btn">
+                                <i class="fas fa-chevron-right"></i>
+                            </a>
+                        {% else %}
+                            <span class="pagination-btn disabled">
+                                <i class="fas fa-chevron-right"></i>
+                            </span>
+                        {% endif %}
+                    </div>
+                </div>
+                {% endif %}
             </section>
         </div>
     </main>
 {% endblock %}
 
 {% block javascripts %}
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
     <script>
         // Fonction pour filtrer par statut
         function filterByStatus(status) {
-            const form = document.querySelector('.history-search-form');
+            const form = document.getElementById('history-filter-form');
             if (!form) return;
             
             const statusInput = document.getElementById('status-filter-input');
             if (statusInput) {
                 statusInput.value = status;
             }
-            
-            // Mettre à jour les boutons actifs
-            document.querySelectorAll('.history-filters .tag').forEach(btn => {
-                btn.classList.remove('active');
-                if (btn.dataset.status === status) {
-                    btn.classList.add('active');
-                }
-            });
             
             // Soumettre le formulaire
             form.submit();
@@ -185,7 +271,7 @@
         // Gestion de la recherche
         document.addEventListener('DOMContentLoaded', function() {
             const searchInput = document.querySelector('.history-search input[type="search"]');
-            const form = document.querySelector('.history-search-form');
+            const form = document.getElementById('history-filter-form');
             let searchTimeout;
 
             if (searchInput && form) {
@@ -194,7 +280,7 @@
                     clearTimeout(searchTimeout);
                     searchTimeout = setTimeout(function() {
                         form.submit();
-                    }, 500); // Attendre 500ms après la dernière frappe
+                    }, 500);
                 });
 
                 // Recherche immédiate sur Enter
@@ -206,6 +292,83 @@
                     }
                 });
             }
+
+            // Initialisation du graphique
+            initializeSpendingChart();
         });
+
+        // Graphique d'évolution des dépenses
+        function initializeSpendingChart() {
+            const ctx = document.getElementById('spendingChart').getContext('2d');
+            
+            // Données d'exemple - à remplacer par les données réelles de votre backend
+            const chartData = {
+                labels: ['Jan', 'Fév', 'Mar', 'Avr', 'Mai', 'Jun', 'Jul', 'Aoû', 'Sep', 'Oct', 'Nov', 'Déc'],
+                datasets: [{
+                    label: 'Dépenses (MGA)',
+                    data: [120000, 190000, 150000, 250000, 220000, 300000, 280000, 320000, 290000, 350000, 380000, 420000],
+                    borderColor: '#1F2D3D',
+                    backgroundColor: 'rgba(31, 45, 61, 0.1)',
+                    borderWidth: 2,
+                    fill: true,
+                    tension: 0.4,
+                    pointBackgroundColor: '#1F2D3D',
+                    pointBorderColor: '#ffffff',
+                    pointBorderWidth: 2,
+                    pointRadius: 4
+                }]
+            };
+
+            const chart = new Chart(ctx, {
+                type: 'line',
+                data: chartData,
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    plugins: {
+                        legend: {
+                            display: false
+                        },
+                        tooltip: {
+                            backgroundColor: '#1F2D3D',
+                            titleColor: '#ffffff',
+                            bodyColor: '#ffffff',
+                            borderColor: 'rgba(255, 255, 255, 0.1)',
+                            borderWidth: 1,
+                            callbacks: {
+                                label: function(context) {
+                                    return `Dépenses: ${context.parsed.y.toLocaleString()} MGA`;
+                                }
+                            }
+                        }
+                    },
+                    scales: {
+                        y: {
+                            beginAtZero: true,
+                            grid: {
+                                color: 'rgba(31, 45, 61, 0.1)'
+                            },
+                            ticks: {
+                                callback: function(value) {
+                                    return value.toLocaleString() + ' MGA';
+                                }
+                            }
+                        },
+                        x: {
+                            grid: {
+                                display: false
+                            }
+                        }
+                    }
+                }
+            });
+
+            // Changer la période du graphique
+            document.getElementById('chart-period').addEventListener('change', function(e) {
+                // Ici, vous feriez un appel AJAX pour récupérer les nouvelles données
+                // Pour l'exemple, nous mettons simplement à jour les données fictives
+                console.log('Période changée:', e.target.value);
+            });
+        }
     </script>
 {% endblock %}
