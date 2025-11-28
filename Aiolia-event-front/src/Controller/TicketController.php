@@ -3,6 +3,7 @@
 namespace App\Controller;
 
 use App\Service\CartSyncService;
+use App\Service\PaymentService;
 use Doctrine\DBAL\Connection;
 use Symfony\Bundle\FrameworkBundle\Controller\AbstractController;
 use Symfony\Component\HttpFoundation\JsonResponse;
@@ -14,7 +15,8 @@ class TicketController extends AbstractController
 {
     public function __construct(
         private readonly Connection $connection,
-        private readonly CartSyncService $cartSyncService
+        private readonly CartSyncService $cartSyncService,
+        private readonly PaymentService $paymentService
     ) {
     }
 
@@ -26,27 +28,32 @@ class TicketController extends AbstractController
             $session->start();
         }
 
-        // Récupérer le panier depuis la session
-        $cartItems = $session->get('cart_items', []);
-        
         // Tenter de synchroniser avec la DB si utilisateur connecté
         $user = $session->get('user');
         $userId = $user && is_array($user) ? ($user['id'] ?? null) : null;
         
+        // Récupérer le panier depuis la session
+        $cartItems = $session->get('cart_items', []);
+        
         if ($userId) {
-            // Récupérer le panier depuis la DB
+            // Récupérer le panier depuis la DB (source de vérité)
             $dbCart = $this->cartSyncService->getOrCreateCart($userId, null);
-            if ($dbCart && !empty($dbCart['items'])) {
+            if ($dbCart) {
                 $dbItems = $this->cartSyncService->convertDbItemsToSessionFormat($dbCart['items']);
-                // Fusionner les deux paniers (priorité au plus récent)
-                $cartItems = $this->cartSyncService->mergeCarts($cartItems, $dbItems);
-                // Mettre à jour la session avec les items fusionnés
-                $session->set('cart_items', $cartItems);
-                // Sauvegarder dans la DB
-                $this->cartSyncService->saveCartItems((int) $dbCart['id'], $cartItems);
-            } elseif ($dbCart && !empty($cartItems)) {
-                // Sauvegarder les items de la session dans la DB
-                $this->cartSyncService->saveCartItems((int) $dbCart['id'], $cartItems);
+                
+                // Si la DB a des items, utiliser la DB comme source de vérité
+                // Sinon, si la session a des items, les sauvegarder dans la DB
+                if (!empty($dbItems)) {
+                    // La DB est la source de vérité
+                    $cartItems = $dbItems;
+                    $session->set('cart_items', $cartItems);
+                } elseif (!empty($cartItems)) {
+                    // Sauvegarder les items de la session dans la DB
+                    $this->cartSyncService->saveCartItems((int) $dbCart['id'], $cartItems);
+                } else {
+                    // Les deux sont vides, s'assurer que la session est vide
+                    $session->set('cart_items', []);
+                }
             }
         }
         
@@ -408,10 +415,167 @@ class TicketController extends AbstractController
         ]);
     }
 
-    #[Route('/checkout/confirmation', name: 'checkout_confirmation')]
-    public function checkoutConfirmation(): Response
+    #[Route('/checkout/process', name: 'checkout_process', methods: ['POST'])]
+    public function processPayment(Request $request): Response
     {
-        return $this->render('ticket/confirmation.html.twig');
+        error_log('=== DÉBUT TRAITEMENT PAIEMENT ===');
+        $session = $request->getSession();
+        if (!$session->isStarted()) {
+            $session->start();
+        }
+
+        // Récupérer les données du formulaire
+        $paymentMethod = $request->request->get('payment_method', 'mvola');
+        $paymentName = $request->request->get('payment_name', '');
+        $paymentEmail = $request->request->get('payment_email', '');
+        $paymentPhone = $request->request->get('payment_phone', '');
+        $terms = $request->request->get('terms', false);
+
+        if (!$terms) {
+            $this->addFlash('error', 'Vous devez accepter les conditions générales d\'utilisation.');
+            return $this->redirectToRoute('checkout_payment');
+        }
+
+        // Récupérer le panier depuis la session
+        $cartItems = $session->get('cart_items', []);
+        error_log('Panier initial: ' . count($cartItems) . ' items');
+        
+        // Si le panier est vide, essayer de le synchroniser avec la DB
+        if (empty($cartItems)) {
+            $user = $session->get('user');
+            $userId = $user && is_array($user) ? ($user['id'] ?? null) : null;
+            
+            if ($userId) {
+                $dbCart = $this->cartSyncService->getOrCreateCart($userId, null);
+                if ($dbCart && !empty($dbCart['items'])) {
+                    $dbItems = $this->cartSyncService->convertDbItemsToSessionFormat($dbCart['items']);
+                    $cartItems = $dbItems;
+                    $session->set('cart_items', $cartItems);
+                    error_log('Panier récupéré depuis DB: ' . count($cartItems) . ' items');
+                }
+            }
+        }
+        
+        // Filtrer les items si un eventId est spécifié dans la requête
+        $eventParam = $request->query->get('event');
+        if ($eventParam) {
+            $parts = explode('-', $eventParam);
+            $eventIdToFilter = (int) $parts[0];
+            error_log('Filtrage par eventId: ' . $eventIdToFilter);
+            $cartItemsBeforeFilter = $cartItems;
+            $cartItems = array_filter($cartItems, function($item) use ($eventIdToFilter) {
+                $itemEventId = isset($item['eventId']) ? (int) $item['eventId'] : 0;
+                error_log('Item eventId: ' . $itemEventId . ' vs filter: ' . $eventIdToFilter);
+                return $itemEventId === $eventIdToFilter;
+            });
+            error_log('Panier après filtrage: ' . count($cartItems) . ' items (avant: ' . count($cartItemsBeforeFilter) . ')');
+        }
+
+        if (empty($cartItems)) {
+            error_log('ERREUR: Panier vide après filtrage');
+            error_log('Items du panier avant filtrage: ' . json_encode(array_keys($cartItemsBeforeFilter ?? [])));
+            $this->addFlash('error', 'Votre panier est vide. Impossible de procéder au paiement.');
+            return $this->redirectToRoute('checkout_payment', $eventParam ? ['event' => $eventParam] : []);
+        }
+
+        // Récupérer l'utilisateur connecté
+        $user = $session->get('user');
+        $userId = $user && is_array($user) ? ($user['id'] ?? null) : null;
+
+        // Préparer les données de paiement
+        $paymentData = [
+            'payment_method' => $paymentMethod,
+            'payment_name' => $paymentName,
+            'payment_email' => $paymentEmail,
+            'payment_phone' => $paymentPhone,
+        ];
+
+        try {
+            error_log('Panier items: ' . count($cartItems));
+            error_log('User ID: ' . ($userId ?? 'null'));
+            
+            // Traiter le paiement
+            $result = $this->paymentService->processPayment($userId, $cartItems, $paymentData);
+            
+            error_log('Résultat paiement: ' . json_encode($result));
+
+            if ($result['success']) {
+                // Retirer les items payés du panier en session
+                $remainingCartItems = $session->get('cart_items', []);
+                $cartKeysToRemove = array_keys($cartItems);
+                foreach ($cartKeysToRemove as $cartKey) {
+                    unset($remainingCartItems[$cartKey]);
+                }
+                
+                // Mettre à jour la session avec les items restants
+                $session->set('cart_items', $remainingCartItems);
+
+                // Synchroniser avec la DB pour s'assurer que tout est cohérent
+                // Les items ont déjà été retirés de la DB par PaymentService
+                // On met simplement à jour la session avec les items restants (qui devraient être vides)
+                $session->set('cart_items', $remainingCartItems);
+                
+                // Si l'utilisateur est connecté, forcer la synchronisation avec la DB
+                if ($userId) {
+                    // Récupérer le panier actif (un nouveau devrait être créé car l'ancien est "converted")
+                    $dbCart = $this->cartSyncService->getOrCreateCart($userId, null);
+                    if ($dbCart) {
+                        // Sauvegarder les items restants dans le panier DB
+                        $this->cartSyncService->saveCartItems((int) $dbCart['id'], $remainingCartItems);
+                        // Récupérer les items de la DB pour s'assurer qu'ils sont à jour
+                        $dbItems = $this->cartSyncService->convertDbItemsToSessionFormat($dbCart['items']);
+                        // Mettre à jour la session avec les items de la DB (devrait être vide)
+                        $session->set('cart_items', $dbItems);
+                    }
+                }
+
+                // Stocker les informations de la commande dans la session pour la page de confirmation
+                $session->set('last_order', [
+                    'order_id' => $result['order_id'],
+                    'total_amount' => $result['total_amount'],
+                    'tickets_count' => count($result['tickets']),
+                ]);
+
+                $this->addFlash('success', 'Paiement effectué avec succès !');
+                return $this->redirectToRoute('checkout_confirmation');
+            } else {
+                $this->addFlash('error', 'Une erreur est survenue lors du traitement du paiement.');
+                return $this->redirectToRoute('checkout_payment');
+            }
+        } catch (\Exception $e) {
+            error_log('=== ERREUR LORS DU TRAITEMENT DU PAIEMENT ===');
+            error_log('Message: ' . $e->getMessage());
+            error_log('Fichier: ' . $e->getFile() . ':' . $e->getLine());
+            error_log('Stack trace: ' . $e->getTraceAsString());
+            $this->addFlash('error', 'Une erreur est survenue lors du traitement du paiement. Veuillez réessayer.');
+            return $this->redirectToRoute('checkout_payment', $eventParam ? ['event' => $eventParam] : []);
+        }
+    }
+
+    #[Route('/checkout/confirmation', name: 'checkout_confirmation')]
+    public function checkoutConfirmation(Request $request): Response
+    {
+        $session = $request->getSession();
+        if (!$session->isStarted()) {
+            $session->start();
+        }
+
+        $lastOrder = $session->get('last_order');
+        
+        if (!$lastOrder) {
+            $this->addFlash('warning', 'Aucune commande récente trouvée. Si vous venez de payer, votre commande a peut-être été traitée. Vérifiez vos billets.');
+            return $this->redirectToRoute('my_tickets');
+        }
+
+        // Générer un code de commande lisible
+        $orderCode = 'CMD-' . str_pad((string) $lastOrder['order_id'], 6, '0', STR_PAD_LEFT);
+
+        return $this->render('ticket/confirmation.html.twig', [
+            'order_id' => $lastOrder['order_id'],
+            'order_code' => $orderCode,
+            'total_amount' => $lastOrder['total_amount'],
+            'tickets_count' => $lastOrder['tickets_count'],
+        ]);
     }
 
     // My tickets

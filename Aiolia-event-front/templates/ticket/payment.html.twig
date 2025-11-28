@@ -19,13 +19,25 @@
             {% set grandTotal = orderTotal + serviceFees %}
 
             <header class="payment-header">
-                <span class="badge-step">Étape 2 sur 3</span>
+                {# <span class="badge-step">Étape 2 sur 3</span> #}
                 <h1>Paiement sécurisé</h1>
                 <p>
                     Terminez votre paiement{% if paymentDeadline is defined %} avant <strong>{{ paymentDeadline|date('H\\hi') }}</strong>{% endif %}.
                     {% if orderReference is defined %}Référence : <strong>{{ orderReference }}</strong>{% endif %}
                 </p>
             </header>
+
+            {# Affichage des messages flash #}
+            {% for message in app.flashes('error') %}
+                <div class="alert alert-error" style="background: #fee; border: 1px solid #fcc; padding: 15px; margin: 20px 0; border-radius: 8px; color: #c33;">
+                    <i class="fas fa-exclamation-circle"></i> {{ message }}
+                </div>
+            {% endfor %}
+            {% for message in app.flashes('success') %}
+                <div class="alert alert-success" style="background: #efe; border: 1px solid #cfc; padding: 15px; margin: 20px 0; border-radius: 8px; color: #3c3;">
+                    <i class="fas fa-check-circle"></i> {{ message }}
+                </div>
+            {% endfor %}
 
             <div class="payment-layout">
                 <section class="payment-summary">
@@ -93,7 +105,7 @@
                 </section>
 
                 <section class="payment-content">
-                    <form class="payment-form" action="#" method="post">
+                    <form class="payment-form" action="{{ path('checkout_process') }}{% if app.request.query.get('event') %}?event={{ app.request.query.get('event') }}{% endif %}" method="post">
                         <div class="form-section">
                             <h2>Méthode de paiement</h2>
                             <div class="method-grid">
@@ -183,7 +195,7 @@
                             <button type="button" class="btn-secondary" onclick="window.location.href='{{ path('cart') }}'">
                                 <i class="fas fa-arrow-left"></i> Retour au panier
                             </button>
-                            <button type="button" id="btn-payment-confirm" class="btn-primary">
+                            <button type="submit" id="btn-payment-confirm" class="btn-primary">
                                 Confirmer et payer {{ grandTotal|number_format(0, ',', ' ') }} MGA
                             </button>
                         </div>
@@ -209,6 +221,7 @@
             const invoiceSelect = document.getElementById('payment-invoice');
             const invoiceDetails = document.getElementById('invoice-details');
             const confirmButton = document.getElementById('btn-payment-confirm');
+            const form = document.querySelector('.payment-form');
 
             methodInputs.forEach(input => {
                 const option = input.closest('.method-option');
@@ -232,9 +245,24 @@
                 });
             }
 
-            if (confirmButton) {
-                confirmButton.addEventListener('click', function () {
-                    window.location.href = '{{ path('checkout_confirmation') }}';
+            if (confirmButton && form) {
+                form.addEventListener('submit', function (e) {
+                    const termsCheckbox = form.querySelector('input[name="terms"]');
+                    
+                    if (!termsCheckbox || !termsCheckbox.checked) {
+                        e.preventDefault();
+                        e.stopPropagation();
+                        alert('Veuillez accepter les conditions générales d\'utilisation.');
+                        return false;
+                    }
+                    
+                    // Désactiver le bouton pour éviter les doubles soumissions
+                    confirmButton.disabled = true;
+                    const originalText = confirmButton.innerHTML;
+                    confirmButton.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Traitement en cours...';
+                    
+                    // Laisser le formulaire se soumettre normalement
+                    // Ne pas appeler e.preventDefault() ici
                 });
             }
         });
