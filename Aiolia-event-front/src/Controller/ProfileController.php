@@ -3,6 +3,8 @@
 namespace App\Controller;
 
 use Doctrine\DBAL\Connection;
+use Dompdf\Dompdf;
+use Dompdf\Options;
 use Symfony\Bundle\FrameworkBundle\Controller\AbstractController;
 use Symfony\Component\HttpFoundation\JsonResponse;
 use Symfony\Component\HttpFoundation\Request;
@@ -50,6 +52,110 @@ class ProfileController extends AbstractController
             'stats' => $stats,
             'activities' => $recentActivities,
             'isAuthenticated' => $isAuthenticated,
+        ]);
+    }
+
+    #[Route('/profile/history/invoice/{id}', name: 'profile_history_invoice', requirements: ['id' => '\d+'])]
+    public function downloadInvoice(int $id, Request $request): Response
+    {
+        $session = $request->getSession();
+        if (!$session->isStarted()) {
+            $session->start();
+        }
+
+        $sessionUser = $session->get('user');
+        $isAuthenticated = is_array($sessionUser) && isset($sessionUser['id']);
+
+        if (!$isAuthenticated) {
+            return $this->redirectToRoute('login');
+        }
+
+        $userId = (int) $sessionUser['id'];
+
+        // Récupérer les détails de la commande
+        $sql = <<<SQL
+            SELECT 
+                o.id,
+                o.status,
+                o.total_amount,
+                o.discount_amount,
+                o.currency,
+                o.promotion_code,
+                o.created_at,
+                o.notes,
+                COUNT(DISTINCT oi.id) as items_count,
+                SUM(oi.quantity) as total_tickets,
+                STRING_AGG(DISTINCT e.title, ', ') as event_titles
+            FROM aiolia.orders o
+            LEFT JOIN aiolia.order_items oi ON oi.order_id = o.id
+            LEFT JOIN aiolia.ticket_types tt ON tt.id = oi.ticket_type_id
+            LEFT JOIN aiolia.events e ON e.id = tt.event_id
+            WHERE o.id = :order_id AND o.user_id = :user_id
+            GROUP BY o.id, o.status, o.total_amount, o.discount_amount, o.currency,
+                     o.promotion_code, o.created_at, o.notes
+        SQL;
+
+        $order = $this->connection->executeQuery($sql, [
+            'order_id' => $id,
+            'user_id' => $userId,
+        ])->fetchAssociative();
+
+        if (!$order) {
+            $this->addFlash('error', 'Commande introuvable.');
+            return $this->redirectToRoute('profile_history');
+        }
+
+        // Extraire le payment_method depuis le champ notes
+        $paymentMethod = null;
+        if (!empty($order['notes'])) {
+            $notes = json_decode($order['notes'], true);
+            if (is_array($notes) && isset($notes['payment_method'])) {
+                $paymentMethod = $notes['payment_method'];
+            }
+        }
+
+        $paymentMethodLabels = [
+            'mvola' => 'M-Vola',
+            'orange-money' => 'Orange Money',
+            'airtel-money' => 'Airtel Money',
+        ];
+
+        // Générer le contenu HTML de la facture
+        $html = $this->renderView('profile/invoice.html.twig', [
+            'order' => [
+                'id' => $order['id'],
+                'code' => 'CMD-' . str_pad((string) $order['id'], 6, '0', STR_PAD_LEFT),
+                'date' => new \DateTimeImmutable($order['created_at']),
+                'total_amount' => (float) $order['total_amount'],
+                'discount_amount' => (float) ($order['discount_amount'] ?? 0),
+                'currency' => $order['currency'] ?? 'MGA',
+                'promotion_code' => $order['promotion_code'],
+                'event_titles' => $order['event_titles'],
+                'total_tickets' => (int) ($order['total_tickets'] ?? 0),
+                'payment_method' => $paymentMethod ? ($paymentMethodLabels[$paymentMethod] ?? ucfirst(str_replace('-', ' ', $paymentMethod))) : 'Non spécifié',
+            ],
+            'user' => $sessionUser,
+        ]);
+
+        // Configuration de Dompdf
+        $options = new Options();
+        $options->set('isHtml5ParserEnabled', true);
+        $options->set('isRemoteEnabled', true);
+        $options->set('defaultFont', 'DejaVu Sans');
+        
+        $dompdf = new Dompdf($options);
+        $dompdf->loadHtml($html);
+        $dompdf->setPaper('A4', 'portrait');
+        $dompdf->render();
+
+        // Générer le nom du fichier
+        $orderCode = 'CMD-' . str_pad((string) $order['id'], 6, '0', STR_PAD_LEFT);
+        $filename = 'Facture_' . $orderCode . '_' . date('Y-m-d') . '.pdf';
+
+        // Retourner le PDF en téléchargement
+        return new Response($dompdf->output(), 200, [
+            'Content-Type' => 'application/pdf',
+            'Content-Disposition' => 'attachment; filename="' . $filename . '"',
         ]);
     }
 

@@ -173,7 +173,7 @@
                 </div>
                 
                 <div class="history-table-wrapper">
-                    <table>
+                    <table class="modern-table">
                         <thead>
                             <tr>
                                 <th>Commande</th>
@@ -194,28 +194,43 @@
                                             <span class="order-status">{{ order.status }}</span>
                                         </td>
                                         <td>
-                                            <strong>{{ order.title }}</strong>
+                                            <div class="event-info">
+                                                <strong>{{ order.title }}</strong>
+                                            </div>
                                         </td>
                                         <td>
-                                            <div>{{ order.date }}</div>
-                                            <small>{{ order.hour }}</small>
+                                            <div class="date-time-info">
+                                                <div class="date-value">{{ order.date }}</div>
+                                                <small class="time-value">{{ order.hour }}</small>
+                                            </div>
                                         </td>
-                                        <td>{{ order.tickets }} billet(s)</td>
-                                        <td>{{ order.amount }}</td>
                                         <td>
-                                            <i class="fas fa-credit-card"></i> {{ order.method }}
+                                            <span class="tickets-badge">{{ order.tickets }} billet(s)</span>
+                                        </td>
+                                        <td>
+                                            <span class="amount-value">{{ order.amount }}</span>
+                                        </td>
+                                        <td>
+                                            <div class="payment-method">
+                                                <i class="fas fa-credit-card"></i>
+                                                <span>{{ order.method }}</span>
+                                            </div>
                                         </td>
                                         <td class="align-right">
-                                            <button class="link-btn"><i class="fas fa-receipt"></i> Facture</button>
-                                            <button class="link-btn"><i class="fas fa-print"></i> Imprimer</button>
+                                            <a href="{{ path('profile_history_invoice', {id: order.id}) }}" class="btn-download-invoice" target="_blank">
+                                                <i class="fas fa-file-pdf"></i>
+                                                <span>Télécharger facture</span>
+                                            </a>
                                         </td>
                                     </tr>
                                 {% endfor %}
                             {% else %}
                                 <tr>
-                                    <td colspan="7" style="text-align: center; padding: 40px;">
-                                        <i class="fas fa-shopping-bag" style="font-size: 48px; color: #ccc; margin-bottom: 16px;"></i>
-                                        <p style="color: #999;">Aucune commande trouvée</p>
+                                    <td colspan="7" class="empty-state">
+                                        <div class="empty-content">
+                                            <i class="fas fa-shopping-bag"></i>
+                                            <p>Aucune commande trouvée</p>
+                                        </div>
                                     </td>
                                 </tr>
                             {% endif %}

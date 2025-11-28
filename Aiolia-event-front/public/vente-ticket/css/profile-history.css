@@ -245,29 +245,42 @@
     overflow-x: auto;
 }
 
-.history-table-wrapper table {
-    width: 100%;
-    border-collapse: collapse;
-    min-width: 820px;
+.history-table-wrapper {
+    border-radius: 12px;
+    overflow: hidden;
 }
 
-.history-table-wrapper th,
-.history-table-wrapper td {
-    padding: 14px 12px;
+.history-table-wrapper table.modern-table {
+    width: 100%;
+    border-collapse: separate;
+    border-spacing: 0;
+    min-width: 820px;
+    background: #ffffff;
+}
+
+.history-table-wrapper table.modern-table th,
+.history-table-wrapper table.modern-table td {
+    padding: 18px 16px;
     text-align: left;
-    border-bottom: 1px solid rgba(31, 45, 61, 0.06);
     font-size: 14px;
 }
 
-.history-table-wrapper th {
+.history-table-wrapper table.modern-table th {
     text-transform: uppercase;
-    font-size: 12px;
-    letter-spacing: 0.05em;
-    color: rgba(17, 34, 68, 0.7);
+    font-size: 11px;
+    letter-spacing: 0.08em;
+    color: rgba(17, 34, 68, 0.8);
     font-weight: 700;
-    background: linear-gradient(135deg, #f8f9fa, #ffffff);
-    padding: 16px 12px;
-    border-bottom: 2px solid rgba(52, 152, 219, 0.2);
+    background: linear-gradient(135deg, #f8f9fa 0%, #ffffff 100%);
+    border-bottom: 2px solid rgba(52, 152, 219, 0.15);
+    position: sticky;
+    top: 0;
+    z-index: 10;
+}
+
+.history-table-wrapper table.modern-table td {
+    border-bottom: 1px solid rgba(31, 45, 61, 0.08);
+    color: #1F2D3D;
 }
 
 .history-row:nth-child(even) {
@@ -314,6 +327,8 @@
 .order-code {
     font-weight: 700;
     color: #0F234A;
+    font-size: 15px;
+    margin-bottom: 6px;
 }
 
 .order-status {
@@ -323,25 +338,119 @@
     font-weight: 600;
 }
 
+.event-info {
+    display: flex;
+    flex-direction: column;
+}
+
+.event-info strong {
+    color: #1F2D3D;
+    font-size: 15px;
+    font-weight: 600;
+}
+
+.date-time-info {
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+}
+
+.date-value {
+    color: #1F2D3D;
+    font-weight: 500;
+    font-size: 14px;
+}
+
+.time-value {
+    color: rgba(17, 34, 68, 0.6);
+    font-size: 12px;
+}
+
+.tickets-badge {
+    display: inline-block;
+    padding: 6px 12px;
+    background: rgba(52, 152, 219, 0.1);
+    color: #3498db;
+    border-radius: 6px;
+    font-weight: 600;
+    font-size: 13px;
+}
+
+.amount-value {
+    font-weight: 700;
+    color: #1F2D3D;
+    font-size: 15px;
+}
+
+.payment-method {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    color: #1F2D3D;
+}
+
+.payment-method i {
+    color: #3498db;
+    font-size: 16px;
+}
+
+.payment-method span {
+    font-weight: 500;
+    font-size: 14px;
+}
+
 .align-right {
     text-align: right;
 }
 
-.link-btn {
-    border: none;
-    background: transparent;
-    color: #1F2D3D;
-    font-weight: 600;
-    font-size: 13px;
-    cursor: pointer;
-    padding: 4px 0;
+.btn-download-invoice {
     display: inline-flex;
     align-items: center;
-    gap: 6px;
+    gap: 8px;
+    padding: 10px 18px;
+    background: linear-gradient(135deg, #e74c3c, #c0392b);
+    color: #ffffff;
+    text-decoration: none;
+    border-radius: 8px;
+    font-weight: 600;
+    font-size: 13px;
+    transition: all 0.3s ease;
+    box-shadow: 0 2px 8px rgba(231, 76, 60, 0.2);
 }
 
-.link-btn:hover {
-    text-decoration: underline;
+.btn-download-invoice:hover {
+    background: linear-gradient(135deg, #c0392b, #a93226);
+    transform: translateY(-2px);
+    box-shadow: 0 4px 12px rgba(231, 76, 60, 0.3);
+    color: #ffffff;
+    text-decoration: none;
+}
+
+.btn-download-invoice i {
+    font-size: 14px;
+}
+
+.empty-state {
+    padding: 60px 20px !important;
+}
+
+.empty-content {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    gap: 16px;
+}
+
+.empty-content i {
+    font-size: 64px;
+    color: rgba(31, 45, 61, 0.2);
+}
+
+.empty-content p {
+    color: rgba(17, 34, 68, 0.6);
+    font-size: 16px;
+    font-weight: 500;
 }
 
 @media (max-width: 992px) {
