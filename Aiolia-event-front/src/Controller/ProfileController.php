@@ -1309,12 +1309,21 @@ class ProfileController extends AbstractController
             'failed' => 'Échouée',
         ];
 
+        // Statuts à exclure (même s'ils existent encore dans l'ENUM de la base de données)
+        $excludedStatuses = ['awaiting_payment', 'refunded'];
+        
         $availableStatuses = [];
         foreach ($enumStatuses as $enumRow) {
             $status = $enumRow['status'];
+            
+            // Exclure les statuts non désirés
+            if (in_array($status, $excludedStatuses, true)) {
+                continue;
+            }
+            
             $count = $countMap[$status] ?? 0;
             
-            // Inclure tous les statuts, même ceux avec 0 commande
+            // Inclure tous les statuts valides, même ceux avec 0 commande
             $availableStatuses[] = [
                 'key' => $status,
                 'label' => $statusLabels[$status] ?? ucfirst($status),
