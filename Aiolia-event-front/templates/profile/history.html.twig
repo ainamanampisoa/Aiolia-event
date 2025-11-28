@@ -303,15 +303,23 @@
         });
 
         // Graphique d'évolution des dépenses
+        let spendingChart = null;
+        
         function initializeSpendingChart() {
-            const ctx = document.getElementById('spendingChart').getContext('2d');
+            const ctx = document.getElementById('spendingChart');
+            if (!ctx) return;
             
-            // Données d'exemple - à remplacer par les données réelles de votre backend
+            const ctx2d = ctx.getContext('2d');
+            
+            // Récupérer les données depuis le template Twig
+            const chartDataFromServer = {{ chartData|default({labels: [], data: []})|json_encode|raw }};
+            const currentPeriod = {{ chartPeriod|default(12) }};
+            
             const chartData = {
-                labels: ['Jan', 'Fév', 'Mar', 'Avr', 'Mai', 'Jun', 'Jul', 'Aoû', 'Sep', 'Oct', 'Nov', 'Déc'],
+                labels: chartDataFromServer.labels || [],
                 datasets: [{
                     label: 'Dépenses (MGA)',
-                    data: [120000, 190000, 150000, 250000, 220000, 300000, 280000, 320000, 290000, 350000, 380000, 420000],
+                    data: chartDataFromServer.data || [],
                     borderColor: '#1F2D3D',
                     backgroundColor: 'rgba(31, 45, 61, 0.1)',
                     borderWidth: 2,
@@ -324,7 +332,7 @@
                 }]
             };
 
-            const chart = new Chart(ctx, {
+            spendingChart = new Chart(ctx2d, {
                 type: 'line',
                 data: chartData,
                 options: {
@@ -342,7 +350,7 @@
                             borderWidth: 1,
                             callbacks: {
                                 label: function(context) {
-                                    return `Dépenses: ${context.parsed.y.toLocaleString()} MGA`;
+                                    return `Dépenses: ${context.parsed.y.toLocaleString('fr-FR')} MGA`;
                                 }
                             }
                         }
@@ -355,7 +363,7 @@
                             },
                             ticks: {
                                 callback: function(value) {
-                                    return value.toLocaleString() + ' MGA';
+                                    return value.toLocaleString('fr-FR') + ' MGA';
                                 }
                             }
                         },
@@ -369,11 +377,18 @@
             });
 
             // Changer la période du graphique
-            document.getElementById('chart-period').addEventListener('change', function(e) {
-                // Ici, vous feriez un appel AJAX pour récupérer les nouvelles données
-                // Pour l'exemple, nous mettons simplement à jour les données fictives
-                console.log('Période changée:', e.target.value);
-            });
+            const periodSelect = document.getElementById('chart-period');
+            if (periodSelect) {
+                periodSelect.value = currentPeriod;
+                
+                periodSelect.addEventListener('change', function(e) {
+                    const newPeriod = e.target.value;
+                    // Recharger la page avec le nouveau paramètre de période
+                    const url = new URL(window.location.href);
+                    url.searchParams.set('chart_period', newPeriod);
+                    window.location.href = url.toString();
+                });
+            }
         }
     </script>
 {% endblock %}

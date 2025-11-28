@@ -97,6 +97,10 @@ class ProfileController extends AbstractController
         // Paginer les résultats
         $paginatedOrders = array_slice($orders, ($page - 1) * $perPage, $perPage);
 
+        // Récupérer les données pour le graphique (12 mois par défaut)
+        $chartPeriod = max(6, min(24, (int) $request->query->get('chart_period', 12)));
+        $chartData = $this->fetchSpendingChartData($userId, $chartPeriod);
+
         return $this->render('profile/history.html.twig', [
             'orders' => $paginatedOrders,
             'stats' => $stats,
@@ -109,6 +113,8 @@ class ProfileController extends AbstractController
             'startResult' => $startResult,
             'endResult' => $endResult,
             'perPage' => $perPage,
+            'chartData' => $chartData,
+            'chartPeriod' => $chartPeriod,
         ]);
     }
 
@@ -1387,6 +1393,69 @@ class ProfileController extends AbstractController
         $result = $this->connection->executeQuery($sql, ['user_id' => $userId])->fetchAssociative();
         
         return (int) ($result['upcoming_count'] ?? 0);
+    }
+
+    /**
+     * Récupère les données de dépenses par mois pour le graphique.
+     * 
+     * @param int $userId ID de l'utilisateur
+     * @param int $months Nombre de mois à récupérer (6, 12, ou 24)
+     * @return array Tableau avec 'labels' (mois) et 'data' (montants)
+     */
+    private function fetchSpendingChartData(int $userId, int $months = 12): array
+    {
+        $startDate = (new \DateTimeImmutable())->modify("-{$months} months")->format('Y-m-01');
+        
+        $sql = <<<SQL
+            SELECT 
+                DATE_TRUNC('month', o.created_at) as month,
+                SUM(o.total_amount) as total_amount
+            FROM aiolia.orders o
+            WHERE o.user_id = :user_id
+            AND o.status = 'paid'
+            AND o.created_at >= :start_date
+            GROUP BY DATE_TRUNC('month', o.created_at)
+            ORDER BY month ASC
+        SQL;
+
+        $rows = $this->connection->executeQuery($sql, [
+            'user_id' => $userId,
+            'start_date' => $startDate,
+        ])->fetchAllAssociative();
+
+        // Créer un tableau associatif mois => montant
+        $monthlyData = [];
+        foreach ($rows as $row) {
+            $monthKey = (new \DateTimeImmutable($row['month']))->format('Y-m');
+            $monthlyData[$monthKey] = (float) $row['total_amount'];
+        }
+
+        // Générer tous les mois de la période avec leurs labels français
+        $labels = [];
+        $data = [];
+        $monthNames = [
+            1 => 'Jan', 2 => 'Fév', 3 => 'Mar', 4 => 'Avr', 5 => 'Mai', 6 => 'Jun',
+            7 => 'Jul', 8 => 'Aoû', 9 => 'Sep', 10 => 'Oct', 11 => 'Nov', 12 => 'Déc'
+        ];
+
+        $currentDate = new \DateTimeImmutable($startDate);
+        $endDate = new \DateTimeImmutable();
+        
+        while ($currentDate <= $endDate) {
+            $monthKey = $currentDate->format('Y-m');
+            $monthNum = (int) $currentDate->format('n');
+            $year = $currentDate->format('Y');
+            
+            $labels[] = $monthNames[$monthNum] . ' ' . $year;
+            $data[] = $monthlyData[$monthKey] ?? 0;
+            
+            $currentDate = $currentDate->modify('+1 month');
+        }
+
+        return [
+            'labels' => $labels,
+            'data' => $data,
+        ];
     }
 
     /**
