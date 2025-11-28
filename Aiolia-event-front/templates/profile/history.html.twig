@@ -51,7 +51,7 @@
                     <small>
                         {% if stats.vip_tickets > 0 %}
                             dont {{ stats.vip_tickets }} VIP
-                        {% else %}
+                        {% else %}e
                             Aucun billet VIP
                         {% endif %}
                     </small>
@@ -87,33 +87,49 @@
             </section>
 
             <section class="profile-history-table wow fadeInUp" data-wow-delay="200ms">
-                <div class="history-table-head">
+                <div class="history-filters-section">
                     <form method="get" action="{{ path('profile_history') }}" class="history-search-form" id="history-filter-form">
-                        <div class="history-search-filters">
+                        <div class="filters-container">
+                            <div class="history-search-wrapper">
                             <div class="history-search">
                                 <i class="fas fa-search"></i>
-                                <input type="search" name="search" value="{{ searchQuery|default('') }}" placeholder="Rechercher par événement, numéro de commande...">
-                                {% if searchQuery %}
-                                    <a href="{{ path('profile_history', {status: currentStatusFilter|default('all')}) }}" class="clear-search" title="Effacer la recherche">
-                                        <i class="fas fa-times"></i>
-                                    </a>
-                                {% endif %}
+                                    <input type="search" name="search" value="{{ searchQuery|default('') }}" placeholder="Rechercher par événement, numéro de commande...">
+                                    {% if searchQuery %}
+                                        <a href="{{ path('profile_history', {status: currentStatusFilter|default('all')}) }}" class="clear-search" title="Effacer la recherche">
+                                            <i class="fas fa-times"></i>
+                                        </a>
+                                    {% endif %}
+                                </div>
                             </div>
                             
-                            <div class="advanced-filters">
+                            <div class="filters-row filters-row-below">
                                 <div class="filter-group">
-                                    <label>Mode de paiement</label>
-                                    <select name="payment_method" class="filter-select" onchange="this.form.submit()">
-                                        <option value="all">Tous les paiements</option>
-                                        <option value="credit_card" {% if currentPaymentMethodFilter|default('all') == 'credit_card' %}selected{% endif %}>Carte bancaire</option>
-                                        <option value="mobile_money" {% if currentPaymentMethodFilter|default('all') == 'mobile_money' %}selected{% endif %}>Mobile Money</option>
-                                        <option value="bank_transfer" {% if currentPaymentMethodFilter|default('all') == 'bank_transfer' %}selected{% endif %}>Virement bancaire</option>
+                                    <label for="status-filter-select"><i class="fas fa-tag"></i> Statut</label>
+                                    <select id="status-filter-select" name="status" class="filter-select auto-submit">
+                                        <option value="all" {% if currentStatusFilter|default('all') == 'all' %}selected{% endif %}>Tous les statuts</option>
+                                        {% if availableStatuses is defined and availableStatuses|length > 0 %}
+                                            {% for status in availableStatuses %}
+                                                <option value="{{ status.key }}" {% if currentStatusFilter|default('all') == status.key %}selected{% endif %}>
+                                                    {{ status.label }}
+                                                </option>
+                                            {% endfor %}
+                                        {% endif %}
                                     </select>
                                 </div>
                                 
                                 <div class="filter-group">
-                                    <label>Période</label>
-                                    <select name="date_range" class="filter-select" onchange="this.form.submit()">
+                                    <label><i class="fas fa-credit-card"></i> Mode de paiement</label>
+                                    <select name="payment_method" class="filter-select auto-submit">
+                                        <option value="all">Tous les paiements</option>
+                                        <option value="mvola" {% if currentPaymentMethodFilter|default('all') == 'mvola' %}selected{% endif %}>M-Vola</option>
+                                        <option value="orange-money" {% if currentPaymentMethodFilter|default('all') == 'orange-money' %}selected{% endif %}>Orange Money</option>
+                                        <option value="airtel-money" {% if currentPaymentMethodFilter|default('all') == 'airtel-money' %}selected{% endif %}>Airtel Money</option>
+                                    </select>
+                                </div>
+                                
+                                <div class="filter-group">
+                                    <label><i class="fas fa-calendar-alt"></i> Période</label>
+                                    <select name="date_range" class="filter-select auto-submit">
                                         <option value="all">Toute période</option>
                                         <option value="today" {% if currentDateFilter|default('all') == 'today' %}selected{% endif %}>Aujourd'hui</option>
                                         <option value="week" {% if currentDateFilter|default('all') == 'week' %}selected{% endif %}>Cette semaine</option>
@@ -123,44 +139,17 @@
                                     </select>
                                 </div>
                                 
-                                <div class="filter-group">
-                                    <label>Dates personnalisées</label>
+                                <div class="filter-group filter-group-dates">
+                                    <label><i class="fas fa-calendar-check"></i> Dates personnalisées</label>
                                     <div class="date-inputs">
-                                        <input type="date" name="start_date" value="{{ startDate|default('') }}" class="date-input" placeholder="De">
+                                        <input type="date" name="start_date" value="{{ startDate|default('') }}" class="date-input auto-submit" placeholder="De">
                                         <span class="date-separator">à</span>
-                                        <input type="date" name="end_date" value="{{ endDate|default('') }}" class="date-input" placeholder="À">
+                                        <input type="date" name="end_date" value="{{ endDate|default('') }}" class="date-input auto-submit" placeholder="À">
                                     </div>
                                 </div>
                             </div>
                         </div>
-                        
-                        <input type="hidden" name="status" id="status-filter-input" value="{{ currentStatusFilter|default('all') }}">
-                        
-                        <div class="filter-actions">
-                            <button type="submit" class="btn-solid secondary">
-                                <i class="fas fa-filter"></i> Appliquer
-                            </button>
-                            <a href="{{ path('profile_history') }}" class="btn-outline">
-                                <i class="fas fa-redo"></i> Réinitialiser
-                            </a>
-                        </div>
                     </form>
-                    
-                    <div class="history-filters">
-                        <div class="filter-group">
-                            <label for="status-filter-select">Statut</label>
-                            <select id="status-filter-select" name="status" class="filter-select" onchange="filterByStatus(this.value)">
-                                <option value="all" {% if currentStatusFilter|default('all') == 'all' %}selected{% endif %}>Tous les statuts</option>
-                                {% if availableStatuses is defined and availableStatuses|length > 0 %}
-                                    {% for status in availableStatuses %}
-                                        <option value="{{ status.key }}" {% if currentStatusFilter|default('all') == status.key %}selected{% endif %}>
-                                            {{ status.label }}
-                                        </option>
-                                    {% endfor %}
-                                {% endif %}
-                            </select>
-                        </div>
-                    </div>
                 </div>
                 
                 <div class="history-table-wrapper">
@@ -214,37 +203,34 @@
                     </table>
                 </div>
                 
-                {# Pagination #}
-                {% if totalPages > 1 %}
-                <div class="history-pagination">
-                    <div class="pagination-info">
-                        Affichage de {{ startResult }} à {{ endResult }} sur {{ totalResults }} résultat(s)
-                    </div>
-                    <div class="pagination-controls">
+                {# Pagination style panier #}
+                {% if totalPages is defined and totalPages > 1 %}
+                <div class="pagination-container">
+                    <div class="pagination">
                         {% if currentPage > 1 %}
-                            <a href="{{ path('profile_history', app.request.query.all|merge({page: currentPage - 1})) }}" class="pagination-btn">
+                            <a href="{{ path('profile_history', app.request.query.all|merge({page: currentPage - 1})) }}" class="page-btn prev">
                                 <i class="fas fa-chevron-left"></i>
                             </a>
                         {% else %}
-                            <span class="pagination-btn disabled">
+                            <span class="page-btn prev disabled">
                                 <i class="fas fa-chevron-left"></i>
                             </span>
                         {% endif %}
                         
                         {% for page in 1..totalPages %}
                             {% if page == currentPage %}
-                                <span class="pagination-btn active">{{ page }}</span>
+                                <span class="page-btn active">{{ page }}</span>
                             {% else %}
-                                <a href="{{ path('profile_history', app.request.query.all|merge({page: page})) }}" class="pagination-btn">{{ page }}</a>
+                                <a href="{{ path('profile_history', app.request.query.all|merge({page: page})) }}" class="page-btn">{{ page }}</a>
                             {% endif %}
                         {% endfor %}
                         
                         {% if currentPage < totalPages %}
-                            <a href="{{ path('profile_history', app.request.query.all|merge({page: currentPage + 1})) }}" class="pagination-btn">
+                            <a href="{{ path('profile_history', app.request.query.all|merge({page: currentPage + 1})) }}" class="page-btn next">
                                 <i class="fas fa-chevron-right"></i>
                             </a>
                         {% else %}
-                            <span class="pagination-btn disabled">
+                            <span class="page-btn next disabled">
                                 <i class="fas fa-chevron-right"></i>
                             </span>
                         {% endif %}
@@ -264,26 +250,59 @@
             const form = document.getElementById('history-filter-form');
             if (!form) return;
             
-            const statusInput = document.getElementById('status-filter-input');
-            if (statusInput) {
-                statusInput.value = status;
+            const statusSelect = document.getElementById('status-filter-select');
+            if (statusSelect) {
+                statusSelect.value = status;
             }
             
             // Soumettre le formulaire
             form.submit();
         }
 
-        // Gestion de la recherche
+        // Gestion de la recherche et soumission automatique des filtres
         document.addEventListener('DOMContentLoaded', function() {
-            const searchInput = document.querySelector('.history-search input[type="search"]');
             const form = document.getElementById('history-filter-form');
+            if (!form) return;
+
+            // Sauvegarder la position de scroll avant la soumission
+            function saveScrollPosition() {
+                const tableSection = document.querySelector('.profile-history-table');
+                if (tableSection) {
+                    const scrollPosition = tableSection.getBoundingClientRect().top + window.pageYOffset;
+                    sessionStorage.setItem('historyTableScrollPosition', scrollPosition.toString());
+                }
+            }
+
+            // Restaurer la position de scroll après le chargement
+            function restoreScrollPosition() {
+                const savedPosition = sessionStorage.getItem('historyTableScrollPosition');
+                if (savedPosition) {
+                    const tableSection = document.querySelector('.profile-history-table');
+                    if (tableSection) {
+                        setTimeout(function() {
+                            const position = parseInt(savedPosition, 10);
+                            window.scrollTo({
+                                top: position - 100, // Offset pour ne pas être collé en haut
+                                behavior: 'smooth'
+                            });
+                            sessionStorage.removeItem('historyTableScrollPosition');
+                        }, 100);
+                    }
+                }
+            }
+
+            // Restaurer la position au chargement de la page
+            restoreScrollPosition();
+
+            // Recherche avec délai (debounce)
+            const searchInput = document.querySelector('.history-search input[type="search"]');
             let searchTimeout;
 
-            if (searchInput && form) {
-                // Recherche avec délai (debounce)
+            if (searchInput) {
                 searchInput.addEventListener('input', function() {
                     clearTimeout(searchTimeout);
                     searchTimeout = setTimeout(function() {
+                        saveScrollPosition();
                         form.submit();
                     }, 500);
                 });
@@ -293,10 +312,20 @@
                     if (e.key === 'Enter') {
                         e.preventDefault();
                         clearTimeout(searchTimeout);
+                        saveScrollPosition();
                         form.submit();
                     }
                 });
             }
+
+            // Soumission automatique pour tous les filtres avec classe auto-submit
+            const autoSubmitElements = document.querySelectorAll('.auto-submit');
+            autoSubmitElements.forEach(element => {
+                element.addEventListener('change', function() {
+                    saveScrollPosition();
+                    form.submit();
+                });
+            });
 
             // Initialisation du graphique
             initializeSpendingChart();

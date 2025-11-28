@@ -73,9 +73,10 @@ class ProfileController extends AbstractController
         // Récupérer les paramètres de recherche et de filtre
         $searchQuery = $request->query->get('search', '');
         $statusFilter = $request->query->get('status', 'all');
+        $paymentMethodFilter = $request->query->get('payment_method', 'all');
         
         // Récupérer les commandes de l'utilisateur avec filtres (pour l'affichage)
-        $orders = $this->fetchUserOrders($userId, $searchQuery, $statusFilter);
+        $orders = $this->fetchUserOrders($userId, $searchQuery, $statusFilter, $paymentMethodFilter);
         
         // Récupérer toutes les commandes pour les statistiques (sans filtres)
         $allOrders = $this->fetchUserOrders($userId, '', 'all');
@@ -106,6 +107,7 @@ class ProfileController extends AbstractController
             'stats' => $stats,
             'availableStatuses' => $availableStatuses,
             'currentStatusFilter' => $statusFilter,
+            'currentPaymentMethodFilter' => $paymentMethodFilter,
             'searchQuery' => $searchQuery,
             'totalPages' => $totalPages,
             'currentPage' => $page,
@@ -1175,7 +1177,7 @@ class ProfileController extends AbstractController
     /**
      * Récupère les commandes de l'utilisateur avec leurs détails.
      */
-    private function fetchUserOrders(int $userId, string $searchQuery = '', string $statusFilter = 'all'): array
+    private function fetchUserOrders(int $userId, string $searchQuery = '', string $statusFilter = 'all', string $paymentMethodFilter = 'all'): array
     {
         $sql = <<<SQL
             SELECT 
@@ -1205,6 +1207,13 @@ class ProfileController extends AbstractController
         if ($statusFilter !== 'all') {
             $sql .= ' AND o.status = :status';
             $params['status'] = $statusFilter;
+        }
+
+        // Appliquer le filtre de mode de paiement
+        if ($paymentMethodFilter !== 'all') {
+            // Le payment_method est stocké dans o.notes au format JSON
+            $sql .= " AND o.notes::jsonb->>'payment_method' = :payment_method";
+            $params['payment_method'] = $paymentMethodFilter;
         }
 
         // Appliquer la recherche
