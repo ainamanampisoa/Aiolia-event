@@ -33,8 +33,11 @@
                     <p>{{ 'profile_history.header_desc'|trans }}</p>
                 </div>
                 <div class="profile-history-actions">
+                    <a href="{{ path('my_tickets') }}" class="btn-solid">
+                        <i class="fas fa-ticket-alt"></i> {{ 'profile_history.view_tickets'|trans|default('Mes billets') }}
+                    </a>
                     <button class="btn-outline"><i class="fas fa-file-download"></i> {{ 'profile_history.export_pdf'|trans }}</button>
-                    <button class="btn-solid"><i class="fas fa-filter"></i> {{ 'profile_history.filter'|trans }}</button>
+                    <button class="btn-solid secondary"><i class="fas fa-filter"></i> {{ 'profile_history.filter'|trans }}</button>
                 </div>
             </header>
 
