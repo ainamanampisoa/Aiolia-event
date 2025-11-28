@@ -1198,15 +1198,15 @@ class ProfileController extends AbstractController
                 }
             }
 
-            $eventDates = !empty($row['event_dates']) ? explode(', ', $row['event_dates']) : [];
-            $firstEventDate = !empty($eventDates) ? new \DateTimeImmutable($eventDates[0]) : null;
+            // Utiliser la date de création de la commande (date du paiement) au lieu de la date de l'événement
+            $paymentDate = !empty($row['created_at']) ? new \DateTimeImmutable($row['created_at']) : null;
 
             return [
                 'id' => (int) $row['id'],
                 'code' => 'CMD-' . str_pad((string) $row['id'], 6, '0', STR_PAD_LEFT),
                 'title' => $row['event_titles'] ?? 'Événement',
-                'date' => $firstEventDate ? $firstEventDate->format('d F Y') : '',
-                'hour' => $firstEventDate ? $firstEventDate->format('H:i') : '',
+                'date' => $paymentDate ? $paymentDate->format('d F Y') : '',
+                'hour' => $paymentDate ? $paymentDate->format('H:i') : '',
                 'status' => $statusLabels[$status] ?? ucfirst($status),
                 'status_key' => $status,
                 'amount' => number_format((float) $row['total_amount'], 0, ',', ' ') . ' MGA',
