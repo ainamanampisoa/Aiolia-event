@@ -768,6 +768,9 @@ class ProfileController extends AbstractController
         
         // Récupérer les insights dynamiques
         $insights = $this->fetchStatsInsights($userId, $dateFrom);
+        
+        // Récupérer la comparaison annuelle (seulement si période = all)
+        $yearComparison = $period === 'all' ? $this->fetchYearComparison($userId) : [];
 
         return $this->render('profile/stats.html.twig', [
             'stats' => $stats,
@@ -777,6 +780,7 @@ class ProfileController extends AbstractController
             'topEvents' => $topEvents,
             'insights' => $insights,
             'currentPeriod' => $period,
+            'yearComparison' => $yearComparison,
         ]);
     }
     
@@ -2075,48 +2079,78 @@ class ProfileController extends AbstractController
      */
     private function fetchPaymentMethodDistribution(int $userId): array
     {
+        // Utiliser les données depuis les commandes (plus fiable)
         $sql = <<<SQL
             SELECT 
-                tp.provider,
-                COUNT(*) as count,
-                SUM(tp.amount) as total_amount
-            FROM aiolia.ticket_payments tp
-            JOIN aiolia.ticket_invoices ti ON ti.id = tp.invoice_id
-            JOIN aiolia.orders o ON o.id = ti.order_id
+                o.notes,
+                o.total_amount,
+                COUNT(*) as order_count
+            FROM aiolia.orders o
             WHERE o.user_id = :user_id
-              AND tp.status = 'paid'
-            GROUP BY tp.provider
+              AND o.status = 'paid'
+              AND o.notes IS NOT NULL
+            GROUP BY o.notes, o.total_amount
         SQL;
 
         $rows = $this->connection->executeQuery($sql, ['user_id' => $userId])->fetchAllAssociative();
 
-        $total = array_sum(array_column($rows, 'total_amount'));
         $providerLabels = [
+            'mvola' => 'M-Vola',
+            'orange-money' => 'Orange Money',
             'orange' => 'Orange Money',
+            'airtel-money' => 'Airtel Money',
             'airtel' => 'Airtel Money',
-            'telma' => 'M-Vola',
+            'telma' => 'Telma',
+            'bank_transfer' => 'Virement bancaire',
         ];
 
         $distribution = [];
-        foreach ($rows as $row) {
-            $provider = $row['provider'];
-            $label = $providerLabels[$provider] ?? 'Autres';
-            $amount = (float) $row['total_amount'];
-            $percentage = $total > 0 ? round($amount / $total * 100) : 0;
+        $totalCount = 0;
 
+        foreach ($rows as $row) {
+            $notes = json_decode($row['notes'], true);
+            $paymentMethod = null;
+            
+            if (is_array($notes) && isset($notes['payment_method'])) {
+                $paymentMethod = $notes['payment_method'];
+            }
+            
+            if (!$paymentMethod) {
+                $paymentMethod = 'other';
+            }
+            
+            $label = $providerLabels[$paymentMethod] ?? 'Autres';
+            $count = (int) $row['order_count'];
+            
             if (!isset($distribution[$label])) {
                 $distribution[$label] = [
                     'label' => $label,
-                    'percentage' => 0,
                     'count' => 0,
                 ];
             }
-
-            $distribution[$label]['percentage'] += $percentage;
-            $distribution[$label]['count'] += (int) $row['count'];
+            
+            $distribution[$label]['count'] += $count;
+            $totalCount += $count;
         }
 
-        return array_values($distribution);
+        // Calculer les pourcentages
+        $result = [];
+        foreach ($distribution as $label => $data) {
+            $percentage = $totalCount > 0 ? round(($data['count'] / $totalCount) * 100) : 0;
+            $result[] = [
+                'label' => $label,
+                'count' => $data['count'],
+                'percentage' => $percentage,
+            ];
+        }
+
+        // Trier par nombre de transactions décroissant
+        usort($result, fn($a, $b) => $b['count'] <=> $a['count']);
+
+        return [
+            'methods' => $result,
+            'total_count' => $totalCount,
+        ];
     }
 
     /**
@@ -2343,5 +2377,99 @@ class ProfileController extends AbstractController
             'category' => $row['category'],
             'slug' => $row['category_slug'] ?? null
         ], $rows);
+    }
+
+    /**
+     * Récupère la comparaison des dépenses entre l'année en cours et l'année précédente.
+     */
+    private function fetchYearComparison(int $userId): array
+    {
+        $currentYear = (int) date('Y');
+        $previousYear = $currentYear - 1;
+        
+        $sql = <<<SQL
+            SELECT 
+                TO_CHAR(o.created_at, 'MM') as month_num,
+                TO_CHAR(o.created_at, 'Month') as month_name,
+                EXTRACT(YEAR FROM o.created_at) as year,
+                SUM(o.total_amount) as total_amount
+            FROM aiolia.orders o
+            WHERE o.user_id = :user_id 
+              AND o.status = 'paid'
+              AND EXTRACT(YEAR FROM o.created_at) IN ({$currentYear}, {$previousYear})
+            GROUP BY TO_CHAR(o.created_at, 'MM'), TO_CHAR(o.created_at, 'Month'), EXTRACT(YEAR FROM o.created_at)
+            ORDER BY month_num, year
+        SQL;
+        
+        $rows = $this->connection->executeQuery($sql, [
+            'user_id' => $userId,
+        ])->fetchAllAssociative();
+        
+        // Organiser les données par mois
+        $monthlyData = [];
+        $monthNames = [
+            '01' => 'Janvier', '02' => 'Février', '03' => 'Mars', '04' => 'Avril',
+            '05' => 'Mai', '06' => 'Juin', '07' => 'Juillet', '08' => 'Août',
+            '09' => 'Septembre', '10' => 'Octobre', '11' => 'Novembre', '12' => 'Décembre'
+        ];
+        
+        $monthNamesShort = [
+            '01' => 'Jan', '02' => 'Fév', '03' => 'Mar', '04' => 'Avr',
+            '05' => 'Mai', '06' => 'Juin', '07' => 'Juil', '08' => 'Aoû',
+            '09' => 'Sep', '10' => 'Oct', '11' => 'Nov', '12' => 'Déc'
+        ];
+        
+        foreach ($rows as $row) {
+            $monthNum = $row['month_num'];
+            $year = (int) $row['year'];
+            $amount = (float) $row['total_amount'];
+            
+            if (!isset($monthlyData[$monthNum])) {
+                $monthlyData[$monthNum] = [
+                    'month' => trim($row['month_name']),
+                    'month_short' => $monthNamesShort[$monthNum] ?? substr(trim($row['month_name']), 0, 3),
+                    'current_year' => 0,
+                    'previous_year' => 0,
+                ];
+            }
+            
+            if ($year === $currentYear) {
+                $monthlyData[$monthNum]['current_year'] = $amount;
+            } elseif ($year === $previousYear) {
+                $monthlyData[$monthNum]['previous_year'] = $amount;
+            }
+        }
+        
+        // Convertir en tableau indexé et formater
+        $comparison = [];
+        $maxValue = 0;
+        
+        foreach ($monthlyData as $monthNum => $data) {
+            if ($data['current_year'] > $maxValue) {
+                $maxValue = $data['current_year'];
+            }
+            if ($data['previous_year'] > $maxValue) {
+                $maxValue = $data['previous_year'];
+            }
+            
+            $comparison[] = [
+                'month' => $data['month'],
+                'month_short' => $data['month_short'],
+                'current_year' => $data['current_year'],
+                'previous_year' => $data['previous_year'],
+                'current_year_formatted' => number_format($data['current_year'], 0, ',', ' ') . ' MGA',
+                'previous_year_formatted' => number_format($data['previous_year'], 0, ',', ' ') . ' MGA',
+                'current_year_label' => (string) $currentYear,
+                'previous_year_label' => (string) $previousYear,
+                'growth' => $data['previous_year'] > 0 
+                    ? round((($data['current_year'] - $data['previous_year']) / $data['previous_year']) * 100, 1)
+                    : ($data['current_year'] > 0 ? 100 : 0),
+            ];
+        }
+        
+        return [
+            'data' => $comparison,
+            'max_value' => $maxValue,
+        ];
     }
 }

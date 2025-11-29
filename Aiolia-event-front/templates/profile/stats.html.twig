@@ -36,9 +36,6 @@
                             <i class="fas fa-calendar"></i> 1 an
                         </button>
                     </div>
-                    <a href="{{ path('profile_stats_export', {'period': currentPeriod}) }}" class="btn-solid">
-                        <i class="fas fa-download"></i> {{ 'profile_stats.btn_export'|trans|default('Exporter CSV') }}
-                    </a>
                 </div>
             </header>
 
@@ -202,24 +199,38 @@
                 </div>
             </section>
             
-            {# Graphique des dépenses mensuelles (optionnel) #}
-            {% if monthlyExpenses|length > 0 %}
+            {# Graphique de comparaison année en cours vs année précédente #}
+            {% if yearComparison is defined and yearComparison.data is defined and yearComparison.data|length > 0 %}
             <section class="stats-charts" style="margin-top: 32px;">
                 <div class="chart-card wow fadeInUp" data-wow-delay="280ms" style="grid-column: 1 / -1;">
                     <header>
-                        <h2>Évolution des dépenses</h2>
-                        <span class="chart-period">Derniers 6 mois</span>
+                        <h2>Comparaison annuelle</h2>
+                        <span class="chart-period">Année en cours vs année précédente</span>
                     </header>
-                    <div class="chart-placeholder">
-                        <div class="bars">
-                            {% set maxValue = maxExpense %}
-                            {% for expense in monthlyExpenses|reverse %}
-                                {% set height = maxValue > 0 ? ((expense.total_raw / maxValue) * 100 + 40)|round : 40 %}
-                                <span style="height: {{ height }}px" title="{{ expense.month }}: {{ expense.total }}"></span>
+                    <div class="chart-placeholder comparison-chart">
+                        <div class="comparison-bars">
+                            {% set maxValue = yearComparison.max_value|default(1) %}
+                            {% for comparison in yearComparison.data %}
+                                {% set currentHeight = maxValue > 0 ? ((comparison.current_year / maxValue) * 100 + 40)|round : 40 %}
+                                {% set previousHeight = maxValue > 0 ? ((comparison.previous_year / maxValue) * 100 + 40)|round : 40 %}
+                                <div class="comparison-bar-group">
+                                    <div class="bar-wrapper">
+                                        <div class="bar-current" style="height: {{ currentHeight }}px;" 
+                                             title="{{ comparison.month }} {{ comparison.current_year_label }}: {{ comparison.current_year_formatted }}">
+                                            <span class="bar-value">{{ comparison.current_year_formatted }}</span>
+                                        </div>
+                                        <div class="bar-previous" style="height: {{ previousHeight }}px;" 
+                                             title="{{ comparison.month }} {{ comparison.previous_year_label }}: {{ comparison.previous_year_formatted }}">
+                                            <span class="bar-value">{{ comparison.previous_year_formatted }}</span>
+                                        </div>
+                                    </div>
+                                    <div class="bar-label">{{ comparison.month_short }}</div>
+                                </div>
                             {% endfor %}
                         </div>
-                        <div class="chart-legend">
-                            <span><i></i> Dépenses mensuelles (MGA)</span>
+                        <div class="chart-legend comparison-legend">
+                            <span class="legend-item"><i class="legend-dot current"></i> {{ "now"|date("Y") }}</span>
+                            <span class="legend-item"><i class="legend-dot previous"></i> {{ ("now"|date("Y")) - 1 }}</span>
                         </div>
                     </div>
                 </div>
