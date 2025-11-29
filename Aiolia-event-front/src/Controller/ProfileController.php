@@ -120,6 +120,9 @@ class ProfileController extends AbstractController
             'airtel-money' => 'Airtel Money',
         ];
 
+        // Récupérer les informations utilisateur complètes
+        $userInfo = $this->fetchUserInfo($userId);
+
         // Générer le contenu HTML de la facture
         $html = $this->renderView('profile/invoice.html.twig', [
             'order' => [
@@ -134,7 +137,7 @@ class ProfileController extends AbstractController
                 'total_tickets' => (int) ($order['total_tickets'] ?? 0),
                 'payment_method' => $paymentMethod ? ($paymentMethodLabels[$paymentMethod] ?? ucfirst(str_replace('-', ' ', $paymentMethod))) : 'Non spécifié',
             ],
-            'user' => $sessionUser,
+            'user' => $userInfo,
         ]);
 
         // Configuration de Dompdf
