@@ -202,25 +202,33 @@ class ProfileController extends AbstractController
                     $status = $order['status'] ?? '';
                     $title = $order['title'] ?? '';
                     
-                    // Formater la date pour le CSV (format YYYY-MM-DD)
+                    // Formater la date et l'heure pour le CSV
                     $date = '';
-                    if (isset($order['created_at']) && $order['created_at'] instanceof \DateTimeImmutable) {
-                        $date = $order['created_at']->format('Y-m-d');
-                    } elseif (isset($order['created_at']) && is_string($order['created_at'])) {
-                        // Si c'est une chaîne, essayer de la parser
-                        try {
-                            $dateObj = new \DateTimeImmutable($order['created_at']);
+                    $hour = '';
+                    
+                    if (isset($order['created_at'])) {
+                        $dateObj = null;
+                        
+                        if ($order['created_at'] instanceof \DateTimeImmutable) {
+                            $dateObj = $order['created_at'];
+                        } elseif (is_string($order['created_at'])) {
+                            // Si c'est une chaîne, essayer de la parser
+                            try {
+                                $dateObj = new \DateTimeImmutable($order['created_at']);
+                            } catch (\Exception $e) {
+                                // En cas d'erreur de parsing, on laisse date et hour vides
+                            }
+                        }
+                        
+                        // Si on a réussi à obtenir un objet DateTime, formater date et heure
+                        if ($dateObj instanceof \DateTimeImmutable) {
                             $date = $dateObj->format('Y-m-d');
-                        } catch (\Exception $e) {
-                            $date = '';
+                            $hour = $dateObj->format('H:i');
                         }
                     }
                     
-                    // Formater l'heure pour le CSV (format HH:MM)
-                    $hour = '';
-                    if (isset($order['created_at']) && $order['created_at'] instanceof \DateTimeImmutable) {
-                        $hour = $order['created_at']->format('H:i');
-                    } elseif (isset($order['hour']) && !empty($order['hour'])) {
+                    // Si l'heure n'a toujours pas été récupérée mais qu'on a un champ hour séparé
+                    if (empty($hour) && isset($order['hour']) && !empty($order['hour'])) {
                         $hour = $order['hour'];
                     }
                     
