@@ -162,6 +162,110 @@ class ProfileController extends AbstractController
         ]);
     }
 
+    #[Route('/profile/history/export', name: 'profile_history_export')]
+    public function exportHistory(Request $request): Response
+    {
+        $session = $request->getSession();
+        if (!$session->isStarted()) {
+            $session->start();
+        }
+
+        $sessionUser = $session->get('user');
+        $isAuthenticated = is_array($sessionUser) && isset($sessionUser['id']);
+
+        if (!$isAuthenticated) {
+            return $this->redirectToRoute('login');
+        }
+
+        $userId = (int) $sessionUser['id'];
+        
+        // Récupérer les paramètres de recherche et de filtre (sans pagination pour exporter tout)
+        $searchQuery = $request->query->get('search', '');
+        $statusFilter = $request->query->get('status', 'all');
+        $paymentMethodFilter = $request->query->get('payment_method', 'all');
+        
+        try {
+            // Récupérer toutes les commandes avec les filtres (sans pagination)
+            $orders = $this->fetchUserOrders($userId, $searchQuery, $statusFilter, $paymentMethodFilter);
+
+            // Générer le CSV
+            $csvLines = [];
+            // En-tête
+            $csvLines[] = "Numéro de commande,Statut,Événement,Date,Heure,Billets,Montant,Méthode de paiement";
+            
+            if (empty($orders)) {
+                // Si aucune commande, ajouter une ligne pour indiquer qu'il n'y a pas de données
+                $csvLines[] = "Aucune commande trouvée,,,,,,";
+            } else {
+                foreach ($orders as $order) {
+                    $code = $order['code'] ?? '';
+                    $status = $order['status'] ?? '';
+                    $title = $order['title'] ?? '';
+                    
+                    // Formater la date pour le CSV (format YYYY-MM-DD)
+                    $date = '';
+                    if (isset($order['created_at']) && $order['created_at'] instanceof \DateTimeImmutable) {
+                        $date = $order['created_at']->format('Y-m-d');
+                    } elseif (isset($order['created_at']) && is_string($order['created_at'])) {
+                        // Si c'est une chaîne, essayer de la parser
+                        try {
+                            $dateObj = new \DateTimeImmutable($order['created_at']);
+                            $date = $dateObj->format('Y-m-d');
+                        } catch (\Exception $e) {
+                            $date = '';
+                        }
+                    }
+                    
+                    // Formater l'heure pour le CSV (format HH:MM)
+                    $hour = '';
+                    if (isset($order['created_at']) && $order['created_at'] instanceof \DateTimeImmutable) {
+                        $hour = $order['created_at']->format('H:i');
+                    } elseif (isset($order['hour']) && !empty($order['hour'])) {
+                        $hour = $order['hour'];
+                    }
+                    
+                    $tickets = $order['tickets'] ?? 0;
+                    // Utiliser le montant brut pour le CSV
+                    $amountRaw = $order['amount_raw'] ?? 0;
+                    $amount = number_format($amountRaw, 0, '.', '');
+                    $method = $order['method'] ?? '';
+                    
+                    // Échapper les guillemets et les virgules
+                    $csvLines[] = sprintf(
+                        '"%s","%s","%s","%s","%s","%s","%s","%s"',
+                        str_replace('"', '""', $code),
+                        str_replace('"', '""', $status),
+                        str_replace('"', '""', $title),
+                        str_replace('"', '""', $date),
+                        str_replace('"', '""', $hour),
+                        str_replace('"', '""', (string)$tickets),
+                        str_replace('"', '""', $amount),
+                        str_replace('"', '""', $method)
+                    );
+                }
+            }
+
+            // Joindre toutes les lignes
+            $csvContent = implode("\n", $csvLines);
+
+            // Générer le nom du fichier
+            $filename = 'historique_achats_' . date('Y-m-d_His') . '.csv';
+
+            // Créer la réponse avec les bons en-têtes
+            $response = new Response($csvContent);
+            $response->headers->set('Content-Type', 'text/csv; charset=UTF-8');
+            $response->headers->set('Content-Disposition', 'attachment; filename="' . $filename . '"');
+            $response->headers->set('Cache-Control', 'must-revalidate, post-check=0, pre-check=0');
+            $response->headers->set('Pragma', 'public');
+            $response->headers->set('Expires', '0');
+
+            return $response;
+        } catch (\Exception $e) {
+            // En cas d'erreur, retourner un message d'erreur
+            return new Response('Erreur lors de l\'export: ' . $e->getMessage(), 500);
+        }
+    }
+
     #[Route('/profile/history', name: 'profile_history')]
     public function history(Request $request): Response
     {
