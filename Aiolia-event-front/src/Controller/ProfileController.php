@@ -753,12 +753,16 @@ class ProfileController extends AbstractController
         
         // Récupérer la répartition par type d'événement
         $eventTypeDistribution = $this->fetchEventTypeDistribution($userId);
+        
+        // Récupérer le Top 5 des événements achetés
+        $topEvents = $this->fetchTopPurchasedEvents($userId, 5);
 
         return $this->render('profile/stats.html.twig', [
             'stats' => $stats,
             'monthlyExpenses' => $monthlyExpenses,
             'maxExpense' => $maxExpense,
             'eventTypeDistribution' => $eventTypeDistribution,
+            'topEvents' => $topEvents,
         ]);
     }
 
@@ -1793,6 +1797,61 @@ class ProfileController extends AbstractController
                 'category' => $row['category'],
                 'percentage' => $percentage,
                 'order_count' => (int) $row['order_count'],
+            ];
+        }, $rows);
+    }
+
+    /**
+     * Récupère le Top N des événements achetés par l'utilisateur.
+     * 
+     * @param int $userId ID de l'utilisateur
+     * @param int $limit Nombre d'événements à retourner (défaut: 5)
+     * @return array Tableau des événements triés par montant total dépensé
+     */
+    private function fetchTopPurchasedEvents(int $userId, int $limit = 5): array
+    {
+        // Limiter à un entier valide pour éviter les injections SQL
+        $limit = max(1, min(100, (int) $limit));
+        
+        $sql = <<<SQL
+            SELECT 
+                e.id,
+                e.title,
+                e.slug,
+                COALESCE(ec.label, 'Autres') as category,
+                COUNT(DISTINCT o.id) as purchase_count,
+                SUM(oi.quantity) as total_tickets,
+                SUM(o.total_amount) as total_spent,
+                MIN(o.created_at) as first_purchase,
+                MAX(o.created_at) as last_purchase
+            FROM aiolia.orders o
+            JOIN aiolia.order_items oi ON oi.order_id = o.id
+            JOIN aiolia.ticket_types tt ON tt.id = oi.ticket_type_id
+            JOIN aiolia.events e ON e.id = tt.event_id
+            LEFT JOIN aiolia.event_categories ec ON ec.id = e.primary_category_id
+            WHERE o.user_id = :user_id 
+              AND o.status = 'paid'
+            GROUP BY e.id, e.title, e.slug, ec.label
+            ORDER BY total_spent DESC, purchase_count DESC
+            LIMIT {$limit}
+        SQL;
+
+        $rows = $this->connection->executeQuery($sql, [
+            'user_id' => $userId,
+        ])->fetchAllAssociative();
+
+        return array_map(function (array $row): array {
+            return [
+                'id' => (int) $row['id'],
+                'title' => $row['title'],
+                'slug' => $row['slug'],
+                'category' => $row['category'],
+                'purchase_count' => (int) $row['purchase_count'],
+                'total_tickets' => (int) $row['total_tickets'],
+                'total_spent' => number_format((float) $row['total_spent'], 0, ',', ' ') . ' MGA',
+                'total_spent_raw' => (float) $row['total_spent'],
+                'first_purchase' => isset($row['first_purchase']) ? new \DateTimeImmutable($row['first_purchase']) : null,
+                'last_purchase' => isset($row['last_purchase']) ? new \DateTimeImmutable($row['last_purchase']) : null,
             ];
         }, $rows);
     }

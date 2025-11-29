@@ -63,54 +63,90 @@
             </section>
 
             <section class="stats-charts">
+                {# Graphique 1: Catégories préférées (Donut) #}
                 <div class="chart-card wow fadeInUp" data-wow-delay="200ms">
                     <header>
-                        <h2>{{ 'profile_stats.chart_expenses_title'|trans }}</h2>
-                        <span class="chart-period">{{ 'profile_stats.chart_expenses_period'|trans }}</span>
+                        <h2>Catégories préférées</h2>
+                        <span class="chart-period">Répartition de vos achats</span>
                     </header>
-                    <div class="chart-placeholder">
-                        <div class="bars">
-                            {% if monthlyExpenses|length > 0 %}
-                                {% set maxValue = maxExpense %}
-                                {% for expense in monthlyExpenses|reverse %}
-                                    {% set height = maxValue > 0 ? ((expense.total_raw / maxValue) * 100 + 40)|round : 40 %}
-                                    <span style="height: {{ height }}px" title="{{ expense.month }}: {{ expense.total }}"></span>
-                                {% endfor %}
-                            {% else %}
-                                {% for i in 1..6 %}
-                                    <span style="height: 40px"></span>
-                                {% endfor %}
-                            {% endif %}
-                        </div>
-                        <div class="chart-legend">
-                            <span><i></i> {{ 'profile_stats.chart_expenses_legend'|trans }}</span>
-                        </div>
-                    </div>
-                </div>
-                <div class="chart-card wow fadeInUp" data-wow-delay="240ms">
-                    <header>
-                        <h2>{{ 'profile_stats.chart_types_title'|trans }}</h2>
-                        <span class="chart-period">{{ 'profile_stats.chart_types_period'|trans }}</span>
-                    </header>
-                    <div class="chart-placeholder donut">
-                        <div class="donut-chart">
-                            <svg viewBox="0 0 36 36">
-                                <path class="slice slice-1" d="M18 2a16 16 0 0 1 11.314 27.314L18 18Z" />
-                                <path class="slice slice-2" d="M29.314 29.314A16 16 0 1 1 18 2l0 16Z" />
-                                <circle class="donut-hole" cx="18" cy="18" r="9"></circle>
-                            </svg>
-                            <div class="donut-value">35 %<span>Live Music</span></div>
-                        </div>
-                        <ul class="chart-legend">
-                            {% if eventTypeDistribution|length > 0 %}
+                    <div class="chart-placeholder donut" data-categories='{{ eventTypeDistribution|slice(0, 5)|map(d => {"category": d.category, "percentage": d.percentage})|json_encode|raw }}'>
+                        {% if eventTypeDistribution|length > 0 %}
+                            <div class="donut-chart">
+                                <svg viewBox="0 0 36 36" class="donut-svg" id="donut-chart-svg">
+                                    <circle class="donut-hole" cx="18" cy="18" r="9"></circle>
+                                </svg>
+                                <div class="donut-value" id="donut-value">
+                                    {% set distribution = eventTypeDistribution|slice(0, 5) %}
+                                    {{ distribution[0].percentage }} %<span>{{ distribution[0].category }}</span>
+                                </div>
+                            </div>
+                            <ul class="chart-legend">
                                 {% set colors = ['dot-1', 'dot-2', 'dot-3', 'dot-4', 'dot-5'] %}
                                 {% for i, dist in eventTypeDistribution|slice(0, 5) %}
-                                    <li><span class="dot {{ colors[i % colors|length] }}"></span> {{ dist.category }} ({{ dist.percentage }} %)</li>
+                                    <li>
+                                        <span class="dot {{ colors[i % colors|length] }}"></span> 
+                                        {{ dist.category }} ({{ dist.percentage }}%)
+                                    </li>
                                 {% endfor %}
-                            {% else %}
-                                <li><span class="dot dot-1"></span> {{ 'profile_stats.chart_types_no_data'|trans }}</li>
-                            {% endif %}
-                        </ul>
+                            </ul>
+                        {% else %}
+                            <div class="donut-chart">
+                                <svg viewBox="0 0 36 36" class="donut-svg">
+                                    <circle class="donut-hole" cx="18" cy="18" r="9"></circle>
+                                </svg>
+                                <div class="donut-value">0 %<span>Aucune donnée</span></div>
+                            </div>
+                            <ul class="chart-legend">
+                                <li><span class="dot dot-1"></span> Aucune catégorie disponible</li>
+                            </ul>
+                        {% endif %}
+                    </div>
+                </div>
+
+                {# Graphique 2: Top 5 événements achetés #}
+                <div class="chart-card wow fadeInUp" data-wow-delay="240ms">
+                    <header>
+                        <h2>Top 5 événements achetés</h2>
+                        <span class="chart-period">Vos événements favoris par dépense</span>
+                    </header>
+                    <div class="chart-placeholder top-events">
+                        {% if topEvents|length > 0 %}
+                            {% set maxSpent = topEvents[0].total_spent_raw %}
+                            <div class="top-events-list">
+                                {% for event in topEvents %}
+                                    {% set percentage = maxSpent > 0 ? ((event.total_spent_raw / maxSpent) * 100)|round : 0 %}
+                                    <div class="top-event-item">
+                                        <div class="event-header">
+                                            <div class="event-rank">#{{ loop.index }}</div>
+                                            <div class="event-info">
+                                                <h4>
+                                                    <a href="{{ path('event_details', {'id': event.id}) }}" class="event-link">
+                                                        {{ event.title }}
+                                                    </a>
+                                                </h4>
+                                                <span class="event-category">{{ event.category }}</span>
+                                            </div>
+                                        </div>
+                                        <div class="event-stats">
+                                            <div class="event-bar-wrapper">
+                                                <div class="event-bar" style="width: {{ percentage }}%; background: linear-gradient(90deg, #4A90E2 0%, #50C878 100%);"></div>
+                                            </div>
+                                            <div class="event-details">
+                                                <span class="event-amount">{{ event.total_spent }}</span>
+                                                <span class="event-tickets">{{ event.total_tickets }} billet{{ event.total_tickets > 1 ? 's' : '' }}</span>
+                                                <span class="event-purchases">{{ event.purchase_count }} achat{{ event.purchase_count > 1 ? 's' : '' }}</span>
+                                            </div>
+                                        </div>
+                                    </div>
+                                {% endfor %}
+                            </div>
+                        {% else %}
+                            <div class="no-data-message">
+                                <i class="fas fa-chart-bar"></i>
+                                <p>Aucun événement acheté pour le moment</p>
+                                <a href="{{ path('events') }}" class="btn-solid">Découvrir les événements</a>
+                            </div>
+                        {% endif %}
                     </div>
                 </div>
             </section>
@@ -137,4 +173,79 @@
             </section>
         </div>
     </main>
+{% endblock %}
+
+{% block javascripts %}
+    <script type="text/javascript" src="{{ asset('vente-ticket/js/jquery.min.js') }}"></script>
+    <script type="text/javascript" src="{{ asset('vente-ticket/js/wow.js') }}"></script>
+    <script>
+        document.addEventListener('DOMContentLoaded', function() {
+            // Générer le graphique donut
+            const donutContainer = document.querySelector('.chart-placeholder.donut[data-categories]');
+            if (donutContainer) {
+                try {
+                    const categoriesData = JSON.parse(donutContainer.getAttribute('data-categories'));
+                    const svg = document.getElementById('donut-chart-svg');
+                    const donutValue = document.getElementById('donut-value');
+                    
+                    if (svg && categoriesData && categoriesData.length > 0) {
+                        const colors = ['#4A90E2', '#50C878', '#FF6B6B', '#FFA500', '#9B59B6', '#1ABC9C'];
+                        const circumference = 2 * Math.PI * 16; // r = 16
+                        const radius = 16;
+                        const centerX = 18;
+                        const centerY = 18;
+                        
+                        let currentOffset = 0;
+                        
+                        // Insérer les segments avant le cercle central
+                        const hole = svg.querySelector('.donut-hole');
+                        
+                        categoriesData.forEach((item, index) => {
+                            const percentage = parseFloat(item.percentage) || 0;
+                            const arcLength = (percentage / 100) * circumference;
+                            const color = colors[index % colors.length];
+                            
+                            const circle = document.createElementNS('http://www.w3.org/2000/svg', 'circle');
+                            circle.setAttribute('class', 'donut-segment');
+                            circle.setAttribute('cx', centerX);
+                            circle.setAttribute('cy', centerY);
+                            circle.setAttribute('r', radius);
+                            circle.setAttribute('fill', 'transparent');
+                            circle.setAttribute('stroke', color);
+                            circle.setAttribute('stroke-width', '3');
+                            circle.setAttribute('stroke-dasharray', `${arcLength} ${circumference}`);
+                            circle.setAttribute('stroke-dashoffset', `-${currentOffset}`);
+                            circle.setAttribute('transform', 'rotate(-90 18 18)');
+                            circle.setAttribute('data-percentage', percentage);
+                            circle.setAttribute('data-category', item.category);
+                            
+                            svg.insertBefore(circle, hole);
+                            currentOffset += arcLength;
+                            
+                            // Ajouter l'événement hover
+                            circle.addEventListener('mouseenter', function() {
+                                if (donutValue) {
+                                    donutValue.innerHTML = `${percentage}%<span>${item.category}</span>`;
+                                }
+                            });
+                        });
+                        
+                        // Réinitialiser au survol de la zone
+                        donutContainer.addEventListener('mouseleave', function() {
+                            if (donutValue && categoriesData.length > 0) {
+                                donutValue.innerHTML = `${categoriesData[0].percentage}%<span>${categoriesData[0].category}</span>`;
+                            }
+                        });
+                    }
+                } catch (e) {
+                    console.error('Erreur lors de la génération du graphique donut:', e);
+                }
+            }
+            
+            // Initialiser WOW.js
+            if (typeof WOW !== 'undefined') {
+                new WOW().init();
+            }
+        });
+    </script>
 {% endblock %}
