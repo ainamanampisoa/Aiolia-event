@@ -8,7 +8,10 @@ use App\Repository\OrderRepository;
 use App\Repository\SearchHistoryRepository;
 use App\Repository\UserRepository;
 use App\Repository\UserStatsRepository;
+use App\Repository\WalletTransactionRepository;
 use App\Repository\WishlistRepository;
+use App\Service\LoyaltyPointsService;
+use App\Service\WalletService;
 use Dompdf\Dompdf;
 use Dompdf\Options;
 use Symfony\Bundle\FrameworkBundle\Controller\AbstractController;
@@ -28,7 +31,10 @@ class ProfileController extends AbstractController
         private readonly SearchHistoryRepository $searchHistoryRepository,
         private readonly EventRepository $eventRepository,
         private readonly ActivityRepository $activityRepository,
-        private readonly UserRepository $userRepository
+        private readonly UserRepository $userRepository,
+        private readonly WalletService $walletService,
+        private readonly LoyaltyPointsService $loyaltyPointsService,
+        private readonly WalletTransactionRepository $walletTransactionRepository
     ) {
     }
 
@@ -329,9 +335,231 @@ class ProfileController extends AbstractController
     }
 
     #[Route('/profile/wallet', name: 'profile_wallet')]
-    public function wallet(): Response
+    public function wallet(Request $request): Response
     {
-        return $this->render('profile/wallet.html.twig');
+        $session = $request->getSession();
+        if (!$session->isStarted()) {
+            $session->start();
+        }
+
+        $sessionUser = $session->get('user');
+        $isAuthenticated = is_array($sessionUser) && isset($sessionUser['id']);
+
+        if (!$isAuthenticated) {
+            return $this->redirectToRoute('login');
+        }
+
+        $userId = (int) $sessionUser['id'];
+
+        // Récupérer le solde et les points
+        $balance = $this->walletService->getWalletBalance($userId);
+        $loyaltyInfo = $this->loyaltyPointsService->getLoyaltyTierInfo($userId);
+
+        // Récupérer les transactions
+        $transactions = $this->walletTransactionRepository->findUserTransactions($userId, null, 50);
+
+        // Formater les transactions pour le template
+        $formattedTransactions = array_map(function (array $transaction) {
+            $date = $transaction['created_at'] ? $transaction['created_at']->format('d M Y') : '';
+            
+            $typeLabel = match($transaction['type']) {
+                'credit' => 'Crédit',
+                'debit' => 'Débit',
+                'points_credit' => 'Points crédités',
+                'points_debit' => 'Points utilisés',
+                default => ucfirst($transaction['type']),
+            };
+
+            $statusLabel = match($transaction['status']) {
+                'completed' => 'Confirmée',
+                'pending' => 'En attente',
+                'cancelled' => 'Annulée',
+                'failed' => 'Échouée',
+                default => ucfirst($transaction['status']),
+            };
+
+            $amount = '';
+            if ($transaction['type'] === 'credit' || $transaction['type'] === 'points_credit') {
+                $amount = '+';
+            } elseif ($transaction['type'] === 'debit' || $transaction['type'] === 'points_debit') {
+                $amount = '-';
+            }
+
+            if ($transaction['type'] === 'points_credit' || $transaction['type'] === 'points_debit') {
+                $amount .= abs($transaction['points_delta']) . ' pts';
+            } else {
+                $amount .= number_format(abs($transaction['amount']), 0, ',', ' ') . ' MGA';
+            }
+
+            return [
+                'date' => $date,
+                'label' => $transaction['description'] ?? 'Transaction',
+                'type' => $typeLabel,
+                'amount' => $amount,
+                'status' => $statusLabel,
+                'details' => $transaction['description'] ?? '',
+            ];
+        }, $transactions);
+
+        // Calculer la limite mensuelle de recharge (exemple : 1M MGA)
+        $monthlyLimit = 1_000_000.0;
+        $monthlyRecharge = 0.0; // TODO: Calculer le total des recharges du mois
+        $monthlyProgress = $monthlyRecharge > 0 ? min(($monthlyRecharge / $monthlyLimit) * 100, 100) : 0;
+
+        return $this->render('profile/wallet.html.twig', [
+            'balance' => number_format($balance['balance'], 0, ',', ' ') . ' ' . $balance['currency'],
+            'points' => number_format($balance['points'], 0, ',', ' ') . ' pts',
+            'loyalty_tier' => $loyaltyInfo['current_tier_name'],
+            'transactions' => $formattedTransactions,
+            'monthly_limit' => number_format($monthlyLimit, 0, ',', ' ') . ' MGA',
+            'monthly_progress' => $monthlyProgress,
+        ]);
+    }
+
+    #[Route('/api/wallet/recharge', name: 'api_wallet_recharge', methods: ['POST'])]
+    public function rechargeWallet(Request $request): JsonResponse
+    {
+        $session = $request->getSession();
+        if (!$session->isStarted()) {
+            $session->start();
+        }
+
+        $sessionUser = $session->get('user');
+        if (!is_array($sessionUser) || !isset($sessionUser['id'])) {
+            return new JsonResponse([
+                'status' => 'error',
+                'message' => 'Vous devez être connecté pour recharger votre wallet'
+            ], 401);
+        }
+
+        $userId = (int) $sessionUser['id'];
+        $data = json_decode($request->getContent(), true);
+
+        try {
+            $amount = (float) ($data['amount'] ?? 0);
+            $paymentMethod = (string) ($data['payment_method'] ?? 'mobile_money');
+            $reference = $data['reference'] ?? null;
+
+            if ($amount <= 0) {
+                return new JsonResponse([
+                    'status' => 'error',
+                    'message' => 'Le montant doit être supérieur à 0'
+                ], 400);
+            }
+
+            $transactionId = $this->walletService->rechargeWallet($userId, $amount, $paymentMethod, $reference);
+            $balance = $this->walletService->getWalletBalance($userId);
+
+            return new JsonResponse([
+                'status' => 'success',
+                'message' => 'Wallet rechargé avec succès',
+                'data' => [
+                    'transaction_id' => $transactionId,
+                    'new_balance' => $balance['balance'],
+                    'balance_formatted' => number_format($balance['balance'], 0, ',', ' ') . ' ' . $balance['currency'],
+                ]
+            ]);
+        } catch (\Exception $e) {
+            return new JsonResponse([
+                'status' => 'error',
+                'message' => $e->getMessage()
+            ], 500);
+        }
+    }
+
+    #[Route('/api/wallet/transfer', name: 'api_wallet_transfer', methods: ['POST'])]
+    public function transferWallet(Request $request): JsonResponse
+    {
+        $session = $request->getSession();
+        if (!$session->isStarted()) {
+            $session->start();
+        }
+
+        $sessionUser = $session->get('user');
+        if (!is_array($sessionUser) || !isset($sessionUser['id'])) {
+            return new JsonResponse([
+                'status' => 'error',
+                'message' => 'Vous devez être connecté'
+            ], 401);
+        }
+
+        $fromUserId = (int) $sessionUser['id'];
+        $data = json_decode($request->getContent(), true);
+
+        try {
+            $toUserId = (int) ($data['to_user_id'] ?? 0);
+            $amount = (float) ($data['amount'] ?? 0);
+            $description = (string) ($data['description'] ?? 'Transfert');
+
+            if ($toUserId <= 0) {
+                return new JsonResponse([
+                    'status' => 'error',
+                    'message' => 'Utilisateur destinataire invalide'
+                ], 400);
+            }
+
+            if ($amount <= 0) {
+                return new JsonResponse([
+                    'status' => 'error',
+                    'message' => 'Le montant doit être supérieur à 0'
+                ], 400);
+            }
+
+            if ($fromUserId === $toUserId) {
+                return new JsonResponse([
+                    'status' => 'error',
+                    'message' => 'Vous ne pouvez pas transférer vers votre propre wallet'
+                ], 400);
+            }
+
+            $result = $this->walletService->transferToWallet($fromUserId, $toUserId, $amount, $description);
+            $balance = $this->walletService->getWalletBalance($fromUserId);
+
+            return new JsonResponse([
+                'status' => 'success',
+                'message' => 'Transfert effectué avec succès',
+                'data' => [
+                    'debit_transaction_id' => $result['debit_transaction_id'],
+                    'credit_transaction_id' => $result['credit_transaction_id'],
+                    'new_balance' => $balance['balance'],
+                    'balance_formatted' => number_format($balance['balance'], 0, ',', ' ') . ' ' . $balance['currency'],
+                ]
+            ]);
+        } catch (\Exception $e) {
+            return new JsonResponse([
+                'status' => 'error',
+                'message' => $e->getMessage()
+            ], 500);
+        }
+    }
+
+    #[Route('/api/wallet/transactions', name: 'api_wallet_transactions', methods: ['GET'])]
+    public function getTransactions(Request $request): JsonResponse
+    {
+        $session = $request->getSession();
+        if (!$session->isStarted()) {
+            $session->start();
+        }
+
+        $sessionUser = $session->get('user');
+        if (!is_array($sessionUser) || !isset($sessionUser['id'])) {
+            return new JsonResponse([
+                'status' => 'error',
+                'message' => 'Vous devez être connecté'
+            ], 401);
+        }
+
+        $userId = (int) $sessionUser['id'];
+        $type = $request->query->get('type'); // 'credit', 'debit', 'points_credit', 'points_debit'
+        $limit = (int) ($request->query->get('limit', 50));
+
+        $transactions = $this->walletTransactionRepository->findUserTransactions($userId, $type, $limit);
+
+        return new JsonResponse([
+            'status' => 'success',
+            'data' => $transactions,
+            'total' => count($transactions),
+        ]);
     }
 
     #[Route('/profile/favorites', name: 'profile_favorites')]

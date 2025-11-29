@@ -1,6 +1,6 @@
 {% extends 'base.html.twig' %}
 
-{% block title %}{{ 'profile_wallet.page_title'|trans }}{% endblock %}
+{% block title %}Portefeuille numérique - Aiolia Event{% endblock %}
 
 {% block stylesheets %}
     <link rel="stylesheet" type="text/css" href="{{ asset('vente-ticket/css/animate.min.css') }}">
@@ -14,116 +14,172 @@
 {% block hero %}{% endblock %}
 
 {% block body %}
-    {% set transactions = transactions|default([
-        {
-            date: '07 nov. 2025',
-            label: 'Afro Jazz Experience',
-            type: 'Débit',
-            amount: '-320 000 MGA',
-            status: 'Confirmée',
-            details: 'Paiement par Mobile Money'
-        },
-        {
-            date: '29 oct. 2025',
-            label: 'Remboursement Fashion Night',
-            type: 'Crédit',
-            amount: '+240 000 MGA',
-            status: 'Remboursée',
-            details: 'Crédité sur Wallet'
-        },
-        {
-            date: '18 oct. 2025',
-            label: 'Recharge Wallet',
-            type: 'Crédit',
-            amount: '+200 000 MGA',
-            status: 'Confirmée',
-            details: 'Mobile Money'
-        },
-        {
-            date: '02 oct. 2025',
-            label: 'Soirée Electro Rooftop',
-            type: 'Débit',
-            amount: '-160 000 MGA',
-            status: 'Annulée',
-            details: 'Remboursement prévu'
-        }
-    ]) %}
+    {% set balance = balance|default('0 MGA') %}
+    {% set points = points|default('0 pts') %}
+    {% set transactions = transactions|default([]) %}
+    {% set monthly_limit = monthly_limit|default('1 000 000 MGA') %}
+    {% set monthly_progress = monthly_progress|default(0) %}
+    {% set loyalty_tier = loyalty_tier|default('Bronze') %}
 
     <main class="profile-wallet-wrapper">
         <div class="container">
             <header class="wallet-header wow fadeIn" data-wow-delay="100ms">
                 <div>
-                    <h1>{{ 'profile_wallet.header_title'|trans }}</h1>
-                    <p>{{ 'profile_wallet.header_desc'|trans }}</p>
+                    <h1>Portefeuille numérique</h1>
+                    <p>Gérez votre solde, vos points de fidélité et vos transactions</p>
                 </div>
                 <div class="wallet-actions">
-                    <button class="btn-outline"><i class="fas fa-plus"></i> {{ 'profile_wallet.btn_recharge'|trans }}</button>
-                    <button class="btn-solid"><i class="fas fa-paper-plane"></i> {{ 'profile_wallet.btn_transfer'|trans }}</button>
+                    <button class="btn-outline"><i class="fas fa-plus"></i> Recharger</button>
+                    <button class="btn-solid"><i class="fas fa-paper-plane"></i> Transférer</button>
                 </div>
             </header>
 
             <section class="wallet-balance wow fadeInUp" data-wow-delay="150ms">
                 <div class="balance-card">
                     <div class="balance-header">
-                        <span>{{ 'profile_wallet.balance_label'|trans }}</span>
-                        <button class="link-btn"><i class="fas fa-history"></i> {{ 'profile_wallet.balance_history'|trans }}</button>
+                        <span>Solde disponible</span>
+                        <button class="link-btn"><i class="fas fa-history"></i> Historique</button>
                     </div>
-                    <strong>420 000 MGA</strong>
-                    <small>{{ 'profile_wallet.balance_last_update'|trans({'{date}': '07 novembre 2025 à 14:32'})|raw }}</small>
+                    <strong>{{ balance }}</strong>
+                    <small>Dernière mise à jour : {{ 'now'|date('d M Y à H:i') }}</small>
                     <div class="balance-progress">
-                        <div class="progress-fill" style="width: 65%"></div>
+                        <div class="progress-fill" style="width: {{ monthly_progress }}%"></div>
                     </div>
                     <div class="balance-meta">
-                        <span>{{ 'profile_wallet.balance_monthly_limit'|trans }} <strong>700 000 MGA</strong></span>
-                        <span>{{ 'profile_wallet.balance_loyalty_points'|trans }} <strong>1 250 pts</strong></span>
+                        <span>Limite mensuelle : <strong>{{ monthly_limit }}</strong></span>
+                        <span>Points de fidélité : <strong>{{ points }}</strong></span>
+                        {% if loyalty_tier %}
+                        <span>Niveau de fidélité : <strong>{{ loyalty_tier }}</strong></span>
+                        {% endif %}
                     </div>
                 </div>
                 <div class="balance-card methods">
-                    <h2>{{ 'profile_wallet.methods_title'|trans }}</h2>
+                    <h2>Méthodes de paiement</h2>
                     <ul>
-                        <li><i class="fas fa-mobile-alt"></i> {{ 'profile_wallet.methods_primary_mobile'|trans }} <button class="link-btn">{{ 'profile_wallet.methods_edit'|trans }}</button></li>
-                        <li><i class="fas fa-credit-card"></i> {{ 'profile_wallet.methods_visa_suffix'|trans }} <button class="link-btn">{{ 'profile_wallet.methods_remove'|trans }}</button></li>
-                        <li><i class="fas fa-wallet"></i> {{ 'profile_wallet.methods_add_card'|trans }} <button class="btn-outline">{{ 'profile_wallet.methods_add_btn'|trans }}</button></li>
+                        <li><i class="fas fa-mobile-alt"></i> Mobile Money (principal) <button class="link-btn">Modifier</button></li>
+                        <li><i class="fas fa-credit-card"></i> Carte Visa •••• 1234 <button class="link-btn">Supprimer</button></li>
+                        <li><i class="fas fa-wallet"></i> Ajouter une carte <button class="btn-outline">Ajouter</button></li>
                     </ul>
                 </div>
             </section>
 
             <section class="wallet-transactions wow fadeInUp" data-wow-delay="200ms">
                 <header>
-                    <h2>{{ 'profile_wallet.movements_title'|trans }}</h2>
+                    <h2>Mouvements</h2>
                     <div class="wallet-filters">
-                        <button class="tag active">{{ 'profile_wallet.movements_tag_all'|trans }}</button>
-                        <button class="tag">{{ 'profile_wallet.movements_tag_debits'|trans }}</button>
-                        <button class="tag">{{ 'profile_wallet.movements_tag_credits'|trans }}</button>
+                        <button class="tag active">Tous</button>
+                        <button class="tag">Débits</button>
+                        <button class="tag">Crédits</button>
                     </div>
                 </header>
                 <div class="transactions-table">
                     <table>
                         <thead>
                             <tr>
-                                <th>{{ 'profile_wallet.col_date'|trans }}</th>
-                                <th>{{ 'profile_wallet.col_label'|trans }}</th>
-                                <th>{{ 'profile_wallet.col_type'|trans }}</th>
-                                <th>{{ 'profile_wallet.col_amount'|trans }}</th>
-                                <th>{{ 'profile_wallet.col_status'|trans }}</th>
-                                <th>{{ 'profile_wallet.col_details'|trans }}</th>
+                                <th>Date</th>
+                                <th>Libellé</th>
+                                <th>Type</th>
+                                <th>Montant</th>
+                                <th>Statut</th>
+                                <th>Détails</th>
                             </tr>
                         </thead>
                         <tbody>
-                            {% for transaction in transactions %}
-                                <tr class="transaction-row {{ transaction.type|lower }}">
-                                    <td>{{ transaction.date }}</td>
-                                    <td><strong>{{ transaction.label }}</strong></td>
-                                    <td>{{ transaction.type }}</td>
-                                    <td>{{ transaction.amount }}</td>
-                                    <td><span class="status">{{ transaction.status }}</span></td>
-                                    <td>{{ transaction.details }}</td>
+                            {% if transactions is empty %}
+                                <tr>
+                                    <td colspan="6" style="text-align: center; padding: 40px; color: #999;">
+                                        <i class="fas fa-wallet" style="font-size: 48px; margin-bottom: 16px; display: block; opacity: 0.3;"></i>
+                                        <p>Aucune transaction pour le moment</p>
+                                    </td>
                                 </tr>
-                            {% endfor %}
+                            {% else %}
+                                {% for transaction in transactions %}
+                                    <tr class="transaction-row {{ transaction.type|lower }}">
+                                        <td>{{ transaction.date }}</td>
+                                        <td><strong>{{ transaction.label }}</strong></td>
+                                        <td>{{ transaction.type }}</td>
+                                        <td class="{{ transaction.amount starts with '+' ? 'text-success' : 'text-danger' }}">{{ transaction.amount }}</td>
+                                        <td><span class="status status-{{ transaction.status|lower|replace({' ': '-'}) }}">{{ transaction.status }}</span></td>
+                                        <td>{{ transaction.details }}</td>
+                                    </tr>
+                                {% endfor %}
+                            {% endif %}
                         </tbody>
                     </table>
                 </div>
             </section>
         </div>
     </main>
+
+    {# Modal de recharge #}
+    <div id="rechargeModal" class="modal" style="display: none;">
+        <div class="modal-content">
+            <span class="close">&times;</span>
+            <h2>Recharger mon wallet</h2>
+            <form id="rechargeForm">
+                <div class="form-group">
+                    <label>Montant (MGA)</label>
+                    <input type="number" name="amount" min="1000" step="1000" required>
+                </div>
+                <div class="form-group">
+                    <label>Méthode de paiement</label>
+                    <select name="payment_method" required>
+                        <option value="mobile_money">Mobile Money</option>
+                        <option value="orange_money">Orange Money</option>
+                        <option value="airtel_money">Airtel Money</option>
+                        <option value="mvola">Mvola</option>
+                    </select>
+                </div>
+                <button type="submit" class="btn-solid">Recharger</button>
+            </form>
+        </div>
+    </div>
+
+    <script>
+        // Recharge du wallet
+        document.querySelector('.btn-outline')?.addEventListener('click', function() {
+            document.getElementById('rechargeModal').style.display = 'block';
+        });
+
+        document.querySelector('.close')?.addEventListener('click', function() {
+            document.getElementById('rechargeModal').style.display = 'none';
+        });
+
+        document.getElementById('rechargeForm')?.addEventListener('submit', async function(e) {
+            e.preventDefault();
+            const formData = new FormData(this);
+            const data = {
+                amount: parseFloat(formData.get('amount')),
+                payment_method: formData.get('payment_method')
+            };
+
+            try {
+                const response = await fetch('{{ path('api_wallet_recharge') }}', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify(data)
+                });
+
+                const result = await response.json();
+                
+                if (result.status === 'success') {
+                    alert('Wallet rechargé avec succès !');
+                    location.reload();
+                } else {
+                    alert('Erreur: ' + result.message);
+                }
+            } catch (error) {
+                alert('Erreur lors de la recharge: ' + error.message);
+            }
+        });
+
+        // Filtres de transactions
+        document.querySelectorAll('.wallet-filters .tag').forEach(btn => {
+            btn.addEventListener('click', function() {
+                document.querySelectorAll('.wallet-filters .tag').forEach(b => b.classList.remove('active'));
+                this.classList.add('active');
+                // TODO: Filtrer les transactions par type
+            });
+        });
+    </script>
 {% endblock %}
