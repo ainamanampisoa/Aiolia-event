@@ -4,62 +4,160 @@ namespace App\Repository;
 
 use App\Entity\User;
 use Doctrine\Bundle\DoctrineBundle\Repository\ServiceEntityRepository;
+use Doctrine\DBAL\Connection;
 use Doctrine\Persistence\ManagerRegistry;
-use Symfony\Component\Security\Core\Exception\UnsupportedUserException;
-use Symfony\Component\Security\Core\User\PasswordAuthenticatedUserInterface;
-use Symfony\Component\Security\Core\User\PasswordUpgraderInterface;
 
 /**
  * @extends ServiceEntityRepository<User>
  */
-class UserRepository extends ServiceEntityRepository implements PasswordUpgraderInterface
+class UserRepository extends ServiceEntityRepository
 {
+    private Connection $connection;
+
     public function __construct(ManagerRegistry $registry)
     {
         parent::__construct($registry, User::class);
+        $this->connection = $this->getEntityManager()->getConnection();
     }
 
     /**
-     * Used to upgrade (rehash) the user's password automatically over time.
+     * Récupère un utilisateur par son email (Doctrine ORM).
      */
-    public function upgradePassword(PasswordAuthenticatedUserInterface $user, string $newHashedPassword): void
-    {
-        if (!$user instanceof User) {
-            throw new UnsupportedUserException(sprintf('Instances of "%s" are not supported.', $user::class));
-        }
-
-        $user->setPassword($newHashedPassword);
-        $this->getEntityManager()->persist($user);
-        $this->getEntityManager()->flush();
-    }
-
-    public function findByRole(string $role): array
-    {
-        return $this->createQueryBuilder('u')
-            ->andWhere('u.role = :role')
-            ->setParameter('role', $role)
-            ->orderBy('u.id', 'ASC')
-            ->getQuery()
-            ->getResult();
-    }
-
-    public function findActiveUsers(): array
-    {
-        return $this->createQueryBuilder('u')
-            ->andWhere('u.status = :status')
-            ->setParameter('status', User::STATUS_ACTIVE)
-            ->orderBy('u.createdAt', 'DESC')
-            ->getQuery()
-            ->getResult();
-    }
-
     public function findByEmail(string $email): ?User
     {
         return $this->createQueryBuilder('u')
-            ->andWhere('u.email = :email')
+            ->andWhere('LOWER(u.email) = LOWER(:email)')
             ->setParameter('email', $email)
             ->getQuery()
             ->getOneOrNullResult();
     }
-}
 
+    /**
+     * Récupère les informations d'un utilisateur.
+     */
+    public function findUserInfo(int $userId): array
+    {
+        $sql = <<<SQL
+            SELECT 
+                id,
+                email,
+                first_name,
+                last_name,
+                phone,
+                language_code,
+                timezone,
+                avatar_url,
+                password_hash,
+                created_at
+            FROM aiolia.users
+            WHERE id = :userId
+        SQL;
+
+        $row = $this->connection->executeQuery($sql, ['userId' => $userId])->fetchAssociative();
+
+        if (false === $row) {
+            return [];
+        }
+
+        // Formater le nom complet
+        $fullName = trim(($row['first_name'] ?? '') . ' ' . ($row['last_name'] ?? ''));
+
+        // Formater la date de création
+        $createdAt = isset($row['created_at']) ? new \DateTimeImmutable($row['created_at']) : null;
+        $createdAtFormatted = $createdAt ? $createdAt->format('d M Y') : '';
+
+        // Récupérer la date de dernière modification du mot de passe (si disponible)
+        $passwordLastModified = $createdAtFormatted;
+
+        return [
+            'id' => (int) $row['id'],
+            'email' => $row['email'],
+            'first_name' => $row['first_name'] ?? '',
+            'last_name' => $row['last_name'] ?? '',
+            'full_name' => $fullName,
+            'phone' => $row['phone'] ?? '',
+            'language_code' => $row['language_code'] ?? 'fr-FR',
+            'timezone' => $row['timezone'] ?? 'Indian/Antananarivo',
+            'avatar_url' => $row['avatar_url'],
+            'password_last_modified' => $passwordLastModified,
+            'created_at' => $createdAt,
+        ];
+    }
+
+    /**
+     * Met à jour les informations d'un utilisateur.
+     */
+    public function updateUser(int $userId, array $updateFields, array $params): void
+    {
+        if (empty($updateFields)) {
+            return;
+        }
+
+        $sql = 'UPDATE aiolia.users SET ' . implode(', ', $updateFields) . ' WHERE id = :userId';
+        $params['userId'] = $userId;
+        $this->connection->executeStatement($sql, $params);
+    }
+
+    /**
+     * Met à jour une préférence utilisateur.
+     */
+    public function updateUserPreference(int $userId, string $key, mixed $value): void
+    {
+        $this->connection->executeStatement(
+            'INSERT INTO aiolia.user_preferences (user_id, preference_key, preference_value, updated_at)
+             VALUES (:userId, :key, :value::jsonb, NOW())
+             ON CONFLICT (user_id, preference_key)
+             DO UPDATE SET preference_value = :value::jsonb, updated_at = NOW()',
+            [
+                'userId' => $userId,
+                'key' => $key,
+                'value' => json_encode($value, JSON_THROW_ON_ERROR),
+            ]
+        );
+    }
+
+    /**
+     * Récupère les préférences utilisateur.
+     */
+    public function findUserPreferences(int $userId): array
+    {
+        $sql = <<<SQL
+            SELECT preference_key, preference_value
+            FROM aiolia.user_preferences
+            WHERE user_id = :userId
+        SQL;
+
+        $rows = $this->connection->executeQuery($sql, ['userId' => $userId])->fetchAllAssociative();
+
+        $preferences = [
+            'notifications' => [
+                'ticket_alerts' => true,
+                'event_reminders' => true,
+                'newsletters' => false,
+            ],
+            'security' => [
+                'two_factor_enabled' => false,
+            ],
+            'appearance' => [
+                'theme' => 'light',
+            ],
+        ];
+
+        foreach ($rows as $row) {
+            $key = $row['preference_key'];
+            $value = json_decode($row['preference_value'], true);
+
+            if ($key === 'notifications') {
+                $preferences['notifications'] = array_merge($preferences['notifications'], $value ?? []);
+            } elseif ($key === 'security') {
+                $preferences['security'] = array_merge($preferences['security'], $value ?? []);
+            } elseif ($key === 'appearance') {
+                $preferences['appearance'] = array_merge($preferences['appearance'], $value ?? []);
+            } else {
+                $preferences[$key] = $value;
+            }
+        }
+
+        return $preferences;
+    }
+}

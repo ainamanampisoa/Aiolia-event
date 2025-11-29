@@ -2,6 +2,7 @@
 
 namespace App\Controller;
 
+use App\Repository\NotificationRepository;
 use Doctrine\DBAL\Connection;
 use Symfony\Bundle\FrameworkBundle\Controller\AbstractController;
 use Symfony\Component\HttpFoundation\JsonResponse;
@@ -12,7 +13,8 @@ use Symfony\Component\Routing\Annotation\Route;
 class NotificationController extends AbstractController
 {
     public function __construct(
-        private readonly Connection $connection
+        private readonly Connection $connection,
+        private readonly NotificationRepository $notificationRepository
     ) {
     }
 
@@ -92,24 +94,15 @@ class NotificationController extends AbstractController
 
         $userId = (int) $sessionUser['id'];
 
-        // Vérifier que la notification appartient à l'utilisateur
-        $exists = $this->connection->executeQuery(
-            'SELECT id FROM aiolia.notifications WHERE id = :id AND user_id = :userId',
-            ['id' => $id, 'userId' => $userId]
-        )->fetchOne();
+        // Marquer comme lu
+        $success = $this->notificationRepository->markAsRead($id, $userId);
 
-        if (!$exists) {
+        if (!$success) {
             return new JsonResponse([
                 'status' => 'error',
                 'message' => 'Notification introuvable'
             ], 404);
         }
-
-        // Marquer comme lu
-        $this->connection->executeStatement(
-            'UPDATE aiolia.notifications SET read_at = NOW(), status = :status WHERE id = :id AND user_id = :userId',
-            ['id' => $id, 'userId' => $userId, 'status' => 'read']
-        );
 
         return new JsonResponse([
             'status' => 'success',
@@ -136,10 +129,7 @@ class NotificationController extends AbstractController
         $userId = (int) $sessionUser['id'];
 
         // Marquer toutes les notifications comme lues
-        $this->connection->executeStatement(
-            'UPDATE aiolia.notifications SET read_at = NOW(), status = :status WHERE user_id = :userId AND read_at IS NULL',
-            ['userId' => $userId, 'status' => 'read']
-        );
+        $this->notificationRepository->markAllAsRead($userId);
 
         return new JsonResponse([
             'status' => 'success',
@@ -165,24 +155,15 @@ class NotificationController extends AbstractController
 
         $userId = (int) $sessionUser['id'];
 
-        // Vérifier que la notification appartient à l'utilisateur
-        $exists = $this->connection->executeQuery(
-            'SELECT id FROM aiolia.notifications WHERE id = :id AND user_id = :userId',
-            ['id' => $id, 'userId' => $userId]
-        )->fetchOne();
+        // Supprimer la notification
+        $success = $this->notificationRepository->deleteNotification($id, $userId);
 
-        if (!$exists) {
+        if (!$success) {
             return new JsonResponse([
                 'status' => 'error',
                 'message' => 'Notification introuvable'
             ], 404);
         }
-
-        // Supprimer la notification
-        $this->connection->executeStatement(
-            'DELETE FROM aiolia.notifications WHERE id = :id AND user_id = :userId',
-            ['id' => $id, 'userId' => $userId]
-        );
 
         return new JsonResponse([
             'status' => 'success',
@@ -208,10 +189,7 @@ class NotificationController extends AbstractController
 
         $userId = (int) $sessionUser['id'];
 
-        $count = (int) $this->connection->executeQuery(
-            'SELECT COUNT(*) FROM aiolia.notifications WHERE user_id = :userId AND read_at IS NULL',
-            ['userId' => $userId]
-        )->fetchOne();
+        $count = $this->notificationRepository->countUnreadNotifications($userId);
 
         return new JsonResponse([
             'status' => 'success',
@@ -226,38 +204,20 @@ class NotificationController extends AbstractController
      */
     private function fetchUserNotifications(int $userId, string $filter = 'all'): array
     {
-        $sql = <<<SQL
-            SELECT 
-                n.id,
-                n.channel,
-                n.status,
-                n.payload,
-                n.read_at,
-                n.created_at,
-                nt.code AS template_code,
-                nt.subject
-            FROM aiolia.notifications n
-            LEFT JOIN aiolia.notification_templates nt ON nt.id = n.template_id
-            WHERE n.user_id = :userId
-        SQL;
-
-        $params = ['userId' => $userId];
-
+        // Récupérer les notifications depuis le repository
+        $rows = $this->notificationRepository->findUserNotifications($userId, 100, 0);
+        
         // Appliquer le filtre
         if ($filter === 'unread') {
-            $sql .= ' AND n.read_at IS NULL';
+            $rows = array_filter($rows, fn($row) => !$row['is_read']);
         } elseif ($filter === 'read') {
-            $sql .= ' AND n.read_at IS NOT NULL';
+            $rows = array_filter($rows, fn($row) => $row['is_read']);
         }
-
-        $sql .= ' ORDER BY n.created_at DESC LIMIT 100';
-
-        $rows = $this->connection->executeQuery($sql, $params)->fetchAllAssociative();
 
         return array_map(function (array $row): array {
             $payload = [];
-            if (!empty($row['payload'])) {
-                $decoded = json_decode($row['payload'], true);
+            if (!empty($row['metadata'])) {
+                $decoded = json_decode($row['metadata'], true);
                 if (is_array($decoded)) {
                     $payload = $decoded;
                 }
@@ -266,11 +226,11 @@ class NotificationController extends AbstractController
             $createdAt = isset($row['created_at']) ? new \DateTimeImmutable($row['created_at']) : new \DateTimeImmutable();
             $readAt = isset($row['read_at']) ? new \DateTimeImmutable($row['read_at']) : null;
 
-            // Déterminer le type de notification basé sur le template_code ou le payload
-            $type = $this->determineNotificationType($row['template_code'] ?? '', $payload);
+            // Déterminer le type de notification basé sur le type ou le payload
+            $type = $this->determineNotificationType($row['type'] ?? '', $payload);
             
             // Générer le titre et la description
-            $title = $this->generateNotificationTitle($type, $payload, $row['subject'] ?? '');
+            $title = $this->generateNotificationTitle($type, $payload, $row['title'] ?? '');
             $description = $this->generateNotificationDescription($type, $payload);
 
             // Formater les dates
@@ -282,7 +242,7 @@ class NotificationController extends AbstractController
                 'title' => $title,
                 'description' => $description,
                 'type' => $type,
-                'read' => $readAt !== null,
+                'read' => $row['is_read'] ?? false,
                 'time' => $timeAgo,
                 'date' => $dateFormatted,
                 'created_at' => $createdAt,

@@ -2,9 +2,10 @@
 
 namespace App\Controller;
 
+use App\Repository\EventRepository;
+use App\Repository\TicketRepository;
 use App\Service\CartSyncService;
 use App\Service\PaymentService;
-use Doctrine\DBAL\Connection;
 use Symfony\Bundle\FrameworkBundle\Controller\AbstractController;
 use Symfony\Component\HttpFoundation\JsonResponse;
 use Symfony\Component\HttpFoundation\Request;
@@ -14,7 +15,8 @@ use Symfony\Component\Routing\Annotation\Route;
 class TicketController extends AbstractController
 {
     public function __construct(
-        private readonly Connection $connection,
+        private readonly TicketRepository $ticketRepository,
+        private readonly EventRepository $eventRepository,
         private readonly CartSyncService $cartSyncService,
         private readonly PaymentService $paymentService
     ) {
@@ -152,14 +154,14 @@ class TicketController extends AbstractController
         }
 
         // Récupérer les détails de l'événement
-        $event = $this->fetchEventDetails($eventId);
+        $event = $this->eventRepository->findEventDetailsById($eventId);
         if (null === $event) {
             $this->addFlash('error', 'Événement introuvable.');
             return $this->redirectToRoute('events');
         }
 
         // Récupérer les types de billets
-        $ticketTypes = $this->fetchTicketTypes($eventId);
+        $ticketTypes = $this->eventRepository->findTicketTypesByEventId($eventId);
         
         // Calculer les prix adultes et enfants
         $adultPrice = 0;
@@ -602,7 +604,7 @@ class TicketController extends AbstractController
             $filter = 'upcoming';
         }
 
-        $tickets = $this->fetchUserTickets($userId, $filter);
+        $tickets = $this->ticketRepository->findUserTickets($userId, $filter);
 
         // Compter les billets par statut pour les badges
         $statusCounts = [
@@ -611,7 +613,7 @@ class TicketController extends AbstractController
             'cancelled' => 0,
         ];
 
-        foreach ($this->fetchUserTickets($userId, 'all') as $ticket) {
+        foreach ($this->ticketRepository->findUserTickets($userId, 'all') as $ticket) {
             $key = $ticket['status_key'] ?? 'upcoming';
             if (isset($statusCounts[$key])) {
                 $statusCounts[$key]++;
@@ -642,135 +644,6 @@ class TicketController extends AbstractController
         ]);
     }
 
-    /**
-     * Récupère les billets de l'utilisateur avec leur événement associé.
-     *
-     * @param int $userId
-     * @param string $filter Statut à filtrer : upcoming | past | cancelled | all
-     * @return array<int, array<string, mixed>>
-     */
-    private function fetchUserTickets(int $userId, string $filter = 'upcoming'): array
-    {
-        $sql = <<<SQL
-            SELECT
-                t.id AS ticket_id,
-                t.status AS ticket_status,
-                e.id AS event_id,
-                e.title AS event_title,
-                COALESCE(e.location_override->>'venue_name', v.name) AS venue_name,
-                COALESCE(e.location_override->>'address', NULLIF(CONCAT_WS(', ', v.address_line1, v.address_line2), '')) AS venue_address,
-                COALESCE(e.location_override->>'city', v.city) AS city,
-                COALESCE(e.location_override->>'region', v.region) AS region,
-                COALESCE(e.location_override->>'country', v.country_code) AS country_code,
-                COALESCE(primary_cat.label, cat.label) AS category_label,
-                COALESCE(media.url, e.cover_image_url) AS image_url,
-                e.starts_at,
-                e.ends_at,
-                tt.name AS ticket_type,
-                tt.age_category,
-                tt.base_price,
-                o.id AS order_id,
-                o.created_at AS order_created_at
-            FROM aiolia.tickets t
-            INNER JOIN aiolia.order_items oi ON oi.id = t.order_item_id
-            INNER JOIN aiolia.orders o ON o.id = oi.order_id
-            INNER JOIN aiolia.ticket_types tt ON tt.id = t.ticket_type_id
-            INNER JOIN aiolia.events e ON e.id = tt.event_id
-            LEFT JOIN aiolia.venues v ON v.id = e.venue_id
-            LEFT JOIN aiolia.event_categories primary_cat ON primary_cat.id = e.primary_category_id
-            LEFT JOIN LATERAL (
-                SELECT c.label
-                FROM aiolia.event_category_links cl
-                JOIN aiolia.event_categories c ON c.id = cl.category_id
-                WHERE cl.event_id = e.id
-                ORDER BY c.display_order ASC, c.label ASC
-                LIMIT 1
-            ) AS cat ON TRUE
-            LEFT JOIN LATERAL (
-                SELECT m.url
-                FROM aiolia.event_media m
-                WHERE m.event_id = e.id
-                  AND m.is_public IS TRUE
-                ORDER BY m.display_order ASC, m.id ASC
-                LIMIT 1
-            ) AS media ON TRUE
-            WHERE o.user_id = :user_id
-              AND o.status = 'paid'
-        SQL;
-
-        $params = ['user_id' => $userId];
-
-        // Filtrage par statut "fonctionnel" (à venir / passé / annulé)
-        if ($filter === 'upcoming') {
-            $sql .= " AND t.status = 'valid' AND e.starts_at >= NOW()";
-        } elseif ($filter === 'past') {
-            $sql .= " AND e.starts_at < NOW()";
-        } elseif ($filter === 'cancelled') {
-            $sql .= " AND t.status IN ('cancelled', 'refunded')";
-        }
-
-        $sql .= ' ORDER BY e.starts_at DESC, t.id DESC';
-
-        $rows = $this->connection->executeQuery($sql, $params)->fetchAllAssociative();
-
-        return array_map(static function (array $row): array {
-            $eventDate = isset($row['starts_at']) ? new \DateTimeImmutable($row['starts_at']) : null;
-            $orderDate = isset($row['order_created_at']) ? new \DateTimeImmutable($row['order_created_at']) : null;
-
-            // Générer un code de commande lisible à partir de l'ID
-            $orderCode = null;
-            if (isset($row['order_id']) && null !== $row['order_id']) {
-                $orderCode = 'CMD-' . str_pad((string) $row['order_id'], 6, '0', STR_PAD_LEFT);
-            }
-
-            // Déterminer le statut UX
-            $statusKey = 'upcoming';
-            if (in_array($row['ticket_status'], ['cancelled', 'refunded'], true)) {
-                $statusKey = 'cancelled';
-            } elseif ($eventDate && $eventDate < new \DateTimeImmutable()) {
-                $statusKey = 'past';
-            }
-
-            $statusLabel = match ($statusKey) {
-                'upcoming' => 'À venir',
-                'past' => 'Passé',
-                'cancelled' => 'Annulé',
-                default => ucfirst((string) $row['ticket_status']),
-            };
-
-            // Construire la localisation lisible
-            $locationParts = [];
-            if (!empty($row['venue_name'])) {
-                $locationParts[] = $row['venue_name'];
-            }
-            if (!empty($row['city'])) {
-                $locationParts[] = $row['city'];
-            }
-            if (!empty($row['region'])) {
-                $locationParts[] = $row['region'];
-            }
-            $location = !empty($locationParts) ? implode(', ', $locationParts) : 'Lieu à confirmer';
-
-            return [
-                'id' => (int) $row['ticket_id'],
-                'status_key' => $statusKey,
-                'status_label' => $statusLabel,
-                'ticket_type' => $row['ticket_type'],
-                'age_category' => $row['age_category'],
-                'price' => isset($row['base_price']) ? (float) $row['base_price'] : null,
-                'order_number' => $orderCode,
-                'order_date' => $orderDate,
-                'event' => [
-                    'id' => (int) $row['event_id'],
-                    'title' => $row['event_title'],
-                    'category' => $row['category_label'] ?? 'Évènement',
-                    'image' => $row['image_url'] ?: 'vente-ticket/images/img1.png',
-                    'location' => $location,
-                    'date' => $eventDate,
-                ],
-            ];
-        }, $rows);
-    }
 
     #[Route('/api/tickets/{id}', name: 'api_tickets_show', methods: ['GET'])]
     public function showTicket(int $id): JsonResponse
@@ -1013,7 +886,7 @@ class TicketController extends AbstractController
 
         foreach ($cartItems as $cartKey => $cartItem) {
             $eventId = $cartItem['eventId'];
-            $event = $this->fetchEventDetails($eventId);
+            $event = $this->eventRepository->findEventDetailsById($eventId);
 
             if (null === $event) {
                 continue;
@@ -1062,18 +935,18 @@ class TicketController extends AbstractController
             
             // Si les prix sont absents ou 0, les récupérer depuis les ticket_types
             if (($adultPrice === null || $adultPrice === 0) && isset($cartItem['adultTicketTypeId'])) {
-                $adultPrice = $this->getTicketTypePrice($cartItem['adultTicketTypeId']);
+                $adultPrice = $this->ticketRepository->findTicketTypePrice($cartItem['adultTicketTypeId']);
             }
             if (($childPrice === null || $childPrice === 0) && isset($cartItem['childTicketTypeId'])) {
-                $childPrice = $this->getTicketTypePrice($cartItem['childTicketTypeId']);
+                $childPrice = $this->ticketRepository->findTicketTypePrice($cartItem['childTicketTypeId']);
             }
             
             // Si toujours null, utiliser le prix du ticket_type principal
             if (($adultPrice === null || $adultPrice === 0) && isset($cartItem['ticketTypeId'])) {
-                $adultPrice = $this->getTicketTypePrice($cartItem['ticketTypeId']);
+                $adultPrice = $this->ticketRepository->findTicketTypePrice($cartItem['ticketTypeId']);
             }
             if (($childPrice === null || $childPrice === 0) && isset($cartItem['ticketTypeId'])) {
-                $childPrice = $this->getTicketTypePrice($cartItem['ticketTypeId']);
+                $childPrice = $this->ticketRepository->findTicketTypePrice($cartItem['ticketTypeId']);
             }
             
             $formattedItems[] = [
@@ -1100,242 +973,5 @@ class TicketController extends AbstractController
         return $formattedItems;
     }
 
-    /**
-     * @return array<string, mixed>|null
-     */
-    private function fetchEventDetails(int $id): ?array
-    {
-        $sql = <<<SQL
-            SELECT
-                e.id,
-                e.slug,
-                e.title,
-                e.subtitle,
-                e.summary,
-                e.description,
-                e.event_format,
-                e.timezone,
-                e.starts_at,
-                e.ends_at,
-                e.sales_starts_at,
-                e.sales_ends_at,
-                e.capacity,
-                e.language_code,
-                e.location_override,
-                e.created_at,
-                COALESCE(primary_cat.label, cat.label) AS category_label,
-                COALESCE(primary_cat.slug, cat.slug) AS category_slug,
-                COALESCE(media.url, e.cover_image_url) AS image_url,
-                media.alt_text AS image_alt,
-                pricing.min_price,
-                pricing.max_price,
-                v.name AS venue_name_fallback,
-                v.address_line1,
-                v.address_line2,
-                v.city AS venue_city,
-                v.region AS venue_region,
-                v.country_code AS venue_country,
-                v.latitude,
-                v.longitude,
-                v.capacity AS venue_capacity,
-                vs.name AS space_name
-            FROM aiolia.events e
-            LEFT JOIN aiolia.venues v ON v.id = e.venue_id
-            LEFT JOIN aiolia.venue_spaces vs ON vs.id = e.main_space_id
-            LEFT JOIN aiolia.event_categories primary_cat ON primary_cat.id = e.primary_category_id
-            LEFT JOIN LATERAL (
-                SELECT c.slug, c.label
-                FROM aiolia.event_category_links cl
-                JOIN aiolia.event_categories c ON c.id = cl.category_id
-                WHERE cl.event_id = e.id
-                ORDER BY c.display_order ASC, c.label ASC
-                LIMIT 1
-            ) AS cat ON TRUE
-            LEFT JOIN LATERAL (
-                SELECT m.url, m.alt_text
-                FROM aiolia.event_media m
-                WHERE m.event_id = e.id
-                  AND m.is_public IS TRUE
-                ORDER BY m.display_order ASC, m.id ASC
-                LIMIT 1
-            ) AS media ON TRUE
-            LEFT JOIN LATERAL (
-                SELECT
-                    MIN(tt.base_price) AS min_price,
-                    MAX(tt.base_price) AS max_price
-                FROM aiolia.ticket_types tt
-                WHERE tt.event_id = e.id
-            ) AS pricing ON TRUE
-            WHERE e.id = :id
-            LIMIT 1
-        SQL;
-
-        $row = $this->connection->executeQuery($sql, ['id' => $id])->fetchAssociative();
-
-        if (false === $row) {
-            return null;
-        }
-
-        $startsAt = isset($row['starts_at']) ? new \DateTimeImmutable($row['starts_at']) : null;
-        $endsAt = isset($row['ends_at']) ? new \DateTimeImmutable($row['ends_at']) : null;
-        $salesStartsAt = isset($row['sales_starts_at']) ? new \DateTimeImmutable($row['sales_starts_at']) : null;
-        $salesEndsAt = isset($row['sales_ends_at']) ? new \DateTimeImmutable($row['sales_ends_at']) : null;
-        $createdAt = isset($row['created_at']) ? new \DateTimeImmutable($row['created_at']) : null;
-
-        $override = [];
-        if (!empty($row['location_override'])) {
-            $decoded = json_decode($row['location_override'], true);
-            if (is_array($decoded)) {
-                $override = $decoded;
-            }
-        }
-
-        $venueName = $override['venue_name'] ?? $row['venue_name_fallback'];
-        $venueAddress = $override['address'] ?? trim(preg_replace('/\s+/', ' ', implode(' ', array_filter([$row['address_line1'], $row['address_line2']]))));
-        if ('' === $venueAddress) {
-            $venueAddress = null;
-        }
-        $city = $override['city'] ?? $row['venue_city'];
-        $region = $override['region'] ?? $row['venue_region'];
-        $countryCode = $override['country'] ?? $row['venue_country'];
-        $latitude = isset($override['latitude'])
-            ? (float) $override['latitude']
-            : (isset($row['latitude']) ? (float) $row['latitude'] : null);
-        $longitude = isset($override['longitude'])
-            ? (float) $override['longitude']
-            : (isset($row['longitude']) ? (float) $row['longitude'] : null);
-
-        return [
-            'id' => (int) $row['id'],
-            'slug' => $row['slug'],
-            'title' => $row['title'],
-            'subtitle' => $row['subtitle'],
-            'summary' => $row['summary'],
-            'description' => $row['description'] ?? $row['summary'],
-            'event_format' => $row['event_format'],
-            'starts_at' => $startsAt,
-            'ends_at' => $endsAt,
-            'sales_starts_at' => $salesStartsAt,
-            'sales_ends_at' => $salesEndsAt,
-            'capacity' => isset($row['capacity']) ? (int) $row['capacity'] : null,
-            'language_code' => $row['language_code'],
-            'timezone' => $row['timezone'],
-            'created_at' => $createdAt,
-            'category_label' => $row['category_label'] ?? 'Évènement',
-            'category_slug' => $row['category_slug'],
-            'image_url' => $row['image_url'],
-            'image_alt' => $row['image_alt'] ?? $row['title'],
-            'min_price' => null !== $row['min_price'] ? (float) $row['min_price'] : null,
-            'max_price' => null !== $row['max_price'] ? (float) $row['max_price'] : null,
-            'venue_name' => $venueName,
-            'venue_address' => $venueAddress,
-            'city' => $city,
-            'region' => $region,
-            'country_code' => $countryCode,
-            'latitude' => $latitude,
-            'longitude' => $longitude,
-            'space_name' => $row['space_name'],
-            'venue_capacity' => isset($row['venue_capacity']) ? (int) $row['venue_capacity'] : null,
-            'venue_raw' => [
-                'address_line1' => $row['address_line1'],
-                'address_line2' => $row['address_line2'],
-            ],
-        ];
-    }
-
-    /**
-     * @return array<int, array<string, mixed>>
-     */
-    private function fetchTicketTypes(int $eventId): array
-    {
-        $sql = <<<SQL
-            SELECT
-                tt.id,
-                tt.name,
-                tt.description,
-                tt.currency,
-                tt.base_price,
-                tt.service_fee,
-                tt.vat_rate,
-                tt.age_category,
-                tt.min_per_order,
-                tt.max_per_order,
-                tt.metadata,
-                inv.total_quantity,
-                inv.reserved_quantity,
-                inv.sold_quantity
-            FROM aiolia.ticket_types tt
-            LEFT JOIN aiolia.ticket_inventory inv ON inv.ticket_type_id = tt.id
-            WHERE tt.event_id = :event_id
-            ORDER BY 
-                CASE tt.age_category 
-                    WHEN 'adult' THEN 1 
-                    WHEN 'child' THEN 2 
-                    WHEN 'all' THEN 3 
-                    ELSE 4 
-                END,
-                tt.base_price ASC NULLS LAST, 
-                tt.name ASC
-        SQL;
-
-        $rows = $this->connection->executeQuery($sql, ['event_id' => $eventId])->fetchAllAssociative();
-
-        return array_map(static function (array $row): array {
-            $total = isset($row['total_quantity']) ? (int) $row['total_quantity'] : null;
-            $sold = isset($row['sold_quantity']) ? (int) $row['sold_quantity'] : 0;
-            $reserved = isset($row['reserved_quantity']) ? (int) $row['reserved_quantity'] : 0;
-            $available = null;
-            if (null !== $total) {
-                $available = max($total - $sold - $reserved, 0);
-            }
-
-            $metadata = null;
-            if (!empty($row['metadata'])) {
-                $decoded = json_decode($row['metadata'], true);
-                if (is_array($decoded)) {
-                    $metadata = $decoded;
-                }
-            }
-
-            return [
-                'id' => (int) $row['id'],
-                'name' => $row['name'],
-                'description' => $row['description'],
-                'currency' => $row['currency'],
-                'base_price' => (float) $row['base_price'],
-                'service_fee' => isset($row['service_fee']) ? (float) $row['service_fee'] : null,
-                'vat_rate' => isset($row['vat_rate']) ? (float) $row['vat_rate'] : null,
-                'age_category' => $row['age_category'] ?? 'all',
-                'metadata' => $metadata,
-                'min_per_order' => isset($row['min_per_order']) ? (int) $row['min_per_order'] : null,
-                'max_per_order' => isset($row['max_per_order']) ? (int) $row['max_per_order'] : null,
-                'available' => $available,
-                'total_quantity' => $total,
-                'sold_quantity' => $sold,
-                'reserved_quantity' => $reserved,
-                'is_available' => null === $available || $available > 0,
-            ];
-        }, $rows);
-    }
-
-    /**
-     * Récupère le prix d'un type de billet depuis la base de données.
-     */
-    private function getTicketTypePrice(int $ticketTypeId): ?float
-    {
-        try {
-            $sql = 'SELECT base_price FROM aiolia.ticket_types WHERE id = :ticket_type_id LIMIT 1';
-            $result = $this->connection->executeQuery($sql, ['ticket_type_id' => $ticketTypeId])->fetchAssociative();
-            
-            if ($result && isset($result['base_price'])) {
-                return (float) $result['base_price'];
-            }
-            
-            return null;
-        } catch (\Exception $e) {
-            error_log('Erreur lors de la récupération du prix du type de billet: ' . $e->getMessage());
-            return null;
-        }
-    }
 }
 

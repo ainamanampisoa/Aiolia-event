@@ -2,7 +2,13 @@
 
 namespace App\Controller;
 
-use Doctrine\DBAL\Connection;
+use App\Repository\ActivityRepository;
+use App\Repository\EventRepository;
+use App\Repository\OrderRepository;
+use App\Repository\SearchHistoryRepository;
+use App\Repository\UserRepository;
+use App\Repository\UserStatsRepository;
+use App\Repository\WishlistRepository;
 use Dompdf\Dompdf;
 use Dompdf\Options;
 use Symfony\Bundle\FrameworkBundle\Controller\AbstractController;
@@ -15,8 +21,14 @@ use Symfony\Contracts\Translation\TranslatorInterface;
 class ProfileController extends AbstractController
 {
     public function __construct(
-        private readonly Connection $connection,
-        private readonly TranslatorInterface $translator
+        private readonly TranslatorInterface $translator,
+        private readonly OrderRepository $orderRepository,
+        private readonly UserStatsRepository $userStatsRepository,
+        private readonly WishlistRepository $wishlistRepository,
+        private readonly SearchHistoryRepository $searchHistoryRepository,
+        private readonly EventRepository $eventRepository,
+        private readonly ActivityRepository $activityRepository,
+        private readonly UserRepository $userRepository
     ) {
     }
 
@@ -38,14 +50,14 @@ class ProfileController extends AbstractController
         $userId = (int) $sessionUser['id'];
 
         // Récupérer les informations utilisateur
-        $userInfo = $this->fetchUserInfo($userId);
+        $userInfo = $this->userRepository->findUserInfo($userId);
         
         // Récupérer les statistiques (inclure le panier en session)
         $sessionCartItems = $session->get('cart_items', []);
         $stats = $this->fetchUserStats($userId, $sessionCartItems);
         
         // Récupérer les activités récentes (inclure le panier en session)
-        $recentActivities = $this->fetchRecentActivities($userId, $sessionCartItems);
+        $recentActivities = $this->activityRepository->findRecentActivities($userId, $sessionCartItems);
 
         return $this->render('profile/index.html.twig', [
             'user' => $userInfo,
@@ -73,32 +85,7 @@ class ProfileController extends AbstractController
         $userId = (int) $sessionUser['id'];
 
         // Récupérer les détails de la commande
-        $sql = <<<SQL
-            SELECT 
-                o.id,
-                o.status,
-                o.total_amount,
-                o.discount_amount,
-                o.currency,
-                o.promotion_code,
-                o.created_at,
-                o.notes,
-                COUNT(DISTINCT oi.id) as items_count,
-                SUM(oi.quantity) as total_tickets,
-                STRING_AGG(DISTINCT e.title, ', ') as event_titles
-            FROM aiolia.orders o
-            LEFT JOIN aiolia.order_items oi ON oi.order_id = o.id
-            LEFT JOIN aiolia.ticket_types tt ON tt.id = oi.ticket_type_id
-            LEFT JOIN aiolia.events e ON e.id = tt.event_id
-            WHERE o.id = :order_id AND o.user_id = :user_id
-            GROUP BY o.id, o.status, o.total_amount, o.discount_amount, o.currency,
-                     o.promotion_code, o.created_at, o.notes
-        SQL;
-
-        $order = $this->connection->executeQuery($sql, [
-            'order_id' => $id,
-            'user_id' => $userId,
-        ])->fetchAssociative();
+        $order = $this->orderRepository->findOrderByIdAndUserId($id, $userId);
 
         if (!$order) {
             $this->addFlash('error', 'Commande introuvable.');
@@ -121,7 +108,7 @@ class ProfileController extends AbstractController
         ];
 
         // Récupérer les informations utilisateur complètes
-        $userInfo = $this->fetchUserInfo($userId);
+        $userInfo = $this->userRepository->findUserInfo($userId);
 
         // Générer le contenu HTML de la facture
         $html = $this->renderView('profile/invoice.html.twig', [
@@ -303,7 +290,7 @@ class ProfileController extends AbstractController
         $allOrders = $this->fetchUserOrders($userId, '', 'all');
         
         // Récupérer les statuts disponibles depuis la base de données
-        $availableStatuses = $this->fetchAvailableStatuses($userId);
+        $availableStatuses = $this->orderRepository->findAvailableStatuses($userId);
         
         // Calculer les statistiques avec toutes les commandes
         $stats = $this->calculatePurchaseStats($userId, $allOrders);
@@ -428,13 +415,8 @@ class ProfileController extends AbstractController
 
         $userId = (int) $sessionUser['id'];
 
-        // Vérifier que l'élément appartient à l'utilisateur
-        $exists = $this->connection->executeQuery(
-            'SELECT id FROM aiolia.user_search_history WHERE id = :id AND user_id = :userId',
-            ['id' => $id, 'userId' => $userId]
-        )->fetchOne();
-
-        if (!$exists) {
+        // Vérifier que l'élément existe avant de le supprimer
+        if (!$this->searchHistoryRepository->searchHistoryItemExists($id, $userId)) {
             return new JsonResponse([
                 'status' => 'error',
                 'message' => 'Élément introuvable'
@@ -442,10 +424,7 @@ class ProfileController extends AbstractController
         }
 
         // Supprimer l'élément
-        $this->connection->executeStatement(
-            'DELETE FROM aiolia.user_search_history WHERE id = :id AND user_id = :userId',
-            ['id' => $id, 'userId' => $userId]
-        );
+        $this->searchHistoryRepository->deleteSearchHistoryItem($id, $userId);
 
         return new JsonResponse([
             'status' => 'success',
@@ -472,10 +451,7 @@ class ProfileController extends AbstractController
         $userId = (int) $sessionUser['id'];
 
         // Supprimer tout l'historique de l'utilisateur
-        $this->connection->executeStatement(
-            'DELETE FROM aiolia.user_search_history WHERE user_id = :userId',
-            ['userId' => $userId]
-        );
+        $this->searchHistoryRepository->clearUserSearchHistory($userId);
 
         return new JsonResponse([
             'status' => 'success',
@@ -490,70 +466,7 @@ class ProfileController extends AbstractController
      */
     private function fetchUserSearchHistory(int $userId, string $searchQuery = '', string $sortBy = 'newest', string $dateFrom = '', string $dateTo = ''): array
     {
-        $sql = 'SELECT id, keywords, filters, searched_at FROM aiolia.user_search_history WHERE user_id = :userId';
-        $params = ['userId' => $userId];
-        $where = [];
-
-        // Filtre par mots-clés
-        if (!empty($searchQuery)) {
-            $where[] = 'keywords ILIKE :search_query';
-            $params['search_query'] = '%' . $searchQuery . '%';
-        }
-
-        // Filtre par période
-        if (!empty($dateFrom)) {
-            $where[] = 'searched_at >= :date_from::timestamptz';
-            $params['date_from'] = $dateFrom;
-        }
-        if (!empty($dateTo)) {
-            $where[] = 'searched_at <= :date_to::timestamptz';
-            $params['date_to'] = $dateTo . ' 23:59:59';
-        }
-
-        if (!empty($where)) {
-            $sql .= ' AND ' . implode(' AND ', $where);
-        }
-
-        // Tri
-        switch ($sortBy) {
-            case 'oldest':
-                $sql .= ' ORDER BY searched_at ASC';
-                break;
-            case 'newest':
-            default:
-                $sql .= ' ORDER BY searched_at DESC';
-                break;
-        }
-
-        $rows = $this->connection->executeQuery($sql, $params)->fetchAllAssociative();
-
-        return array_map(static function (array $row): array {
-            $searchedAt = isset($row['searched_at']) ? new \DateTimeImmutable($row['searched_at']) : new \DateTimeImmutable();
-            $filters = [];
-            if (!empty($row['filters'])) {
-                $decoded = json_decode($row['filters'], true);
-                if (is_array($decoded)) {
-                    $filters = $decoded;
-                }
-            }
-
-            // Formater la date
-            $days = ['Dimanche', 'Lundi', 'Mardi', 'Mercredi', 'Jeudi', 'Vendredi', 'Samedi'];
-            $months = ['janv.', 'févr.', 'mars', 'avr.', 'mai', 'juin', 'juil.', 'août', 'sept.', 'oct.', 'nov.', 'déc.'];
-            $day = $searchedAt->format('d');
-            $month = $months[(int) $searchedAt->format('n') - 1];
-            $year = $searchedAt->format('Y');
-            $time = $searchedAt->format('H:i');
-            $dateFormatted = $day . ' ' . $month . ' ' . $year . ' · ' . $time;
-
-            return [
-                'id' => (int) $row['id'],
-                'query' => $row['keywords'],
-                'date' => $dateFormatted,
-                'filters' => $filters,
-                'searched_at' => $searchedAt,
-            ];
-        }, $rows);
+        return $this->searchHistoryRepository->findUserSearchHistory($userId, $searchQuery, $sortBy, $dateFrom, $dateTo);
     }
 
     /**
@@ -577,8 +490,8 @@ class ProfileController extends AbstractController
             $dateFrom = $filters['date_from'] ?? '';
             $dateTo = $filters['date_to'] ?? '';
 
-            // Construire une requête SQL simplifiée pour compter les résultats
-            $count = $this->countSearchResults($query, $category, $city, $priceMin, $priceMax, $dateFrom, $dateTo);
+            // Compter les résultats de recherche
+            $count = $this->eventRepository->countSearchResults($query, $category, $city, $priceMin, $priceMax, $dateFrom, $dateTo);
             $search['results'] = $count;
         }
         unset($search);
@@ -589,132 +502,6 @@ class ProfileController extends AbstractController
     /**
      * Compte le nombre de résultats pour une recherche donnée
      */
-    private function countSearchResults(string $query = '', string $category = '', string $city = '', ?float $priceMin = null, ?float $priceMax = null, string $dateFrom = '', string $dateTo = ''): int
-    {
-        $exactQuery = $query;
-        $startQuery = $query . '%';
-        $containsQuery = '%' . $query . '%';
-
-        $sql = <<<SQL
-            SELECT COUNT(DISTINCT e.id)
-            FROM aiolia.events e
-            LEFT JOIN aiolia.venues v ON v.id = e.venue_id
-            LEFT JOIN aiolia.event_categories primary_cat ON primary_cat.id = e.primary_category_id
-            LEFT JOIN LATERAL (
-                SELECT c.slug, c.label
-                FROM aiolia.event_category_links cl
-                JOIN aiolia.event_categories c ON c.id = cl.category_id
-                WHERE cl.event_id = e.id
-                ORDER BY c.display_order ASC, c.label ASC
-                LIMIT 1
-            ) AS cat ON TRUE
-            LEFT JOIN LATERAL (
-                SELECT
-                    MIN(tt.base_price) AS min_price,
-                    MAX(tt.base_price) AS max_price
-                FROM aiolia.ticket_types tt
-                WHERE tt.event_id = e.id
-            ) AS pricing ON TRUE
-            LEFT JOIN aiolia.event_tag_links etl ON etl.event_id = e.id
-            LEFT JOIN aiolia.event_tags tag ON tag.id = etl.tag_id
-        SQL;
-
-        $where = ["e.status = 'published'", "e.visibility = 'public'"];
-        $params = [];
-        $types = [];
-
-        // Recherche textuelle
-        if (!empty($query)) {
-            $where[] = <<<SQL
-                (
-                    e.title ILIKE :contains_query
-                    OR e.subtitle ILIKE :contains_query
-                    OR e.summary ILIKE :contains_query
-                    OR e.description ILIKE :contains_query
-                    OR tag.label ILIKE :contains_query
-                )
-            SQL;
-            $params['contains_query'] = $containsQuery;
-            $types['contains_query'] = \PDO::PARAM_STR;
-        }
-
-        // Filtre par catégorie
-        if (!empty($category)) {
-            $where[] = <<<SQL
-                (
-                    primary_cat.slug = :category
-                    OR EXISTS (
-                        SELECT 1
-                        FROM aiolia.event_category_links cl
-                        JOIN aiolia.event_categories c ON c.id = cl.category_id
-                        WHERE cl.event_id = e.id
-                          AND c.slug = :category
-                    )
-                )
-            SQL;
-            $params['category'] = $category;
-            $types['category'] = \PDO::PARAM_STR;
-        }
-
-        // Filtre par ville
-        if (!empty($city)) {
-            $where[] = "(COALESCE(e.location_override->>'city', v.city) = :city)";
-            $params['city'] = $city;
-            $types['city'] = \PDO::PARAM_STR;
-        }
-
-        // Filtre par prix
-        if (null !== $priceMin || null !== $priceMax) {
-            if (null !== $priceMin && null !== $priceMax) {
-                $where[] = "(pricing.min_price BETWEEN :price_min AND :price_max OR pricing.max_price BETWEEN :price_min AND :price_max)";
-                $params['price_min'] = $priceMin;
-                $params['price_max'] = $priceMax;
-                $types['price_min'] = \PDO::PARAM_STR;
-                $types['price_max'] = \PDO::PARAM_STR;
-            } elseif (null !== $priceMin) {
-                $where[] = "pricing.max_price >= :price_min";
-                $params['price_min'] = $priceMin;
-                $types['price_min'] = \PDO::PARAM_STR;
-            } elseif (null !== $priceMax) {
-                $where[] = "pricing.min_price <= :price_max";
-                $params['price_max'] = $priceMax;
-                $types['price_max'] = \PDO::PARAM_STR;
-            }
-        }
-
-        // Filtre par date
-        if (!empty($dateFrom)) {
-            if (preg_match('/^(\d{2})\/(\d{2})\/(\d{4})$/', $dateFrom, $matches)) {
-                $dateFrom = $matches[3] . '-' . $matches[2] . '-' . $matches[1];
-            }
-            if (strlen($dateFrom) === 10) {
-                $dateFrom .= ' 00:00:00';
-            }
-            $where[] = "e.starts_at >= :date_from::timestamptz";
-            $params['date_from'] = $dateFrom;
-            $types['date_from'] = \PDO::PARAM_STR;
-        }
-        if (!empty($dateTo)) {
-            if (preg_match('/^(\d{2})\/(\d{2})\/(\d{4})$/', $dateTo, $matches)) {
-                $dateTo = $matches[3] . '-' . $matches[2] . '-' . $matches[1];
-            }
-            if (strlen($dateTo) === 10) {
-                $dateTo .= ' 23:59:59';
-            }
-            $where[] = "e.ends_at <= :date_to::timestamptz";
-            $params['date_to'] = $dateTo;
-            $types['date_to'] = \PDO::PARAM_STR;
-        }
-
-        $sql .= ' WHERE ' . implode(' AND ', $where);
-
-        try {
-            $count = (int) $this->connection->executeQuery($sql, $params, $types)->fetchOne();
-            return $count;
-        } catch (\Exception $e) {
-            return 0;
-        }
-    }
 
     #[Route('/profile/calendar', name: 'profile_calendar')]
     public function calendar(): Response
@@ -890,155 +677,7 @@ class ProfileController extends AbstractController
      */
     private function fetchUserFavoriteEvents(int $userId): array
     {
-        // D'abord, récupérer tous les IDs d'événements favoris
-        $wishlistId = $this->connection->executeQuery(
-            'SELECT id FROM aiolia.wishlists WHERE user_id = :userId AND is_default = TRUE LIMIT 1',
-            ['userId' => $userId]
-        )->fetchOne();
-        
-        if (!$wishlistId) {
-            return [];
-        }
-        
-        $eventIds = $this->connection->executeQuery(
-            'SELECT event_id FROM aiolia.wishlist_items WHERE wishlist_id = :wishlistId ORDER BY added_at DESC',
-            ['wishlistId' => $wishlistId]
-        )->fetchFirstColumn();
-        
-        if (empty($eventIds)) {
-            return [];
-        }
-        
-        // Ensuite, récupérer les détails de tous les événements en une seule requête
-        $placeholders = implode(',', array_fill(0, count($eventIds), '?'));
-        $sql = <<<SQL
-            SELECT
-                e.id,
-                e.slug,
-                e.title,
-                COALESCE(e.subtitle, '') AS subtitle,
-                COALESCE(e.summary, '') AS summary,
-                COALESCE(e.location_override->>'venue_name', v.name) AS venue_name,
-                COALESCE(e.location_override->>'address', NULLIF(CONCAT_WS(', ', v.address_line1, v.address_line2), '')) AS venue_address,
-                COALESCE(e.location_override->>'city', v.city) AS city,
-                COALESCE(e.location_override->>'region', v.region) AS region,
-                COALESCE(e.location_override->>'country', v.country_code) AS country_code,
-                e.starts_at,
-                e.ends_at,
-                COALESCE(primary_cat.label, cat.label) AS category_label,
-                COALESCE(media.url, e.cover_image_url) AS image_url,
-                pricing.min_price,
-                pricing.max_price,
-                wi.added_at
-            FROM aiolia.events e
-            INNER JOIN aiolia.wishlist_items wi ON wi.event_id = e.id AND wi.wishlist_id = :wishlistId
-            LEFT JOIN aiolia.venues v ON v.id = e.venue_id
-            LEFT JOIN aiolia.event_categories primary_cat ON primary_cat.id = e.primary_category_id
-            LEFT JOIN LATERAL (
-                SELECT c.label
-                FROM aiolia.event_category_links cl
-                JOIN aiolia.event_categories c ON c.id = cl.category_id
-                WHERE cl.event_id = e.id
-                ORDER BY c.display_order ASC, c.label ASC
-                LIMIT 1
-            ) AS cat ON TRUE
-            LEFT JOIN LATERAL (
-                SELECT m.url
-                FROM aiolia.event_media m
-                WHERE m.event_id = e.id
-                  AND m.is_public IS TRUE
-                ORDER BY m.display_order ASC, m.id ASC
-                LIMIT 1
-            ) AS media ON TRUE
-            LEFT JOIN LATERAL (
-                SELECT
-                    MIN(tt.base_price) AS min_price,
-                    MAX(tt.base_price) AS max_price
-                FROM aiolia.ticket_types tt
-                WHERE tt.event_id = e.id
-            ) AS pricing ON TRUE
-            WHERE e.id IN ($placeholders)
-              AND e.status = 'published'
-            ORDER BY wi.added_at DESC
-        SQL;
-        
-        $params = array_merge(['wishlistId' => $wishlistId], $eventIds);
-
-        try {
-            $rows = $this->connection->executeQuery($sql, $params)->fetchAllAssociative();
-            // Logger pour débogage
-            error_log('Nombre de favoris récupérés: ' . count($rows) . ' pour userId: ' . $userId);
-        } catch (\Exception $e) {
-            // En cas d'erreur, logger et retourner un tableau vide
-            error_log('Erreur lors de la récupération des favoris: ' . $e->getMessage());
-            return [];
-        }
-
-        return array_map(static function (array $row): array {
-            $startsAt = isset($row['starts_at']) ? new \DateTimeImmutable($row['starts_at']) : null;
-            $endsAt = isset($row['ends_at']) ? new \DateTimeImmutable($row['ends_at']) : null;
-            $addedAt = isset($row['added_at']) ? new \DateTimeImmutable($row['added_at']) : null;
-
-            // Déterminer le statut de vente
-            $status = 'Bientôt disponible';
-            if ($startsAt && $startsAt > new \DateTime()) {
-                $status = 'Ouvert à la vente';
-            } elseif ($startsAt && $startsAt <= new \DateTime()) {
-                $status = 'En cours';
-            }
-
-            // Formater le prix
-            $price = 'Tarifs non communiqués';
-            if (null !== $row['min_price']) {
-                if (null !== $row['max_price'] && $row['max_price'] > $row['min_price']) {
-                    $price = 'Dès ' . number_format($row['min_price'], 0, '.', ' ') . ' MGA';
-                } else {
-                    $price = 'Dès ' . number_format($row['min_price'], 0, '.', ' ') . ' MGA';
-                }
-            }
-
-            // Formater la date
-            $dateFormatted = 'Date à confirmer';
-            if ($startsAt) {
-                $days = ['Dimanche', 'Lundi', 'Mardi', 'Mercredi', 'Jeudi', 'Vendredi', 'Samedi'];
-                $months = ['janvier', 'février', 'mars', 'avril', 'mai', 'juin', 'juillet', 'août', 'septembre', 'octobre', 'novembre', 'décembre'];
-                $dayName = $days[(int) $startsAt->format('w')];
-                $day = $startsAt->format('d');
-                $month = $months[(int) $startsAt->format('n') - 1];
-                $time = $startsAt->format('H\\hi');
-                $dateFormatted = $dayName . ' ' . $day . ' ' . $month . ' · ' . $time;
-            }
-
-            // Construire la localisation
-            $locationParts = [];
-            if ($row['venue_name']) {
-                $locationParts[] = $row['venue_name'];
-            }
-            if ($row['city']) {
-                $locationParts[] = $row['city'];
-            }
-            $location = !empty($locationParts) ? implode(', ', $locationParts) : 'Lieu à confirmer';
-
-            // Badges (catégories)
-            $badges = [];
-            if ($row['category_label']) {
-                $badges[] = $row['category_label'];
-            }
-
-            return [
-                'id' => (int) $row['id'],
-                'slug' => $row['slug'],
-                'title' => $row['title'],
-                'date' => $dateFormatted,
-                'location' => $location,
-                'image' => $row['image_url'] ?: 'vente-ticket/images/img1.png',
-                'status' => $status,
-                'badges' => $badges,
-                'price' => $price,
-                'starts_at' => $startsAt,
-                'ends_at' => $endsAt,
-            ];
-        }, $rows);
+        return $this->wishlistRepository->findUserFavoriteEvents($userId);
     }
 
     #[Route('/profile/settings', name: 'profile_settings')]
@@ -1059,10 +698,10 @@ class ProfileController extends AbstractController
         $userId = (int) $sessionUser['id'];
 
         // Récupérer les informations utilisateur
-        $userInfo = $this->fetchUserInfo($userId);
+        $userInfo = $this->userRepository->findUserInfo($userId);
         
         // Récupérer les préférences utilisateur
-        $preferences = $this->fetchUserPreferences($userId);
+        $preferences = $this->userRepository->findUserPreferences($userId);
 
         return $this->render('profile/settings.html.twig', [
             'user' => $userInfo,
@@ -1115,25 +754,14 @@ class ProfileController extends AbstractController
                 }
 
                 if (!empty($updateFields)) {
-                    $sql = 'UPDATE aiolia.users SET ' . implode(', ', $updateFields) . ' WHERE id = :userId';
-                    $this->connection->executeStatement($sql, $params);
+                    $this->userRepository->updateUser($userId, $updateFields, $params);
                 }
             }
 
             // Mettre à jour les préférences
             if (isset($data['preferences'])) {
                 foreach ($data['preferences'] as $key => $value) {
-                    $this->connection->executeStatement(
-                        'INSERT INTO aiolia.user_preferences (user_id, preference_key, preference_value, updated_at)
-                         VALUES (:userId, :key, :value::jsonb, NOW())
-                         ON CONFLICT (user_id, preference_key)
-                         DO UPDATE SET preference_value = :value::jsonb, updated_at = NOW()',
-                        [
-                            'userId' => $userId,
-                            'key' => $key,
-                            'value' => json_encode($value, JSON_THROW_ON_ERROR),
-                        ]
-                    );
+                    $this->userRepository->updateUserPreference($userId, $key, $value);
                 }
             }
 
@@ -1149,108 +777,6 @@ class ProfileController extends AbstractController
         }
     }
 
-    /**
-     * Récupère les informations utilisateur
-     *
-     * @return array<string, mixed>
-     */
-    private function fetchUserInfo(int $userId): array
-    {
-        $sql = <<<SQL
-            SELECT 
-                id,
-                email,
-                first_name,
-                last_name,
-                phone,
-                language_code,
-                timezone,
-                avatar_url,
-                password_hash,
-                created_at
-            FROM aiolia.users
-            WHERE id = :userId
-        SQL;
-
-        $row = $this->connection->executeQuery($sql, ['userId' => $userId])->fetchAssociative();
-
-        if (false === $row) {
-            return [];
-        }
-
-        // Formater le nom complet
-        $fullName = trim(($row['first_name'] ?? '') . ' ' . ($row['last_name'] ?? ''));
-
-        // Formater la date de création
-        $createdAt = isset($row['created_at']) ? new \DateTimeImmutable($row['created_at']) : null;
-        $createdAtFormatted = $createdAt ? $createdAt->format('d M Y') : '';
-
-        // Récupérer la date de dernière modification du mot de passe (si disponible)
-        // Note: On ne peut pas vraiment connaître la date de modification du mot de passe
-        // sans un champ dédié, donc on utilisera la date de création comme approximation
-        $passwordLastModified = $createdAtFormatted;
-
-        return [
-            'id' => (int) $row['id'],
-            'email' => $row['email'],
-            'first_name' => $row['first_name'] ?? '',
-            'last_name' => $row['last_name'] ?? '',
-            'full_name' => $fullName,
-            'phone' => $row['phone'] ?? '',
-            'language_code' => $row['language_code'] ?? 'fr-FR',
-            'timezone' => $row['timezone'] ?? 'Indian/Antananarivo',
-            'avatar_url' => $row['avatar_url'],
-            'password_last_modified' => $passwordLastModified,
-            'created_at' => $createdAt,
-        ];
-    }
-
-    /**
-     * Récupère les préférences utilisateur
-     *
-     * @return array<string, mixed>
-     */
-    private function fetchUserPreferences(int $userId): array
-    {
-        $sql = <<<SQL
-            SELECT preference_key, preference_value
-            FROM aiolia.user_preferences
-            WHERE user_id = :userId
-        SQL;
-
-        $rows = $this->connection->executeQuery($sql, ['userId' => $userId])->fetchAllAssociative();
-
-        $preferences = [
-            'notifications' => [
-                'ticket_alerts' => true,
-                'event_reminders' => true,
-                'newsletters' => false,
-            ],
-            'security' => [
-                'two_factor_enabled' => false,
-            ],
-            'appearance' => [
-                'theme' => 'light',
-            ],
-        ];
-
-        foreach ($rows as $row) {
-            $key = $row['preference_key'];
-            $value = json_decode($row['preference_value'], true);
-            
-            if ($key === 'notifications') {
-                $preferences['notifications'] = array_merge($preferences['notifications'], $value ?? []);
-            } elseif ($key === 'security') {
-                $preferences['security'] = array_merge($preferences['security'], $value ?? []);
-            } elseif ($key === 'appearance') {
-                $preferences['appearance'] = array_merge($preferences['appearance'], $value ?? []);
-            } else {
-                $preferences[$key] = $value;
-            }
-        }
-
-        return $preferences;
-    }
 
     #[Route('/profile/financial-history', name: 'profile_financial')]
     public function financialHistory(Request $request): Response
@@ -1270,13 +796,13 @@ class ProfileController extends AbstractController
         $userId = (int) $sessionUser['id'];
         
         // Récupérer l'historique financier
-        $financialData = $this->fetchFinancialHistory($userId);
+        $financialData = $this->orderRepository->findFinancialHistory($userId);
         
         // Récupérer les dépenses mensuelles
-        $monthly = $this->fetchMonthlyFinancialData($userId);
+        $monthly = $this->orderRepository->findMonthlyFinancialData($userId);
         
         // Récupérer la répartition des méthodes de paiement
-        $paymentMethods = $this->fetchPaymentMethodDistribution($userId);
+        $paymentMethods = $this->userStatsRepository->findPaymentMethodDistribution($userId);
 
         return $this->render('profile/financial.html.twig', [
             'financialData' => $financialData,
@@ -1299,284 +825,16 @@ class ProfileController extends AbstractController
      */
     private function fetchUserStats(int $userId, array $sessionCartItems = []): array
     {
-        // Compter les billets actifs (tickets valides pour des événements futurs)
-        $activeTickets = (int) $this->connection->executeQuery(
-            'SELECT COUNT(DISTINCT t.id)
-             FROM aiolia.tickets t
-             INNER JOIN aiolia.orders o ON o.id = t.order_id
-             INNER JOIN aiolia.events e ON e.id = t.event_id
-             WHERE o.user_id = :userId
-               AND t.status = \'valid\'
-               AND e.starts_at > NOW()',
-            ['userId' => $userId]
-        )->fetchOne();
-
-        // Compter les événements favoris
-        $wishlistId = $this->connection->executeQuery(
-            'SELECT id FROM aiolia.wishlists WHERE user_id = :userId AND is_default = TRUE LIMIT 1',
-            ['userId' => $userId]
-        )->fetchOne();
-        
-        $favoriteEvents = 0;
-        if ($wishlistId) {
-            $favoriteEvents = (int) $this->connection->executeQuery(
-                'SELECT COUNT(*) FROM aiolia.wishlist_items WHERE wishlist_id = :wishlistId',
-                ['wishlistId' => $wishlistId]
-            )->fetchOne();
-        }
-
-        // Compter les items dans le panier actif (DB)
-        $dbCartItems = (int) $this->connection->executeQuery(
-            'SELECT COUNT(DISTINCT ci.event_id)
-             FROM aiolia.cart_items ci
-             INNER JOIN aiolia.carts c ON c.id = ci.cart_id
-             WHERE c.user_id = :userId
-               AND c.status = \'active\'',
-            ['userId' => $userId]
-        )->fetchOne();
-        
-        // Compter les items dans le panier en session
-        $sessionCartCount = count($sessionCartItems);
-        
-        // Prendre le maximum entre DB et session (pour éviter les doublons, on prend le plus grand)
-        $cartCount = max($dbCartItems, $sessionCartCount);
-
-        // Récupérer les points fidélité
-        $points = (int) $this->connection->executeQuery(
-            'SELECT points_balance FROM aiolia.wallets WHERE user_id = :userId LIMIT 1',
-            ['userId' => $userId]
-        )->fetchOne() ?: 0;
-
-        return [
-            'active_tickets' => $activeTickets,
-            'favorite_events' => $favoriteEvents,
-            'cart_items' => $cartCount,
-            'loyalty_points' => $points,
-        ];
+        return $this->userStatsRepository->findUserStats($userId, $sessionCartItems);
     }
 
-    /**
-     * Récupère les activités récentes de l'utilisateur
-     *
-     * @param array<string, mixed> $sessionCartItems
-     * @return array<int, array<string, mixed>>
-     */
-    private function fetchRecentActivities(int $userId, array $sessionCartItems = []): array
-    {
-        $activities = [];
-
-        // 1. Billets confirmés récents (derniers 30 jours)
-        $recentTickets = $this->connection->executeQuery(
-            'SELECT 
-                o.id AS order_id,
-                o.order_number,
-                o.created_at,
-                e.id AS event_id,
-                e.title AS event_title,
-                COUNT(t.id) AS ticket_count
-             FROM aiolia.orders o
-             INNER JOIN aiolia.tickets t ON t.order_id = o.id
-             INNER JOIN aiolia.events e ON e.id = t.event_id
-             WHERE o.user_id = :userId
-               AND o.status = \'paid\'
-               AND o.created_at >= NOW() - INTERVAL \'30 days\'
-             GROUP BY o.id, o.order_number, o.created_at, e.id, e.title
-             ORDER BY o.created_at DESC
-             LIMIT 5',
-            ['userId' => $userId]
-        )->fetchAllAssociative();
-
-        foreach ($recentTickets as $ticket) {
-            $createdAt = new \DateTimeImmutable($ticket['created_at']);
-            $activities[] = [
-                'type' => 'ticket',
-                'icon' => 'fas fa-ticket-alt',
-                'title' => $ticket['ticket_count'] . ' billet(s) confirmé(s) pour <strong>' . $ticket['event_title'] . '</strong>',
-                'meta' => $createdAt->format('d M Y') . ' · Paiement réussi · Ref. #' . $ticket['order_number'],
-                'date' => $createdAt,
-                'event_id' => (int) $ticket['event_id'],
-            ];
-        }
-
-        // 2. Favoris récents (derniers 30 jours)
-        $wishlistId = $this->connection->executeQuery(
-            'SELECT id FROM aiolia.wishlists WHERE user_id = :userId AND is_default = TRUE LIMIT 1',
-            ['userId' => $userId]
-        )->fetchOne();
-        
-        if ($wishlistId) {
-            $recentFavorites = $this->connection->executeQuery(
-                'SELECT 
-                    wi.added_at,
-                    e.id AS event_id,
-                    e.title AS event_title
-                 FROM aiolia.wishlist_items wi
-                 INNER JOIN aiolia.events e ON e.id = wi.event_id
-                 WHERE wi.wishlist_id = :wishlistId
-                   AND wi.added_at >= NOW() - INTERVAL \'30 days\'
-                 ORDER BY wi.added_at DESC
-                 LIMIT 5',
-                ['wishlistId' => $wishlistId]
-            )->fetchAllAssociative();
-
-            foreach ($recentFavorites as $favorite) {
-                $addedAt = new \DateTimeImmutable($favorite['added_at']);
-                $activities[] = [
-                    'type' => 'favorite',
-                    'icon' => 'fas fa-heart',
-                    'title' => 'Nouvel événement favori : <strong>' . $favorite['event_title'] . '</strong>',
-                    'meta' => $addedAt->format('d M Y') . ' · Favoris',
-                    'date' => $addedAt,
-                    'event_id' => (int) $favorite['event_id'],
-                ];
-            }
-        }
-
-        // 3. Panier en attente (DB)
-        $pendingCart = $this->connection->executeQuery(
-            'SELECT 
-                c.id,
-                c.created_at,
-                e.id AS event_id,
-                e.title AS event_title,
-                e.starts_at
-             FROM aiolia.carts c
-             INNER JOIN aiolia.cart_items ci ON ci.cart_id = c.id
-             INNER JOIN aiolia.events e ON e.id = ci.event_id
-             WHERE c.user_id = :userId
-               AND c.status = \'active\'
-             ORDER BY c.created_at DESC
-             LIMIT 1',
-            ['userId' => $userId]
-        )->fetchAssociative();
-
-        if ($pendingCart) {
-            $createdAt = new \DateTimeImmutable($pendingCart['created_at']);
-            $startsAt = new \DateTimeImmutable($pendingCart['starts_at']);
-            $hoursRemaining = (int) (($startsAt->getTimestamp() - time()) / 3600);
-            
-            $activities[] = [
-                'type' => 'cart',
-                'icon' => 'fas fa-clock',
-                'title' => 'Panier en attente pour <strong>' . $pendingCart['event_title'] . '</strong>',
-                'meta' => $createdAt->format('d M Y') . ' · Expire dans ' . max(0, $hoursRemaining) . ' heure(s)',
-                'date' => $createdAt,
-                'event_id' => (int) $pendingCart['event_id'],
-            ];
-        }
-
-        // 4. Panier en session (si pas déjà dans DB)
-        if (!empty($sessionCartItems) && !$pendingCart) {
-            // Récupérer les événements du panier en session
-            $eventIds = array_unique(array_map(fn($item) => $item['eventId'] ?? null, $sessionCartItems));
-            $eventIds = array_filter($eventIds);
-            
-            if (!empty($eventIds)) {
-                $placeholders = implode(',', array_fill(0, count($eventIds), '?'));
-                $sessionEvents = $this->connection->executeQuery(
-                    "SELECT id, title, starts_at FROM aiolia.events WHERE id IN ($placeholders) ORDER BY starts_at ASC LIMIT 1",
-                    $eventIds
-                )->fetchAssociative();
-                
-                if ($sessionEvents) {
-                    // Trouver la date d'ajout la plus ancienne dans le panier
-                    $oldestAddedAt = null;
-                    foreach ($sessionCartItems as $item) {
-                        if (isset($item['added_at'])) {
-                            $addedAt = new \DateTimeImmutable($item['added_at']);
-                            if (!$oldestAddedAt || $addedAt < $oldestAddedAt) {
-                                $oldestAddedAt = $addedAt;
-                            }
-                        }
-                    }
-                    
-                    if (!$oldestAddedAt) {
-                        $oldestAddedAt = new \DateTimeImmutable();
-                    }
-                    
-                    $startsAt = new \DateTimeImmutable($sessionEvents['starts_at']);
-                    $hoursRemaining = (int) (($startsAt->getTimestamp() - time()) / 3600);
-                    
-                    $activities[] = [
-                        'type' => 'cart',
-                        'icon' => 'fas fa-clock',
-                        'title' => 'Panier en attente pour <strong>' . $sessionEvents['title'] . '</strong>',
-                        'meta' => $oldestAddedAt->format('d M Y') . ' · Expire dans ' . max(0, $hoursRemaining) . ' heure(s)',
-                        'date' => $oldestAddedAt,
-                        'event_id' => (int) $sessionEvents['id'],
-                    ];
-                }
-            }
-        }
-
-        // Trier toutes les activités par date (plus récentes en premier)
-        usort($activities, function($a, $b) {
-            return $b['date'] <=> $a['date'];
-        });
-
-        // Limiter à 10 activités
-        return array_slice($activities, 0, 10);
-    }
 
     /**
      * Récupère les commandes de l'utilisateur avec leurs détails.
      */
     private function fetchUserOrders(int $userId, string $searchQuery = '', string $statusFilter = 'all', string $paymentMethodFilter = 'all'): array
     {
-        $sql = <<<SQL
-            SELECT 
-                o.id,
-                o.status,
-                o.total_amount,
-                o.discount_amount,
-                o.currency,
-                o.promotion_code,
-                o.created_at,
-                o.updated_at,
-                o.notes,
-                COUNT(DISTINCT oi.id) as items_count,
-                SUM(oi.quantity) as total_tickets,
-                STRING_AGG(DISTINCT e.title, ', ') as event_titles,
-                STRING_AGG(DISTINCT e.starts_at::text, ', ') as event_dates
-            FROM aiolia.orders o
-            LEFT JOIN aiolia.order_items oi ON oi.order_id = o.id
-            LEFT JOIN aiolia.ticket_types tt ON tt.id = oi.ticket_type_id
-            LEFT JOIN aiolia.events e ON e.id = tt.event_id
-            WHERE o.user_id = :user_id
-        SQL;
-
-        $params = ['user_id' => $userId];
-
-        // Appliquer le filtre de statut
-        if ($statusFilter !== 'all') {
-            $sql .= ' AND o.status = :status';
-            $params['status'] = $statusFilter;
-        }
-
-        // Appliquer le filtre de mode de paiement
-        if ($paymentMethodFilter !== 'all') {
-            // Le payment_method est stocké dans o.notes au format JSON
-            $sql .= " AND o.notes::jsonb->>'payment_method' = :payment_method";
-            $params['payment_method'] = $paymentMethodFilter;
-        }
-
-        // Appliquer la recherche
-        if (!empty($searchQuery)) {
-            $sql .= ' AND (
-                e.title ILIKE :search 
-                OR CAST(o.id AS TEXT) ILIKE :search
-                OR o.notes::text ILIKE :search
-            )';
-            $params['search'] = '%' . $searchQuery . '%';
-        }
-
-        $sql .= <<<SQL
-            GROUP BY o.id, o.status, o.total_amount, o.discount_amount, o.currency, 
-                     o.promotion_code, o.created_at, o.updated_at, o.notes
-            ORDER BY o.created_at DESC
-        SQL;
-
-        $rows = $this->connection->executeQuery($sql, $params)->fetchAllAssociative();
+        $rows = $this->orderRepository->findUserOrders($userId, $searchQuery, $statusFilter, $paymentMethodFilter);
 
         return array_map(function (array $row): array {
             $status = $row['status'];
@@ -1627,71 +885,6 @@ class ProfileController extends AbstractController
         }, $rows);
     }
 
-    /**
-     * Récupère les statuts disponibles depuis la base de données pour l'utilisateur.
-     * Récupère tous les statuts possibles depuis l'ENUM order_status_enum et compte les commandes pour chaque statut.
-     * Utilise les statuts définis dans order_status_enum du schéma :
-     * 'pending', 'paid', 'cancelled', 'failed'
-     */
-    private function fetchAvailableStatuses(int $userId): array
-    {
-        // Récupérer tous les statuts possibles depuis l'ENUM order_status_enum
-        $sqlEnum = <<<SQL
-            SELECT unnest(enum_range(NULL::aiolia.order_status_enum))::text as status
-            ORDER BY status
-        SQL;
-        
-        $enumStatuses = $this->connection->executeQuery($sqlEnum)->fetchAllAssociative();
-        
-        // Récupérer le nombre de commandes par statut pour cet utilisateur
-        $sqlCounts = <<<SQL
-            SELECT o.status, COUNT(*) as count
-            FROM aiolia.orders o
-            WHERE o.user_id = :user_id
-            GROUP BY o.status
-        SQL;
-        
-        $counts = $this->connection->executeQuery($sqlCounts, ['user_id' => $userId])->fetchAllAssociative();
-        
-        // Créer un tableau associatif pour les compteurs
-        $countMap = [];
-        foreach ($counts as $countRow) {
-            $countMap[$countRow['status']] = (int) $countRow['count'];
-        }
-
-        // Utiliser les statuts définis dans order_status_enum du schéma (schema.sql ligne 40)
-        // CREATE TYPE order_status_enum AS ENUM ('pending', 'paid', 'cancelled', 'failed');
-        $statusLabels = [
-            'pending' => 'En attente',
-            'paid' => 'Payée',
-            'cancelled' => 'Annulée',
-            'failed' => 'Échouée',
-        ];
-
-        // Statuts à exclure (même s'ils existent encore dans l'ENUM de la base de données)
-        $excludedStatuses = ['awaiting_payment', 'refunded'];
-        
-        $availableStatuses = [];
-        foreach ($enumStatuses as $enumRow) {
-            $status = $enumRow['status'];
-            
-            // Exclure les statuts non désirés
-            if (in_array($status, $excludedStatuses, true)) {
-                continue;
-            }
-            
-            $count = $countMap[$status] ?? 0;
-            
-            // Inclure tous les statuts valides, même ceux avec 0 commande
-            $availableStatuses[] = [
-                'key' => $status,
-                'label' => $statusLabels[$status] ?? ucfirst($status),
-                'count' => $count,
-            ];
-        }
-
-        return $availableStatuses;
-    }
 
     /**
      * Calcule les statistiques d'achat de l'utilisateur.
@@ -1712,7 +905,7 @@ class ProfileController extends AbstractController
         }
 
         // Compter les événements à venir pour lesquels l'utilisateur a des billets payés
-        $upcomingEventsCount = $this->countUpcomingEvents($userId);
+        $upcomingEventsCount = $this->userStatsRepository->countUpcomingEvents($userId);
 
         return [
             'total_spent' => number_format($totalSpent, 0, ',', ' ') . ' MGA',
@@ -1727,26 +920,6 @@ class ProfileController extends AbstractController
         ];
     }
 
-    /**
-     * Compte le nombre d'événements à venir pour lesquels l'utilisateur a des billets payés.
-     */
-    private function countUpcomingEvents(int $userId): int
-    {
-        $sql = <<<SQL
-            SELECT COUNT(DISTINCT e.id) as upcoming_count
-            FROM aiolia.orders o
-            INNER JOIN aiolia.order_items oi ON oi.order_id = o.id
-            INNER JOIN aiolia.ticket_types tt ON tt.id = oi.ticket_type_id
-            INNER JOIN aiolia.events e ON e.id = tt.event_id
-            WHERE o.user_id = :user_id
-            AND o.status = 'paid'
-            AND e.starts_at > NOW()
-        SQL;
-
-        $result = $this->connection->executeQuery($sql, ['user_id' => $userId])->fetchAssociative();
-        
-        return (int) ($result['upcoming_count'] ?? 0);
-    }
 
     /**
      * Récupère les données de dépenses par mois pour le graphique.
@@ -1757,58 +930,7 @@ class ProfileController extends AbstractController
      */
     private function fetchSpendingChartData(int $userId, int $months = 12): array
     {
-        $startDate = (new \DateTimeImmutable())->modify("-{$months} months")->format('Y-m-01');
-        
-        $sql = <<<SQL
-            SELECT 
-                DATE_TRUNC('month', o.created_at) as month,
-                SUM(o.total_amount) as total_amount
-            FROM aiolia.orders o
-            WHERE o.user_id = :user_id
-            AND o.status = 'paid'
-            AND o.created_at >= :start_date
-            GROUP BY DATE_TRUNC('month', o.created_at)
-            ORDER BY month ASC
-        SQL;
-
-        $rows = $this->connection->executeQuery($sql, [
-            'user_id' => $userId,
-            'start_date' => $startDate,
-        ])->fetchAllAssociative();
-
-        // Créer un tableau associatif mois => montant
-        $monthlyData = [];
-        foreach ($rows as $row) {
-            $monthKey = (new \DateTimeImmutable($row['month']))->format('Y-m');
-            $monthlyData[$monthKey] = (float) $row['total_amount'];
-        }
-
-        // Générer tous les mois de la période avec leurs labels français
-        $labels = [];
-        $data = [];
-        $monthNames = [
-            1 => 'Jan', 2 => 'Fév', 3 => 'Mar', 4 => 'Avr', 5 => 'Mai', 6 => 'Jun',
-            7 => 'Jul', 8 => 'Aoû', 9 => 'Sep', 10 => 'Oct', 11 => 'Nov', 12 => 'Déc'
-        ];
-
-        $currentDate = new \DateTimeImmutable($startDate);
-        $endDate = new \DateTimeImmutable();
-        
-        while ($currentDate <= $endDate) {
-            $monthKey = $currentDate->format('Y-m');
-            $monthNum = (int) $currentDate->format('n');
-            $year = $currentDate->format('Y');
-            
-            $labels[] = $monthNames[$monthNum] . ' ' . $year;
-            $data[] = $monthlyData[$monthKey] ?? 0;
-            
-            $currentDate = $currentDate->modify('+1 month');
-        }
-
-        return [
-            'labels' => $labels,
-            'data' => $data,
-        ];
+        return $this->orderRepository->findSpendingChartData($userId, $months);
     }
 
     /**
@@ -1816,49 +938,14 @@ class ProfileController extends AbstractController
      */
     private function fetchUserStatistics(int $userId, ?\DateTimeImmutable $dateFrom = null): array
     {
-        $sql = <<<SQL
-            SELECT 
-                COUNT(DISTINCT t.id) as total_tickets,
-                COUNT(DISTINCT o.id) as total_orders,
-                COUNT(DISTINCT e.id) as unique_events,
-                SUM(CASE WHEN o.status = 'paid' THEN o.total_amount ELSE 0 END) as total_spent,
-                AVG(CASE WHEN o.status = 'paid' THEN o.total_amount ELSE NULL END) as avg_cart
-            FROM aiolia.orders o
-            LEFT JOIN aiolia.order_items oi ON oi.order_id = o.id
-            LEFT JOIN aiolia.tickets t ON t.order_item_id = oi.id
-            LEFT JOIN aiolia.ticket_types tt ON tt.id = oi.ticket_type_id
-            LEFT JOIN aiolia.events e ON e.id = tt.event_id
-            WHERE o.user_id = :user_id
-        SQL;
-        
-        $params = ['user_id' => $userId];
-        
-        if ($dateFrom !== null) {
-            $sql .= ' AND o.created_at >= :date_from';
-            $params['date_from'] = $dateFrom->format('Y-m-d H:i:s');
-        }
-
-        $row = $this->connection->executeQuery($sql, $params)->fetchAssociative();
-
-        if (!$row) {
-            return [
-                'total_tickets' => 0,
-                'total_spent' => 0,
-                'unique_events' => 0,
-                'avg_cart' => 0,
-            ];
-        }
-
-        $totalSpent = (float) ($row['total_spent'] ?? 0);
-        $avgCart = (float) ($row['avg_cart'] ?? 0);
-
-        return [
-            'total_tickets' => (int) ($row['total_tickets'] ?? 0),
-            'total_spent' => number_format($totalSpent, 0, ',', ' ') . ' MGA',
-            'total_spent_raw' => $totalSpent,
-            'unique_events' => (int) ($row['unique_events'] ?? 0),
-            'avg_cart' => number_format($avgCart, 0, ',', ' ') . ' MGA',
-            'total_orders' => (int) ($row['total_orders'] ?? 0),
+        $result = $this->userStatsRepository->findUserStatistics($userId, $dateFrom);
+        return $result ?: [
+            'total_tickets' => 0,
+            'total_spent' => '0 MGA',
+            'total_spent_raw' => 0,
+            'unique_events' => 0,
+            'avg_cart' => '0 MGA',
+            'total_orders' => 0,
         ];
     }
 
@@ -1867,40 +954,7 @@ class ProfileController extends AbstractController
      */
     private function fetchMonthlyExpenses(int $userId, ?\DateTimeImmutable $dateFrom = null): array
     {
-        $sql = <<<SQL
-            SELECT 
-                TO_CHAR(o.created_at, 'Month YYYY') as month_name,
-                TO_CHAR(o.created_at, 'YYYY-MM') as month_key,
-                SUM(o.total_amount) as total
-            FROM aiolia.orders o
-            WHERE o.user_id = :user_id 
-              AND o.status = 'paid'
-        SQL;
-        
-        $params = ['user_id' => $userId];
-        
-        if ($dateFrom !== null) {
-            $sql .= ' AND o.created_at >= :date_from';
-            $params['date_from'] = $dateFrom->format('Y-m-d H:i:s');
-        } else {
-            $sql .= ' AND o.created_at >= NOW() - INTERVAL \'6 months\'';
-        }
-        
-        $sql .= <<<SQL
-            GROUP BY TO_CHAR(o.created_at, 'Month YYYY'), TO_CHAR(o.created_at, 'YYYY-MM')
-            ORDER BY month_key DESC
-            LIMIT 6
-        SQL;
-
-        $rows = $this->connection->executeQuery($sql, $params)->fetchAllAssociative();
-
-        return array_map(function (array $row): array {
-            return [
-                'month' => trim($row['month_name']),
-                'total' => number_format((float) $row['total'], 0, ',', ' ') . ' MGA',
-                'total_raw' => (float) $row['total'],
-            ];
-        }, $rows);
+        return $this->orderRepository->findMonthlyExpenses($userId, $dateFrom);
     }
 
     /**
@@ -1908,44 +962,7 @@ class ProfileController extends AbstractController
      */
     private function fetchEventTypeDistribution(int $userId, ?\DateTimeImmutable $dateFrom = null): array
     {
-        $sql = <<<SQL
-            SELECT 
-                COALESCE(ec.label, 'Autres') as category,
-                COUNT(DISTINCT o.id) as order_count,
-                SUM(o.total_amount) as total_amount
-            FROM aiolia.orders o
-            JOIN aiolia.order_items oi ON oi.order_id = o.id
-            JOIN aiolia.ticket_types tt ON tt.id = oi.ticket_type_id
-            JOIN aiolia.events e ON e.id = tt.event_id
-            LEFT JOIN aiolia.event_categories ec ON ec.id = e.primary_category_id
-            WHERE o.user_id = :user_id 
-              AND o.status = 'paid'
-        SQL;
-        
-        $params = ['user_id' => $userId];
-        
-        if ($dateFrom !== null) {
-            $sql .= ' AND o.created_at >= :date_from';
-            $params['date_from'] = $dateFrom->format('Y-m-d H:i:s');
-        }
-        
-        $sql .= <<<SQL
-            GROUP BY ec.label
-            ORDER BY total_amount DESC
-        SQL;
-
-        $rows = $this->connection->executeQuery($sql, $params)->fetchAllAssociative();
-
-        $total = array_sum(array_column($rows, 'total_amount'));
-
-        return array_map(function (array $row) use ($total): array {
-            $percentage = $total > 0 ? round((float) $row['total_amount'] / $total * 100) : 0;
-            return [
-                'category' => $row['category'],
-                'percentage' => $percentage,
-                'order_count' => (int) $row['order_count'],
-            ];
-        }, $rows);
+        return $this->userStatsRepository->findEventTypeDistribution($userId, $dateFrom);
     }
 
     /**
@@ -1958,199 +975,16 @@ class ProfileController extends AbstractController
      */
     private function fetchTopPurchasedEvents(int $userId, int $limit = 5, ?\DateTimeImmutable $dateFrom = null): array
     {
-        // Limiter à un entier valide pour éviter les injections SQL
-        $limit = max(1, min(100, (int) $limit));
-        
-        $sql = <<<SQL
-            SELECT 
-                e.id,
-                e.title,
-                e.slug,
-                COALESCE(ec.label, 'Autres') as category,
-                COUNT(DISTINCT o.id) as purchase_count,
-                SUM(oi.quantity) as total_tickets,
-                SUM(o.total_amount) as total_spent,
-                MIN(o.created_at) as first_purchase,
-                MAX(o.created_at) as last_purchase
-            FROM aiolia.orders o
-            JOIN aiolia.order_items oi ON oi.order_id = o.id
-            JOIN aiolia.ticket_types tt ON tt.id = oi.ticket_type_id
-            JOIN aiolia.events e ON e.id = tt.event_id
-            LEFT JOIN aiolia.event_categories ec ON ec.id = e.primary_category_id
-            WHERE o.user_id = :user_id 
-              AND o.status = 'paid'
-        SQL;
-        
-        $params = ['user_id' => $userId];
-        
-        if ($dateFrom !== null) {
-            $sql .= ' AND o.created_at >= :date_from';
-            $params['date_from'] = $dateFrom->format('Y-m-d H:i:s');
-        }
-        
-        $sql .= <<<SQL
-            GROUP BY e.id, e.title, e.slug, ec.label
-            ORDER BY total_spent DESC, purchase_count DESC
-            LIMIT {$limit}
-        SQL;
-
-        $rows = $this->connection->executeQuery($sql, $params)->fetchAllAssociative();
-
-        return array_map(function (array $row): array {
-            return [
-                'id' => (int) $row['id'],
-                'title' => $row['title'],
-                'slug' => $row['slug'],
-                'category' => $row['category'],
-                'purchase_count' => (int) $row['purchase_count'],
-                'total_tickets' => (int) $row['total_tickets'],
-                'total_spent' => number_format((float) $row['total_spent'], 0, ',', ' ') . ' MGA',
-                'total_spent_raw' => (float) $row['total_spent'],
-                'first_purchase' => isset($row['first_purchase']) ? new \DateTimeImmutable($row['first_purchase']) : null,
-                'last_purchase' => isset($row['last_purchase']) ? new \DateTimeImmutable($row['last_purchase']) : null,
-            ];
-        }, $rows);
+        return $this->userStatsRepository->findTopPurchasedEvents($userId, $limit, $dateFrom);
     }
 
-    /**
-     * Récupère l'historique financier détaillé.
-     */
-    private function fetchFinancialHistory(int $userId): array
-    {
-        // Récupérer le total des dépenses de l'année en cours
-        $sql = <<<SQL
-            SELECT 
-                SUM(CASE WHEN o.status = 'paid' THEN o.total_amount ELSE 0 END) as total_spent
-            FROM aiolia.orders o
-            WHERE o.user_id = :user_id
-              AND EXTRACT(YEAR FROM o.created_at) = EXTRACT(YEAR FROM NOW())
-        SQL;
-
-        $row = $this->connection->executeQuery($sql, ['user_id' => $userId])->fetchAssociative();
-
-        // Récupérer le solde du wallet
-        $walletSql = <<<SQL
-            SELECT balance, points_balance
-            FROM aiolia.wallets
-            WHERE user_id = :user_id
-            LIMIT 1
-        SQL;
-
-        $walletRow = $this->connection->executeQuery($walletSql, ['user_id' => $userId])->fetchAssociative();
-
-        return [
-            'total_spent' => number_format((float) ($row['total_spent'] ?? 0), 0, ',', ' ') . ' MGA',
-            'wallet_balance' => number_format((float) ($walletRow['balance'] ?? 0), 0, ',', ' ') . ' MGA',
-            'wallet_points' => (int) ($walletRow['points_balance'] ?? 0),
-        ];
-    }
-
-    /**
-     * Récupère les données financières mensuelles.
-     */
-    private function fetchMonthlyFinancialData(int $userId): array
-    {
-        $sql = <<<SQL
-            SELECT 
-                TO_CHAR(o.created_at, 'Month') as month_name,
-                TO_CHAR(o.created_at, 'YYYY-MM') as month_key,
-                SUM(o.total_amount) as total
-            FROM aiolia.orders o
-            WHERE o.user_id = :user_id 
-              AND o.status = 'paid'
-              AND o.created_at >= NOW() - INTERVAL '6 months'
-            GROUP BY TO_CHAR(o.created_at, 'Month'), TO_CHAR(o.created_at, 'YYYY-MM')
-            ORDER BY month_key DESC
-            LIMIT 6
-        SQL;
-
-        $rows = $this->connection->executeQuery($sql, ['user_id' => $userId])->fetchAllAssociative();
-
-        return array_map(function (array $row): array {
-            return [
-                'month' => trim($row['month_name']),
-                'total' => number_format((float) $row['total'], 0, ',', ' ') . ' MGA',
-            ];
-        }, $rows);
-    }
 
     /**
      * Récupère la répartition des méthodes de paiement.
      */
     private function fetchPaymentMethodDistribution(int $userId): array
     {
-        // Utiliser les données depuis les commandes (plus fiable)
-        $sql = <<<SQL
-            SELECT 
-                o.notes,
-                o.total_amount,
-                COUNT(*) as order_count
-            FROM aiolia.orders o
-            WHERE o.user_id = :user_id
-              AND o.status = 'paid'
-              AND o.notes IS NOT NULL
-            GROUP BY o.notes, o.total_amount
-        SQL;
-
-        $rows = $this->connection->executeQuery($sql, ['user_id' => $userId])->fetchAllAssociative();
-
-        $providerLabels = [
-            'mvola' => 'M-Vola',
-            'orange-money' => 'Orange Money',
-            'orange' => 'Orange Money',
-            'airtel-money' => 'Airtel Money',
-            'airtel' => 'Airtel Money',
-            'telma' => 'Telma',
-            'bank_transfer' => 'Virement bancaire',
-        ];
-
-        $distribution = [];
-        $totalCount = 0;
-
-        foreach ($rows as $row) {
-            $notes = json_decode($row['notes'], true);
-            $paymentMethod = null;
-            
-            if (is_array($notes) && isset($notes['payment_method'])) {
-                $paymentMethod = $notes['payment_method'];
-            }
-            
-            if (!$paymentMethod) {
-                $paymentMethod = 'other';
-            }
-            
-            $label = $providerLabels[$paymentMethod] ?? 'Autres';
-            $count = (int) $row['order_count'];
-            
-            if (!isset($distribution[$label])) {
-                $distribution[$label] = [
-                    'label' => $label,
-                    'count' => 0,
-                ];
-            }
-            
-            $distribution[$label]['count'] += $count;
-            $totalCount += $count;
-        }
-
-        // Calculer les pourcentages
-        $result = [];
-        foreach ($distribution as $label => $data) {
-            $percentage = $totalCount > 0 ? round(($data['count'] / $totalCount) * 100) : 0;
-            $result[] = [
-                'label' => $label,
-                'count' => $data['count'],
-                'percentage' => $percentage,
-            ];
-        }
-
-        // Trier par nombre de transactions décroissant
-        usort($result, fn($a, $b) => $b['count'] <=> $a['count']);
-
-        return [
-            'methods' => $result,
-            'total_count' => $totalCount,
-        ];
+        return $this->userStatsRepository->findPaymentMethodDistribution($userId);
     }
 
     /**
@@ -2211,40 +1045,7 @@ class ProfileController extends AbstractController
      */
     private function getMostActiveMonth(int $userId, ?\DateTimeImmutable $dateFrom = null): ?array
     {
-        $sql = <<<SQL
-            SELECT 
-                TO_CHAR(o.created_at, 'Month YYYY') as month_name,
-                COUNT(*) as order_count,
-                SUM(o.total_amount) as total_amount
-            FROM aiolia.orders o
-            WHERE o.user_id = :user_id 
-              AND o.status = 'paid'
-        SQL;
-        
-        $params = ['user_id' => $userId];
-        
-        if ($dateFrom !== null) {
-            $sql .= ' AND o.created_at >= :date_from';
-            $params['date_from'] = $dateFrom->format('Y-m-d H:i:s');
-        }
-        
-        $sql .= <<<SQL
-            GROUP BY TO_CHAR(o.created_at, 'Month YYYY')
-            ORDER BY order_count DESC, total_amount DESC
-            LIMIT 1
-        SQL;
-        
-        $row = $this->connection->executeQuery($sql, $params)->fetchAssociative();
-        
-        if ($row) {
-            return [
-                'month' => trim($row['month_name']),
-                'count' => (int) $row['order_count'],
-                'total' => number_format((float) $row['total_amount'], 0, ',', ' ') . ' MGA'
-            ];
-        }
-        
-        return null;
+        return $this->userStatsRepository->findMostActiveMonth($userId, $dateFrom);
     }
 
     /**
@@ -2252,24 +1053,7 @@ class ProfileController extends AbstractController
      */
     private function getTotalSavedWithPromos(int $userId, ?\DateTimeImmutable $dateFrom = null): float
     {
-        $sql = <<<SQL
-            SELECT SUM(COALESCE(o.discount_amount, 0)) as total_saved
-            FROM aiolia.orders o
-            WHERE o.user_id = :user_id 
-              AND o.status = 'paid'
-              AND o.discount_amount > 0
-        SQL;
-        
-        $params = ['user_id' => $userId];
-        
-        if ($dateFrom !== null) {
-            $sql .= ' AND o.created_at >= :date_from';
-            $params['date_from'] = $dateFrom->format('Y-m-d H:i:s');
-        }
-        
-        $result = $this->connection->executeQuery($sql, $params)->fetchAssociative();
-        
-        return (float) ($result['total_saved'] ?? 0);
+        return $this->userStatsRepository->calculateTotalSavedWithPromos($userId, $dateFrom);
     }
 
     /**
@@ -2277,27 +1061,7 @@ class ProfileController extends AbstractController
      */
     private function getEventTypesCount(int $userId, ?\DateTimeImmutable $dateFrom = null): int
     {
-        $sql = <<<SQL
-            SELECT COUNT(DISTINCT COALESCE(ec.label, 'Autres')) as types_count
-            FROM aiolia.orders o
-            JOIN aiolia.order_items oi ON oi.order_id = o.id
-            JOIN aiolia.ticket_types tt ON tt.id = oi.ticket_type_id
-            JOIN aiolia.events e ON e.id = tt.event_id
-            LEFT JOIN aiolia.event_categories ec ON ec.id = e.primary_category_id
-            WHERE o.user_id = :user_id 
-              AND o.status = 'paid'
-        SQL;
-        
-        $params = ['user_id' => $userId];
-        
-        if ($dateFrom !== null) {
-            $sql .= ' AND o.created_at >= :date_from';
-            $params['date_from'] = $dateFrom->format('Y-m-d H:i:s');
-        }
-        
-        $result = $this->connection->executeQuery($sql, $params)->fetchAssociative();
-        
-        return (int) ($result['types_count'] ?? 0);
+        return $this->userStatsRepository->countEventTypes($userId, $dateFrom);
     }
 
     /**
@@ -2305,42 +1069,7 @@ class ProfileController extends AbstractController
      */
     private function getFavoriteCategory(int $userId, ?\DateTimeImmutable $dateFrom = null): ?array
     {
-        $sql = <<<SQL
-            SELECT 
-                COALESCE(ec.label, 'Autres') as category,
-                SUM(oi.quantity) as ticket_count
-            FROM aiolia.orders o
-            JOIN aiolia.order_items oi ON oi.order_id = o.id
-            JOIN aiolia.ticket_types tt ON tt.id = oi.ticket_type_id
-            JOIN aiolia.events e ON e.id = tt.event_id
-            LEFT JOIN aiolia.event_categories ec ON ec.id = e.primary_category_id
-            WHERE o.user_id = :user_id 
-              AND o.status = 'paid'
-        SQL;
-        
-        $params = ['user_id' => $userId];
-        
-        if ($dateFrom !== null) {
-            $sql .= ' AND o.created_at >= :date_from';
-            $params['date_from'] = $dateFrom->format('Y-m-d H:i:s');
-        }
-        
-        $sql .= <<<SQL
-            GROUP BY ec.label
-            ORDER BY ticket_count DESC
-            LIMIT 1
-        SQL;
-        
-        $row = $this->connection->executeQuery($sql, $params)->fetchAssociative();
-        
-        if ($row) {
-            return [
-                'category' => $row['category'],
-                'count' => (int) $row['ticket_count']
-            ];
-        }
-        
-        return null;
+        return $this->userStatsRepository->findFavoriteCategory($userId, $dateFrom);
     }
 
     /**
@@ -2348,35 +1077,7 @@ class ProfileController extends AbstractController
      */
     private function getRecommendedCategories(int $userId, ?\DateTimeImmutable $dateFrom = null): array
     {
-        // Récupérer les catégories similaires à celles déjà achetées
-        $sql = <<<SQL
-            SELECT DISTINCT
-                COALESCE(ec.label, 'Autres') as category,
-                ec.slug as category_slug
-            FROM aiolia.event_categories ec
-            WHERE ec.label IN (
-                SELECT DISTINCT COALESCE(ec2.label, 'Autres')
-                FROM aiolia.orders o
-                JOIN aiolia.order_items oi ON oi.order_id = o.id
-                JOIN aiolia.ticket_types tt ON tt.id = oi.ticket_type_id
-                JOIN aiolia.events e ON e.id = tt.event_id
-                LEFT JOIN aiolia.event_categories ec2 ON ec2.id = e.primary_category_id
-                WHERE o.user_id = :user_id 
-                  AND o.status = 'paid'
-            )
-            LIMIT 5
-        SQL;
-        
-        $params = ['user_id' => $userId];
-        
-        // Note: On ne filtre pas par date pour les recommandations
-        
-        $rows = $this->connection->executeQuery($sql, $params)->fetchAllAssociative();
-        
-        return array_map(fn($row) => [
-            'category' => $row['category'],
-            'slug' => $row['category_slug'] ?? null
-        ], $rows);
+        return $this->userStatsRepository->findRecommendedCategories($userId);
     }
 
     /**
@@ -2384,92 +1085,6 @@ class ProfileController extends AbstractController
      */
     private function fetchYearComparison(int $userId): array
     {
-        $currentYear = (int) date('Y');
-        $previousYear = $currentYear - 1;
-        
-        $sql = <<<SQL
-            SELECT 
-                TO_CHAR(o.created_at, 'MM') as month_num,
-                TO_CHAR(o.created_at, 'Month') as month_name,
-                EXTRACT(YEAR FROM o.created_at) as year,
-                SUM(o.total_amount) as total_amount
-            FROM aiolia.orders o
-            WHERE o.user_id = :user_id 
-              AND o.status = 'paid'
-              AND EXTRACT(YEAR FROM o.created_at) IN ({$currentYear}, {$previousYear})
-            GROUP BY TO_CHAR(o.created_at, 'MM'), TO_CHAR(o.created_at, 'Month'), EXTRACT(YEAR FROM o.created_at)
-            ORDER BY month_num, year
-        SQL;
-        
-        $rows = $this->connection->executeQuery($sql, [
-            'user_id' => $userId,
-        ])->fetchAllAssociative();
-        
-        // Organiser les données par mois
-        $monthlyData = [];
-        $monthNames = [
-            '01' => 'Janvier', '02' => 'Février', '03' => 'Mars', '04' => 'Avril',
-            '05' => 'Mai', '06' => 'Juin', '07' => 'Juillet', '08' => 'Août',
-            '09' => 'Septembre', '10' => 'Octobre', '11' => 'Novembre', '12' => 'Décembre'
-        ];
-        
-        $monthNamesShort = [
-            '01' => 'Jan', '02' => 'Fév', '03' => 'Mar', '04' => 'Avr',
-            '05' => 'Mai', '06' => 'Juin', '07' => 'Juil', '08' => 'Aoû',
-            '09' => 'Sep', '10' => 'Oct', '11' => 'Nov', '12' => 'Déc'
-        ];
-        
-        foreach ($rows as $row) {
-            $monthNum = $row['month_num'];
-            $year = (int) $row['year'];
-            $amount = (float) $row['total_amount'];
-            
-            if (!isset($monthlyData[$monthNum])) {
-                $monthlyData[$monthNum] = [
-                    'month' => trim($row['month_name']),
-                    'month_short' => $monthNamesShort[$monthNum] ?? substr(trim($row['month_name']), 0, 3),
-                    'current_year' => 0,
-                    'previous_year' => 0,
-                ];
-            }
-            
-            if ($year === $currentYear) {
-                $monthlyData[$monthNum]['current_year'] = $amount;
-            } elseif ($year === $previousYear) {
-                $monthlyData[$monthNum]['previous_year'] = $amount;
-            }
-        }
-        
-        // Convertir en tableau indexé et formater
-        $comparison = [];
-        $maxValue = 0;
-        
-        foreach ($monthlyData as $monthNum => $data) {
-            if ($data['current_year'] > $maxValue) {
-                $maxValue = $data['current_year'];
-            }
-            if ($data['previous_year'] > $maxValue) {
-                $maxValue = $data['previous_year'];
-            }
-            
-            $comparison[] = [
-                'month' => $data['month'],
-                'month_short' => $data['month_short'],
-                'current_year' => $data['current_year'],
-                'previous_year' => $data['previous_year'],
-                'current_year_formatted' => number_format($data['current_year'], 0, ',', ' ') . ' MGA',
-                'previous_year_formatted' => number_format($data['previous_year'], 0, ',', ' ') . ' MGA',
-                'current_year_label' => (string) $currentYear,
-                'previous_year_label' => (string) $previousYear,
-                'growth' => $data['previous_year'] > 0 
-                    ? round((($data['current_year'] - $data['previous_year']) / $data['previous_year']) * 100, 1)
-                    : ($data['current_year'] > 0 ? 100 : 0),
-            ];
-        }
-        
-        return [
-            'data' => $comparison,
-            'max_value' => $maxValue,
-        ];
+        return $this->orderRepository->findYearComparison($userId);
     }
 }
