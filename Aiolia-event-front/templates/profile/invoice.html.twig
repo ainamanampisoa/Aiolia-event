@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Facture {{ order.code }}</title>
+    <title>Facture</title>
     <style>
         * {
             margin: 0;
@@ -14,43 +14,77 @@
             font-family: 'Arial', sans-serif;
             font-size: 12px;
             color: #333;
-            background: #fff;
+            background: #f3f5f9;
             padding: 20px;
         }
         .invoice-container {
             max-width: 800px;
             margin: 0 auto;
-            background: #fff;
+            background: #ffffff;
+            border-radius: 8px;
+            border: 1px solid #e2e6f0;
+            padding: 25px 30px;
         }
         .invoice-header {
-            margin-bottom: 30px;
-            padding-bottom: 20px;
+            margin-bottom: 25px;
+            padding-bottom: 15px;
             border-bottom: 2px solid #1F2D3D;
-            overflow: hidden;
         }
-        .invoice-header-left {
-            float: left;
+        .brand-block {
+            text-align: center;
+            margin-bottom: 10px;
         }
-        .invoice-header-right {
-            float: right;
-            text-align: right;
+        .brand-name {
+            font-size: 22px;
+            font-weight: bold;
+            color: #1F2D3D;
+            letter-spacing: 1px;
+        }
+        .brand-subtitle {
+            font-size: 11px;
+            color: #7b8190;
+            margin-top: 3px;
         }
         .invoice-title {
-            font-size: 28px;
+            text-align: center;
+            font-size: 18px;
+            font-weight: bold;
+            color: #1F2D3D;
+            text-transform: uppercase;
+            margin-top: 12px;
+        }
+        .header-meta {
+            margin-top: 15px;
+            overflow: hidden;
+        }
+        .meta-left,
+        .meta-right {
+            width: 50%;
+            float: left;
+            font-size: 11px;
+            color: #555;
+        }
+        .meta-right {
+            text-align: right;
+        }
+        .header-label {
             font-weight: bold;
             color: #1F2D3D;
         }
-        .invoice-number {
-            font-size: 14px;
-            color: #666;
-            margin-top: 5px;
+        .header-client {
+            margin-top: 8px;
+            font-size: 11px;
+            color: #555;
+            text-align: center;
+            line-height: 1.4;
         }
-        .invoice-info {
-            text-align: right;
+        .header-client-name {
+            font-weight: bold;
+            color: #1F2D3D;
         }
-        .invoice-info p {
-            margin: 3px 0;
-            color: #666;
+        .header-client-email {
+            font-size: 10px;
+            color: #777;
         }
         .invoice-body {
             margin: 30px 0;
@@ -62,9 +96,9 @@
             font-size: 14px;
             font-weight: bold;
             color: #1F2D3D;
-            margin-bottom: 10px;
+            margin-bottom: 8px;
             padding-bottom: 5px;
-            border-bottom: 1px solid #eee;
+            border-bottom: 1px solid #e4e7f0;
         }
         .details-table {
             width: 100%;
@@ -78,7 +112,7 @@
             border-bottom: 1px solid #eee;
         }
         .details-table th {
-            background: #f8f9fa;
+            background: #f5f7fb;
             font-weight: bold;
             color: #1F2D3D;
         }
@@ -131,19 +165,37 @@
             }
         }
     </style>
+    </style>
 </head>
 <body>
+    {% set invoice_number = 'FAC-' ~ '%06d'|format(order.id) %}
     <div class="invoice-container">
         <div class="invoice-header">
-            <div class="invoice-header-left">
-                <div class="invoice-title">FACTURE</div>
-                <div class="invoice-number">{{ order.code }}</div>
+            <div class="brand-block">
+                <div class="brand-name">Aiolia Events</div>
+                <div class="brand-subtitle">Billetterie en ligne</div>
             </div>
-            <div class="invoice-header-right invoice-info">
-                <p><strong>Date d'émission :</strong> {{ order.date|date('d/m/Y à H:i') }}</p>
-                <p><strong>Statut :</strong> Payée</p>
+            <div class="invoice-title">Facture n° {{ invoice_number }}</div>
+            <div class="header-meta">
+                <div class="meta-left">
+                    <span class="header-label">Date de paiement :</span>
+                    {{ order.date|date('d/m/Y à H:i') }}
+                </div>
+                <div class="meta-right">
+                    <span class="header-label">Statut :</span>
+                    Payée
+                </div>
             </div>
-            <div style="clear: both;"></div>
+            <div class="header-client">
+                <div class="header-client-name">
+                    {{ user.first_name|default('') }} {{ user.last_name|default('') }}
+                </div>
+                {% if user.email is defined and user.email %}
+                    <div class="header-client-email">
+                        {{ user.email }}
+                    </div>
+                {% endif %}
+            </div>
         </div>
 
         <div class="invoice-body">
