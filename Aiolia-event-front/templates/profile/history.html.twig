@@ -71,7 +71,7 @@
                     <small>
                         {% if stats.vip_tickets > 0 %}
                             dont {{ stats.vip_tickets }} VIP
-                        {% else %}e
+                        {% else %}
                             Aucun billet VIP
                         {% endif %}
                     </small>
@@ -111,20 +111,28 @@
                     <form method="get" action="{{ path('profile_history') }}" class="history-search-form" id="history-filter-form">
                         <div class="filters-container">
                             <div class="history-search-wrapper">
-                            <div class="history-search">
-                                <i class="fas fa-search"></i>
-                                    <input type="search" name="search" value="{{ searchQuery|default('') }}" placeholder="Rechercher par événement, numéro de commande...">
+                                <div class="history-search">
+                                    <i class="fas fa-search"></i>
+                                    <input type="search" name="search" value="{{ searchQuery|default('') }}" 
+                                           placeholder="Rechercher un événement, numéro de commande..." 
+                                           class="search-input">
                                     {% if searchQuery %}
-                                        <a href="{{ path('profile_history', {status: currentStatusFilter|default('all')}) }}" class="clear-search" title="Effacer la recherche">
+                                        <button type="button" class="clear-search-btn" title="Effacer la recherche" onclick="clearSearch()">
                                             <i class="fas fa-times"></i>
-                                        </a>
+                                        </button>
                                     {% endif %}
+                                    <button type="submit" class="search-submit-btn" title="Rechercher">
+                                        <i class="fas fa-arrow-right"></i>
+                                    </button>
                                 </div>
                             </div>
                             
                             <div class="filters-row filters-row-below">
                                 <div class="filter-group">
-                                    <label for="status-filter-select"><i class="fas fa-tag"></i> Statut</label>
+                                    <div class="filter-label">
+                                        <i class="fas fa-tag"></i>
+                                        <span>Statut</span>
+                                    </div>
                                     <select id="status-filter-select" name="status" class="filter-select auto-submit">
                                         <option value="all" {% if currentStatusFilter|default('all') == 'all' %}selected{% endif %}>Tous les statuts</option>
                                         {% if availableStatuses is defined and availableStatuses|length > 0 %}
@@ -138,7 +146,10 @@
                                 </div>
                                 
                                 <div class="filter-group">
-                                    <label><i class="fas fa-credit-card"></i> Mode de paiement</label>
+                                    <div class="filter-label">
+                                        <i class="fas fa-credit-card"></i>
+                                        <span>Paiement</span>
+                                    </div>
                                     <select name="payment_method" class="filter-select auto-submit">
                                         <option value="all">Tous les paiements</option>
                                         <option value="mvola" {% if currentPaymentMethodFilter|default('all') == 'mvola' %}selected{% endif %}>M-Vola</option>
@@ -148,7 +159,10 @@
                                 </div>
                                 
                                 <div class="filter-group">
-                                    <label><i class="fas fa-calendar-alt"></i> Période</label>
+                                    <div class="filter-label">
+                                        <i class="fas fa-calendar-alt"></i>
+                                        <span>Période</span>
+                                    </div>
                                     <select name="date_range" class="filter-select auto-submit">
                                         <option value="all">Toute période</option>
                                         <option value="today" {% if currentDateFilter|default('all') == 'today' %}selected{% endif %}>Aujourd'hui</option>
@@ -160,12 +174,26 @@
                                 </div>
                                 
                                 <div class="filter-group filter-group-dates">
-                                    <label><i class="fas fa-calendar-check"></i> Dates personnalisées</label>
-                                    <div class="date-inputs">
-                                        <input type="date" name="start_date" value="{{ startDate|default('') }}" class="date-input auto-submit" placeholder="De">
-                                        <span class="date-separator">à</span>
-                                        <input type="date" name="end_date" value="{{ endDate|default('') }}" class="date-input auto-submit" placeholder="À">
+                                    <div class="filter-label">
+                                        <i class="fas fa-calendar-check"></i>
+                                        <span>Dates</span>
                                     </div>
+                                    <div class="date-inputs">
+                                        <input type="date" name="start_date" value="{{ startDate|default('') }}" 
+                                               class="date-input auto-submit" placeholder="De">
+                                        <span class="date-separator">à</span>
+                                        <input type="date" name="end_date" value="{{ endDate|default('') }}" 
+                                               class="date-input auto-submit" placeholder="À">
+                                    </div>
+                                </div>
+
+                                {# Bouton de réinitialisation #}
+                                <div class="filter-group filter-group-actions">
+                                    <div class="filter-label" style="opacity: 0;">Actions</div>
+                                    <a href="{{ path('profile_history') }}" class="btn-reset-filters" title="Réinitialiser tous les filtres">
+                                        <i class="fas fa-redo"></i>
+                                        <span>Réinitialiser</span>
+                                    </a>
                                 </div>
                             </div>
                         </div>
@@ -182,7 +210,7 @@
                                 <th>Billets</th>
                                 <th>Montant</th>
                                 <th>Paiement</th>
-                                <th class="align-right">Actions</th>
+                                <th class="align-right">Facture</th>
                             </tr>
                         </thead>
                         <tbody>
@@ -217,9 +245,11 @@
                                             </div>
                                         </td>
                                         <td class="align-right">
-                                            <a href="{{ path('profile_history_invoice', {id: order.id}) }}" class="btn-download-invoice" target="_blank">
+                                            <a href="{{ path('profile_history_invoice', {id: order.id}) }}" 
+                                               class="btn-pdf-icon" 
+                                               target="_blank"
+                                               title="Télécharger la facture PDF">
                                                 <i class="fas fa-file-pdf"></i>
-                                                <span>Télécharger facture</span>
                                             </a>
                                         </td>
                                     </tr>
@@ -230,6 +260,11 @@
                                         <div class="empty-content">
                                             <i class="fas fa-shopping-bag"></i>
                                             <p>Aucune commande trouvée</p>
+                                            {% if searchQuery or currentStatusFilter != 'all' or currentPaymentMethodFilter != 'all' or currentDateFilter != 'all' %}
+                                                <a href="{{ path('profile_history') }}" class="btn-solid btn-small">
+                                                    <i class="fas fa-redo"></i> Réinitialiser les filtres
+                                                </a>
+                                            {% endif %}
                                         </div>
                                     </td>
                                 </tr>
@@ -280,6 +315,17 @@
 {% block javascripts %}
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
     <script>
+        // Fonction pour effacer la recherche
+        function clearSearch() {
+            const form = document.getElementById('history-filter-form');
+            const searchInput = form.querySelector('input[name="search"]');
+            searchInput.value = '';
+            
+            // Sauvegarder la position avant soumission
+            saveScrollPosition();
+            form.submit();
+        }
+
         // Fonction pour filtrer par statut
         function filterByStatus(status) {
             const form = document.getElementById('history-filter-form');
@@ -346,7 +392,7 @@
             restoreScrollPosition();
 
             // Recherche avec délai (debounce)
-            const searchInput = document.querySelector('.history-search input[type="search"]');
+            const searchInput = document.querySelector('.search-input');
             let searchTimeout;
 
             if (searchInput) {
@@ -375,6 +421,14 @@
                 element.addEventListener('change', function() {
                     saveScrollPosition();
                     form.submit();
+                });
+            });
+
+            // Tooltip pour le bouton PDF
+            const pdfButtons = document.querySelectorAll('.btn-pdf-icon');
+            pdfButtons.forEach(btn => {
+                btn.addEventListener('mouseenter', function() {
+                    this.setAttribute('title', 'Télécharger la facture PDF');
                 });
             });
 
