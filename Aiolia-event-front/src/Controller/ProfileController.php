@@ -739,11 +739,20 @@ class ProfileController extends AbstractController
 
         $userId = (int) $sessionUser['id'];
         
-        // Récupérer les statistiques
-        $stats = $this->fetchUserStatistics($userId);
+        // Récupérer la période de filtrage (défaut: toutes les données)
+        $period = $request->query->get('period', 'all'); // all, 30, 90, 365
+        $dateFrom = null;
         
-        // Récupérer les dépenses mensuelles
-        $monthlyExpenses = $this->fetchMonthlyExpenses($userId);
+        if ($period !== 'all') {
+            $days = (int) $period;
+            $dateFrom = (new \DateTimeImmutable())->modify("-{$days} days");
+        }
+        
+        // Récupérer les statistiques avec filtre de période
+        $stats = $this->fetchUserStatistics($userId, $dateFrom);
+        
+        // Récupérer les dépenses mensuelles avec filtre de période
+        $monthlyExpenses = $this->fetchMonthlyExpenses($userId, $dateFrom);
         
         // Calculer la valeur maximale pour le graphique
         $maxExpense = 0;
@@ -751,11 +760,14 @@ class ProfileController extends AbstractController
             $maxExpense = max(array_column($monthlyExpenses, 'total_raw'));
         }
         
-        // Récupérer la répartition par type d'événement
-        $eventTypeDistribution = $this->fetchEventTypeDistribution($userId);
+        // Récupérer la répartition par type d'événement avec filtre de période
+        $eventTypeDistribution = $this->fetchEventTypeDistribution($userId, $dateFrom);
         
-        // Récupérer le Top 5 des événements achetés
-        $topEvents = $this->fetchTopPurchasedEvents($userId, 5);
+        // Récupérer le Top 5 des événements achetés avec filtre de période
+        $topEvents = $this->fetchTopPurchasedEvents($userId, 5, $dateFrom);
+        
+        // Récupérer les insights dynamiques
+        $insights = $this->fetchStatsInsights($userId, $dateFrom);
 
         return $this->render('profile/stats.html.twig', [
             'stats' => $stats,
@@ -763,7 +775,110 @@ class ProfileController extends AbstractController
             'maxExpense' => $maxExpense,
             'eventTypeDistribution' => $eventTypeDistribution,
             'topEvents' => $topEvents,
+            'insights' => $insights,
+            'currentPeriod' => $period,
         ]);
+    }
+    
+    #[Route('/profile/stats/export', name: 'profile_stats_export')]
+    public function exportStats(Request $request): Response
+    {
+        $session = $request->getSession();
+        if (!$session->isStarted()) {
+            $session->start();
+        }
+
+        $sessionUser = $session->get('user');
+        $isAuthenticated = is_array($sessionUser) && isset($sessionUser['id']);
+
+        if (!$isAuthenticated) {
+            return $this->redirectToRoute('login');
+        }
+
+        $userId = (int) $sessionUser['id'];
+        
+        // Récupérer la période de filtrage
+        $period = $request->query->get('period', 'all');
+        $dateFrom = null;
+        
+        if ($period !== 'all') {
+            $days = (int) $period;
+            $dateFrom = (new \DateTimeImmutable())->modify("-{$days} days");
+        }
+        
+        // Récupérer toutes les données
+        $stats = $this->fetchUserStatistics($userId, $dateFrom);
+        $eventTypeDistribution = $this->fetchEventTypeDistribution($userId, $dateFrom);
+        $topEvents = $this->fetchTopPurchasedEvents($userId, 10, $dateFrom);
+        $monthlyExpenses = $this->fetchMonthlyExpenses($userId, $dateFrom);
+        
+        // Générer le CSV
+        $csvLines = [];
+        $csvLines[] = "Statistiques personnelles - " . date('d/m/Y H:i');
+        $csvLines[] = "";
+        
+        // Statistiques générales
+        $csvLines[] = "Statistiques générales";
+        $csvLines[] = "Total billets," . ($stats['total_tickets'] ?? 0);
+        $csvLines[] = "Total dépensé," . ($stats['total_spent'] ?? '0 MGA');
+        $csvLines[] = "Événements uniques," . ($stats['unique_events'] ?? 0);
+        $csvLines[] = "Commandes totales," . ($stats['total_orders'] ?? 0);
+        $csvLines[] = "Panier moyen," . ($stats['avg_cart'] ?? '0 MGA');
+        $csvLines[] = "";
+        
+        // Répartition par catégorie
+        $csvLines[] = "Répartition par catégorie";
+        $csvLines[] = "Catégorie,Pourcentage,Commandes";
+        foreach ($eventTypeDistribution as $dist) {
+            $csvLines[] = sprintf(
+                '"%s",%s,%s',
+                str_replace('"', '""', $dist['category']),
+                $dist['percentage'],
+                $dist['order_count']
+            );
+        }
+        $csvLines[] = "";
+        
+        // Top événements
+        $csvLines[] = "Top événements achetés";
+        $csvLines[] = "Rang,Titre,Catégorie,Billets,Achats,Montant total";
+        foreach ($topEvents as $index => $event) {
+            $csvLines[] = sprintf(
+                '%s,"%s","%s",%s,%s,"%s"',
+                $index + 1,
+                str_replace('"', '""', $event['title']),
+                str_replace('"', '""', $event['category']),
+                $event['total_tickets'],
+                $event['purchase_count'],
+                str_replace('"', '""', $event['total_spent'])
+            );
+        }
+        $csvLines[] = "";
+        
+        // Dépenses mensuelles
+        $csvLines[] = "Dépenses mensuelles";
+        $csvLines[] = "Mois,Montant";
+        foreach ($monthlyExpenses as $expense) {
+            $csvLines[] = sprintf(
+                '"%s","%s"',
+                str_replace('"', '""', $expense['month']),
+                str_replace('"', '""', $expense['total'])
+            );
+        }
+        
+        $csvContent = implode("\n", $csvLines);
+        
+        $periodLabel = $period === 'all' ? 'toutes_periodes' : $period . '_jours';
+        $filename = 'statistiques_' . $periodLabel . '_' . date('Y-m-d_His') . '.csv';
+        
+        $response = new Response($csvContent);
+        $response->headers->set('Content-Type', 'text/csv; charset=UTF-8');
+        $response->headers->set('Content-Disposition', 'attachment; filename="' . $filename . '"');
+        $response->headers->set('Cache-Control', 'must-revalidate, post-check=0, pre-check=0');
+        $response->headers->set('Pragma', 'public');
+        $response->headers->set('Expires', '0');
+        
+        return $response;
     }
 
     /**
@@ -1695,7 +1810,7 @@ class ProfileController extends AbstractController
     /**
      * Récupère les statistiques personnelles de l'utilisateur.
      */
-    private function fetchUserStatistics(int $userId): array
+    private function fetchUserStatistics(int $userId, ?\DateTimeImmutable $dateFrom = null): array
     {
         $sql = <<<SQL
             SELECT 
@@ -1711,8 +1826,15 @@ class ProfileController extends AbstractController
             LEFT JOIN aiolia.events e ON e.id = tt.event_id
             WHERE o.user_id = :user_id
         SQL;
+        
+        $params = ['user_id' => $userId];
+        
+        if ($dateFrom !== null) {
+            $sql .= ' AND o.created_at >= :date_from';
+            $params['date_from'] = $dateFrom->format('Y-m-d H:i:s');
+        }
 
-        $row = $this->connection->executeQuery($sql, ['user_id' => $userId])->fetchAssociative();
+        $row = $this->connection->executeQuery($sql, $params)->fetchAssociative();
 
         if (!$row) {
             return [
@@ -1739,7 +1861,7 @@ class ProfileController extends AbstractController
     /**
      * Récupère les dépenses mensuelles de l'utilisateur.
      */
-    private function fetchMonthlyExpenses(int $userId): array
+    private function fetchMonthlyExpenses(int $userId, ?\DateTimeImmutable $dateFrom = null): array
     {
         $sql = <<<SQL
             SELECT 
@@ -1749,13 +1871,24 @@ class ProfileController extends AbstractController
             FROM aiolia.orders o
             WHERE o.user_id = :user_id 
               AND o.status = 'paid'
-              AND o.created_at >= NOW() - INTERVAL '6 months'
+        SQL;
+        
+        $params = ['user_id' => $userId];
+        
+        if ($dateFrom !== null) {
+            $sql .= ' AND o.created_at >= :date_from';
+            $params['date_from'] = $dateFrom->format('Y-m-d H:i:s');
+        } else {
+            $sql .= ' AND o.created_at >= NOW() - INTERVAL \'6 months\'';
+        }
+        
+        $sql .= <<<SQL
             GROUP BY TO_CHAR(o.created_at, 'Month YYYY'), TO_CHAR(o.created_at, 'YYYY-MM')
             ORDER BY month_key DESC
             LIMIT 6
         SQL;
 
-        $rows = $this->connection->executeQuery($sql, ['user_id' => $userId])->fetchAllAssociative();
+        $rows = $this->connection->executeQuery($sql, $params)->fetchAllAssociative();
 
         return array_map(function (array $row): array {
             return [
@@ -1769,7 +1902,7 @@ class ProfileController extends AbstractController
     /**
      * Récupère la répartition par type d'événement.
      */
-    private function fetchEventTypeDistribution(int $userId): array
+    private function fetchEventTypeDistribution(int $userId, ?\DateTimeImmutable $dateFrom = null): array
     {
         $sql = <<<SQL
             SELECT 
@@ -1783,11 +1916,21 @@ class ProfileController extends AbstractController
             LEFT JOIN aiolia.event_categories ec ON ec.id = e.primary_category_id
             WHERE o.user_id = :user_id 
               AND o.status = 'paid'
+        SQL;
+        
+        $params = ['user_id' => $userId];
+        
+        if ($dateFrom !== null) {
+            $sql .= ' AND o.created_at >= :date_from';
+            $params['date_from'] = $dateFrom->format('Y-m-d H:i:s');
+        }
+        
+        $sql .= <<<SQL
             GROUP BY ec.label
             ORDER BY total_amount DESC
         SQL;
 
-        $rows = $this->connection->executeQuery($sql, ['user_id' => $userId])->fetchAllAssociative();
+        $rows = $this->connection->executeQuery($sql, $params)->fetchAllAssociative();
 
         $total = array_sum(array_column($rows, 'total_amount'));
 
@@ -1806,9 +1949,10 @@ class ProfileController extends AbstractController
      * 
      * @param int $userId ID de l'utilisateur
      * @param int $limit Nombre d'événements à retourner (défaut: 5)
+     * @param \DateTimeImmutable|null $dateFrom Date de début pour filtrer (optionnel)
      * @return array Tableau des événements triés par montant total dépensé
      */
-    private function fetchTopPurchasedEvents(int $userId, int $limit = 5): array
+    private function fetchTopPurchasedEvents(int $userId, int $limit = 5, ?\DateTimeImmutable $dateFrom = null): array
     {
         // Limiter à un entier valide pour éviter les injections SQL
         $limit = max(1, min(100, (int) $limit));
@@ -1831,14 +1975,22 @@ class ProfileController extends AbstractController
             LEFT JOIN aiolia.event_categories ec ON ec.id = e.primary_category_id
             WHERE o.user_id = :user_id 
               AND o.status = 'paid'
+        SQL;
+        
+        $params = ['user_id' => $userId];
+        
+        if ($dateFrom !== null) {
+            $sql .= ' AND o.created_at >= :date_from';
+            $params['date_from'] = $dateFrom->format('Y-m-d H:i:s');
+        }
+        
+        $sql .= <<<SQL
             GROUP BY e.id, e.title, e.slug, ec.label
             ORDER BY total_spent DESC, purchase_count DESC
             LIMIT {$limit}
         SQL;
 
-        $rows = $this->connection->executeQuery($sql, [
-            'user_id' => $userId,
-        ])->fetchAllAssociative();
+        $rows = $this->connection->executeQuery($sql, $params)->fetchAllAssociative();
 
         return array_map(function (array $row): array {
             return [
@@ -1965,5 +2117,231 @@ class ProfileController extends AbstractController
         }
 
         return array_values($distribution);
+    }
+
+    /**
+     * Récupère les insights dynamiques basés sur les statistiques de l'utilisateur.
+     */
+    private function fetchStatsInsights(int $userId, ?\DateTimeImmutable $dateFrom = null): array
+    {
+        $insights = [
+            'moments' => [],
+            'suggestions' => [],
+        ];
+        
+        // Récupérer le mois le plus actif
+        $mostActiveMonth = $this->getMostActiveMonth($userId, $dateFrom);
+        if ($mostActiveMonth) {
+            $insights['moments'][] = [
+                'icon' => 'fas fa-calendar-star',
+                'text' => "Votre mois le plus actif était <strong>{$mostActiveMonth['month']}</strong> avec {$mostActiveMonth['total']} d'achats"
+            ];
+        }
+        
+        // Récupérer le total économisé avec les codes promo
+        $totalSaved = $this->getTotalSavedWithPromos($userId, $dateFrom);
+        if ($totalSaved > 0) {
+            $insights['moments'][] = [
+                'icon' => 'fas fa-tag',
+                'text' => "Vous avez économisé <strong>" . number_format($totalSaved, 0, ',', ' ') . " MGA</strong> grâce aux codes promo"
+            ];
+        }
+        
+        // Récupérer le nombre de types d'événements différents
+        $eventTypesCount = $this->getEventTypesCount($userId, $dateFrom);
+        if ($eventTypesCount > 0) {
+            $insights['moments'][] = [
+                'icon' => 'fas fa-palette',
+                'text' => "Vous avez exploré <strong>{$eventTypesCount}</strong> type" . ($eventTypesCount > 1 ? 's' : '') . " d'événements différents"
+            ];
+        }
+        
+        // Récupérer la catégorie préférée
+        $favoriteCategory = $this->getFavoriteCategory($userId, $dateFrom);
+        if ($favoriteCategory) {
+            $insights['suggestions'][] = [
+                'category' => $favoriteCategory['category'],
+                'reason' => "Vous avez acheté {$favoriteCategory['count']} billet" . ($favoriteCategory['count'] > 1 ? 's' : '') . " pour des événements " . strtolower($favoriteCategory['category'])
+            ];
+        }
+        
+        // Récupérer les événements similaires à recommander
+        $recommendedCategories = $this->getRecommendedCategories($userId, $dateFrom);
+        $insights['recommended_categories'] = $recommendedCategories;
+        
+        return $insights;
+    }
+
+    /**
+     * Récupère le mois le plus actif de l'utilisateur.
+     */
+    private function getMostActiveMonth(int $userId, ?\DateTimeImmutable $dateFrom = null): ?array
+    {
+        $sql = <<<SQL
+            SELECT 
+                TO_CHAR(o.created_at, 'Month YYYY') as month_name,
+                COUNT(*) as order_count,
+                SUM(o.total_amount) as total_amount
+            FROM aiolia.orders o
+            WHERE o.user_id = :user_id 
+              AND o.status = 'paid'
+        SQL;
+        
+        $params = ['user_id' => $userId];
+        
+        if ($dateFrom !== null) {
+            $sql .= ' AND o.created_at >= :date_from';
+            $params['date_from'] = $dateFrom->format('Y-m-d H:i:s');
+        }
+        
+        $sql .= <<<SQL
+            GROUP BY TO_CHAR(o.created_at, 'Month YYYY')
+            ORDER BY order_count DESC, total_amount DESC
+            LIMIT 1
+        SQL;
+        
+        $row = $this->connection->executeQuery($sql, $params)->fetchAssociative();
+        
+        if ($row) {
+            return [
+                'month' => trim($row['month_name']),
+                'count' => (int) $row['order_count'],
+                'total' => number_format((float) $row['total_amount'], 0, ',', ' ') . ' MGA'
+            ];
+        }
+        
+        return null;
+    }
+
+    /**
+     * Calcule le total économisé avec les codes promo.
+     */
+    private function getTotalSavedWithPromos(int $userId, ?\DateTimeImmutable $dateFrom = null): float
+    {
+        $sql = <<<SQL
+            SELECT SUM(COALESCE(o.discount_amount, 0)) as total_saved
+            FROM aiolia.orders o
+            WHERE o.user_id = :user_id 
+              AND o.status = 'paid'
+              AND o.discount_amount > 0
+        SQL;
+        
+        $params = ['user_id' => $userId];
+        
+        if ($dateFrom !== null) {
+            $sql .= ' AND o.created_at >= :date_from';
+            $params['date_from'] = $dateFrom->format('Y-m-d H:i:s');
+        }
+        
+        $result = $this->connection->executeQuery($sql, $params)->fetchAssociative();
+        
+        return (float) ($result['total_saved'] ?? 0);
+    }
+
+    /**
+     * Compte le nombre de types d'événements différents.
+     */
+    private function getEventTypesCount(int $userId, ?\DateTimeImmutable $dateFrom = null): int
+    {
+        $sql = <<<SQL
+            SELECT COUNT(DISTINCT COALESCE(ec.label, 'Autres')) as types_count
+            FROM aiolia.orders o
+            JOIN aiolia.order_items oi ON oi.order_id = o.id
+            JOIN aiolia.ticket_types tt ON tt.id = oi.ticket_type_id
+            JOIN aiolia.events e ON e.id = tt.event_id
+            LEFT JOIN aiolia.event_categories ec ON ec.id = e.primary_category_id
+            WHERE o.user_id = :user_id 
+              AND o.status = 'paid'
+        SQL;
+        
+        $params = ['user_id' => $userId];
+        
+        if ($dateFrom !== null) {
+            $sql .= ' AND o.created_at >= :date_from';
+            $params['date_from'] = $dateFrom->format('Y-m-d H:i:s');
+        }
+        
+        $result = $this->connection->executeQuery($sql, $params)->fetchAssociative();
+        
+        return (int) ($result['types_count'] ?? 0);
+    }
+
+    /**
+     * Récupère la catégorie préférée de l'utilisateur.
+     */
+    private function getFavoriteCategory(int $userId, ?\DateTimeImmutable $dateFrom = null): ?array
+    {
+        $sql = <<<SQL
+            SELECT 
+                COALESCE(ec.label, 'Autres') as category,
+                SUM(oi.quantity) as ticket_count
+            FROM aiolia.orders o
+            JOIN aiolia.order_items oi ON oi.order_id = o.id
+            JOIN aiolia.ticket_types tt ON tt.id = oi.ticket_type_id
+            JOIN aiolia.events e ON e.id = tt.event_id
+            LEFT JOIN aiolia.event_categories ec ON ec.id = e.primary_category_id
+            WHERE o.user_id = :user_id 
+              AND o.status = 'paid'
+        SQL;
+        
+        $params = ['user_id' => $userId];
+        
+        if ($dateFrom !== null) {
+            $sql .= ' AND o.created_at >= :date_from';
+            $params['date_from'] = $dateFrom->format('Y-m-d H:i:s');
+        }
+        
+        $sql .= <<<SQL
+            GROUP BY ec.label
+            ORDER BY ticket_count DESC
+            LIMIT 1
+        SQL;
+        
+        $row = $this->connection->executeQuery($sql, $params)->fetchAssociative();
+        
+        if ($row) {
+            return [
+                'category' => $row['category'],
+                'count' => (int) $row['ticket_count']
+            ];
+        }
+        
+        return null;
+    }
+
+    /**
+     * Récupère les catégories recommandées basées sur l'historique.
+     */
+    private function getRecommendedCategories(int $userId, ?\DateTimeImmutable $dateFrom = null): array
+    {
+        // Récupérer les catégories similaires à celles déjà achetées
+        $sql = <<<SQL
+            SELECT DISTINCT
+                COALESCE(ec.label, 'Autres') as category,
+                ec.slug as category_slug
+            FROM aiolia.event_categories ec
+            WHERE ec.label IN (
+                SELECT DISTINCT COALESCE(ec2.label, 'Autres')
+                FROM aiolia.orders o
+                JOIN aiolia.order_items oi ON oi.order_id = o.id
+                JOIN aiolia.ticket_types tt ON tt.id = oi.ticket_type_id
+                JOIN aiolia.events e ON e.id = tt.event_id
+                LEFT JOIN aiolia.event_categories ec2 ON ec2.id = e.primary_category_id
+                WHERE o.user_id = :user_id 
+                  AND o.status = 'paid'
+            )
+            LIMIT 5
+        SQL;
+        
+        $params = ['user_id' => $userId];
+        
+        // Note: On ne filtre pas par date pour les recommandations
+        
+        $rows = $this->connection->executeQuery($sql, $params)->fetchAllAssociative();
+        
+        return array_map(fn($row) => [
+            'category' => $row['category'],
+            'slug' => $row['category_slug'] ?? null
+        ], $rows);
     }
 }

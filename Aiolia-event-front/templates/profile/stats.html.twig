@@ -22,8 +22,23 @@
                     <p>{{ 'profile_stats.header_desc'|trans }}</p>
                 </div>
                 <div class="stats-actions">
-                    <button class="btn-outline"><i class="fas fa-calendar-alt"></i> {{ 'profile_stats.btn_last_90_days'|trans }}</button>
-                    <button class="btn-solid"><i class="fas fa-download"></i> {{ 'profile_stats.btn_export'|trans }}</button>
+                    <div class="period-filter">
+                        <button class="btn-outline period-btn {{ currentPeriod == 'all' ? 'active' : '' }}" data-period="all">
+                            <i class="fas fa-calendar-alt"></i> Toutes périodes
+                        </button>
+                        <button class="btn-outline period-btn {{ currentPeriod == '30' ? 'active' : '' }}" data-period="30">
+                            <i class="fas fa-calendar-day"></i> 30 jours
+                        </button>
+                        <button class="btn-outline period-btn {{ currentPeriod == '90' ? 'active' : '' }}" data-period="90">
+                            <i class="fas fa-calendar-week"></i> 90 jours
+                        </button>
+                        <button class="btn-outline period-btn {{ currentPeriod == '365' ? 'active' : '' }}" data-period="365">
+                            <i class="fas fa-calendar"></i> 1 an
+                        </button>
+                    </div>
+                    <a href="{{ path('profile_stats_export', {'period': currentPeriod}) }}" class="btn-solid">
+                        <i class="fas fa-download"></i> {{ 'profile_stats.btn_export'|trans|default('Exporter CSV') }}
+                    </a>
                 </div>
             </header>
 
@@ -153,24 +168,63 @@
 
             <section class="stats-insights wow fadeInUp" data-wow-delay="260ms">
                 <div class="insight-card">
-                    <h3>{{ 'profile_stats.insights_moments_title'|trans }}</h3>
-                    <p>{{ 'profile_stats.insights_moments_text'|trans }}</p>
+                    <h3>Moments mémorables</h3>
+                    <p>Découvrez vos moments forts et vos réalisations</p>
                     <ul>
-                        <li><i class="fas fa-check"></i> {{ 'profile_stats.insights_moments_li1'|trans }}</li>
-                        <li><i class="fas fa-check"></i> {{ 'profile_stats.insights_moments_li2'|trans }}</li>
+                        {% if insights.moments|length > 0 %}
+                            {% for moment in insights.moments %}
+                                <li><i class="{{ moment.icon }}"></i> {{ moment.text|raw }}</li>
+                            {% endfor %}
+                        {% else %}
+                            <li><i class="fas fa-info-circle"></i> Continuez vos achats pour voir vos moments mémorables</li>
+                        {% endif %}
                     </ul>
                 </div>
                 <div class="insight-card">
-                    <h3>{{ 'profile_stats.insights_suggestions_title'|trans }}</h3>
-                    <p>{{ 'profile_stats.insights_suggestions_text'|trans }}</p>
-                    <div class="insight-tags">
-                        {% for tag in 'profile_stats.insights_suggestions_tags'|trans|split(',') %}
-                            <span>{{ tag }}</span>
-                        {% endfor %}
-                    </div>
-                    <a href="{{ path('events') }}" class="btn-solid">{{ 'profile_stats.insights_suggestions_cta'|trans }}</a>
+                    <h3>Suggestions personnalisées</h3>
+                    <p>Basées sur vos préférences d'achat</p>
+                    {% if insights.suggestions|length > 0 or insights.recommended_categories|length > 0 %}
+                        <div class="insight-tags">
+                            {% if insights.suggestions|length > 0 %}
+                                {% for suggestion in insights.suggestions %}
+                                    <span>{{ suggestion.category }}</span>
+                                {% endfor %}
+                            {% endif %}
+                            {% for category in insights.recommended_categories|slice(0, 3) %}
+                                <span>{{ category.category }}</span>
+                            {% endfor %}
+                        </div>
+                        <a href="{{ path('events') }}" class="btn-solid">Découvrir les événements</a>
+                    {% else %}
+                        <p style="color: rgba(17, 34, 68, 0.6); margin: 16px 0;">Explorez nos événements pour recevoir des suggestions personnalisées</p>
+                        <a href="{{ path('events') }}" class="btn-solid">Découvrir les événements</a>
+                    {% endif %}
                 </div>
             </section>
+            
+            {# Graphique des dépenses mensuelles (optionnel) #}
+            {% if monthlyExpenses|length > 0 %}
+            <section class="stats-charts" style="margin-top: 32px;">
+                <div class="chart-card wow fadeInUp" data-wow-delay="280ms" style="grid-column: 1 / -1;">
+                    <header>
+                        <h2>Évolution des dépenses</h2>
+                        <span class="chart-period">Derniers 6 mois</span>
+                    </header>
+                    <div class="chart-placeholder">
+                        <div class="bars">
+                            {% set maxValue = maxExpense %}
+                            {% for expense in monthlyExpenses|reverse %}
+                                {% set height = maxValue > 0 ? ((expense.total_raw / maxValue) * 100 + 40)|round : 40 %}
+                                <span style="height: {{ height }}px" title="{{ expense.month }}: {{ expense.total }}"></span>
+                            {% endfor %}
+                        </div>
+                        <div class="chart-legend">
+                            <span><i></i> Dépenses mensuelles (MGA)</span>
+                        </div>
+                    </div>
+                </div>
+            </section>
+            {% endif %}
         </div>
     </main>
 {% endblock %}
@@ -246,6 +300,17 @@
             if (typeof WOW !== 'undefined') {
                 new WOW().init();
             }
+            
+            // Gestion des filtres de période
+            document.querySelectorAll('.period-btn').forEach(btn => {
+                btn.addEventListener('click', function(e) {
+                    e.preventDefault();
+                    const period = this.getAttribute('data-period');
+                    const url = new URL(window.location.href);
+                    url.searchParams.set('period', period);
+                    window.location.href = url.toString();
+                });
+            });
         });
     </script>
 {% endblock %}

@@ -28,6 +28,24 @@
 .stats-actions {
     display: flex;
     gap: 12px;
+    align-items: center;
+    flex-wrap: wrap;
+}
+
+.period-filter {
+    display: flex;
+    gap: 8px;
+    flex-wrap: wrap;
+}
+
+.period-btn {
+    position: relative;
+}
+
+.period-btn.active {
+    background: linear-gradient(135deg, #1F2D3D, #152536);
+    color: #ffffff;
+    border-color: transparent;
 }
 
 .btn-outline,
