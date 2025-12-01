@@ -1534,9 +1534,33 @@ a.ui-button:active,
     background-color: var(--beige);
     padding: 40px 30px
 }
+.cont-filtre .filter-row {
+    width: 100%;
+    flex-wrap: wrap;
+}
+.cont-filtre .filter-row-top {
+    margin-bottom: 8px;
+}
+.cont-filtre .filter-row-bottom {
+    justify-content: center;
+    margin-top: 0;
+}
 .cont-filtre .col {
     width: 33.33%;
     padding: 0 20px
+}
+.cont-filtre .filter-row-bottom .col-price {
+    width: 50%;
+    max-width: 520px;
+}
+.cont-filtre .filter-row-bottom .col-sort {
+    width: 35%;
+    max-width: 420px;
+    margin-left: 40px;
+}
+.cont-filtre .filter-row-bottom .col-price,
+.cont-filtre .filter-row-bottom .col-sort {
+    padding: 0 10px;
 }
 .cont-filtre .blc-chp {
     margin-bottom: 20px;
@@ -1676,6 +1700,9 @@ a.ui-button:active,
 }
 .blc-option {
     margin-top: -5px;
+}
+.blc-chp-sort {
+    margin-top: 10px;
 }
 
 

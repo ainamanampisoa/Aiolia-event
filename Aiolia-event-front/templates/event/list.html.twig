@@ -23,8 +23,9 @@
                             <input type="hidden" name="q" value="{{ searchQuery }}">
                         {% endif %}
                         
-                    <div class="cont-filtre d-flex  wow fadeInUp" data-wow-delay="300ms">
-                        
+                    <div class="cont-filtre d-flex wow fadeInUp" data-wow-delay="300ms">
+                        {# Ligne du haut : type, ville, dates #}
+                        <div class="filter-row filter-row-top d-flex">
                             <div class="col">
                                 <div class="blc-chp">
                                     <label>{{ 'events.filter_type_label'|trans }}</label>
@@ -37,24 +38,8 @@
                                         {% endfor %}
                                     </select>
                                 </div>
-
-                                <div class="blc-chp">
-                                    <label for="amount">{{ 'events.filter_price_label'|trans }}</label>
-                                    <input type="text" id="amount" readonly value="" placeholder="{{ 'events.filter_price_placeholder'|trans }}">
-                                    <input type="hidden" id="price_min" name="price_min" value="{{ filters.price_min ?? '' }}">
-                                    <input type="hidden" id="price_max" name="price_max" value="{{ filters.price_max ?? '' }}">
-                                    <div id="slider-range"
-                                         data-min="{{ price_bounds.min }}"
-                                         data-max="{{ price_bounds.max }}"></div>
-                                    <div class="blc-prix">
-                                        <span class="min">{{ price_bounds.min|number_format(0, '.', ' ') }} MGA</span>
-                                        <span class="max">{{ price_bounds.max|number_format(0, '.', ' ') }} MGA</span>
-
-                                    </div>
-                                    <small style="font-size: 11px; color: #999; display: block; margin-top: 4px;">{{ 'events.filter_price_hint'|trans }}</small>
-                                </div>
-
                             </div>
+
                             <div class="col">
                                 <div class="blc-chp">
                                     <label>{{ 'events.filter_location_label'|trans }}</label>
@@ -68,6 +53,7 @@
                                     </select>
                                 </div>
                             </div>
+
                             <div class="col">
                                 <div class="blc-chp">
                                     <label>{{ 'events.filter_date_label'|trans }}</label>
@@ -79,7 +65,30 @@
                                     </div>
                                     <small style="font-size: 11px; color: #999; display: block; margin-top: 4px;">{{ 'events.filter_date_hint'|trans }}</small>
                                 </div> 
+                            </div>
+                        </div>
+
+                        {# Ligne du bas : prix (gauche) + tri (droite) #}
+                        <div class="filter-row filter-row-bottom d-flex">
+                            <div class="col col-price">
                                 <div class="blc-chp">
+                                    <label for="amount">{{ 'events.filter_price_label'|trans }}</label>
+                                    <input type="text" id="amount" readonly value="" placeholder="{{ 'events.filter_price_placeholder'|trans }}">
+                                    <input type="hidden" id="price_min" name="price_min" value="{{ filters.price_min ?? '' }}">
+                                    <input type="hidden" id="price_max" name="price_max" value="{{ filters.price_max ?? '' }}">
+                                    <div id="slider-range"
+                                         data-min="{{ price_bounds.min }}"
+                                         data-max="{{ price_bounds.max }}"></div>
+                                    <div class="blc-prix">
+                                        <span class="min">{{ price_bounds.min|number_format(0, '.', ' ') }} MGA</span>
+                                        <span class="max">{{ price_bounds.max|number_format(0, '.', ' ') }} MGA</span>
+                                    </div>
+                                    <small style="font-size: 11px; color: #999; display: block; margin-top: 4px;">{{ 'events.filter_price_hint'|trans }}</small>
+                                </div>
+                            </div>
+
+                            <div class="col col-sort">
+                                <div class="blc-chp blc-chp-sort">
                                     <label>{{ 'events.filter_sort_label'|trans }}</label>
                                     
                                     <div class="blc-option d-flex">
@@ -108,11 +117,9 @@
                                         </div> 
 
                                     </div>
-                                    
-
                                 </div> 
                             </div>
-                        
+                        </div>
                     </div>
                     <div class="blcBtn text-center">
                         <button type="submit" class="btn submit">{{ 'events.filter_submit'|trans }}</button>
