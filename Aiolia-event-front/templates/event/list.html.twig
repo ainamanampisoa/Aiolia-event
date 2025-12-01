@@ -27,7 +27,7 @@
                         
                             <div class="col">
                                 <div class="blc-chp">
-                                    <label>{{ 'events.filter_type_label'|trans }} <small style="font-weight: normal; color: #999;">{{ 'events.filter_type_optional'|trans }}</small></label>
+                                    <label>{{ 'events.filter_type_label'|trans }}</label>
                                     <select name="category">
                                         <option value="">{{ 'events.filter_type_all'|trans }}</option>
                                         {% for category in categories %}
@@ -39,7 +39,7 @@
                                 </div>
 
                                 <div class="blc-chp">
-                                    <label for="amount">{{ 'events.filter_price_label'|trans }} <small style="font-weight: normal; color: #999;">{{ 'events.filter_type_optional'|trans }}</small></label>
+                                    <label for="amount">{{ 'events.filter_price_label'|trans }}</label>
                                     <input type="text" id="amount" readonly value="" placeholder="{{ 'events.filter_price_placeholder'|trans }}">
                                     <input type="hidden" id="price_min" name="price_min" value="{{ filters.price_min ?? '' }}">
                                     <input type="hidden" id="price_max" name="price_max" value="{{ filters.price_max ?? '' }}">
@@ -57,7 +57,7 @@
                             </div>
                             <div class="col">
                                 <div class="blc-chp">
-                                    <label>{{ 'events.filter_location_label'|trans }} <small style="font-weight: normal; color: #999;">{{ 'events.filter_type_optional'|trans }}</small></label>
+                                    <label>{{ 'events.filter_location_label'|trans }}</label>
                                     <select name="city">
                                         <option value="">{{ 'events.filter_location_all'|trans }}</option>
                                         {% for city in locations %}
@@ -67,18 +67,10 @@
                                         {% endfor %}
                                     </select>
                                 </div>
-                                 <div class="blc-chp">
-                                    <label>{{ 'events.filter_audience_label'|trans }}</label>
-                                    <select name="audience" disabled>
-                                        <option>{{ 'events.filter_audience_family'|trans }}</option>
-                                        <option>{{ 'events.filter_audience_family_short'|trans }}</option>
-                                    </select>
-                                    <small style="font-size: 11px; color: #999; display: block; margin-top: 4px;">{{ 'events.filter_audience_coming_soon'|trans }}</small>
-                                </div>
                             </div>
                             <div class="col">
                                 <div class="blc-chp">
-                                    <label>{{ 'events.filter_date_label'|trans }} <small style="font-weight: normal; color: #999;">{{ 'events.filter_type_optional'|trans }}</small></label>
+                                    <label>{{ 'events.filter_date_label'|trans }}</label>
                                     <div class="blc-date">
                                         <label for="from">{{ 'events.filter_date_from'|trans }}</label>
                                         <input type="text" id="from" name="date_from" class="chp date" value="{{ filters.date_from ?? '' }}" placeholder="{{ 'events.filter_date_placeholder'|trans }}">
