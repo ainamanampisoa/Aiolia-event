@@ -85,13 +85,12 @@ class NotificationRepository
         $sql = <<<SQL
             SELECT 
                 n.id,
-                n.type,
-                n.title,
-                n.message,
-                n.is_read,
+                -- Statut de lecture dérivé du statut ou de la date de lecture
+                (n.status = 'read') AS is_read,
                 n.created_at,
                 n.read_at,
-                n.metadata,
+                -- Le payload JSON contient les données métier de la notif
+                n.payload AS metadata,
                 nt.code AS template_code,
                 nt.subject
             FROM aiolia.notifications n
@@ -101,11 +100,19 @@ class NotificationRepository
             LIMIT :limit OFFSET :offset
         SQL;
 
-        return $this->connection->executeQuery($sql, [
-            'userId' => $userId,
-            'limit' => $limit,
-            'offset' => $offset,
-        ])->fetchAllAssociative();
+        return $this->connection->executeQuery(
+            $sql,
+            [
+                'userId' => $userId,
+                'limit' => $limit,
+                'offset' => $offset,
+            ],
+            [
+                'userId' => \PDO::PARAM_INT,
+                'limit' => \PDO::PARAM_INT,
+                'offset' => \PDO::PARAM_INT,
+            ]
+        )->fetchAllAssociative();
     }
 }
 

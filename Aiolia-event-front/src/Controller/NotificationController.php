@@ -226,11 +226,11 @@ class NotificationController extends AbstractController
             $createdAt = isset($row['created_at']) ? new \DateTimeImmutable($row['created_at']) : new \DateTimeImmutable();
             $readAt = isset($row['read_at']) ? new \DateTimeImmutable($row['read_at']) : null;
 
-            // Déterminer le type de notification basé sur le type ou le payload
-            $type = $this->determineNotificationType($row['type'] ?? '', $payload);
+            // Déterminer le type de notification basé sur le code du template ou le payload
+            $type = $this->determineNotificationType($row['template_code'] ?? '', $payload);
             
             // Générer le titre et la description
-            $title = $this->generateNotificationTitle($type, $payload, $row['title'] ?? '');
+            $title = $this->generateNotificationTitle($type, $payload, $row['subject'] ?? '');
             $description = $this->generateNotificationDescription($type, $payload);
 
             // Formater les dates
