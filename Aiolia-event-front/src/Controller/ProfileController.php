@@ -62,6 +62,11 @@ class ProfileController extends AbstractController
         $sessionCartItems = $session->get('cart_items', []);
         $stats = $this->fetchUserStats($userId, $sessionCartItems);
         
+        // Debug temporaire - à retirer après vérification
+        error_log('ProfileController - Stats calculées: ' . json_encode($stats));
+        error_log('ProfileController - Session cart items count: ' . count($sessionCartItems));
+        error_log('ProfileController - Session cart items: ' . json_encode($sessionCartItems));
+        
         // Récupérer les activités récentes (inclure le panier en session)
         $recentActivities = $this->activityRepository->findRecentActivities($userId, $sessionCartItems);
 

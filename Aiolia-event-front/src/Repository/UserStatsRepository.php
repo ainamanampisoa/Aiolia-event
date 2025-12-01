@@ -334,58 +334,122 @@ class UserStatsRepository
     public function findUserStats(int $userId, array $sessionCartItems = []): array
     {
         // Compter les billets actifs (tickets valides pour des événements futurs)
-        $activeTickets = (int) $this->connection->executeQuery(
-            'SELECT COUNT(DISTINCT t.id)
-             FROM aiolia.tickets t
-             INNER JOIN aiolia.orders o ON o.id = t.order_id
-             INNER JOIN aiolia.events e ON e.id = t.event_id
-             WHERE o.user_id = :userId
-               AND t.status = \'valid\'
-               AND e.starts_at > NOW()',
-            ['userId' => $userId]
-        )->fetchOne();
-
-        // Compter les événements favoris
-        $wishlistId = $this->connection->executeQuery(
-            'SELECT id FROM aiolia.wishlists WHERE user_id = :userId AND is_default = TRUE LIMIT 1',
-            ['userId' => $userId]
-        )->fetchOne();
-        
-        $favoriteEvents = 0;
-        if ($wishlistId) {
-            $favoriteEvents = (int) $this->connection->executeQuery(
-                'SELECT COUNT(*) FROM aiolia.wishlist_items WHERE wishlist_id = :wishlistId',
-                ['wishlistId' => $wishlistId]
+        // Relation: tickets -> ticket_types -> events -> starts_at
+        // Utiliser owner_user_id pour vérifier la propriété du ticket
+        try {
+            $activeTicketsResult = $this->connection->executeQuery(
+                'SELECT COUNT(DISTINCT t.id) as count
+                 FROM aiolia.tickets t
+                 INNER JOIN aiolia.ticket_types tt ON tt.id = t.ticket_type_id
+                 INNER JOIN aiolia.events e ON e.id = tt.event_id
+                 WHERE t.owner_user_id = :userId
+                   AND t.status = \'valid\'
+                   AND e.starts_at > NOW()',
+                ['userId' => $userId]
             )->fetchOne();
+            $activeTickets = (int) ($activeTicketsResult ?? 0);
+        } catch (\Exception $e) {
+            $activeTickets = 0;
         }
 
-        // Compter les items dans le panier actif (DB)
-        $dbCartItems = (int) $this->connection->executeQuery(
-            'SELECT COUNT(DISTINCT ci.event_id)
-             FROM aiolia.cart_items ci
-             INNER JOIN aiolia.carts c ON c.id = ci.cart_id
-             WHERE c.user_id = :userId
-               AND c.status = \'active\'',
-            ['userId' => $userId]
-        )->fetchOne();
+        // Compter les événements favoris
+        try {
+            $wishlistResult = $this->connection->executeQuery(
+                'SELECT id FROM aiolia.wishlists WHERE user_id = :userId AND is_default = TRUE LIMIT 1',
+                ['userId' => $userId]
+            )->fetchAssociative();
+            
+            $favoriteEvents = 0;
+            if ($wishlistResult && isset($wishlistResult['id'])) {
+                $wishlistId = (int) $wishlistResult['id'];
+                $favoriteResult = $this->connection->executeQuery(
+                    'SELECT COUNT(*) as count FROM aiolia.wishlist_items WHERE wishlist_id = :wishlistId',
+                    ['wishlistId' => $wishlistId]
+                )->fetchOne();
+                $favoriteEvents = (int) ($favoriteResult ?? 0);
+            }
+        } catch (\Exception $e) {
+            $favoriteEvents = 0;
+        }
+
+        // Compter les items dans le panier actif (DB) - somme des quantités
+        try {
+            $dbCartResult = $this->connection->executeQuery(
+                'SELECT COALESCE(SUM(ci.quantity + COALESCE(ci.adult_quantity, 0) + COALESCE(ci.child_quantity, 0)), 0) as total
+                 FROM aiolia.cart_items ci
+                 INNER JOIN aiolia.carts c ON c.id = ci.cart_id
+                 WHERE c.user_id = :userId
+                   AND c.status = \'active\'',
+                ['userId' => $userId]
+            )->fetchOne();
+            $dbCartItems = (int) ($dbCartResult ?? 0);
+        } catch (\Exception $e) {
+            $dbCartItems = 0;
+        }
         
-        // Compter les items dans le panier en session
-        $sessionCartCount = count($sessionCartItems);
+        // Compter les items dans le panier en session (somme des quantités)
+        // Les items sont stockés comme un tableau associatif: ['cart_key' => ['eventId' => ..., 'adultQuantity' => ..., etc.]]
+        $sessionCartCount = 0;
+        if (is_array($sessionCartItems) && !empty($sessionCartItems)) {
+            foreach ($sessionCartItems as $cartKey => $item) {
+                if (is_array($item)) {
+                    // Compter les quantités adultes et enfants
+                    $adultQty = (int) ($item['adultQuantity'] ?? 0);
+                    $childQty = (int) ($item['childQuantity'] ?? 0);
+                    
+                    // Si on a des quantités adultes/enfants, les utiliser
+                    if ($adultQty > 0 || $childQty > 0) {
+                        $sessionCartCount += $adultQty + $childQty;
+                    } else {
+                        // Sinon, utiliser quantity (ou 1 par défaut si c'est un item simple)
+                        $qty = (int) ($item['quantity'] ?? 1);
+                        $sessionCartCount += $qty;
+                    }
+                }
+            }
+        }
+        
+        // Debug temporaire
+        error_log('UserStatsRepository - DB cart items: ' . $dbCartItems);
+        error_log('UserStatsRepository - Session cart count: ' . $sessionCartCount);
+        error_log('UserStatsRepository - Session cart items structure: ' . json_encode($sessionCartItems));
         
         // Prendre le maximum entre DB et session
         $cartCount = max($dbCartItems, $sessionCartCount);
 
-        // Récupérer les points fidélité
-        $points = (int) $this->connection->executeQuery(
-            'SELECT points_balance FROM aiolia.wallets WHERE user_id = :userId LIMIT 1',
-            ['userId' => $userId]
-        )->fetchOne() ?: 0;
+        // Récupérer les points fidélité (créer le wallet s'il n'existe pas)
+        try {
+            $pointsResult = $this->connection->executeQuery(
+                'SELECT points_balance FROM aiolia.wallets WHERE user_id = :userId LIMIT 1',
+                ['userId' => $userId]
+            )->fetchAssociative();
+            
+            $points = 0;
+            if ($pointsResult && isset($pointsResult['points_balance'])) {
+                $points = (int) $pointsResult['points_balance'];
+            } else {
+                // Si le wallet n'existe pas, créer un wallet avec 0 points
+                try {
+                    $this->connection->insert('aiolia.wallets', [
+                        'user_id' => $userId,
+                        'currency' => 'MGA',
+                        'balance' => 0,
+                        'points_balance' => 0,
+                    ]);
+                } catch (\Exception $e) {
+                    // Le wallet existe peut-être déjà, ignorer l'erreur
+                }
+            }
+        } catch (\Exception $e) {
+            $points = 0;
+        }
 
+        // S'assurer que toutes les valeurs sont des entiers
         return [
-            'active_tickets' => $activeTickets,
-            'favorite_events' => $favoriteEvents,
-            'cart_items' => $cartCount,
-            'loyalty_points' => $points,
+            'active_tickets' => (int) $activeTickets,
+            'favorite_events' => (int) $favoriteEvents,
+            'cart_items' => (int) $cartCount,
+            'loyalty_points' => (int) $points,
         ];
     }
 

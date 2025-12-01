@@ -19,21 +19,24 @@ class ActivityRepository
         $activities = [];
 
         // 1. Billets confirmés récents (derniers 30 jours)
+        // Relation: orders -> order_items -> tickets -> ticket_types -> events
         $recentTickets = $this->connection->executeQuery(
             'SELECT 
                 o.id AS order_id,
-                o.order_number,
+                o.id AS order_number,
                 o.created_at,
                 e.id AS event_id,
                 e.title AS event_title,
-                COUNT(t.id) AS ticket_count
+                COUNT(DISTINCT t.id) AS ticket_count
              FROM aiolia.orders o
-             INNER JOIN aiolia.tickets t ON t.order_id = o.id
-             INNER JOIN aiolia.events e ON e.id = t.event_id
+             INNER JOIN aiolia.order_items oi ON oi.order_id = o.id
+             INNER JOIN aiolia.tickets t ON t.order_item_id = oi.id
+             INNER JOIN aiolia.ticket_types tt ON tt.id = t.ticket_type_id
+             INNER JOIN aiolia.events e ON e.id = tt.event_id
              WHERE o.user_id = :userId
                AND o.status = \'paid\'
                AND o.created_at >= NOW() - INTERVAL \'30 days\'
-             GROUP BY o.id, o.order_number, o.created_at, e.id, e.title
+             GROUP BY o.id, o.created_at, e.id, e.title
              ORDER BY o.created_at DESC
              LIMIT 5',
             ['userId' => $userId]
@@ -41,11 +44,12 @@ class ActivityRepository
 
         foreach ($recentTickets as $ticket) {
             $createdAt = new \DateTimeImmutable($ticket['created_at']);
+            $orderNumber = 'CMD-' . str_pad((string) $ticket['order_id'], 6, '0', STR_PAD_LEFT);
             $activities[] = [
                 'type' => 'ticket',
                 'icon' => 'fas fa-ticket-alt',
                 'title' => $ticket['ticket_count'] . ' billet(s) confirmé(s) pour <strong>' . $ticket['event_title'] . '</strong>',
-                'meta' => $createdAt->format('d M Y') . ' · Paiement réussi · Ref. #' . $ticket['order_number'],
+                'meta' => $createdAt->format('d M Y') . ' · Paiement réussi · Ref. #' . $orderNumber,
                 'date' => $createdAt,
                 'event_id' => (int) $ticket['event_id'],
             ];

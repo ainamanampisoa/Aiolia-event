@@ -199,11 +199,6 @@ class AuthController extends AbstractController
         return $this->redirectToRoute('home');
     }
 
-    #[Route('/profile', name: 'profile')]
-    public function profilePage(): Response
-    {
-        return $this->render('profile/index.html.twig');
-    }
 
     #[Route('/api/auth/register', name: 'api_auth_register', methods: ['POST'])]
     public function register(Request $request): JsonResponse
