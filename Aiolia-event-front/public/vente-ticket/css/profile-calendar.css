@@ -17,7 +17,7 @@
 .calendar-header h1 {
     margin: 0;
     font-size: 28px;
-    color: #10398C;
+    color: #1F2D3D;
 }
 
 .calendar-header p {
@@ -47,12 +47,12 @@
 
 .btn-outline {
     background: transparent;
-    border-color: rgba(16, 57, 140, 0.24);
-    color: #10398C;
+    border-color: rgba(31, 45, 61, 0.24);
+    color: #1F2D3D;
 }
 
 .btn-solid {
-    background: linear-gradient(135deg, #10398C, #0B2B6A);
+    background: linear-gradient(135deg, #1F2D3D, #152028);
     color: #ffffff;
 }
 
@@ -85,8 +85,8 @@
 
 .calendar-month-header .nav {
     border: none;
-    background: rgba(16, 57, 140, 0.08);
-    color: #10398C;
+    background: rgba(31, 45, 61, 0.08);
+    color: #1F2D3D;
     border-radius: 12px;
     width: 36px;
     height: 36px;
@@ -123,7 +123,7 @@
     font-weight: 600;
     color: #0F234A;
     position: relative;
-    background: rgba(16, 57, 140, 0.05);
+    background: rgba(31, 45, 61, 0.05);
 }
 
 .calendar-days .empty {
@@ -131,15 +131,15 @@
 }
 
 .calendar-days .day.has-event {
-    background: linear-gradient(135deg, rgba(16, 57, 140, 0.18), rgba(16, 57, 140, 0.35));
-    color: #10398C;
+    background: linear-gradient(135deg, rgba(31, 45, 61, 0.18), rgba(31, 45, 61, 0.35));
+    color: #1F2D3D;
 }
 
 .calendar-days .day i {
     position: absolute;
     bottom: 6px;
     font-size: 12px;
-    color: #10398C;
+    color: #1F2D3D;
 }
 
 .calendar-agenda header {
@@ -164,14 +164,14 @@
     border: none;
     border-radius: 999px;
     padding: 8px 16px;
-    background: rgba(16, 57, 140, 0.08);
-    color: #10398C;
+    background: rgba(31, 45, 61, 0.08);
+    color: #1F2D3D;
     font-weight: 600;
     cursor: pointer;
 }
 
 .agenda-filters .tag.active {
-    background: linear-gradient(135deg, #10398C, #0B2B6A);
+    background: linear-gradient(135deg, #1F2D3D, #152028);
     color: #ffffff;
 }
 
@@ -188,7 +188,7 @@
     display: grid;
     grid-template-columns: 90px 1fr auto;
     gap: 20px;
-    background: rgba(16, 57, 140, 0.05);
+    background: rgba(31, 45, 61, 0.05);
     border-radius: 18px;
     padding: 18px;
     align-items: center;
@@ -204,7 +204,7 @@
 .agenda-date .day {
     font-size: 26px;
     font-weight: 700;
-    color: #10398C;
+    color: #1F2D3D;
 }
 
 .agenda-date .month {
@@ -227,7 +227,7 @@
 }
 
 .agenda-meta i {
-    color: #10398C;
+    color: #1F2D3D;
 }
 
 .agenda-status {
@@ -258,7 +258,7 @@
     gap: 6px;
     padding: 10px 16px;
     border-radius: 12px;
-    background: linear-gradient(135deg, #10398C, #0B2B6A);
+    background: linear-gradient(135deg, #1F2D3D, #152028);
     color: #ffffff;
     text-decoration: none;
     font-weight: 600;
@@ -271,13 +271,13 @@
     gap: 8px;
     padding: 12px 24px;
     border-radius: 14px;
-    background: linear-gradient(135deg, #10398C 0%, #0B2B6A 100%);
+    background: linear-gradient(135deg, #1F2D3D 0%, #152028 100%);
     color: #ffffff;
     text-decoration: none;
     font-weight: 600;
     font-size: 14px;
     transition: all 0.3s ease;
-    box-shadow: 0 4px 12px rgba(16, 57, 140, 0.25);
+    box-shadow: 0 4px 12px rgba(31, 45, 61, 0.25);
     border: none;
     cursor: pointer;
     white-space: nowrap;
@@ -286,13 +286,13 @@
 
 .btn-tickets-improved:hover {
     transform: translateY(-2px);
-    box-shadow: 0 6px 20px rgba(16, 57, 140, 0.35);
-    background: linear-gradient(135deg, #0B2B6A 0%, #10398C 100%);
+    box-shadow: 0 6px 20px rgba(31, 45, 61, 0.35);
+    background: linear-gradient(135deg, #152028 0%, #1F2D3D 100%);
 }
 
 .btn-tickets-improved:active {
     transform: translateY(0);
-    box-shadow: 0 2px 8px rgba(16, 57, 140, 0.25);
+    box-shadow: 0 2px 8px rgba(31, 45, 61, 0.25);
 }
 
 .btn-tickets-improved i {
@@ -304,8 +304,8 @@
     height: 40px;
     border-radius: 12px;
     border: none;
-    background: rgba(16, 57, 140, 0.1);
-    color: #10398C;
+    background: rgba(31, 45, 61, 0.1);
+    color: #1F2D3D;
 }
 
 @media (max-width: 1200px) {
