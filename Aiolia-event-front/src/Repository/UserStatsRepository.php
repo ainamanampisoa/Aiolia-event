@@ -372,50 +372,45 @@ class UserStatsRepository
             $favoriteEvents = 0;
         }
 
-        // Compter les items dans le panier actif (DB) - somme des quantités
+        // Compter le nombre d'événements uniques dans le panier actif (DB)
         try {
             $dbCartResult = $this->connection->executeQuery(
-                'SELECT COALESCE(SUM(ci.quantity + COALESCE(ci.adult_quantity, 0) + COALESCE(ci.child_quantity, 0)), 0) as total
+                'SELECT COUNT(DISTINCT e.id) as event_count
                  FROM aiolia.cart_items ci
                  INNER JOIN aiolia.carts c ON c.id = ci.cart_id
+                 INNER JOIN aiolia.ticket_types tt ON tt.id = ci.ticket_type_id
+                 INNER JOIN aiolia.events e ON e.id = tt.event_id
                  WHERE c.user_id = :userId
                    AND c.status = \'active\'',
                 ['userId' => $userId]
             )->fetchOne();
-            $dbCartItems = (int) ($dbCartResult ?? 0);
+            $dbCartEvents = (int) ($dbCartResult ?? 0);
         } catch (\Exception $e) {
-            $dbCartItems = 0;
+            $dbCartEvents = 0;
         }
         
-        // Compter les items dans le panier en session (somme des quantités)
+        // Compter le nombre d'événements uniques dans le panier en session
         // Les items sont stockés comme un tableau associatif: ['cart_key' => ['eventId' => ..., 'adultQuantity' => ..., etc.]]
-        $sessionCartCount = 0;
+        $sessionCartEventIds = [];
         if (is_array($sessionCartItems) && !empty($sessionCartItems)) {
             foreach ($sessionCartItems as $cartKey => $item) {
                 if (is_array($item)) {
-                    // Compter les quantités adultes et enfants
-                    $adultQty = (int) ($item['adultQuantity'] ?? 0);
-                    $childQty = (int) ($item['childQuantity'] ?? 0);
-                    
-                    // Si on a des quantités adultes/enfants, les utiliser
-                    if ($adultQty > 0 || $childQty > 0) {
-                        $sessionCartCount += $adultQty + $childQty;
-                    } else {
-                        // Sinon, utiliser quantity (ou 1 par défaut si c'est un item simple)
-                        $qty = (int) ($item['quantity'] ?? 1);
-                        $sessionCartCount += $qty;
+                    $eventId = $item['eventId'] ?? null;
+                    if ($eventId !== null) {
+                        $sessionCartEventIds[$eventId] = true;
                     }
                 }
             }
         }
+        $sessionCartEvents = count($sessionCartEventIds);
         
         // Debug temporaire
-        error_log('UserStatsRepository - DB cart items: ' . $dbCartItems);
-        error_log('UserStatsRepository - Session cart count: ' . $sessionCartCount);
+        error_log('UserStatsRepository - DB cart events: ' . $dbCartEvents);
+        error_log('UserStatsRepository - Session cart events: ' . $sessionCartEvents);
         error_log('UserStatsRepository - Session cart items structure: ' . json_encode($sessionCartItems));
         
-        // Prendre le maximum entre DB et session
-        $cartCount = max($dbCartItems, $sessionCartCount);
+        // Prendre le maximum entre DB et session (nombre d'événements uniques)
+        $cartCount = max($dbCartEvents, $sessionCartEvents);
 
         // Récupérer les points fidélité (créer le wallet s'il n'existe pas)
         try {
