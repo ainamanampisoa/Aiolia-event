@@ -593,6 +593,29 @@ class ProfileController extends AbstractController
         ]);
     }
 
+    #[Route('/profile/calendar', name: 'profile_calendar')]
+    public function calendar(Request $request): Response
+    {
+        $session = $request->getSession();
+        if (!$session->isStarted()) {
+            $session->start();
+        }
+
+        $sessionUser = $session->get('user');
+        $isAuthenticated = is_array($sessionUser) && isset($sessionUser['id']);
+
+        $events = [];
+        if ($isAuthenticated) {
+            $userId = (int) $sessionUser['id'];
+            $events = $this->eventRepository->findUpcomingEventsForUser($userId);
+        }
+
+        return $this->render('profile/calendar.html.twig', [
+            'events' => $events,
+            'isAuthenticated' => $isAuthenticated,
+        ]);
+    }
+
     #[Route('/profile/search-history', name: 'profile_search_history')]
     public function searchHistory(Request $request): Response
     {
@@ -732,33 +755,6 @@ class ProfileController extends AbstractController
         unset($search);
 
         return $searches;
-    }
-
-    /**
-     * Compte le nombre de résultats pour une recherche donnée
-     */
-
-    #[Route('/profile/calendar', name: 'profile_calendar')]
-    public function calendar(Request $request): Response
-    {
-        $session = $request->getSession();
-        if (!$session->isStarted()) {
-            $session->start();
-        }
-
-        $sessionUser = $session->get('user');
-        $isAuthenticated = is_array($sessionUser) && isset($sessionUser['id']);
-
-        $events = [];
-        if ($isAuthenticated) {
-            $userId = (int) $sessionUser['id'];
-            $events = $this->eventRepository->findUpcomingEventsForUser($userId);
-        }
-
-        return $this->render('profile/calendar.html.twig', [
-            'events' => $events,
-            'isAuthenticated' => $isAuthenticated,
-        ]);
     }
 
     #[Route('/profile/stats', name: 'profile_stats')]
