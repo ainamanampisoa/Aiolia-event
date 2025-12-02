@@ -84,10 +84,10 @@
 
                     <div class="profile-section">
                         <h3>{{ 'profile.recent_activity_title'|trans }}</h3>
-                        <div class="profile-timeline">
+                        <div class="profile-timeline" id="activities-timeline">
                             {% if activities is defined and activities|length > 0 %}
                                 {% for activity in activities %}
-                                    <div class="profile-timeline-item">
+                                    <div class="profile-timeline-item {% if loop.index > 3 %}activity-hidden{% endif %}">
                                         <div class="timeline-icon"><i class="{{ activity.icon }}"></i></div>
                                         <div class="timeline-content">
                                             <h4>{{ activity.title|raw }}</h4>
@@ -95,6 +95,19 @@
                                         </div>
                                     </div>
                                 {% endfor %}
+                                
+                                {% if activities|length > 3 %}
+                                    <div class="activity-see-more" id="activity-see-more">
+                                        <a href="#" onclick="toggleAllActivities(); return false;" class="btn-see-more">
+                                            <i class="fas fa-chevron-down"></i> Voir plus ({{ activities|length - 3 }} autres)
+                                        </a>
+                                    </div>
+                                    <div class="activity-see-less" id="activity-see-less" style="display: none;">
+                                        <a href="#" onclick="toggleAllActivities(); return false;" class="btn-see-less">
+                                            <i class="fas fa-chevron-up"></i> Voir moins
+                                        </a>
+                                    </div>
+                                {% endif %}
                             {% else %}
                                 <div class="profile-timeline-item">
                                     <div class="timeline-icon"><i class="fas fa-info-circle"></i></div>
@@ -106,6 +119,56 @@
                             {% endif %}
                         </div>
                     </div>
+                    
+                    <style>
+                        .activity-hidden {
+                            display: none;
+                        }
+                        .activity-see-more, .activity-see-less {
+                            text-align: center;
+                            margin-top: 1rem;
+                            padding: 0.75rem;
+                        }
+                        .activity-see-more a, .activity-see-less a {
+                            color: var(--primary-color, #007bff);
+                            text-decoration: none;
+                            font-weight: 500;
+                            display: inline-flex;
+                            align-items: center;
+                            gap: 0.5rem;
+                            transition: color 0.2s;
+                        }
+                        .activity-see-more a:hover, .activity-see-less a:hover {
+                            color: var(--primary-hover, #0056b3);
+                            text-decoration: underline;
+                        }
+                    </style>
+                    
+                    <script>
+                        function toggleAllActivities() {
+                            const hiddenItems = document.querySelectorAll('.activity-hidden');
+                            const seeMore = document.getElementById('activity-see-more');
+                            const seeLess = document.getElementById('activity-see-less');
+                            
+                            hiddenItems.forEach(item => {
+                                if (item.style.display === 'none' || !item.style.display) {
+                                    item.style.display = 'flex';
+                                } else {
+                                    item.style.display = 'none';
+                                }
+                            });
+                            
+                            if (seeMore && seeLess) {
+                                if (seeMore.style.display === 'none') {
+                                    seeMore.style.display = 'block';
+                                    seeLess.style.display = 'none';
+                                } else {
+                                    seeMore.style.display = 'none';
+                                    seeLess.style.display = 'block';
+                                }
+                            }
+                        }
+                    </script>
 
                     <div class="profile-section">
                         <h3>{{ 'profile.quick_access_title'|trans }}</h3>

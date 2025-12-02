@@ -4,6 +4,7 @@ namespace App\Controller;
 
 use App\Repository\EventRepository;
 use App\Repository\TicketRepository;
+use App\Service\ActivityService;
 use App\Service\CartSyncService;
 use App\Service\PaymentService;
 use Symfony\Bundle\FrameworkBundle\Controller\AbstractController;
@@ -18,7 +19,8 @@ class TicketController extends AbstractController
         private readonly TicketRepository $ticketRepository,
         private readonly EventRepository $eventRepository,
         private readonly CartSyncService $cartSyncService,
-        private readonly PaymentService $paymentService
+        private readonly PaymentService $paymentService,
+        private readonly ActivityService $activityService
     ) {
     }
 
@@ -77,6 +79,9 @@ class TicketController extends AbstractController
         $cartItems = $session->get('cart_items', []);
 
         if (isset($cartItems[$cartKey])) {
+            // Récupérer l'eventId avant de supprimer
+            $eventId = $cartItems[$cartKey]['eventId'] ?? null;
+            
             unset($cartItems[$cartKey]);
             $session->set('cart_items', $cartItems);
             
@@ -89,6 +94,11 @@ class TicketController extends AbstractController
                 $dbCart = $this->cartSyncService->getOrCreateCart($userId, null);
                 if ($dbCart) {
                     $this->cartSyncService->removeCartItem((int) $dbCart['id'], $cartKey);
+                }
+                
+                // Logger l'activité de suppression
+                if ($eventId) {
+                    $this->activityService->logCartRemoval($userId, (int) $eventId);
                 }
             } elseif ($sessionToken) {
                 $dbCart = $this->cartSyncService->getOrCreateCart(null, $sessionToken);

@@ -5,6 +5,7 @@ namespace App\Controller;
 use App\Repository\EventRepository;
 use App\Repository\SearchHistoryRepository;
 use App\Repository\WishlistRepository;
+use App\Service\ActivityService;
 use Psr\Log\LoggerInterface;
 use Symfony\Bundle\FrameworkBundle\Controller\AbstractController;
 use Symfony\Component\HttpFoundation\JsonResponse;
@@ -18,7 +19,8 @@ class EventController extends AbstractController
         private readonly LoggerInterface $logger,
         private readonly EventRepository $eventRepository,
         private readonly WishlistRepository $wishlistRepository,
-        private readonly SearchHistoryRepository $searchHistoryRepository
+        private readonly SearchHistoryRepository $searchHistoryRepository,
+        private readonly ActivityService $activityService
     ) {
     }
 
@@ -234,6 +236,9 @@ class EventController extends AbstractController
         try {
             // Retirer l'événement des favoris
             $this->wishlistRepository->removeEventFromWishlist($userId, $id);
+
+            // Logger l'activité de suppression
+            $this->activityService->logFavoriteRemoval($userId, $id);
 
             $this->logger->info('Événement retiré des favoris', ['event_id' => $id, 'user_id' => $userId]);
 
