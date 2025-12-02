@@ -20,13 +20,26 @@
     {% set displayMail = userInfo.email|default(sessionUser.email|default('')) %}
     {% set initial = (userInfo.first_name|default(displayName))|slice(0, 1)|upper %}
     {% set memberSince = (userInfo.created_at is defined and userInfo.created_at) ? userInfo.created_at|date('Y') : '2023' %}
+    {% set avatarUrl = userInfo.avatar_url|default(sessionUser.avatar_url|default(null)) %}
 
     <main class="profile-wrapper">
         <div class="container">
             <div class="profile-grid">
                 <aside class="profile-card wow fadeInLeft" data-wow-delay="150ms">
                     <div>
-                        <div class="profile-avatar">{{ initial }}</div>
+                        <div class="profile-avatar-wrapper" style="position: relative; display: inline-block;">
+                            {% if avatarUrl %}
+                                <div class="profile-avatar" style="background-image: url('{{ avatarUrl }}'); background-size: cover; background-position: center; border: 3px solid #fff; box-shadow: 0 2px 8px rgba(0,0,0,0.1); color: transparent;">
+                                    <span style="opacity: 0;">{{ initial }}</span>
+                                </div>
+                            {% else %}
+                                <div class="profile-avatar">{{ initial }}</div>
+                            {% endif %}
+                            <label for="avatar-upload" class="avatar-upload-btn" style="position: absolute; bottom: 0; right: 0; background: #007bff; color: white; border-radius: 50%; width: 36px; height: 36px; display: flex; align-items: center; justify-content: center; cursor: pointer; box-shadow: 0 2px 4px rgba(0,0,0,0.2); transition: all 0.3s; z-index: 5;" title="Changer la photo de profil">
+                                <i class="fas fa-camera" style="font-size: 14px;"></i>
+                            </label>
+                            <input type="file" id="avatar-upload" name="avatar" accept="image/jpeg,image/png,image/gif,image/webp" style="display: none;">
+                        </div>
                         <h2 class="profile-name">{{ displayName }}</h2>
                         <div class="profile-email"><i class="fas fa-envelope"></i> {{ displayMail }}</div>
                     </div>
@@ -133,4 +146,104 @@
             </div>
         </div>
     </main>
+
+    <script>
+        document.addEventListener('DOMContentLoaded', function() {
+            const avatarUpload = document.getElementById('avatar-upload');
+            const avatarWrapper = document.querySelector('.profile-avatar-wrapper');
+            
+            if (avatarUpload) {
+                avatarUpload.addEventListener('change', function(e) {
+                    const file = e.target.files[0];
+                    if (!file) return;
+
+                    // Vérifier la taille (5MB max)
+                    if (file.size > 5 * 1024 * 1024) {
+                        alert('Le fichier est trop volumineux. Taille maximale : 5MB');
+                        return;
+                    }
+
+                    // Vérifier le type
+                    const allowedTypes = ['image/jpeg', 'image/png', 'image/gif', 'image/webp'];
+                    if (!allowedTypes.includes(file.type)) {
+                        alert('Type de fichier non autorisé. Utilisez JPEG, PNG, GIF ou WebP');
+                        return;
+                    }
+
+                    // Afficher un loader
+                    const loader = document.createElement('div');
+                    loader.innerHTML = '<i class="fas fa-spinner fa-spin"></i>';
+                    loader.style.cssText = 'position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%); background: rgba(0,0,0,0.7); color: white; padding: 10px; border-radius: 50%; width: 40px; height: 40px; display: flex; align-items: center; justify-content: center; z-index: 10;';
+                    avatarWrapper.style.position = 'relative';
+                    avatarWrapper.appendChild(loader);
+
+                    // Créer FormData
+                    const formData = new FormData();
+                    formData.append('avatar', file);
+
+                    // Upload
+                    fetch('{{ path("api_profile_upload_avatar") }}', {
+                        method: 'POST',
+                        body: formData,
+                        headers: {
+                            'X-Requested-With': 'XMLHttpRequest'
+                        },
+                        credentials: 'same-origin'
+                    })
+                    .then(async response => {
+                        const contentType = response.headers.get('content-type');
+                        if (!contentType || !contentType.includes('application/json')) {
+                            // Si la réponse n'est pas du JSON, c'est probablement une page d'erreur HTML
+                            const text = await response.text();
+                            console.error('Réponse non-JSON reçue:', text.substring(0, 200));
+                            throw new Error('Le serveur a retourné une erreur HTML au lieu de JSON. Vérifiez les logs du serveur.');
+                        }
+                        
+                        if (!response.ok) {
+                            const data = await response.json();
+                            throw new Error(data.message || 'Erreur HTTP ' + response.status);
+                        }
+                        return response.json();
+                    })
+                    .then(data => {
+                        loader.remove();
+                        if (data.status === 'success') {
+                            // Mettre à jour l'image
+                            const avatarDiv = avatarWrapper.querySelector('.profile-avatar');
+                            avatarDiv.style.backgroundImage = `url('${data.data.avatar_url}')`;
+                            avatarDiv.style.backgroundSize = 'cover';
+                            avatarDiv.style.backgroundPosition = 'center';
+                            avatarDiv.style.color = 'transparent';
+                            const span = avatarDiv.querySelector('span');
+                            if (span) span.style.opacity = '0';
+                            
+                            // Afficher un message de succès
+                            const successMsg = document.createElement('div');
+                            successMsg.textContent = 'Photo de profil mise à jour !';
+                            successMsg.style.cssText = 'position: fixed; top: 20px; right: 20px; background: #28a745; color: white; padding: 12px 20px; border-radius: 4px; box-shadow: 0 2px 8px rgba(0,0,0,0.2); z-index: 1000;';
+                            document.body.appendChild(successMsg);
+                            setTimeout(() => successMsg.remove(), 3000);
+                        } else {
+                            const errorMsg = data.message || 'Erreur lors de l\'upload';
+                            console.error('Upload error:', data);
+                            let debugInfo = '';
+                            if (data.debug) {
+                                debugInfo = '\n\nDétails de débogage:\n' + JSON.stringify(data.debug, null, 2);
+                            }
+                            alert('Erreur: ' + errorMsg + debugInfo);
+                        }
+                    })
+                    .catch(error => {
+                        loader.remove();
+                        console.error('Error:', error);
+                        alert('Erreur lors de l\'upload de l\'image: ' + error.message);
+                    })
+                    .finally(() => {
+                        // Réinitialiser l'input
+                        avatarUpload.value = '';
+                    });
+                });
+            }
+        });
+    </script>
 {% endblock %}

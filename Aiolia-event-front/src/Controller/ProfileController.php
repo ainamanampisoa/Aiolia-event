@@ -10,6 +10,7 @@ use App\Repository\UserRepository;
 use App\Repository\UserStatsRepository;
 use App\Repository\WalletTransactionRepository;
 use App\Repository\WishlistRepository;
+use App\Service\CloudinaryService;
 use App\Service\LoyaltyPointsService;
 use App\Service\WalletService;
 use Dompdf\Dompdf;
@@ -34,7 +35,8 @@ class ProfileController extends AbstractController
         private readonly UserRepository $userRepository,
         private readonly WalletService $walletService,
         private readonly LoyaltyPointsService $loyaltyPointsService,
-        private readonly WalletTransactionRepository $walletTransactionRepository
+        private readonly WalletTransactionRepository $walletTransactionRepository,
+        private readonly CloudinaryService $cloudinaryService
     ) {
     }
 
@@ -1050,6 +1052,201 @@ class ProfileController extends AbstractController
         return $this->render('profile/ticket_chance.html.twig');
     }
 
+    #[Route('/profile/upload-avatar', name: 'api_profile_upload_avatar', methods: ['POST'])]
+    public function uploadAvatar(Request $request): JsonResponse
+    {
+        try {
+            $session = $request->getSession();
+            if (!$session->isStarted()) {
+                $session->start();
+            }
+
+            $sessionUser = $session->get('user');
+            if (!is_array($sessionUser) || !isset($sessionUser['id'])) {
+                return new JsonResponse([
+                    'status' => 'error',
+                    'message' => 'Vous devez être connecté'
+                ], 401);
+            }
+
+            $userId = (int) $sessionUser['id'];
+
+            // Vérifier qu'un fichier a été uploadé
+            $uploadedFile = $request->files->get('avatar');
+            if (!$uploadedFile) {
+                return new JsonResponse([
+                    'status' => 'error',
+                    'message' => 'Aucun fichier fourni'
+                ], 400);
+            }
+
+            // Vérifier le type de fichier
+            $allowedMimeTypes = ['image/jpeg', 'image/png', 'image/gif', 'image/webp'];
+            if (!in_array($uploadedFile->getMimeType(), $allowedMimeTypes, true)) {
+                return new JsonResponse([
+                    'status' => 'error',
+                    'message' => 'Type de fichier non autorisé. Utilisez JPEG, PNG, GIF ou WebP'
+                ], 400);
+            }
+
+            // Vérifier la taille (max 5MB)
+            $maxSize = 5 * 1024 * 1024; // 5MB
+            if ($uploadedFile->getSize() > $maxSize) {
+                return new JsonResponse([
+                    'status' => 'error',
+                    'message' => 'Le fichier est trop volumineux. Taille maximale : 5MB'
+                ], 400);
+            }
+            // Récupérer l'ancienne URL de l'avatar pour supprimer l'image de Cloudinary
+            $userInfo = $this->userRepository->findUserInfo($userId);
+            $oldAvatarUrl = $userInfo['avatar_url'] ?? null;
+
+            // Vérifier que Cloudinary est configuré
+            $cloudName = $_ENV['CLOUDINARY_CLOUD_NAME'] ?? getenv('CLOUDINARY_CLOUD_NAME') ?: null;
+            $apiKey = $_ENV['CLOUDINARY_API_KEY'] ?? getenv('CLOUDINARY_API_KEY') ?: null;
+            $apiSecret = $_ENV['CLOUDINARY_API_SECRET'] ?? getenv('CLOUDINARY_API_SECRET') ?: null;
+            
+            error_log('Cloudinary config check: cloud_name=' . ($cloudName ? 'SET' : 'NOT SET') . ', api_key=' . ($apiKey ? 'SET' : 'NOT SET') . ', api_secret=' . ($apiSecret ? 'SET' : 'NOT SET'));
+            
+            if (!$cloudName || !$apiKey || !$apiSecret) {
+                $missing = [];
+                if (!$cloudName) $missing[] = 'CLOUDINARY_CLOUD_NAME';
+                if (!$apiKey) $missing[] = 'CLOUDINARY_API_KEY';
+                if (!$apiSecret) $missing[] = 'CLOUDINARY_API_SECRET';
+                
+                return new JsonResponse([
+                    'status' => 'error',
+                    'message' => 'Cloudinary n\'est pas configuré. Variables manquantes: ' . implode(', ', $missing),
+                    'debug' => [
+                        'missing_config' => $missing,
+                        'help' => 'Ajoutez ces variables dans votre fichier .env ou dans les variables d\'environnement du serveur'
+                    ]
+                ], 500);
+            }
+
+            // Upload vers Cloudinary avec un ID unique
+            $publicId = 'user_' . $userId . '_' . time();
+            
+            // Vérifier que le fichier est accessible
+            $filePath = $uploadedFile->getPathname();
+            if (!file_exists($filePath) || !is_readable($filePath)) {
+                return new JsonResponse([
+                    'status' => 'error',
+                    'message' => 'Le fichier uploadé n\'est pas accessible.',
+                    'debug' => [
+                        'file_path' => $filePath,
+                        'file_exists' => file_exists($filePath),
+                        'is_readable' => is_readable($filePath),
+                        'file_size' => $uploadedFile->getSize(),
+                    ]
+                ], 500);
+            }
+            
+            // Vérifier que le service Cloudinary est bien initialisé
+            if (!$this->cloudinaryService->isInitialized()) {
+                return new JsonResponse([
+                    'status' => 'error',
+                    'message' => 'Cloudinary n\'est pas initialisé. Vérifiez que les variables d\'environnement sont correctement configurées et que le serveur a été redémarré.',
+                    'debug' => [
+                        'cloudinary_initialized' => false,
+                        'env_vars_set' => [
+                            'CLOUDINARY_CLOUD_NAME' => !empty($cloudName),
+                            'CLOUDINARY_API_KEY' => !empty($apiKey),
+                            'CLOUDINARY_API_SECRET' => !empty($apiSecret),
+                        ],
+                        'help' => 'Redémarrez le serveur Symfony après avoir configuré les variables Cloudinary dans .env'
+                    ]
+                ], 500);
+            }
+            
+            try {
+                $uploadResult = $this->cloudinaryService->uploadUploadedFile(
+                    $uploadedFile,
+                    'avatars',
+                    [
+                        'public_id' => $publicId,
+                    ]
+                );
+            } catch (\Throwable $uploadException) {
+                $uploadError = $uploadException->getMessage();
+                return new JsonResponse([
+                    'status' => 'error',
+                    'message' => 'Exception lors de l\'upload: ' . $uploadError,
+                    'debug' => [
+                        'exception_class' => get_class($uploadException),
+                        'file' => $uploadException->getFile(),
+                        'line' => $uploadException->getLine(),
+                    ]
+                ], 500);
+            }
+
+            if (!$uploadResult) {
+                return new JsonResponse([
+                    'status' => 'error',
+                    'message' => 'Erreur lors de l\'upload vers Cloudinary. Le service a retourné null.',
+                    'debug' => [
+                        'cloudinary_configured' => true,
+                        'cloudinary_initialized' => $cloudinaryInstance !== null,
+                        'file_size' => $uploadedFile->getSize(),
+                        'file_mime' => $uploadedFile->getMimeType(),
+                        'file_path' => $filePath,
+                        'help' => 'Vérifiez les logs du serveur (var/log/dev.log) et les logs PHP (error_log) pour plus de détails'
+                    ]
+                ], 500);
+            }
+
+            if (!isset($uploadResult['secure_url'])) {
+                return new JsonResponse([
+                    'status' => 'error',
+                    'message' => 'L\'upload a réussi mais l\'URL de l\'image n\'a pas été retournée.',
+                    'debug' => $uploadResult
+                ], 500);
+            }
+
+            $newAvatarUrl = $uploadResult['secure_url'];
+
+            // Mettre à jour la base de données
+            $this->userRepository->updateAvatarUrl($userId, $newAvatarUrl);
+
+            // Supprimer l'ancienne image de Cloudinary si elle existe
+            if ($oldAvatarUrl) {
+                try {
+                    $oldPublicId = $this->cloudinaryService->extractPublicIdFromUrl($oldAvatarUrl);
+                    if ($oldPublicId) {
+                        $this->cloudinaryService->deleteImage($oldPublicId);
+                    }
+                } catch (\Exception $e) {
+                    // Ignorer l'erreur de suppression de l'ancienne image
+                    error_log('Erreur lors de la suppression de l\'ancienne image: ' . $e->getMessage());
+                }
+            }
+
+            // Mettre à jour la session
+            $sessionUser['avatar_url'] = $newAvatarUrl;
+            $session->set('user', $sessionUser);
+
+            return new JsonResponse([
+                'status' => 'success',
+                'message' => 'Photo de profil mise à jour avec succès',
+                'data' => [
+                    'avatar_url' => $newAvatarUrl,
+                ]
+            ]);
+        } catch (\Throwable $e) {
+            error_log('Erreur upload avatar: ' . $e->getMessage());
+            error_log('Stack trace: ' . $e->getTraceAsString());
+            
+            // Toujours retourner du JSON, même en cas d'erreur
+            return new JsonResponse([
+                'status' => 'error',
+                'message' => 'Erreur lors de l\'upload: ' . $e->getMessage(),
+                'file' => $e->getFile(),
+                'line' => $e->getLine(),
+                'type' => get_class($e),
+            ], 500);
+        }
+    }
+
     /**
      * Récupère les statistiques de l'utilisateur
      *
@@ -1319,5 +1516,11 @@ class ProfileController extends AbstractController
     private function fetchYearComparison(int $userId): array
     {
         return $this->orderRepository->findYearComparison($userId);
+    }
+
+    #[Route('/debug/cloudinary', name: 'debug_cloudinary')]
+    public function debugCloudinary(): JsonResponse
+    {
+        return new JsonResponse($this->cloudinaryService->getInitializationDebugInfo());
     }
 }

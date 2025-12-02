@@ -160,4 +160,18 @@ class UserRepository extends ServiceEntityRepository
 
         return $preferences;
     }
+
+    /**
+     * Met à jour l'URL de l'avatar de l'utilisateur.
+     */
+    public function updateAvatarUrl(int $userId, string $avatarUrl): void
+    {
+        $this->connection->executeStatement(
+            'UPDATE aiolia.users SET avatar_url = :avatar_url, updated_at = NOW() WHERE id = :userId',
+            [
+                'userId' => $userId,
+                'avatar_url' => $avatarUrl,
+            ]
+        );
+    }
 }
