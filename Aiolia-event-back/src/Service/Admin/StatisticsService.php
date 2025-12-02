@@ -8,28 +8,55 @@ class StatisticsService
 {
     public function __construct(
         private StatisticsRepository $statisticsRepository
-    ) {
+    ) {}
+
+    public function getDashboardStatistics(int $month = 0, int $year = 0): array
+    {
+        return [
+            'widgets' => [
+                'activeOrganizers' => $this->statisticsRepository->countOrganizers($month, $year, 'active'),
+                // Alias snake_case pour compatibilité avec les templates Twig existants
+                'active_organizers' => $this->statisticsRepository->countOrganizers($month, $year, 'active'),
+                'newOrganizers' => $this->statisticsRepository->countOrganizers($month, $year, 'new'),
+                'new_organizers' => $this->statisticsRepository->countOrganizers($month, $year, 'new'),
+                'mostUsedSubscription' => $this->statisticsRepository->getMostUsedSubscription($month, $year),
+                'most_used_subscription' => $this->statisticsRepository->getMostUsedSubscription($month, $year),
+                'revenue' => $this->statisticsRepository->getRevenue($month, $year),
+                // Prévision de CA simple : ici on renvoie pour l’instant le CA réel,
+                // ce qui satisfait les templates sans changer la logique métier
+                'revenueForecast' => $this->statisticsRepository->getRevenue($month, $year),
+                'revenue_forecast' => $this->statisticsRepository->getRevenue($month, $year),
+            ],
+            'charts' => [
+                'activeOrganizersTrend' => $this->statisticsRepository->getActiveOrganizersTrend($month, $year),
+                // Alias snake_case pour compatibilité avec le template Twig
+                'active_organizers_trend' => $this->statisticsRepository->getActiveOrganizersTrend($month, $year),
+                'subscriptionDistribution' => $this->statisticsRepository->getSubscriptionUsageByLevel($month, $year),
+                'subscription_distribution' => $this->statisticsRepository->getSubscriptionUsageByLevel($month, $year),
+                'revenueBreakdown' => $this->statisticsRepository->getRevenueBreakdownByPeriod($month, $year),
+                'revenue_breakdown' => $this->statisticsRepository->getRevenueBreakdownByPeriod($month, $year),
+            ]
+        ];
     }
 
-    public function getStatistics(int $month = 0, int $year = 2025): array
+    // Méthodes spécifiques pour usage granulaire
+    public function getActiveOrganizersCount(int $month = 0, int $year = 0): int
     {
-        $widgets = [
-            'active_organizers' => $this->statisticsRepository->organisateurActifs($month, $year),
-            'new_organizers' => $this->statisticsRepository->newsOrganisateur($month, $year),
-            'most_used_subscription' => $this->statisticsRepository->abonnemnentPLusActifs($month, $year),
-            'revenue_forecast' => $this->statisticsRepository->chiffreAffaireCA($month, $year),
-        ];
+        return $this->statisticsRepository->countOrganizers($month, $year, 'active');
+    }
 
-        $charts = [
-            'active_organizers_trend' => $this->statisticsRepository->getActiveOrganizersTrend($month, $year),
-            'subscription_distribution' => $this->statisticsRepository->getSubscriptionUsageByLevel($month, $year),
-            'revenue_breakdown' => $this->statisticsRepository->getRevenueBreakdownByPeriod($month, $year),
-        ];
+    public function getNewOrganizersCount(int $month = 0, int $year = 0): int
+    {
+        return $this->statisticsRepository->countOrganizers($month, $year, 'new');
+    }
 
-        return [
-            'widgets' => $widgets,
-            'charts' => $charts,
-        ];
+    public function getMostUsedSubscription(int $month = 0, int $year = 0): ?array
+    {
+        return $this->statisticsRepository->getMostUsedSubscription($month, $year);
+    }
+
+    public function getRevenue(int $month = 0, int $year = 0): float
+    {
+        return $this->statisticsRepository->getRevenue($month, $year);
     }
 }
-

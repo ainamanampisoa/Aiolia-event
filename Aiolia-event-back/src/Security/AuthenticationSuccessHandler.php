@@ -2,6 +2,8 @@
 
 namespace App\Security;
 
+use App\Entity\User;
+use App\Enum\Role;
 use Symfony\Component\HttpFoundation\RedirectResponse;
 use Symfony\Component\HttpFoundation\Request;
 use Symfony\Component\Routing\Generator\UrlGeneratorInterface;
@@ -18,20 +20,19 @@ class AuthenticationSuccessHandler implements AuthenticationSuccessHandlerInterf
     public function onAuthenticationSuccess(Request $request, TokenInterface $token): RedirectResponse
     {
         $user = $token->getUser();
-        
-        // Rediriger selon le rôle de l'utilisateur
-        if ($user && method_exists($user, 'getRole')) {
+
+        if ($user instanceof User) {
             $role = $user->getRole();
-            
-            if ($role === 'admin') {
-                return new RedirectResponse($this->urlGenerator->generate('app_reports_statistiques'));
-            } elseif ($role === 'organizer') {
-                return new RedirectResponse($this->urlGenerator->generate('organisateur_dashboard_statistiques'));
-            }
+
+            return match ($role) {
+                Role::ADMIN => new RedirectResponse($this->urlGenerator->generate('app_reports_statistiques')),
+                Role::ORGANIZER => new RedirectResponse($this->urlGenerator->generate('organisateur_dashboard_statistiques')),
+                default => new RedirectResponse($this->urlGenerator->generate('app_event_index')),
+            };
         }
-        
-        // Par défaut, rediriger vers la page statistiques admin
-        return new RedirectResponse($this->urlGenerator->generate('app_reports_statistiques'));
+
+        return new RedirectResponse($this->urlGenerator->generate('app_login'));
     }
+
 }
 

@@ -152,7 +152,7 @@
                                 {% set billingPeriod = planInfo ? planInfo.periode_facturation : null %}
                                 <tr>
                                     <td class="col-left">
-                                        <span style="color: var(--text-primary); font-size: 0.95rem; font-weight: var(--font-weight-medium);">{{ invoice.invoiceNumber }}</span>
+                                        <span style="color: var(--text-primary); font-size: 0.95rem; font-weight: var(--font-weight-medium);">N° FA-{{ invoice.invoiceNumber }}</span>
                                     </td>
                                     <td class="col-left">
                                         <div class="user-info">
@@ -247,8 +247,9 @@
                                                 '11': {'fr': 'Novembre', 'en': 'November'},
                                                 '12': {'fr': 'Décembre', 'en': 'December'}
                                             } %}
-                                            {% set month = invoice.issuedAt|date('n') %}
-                                            {% set year = invoice.issuedAt|date('Y') %}
+                                            {# Utiliser le mois de facturation réel plutôt que la date d'émission #}
+                                            {% set month = invoice.billingMonth|date('n') %}
+                                            {% set year = invoice.billingMonth|date('Y') %}
                                             <span class="date-primary" data-i18n-fr="{{ monthNames[month].fr }} {{ year }}" data-i18n-en="{{ monthNames[month].en }} {{ year }}">
                                                 {{ monthNames[month].fr }} {{ year }}
                                             </span>

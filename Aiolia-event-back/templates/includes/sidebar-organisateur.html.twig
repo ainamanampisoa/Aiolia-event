@@ -35,7 +35,7 @@
             <li class="nav-item {{ isReports ? 'active' }}">
                 <a href="{{ path('organisateur_reports_index') }}" class="nav-link {{ isReports ? 'active' }}" {% if isReports %}aria-current="page"{% endif %}>
                     <div class="nav-icon">
-                        <i class="fas fa-file-chart-line"></i>
+                        <i class="fas fa-chart-bar"></i>
                     </div>
                     <span class="nav-text" data-i18n="layout.sidebar.organisateur.reports">Rapports</span>
                     <span class="nav-tooltip" data-i18n="layout.sidebar.organisateur.reports">Rapports</span>
@@ -123,4 +123,94 @@
     </nav>
     
 </aside>
+
+<style>
+    /* Scroll vertical indépendant pour la sidebar */
+    #adminSidebar.admin-sidebar {
+        display: flex !important;
+        flex-direction: column !important;
+        height: calc(100vh - 72px) !important;
+        max-height: calc(100vh - 72px) !important;
+        overflow: hidden !important;
+        position: fixed !important;
+    }
+    
+    #adminSidebar .sidebar-header {
+        flex-shrink: 0 !important;
+        flex-grow: 0 !important;
+        height: auto !important;
+        min-height: 0 !important;
+    }
+    
+    #adminSidebar .sidebar-nav {
+        flex: 1 1 0 !important;
+        overflow-y: scroll !important;
+        overflow-x: hidden !important;
+        min-height: 0 !important;
+        max-height: calc(100vh - 72px - 120px) !important;
+        height: calc(100vh - 72px - 120px) !important;
+        -webkit-overflow-scrolling: touch !important;
+        position: relative !important;
+    }
+    
+    #adminSidebar .nav-menu {
+        min-height: 100% !important;
+    }
+    
+    /* Scrollbar visible et stylisée */
+    #adminSidebar .sidebar-nav::-webkit-scrollbar {
+        width: 8px !important;
+        display: block !important;
+    }
+    
+    #adminSidebar .sidebar-nav::-webkit-scrollbar-track {
+        background: rgba(255,255,255,0.05) !important;
+        border-radius: 4px !important;
+    }
+    
+    #adminSidebar .sidebar-nav::-webkit-scrollbar-thumb {
+        background: rgba(255,255,255,0.2) !important;
+        border-radius: 4px !important;
+        border: 1px solid rgba(255,255,255,0.1) !important;
+    }
+    
+    #adminSidebar .sidebar-nav::-webkit-scrollbar-thumb:hover {
+        background: rgba(255,255,255,0.3) !important;
+    }
+    
+    /* Firefox */
+    #adminSidebar .sidebar-nav {
+        scrollbar-width: thin !important;
+        scrollbar-color: rgba(255,255,255,0.2) rgba(255,255,255,0.05) !important;
+    }
+</style>
+
+<script>
+    // Force le scroll vertical sur la sidebar-nav
+    document.addEventListener('DOMContentLoaded', function() {
+        const sidebar = document.getElementById('adminSidebar');
+        const sidebarNav = sidebar?.querySelector('.sidebar-nav');
+        
+        if (sidebar && sidebarNav) {
+            // Calculer la hauteur disponible pour la nav
+            const headerHeight = sidebar.querySelector('.sidebar-header')?.offsetHeight || 100;
+            const availableHeight = window.innerHeight - 72 - headerHeight;
+            
+            // Forcer la hauteur maximale
+            sidebarNav.style.maxHeight = availableHeight + 'px';
+            sidebarNav.style.height = availableHeight + 'px';
+            sidebarNav.style.overflowY = 'scroll';
+            sidebarNav.style.overflowX = 'hidden';
+            
+            // Recalculer lors du redimensionnement
+            window.addEventListener('resize', function() {
+                const newHeaderHeight = sidebar.querySelector('.sidebar-header')?.offsetHeight || 100;
+                const newAvailableHeight = window.innerHeight - 72 - newHeaderHeight;
+                sidebarNav.style.maxHeight = newAvailableHeight + 'px';
+                sidebarNav.style.height = newAvailableHeight + 'px';
+            });
+        }
+    });
+</script>
+
 

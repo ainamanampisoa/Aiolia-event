@@ -7,7 +7,7 @@ use Doctrine\DBAL\Types\Types;
 use Doctrine\ORM\Mapping as ORM;
 
 #[ORM\Entity(repositoryClass: EventCategoryRepository::class)]
-#[ORM\Table(name: 'event_categories', schema: 'aiolia')]
+#[ORM\Table(name: 'categories_evenements', schema: 'aiolia')]
 #[ORM\HasLifecycleCallbacks]
 class EventCategory
 {
@@ -16,25 +16,25 @@ class EventCategory
     #[ORM\Column(type: Types::BIGINT)]
     private ?string $id = null;
 
-    #[ORM\Column(type: Types::STRING, length: 120, unique: true)]
+    #[ORM\Column(name: 'slug', type: Types::STRING, length: 120, unique: true)]
     private string $slug;
 
-    #[ORM\Column(type: Types::STRING, length: 255)]
+    #[ORM\Column(name: 'libelle', type: Types::STRING, length: 255)]
     private string $label;
 
-    #[ORM\Column(type: Types::TEXT, nullable: true)]
+    #[ORM\Column(name: 'description', type: Types::TEXT, nullable: true)]
     private ?string $description = null;
 
-    #[ORM\Column(name: 'icon_name', type: Types::STRING, length: 120, nullable: true)]
+    #[ORM\Column(name: 'nom_icone', type: Types::STRING, length: 120, nullable: true)]
     private ?string $iconName = null;
 
-    #[ORM\Column(name: 'is_active', type: Types::BOOLEAN, options: ['default' => true])]
+    #[ORM\Column(name: 'est_actif', type: Types::BOOLEAN, options: ['default' => true])]
     private bool $isActive = true;
 
-    #[ORM\Column(name: 'display_order', type: Types::INTEGER, options: ['default' => 0])]
+    #[ORM\Column(name: 'ordre_affichage', type: Types::INTEGER, options: ['default' => 0])]
     private int $displayOrder = 0;
 
-    #[ORM\Column(name: 'created_at', type: Types::DATETIMETZ_MUTABLE)]
+    #[ORM\Column(name: 'cree_le', type: Types::DATETIMETZ_MUTABLE)]
     private ?\DateTimeInterface $createdAt = null;
 
     #[ORM\PrePersist]

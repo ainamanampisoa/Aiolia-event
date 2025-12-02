@@ -7,7 +7,7 @@ use Doctrine\DBAL\Types\Types;
 use Doctrine\ORM\Mapping as ORM;
 
 #[ORM\Entity(repositoryClass: EventMediaRepository::class)]
-#[ORM\Table(name: 'event_media', schema: 'aiolia')]
+#[ORM\Table(name: 'medias_evenements', schema: 'aiolia')]
 #[ORM\HasLifecycleCallbacks]
 class EventMedia
 {
@@ -15,31 +15,40 @@ class EventMedia
     public const TYPE_VIDEO = 'video';
     public const TYPE_DOCUMENT = 'document';
 
+    public const FORMAT_PORTRAIT = 'portrait';
+    public const FORMAT_PAYSAGE = 'paysage';
+
     #[ORM\Id]
     #[ORM\GeneratedValue]
     #[ORM\Column(type: Types::BIGINT)]
     private ?string $id = null;
 
-    #[ORM\ManyToOne(targetEntity: Event::class)]
-    #[ORM\JoinColumn(name: 'event_id', nullable: false)]
+    #[ORM\ManyToOne(targetEntity: Event::class, inversedBy: 'media')]
+    #[ORM\JoinColumn(name: 'id_evenement', referencedColumnName: 'id', nullable: false, onDelete: 'CASCADE')]
     private ?Event $event = null;
 
-    #[ORM\Column(name: 'media_type', type: Types::STRING, length: 20)]
+    #[ORM\Column(name: 'type_media', type: Types::STRING, length: 20)]
     private string $mediaType;
 
-    #[ORM\Column(type: Types::TEXT)]
+    #[ORM\Column(name: 'url', type: Types::TEXT)]
     private string $url;
 
-    #[ORM\Column(name: 'alt_text', type: Types::TEXT, nullable: true)]
+    #[ORM\Column(name: 'texte_alternatif', type: Types::TEXT, nullable: true)]
     private ?string $altText = null;
 
-    #[ORM\Column(name: 'display_order', type: Types::INTEGER, options: ['default' => 0])]
+    #[ORM\Column(name: 'ordre_affichage', type: Types::INTEGER, options: ['default' => 0])]
     private int $displayOrder = 0;
 
-    #[ORM\Column(name: 'is_public', type: Types::BOOLEAN, options: ['default' => true])]
+    #[ORM\Column(name: 'est_public', type: Types::BOOLEAN, options: ['default' => true])]
     private bool $isPublic = true;
 
-    #[ORM\Column(name: 'created_at', type: Types::DATETIMETZ_MUTABLE)]
+    #[ORM\Column(name: 'format_affiche', type: Types::STRING, length: 20, nullable: true)]
+    private ?string $posterFormat = null;
+
+    #[ORM\Column(name: 'est_affiche_principale', type: Types::BOOLEAN, options: ['default' => false])]
+    private bool $isMainPoster = false;
+
+    #[ORM\Column(name: 'cree_le', type: Types::DATETIMETZ_MUTABLE)]
     private ?\DateTimeInterface $createdAt = null;
 
     #[ORM\PrePersist]
@@ -122,6 +131,31 @@ class EventMedia
     {
         $this->isPublic = $isPublic;
 
+        return $this;
+    }
+
+    public function getPosterFormat(): ?string
+    {
+        return $this->posterFormat;
+    }
+
+    public function setPosterFormat(?string $posterFormat): static
+    {
+        if ($posterFormat !== null && !in_array($posterFormat, [self::FORMAT_PORTRAIT, self::FORMAT_PAYSAGE])) {
+            throw new \InvalidArgumentException("Format d'affiche invalide: {$posterFormat}");
+        }
+        $this->posterFormat = $posterFormat;
+        return $this;
+    }
+
+    public function isMainPoster(): bool
+    {
+        return $this->isMainPoster;
+    }
+
+    public function setIsMainPoster(bool $isMainPoster): static
+    {
+        $this->isMainPoster = $isMainPoster;
         return $this;
     }
 

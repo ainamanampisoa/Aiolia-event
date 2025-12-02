@@ -841,36 +841,19 @@ a:hover {
     max-width: 260px;
     background: var(--bg-sidebar);
     color: var(--text-inverse);
-    display: flex;
-    flex-direction: column;
-    height: calc(100vh - 72px);
+    display: flex !important;
+    flex-direction: column !important;
+    height: calc(100vh - 72px) !important;
+    max-height: calc(100vh - 72px) !important;
     position: fixed;
     top: 72px;
     left: 0;
     box-shadow: var(--shadow-lg);
     transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
     flex-shrink: 0;
-    overflow-y: auto;
-    overflow-x: hidden;
+    overflow: hidden !important;
     z-index: var(--z-sticky);
     border-right: 1px solid rgba(255,255,255,0.05);
-}
-
-.admin-sidebar::-webkit-scrollbar {
-    width: 6px;
-}
-
-.admin-sidebar::-webkit-scrollbar-track {
-    background: transparent;
-}
-
-.admin-sidebar::-webkit-scrollbar-thumb {
-    background: rgba(255,255,255,0.1);
-    border-radius: 3px;
-}
-
-.admin-sidebar::-webkit-scrollbar-thumb:hover {
-    background: rgba(255,255,255,0.2);
 }
 
 .sidebar-header {
@@ -896,9 +879,37 @@ a:hover {
 }
 
 .sidebar-nav {
-    flex: 1;
-    overflow-y: auto;
+    flex: 1 1 0 !important;
+    overflow-y: scroll !important;
+    overflow-x: hidden !important;
     padding: 1.5rem 0;
+    min-height: 0 !important;
+    max-height: calc(100vh - 72px - 120px) !important;
+    height: calc(100vh - 72px - 120px) !important;
+    -webkit-overflow-scrolling: touch !important;
+    scrollbar-width: thin !important;
+    scrollbar-color: rgba(255,255,255,0.2) rgba(255,255,255,0.05) !important;
+    position: relative !important;
+}
+
+.sidebar-nav::-webkit-scrollbar {
+    width: 8px !important;
+    display: block !important;
+}
+
+.sidebar-nav::-webkit-scrollbar-track {
+    background: rgba(255,255,255,0.05) !important;
+    border-radius: 4px !important;
+}
+
+.sidebar-nav::-webkit-scrollbar-thumb {
+    background: rgba(255,255,255,0.2) !important;
+    border-radius: 4px !important;
+    border: 1px solid rgba(255,255,255,0.1) !important;
+}
+
+.sidebar-nav::-webkit-scrollbar-thumb:hover {
+    background: rgba(255,255,255,0.3) !important;
 }
 
 .nav-section {
@@ -977,6 +988,12 @@ a:hover {
     flex-shrink: 0;
     transition: var(--transition-smooth);
     font-size: 1.1rem;
+    color: rgba(255, 255, 255, 0.7);
+}
+
+.nav-icon i {
+    color: inherit;
+    display: inline-block;
 }
 
 .nav-item.active .nav-icon {

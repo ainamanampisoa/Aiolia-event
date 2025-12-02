@@ -1,4 +1,3 @@
-
 \c aiolia_event;
 SET search_path TO aiolia, public;
 
@@ -171,6 +170,7 @@ FROM generate_series(1, 50) AS gs;
 SELECT setval(pg_get_serial_sequence('aiolia.utilisateurs', 'id'), 100, true);
 SELECT setval(pg_get_serial_sequence('aiolia.profils_organisateurs', 'id'), 26, true);
 SELECT setval(pg_get_serial_sequence('aiolia.profils_admin', 'id'), 2, true);
+
 
 /* ========================================================================== */
 /* 2. PLANS D'ABONNEMENT                                                      */

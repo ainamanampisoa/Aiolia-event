@@ -102,7 +102,7 @@ class EventRepository extends ServiceEntityRepository
     /**
      * Récupère les événements d'un organisateur
      */
-    public function findByOrganizer(User $organizer): array
+    public function findByOrganizer(User $organizer, ?string $status = null, ?int $limit = null): array
     {
         // Utilisation d'une requête SQL native car id_profil_organisateur référence profils_organisateurs
         // qui a un id_utilisateur référençant utilisateurs
@@ -111,10 +111,23 @@ class EventRepository extends ServiceEntityRepository
             SELECT e.id FROM aiolia.evenements e
             INNER JOIN aiolia.profils_organisateurs op ON e.id_profil_organisateur = op.id
             WHERE op.id_utilisateur = :userId
-            ORDER BY e.cree_le DESC
         ';
         
-        $result = $conn->executeQuery($sql, ['userId' => $organizer->getId()]);
+        $params = ['userId' => $organizer->getId()];
+        
+        if ($status !== null) {
+            $sql .= ' AND e.statut = :status';
+            $params['status'] = $status;
+        }
+        
+        $sql .= ' ORDER BY e.cree_le DESC';
+        
+        if ($limit !== null) {
+            $sql .= ' LIMIT :limit';
+            $params['limit'] = $limit;
+        }
+        
+        $result = $conn->executeQuery($sql, $params);
         $eventIds = $result->fetchFirstColumn();
         
         // Convertir les IDs en entités Event et charger l'organizer
@@ -129,6 +142,30 @@ class EventRepository extends ServiceEntityRepository
         }
         
         return $events;
+    }
+
+    /**
+     * Compte les événements d'un organisateur
+     */
+    public function countByOrganizer(User $organizer, ?string $status = null): int
+    {
+        $conn = $this->getEntityManager()->getConnection();
+        $sql = '
+            SELECT COUNT(e.id) FROM aiolia.evenements e
+            INNER JOIN aiolia.profils_organisateurs op ON e.id_profil_organisateur = op.id
+            WHERE op.id_utilisateur = :userId
+        ';
+        
+        $params = ['userId' => $organizer->getId()];
+        
+        if ($status !== null) {
+            $sql .= ' AND e.statut = :status';
+            $params['status'] = $status;
+        }
+        
+        $result = $conn->executeQuery($sql, $params);
+        
+        return (int) $result->fetchOne();
     }
 
     /**

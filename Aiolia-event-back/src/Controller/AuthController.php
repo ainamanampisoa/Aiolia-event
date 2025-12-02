@@ -16,12 +16,37 @@ use Symfony\Component\Security\Http\Authentication\AuthenticationUtils;
 
 class AuthController extends AbstractController
 {
+    /**
+     * Redirige l'utilisateur connecté vers la page appropriée selon son rôle
+     */
+    private function redirectBasedOnRole(): Response
+    {
+        $user = $this->getUser();
+        
+        if (!$user instanceof User) {
+            return $this->redirectToRoute('app_login');
+        }
+        
+        $role = $user->getRole();
+        
+        if ($role === UserRoleEnum::ADMIN) {
+            return $this->redirectToRoute('app_reports_statistiques');
+        }
+        
+        if ($role === UserRoleEnum::ORGANIZER) {
+            return $this->redirectToRoute('organisateur_dashboard_statistiques');
+        }
+        
+        // Pour les utilisateurs normaux, rediriger vers la liste des événements
+        return $this->redirectToRoute('app_event_index');
+    }
+
     #[Route('/login', name: 'app_login')]
     public function login(AuthenticationUtils $authenticationUtils): Response
     {
-        // Si l'utilisateur est déjà connecté, rediriger vers les statistiques
+        // Si l'utilisateur est déjà connecté, rediriger selon son rôle
         if ($this->getUser()) {
-            return $this->redirectToRoute('app_reports_statistiques');
+            return $this->redirectBasedOnRole();
         }
 
         // Récupérer l'erreur de connexion s'il y en a une
@@ -42,9 +67,9 @@ class AuthController extends AbstractController
         EntityManagerInterface $entityManager,
         AuditLogService $auditLogService
     ): Response {
-        // Si l'utilisateur est déjà connecté, rediriger vers les statistiques
+        // Si l'utilisateur est déjà connecté, rediriger selon son rôle
         if ($this->getUser()) {
-            return $this->redirectToRoute('app_reports_statistiques');
+            return $this->redirectBasedOnRole();
         }
 
         $user = new User();
@@ -63,19 +88,19 @@ class AuthController extends AbstractController
                 )
             );
 
-            // Déterminer le statut du compte selon le rôle demandé
+            // Exemple d'extrait dans la méthode register
+
             if ($requestedRole === UserRoleEnum::ORGANIZER) {
-                // Comptes organisateurs : rôle assigné mais compte en attente
                 $user->setRole(UserRoleEnum::ORGANIZER);
                 $user->setStatutCompte('pending_validation');
 
-                $message = 'Votre demande d\'inscription en tant qu\'Organisateur a été envoyée. Vous recevrez une notification une fois que votre compte sera validé par un administrateur.';
+                $message = 'Votre demande d\'inscription en tant qu\'organisateur est en cours de traitement. Vous serez informé dès la validation de votre compte.';
             } else {
-                // Utilisateur normal - compte actif immédiatement
                 $user->setRole(UserRoleEnum::USER);
                 $user->setStatutCompte('active');
-                $message = 'Votre compte a été créé avec succès ! Vous pouvez maintenant vous connecter.';
+                $message = 'Inscription réussie ! Vous pouvez maintenant vous connecter.';
             }
+
 
             $user->setIdentifiantConnexion($user->getEmail());
             $user->setMethodeConnexion(User::AUTH_PROVIDER_PASSWORD);
@@ -113,9 +138,9 @@ class AuthController extends AbstractController
     #[Route('/forgot-password', name: 'app_forgot_password_request')]
     public function forgotPasswordRequest(Request $request): Response
     {
-        // Si l'utilisateur est déjà connecté, rediriger vers les statistiques
+        // Si l'utilisateur est déjà connecté, rediriger selon son rôle
         if ($this->getUser()) {
-            return $this->redirectToRoute('app_reports_statistiques');
+            return $this->redirectBasedOnRole();
         }
 
         if ($request->isMethod('POST')) {
@@ -142,9 +167,9 @@ class AuthController extends AbstractController
     #[Route('/', name: 'app_home')]
     public function home(): Response
     {
-        // Si l'utilisateur est connecté, rediriger vers les statistiques
+        // Si l'utilisateur est connecté, rediriger selon son rôle
         if ($this->getUser()) {
-            return $this->redirectToRoute('app_reports_statistiques');
+            return $this->redirectBasedOnRole();
         }
 
         // Sinon, rediriger vers la page de connexion
@@ -154,8 +179,13 @@ class AuthController extends AbstractController
     #[Route('/dashboard', name: 'app_dashboard')]
     public function dashboard(): Response
     {
-        // Rediriger vers les statistiques
-        return $this->redirectToRoute('app_reports_statistiques');
+        // Rediriger selon le rôle de l'utilisateur
+        if ($this->getUser()) {
+            return $this->redirectBasedOnRole();
+        }
+        
+        // Si non connecté, rediriger vers la page de connexion
+        return $this->redirectToRoute('app_login');
     }
 
     /**

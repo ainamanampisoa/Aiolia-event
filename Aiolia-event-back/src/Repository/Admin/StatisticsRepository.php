@@ -2,219 +2,189 @@
 
 namespace App\Repository\Admin;
 
+use App\Entity\OrganizerSubscription;
+use App\Entity\OrganizerProfile;
+use App\Entity\User;
+use App\Entity\SubscriptionInvoice;
+use App\Enum\SubscriptionStatus;
+use App\Enum\Role;
+use Doctrine\Bundle\DoctrineBundle\Repository\ServiceEntityRepository;
 use Doctrine\Persistence\ManagerRegistry;
-use Doctrine\DBAL\Connection;
-
-class StatisticsRepository
+/**
+ * @extends ServiceEntityRepository<OrganizerSubscription>
+ */
+class StatisticsRepository extends ServiceEntityRepository
 {
-    private Connection $connection;
-
-    private const DATE_FORMAT = '%04d-%02d-01';
-    private const YEAR_START_FORMAT = '%04d-01-01';
-    private const YEAR_END_FORMAT = '%04d-12-31';
-    private const ORGANIZER_PERIOD_FIELD = "COALESCE(os.debut_periode_courante, os.commence_le)";
-
     public function __construct(ManagerRegistry $registry)
     {
-        $this->connection = $registry->getConnection();
+        parent::__construct($registry, OrganizerSubscription::class);
     }
 
     /**
-     * Arrondit les bornes temporelles à un mois complet.
-     *
-     * @return array{start: string|null, end: string|null}
+     * Résout les bornes temporelles pour une période (mois/année)
      */
-    private function resolvePeriod(int $mois, int $annee): array
+    private function resolvePeriod(int $month, int $year): array
     {
-        if ($mois === 0 && $annee === 0) {
+        if ($month === 0 && $year === 0) {
             return ['start' => null, 'end' => null];
         }
 
-        $annee = $annee > 0 ? $annee : (int) date('Y');
+        $year = $year > 0 ? $year : (int) date('Y');
 
-        if ($mois > 0) {
-            $start = sprintf(self::DATE_FORMAT, $annee, $mois);
-            $end   = date('Y-m-t', strtotime($start));
+        if ($month > 0) {
+            $start = sprintf('%04d-%02d-01', $year, $month);
+            $end = date('Y-m-t', strtotime($start));
         } else {
-            $start = sprintf(self::YEAR_START_FORMAT, $annee);
-            $end   = sprintf(self::YEAR_END_FORMAT, $annee);
+            $start = sprintf('%04d-01-01', $year);
+            $end = sprintf('%04d-12-31', $year);
         }
 
         return ['start' => $start, 'end' => $end];
     }
 
-    private function buildDateCondition(?string $start, ?string $end, string $field): string
+    /**
+     * Compte les organisateurs selon le type (actifs/nouveaux)
+     */
+    public function countOrganizers(int $month, int $year, string $type): int
     {
-        if (!$start || !$end) {
-            return '';
-        }
-
-        return " AND ($field BETWEEN :date_start AND :date_end)";
-    }
-
-    private function countOrganisateurs(int $mois, int $annee, string $type): int
-    {
-        $period = $this->resolvePeriod($mois, $annee);
+        $period = $this->resolvePeriod($month, $year);
         $start = $period['start'];
-        $end   = $period['end'];
+        $end = $period['end'];
 
         if ($type === 'active') {
-            $sql = "
-                SELECT COUNT(DISTINCT os.id_profil_organisateur)
-                FROM aiolia.abonnements_organisateurs os
-                WHERE os.statut = 'active'
-            ";
-            $sql .= $this->buildDateCondition($start, $end, self::ORGANIZER_PERIOD_FIELD);
-        } else {
-            $sql = "
-                SELECT COUNT(*)
-                FROM aiolia.profils_organisateurs po
-                INNER JOIN aiolia.utilisateurs u ON u.id = po.id_utilisateur
-                WHERE po.statut_verification = 'verified'
-                  AND u.role = 'organizer'
-                  AND u.statut = 1
-            ";
-            $sql .= $this->buildDateCondition($start, $end, "po.cree_le");
+            return $this->countActiveOrganizers($start, $end);
         }
 
-        $params = [];
-        if ($start && $end) {
-            $params['date_start'] = $start;
-            $params['date_end']   = $end;
-        }
-
-        return (int) $this->connection->fetchOne($sql, $params);
+        return $this->countNewOrganizers($start, $end);
     }
 
-    public function organisateurActifs(int $mois, int $annee): int
+    private function countActiveOrganizers(?string $start, ?string $end): int
     {
-        return $this->countOrganisateurs($mois, $annee, 'active');
+        $qb = $this->createQueryBuilder('os')
+            // On compte les organisateurs uniques, pas le nombre de lignes d'abonnements
+            ->select('COUNT(DISTINCT os.organizerProfile)')
+            ->where('os.statut = :active')
+            ->setParameter('active', SubscriptionStatus::ACTIVE);
+
+        // On filtre par période en utilisant les champs de dates réels de l'entité OrganizerSubscription
+        $this->applyPeriodFilter($qb, $start, $end, 'COALESCE(os.debutPeriodeCourante, os.commenceLe)');
+
+        return (int) $qb->getQuery()->getSingleScalarResult();
     }
 
-    public function newsOrganisateur(int $mois, int $annee): int
+    private function countNewOrganizers(?string $start, ?string $end): int
     {
-        return $this->countOrganisateurs($mois, $annee, 'new');
+        $qb = $this->getEntityManager()->createQueryBuilder()
+            ->select('COUNT(po.id)')
+            ->from(OrganizerProfile::class, 'po')
+            ->join('po.utilisateur', 'u')
+            ->where('po.statutVerification = :verified')
+            ->andWhere('u.role = :organizer')
+            ->andWhere('u.statut = :active')
+            ->setParameter('verified', 'verified')
+            ->setParameter('organizer', 'organizer')
+            ->setParameter('active', 1);
+
+        // Filtre sur la date de création réelle de l'organisateur
+        $this->applyPeriodFilter($qb, $start, $end, 'po.creeLe');
+
+        return (int) $qb->getQuery()->getSingleScalarResult();
     }
 
-    /* ========================================================================== */
-    /*     ABONNEMENT LE PLUS UTILISÉ                                             */
-    /* ========================================================================== */
-    public function abonnemnentPLusActifs(int $mois, int $annee): ?array
+    /**
+     * Abonnement le plus utilisé
+     */
+    public function getMostUsedSubscription(int $month, int $year): ?array
     {
-        $period = $this->resolvePeriod($mois, $annee);
+        $period = $this->resolvePeriod($month, $year);
         $start = $period['start'];
-        $end   = $period['end'];
+        $end = $period['end'];
 
-        $sql = "
-            SELECT sp.nom, COUNT(DISTINCT os.id_profil_organisateur) AS count
-            FROM aiolia.abonnements_organisateurs os
-            INNER JOIN aiolia.plans_abonnements sp ON sp.id = os.id_plan
-            WHERE os.statut = 'active'
-        ";
+        $qb = $this->createQueryBuilder('os')
+            ->select('p.nom, COUNT(DISTINCT os.organizerProfile) as count')
+            ->join('os.plan', 'p')
+            ->where('os.statut = :active')
+            ->groupBy('p.nom')
+            ->orderBy('count', 'DESC')
+            ->setMaxResults(1)
+            ->setParameter('active', SubscriptionStatus::ACTIVE);
 
-        $sql .= $this->buildDateCondition($start, $end, self::ORGANIZER_PERIOD_FIELD);
+        $this->applyPeriodFilter($qb, $start, $end, 'COALESCE(os.debutPeriodeCourante, os.commenceLe)');
 
-        $sql .= " GROUP BY sp.nom ORDER BY count DESC LIMIT 1";
-
-        $params = [];
-        if ($start && $end) {
-            $params['date_start'] = $start;
-            $params['date_end']   = $end;
-        }
-
-        $result = $this->connection->fetchAssociative($sql, $params);
+        $result = $qb->getQuery()->getOneOrNullResult();
 
         return $result ? [
-            'nom'   => $result['nom'],
-            'count' => (int)$result['count'],
+            'nom' => $result['nom'],
+            'count' => (int) $result['count']
         ] : null;
     }
 
-    /* ========================================================================== */
-    /*     CHIFFRE D'AFFAIRE                                                      */
-    /* ========================================================================== */
-    public function chiffreAffaireCA(int $mois, int $annee): float
+    /**
+     * Chiffre d'affaires
+     */
+    public function getRevenue(int $month, int $year): float
     {
-        $period = $this->resolvePeriod($mois, $annee);
+        $period = $this->resolvePeriod($month, $year);
         $start = $period['start'];
-        $end   = $period['end'];
+        $end = $period['end'];
 
-        $sql = "
-            SELECT COALESCE(SUM(montant_total), 0)
-            FROM aiolia.factures_abonnements
-            WHERE statut IN ('paid', 'partially_paid')
-        ";
+        $qb = $this->getEntityManager()->createQueryBuilder()
+            ->select('COALESCE(SUM(i.totalAmount), 0)')
+            ->from(SubscriptionInvoice::class, 'i')
+            ->where('i.status IN (:paidStatuses)')
+            ->setParameter('paidStatuses', ['paid', 'partially_paid']);
 
-        $sql .= $this->buildDateCondition($start, $end, "mois_facturation");
+        $this->applyPeriodFilter($qb, $start, $end, 'i.billingMonth');
 
-        $params = [];
-        if ($start && $end) {
-            $params['date_start'] = $start;
-            $params['date_end']   = $end;
-        }
-
-        return (float) $this->connection->fetchOne($sql, $params);
+        return (float) $qb->getQuery()->getSingleScalarResult();
     }
 
-    /* ========================================================================== */
-    /*     TENDANCE ORGANISATEURS ACTIFS                                          */
-    /* ========================================================================== */
-    public function getActiveOrganizersTrend(int $mois, int $annee): array
+    /**
+     * Tendance organisateurs actifs
+     */
+    public function getActiveOrganizersTrend(int $month, int $year): array
     {
-        $period = $this->resolvePeriod($mois, $annee);
+        $period = $this->resolvePeriod($month, $year);
         $start = $period['start'] ?? date('Y-01-01');
-        $end   = $period['end'] ?? date('Y-12-31');
+        $end = $period['end'] ?? date('Y-12-31');
 
-        $sql = "
-            WITH periods AS (
-                SELECT date_trunc('month', dd)::date AS period_start
-                FROM generate_series(:start::date, :end::date, '1 month') dd
-            )
-            SELECT
-                TO_CHAR(periods.period_start, 'Mon YYYY') AS month_label,
-                COUNT(DISTINCT os.id_profil_organisateur) AS count
-            FROM periods
-            LEFT JOIN aiolia.abonnements_organisateurs os
-                ON os.statut = 'active'
-               AND COALESCE(os.debut_periode_courante, os.commence_le)
-                   BETWEEN periods.period_start AND periods.period_start + INTERVAL '1 month - 1 day'
-            GROUP BY periods.period_start
-            ORDER BY periods.period_start
-        ";
+        // Simulation des mois avec Doctrine (sans generate_series natif)
+        $months = $this->generateMonthlyPeriods($start, $end);
+        $trends = [];
 
-        return $this->connection->fetchAllAssociative($sql, [
-            'start' => $start,
-            'end'   => $end,
-        ]);
-    }
-
-    /* ========================================================================== */
-    /*     DISTRIBUTION DES NIVEAUX                                               */
-    /* ========================================================================== */
-    public function getSubscriptionUsageByLevel(int $mois, int $annee): array
-    {
-        $period = $this->resolvePeriod($mois, $annee);
-        $start = $period['start'];
-        $end   = $period['end'];
-
-        $sql = "
-            SELECT sp.niveau, COUNT(DISTINCT os.id_profil_organisateur) AS count
-            FROM aiolia.abonnements_organisateurs os
-            INNER JOIN aiolia.plans_abonnements sp ON sp.id = os.id_plan
-            WHERE os.statut = 'active'
-        ";
-
-        $sql .= $this->buildDateCondition($start, $end, self::ORGANIZER_PERIOD_FIELD);
-
-        $sql .= " GROUP BY sp.niveau";
-
-        $params = [];
-        if ($start && $end) {
-            $params['date_start'] = $start;
-            $params['date_end']   = $end;
+        foreach ($months as $monthStart) {
+            $monthEnd = (clone $monthStart)->modify('last day of this month');
+            
+            $count = $this->countActiveOrganizersInPeriod($monthStart, $monthEnd);
+            
+            $trends[] = [
+                'month_label' => $monthStart->format('M Y'),
+                'count' => $count
+            ];
         }
 
-        $rows = $this->connection->fetchAllAssociative($sql, $params);
+        return $trends;
+    }
+
+    /**
+     * Distribution par niveau d'abonnement
+     */
+    public function getSubscriptionUsageByLevel(int $month, int $year): array
+    {
+        $period = $this->resolvePeriod($month, $year);
+        $start = $period['start'];
+        $end = $period['end'];
+
+        $qb = $this->createQueryBuilder('os')
+            ->select('p.niveau AS level, COUNT(DISTINCT os.organizerProfile) as count')
+            ->join('os.plan', 'p')
+            ->where('os.statut = :active')
+            ->groupBy('p.niveau')
+            ->setParameter('active', OrganizerSubscription::STATUS_ACTIVE);
+
+        $this->applyPeriodFilter($qb, $start, $end, 'COALESCE(os.debutPeriodeCourante, os.commenceLe)');
+
+        $rows = $qb->getQuery()->getResult();
 
         $distribution = [
             'basic' => 0,
@@ -223,45 +193,95 @@ class StatisticsRepository
         ];
 
         foreach ($rows as $row) {
-            $niveau = $row['niveau'] ?? null;
-            if ($niveau !== null && array_key_exists($niveau, $distribution)) {
-                $distribution[$niveau] = (int) $row['count'];
+            if (isset($distribution[$row['level']])) {
+                $distribution[$row['level']] = (int) $row['count'];
             }
         }
 
         return $distribution;
     }
 
-    /* ========================================================================== */
-    /*     DÉTAIL CA                                                               */
-    /* ========================================================================== */
-    public function getRevenueBreakdownByPeriod(int $mois, int $annee): array
+    /**
+     * Détail CA par période
+     */
+    public function getRevenueBreakdownByPeriod(int $month, int $year): array
     {
-        $period = $this->resolvePeriod($mois, $annee);
+        $period = $this->resolvePeriod($month, $year);
         $start = $period['start'];
-        $end   = $period['end'];
+        $end = $period['end'];
 
-        $sql = "
-            SELECT
-                DATE_TRUNC('month', mois_facturation) AS period_start,
-                TO_CHAR(DATE_TRUNC('month', mois_facturation), 'Mon YYYY') AS month_label,
-                SUM(montant_ht)  AS revenue_ht,
-                SUM(montant_tva) AS revenue_tva,
-                SUM(montant_ttc) AS revenue_ttc
-            FROM aiolia.factures_abonnements
-            WHERE statut IN ('paid', 'partially_paid')
-        ";
+        $qb = $this->getEntityManager()->createQueryBuilder()
+            ->select(
+                'i.billingMonth AS billingMonth',
+                'SUM(i.amountHt) as revenue_ht',
+                'SUM(i.amountTva) as revenue_tva',
+                'SUM(i.amountTtc) as revenue_ttc'
+            )
+            ->from(SubscriptionInvoice::class, 'i')
+            ->where('i.status IN (:paidStatuses)')
+            ->groupBy('i.billingMonth')
+            ->orderBy('i.billingMonth', 'ASC')
+            ->setParameter('paidStatuses', ['paid', 'partially_paid']);
 
-        $sql .= $this->buildDateCondition($start, $end, "mois_facturation");
+        $this->applyPeriodFilter($qb, $start, $end, 'i.billingMonth');
 
-        $sql .= " GROUP BY period_start ORDER BY period_start";
+        $rows = $qb->getQuery()->getResult();
 
-        $params = [];
-        if ($start && $end) {
-            $params['date_start'] = $start;
-            $params['date_end']   = $end;
+        // On reconstruit period_start et month_label en PHP pour éviter d'utiliser des fonctions de date en DQL
+        $results = [];
+        foreach ($rows as $row) {
+            /** @var \DateTimeInterface $billingMonth */
+            $billingMonth = $row['billingMonth'];
+
+            // Normalise au premier jour du mois
+            $periodStart = $billingMonth->format('Y-m-01');
+            $date = \DateTimeImmutable::createFromFormat('Y-m-d', $periodStart);
+
+            $results[] = [
+                'period_start' => $periodStart,
+                'month_label' => $date ? $date->format('M Y') : $billingMonth->format('m/Y'),
+                'revenue_ht' => $row['revenue_ht'],
+                'revenue_tva' => $row['revenue_tva'],
+                'revenue_ttc' => $row['revenue_ttc'],
+            ];
         }
 
-        return $this->connection->fetchAllAssociative($sql, $params);
+        return $results;
+    }
+
+    private function applyPeriodFilter($qb, ?string $start, ?string $end, string $field): void
+    {
+        if ($start && $end) {
+            $qb->andWhere("$field BETWEEN :date_start AND :date_end")
+            ->setParameter('date_start', $start)
+            ->setParameter('date_end', $end);
+        }
+    }
+
+    private function generateMonthlyPeriods(string $start, string $end): array
+    {
+        $periods = [];
+        $current = new \DateTime($start);
+        $endDate = new \DateTime($end);
+
+        while ($current <= $endDate) {
+            $periods[] = clone $current;
+            $current->modify('first day of next month');
+        }
+
+        return $periods;
+    }
+
+    private function countActiveOrganizersInPeriod(\DateTimeInterface $start, \DateTimeInterface $end): int
+    {
+        $qb = $this->createQueryBuilder('os')
+            ->select('COUNT(DISTINCT os.id)')
+            ->where('os.statut = :active')
+            ->andWhere('COALESCE(os.debutPeriodeCourante, os.commenceLe) BETWEEN :start AND :end')
+            ->setParameter('active', SubscriptionStatus::ACTIVE)
+            ->setParameter('start', $start)
+            ->setParameter('end', $end);
+
+        return (int) $qb->getQuery()->getSingleScalarResult();
     }
 }

@@ -1,6 +1,6 @@
 <?php
 
-namespace App\Repository;
+namespace App\Repository\Organisateur;
 
 use App\Entity\OrganizerProfile;
 use Doctrine\Bundle\DoctrineBundle\Repository\ServiceEntityRepository;

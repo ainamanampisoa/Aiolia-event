@@ -33,7 +33,8 @@ class StatisticsController extends AbstractController
             $year = 2025;
         }
 
-        $statistics = $this->statisticsService->getStatistics($month, $year);
+        $statistics = $this->statisticsService->getDashboardStatistics($month, $year);
+;
 
         // Générer les titres des graphiques selon les filtres
         $monthNames = [

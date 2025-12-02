@@ -12,6 +12,7 @@ doctrine:
             datetimetz: App\Doctrine\Type\DateTimeTzMicrosecondsType
         mapping_types:
             user_role_enum: string
+            subscription_status_enum: string
             auth_provider_enum: string
             event_status_enum: string
             event_visibility_enum: string
@@ -27,12 +28,11 @@ doctrine:
             wallet_transaction_status_enum: string
             referral_reward_type_enum: string
             invite_status_enum: string
-            subscription_status_enum: string
             cart_status_enum: string
             ticket_chance_status_enum: string
             organizer_type_enum: string
             citext: string
-            _text: text
+            _text: text             
     orm:
         auto_generate_proxy_classes: true
         enable_lazy_ghost_objects: true

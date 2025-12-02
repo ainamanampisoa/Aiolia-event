@@ -20,7 +20,7 @@
         </div>
     </div>
 
-    <!-- Recherche multicritère -->
+    <!-- Recherche multicritère améliorée -->
     <div class="search-section">
         <div class="search-header">
             <h3 style="font-size: 1.1rem; color: var(--text-primary); margin: 0; display: flex; align-items: center; gap: 8px;">
@@ -34,274 +34,342 @@
         </div>
 
         <div class="search-form is-hidden" id="searchForm" aria-hidden="true" hidden>
-            <div class="search-grid">
-                <div class="search-field">
-                    <label>Nom de l'événement</label>
-                    <input type="text" placeholder="Rechercher par nom..." class="form-input">
-                </div>
+            <form id="eventSearchForm" method="GET" action="{{ path('app_event_index') }}">
+                <div class="search-grid">
+                    <!-- Catégorie -->
+                    <div class="search-field">
+                        <label>Catégorie</label>
+                        <select name="category" class="form-input">
+                            <option value="">Toutes les catégories</option>
+                            <option value="concert">Concert</option>
+                            <option value="festival">Festival</option>
+                            <option value="sport">Sport</option>
+                            <option value="theatre">Théâtre</option>
+                            <option value="conference">Conférence</option>
+                            <option value="soiree">Soirée</option>
+                            <option value="autre">Autre</option>
+                        </select>
+                    </div>
 
-                <div class="search-field">
-                    <label>Catégorie</label>
-                    <select class="form-input">
-                        <option value="">Toutes les catégories</option>
-                        <option value="concert">Concert</option>
-                        <option value="festival">Festival</option>
-                        <option value="sport">Sport</option>
-                        <option value="theatre">Théâtre</option>
-                        <option value="conference">Conférence</option>
-                        <option value="autre">Autre</option>
-                    </select>
-                </div>
+                    <!-- Prix min -->
+                    <div class="search-field">
+                        <label>Prix minimum</label>
+                        <input type="number" name="price_min" min="0" placeholder="0 MGA" class="form-input">
+                    </div>
 
-                <div class="search-field">
-                    <label>Statut</label>
-                    <select class="form-input">
-                        <option value="">Tous les statuts</option>
-                        <option value="en_vente">En vente</option>
-                        <option value="complet">Complet</option>
-                        <option value="termine">Terminé</option>
-                        <option value="annule">Annulé</option>
-                    </select>
-                </div>
+                    <!-- Prix max -->
+                    <div class="search-field">
+                        <label>Prix maximum</label>
+                        <input type="number" name="price_max" min="0" placeholder="500,000 MGA" class="form-input">
+                    </div>
 
-                <div class="search-field">
-                    <label>Lieu / Ville</label>
-                    <input type="text" placeholder="Ex: Antananarivo" class="form-input">
-                </div>
+                    <!-- Lieux -->
+                    <div class="search-field">
+                        <label>Lieu</label>
+                        <select name="location" class="form-input">
+                            <option value="">Tous les lieux</option>
+                            <option value="analakely">Analakely - Café de la Gare</option>
+                            <option value="stade_municipal">Stade Municipal</option>
+                            <option value="centre_culturel">Centre Culturel</option>
+                            <option value="stade_mahamasina">Stade Mahamasina</option>
+                            <option value="antananarivo">Antananarivo</option>
+                            <option value="toamasina">Toamasina</option>
+                        </select>
+                    </div>
 
-                <div class="search-field-date">
-                    <div class="date-group">
-                        <div class="search-field">
-                            <label>Date de début</label>
-                            <input type="date" class="form-input">
-                        </div>
-                        <div class="search-field">
-                            <label>Date de fin</label>
-                            <input type="date" class="form-input">
-                        </div>
+                    <!-- Date de début -->
+                    <div class="search-field">
+                        <label>Date du</label>
+                        <input type="date" name="date_from" class="form-input">
+                    </div>
+
+                    <!-- Date de fin -->
+                    <div class="search-field">
+                        <label>Date au</label>
+                        <input type="date" name="date_to" class="form-input">
+                    </div>
+
+                    <!-- Tri -->
+                    <div class="search-field">
+                        <label>Trier par</label>
+                        <select name="sort" class="form-input">
+                            <option value="price_asc">Prix croissant</option>
+                            <option value="price_desc">Prix décroissant</option>
+                            <option value="date_desc">Nouveautés</option>
+                            <option value="popular">Populaire</option>
+                            <option value="name_asc">Nom A-Z</option>
+                            <option value="name_desc">Nom Z-A</option>
+                        </select>
+                    </div>
+
+                    <!-- Recherche par nom -->
+                    <div class="search-field">
+                        <label>Recherche</label>
+                        <input type="text" name="q" placeholder="Nom de l'événement..." class="form-input">
                     </div>
                 </div>
 
-                <div class="search-field">
-                    <label>Type</label>
-                    <select class="form-input">
-                        <option value="">Tous les types</option>
-                        <option value="mes_evenements">Mes événements</option>
-                        <option value="collaborations">Collaborations</option>
-                    </select>
+                <div class="search-actions">
+                    <button type="submit" class="btn btn-primary" style="background: #3498DB !important; color: var(--text-inverse); border: none; padding: 10px 24px; border-radius: 8px; cursor: pointer; font-weight: 600;">
+                        <i class="fas fa-search"></i>
+                        Rechercher
+                    </button>
+                    <button type="reset" class="btn btn-secondary" id="resetSearch" style="background: var(--bg-secondary); color: var(--text-secondary); border: 2px solid var(--border-color); padding: 10px 24px; border-radius: 8px; cursor: pointer; font-weight: 600;">
+                        <i class="fas fa-redo"></i>
+                        Réinitialiser
+                    </button>
                 </div>
-
-                <div class="search-field">
-                    <label>Tri par</label>
-                    <select class="form-input">
-                        <option value="date_desc">Date (plus récent)</option>
-                        <option value="date_asc">Date (plus ancien)</option>
-                        <option value="nom_asc">Nom (A-Z)</option>
-                        <option value="nom_desc">Nom (Z-A)</option>
-                        <option value="ventes_desc">Ventes (plus élevé)</option>
-                        <option value="ventes_asc">Ventes (plus bas)</option>
-                    </select>
-                </div>
-            </div>
-
-            <div class="search-actions">
-                <button type="submit" class="btn btn-primary" style="background: #3498DB !important; color: var(--text-inverse); border: none; padding: 10px 24px; border-radius: 8px; cursor: pointer; font-weight: 600;">
-                    <i class="fas fa-search"></i>
-                    Rechercher
-                </button>
-                <button type="button" class="btn btn-secondary" style="background: var(--bg-secondary); color: var(--text-secondary); border: 2px solid var(--border-color); padding: 10px 24px; border-radius: 8px; cursor: pointer; font-weight: 600;">
-                    <i class="fas fa-redo"></i>
-                    Réinitialiser
-                </button>
-            </div>
+            </form>
         </div>
     </div>
 
-    <!-- Liste des événements -->
-    <div class="events-list">
-        <!-- Événement 1 -->
-        <div class="event-card">
-            <div class="event-image">
-                <img src="https://via.placeholder.com/300x200/3498db/ffffff?text=Concert+Rock" alt="Concert Rock">
-                <div class="event-status status-active">
-                    En vente
-                </div>
+    <!-- Liste des événements (nouveau design comme l'image) -->
+    <div class="events-grid">
+        <!-- Événement 1 - Design comme l'image -->
+        <div class="event-card-new">
+            <div class="event-header-new">
+                <div class="event-category-badge">🎵 Concert</div>
+                <div class="event-status-badge status-live">LIVE</div>
             </div>
-            <div class="event-details">
-                <div class="event-header">
-                    <h3>🎸 Concert Rock Nation 2025</h3>
-                    <div class="event-category">Concert</div>
+            
+            <div class="event-content">
+                <div class="event-image-new">
+                    <img src="https://via.placeholder.com/400x200/3498db/ffffff?text=Music+On+Sunday" alt="Music On Sunday">
                 </div>
-                <div class="event-meta-info">
-                    <div class="meta-item">
-                        <i class="fas fa-calendar"></i>
-                        <span>15 Novembre 2025</span>
-                    </div>
-                    <div class="meta-item">
+                
+                <div class="event-info">
+                    <h3 class="event-title">🎸 Music On Sunday</h3>
+                    
+                    <div class="event-location">
                         <i class="fas fa-map-marker-alt"></i>
-                        <span>Stade Municipal, Antananarivo</span>
+                        <span>Analakely au Café de la Gare</span>
                     </div>
-                    <div class="meta-item">
-                        <i class="fas fa-clock"></i>
-                        <span>20:00</span>
+                    
+                    <div class="event-price-range">
+                        <span class="price-label">Tarifs :</span>
+                        <span class="price-value">50.000MGA - 150.000MGA</span>
                     </div>
-                </div>
-                <div class="event-stats-row">
-                    <div class="stat-item">
-                        <div class="stat-label">Billets vendus</div>
-                        <div class="stat-value">256 / 300</div>
-                        <div class="progress-bar">
-                            <div class="progress-fill" style="width: 85%"></div>
+                    
+                    <div class="event-ticket-options">
+                        <div class="ticket-type">
+                            <span class="ticket-label">Offre VIP</span>
+                            <span class="ticket-check">✔</span>
+                        </div>
+                        <div class="ticket-type">
+                            <span class="ticket-label">Adulte</span>
+                            <span class="ticket-dot">●</span>
+                        </div>
+                        <div class="ticket-type">
+                            <span class="ticket-label">Enfant</span>
+                            <span class="ticket-dot">●</span>
                         </div>
                     </div>
-                    <div class="stat-item">
-                        <div class="stat-label">Revenus</div>
-                        <div class="stat-value">12,450 €</div>
-                    </div>
-                    <div class="stat-item">
-                        <div class="stat-label">Collaborateurs</div>
-                        <div class="stat-value">3 personnes</div>
+                    
+                    <div class="event-cta">
+                        <button class="btn-buy-ticket">
+                            <i class="fas fa-ticket-alt"></i>
+                            ACHETER UN TICKET
+                        </button>
+                        <button class="btn-details">
+                            DÉTAILS
+                        </button>
                     </div>
                 </div>
             </div>
-            <div class="event-actions">
-                <a href="{{ path('app_event_show', {id: 1}) }}" class="btn-action btn-view" title="Voir les détails">
-                    <i class="fas fa-eye"></i>
-                </a>
-                <a href="{{ path('app_event_edit', {id: 1}) }}" class="btn-action btn-edit" title="Modifier">
-                    <i class="fas fa-edit"></i>
-                </a>
-                <button class="btn-action btn-stats" title="Statistiques">
-                    <i class="fas fa-chart-line"></i>
-                </button>
-                <button class="btn-action btn-share" title="Partager">
-                    <i class="fas fa-share-alt"></i>
-                </button>
+            
+            <div class="event-footer">
+                <div class="event-tags">
+                    <span class="event-tag">Démarche</span>
+                    <span class="event-tag">Chapitre</span>
+                    <span class="event-tag">Démarche</span>
+                </div>
             </div>
         </div>
 
         <!-- Événement 2 -->
-        <div class="event-card">
-            <div class="event-image">
-                <img src="https://via.placeholder.com/300x200/27ae60/ffffff?text=Festival+Jazz" alt="Festival Jazz">
-                <div class="event-status status-active">
-                    En vente
-                </div>
+        <div class="event-card-new">
+            <div class="event-header-new">
+                <div class="event-category-badge">🎭 Théâtre</div>
+                <div class="event-status-badge status-upcoming">À VENIR</div>
             </div>
-            <div class="event-details">
-                <div class="event-header">
-                    <h3>🎵 Festival Jazz Mada</h3>
-                    <div class="event-category">Festival</div>
+            
+            <div class="event-content">
+                <div class="event-image-new">
+                    <img src="https://via.placeholder.com/400x200/9B59B6/ffffff?text=Pi%C3%A8ce+de+Th%C3%A9%C3%A2tre" alt="Pièce de Théâtre">
                 </div>
-                <div class="event-meta-info">
-                    <div class="meta-item">
-                        <i class="fas fa-calendar"></i>
-                        <span>22 Novembre 2025</span>
-                    </div>
-                    <div class="meta-item">
+                
+                <div class="event-info">
+                    <h3 class="event-title">🎭 Les Misérables</h3>
+                    
+                    <div class="event-location">
                         <i class="fas fa-map-marker-alt"></i>
-                        <span>Centre Culturel, Toamasina</span>
+                        <span>Théâtre Municipal, Antananarivo</span>
                     </div>
-                    <div class="meta-item">
-                        <i class="fas fa-clock"></i>
-                        <span>19:30</span>
+                    
+                    <div class="event-price-range">
+                        <span class="price-label">Tarifs :</span>
+                        <span class="price-value">30.000MGA - 80.000MGA</span>
                     </div>
-                </div>
-                <div class="event-stats-row">
-                    <div class="stat-item">
-                        <div class="stat-label">Billets vendus</div>
-                        <div class="stat-value">189 / 300</div>
-                        <div class="progress-bar">
-                            <div class="progress-fill" style="width: 63%"></div>
+                    
+                    <div class="event-ticket-options">
+                        <div class="ticket-type">
+                            <span class="ticket-label">VIP Avant-scène</span>
+                            <span class="ticket-check">✔</span>
+                        </div>
+                        <div class="ticket-type">
+                            <span class="ticket-label">Standard</span>
+                            <span class="ticket-dot">●</span>
+                        </div>
+                        <div class="ticket-type">
+                            <span class="ticket-label">Étudiant</span>
+                            <span class="ticket-check">✔</span>
                         </div>
                     </div>
-                    <div class="stat-item">
-                        <div class="stat-label">Revenus</div>
-                        <div class="stat-value">8,920 €</div>
-                    </div>
-                    <div class="stat-item">
-                        <div class="stat-label">Collaborateurs</div>
-                        <div class="stat-value">5 personnes</div>
+                    
+                    <div class="event-cta">
+                        <button class="btn-buy-ticket">
+                            <i class="fas fa-ticket-alt"></i>
+                            ACHETER UN TICKET
+                        </button>
+                        <button class="btn-details">
+                            DÉTAILS
+                        </button>
                     </div>
                 </div>
             </div>
-            <div class="event-actions">
-                <a href="{{ path('app_event_show', {id: 2}) }}" class="btn-action btn-view" title="Voir les détails">
-                    <i class="fas fa-eye"></i>
-                </a>
-                <a href="{{ path('app_event_edit', {id: 2}) }}" class="btn-action btn-edit" title="Modifier">
-                    <i class="fas fa-edit"></i>
-                </a>
-                <button class="btn-action btn-stats" title="Statistiques">
-                    <i class="fas fa-chart-line"></i>
-                </button>
-                <button class="btn-action btn-share" title="Partager">
-                    <i class="fas fa-share-alt"></i>
-                </button>
+            
+            <div class="event-footer">
+                <div class="event-tags">
+                    <span class="event-tag">Classique</span>
+                    <span class="event-tag">Drame</span>
+                    <span class="event-tag">Musical</span>
+                </div>
             </div>
         </div>
 
         <!-- Événement 3 -->
-        <div class="event-card">
-            <div class="event-image">
-                <img src="https://via.placeholder.com/300x200/e74c3c/ffffff?text=Match+Football" alt="Match Football">
-                <div class="event-status status-full">
-                    Complet
-                </div>
+        <div class="event-card-new">
+            <div class="event-header-new">
+                <div class="event-category-badge">⚽ Sport</div>
+                <div class="event-status-badge status-soldout">COMPLET</div>
             </div>
-            <div class="event-details">
-                <div class="event-header">
-                    <h3>⚽ Match de Football</h3>
-                    <div class="event-category">Sport</div>
+            
+            <div class="event-content">
+                <div class="event-image-new">
+                    <img src="https://via.placeholder.com/400x200/27ae60/ffffff?text=Match+de+Football" alt="Match de Football">
                 </div>
-                <div class="event-meta-info">
-                    <div class="meta-item">
-                        <i class="fas fa-calendar"></i>
-                        <span>28 Novembre 2025</span>
-                    </div>
-                    <div class="meta-item">
+                
+                <div class="event-info">
+                    <h3 class="event-title">⚽ Finale Championnat</h3>
+                    
+                    <div class="event-location">
                         <i class="fas fa-map-marker-alt"></i>
                         <span>Stade Mahamasina, Antananarivo</span>
                     </div>
-                    <div class="meta-item">
-                        <i class="fas fa-clock"></i>
-                        <span>16:00</span>
+                    
+                    <div class="event-price-range">
+                        <span class="price-label">Tarifs :</span>
+                        <span class="price-value">10.000MGA - 50.000MGA</span>
                     </div>
-                </div>
-                <div class="event-stats-row">
-                    <div class="stat-item">
-                        <div class="stat-label">Billets vendus</div>
-                        <div class="stat-value">298 / 298</div>
-                        <div class="progress-bar">
-                            <div class="progress-fill" style="width: 100%; background: var(--danger);"></div>
+                    
+                    <div class="event-ticket-options">
+                        <div class="ticket-type">
+                            <span class="ticket-label">Tribune VIP</span>
+                            <span class="ticket-dot sold-out">✗</span>
+                        </div>
+                        <div class="ticket-type">
+                            <span class="ticket-label">Tribune Est</span>
+                            <span class="ticket-dot sold-out">✗</span>
+                        </div>
+                        <div class="ticket-type">
+                            <span class="ticket-label">Tribune Ouest</span>
+                            <span class="ticket-dot sold-out">✗</span>
                         </div>
                     </div>
-                    <div class="stat-item">
-                        <div class="stat-label">Revenus</div>
-                        <div class="stat-value">14,900 €</div>
-                    </div>
-                    <div class="stat-item">
-                        <div class="stat-label">Collaborateurs</div>
-                        <div class="stat-value">2 personnes</div>
+                    
+                    <div class="event-cta">
+                        <button class="btn-buy-ticket disabled" disabled>
+                            <i class="fas fa-ticket-alt"></i>
+                            COMPLET
+                        </button>
+                        <button class="btn-details">
+                            DÉTAILS
+                        </button>
                     </div>
                 </div>
             </div>
-            <div class="event-actions">
-                <a href="{{ path('app_event_show', {id: 3}) }}" class="btn-action btn-view" title="Voir les détails">
-                    <i class="fas fa-eye"></i>
-                </a>
-                <a href="{{ path('app_event_edit', {id: 3}) }}" class="btn-action btn-edit" title="Modifier">
-                    <i class="fas fa-edit"></i>
-                </a>
-                <button class="btn-action btn-stats" title="Statistiques">
-                    <i class="fas fa-chart-line"></i>
-                </button>
-                <button class="btn-action btn-share" title="Partager">
-                    <i class="fas fa-share-alt"></i>
-                </button>
+            
+            <div class="event-footer">
+                <div class="event-tags">
+                    <span class="event-tag">Finale</span>
+                    <span class="event-tag">Football</span>
+                    <span class="event-tag">Sport</span>
+                </div>
+            </div>
+        </div>
+
+        <!-- Événement 4 -->
+        <div class="event-card-new">
+            <div class="event-header-new">
+                <div class="event-category-badge">🎪 Festival</div>
+                <div class="event-status-badge status-active">EN VENTE</div>
+            </div>
+            
+            <div class="event-content">
+                <div class="event-image-new">
+                    <img src="https://via.placeholder.com/400x200/e74c3c/ffffff?text=Festival+Jazz" alt="Festival Jazz">
+                </div>
+                
+                <div class="event-info">
+                    <h3 class="event-title">🎵 Jazz Festival 2025</h3>
+                    
+                    <div class="event-location">
+                        <i class="fas fa-map-marker-alt"></i>
+                        <span>Centre Culturel, Toamasina</span>
+                    </div>
+                    
+                    <div class="event-price-range">
+                        <span class="price-label">Tarifs :</span>
+                        <span class="price-value">40.000MGA - 120.000MGA</span>
+                    </div>
+                    
+                    <div class="event-ticket-options">
+                        <div class="ticket-type">
+                            <span class="ticket-label">Pass 3 Jours</span>
+                            <span class="ticket-check">✔</span>
+                        </div>
+                        <div class="ticket-type">
+                            <span class="ticket-label">Pass 1 Jour</span>
+                            <span class="ticket-check">✔</span>
+                        </div>
+                        <div class="ticket-type">
+                            <span class="ticket-label">Soirée VIP</span>
+                            <span class="ticket-dot">●</span>
+                        </div>
+                    </div>
+                    
+                    <div class="event-cta">
+                        <button class="btn-buy-ticket">
+                            <i class="fas fa-ticket-alt"></i>
+                            ACHETER UN TICKET
+                        </button>
+                        <button class="btn-details">
+                            DÉTAILS
+                        </button>
+                    </div>
+                </div>
+            </div>
+            
+            <div class="event-footer">
+                <div class="event-tags">
+                    <span class="event-tag">Jazz</span>
+                    <span class="event-tag">Musique</span>
+                    <span class="event-tag">Festival</span>
+                </div>
             </div>
         </div>
     </div>
+
     <!-- Pagination -->
     <div class="pagination-section">
         <nav aria-label="Pagination">
@@ -325,11 +393,14 @@
 </div>
 
 <script>
-// Toggle de la recherche multicritère (fiable)
+// Toggle de la recherche multicritère
 document.addEventListener('DOMContentLoaded', function() {
     const toggleBtn = document.getElementById('toggleSearch');
     const searchForm = document.getElementById('searchForm');
+    const resetBtn = document.getElementById('resetSearch');
+    const searchFormElement = document.getElementById('eventSearchForm');
 
+    // Toggle search form
     if (toggleBtn && searchForm) {
         toggleBtn.addEventListener('click', function() {
             const isHidden = searchForm.classList.contains('is-hidden');
@@ -362,29 +433,75 @@ document.addEventListener('DOMContentLoaded', function() {
         });
     }
 
-    // Bouton réinitialiser
-    const resetBtn = document.querySelector('.search-actions .btn-secondary');
-    if (resetBtn && searchForm) {
+    // Réinitialiser le formulaire
+    if (resetBtn && searchFormElement) {
         resetBtn.addEventListener('click', function(e) {
             e.preventDefault();
-            const inputs = searchForm.querySelectorAll('input, select, textarea');
-            inputs.forEach(input => {
-                if (input.type === 'checkbox' || input.type === 'radio') {
-                    input.checked = false;
-                } else {
-                    input.value = '';
-                }
+            searchFormElement.reset();
+            
+            // Réinitialiser les selects à leur première option
+            const selects = searchFormElement.querySelectorAll('select');
+            selects.forEach(select => {
+                select.selectedIndex = 0;
             });
         });
     }
+
+    // Simulation d'achat de ticket
+    const buyButtons = document.querySelectorAll('.btn-buy-ticket:not(.disabled)');
+    buyButtons.forEach(button => {
+        button.addEventListener('click', function() {
+            const eventTitle = this.closest('.event-card-new').querySelector('.event-title').textContent;
+            alert(`Achat de ticket pour : ${eventTitle}\nRedirection vers la page de paiement...`);
+            // Ici vous pouvez rediriger vers la page de paiement
+            // window.location.href = '{{ path('app_event_checkout') }}';
+        });
+    });
+
+    // Simulation de détails
+    const detailButtons = document.querySelectorAll('.btn-details');
+    detailButtons.forEach(button => {
+        button.addEventListener('click', function() {
+            const eventTitle = this.closest('.event-card-new').querySelector('.event-title').textContent;
+            alert(`Affichage des détails pour : ${eventTitle}`);
+            // Ici vous pouvez rediriger vers la page de détails
+            // window.location.href = '{{ path('app_event_show', {id: eventId}) }}';
+        });
+    });
 });
 </script>
 
 <style>
+/* Variables CSS */
+:root {
+    --primary: #3498DB;
+    --secondary: #9B59B6;
+    --success: #27ae60;
+    --danger: #e74c3c;
+    --warning: #f39c12;
+    --info: #00C1D4;
+    --live: #FF4757;
+    --upcoming: #3498DB;
+    --soldout: #7f8c8d;
+    --bg-card: #FFFFFF;
+    --border-color: #E1E8ED;
+    --border-light: #F0F4F8;
+    --text-primary: #2C3E50;
+    --text-secondary: #7f8c8d;
+    --text-inverse: #FFFFFF;
+    --shadow-sm: 0 2px 4px rgba(0,0,0,0.05);
+    --shadow-md: 0 4px 6px rgba(0,0,0,0.07);
+    --shadow-lg: 0 10px 15px rgba(0,0,0,0.1);
+    --radius-sm: 8px;
+    --radius-md: 12px;
+    --radius-lg: 16px;
+    --transition: all 0.3s ease;
+}
+
 /* Recherche multicritère */
 .search-section {
     background: var(--bg-card);
-    border-radius: var(--border-radius-lg);
+    border-radius: var(--radius-md);
     padding: 20px;
     margin-bottom: 24px;
     box-shadow: var(--shadow-md);
@@ -402,26 +519,19 @@ document.addEventListener('DOMContentLoaded', function() {
     align-items: center;
     gap: 8px;
     padding: 8px 16px;
-    background: var(--bg-secondary);
-    border: none;
-    border-radius: var(--border-radius-md);
+    background: var(--bg-card);
+    border: 1px solid var(--border-color);
+    border-radius: var(--radius-sm);
     cursor: pointer;
     font-size: 0.9rem;
-    font-weight: var(--font-weight-medium);
+    font-weight: 500;
     color: var(--text-secondary);
-    transition: var(--transition-base);
+    transition: var(--transition);
 }
 
 .btn-toggle-search:hover {
-    background: var(--bg-primary);
-}
-
-.btn-toggle-search i {
-    transition: transform 0.3s ease;
-}
-
-.btn-toggle-search.active i {
-    transform: rotate(180deg);
+    background: var(--border-light);
+    border-color: var(--primary);
 }
 
 .search-form {
@@ -444,56 +554,26 @@ document.addEventListener('DOMContentLoaded', function() {
     flex-direction: column;
 }
 
-.search-field-date {
-    grid-column: span 2;
-}
-
-.date-group {
-    display: grid;
-    grid-template-columns: 1fr 1fr;
-    gap: 12px;
-}
-
 .search-field label {
     font-size: 0.85rem;
-    font-weight: var(--font-weight-semibold);
+    font-weight: 600;
     color: var(--text-primary);
     margin-bottom: 6px;
-}
-
-@media (max-width: 1200px) {
-    .search-grid {
-        grid-template-columns: repeat(2, 1fr);
-    }
-    
-    .search-field-date {
-        grid-column: span 2;
-    }
-}
-
-@media (max-width: 768px) {
-    .search-grid {
-        grid-template-columns: 1fr;
-    }
-    
-    .search-field-date {
-        grid-column: span 1;
-    }
 }
 
 .form-input {
     padding: 10px 12px;
     border: 2px solid var(--border-color);
-    border-radius: var(--border-radius-sm);
+    border-radius: var(--radius-sm);
     font-size: 0.9rem;
-    font-family: var(--font-family);
-    transition: var(--transition-base);
-    background: var(--bg-secondary);
+    font-family: inherit;
+    transition: var(--transition);
+    background: var(--bg-card);
 }
 
 .form-input:focus {
     outline: none;
-    border-color: var(--accent);
+    border-color: var(--primary);
     box-shadow: 0 0 0 3px rgba(52, 152, 219, 0.1);
 }
 
@@ -503,99 +583,124 @@ document.addEventListener('DOMContentLoaded', function() {
     padding-top: 10px;
 }
 
-.events-list {
-    display: flex;
-    flex-direction: column;
+/* Nouveau design des cartes d'événements */
+.events-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(350px, 1fr));
     gap: 24px;
+    margin-top: 24px;
 }
 
-.event-card {
-    display: grid;
-    grid-template-columns: 300px 1fr auto;
-    gap: 24px;
+.event-card-new {
     background: var(--bg-card);
-    border-radius: var(--border-radius-lg);
-    padding: 20px;
+    border-radius: var(--radius-lg);
+    overflow: hidden;
     box-shadow: var(--shadow-md);
     border: 1px solid var(--border-color);
-    transition: var(--transition-base);
+    transition: var(--transition);
+    display: flex;
+    flex-direction: column;
 }
 
-.event-card:hover {
+.event-card-new:hover {
     box-shadow: var(--shadow-lg);
-    transform: translateY(-2px);
+    transform: translateY(-4px);
 }
 
-.event-image {
-    position: relative;
-    border-radius: var(--border-radius-md);
-    overflow: hidden;
-}
-
-.event-image img {
-    width: 100%;
-    height: 200px;
-    object-fit: cover;
-}
-
-.event-status {
-    position: absolute;
-    top: 12px;
-    right: 12px;
-    padding: 8px 14px;
-    border-radius: var(--border-radius-sm);
-    font-size: 0.85rem;
-    font-weight: var(--font-weight-semibold);
-    display: inline-flex;
+.event-header-new {
+    display: flex;
+    justify-content: space-between;
     align-items: center;
-    gap: 6px;
+    padding: 12px 16px;
+    background: linear-gradient(90deg, var(--border-light), var(--bg-card));
+    border-bottom: 1px solid var(--border-light);
+}
+
+.event-category-badge {
+    font-size: 0.8rem;
+    font-weight: 600;
+    color: var(--text-primary);
+    display: flex;
+    align-items: center;
+    gap: 4px;
+}
+
+.event-status-badge {
+    padding: 4px 10px;
+    border-radius: 20px;
+    font-size: 0.7rem;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+}
+
+.status-live {
+    background: linear-gradient(135deg, var(--live), #FF6B81);
+    color: white;
+    animation: pulse 2s infinite;
+}
+
+.status-upcoming {
+    background: linear-gradient(135deg, var(--upcoming), #5DADE2);
+    color: white;
 }
 
 .status-active {
-    background: rgba(39, 174, 96, 0.95);
+    background: linear-gradient(135deg, var(--success), #2ECC71);
     color: white;
 }
 
-.status-full {
-    background: rgba(231, 76, 60, 0.95);
+.status-soldout {
+    background: linear-gradient(135deg, var(--soldout), #95A5A6);
     color: white;
 }
 
-.event-details {
+@keyframes pulse {
+    0% { opacity: 1; }
+    50% { opacity: 0.8; }
+    100% { opacity: 1; }
+}
+
+.event-content {
+    padding: 16px;
+}
+
+.event-image-new {
+    width: 100%;
+    height: 180px;
+    border-radius: var(--radius-sm);
+    overflow: hidden;
+    margin-bottom: 16px;
+}
+
+.event-image-new img {
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+    transition: var(--transition);
+}
+
+.event-card-new:hover .event-image-new img {
+    transform: scale(1.05);
+}
+
+.event-info {
     display: flex;
     flex-direction: column;
-    gap: 16px;
+    gap: 12px;
 }
 
-.event-header {
-    display: flex;
-    justify-content: space-between;
-    align-items: flex-start;
-}
-
-.event-header h3 {
-    font-size: 1.4rem;
-    font-weight: var(--font-weight-semibold);
+.event-title {
+    font-size: 1.3rem;
+    font-weight: 700;
     color: var(--text-primary);
     margin: 0;
-}
-
-.event-category {
-    padding: 6px 14px;
-    background: rgba(52, 152, 219, 0.1);
-    color: var(--accent);
-    border-radius: var(--border-radius-sm);
-    font-size: 0.85rem;
-    font-weight: var(--font-weight-semibold);
-}
-
-.event-meta-info {
     display: flex;
-    gap: 24px;
-    flex-wrap: wrap;
+    align-items: center;
+    gap: 8px;
 }
 
-.meta-item {
+.event-location {
     display: flex;
     align-items: center;
     gap: 8px;
@@ -603,146 +708,230 @@ document.addEventListener('DOMContentLoaded', function() {
     font-size: 0.9rem;
 }
 
-.meta-item i {
-    color: var(--accent);
+.event-location i {
+    color: var(--danger);
 }
 
-.event-stats-row {
-    display: grid;
-    grid-template-columns: 2fr 1fr 1fr;
-    gap: 20px;
-    padding-top: 16px;
-    border-top: 1px solid var(--border-light);
-}
-
-.stat-item {
+.event-price-range {
     display: flex;
-    flex-direction: column;
-    gap: 6px;
+    align-items: center;
+    gap: 8px;
+    background: linear-gradient(135deg, #F8F9FA, #FFFFFF);
+    padding: 10px 12px;
+    border-radius: var(--radius-sm);
+    border-left: 4px solid var(--success);
 }
 
-.stat-label {
-    font-size: 0.8rem;
-    color: var(--text-secondary);
-    font-weight: var(--font-weight-medium);
-}
-
-.stat-value {
-    font-size: 1.1rem;
-    font-weight: var(--font-weight-bold);
+.price-label {
+    font-weight: 600;
     color: var(--text-primary);
+    font-size: 0.9rem;
 }
 
-.progress-bar {
-    height: 6px;
-    background: var(--border-light);
-    border-radius: 3px;
-    overflow: hidden;
+.price-value {
+    font-weight: 700;
+    color: var(--success);
+    font-size: 1rem;
 }
 
-.progress-fill {
-    height: 100%;
-    background: linear-gradient(90deg, var(--success), #2ECC71);
-    transition: width 0.3s ease;
+.event-ticket-options {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 8px;
+    margin: 12px 0;
 }
 
-.event-actions {
+.ticket-type {
     display: flex;
-    flex-direction: column;
-    gap: 10px;
-    justify-content: center;
+    justify-content: space-between;
+    align-items: center;
+    padding: 8px 10px;
+    background: var(--border-light);
+    border-radius: 6px;
+    font-size: 0.85rem;
 }
 
-.btn-action {
-    width: 44px;
-    height: 44px;
+.ticket-label {
+    color: var(--text-primary);
+    font-weight: 500;
+}
+
+.ticket-check {
+    color: var(--success);
+    font-weight: bold;
+    font-size: 1.1rem;
+}
+
+.ticket-dot {
+    color: var(--warning);
+    font-size: 1.5rem;
+}
+
+.ticket-dot.sold-out {
+    color: var(--danger);
+}
+
+.event-cta {
+    display: flex;
+    gap: 12px;
+    margin-top: 16px;
+}
+
+.btn-buy-ticket {
+    flex: 2;
+    padding: 12px 16px;
+    background: linear-gradient(135deg, var(--primary), #2980B9);
+    color: white;
     border: none;
-    border-radius: var(--border-radius-md);
+    border-radius: var(--radius-sm);
+    font-weight: 700;
+    font-size: 0.9rem;
     cursor: pointer;
+    transition: var(--transition);
     display: flex;
     align-items: center;
     justify-content: center;
-    transition: var(--transition-base);
-    font-size: 1.1rem;
+    gap: 8px;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
 }
 
-.btn-view {
-    background: rgba(155, 89, 182, 0.1);
-    color: #9B59B6;
-    text-decoration: none;
+.btn-buy-ticket:hover:not(.disabled) {
+    background: linear-gradient(135deg, #2980B9, var(--primary));
+    transform: translateY(-2px);
+    box-shadow: 0 4px 12px rgba(52, 152, 219, 0.3);
 }
 
-.btn-view:hover {
-    background: #9B59B6;
+.btn-buy-ticket.disabled {
+    background: var(--soldout);
+    cursor: not-allowed;
+    opacity: 0.7;
+}
+
+.btn-details {
+    flex: 1;
+    padding: 12px 16px;
+    background: var(--bg-card);
+    color: var(--primary);
+    border: 2px solid var(--primary);
+    border-radius: var(--radius-sm);
+    font-weight: 600;
+    font-size: 0.9rem;
+    cursor: pointer;
+    transition: var(--transition);
+}
+
+.btn-details:hover {
+    background: var(--primary);
     color: white;
 }
 
-.btn-edit {
-    background: rgba(52, 152, 219, 0.1);
-    color: var(--accent);
-    text-decoration: none;
+.event-footer {
+    padding: 12px 16px;
+    background: var(--border-light);
+    border-top: 1px solid var(--border-color);
+    margin-top: auto;
 }
 
-.btn-edit:hover {
-    background: var(--accent);
-    color: white;
+.event-tags {
+    display: flex;
+    gap: 8px;
+    flex-wrap: wrap;
 }
 
-.btn-stats {
-    background: rgba(39, 174, 96, 0.1);
-    color: var(--success);
+.event-tag {
+    padding: 4px 10px;
+    background: var(--bg-card);
+    border: 1px solid var(--border-color);
+    border-radius: 20px;
+    font-size: 0.75rem;
+    color: var(--text-secondary);
+    font-weight: 500;
 }
 
-.btn-stats:hover {
-    background: var(--success);
-    color: white;
-}
-
-.btn-share {
-    background: rgba(155, 89, 182, 0.1);
-    color: #9B59B6;
-}
-
-.btn-share:hover {
-    background: #9B59B6;
-    color: white;
-}
-
-.btn-more {
-    background: rgba(149, 165, 166, 0.1);
-    color: var(--gray-600);
-}
-
-.btn-more:hover {
-    background: var(--gray-600);
-    color: white;
-}
-
+/* Responsive */
 @media (max-width: 1200px) {
-    .event-card {
-        grid-template-columns: 250px 1fr auto;
+    .search-grid {
+        grid-template-columns: repeat(3, 1fr);
+    }
+    
+    .events-grid {
+        grid-template-columns: repeat(2, 1fr);
     }
 }
 
-@media (max-width: 992px) {
-    .event-card {
+@media (max-width: 768px) {
+    .search-grid {
+        grid-template-columns: repeat(2, 1fr);
+    }
+    
+    .events-grid {
         grid-template-columns: 1fr;
     }
     
-    .event-actions {
-        flex-direction: row;
-        justify-content: flex-start;
+    .event-ticket-options {
+        grid-template-columns: repeat(2, 1fr);
+    }
+    
+    .event-cta {
+        flex-direction: column;
     }
 }
 
-/* Pagination horizontale */
-.pagination-section { display: flex; justify-content: center; margin-top: 20px; }
-.pagination-horizontal { display: inline-flex; gap: 8px; align-items: center; }
-ul.pagination, .pagination-horizontal { list-style: none; padding-left: 0; margin: 0; }
-.pagination li { list-style: none; }
-.pagination-horizontal .page-item .page-link { background: var(--bg-secondary); border: 1px solid var(--border-color); color: var(--text-primary); padding: 8px 14px; border-radius: var(--border-radius-sm); }
-.pagination-horizontal .page-item.active .page-link { background: #3498DB !important; color: var(--text-inverse); border-color: #3498DB !important; }
-.pagination-horizontal .page-item.disabled .page-link { opacity: 0.6; cursor: not-allowed; }
+@media (max-width: 480px) {
+    .search-grid {
+        grid-template-columns: 1fr;
+    }
+    
+    .event-header-new {
+        flex-direction: column;
+        gap: 8px;
+        align-items: flex-start;
+    }
+    
+    .event-ticket-options {
+        grid-template-columns: 1fr;
+    }
+}
+
+/* Pagination */
+.pagination-section {
+    display: flex;
+    justify-content: center;
+    margin-top: 40px;
+}
+
+.pagination-horizontal {
+    display: inline-flex;
+    gap: 8px;
+    align-items: center;
+}
+
+ul.pagination, .pagination-horizontal {
+    list-style: none;
+    padding-left: 0;
+    margin: 0;
+}
+
+.pagination-horizontal .page-item .page-link {
+    background: var(--bg-card);
+    border: 1px solid var(--border-color);
+    color: var(--text-primary);
+    padding: 8px 14px;
+    border-radius: var(--radius-sm);
+    text-decoration: none;
+    transition: var(--transition);
+}
+
+.pagination-horizontal .page-item.active .page-link {
+    background: var(--primary);
+    color: var(--text-inverse);
+    border-color: var(--primary);
+}
+
+.pagination-horizontal .page-item:hover:not(.active) .page-link {
+    background: var(--border-light);
+    border-color: var(--primary);
+}
 </style>
 {% endblock %}
-

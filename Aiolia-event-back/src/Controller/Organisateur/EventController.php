@@ -11,9 +11,11 @@ use Symfony\Bundle\FrameworkBundle\Controller\AbstractController;
 use Symfony\Component\HttpFoundation\Request;
 use Symfony\Component\HttpFoundation\Response;
 use Symfony\Component\Routing\Attribute\Route;
+use Symfony\Component\Security\Http\Attribute\IsGranted;
 use Symfony\Component\String\Slugger\SluggerInterface;
 
 #[Route('/events')]
+#[IsGranted('ROLE_ORGANIZER')]
 class EventController extends AbstractController
 {
     /**
@@ -61,8 +63,6 @@ class EventController extends AbstractController
         EntityManagerInterface $entityManager,
         SluggerInterface $slugger
     ): Response {
-        $this->denyAccessUnlessGranted('IS_AUTHENTICATED_FULLY');
-
         $event = new Event();
         $event->setOrganizer($this->getUser());
         
@@ -82,7 +82,7 @@ class EventController extends AbstractController
             return $this->redirectToRoute('app_event_show', ['id' => $event->getId()]);
         }
 
-        return $this->render('event/new.html.twig', [
+        return $this->render('Organisateur/event/new.html.twig', [
             'event' => $event,
             'form' => $form,
         ]);

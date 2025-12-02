@@ -2,6 +2,7 @@
 
 namespace App\Controller\Organisateur;
 
+use App\Entity\Event;
 use App\Repository\Organisateur\EventRepository;
 use Symfony\Bundle\FrameworkBundle\Controller\AbstractController;
 use Symfony\Component\HttpFoundation\Response;
@@ -26,16 +27,12 @@ class DashboardController extends AbstractController
         $user = $this->getUser();
         
         // Récupérer les statistiques de l'organisateur
-        $totalEvents = $this->eventRepository->count(['organizer' => $user]);
-        $publishedEvents = $this->eventRepository->count(['organizer' => $user, 'status' => 'published']);
-        $draftEvents = $this->eventRepository->count(['organizer' => $user, 'status' => 'draft']);
+        $totalEvents = $this->eventRepository->countByOrganizer($user);
+        $publishedEvents = $this->eventRepository->countByOrganizer($user, Event::STATUS_PUBLISHED);
+        $draftEvents = $this->eventRepository->countByOrganizer($user, Event::STATUS_DRAFT);
         
         // Récupérer les événements récents
-        $recentEvents = $this->eventRepository->findBy(
-            ['organizer' => $user],
-            ['createdAt' => 'DESC'],
-            5
-        );
+        $recentEvents = $this->eventRepository->findByOrganizer($user, null, 5);
         
         // TODO: Ajouter d'autres statistiques (ventes, revenus, etc.)
         

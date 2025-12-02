@@ -48,7 +48,7 @@ class InvoicePdfService
             $logoBase64 = 'data:image/svg+xml;base64,' . base64_encode($logoContent);
         }
 
-        return $this->twig->render('admin/billing/invoice_subscription.html.twig', [
+        return $this->twig->render('Admin/billing/invoice_subscription.html.twig', [
             'invoice' => $invoice,
             'planInfo' => $planInfo,
             'planTier' => $planTier,

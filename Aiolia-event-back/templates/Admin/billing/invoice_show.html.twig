@@ -1,12 +1,12 @@
 {% extends 'base.html.twig' %}
 
-{% block title %}Facture {{ invoice.invoiceNumber }} - Aiolia Event{% endblock %}
+{% block title %}Facture N° FA-{{ invoice.invoiceNumber }} - Aiolia Event{% endblock %}
 
 {% block body %}
 <div class="dashboard">
     <div class="dashboard-header">
         <div>
-            <h1><i class="fas fa-file-invoice"></i> <span data-i18n="billing.invoice.title" data-i18n-params='{"number": "{{ invoice.invoiceNumber }}" }'>Facture {{ invoice.invoiceNumber }}</span></h1>
+            <h1><i class="fas fa-file-invoice"></i> <span data-i18n="billing.invoice.title" data-i18n-params='{"number": "N° FA-{{ invoice.invoiceNumber }}" }'>Facture N° FA-{{ invoice.invoiceNumber }}</span></h1>
             <p class="dashboard-subtitle">
                 {% if type == 'ticket' %}
                     <span data-i18n="billing.invoice.type.ticket">Facture de billet</span>
@@ -62,7 +62,7 @@
                 <div class="invoice-title-section">
                     <div class="invoice-number-wrapper">
                         <span class="invoice-label" data-i18n="billing.invoice.label">Facture</span>
-                        <h1 class="invoice-number invoice-number-status-{{ invoice.status }}">{{ invoice.invoiceNumber }}</h1>
+                        <h1 class="invoice-number invoice-number-status-{{ invoice.status }}">N° FA-{{ invoice.invoiceNumber }}</h1>
                     </div>
                     {% set monthNames = {
                         '1': {'fr': 'Janvier', 'en': 'January'},
@@ -497,7 +497,7 @@
                             {% set prevPeriodLabel = prevBillingPeriod ? (periodLabels[prevBillingPeriod] ?? {'fr': prevBillingPeriod|capitalize, 'en': prevBillingPeriod|capitalize, 'icon': 'calendar-alt'}) : null %}
                             <div class="payment-history-item">
                                 <div class="payment-history-header">
-                                    <span class="payment-history-number">{{ prevInvoice.invoiceNumber }}</span>
+                                    <span class="payment-history-number">N° FA-{{ prevInvoice.invoiceNumber }}</span>
                                     <span class="payment-history-status status-{{ prevInvoice.status }}">
                                         {% if prevInvoice.status == 'paid' %}
                                             <span data-i18n="billing.invoice.status.paid">Payée</span>
@@ -552,7 +552,7 @@
                         <i class="fas fa-hashtag"></i>
                         <span data-i18n-fr="Référence unique" data-i18n-en="Unique reference">Référence unique</span>
                     </span>
-                    <span class="info-value invoice-ref">{{ invoice.invoiceNumber }}</span>
+                    <span class="info-value invoice-ref">N° FA-{{ invoice.invoiceNumber }}</span>
                 </div>
                 {% set paymentMethodFromDb = paymentMethod|default(null) %}
                 {% set paymentMethodLabels = {

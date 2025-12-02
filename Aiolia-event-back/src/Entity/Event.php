@@ -91,17 +91,55 @@ class Event
     #[ORM\Column(name: 'est_mis_en_avant', type: Types::BOOLEAN, options: ['default' => false])]
     private bool $isHighlighted = false;
 
+    #[ORM\Column(name: 'url_youtube', type: Types::TEXT, nullable: true)]
+    private ?string $youtubeUrl = null;
+
+    #[ORM\Column(name: 'nom_lieu_texte', type: Types::TEXT, nullable: true)]
+    private ?string $venueNameText = null;
+
+    #[ORM\Column(name: 'adresse_complete', type: Types::TEXT, nullable: true)]
+    private ?string $fullAddress = null;
+
+    #[ORM\Column(name: 'tarif_unique', type: Types::BOOLEAN, options: ['default' => false])]
+    private bool $singlePrice = false;
+
     #[ORM\Column(name: 'cree_le', type: Types::DATETIMETZ_MUTABLE)]
     private ?\DateTimeInterface $createdAt = null;
 
     #[ORM\Column(name: 'modifie_le', type: Types::DATETIMETZ_MUTABLE)]
     private ?\DateTimeInterface $updatedAt = null;
 
+    #[ORM\ManyToMany(targetEntity: EventTag::class)]
+    #[ORM\JoinTable(
+        name: 'liens_tags_evenements',
+        schema: 'aiolia',
+        joinColumns: [new ORM\JoinColumn(name: 'id_evenement', referencedColumnName: 'id')],
+        inverseJoinColumns: [new ORM\JoinColumn(name: 'id_tag', referencedColumnName: 'id')]
+    )]
+    private \Doctrine\Common\Collections\Collection $tags;
+
+    #[ORM\OneToMany(targetEntity: EventLanguage::class, mappedBy: 'event', cascade: ['persist', 'remove'], orphanRemoval: true)]
+    private \Doctrine\Common\Collections\Collection $languages;
+
+    #[ORM\OneToMany(targetEntity: EventAccessibility::class, mappedBy: 'event', cascade: ['persist', 'remove'], orphanRemoval: true)]
+    private \Doctrine\Common\Collections\Collection $accessibilities;
+
+    #[ORM\OneToMany(targetEntity: EventPaymentMethod::class, mappedBy: 'event', cascade: ['persist', 'remove'], orphanRemoval: true)]
+    private \Doctrine\Common\Collections\Collection $paymentMethods;
+
+    #[ORM\OneToMany(targetEntity: EventMedia::class, mappedBy: 'event', cascade: ['persist', 'remove'], orphanRemoval: true)]
+    private \Doctrine\Common\Collections\Collection $media;
+
     public function __construct()
     {
         $now = new \DateTimeImmutable();
         $this->createdAt = $now;
         $this->updatedAt = $now;
+        $this->tags = new \Doctrine\Common\Collections\ArrayCollection();
+        $this->languages = new \Doctrine\Common\Collections\ArrayCollection();
+        $this->accessibilities = new \Doctrine\Common\Collections\ArrayCollection();
+        $this->paymentMethods = new \Doctrine\Common\Collections\ArrayCollection();
+        $this->media = new \Doctrine\Common\Collections\ArrayCollection();
     }
 
     #[ORM\PrePersist]
@@ -411,6 +449,180 @@ class Event
     {
         $this->updatedAt = $updatedAt;
 
+        return $this;
+    }
+
+    public function getYoutubeUrl(): ?string
+    {
+        return $this->youtubeUrl;
+    }
+
+    public function setYoutubeUrl(?string $youtubeUrl): static
+    {
+        $this->youtubeUrl = $youtubeUrl;
+        return $this;
+    }
+
+    public function getVenueNameText(): ?string
+    {
+        return $this->venueNameText;
+    }
+
+    public function setVenueNameText(?string $venueNameText): static
+    {
+        $this->venueNameText = $venueNameText;
+        return $this;
+    }
+
+    public function getFullAddress(): ?string
+    {
+        return $this->fullAddress;
+    }
+
+    public function setFullAddress(?string $fullAddress): static
+    {
+        $this->fullAddress = $fullAddress;
+        return $this;
+    }
+
+    public function isSinglePrice(): bool
+    {
+        return $this->singlePrice;
+    }
+
+    public function setSinglePrice(bool $singlePrice): static
+    {
+        $this->singlePrice = $singlePrice;
+        return $this;
+    }
+
+    /**
+     * @return \Doctrine\Common\Collections\Collection<int, EventTag>
+     */
+    public function getTags(): \Doctrine\Common\Collections\Collection
+    {
+        return $this->tags;
+    }
+
+    public function addTag(EventTag $tag): static
+    {
+        if (!$this->tags->contains($tag)) {
+            $this->tags->add($tag);
+        }
+        return $this;
+    }
+
+    public function removeTag(EventTag $tag): static
+    {
+        $this->tags->removeElement($tag);
+        return $this;
+    }
+
+    /**
+     * @return \Doctrine\Common\Collections\Collection<int, EventLanguage>
+     */
+    public function getLanguages(): \Doctrine\Common\Collections\Collection
+    {
+        return $this->languages;
+    }
+
+    public function addLanguage(EventLanguage $language): static
+    {
+        if (!$this->languages->contains($language)) {
+            $this->languages->add($language);
+            $language->setEvent($this);
+        }
+        return $this;
+    }
+
+    public function removeLanguage(EventLanguage $language): static
+    {
+        if ($this->languages->removeElement($language)) {
+            if ($language->getEvent() === $this) {
+                $language->setEvent(null);
+            }
+        }
+        return $this;
+    }
+
+    /**
+     * @return \Doctrine\Common\Collections\Collection<int, EventAccessibility>
+     */
+    public function getAccessibilities(): \Doctrine\Common\Collections\Collection
+    {
+        return $this->accessibilities;
+    }
+
+    public function addAccessibility(EventAccessibility $accessibility): static
+    {
+        if (!$this->accessibilities->contains($accessibility)) {
+            $this->accessibilities->add($accessibility);
+            $accessibility->setEvent($this);
+        }
+        return $this;
+    }
+
+    public function removeAccessibility(EventAccessibility $accessibility): static
+    {
+        if ($this->accessibilities->removeElement($accessibility)) {
+            if ($accessibility->getEvent() === $this) {
+                $accessibility->setEvent(null);
+            }
+        }
+        return $this;
+    }
+
+    /**
+     * @return \Doctrine\Common\Collections\Collection<int, EventPaymentMethod>
+     */
+    public function getPaymentMethods(): \Doctrine\Common\Collections\Collection
+    {
+        return $this->paymentMethods;
+    }
+
+    public function addPaymentMethod(EventPaymentMethod $paymentMethod): static
+    {
+        if (!$this->paymentMethods->contains($paymentMethod)) {
+            $this->paymentMethods->add($paymentMethod);
+            $paymentMethod->setEvent($this);
+        }
+        return $this;
+    }
+
+    public function removePaymentMethod(EventPaymentMethod $paymentMethod): static
+    {
+        if ($this->paymentMethods->removeElement($paymentMethod)) {
+            if ($paymentMethod->getEvent() === $this) {
+                $paymentMethod->setEvent(null);
+            }
+        }
+        return $this;
+    }
+
+    /**
+     * @return \Doctrine\Common\Collections\Collection<int, EventMedia>
+     */
+    public function getMedia(): \Doctrine\Common\Collections\Collection
+    {
+        return $this->media;
+    }
+
+    public function addMedium(EventMedia $medium): static
+    {
+        if (!$this->media->contains($medium)) {
+            $this->media->add($medium);
+            $medium->setEvent($this);
+        }
+        return $this;
+    }
+
+    public function removeMedium(EventMedia $medium): static
+    {
+        if ($this->media->removeElement($medium)) {
+            if ($medium->getEvent() === $this) {
+                $medium->setEvent(null);
+            }
+        }
         return $this;
     }
 

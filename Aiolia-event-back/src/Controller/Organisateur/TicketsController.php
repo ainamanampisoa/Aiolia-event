@@ -17,8 +17,7 @@ class TicketsController extends AbstractController
     #[Route('', name: 'organisateur_tickets_index', methods: ['GET'])]
     public function index(): Response
     {
-        // Rediriger vers la page existante des tickets
-        return $this->redirectToRoute('app_ticket_index');
+        return $this->render('Organisateur/ticket/index.html.twig');
     }
 }
 
