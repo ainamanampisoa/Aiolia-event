@@ -951,6 +951,94 @@ class EventRepository extends ServiceEntityRepository
     }
 
     /**
+     * Récupère les événements à venir de l'utilisateur (depuis ses tickets/commandes).
+     */
+    public function findUpcomingEventsForUser(int $userId): array
+    {
+        $sql = <<<SQL
+            SELECT DISTINCT
+                e.id,
+                e.slug,
+                e.title,
+                e.subtitle,
+                e.summary,
+                COALESCE(e.location_override->>'venue_name', v.name) AS venue_name,
+                COALESCE(e.location_override->>'address', NULLIF(CONCAT_WS(', ', v.address_line1, v.address_line2), '')) AS venue_address,
+                COALESCE(e.location_override->>'city', v.city) AS city,
+                COALESCE(e.location_override->>'region', v.region) AS region,
+                e.starts_at,
+                e.ends_at,
+                COALESCE(primary_cat.label, cat.label) AS category_label,
+                COALESCE(media.url, e.cover_image_url) AS image_url,
+                COUNT(DISTINCT t.id) AS ticket_count,
+                MAX(o.status) AS order_status
+            FROM aiolia.events e
+            INNER JOIN aiolia.ticket_types tt ON tt.event_id = e.id
+            INNER JOIN aiolia.order_items oi ON oi.ticket_type_id = tt.id
+            INNER JOIN aiolia.orders o ON o.id = oi.order_id
+            LEFT JOIN aiolia.tickets t ON t.order_item_id = oi.id 
+                AND (t.owner_user_id = :user_id OR (t.owner_user_id IS NULL AND o.user_id = :user_id))
+                AND (t.status IS NULL OR t.status != 'cancelled')
+            LEFT JOIN aiolia.venues v ON v.id = e.venue_id
+            LEFT JOIN aiolia.event_categories primary_cat ON primary_cat.id = e.primary_category_id
+            LEFT JOIN LATERAL (
+                SELECT c.label
+                FROM aiolia.event_category_links cl
+                JOIN aiolia.event_categories c ON c.id = cl.category_id
+                WHERE cl.event_id = e.id
+                ORDER BY c.display_order ASC, c.label ASC
+                LIMIT 1
+            ) AS cat ON TRUE
+            LEFT JOIN LATERAL (
+                SELECT m.url
+                FROM aiolia.event_media m
+                WHERE m.event_id = e.id
+                  AND m.is_public IS TRUE
+                ORDER BY m.display_order ASC, m.id ASC
+                LIMIT 1
+            ) AS media ON TRUE
+            WHERE o.user_id = :user_id
+              AND e.starts_at >= NOW()
+              AND o.status = 'paid'
+            GROUP BY e.id, e.slug, e.title, e.subtitle, e.summary, e.location_override, 
+                     v.name, v.address_line1, v.address_line2, v.city, v.region,
+                     e.starts_at, e.ends_at, primary_cat.label, cat.label, 
+                     media.url, e.cover_image_url
+            ORDER BY e.starts_at ASC
+        SQL;
+
+        try {
+            $rows = $this->connection->executeQuery($sql, ['user_id' => $userId])->fetchAllAssociative();
+
+            return array_map(static function (array $row): array {
+                $startsAt = isset($row['starts_at']) ? new \DateTimeImmutable($row['starts_at']) : null;
+                $endsAt = isset($row['ends_at']) ? new \DateTimeImmutable($row['ends_at']) : null;
+
+                return [
+                    'id' => (int) $row['id'],
+                    'slug' => $row['slug'],
+                    'title' => $row['title'],
+                    'subtitle' => $row['subtitle'],
+                    'summary' => $row['summary'],
+                    'venue_name' => $row['venue_name'],
+                    'venue_address' => $row['venue_address'],
+                    'city' => $row['city'],
+                    'region' => $row['region'],
+                    'category_label' => $row['category_label'] ?? 'Événement',
+                    'image_url' => $row['image_url'],
+                    'starts_at' => $startsAt,
+                    'ends_at' => $endsAt,
+                    'ticket_count' => (int) ($row['ticket_count'] ?? 0),
+                    'order_status' => $row['order_status'],
+                ];
+            }, $rows);
+        } catch (\Exception $e) {
+            error_log('Error fetching upcoming events for user: ' . $e->getMessage());
+            return [];
+        }
+    }
+
+    /**
      * Compte le nombre de résultats pour une recherche avec filtres.
      */
     public function countSearchResults(string $query = '', string $category = '', string $city = '', ?float $priceMin = null, ?float $priceMax = null, string $dateFrom = '', string $dateTo = ''): int

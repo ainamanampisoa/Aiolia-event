@@ -739,9 +739,26 @@ class ProfileController extends AbstractController
      */
 
     #[Route('/profile/calendar', name: 'profile_calendar')]
-    public function calendar(): Response
+    public function calendar(Request $request): Response
     {
-        return $this->render('profile/calendar.html.twig');
+        $session = $request->getSession();
+        if (!$session->isStarted()) {
+            $session->start();
+        }
+
+        $sessionUser = $session->get('user');
+        $isAuthenticated = is_array($sessionUser) && isset($sessionUser['id']);
+
+        $events = [];
+        if ($isAuthenticated) {
+            $userId = (int) $sessionUser['id'];
+            $events = $this->eventRepository->findUpcomingEventsForUser($userId);
+        }
+
+        return $this->render('profile/calendar.html.twig', [
+            'events' => $events,
+            'isAuthenticated' => $isAuthenticated,
+        ]);
     }
 
     #[Route('/profile/stats', name: 'profile_stats')]

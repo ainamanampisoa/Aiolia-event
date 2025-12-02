@@ -264,6 +264,41 @@
     font-weight: 600;
 }
 
+.btn-tickets-improved {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    gap: 8px;
+    padding: 12px 24px;
+    border-radius: 14px;
+    background: linear-gradient(135deg, #10398C 0%, #0B2B6A 100%);
+    color: #ffffff;
+    text-decoration: none;
+    font-weight: 600;
+    font-size: 14px;
+    transition: all 0.3s ease;
+    box-shadow: 0 4px 12px rgba(16, 57, 140, 0.25);
+    border: none;
+    cursor: pointer;
+    white-space: nowrap;
+    min-width: 120px;
+}
+
+.btn-tickets-improved:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 6px 20px rgba(16, 57, 140, 0.35);
+    background: linear-gradient(135deg, #0B2B6A 0%, #10398C 100%);
+}
+
+.btn-tickets-improved:active {
+    transform: translateY(0);
+    box-shadow: 0 2px 8px rgba(16, 57, 140, 0.25);
+}
+
+.btn-tickets-improved i {
+    font-size: 16px;
+}
+
 .btn-outline {
     width: 40px;
     height: 40px;
