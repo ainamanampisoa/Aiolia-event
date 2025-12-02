@@ -18,6 +18,54 @@ class CloudinaryService
         $this->initializeCloudinary();
     }
 
+    /**
+     * Récupère une variable d'environnement avec plusieurs méthodes de fallback
+     */
+    private function getEnvVar(string $key): ?string
+    {
+        // Essayer $_ENV d'abord
+        if (isset($_ENV[$key]) && !empty($_ENV[$key])) {
+            return trim((string) $_ENV[$key]);
+        }
+        
+        // Essayer $_SERVER
+        if (isset($_SERVER[$key]) && !empty($_SERVER[$key])) {
+            return trim((string) $_SERVER[$key]);
+        }
+        
+        // Essayer getenv()
+        $value = getenv($key);
+        if ($value !== false && !empty($value)) {
+            return trim((string) $value);
+        }
+        
+        // Dernier recours : lire directement depuis le fichier .env
+        static $envCache = null;
+        if ($envCache === null) {
+            $envFile = dirname(__DIR__, 2) . '/.env';
+            if (file_exists($envFile) && is_readable($envFile)) {
+                $envCache = [];
+                $lines = file($envFile, FILE_IGNORE_NEW_LINES | FILE_SKIP_EMPTY_LINES);
+                foreach ($lines as $line) {
+                    // Ignorer les commentaires
+                    if (strpos(trim($line), '#') === 0) {
+                        continue;
+                    }
+                    // Parser les lignes KEY=VALUE
+                    if (preg_match('/^([^=]+)=(.*)$/', $line, $matches)) {
+                        $envCache[trim($matches[1])] = trim($matches[2], '"\'');
+                    }
+                }
+            }
+        }
+        
+        if ($envCache !== null && isset($envCache[$key]) && !empty($envCache[$key])) {
+            return trim((string) $envCache[$key]);
+        }
+        
+        return null;
+    }
+
     private function initializeCloudinary(): void
     {
         try {
@@ -25,38 +73,43 @@ class CloudinaryService
             $this->lastInitializationError = null;
 
             // 1) Si CLOUDINARY_URL est défini, utiliser directement cette URL (format officiel Cloudinary)
-            $cloudinaryUrl = $_ENV['CLOUDINARY_URL']
-                ?? $_SERVER['CLOUDINARY_URL']
-                ?? getenv('CLOUDINARY_URL')
-                ?: null;
+            $cloudinaryUrl = $this->getEnvVar('CLOUDINARY_URL');
 
             if ($cloudinaryUrl && is_string($cloudinaryUrl) && trim($cloudinaryUrl) !== '') {
-                $this->logger?->info('Initializing Cloudinary from CLOUDINARY_URL (service initialization)');
-                Configuration::instance($cloudinaryUrl);
+                // Si on a une URL, créer Cloudinary avec l'URL
+                try {
+                    $this->logger?->info('Initializing Cloudinary from CLOUDINARY_URL (service initialization)');
+                    $this->cloudinary = new Cloudinary($cloudinaryUrl);
+                    $this->logger?->info('Cloudinary initialized successfully with URL');
+                } catch (\Exception $configException) {
+                    $this->lastInitializationError = 'Failed to configure Cloudinary from URL: ' . $configException->getMessage();
+                    $this->logger?->error('Cloudinary configuration from URL failed', [
+                        'error' => $configException->getMessage(),
+                    ]);
+                    throw $configException;
+                }
             } else {
                 // 2) Sinon, fallback sur les 3 variables séparées
-                $cloudName = $_ENV['CLOUDINARY_CLOUD_NAME']
-                    ?? $_SERVER['CLOUDINARY_CLOUD_NAME']
-                    ?? getenv('CLOUDINARY_CLOUD_NAME')
-                    ?: null;
+                $cloudName = $this->getEnvVar('CLOUDINARY_CLOUD_NAME');
+                $apiKey = $this->getEnvVar('CLOUDINARY_API_KEY');
+                $apiSecret = $this->getEnvVar('CLOUDINARY_API_SECRET');
 
-                $apiKey = $_ENV['CLOUDINARY_API_KEY']
-                    ?? $_SERVER['CLOUDINARY_API_KEY']
-                    ?? getenv('CLOUDINARY_API_KEY')
-                    ?: null;
-
-                $apiSecret = $_ENV['CLOUDINARY_API_SECRET']
-                    ?? $_SERVER['CLOUDINARY_API_SECRET']
-                    ?? getenv('CLOUDINARY_API_SECRET')
-                    ?: null;
-
-                if (!$cloudName || !$apiKey || !$apiSecret) {
-                    $this->logger?->error('Cloudinary credentials not found (service initialization)', [
+                // Valider que les valeurs ne sont pas vides après trim
+                $cloudName = trim((string) ($cloudName ?? ''));
+                $apiKey = trim((string) ($apiKey ?? ''));
+                $apiSecret = trim((string) ($apiSecret ?? ''));
+                
+                if (empty($cloudName) || empty($apiKey) || empty($apiSecret)) {
+                    $this->logger?->error('Cloudinary credentials not found or empty (service initialization)', [
                         'has_cloud_name' => !empty($cloudName),
                         'has_api_key' => !empty($apiKey),
                         'has_api_secret' => !empty($apiSecret),
                         'has_url' => !empty($cloudinaryUrl),
+                        'cloud_name_length' => strlen($cloudName),
+                        'api_key_length' => strlen($apiKey),
+                        'api_secret_length' => strlen($apiSecret),
                     ]);
+                    $this->lastInitializationError = 'Cloudinary credentials are missing or empty';
                     return;
                 }
 
@@ -67,22 +120,32 @@ class CloudinaryService
                 ]);
 
                 // Initialiser Cloudinary avec les credentials trouvés
-                Configuration::instance([
-                    'cloud' => [
+                try {
+                    // Créer l'instance Cloudinary directement avec la configuration
+                    $this->cloudinary = new Cloudinary([
+                        'cloud' => [
+                            'cloud_name' => $cloudName,
+                            'api_key' => $apiKey,
+                            'api_secret' => $apiSecret,
+                        ],
+                        'url' => [
+                            'secure' => true,
+                        ],
+                    ]);
+                    
+                    $this->logger?->info('Cloudinary initialized successfully with separate vars', [
                         'cloud_name' => $cloudName,
-                        'api_key' => $apiKey,
-                        'api_secret' => $apiSecret,
-                    ],
-                    'url' => [
-                        'secure' => true,
-                    ],
-                ]);
+                    ]);
+                } catch (\Exception $configException) {
+                    $this->lastInitializationError = 'Failed to configure Cloudinary: ' . $configException->getMessage();
+                    $this->logger?->error('Cloudinary configuration failed', [
+                        'error' => $configException->getMessage(),
+                        'cloud_name' => $cloudName,
+                        'trace' => $configException->getTraceAsString(),
+                    ]);
+                    throw $configException;
+                }
             }
-
-            $this->cloudinary = new Cloudinary();
-            $this->logger?->info('Cloudinary initialized successfully (service)', [
-                'from_url' => !empty($cloudinaryUrl),
-            ]);
         } catch (\Exception $e) {
             $this->lastInitializationError = $e->getMessage();
             $this->logger?->error('Failed to initialize Cloudinary (service): ' . $e->getMessage(), [
@@ -168,17 +231,24 @@ class CloudinaryService
      */
     public function uploadUploadedFile($file, string $folder = 'avatars', array $options = []): ?array
     {
+        // Si Cloudinary n'est pas initialisé, essayer de le réinitialiser
         if ($this->cloudinary === null) {
-            $cloudName = $_ENV['CLOUDINARY_CLOUD_NAME'] ?? null;
-            $apiKey = $_ENV['CLOUDINARY_API_KEY'] ?? null;
-            $apiSecret = $_ENV['CLOUDINARY_API_SECRET'] ?? null;
+            // Réessayer l'initialisation avec les variables disponibles
+            $this->attemptReinitialization();
             
-            $this->logger?->error('Cloudinary not initialized', [
-                'has_cloud_name' => !empty($cloudName),
-                'has_api_key' => !empty($apiKey),
-                'has_api_secret' => !empty($apiSecret),
-            ]);
-            return null;
+            // Si toujours pas initialisé après réessai, retourner null
+            if ($this->cloudinary === null) {
+                $cloudName = $this->getEnvVar('CLOUDINARY_CLOUD_NAME');
+                $apiKey = $this->getEnvVar('CLOUDINARY_API_KEY');
+                $apiSecret = $this->getEnvVar('CLOUDINARY_API_SECRET');
+                
+                $this->logger?->error('Cloudinary not initialized after reinitialization attempt', [
+                    'has_cloud_name' => !empty($cloudName),
+                    'has_api_key' => !empty($apiKey),
+                    'has_api_secret' => !empty($apiSecret),
+                ]);
+                return null;
+            }
         }
 
         try {
@@ -300,24 +370,25 @@ class CloudinaryService
     }
 
     /**
+     * Tente de réinitialiser Cloudinary
+     */
+    private function attemptReinitialization(): void
+    {
+        if ($this->cloudinary !== null) {
+            return; // Déjà initialisé
+        }
+        
+        $this->initializeCloudinary();
+    }
+
+    /**
      * Informations de debug sur l'initialisation de Cloudinary
      */
     public function getInitializationDebugInfo(): array
     {
-        $cloudName = $_ENV['CLOUDINARY_CLOUD_NAME']
-            ?? $_SERVER['CLOUDINARY_CLOUD_NAME']
-            ?? getenv('CLOUDINARY_CLOUD_NAME')
-            ?: null;
-
-        $apiKey = $_ENV['CLOUDINARY_API_KEY']
-            ?? $_SERVER['CLOUDINARY_API_KEY']
-            ?? getenv('CLOUDINARY_API_KEY')
-            ?: null;
-
-        $apiSecret = $_ENV['CLOUDINARY_API_SECRET']
-            ?? $_SERVER['CLOUDINARY_API_SECRET']
-            ?? getenv('CLOUDINARY_API_SECRET')
-            ?: null;
+        $cloudName = $this->getEnvVar('CLOUDINARY_CLOUD_NAME');
+        $apiKey = $this->getEnvVar('CLOUDINARY_API_KEY');
+        $apiSecret = $this->getEnvVar('CLOUDINARY_API_SECRET');
 
         return [
             'attemptedInitialization' => $this->attemptedInitialization,

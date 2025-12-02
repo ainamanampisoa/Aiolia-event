@@ -1186,7 +1186,7 @@ class ProfileController extends AbstractController
                     'message' => 'Erreur lors de l\'upload vers Cloudinary. Le service a retourné null.',
                     'debug' => [
                         'cloudinary_configured' => true,
-                        'cloudinary_initialized' => $cloudinaryInstance !== null,
+                        'cloudinary_initialized' => $this->cloudinaryService->isInitialized(),
                         'file_size' => $uploadedFile->getSize(),
                         'file_mime' => $uploadedFile->getMimeType(),
                         'file_path' => $filePath,
