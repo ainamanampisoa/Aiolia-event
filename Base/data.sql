@@ -30,8 +30,8 @@ INSERT INTO utilisateurs (
     cree_le,
     modifie_le
 ) VALUES
-    (1, 'admin1@yopmail.com', 'admin1', 'password', '$2y$10$ylqnSxPyu8h9h/J/xLMf7OXbSvojM.ajqezk2Mq0qmN64e1KnCPAS', 'Admin', 'One', 'admin', 1, '2025-01-10', '2025-01-10'),
-    (2, 'admin2@yopmail.com', 'admin2', 'password', '$2y$10$ylqnSxPyu8h9h/J/xLMf7OXbSvojM.ajqezk2Mq0qmN64e1KnCPAS', 'Admin', 'Two', 'admin', 1, '2025-01-11', '2025-01-11');
+    (1, TRIM('admin1@yopmail.com'), 'admin1', 'password', '$2y$10$ylqnSxPyu8h9h/J/xLMf7OXbSvojM.ajqezk2Mq0qmN64e1KnCPAS', 'Admin', 'One', 'admin', 1, '2025-01-10', '2025-01-10'),
+    (2, TRIM('admin2@yopmail.com'), 'admin2', 'password', '$2y$10$ylqnSxPyu8h9h/J/xLMf7OXbSvojM.ajqezk2Mq0qmN64e1KnCPAS', 'Admin', 'Two', 'admin', 1, '2025-01-11', '2025-01-11');
 
 INSERT INTO profils_admin (id, id_utilisateur, nom_affichage, nom_legal, cree_le, modifie_le)
 VALUES
@@ -53,8 +53,9 @@ INSERT INTO utilisateurs (
 )
 SELECT
     profile_id + 2,
-    format('organisateur%02s@yopmail.com', profile_id),
-    format('organisateur%02s', profile_id),
+    -- On décale de +10 pour commencer à organisateur11@yopmail.com
+    regexp_replace(format('organisateur%02s@yopmail.com', profile_id + 10), '\s+', '', 'g'),
+    format('organisateur%02s', profile_id + 10),
     'password',
     'hash-organizer',
     'Org',
@@ -155,7 +156,7 @@ INSERT INTO utilisateurs (
 )
 SELECT
     28 + gs AS id,
-    format('utilisateur%02s@yopmail.com', gs),
+    regexp_replace(format('utilisateur%02s@yopmail.com', gs), '\s+', '', 'g'),
     format('user%02s', gs),
     'password',
     'hash-user',
@@ -165,7 +166,7 @@ SELECT
     1,
     DATE '2025-05-01' + (gs || ' days')::interval,
     DATE '2025-05-01' + (gs || ' days')::interval
-FROM generate_series(1, 50) AS gs;
+FROM generate_series(10, 50) AS gs;
 
 SELECT setval(pg_get_serial_sequence('aiolia.utilisateurs', 'id'), 100, true);
 SELECT setval(pg_get_serial_sequence('aiolia.profils_organisateurs', 'id'), 26, true);
@@ -364,7 +365,7 @@ inserted_subscriptions AS (
         renouvellement_le
     )
     SELECT
-        organizer_id,
+        po.id,
         plan.id,
         'active',
         CASE WHEN plan.code = 'ENTREPRISE_ANNUEL' THEN 6 ELSE 0 END,
@@ -382,6 +383,7 @@ inserted_subscriptions AS (
         END
     FROM expanded
     INNER JOIN plans_abonnements AS plan ON plan.code = expanded.plan_code
+    INNER JOIN profils_organisateurs AS po ON po.id = expanded.organizer_id
     ORDER BY period_start, organizer_id
     RETURNING id, id_profil_organisateur, id_plan, commence_le
 ),

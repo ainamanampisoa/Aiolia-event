@@ -390,8 +390,8 @@ sudo chown postgres:postgres /tmp/logic.sql
 sudo cp /home/fifah/Documents/GitHub/Aiolia-event/Base/data.sql /tmp/data.sql
 sudo chown postgres:postgres /tmp/data.sql
 
-sudo cp /home/fifah/Documents/GitHub/Aiolia-event/Base/dataOrgs.sql /tmp/dataOrgs.sql
-sudo chown postgres:postgres /tmp/dataOrgs.sql
+sudo cp /home/fifah/Documents/GitHub/Aiolia-event/Base/Events.sql /tmp/Events.sql
+sudo chown postgres:postgres /tmp/Events.sql
 
 sudo -i -u postgres
 psql
@@ -399,7 +399,7 @@ psql
 \i /tmp/schema.sql
 \i /tmp/logic.sql
 \i /tmp/data.sql
-\i /tmp/dataOrgs.sql
+\i /tmp/Events.sql
 
 
 psql -U aiolia_user -d aiolia_event -h 127.0.0.1 -p 5432

@@ -51,9 +51,12 @@ class FixPasswordsCommand extends Command
         }
 
         try {
-            // Récupérer tous les utilisateurs
-            $users = $this->userRepository->findAll();
-            $totalUsers = count($users);
+            // On travaille au niveau SQL brut pour s'assurer de toucher TOUS les enregistrements,
+            // même ceux que Doctrine n'hydraterait pas (anciens comptes, données de seed, etc.)
+            $connection = $this->entityManager->getConnection();
+
+            // Nombre total de lignes dans la table aiolia.utilisateurs
+            $totalUsers = (int) $connection->fetchOne('SELECT COUNT(*) FROM aiolia.utilisateurs');
 
             if ($totalUsers === 0) {
                 $io->warning('Aucun utilisateur trouvé dans la base de données');
@@ -62,23 +65,12 @@ class FixPasswordsCommand extends Command
 
             $io->section(sprintf('Mise à jour de %d utilisateur(s)', $totalUsers));
 
-            $updatedCount = 0;
-            $progressBar = $io->createProgressBar($totalUsers);
-            $progressBar->start();
+            // Mise à jour directe de la colonne hash_mot_de_passe pour tous les utilisateurs
+            $updatedCount = $connection->executeStatement(
+                'UPDATE aiolia.utilisateurs SET hash_mot_de_passe = :hash',
+                ['hash' => $hashedPassword]
+            );
 
-            // Mettre à jour chaque utilisateur
-            foreach ($users as $user) {
-                $user->setHashMotDePasse($hashedPassword);
-                $this->entityManager->persist($user);
-                $updatedCount++;
-                $progressBar->advance();
-            }
-
-            // Flush toutes les modifications
-            $this->entityManager->flush();
-            $progressBar->finish();
-
-            $io->newLine(2);
             $io->success(sprintf(
                 '%d utilisateur(s) mis à jour avec succès',
                 $updatedCount
@@ -89,8 +81,8 @@ class FixPasswordsCommand extends Command
             $io->table(
                 ['Statut', 'Nombre'],
                 [
-                    ['Utilisateurs mis à jour', $updatedCount],
-                    ['Total utilisateurs', $totalUsers],
+                    ['Utilisateurs mis à jour (lignes affectées)', $updatedCount],
+                    ['Total utilisateurs dans aiolia.utilisateurs', $totalUsers],
                 ]
             );
 
