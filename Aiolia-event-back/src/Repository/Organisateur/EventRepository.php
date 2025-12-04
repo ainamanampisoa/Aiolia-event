@@ -150,71 +150,55 @@ class EventRepository extends ServiceEntityRepository
 
     /**
      * Récupère les événements d'un organisateur
+     * Inclut les événements où l'organisateur est l'organisateur principal OU un co-organisateur
      */
     public function findByOrganizer(User $organizer, ?string $status = null, ?int $limit = null): array
     {
-        // Utilisation d'une requête SQL native car id_profil_organisateur référence profils_organisateurs
-        // qui a un id_utilisateur référençant utilisateurs
-        $conn = $this->getEntityManager()->getConnection();
-        $sql = '
-            SELECT e.id FROM aiolia.evenements e
-            INNER JOIN aiolia.profils_organisateurs op ON e.id_profil_organisateur = op.id
-            WHERE op.id_utilisateur = :userId
-        ';
-        
-        $params = ['userId' => $organizer->getId()];
-        
+        $qb = $this->createQueryBuilder('e')
+            ->leftJoin('e.profilOrganisateur', 'op')
+            ->leftJoin('e.organisateursEvenements', 'oe')
+            ->leftJoin('oe.profilOrganisateur', 'op2')
+            ->leftJoin('op.utilisateur', 'u1')
+            ->leftJoin('op2.utilisateur', 'u2')
+            ->where('u1.id = :userId OR u2.id = :userId')
+            ->setParameter('userId', $organizer->getId())
+            ->groupBy('e.id')
+            ->orderBy('e.creeLe', 'DESC');
+
         if ($status !== null) {
-            $sql .= ' AND e.statut = :status';
-            $params['status'] = $status;
+            $qb->andWhere('e.statut = :status')
+                ->setParameter('status', $status);
         }
-        
-        $sql .= ' ORDER BY e.cree_le DESC';
-        
+
         if ($limit !== null) {
-            $sql .= ' LIMIT :limit';
-            $params['limit'] = $limit;
+            $qb->setMaxResults($limit);
         }
-        
-        $result = $conn->executeQuery($sql, $params);
-        $eventIds = $result->fetchFirstColumn();
-        
-        // Convertir les IDs en entités Event et charger l'organizer
-        $events = [];
-        foreach ($eventIds as $eventId) {
-            $event = $this->find($eventId);
-            if ($event) {
-                // Définir l'organizer dans l'entité pour éviter les chargements supplémentaires
-                $event->setOrganizer($organizer);
-                $events[] = $event;
-            }
-        }
-        
-        return $events;
+
+        return $qb->getQuery()->getResult();
     }
 
     /**
      * Compte les événements d'un organisateur
+     * Inclut les événements où l'organisateur est l'organisateur principal OU un co-organisateur
      */
     public function countByOrganizer(User $organizer, ?string $status = null): int
     {
-        $conn = $this->getEntityManager()->getConnection();
-        $sql = '
-            SELECT COUNT(e.id) FROM aiolia.evenements e
-            INNER JOIN aiolia.profils_organisateurs op ON e.id_profil_organisateur = op.id
-            WHERE op.id_utilisateur = :userId
-        ';
-        
-        $params = ['userId' => $organizer->getId()];
-        
+        $qb = $this->createQueryBuilder('e')
+            ->select('COUNT(DISTINCT e.id)')
+            ->leftJoin('e.profilOrganisateur', 'op')
+            ->leftJoin('e.organisateursEvenements', 'oe')
+            ->leftJoin('oe.profilOrganisateur', 'op2')
+            ->leftJoin('op.utilisateur', 'u1')
+            ->leftJoin('op2.utilisateur', 'u2')
+            ->where('u1.id = :userId OR u2.id = :userId')
+            ->setParameter('userId', $organizer->getId());
+
         if ($status !== null) {
-            $sql .= ' AND e.statut = :status';
-            $params['status'] = $status;
+            $qb->andWhere('e.statut = :status')
+                ->setParameter('status', $status);
         }
-        
-        $result = $conn->executeQuery($sql, $params);
-        
-        return (int) $result->fetchOne();
+
+        return (int) $qb->getQuery()->getSingleScalarResult();
     }
 
     /**
@@ -261,6 +245,269 @@ class EventRepository extends ServiceEntityRepository
             'tickets_sold' => 0,
             'revenue' => 0,
             'views' => 0,
+        ];
+    }
+
+    /**
+     * Recherche multicritères d'événements
+     *
+     * @param string $idOrganisateur ID du profil organisateur (obligatoire)
+     * @param string|null $nomLieu Nom du lieu (peut être null)
+     * @param \DateTimeInterface|null $dateDebut Date de début (peut être null)
+     * @param \DateTimeInterface|null $dateFin Date de fin (peut être null)
+     * @param string|null $typeEvenementId ID du type d'événement (peut être null)
+     * @param float|null $prixMin Prix minimum (peut être null ou 0)
+     * @param float|null $prixMax Prix maximum (peut être null ou 0)
+     * @param string|null $triPrix 'asc' pour croissant, 'desc' pour décroissant, null pour pas de tri par prix
+     * @param int|null $limit Limite de résultats
+     * @param int|null $offset Offset pour la pagination
+     * @param string|null $statut Statut de l'événement (draft, published, cancelled, archived)
+     * @return array
+     */
+    public function searchMultiCriteria(
+        string $idOrganisateur,
+        ?string $nomLieu = null,
+        ?\DateTimeInterface $dateDebut = null,
+        ?\DateTimeInterface $dateFin = null,
+        ?string $typeEvenementId = null,
+        ?float $prixMin = null,
+        ?float $prixMax = null,
+        ?string $triPrix = null,
+        ?int $limit = null,
+        ?int $offset = null,
+        ?string $statut = null
+    ): array {
+        $qb = $this->createQueryBuilder('e')
+            ->leftJoin('e.lieu', 'lieu')
+            ->leftJoin('e.typeEvenement', 'type')
+            ->leftJoin('e.profilOrganisateur', 'profil')
+            ->leftJoin('e.organisateursEvenements', 'oe')
+            ->leftJoin('oe.profilOrganisateur', 'profil2')
+            ->leftJoin('App\Entity\TypeBillet', 'tb', 'WITH', 'tb.evenement = e')
+            ->andWhere('profil.id = :idOrganisateur OR profil2.id = :idOrganisateur')
+            ->setParameter('idOrganisateur', $idOrganisateur)
+            ->groupBy('e.id');
+
+        // Filtre par nom de lieu
+        if ($nomLieu !== null && $nomLieu !== '') {
+            $qb->andWhere('LOWER(lieu.nom) LIKE LOWER(:nomLieu)')
+                ->setParameter('nomLieu', '%' . $nomLieu . '%');
+        }
+
+        // Filtre par date de début
+        if ($dateDebut !== null) {
+            $qb->andWhere('e.commenceLe >= :dateDebut')
+                ->setParameter('dateDebut', $dateDebut);
+        }
+
+        // Filtre par date de fin
+        if ($dateFin !== null) {
+            $qb->andWhere('e.seTermineLe <= :dateFin')
+                ->setParameter('dateFin', $dateFin);
+        }
+
+        // Filtre par type d'événement
+        if ($typeEvenementId !== null && $typeEvenementId !== '0') {
+            $qb->andWhere('type.id = :typeEvenementId')
+                ->setParameter('typeEvenementId', $typeEvenementId);
+        }
+
+        // Filtre par prix minimum
+        if ($prixMin !== null && $prixMin > 0) {
+            $qb->andHaving('MIN(tb.prixDeBase) >= :prixMin')
+                ->setParameter('prixMin', $prixMin);
+        }
+
+        // Filtre par prix maximum
+        if ($prixMax !== null && $prixMax > 0) {
+            $qb->andHaving('MIN(tb.prixDeBase) <= :prixMax')
+                ->setParameter('prixMax', $prixMax);
+        }
+
+        // Filtre par statut
+        if ($statut !== null && $statut !== '') {
+            $qb->andWhere('e.statut = :statut')
+                ->setParameter('statut', $statut);
+        }
+
+        // Tri par prix
+        if ($triPrix === 'asc') {
+            $qb->orderBy('MIN(tb.prixDeBase)', 'ASC');
+        } elseif ($triPrix === 'desc') {
+            $qb->orderBy('MIN(tb.prixDeBase)', 'DESC');
+        } else {
+            // Tri par défaut par date de début
+            $qb->orderBy('e.commenceLe', 'ASC');
+        }
+
+        // Limite et offset
+        if ($limit !== null && $limit > 0) {
+            $qb->setMaxResults($limit);
+        }
+
+        if ($offset !== null && $offset > 0) {
+            $qb->setFirstResult($offset);
+        }
+
+        return $qb->getQuery()->getResult();
+    }
+
+    /**
+     * Compte les résultats d'une recherche multicritères
+     *
+     * @param string $idOrganisateur ID du profil organisateur (obligatoire)
+     * @param string|null $nomLieu Nom du lieu (peut être null)
+     * @param \DateTimeInterface|null $dateDebut Date de début (peut être null)
+     * @param \DateTimeInterface|null $dateFin Date de fin (peut être null)
+     * @param string|null $typeEvenementId ID du type d'événement (peut être null)
+     * @param float|null $prixMin Prix minimum (peut être null ou 0)
+     * @param float|null $prixMax Prix maximum (peut être null ou 0)
+     * @param string|null $statut Statut de l'événement (draft, published, cancelled, archived)
+     * @return int
+     */
+    public function countSearchMultiCriteria(
+        string $idOrganisateur,
+        ?string $nomLieu = null,
+        ?\DateTimeInterface $dateDebut = null,
+        ?\DateTimeInterface $dateFin = null,
+        ?string $typeEvenementId = null,
+        ?float $prixMin = null,
+        ?float $prixMax = null,
+        ?string $statut = null
+    ): int {
+        $qb = $this->createQueryBuilder('e')
+            ->select('COUNT(DISTINCT e.id)')
+            ->leftJoin('e.lieu', 'lieu')
+            ->leftJoin('e.typeEvenement', 'type')
+            ->leftJoin('e.profilOrganisateur', 'profil')
+            ->leftJoin('e.organisateursEvenements', 'oe')
+            ->leftJoin('oe.profilOrganisateur', 'profil2')
+            ->leftJoin('App\Entity\TypeBillet', 'tb', 'WITH', 'tb.evenement = e')
+            ->andWhere('profil.id = :idOrganisateur OR profil2.id = :idOrganisateur')
+            ->setParameter('idOrganisateur', $idOrganisateur);
+
+        // Filtre par nom de lieu
+        if ($nomLieu !== null && $nomLieu !== '') {
+            $qb->andWhere('LOWER(lieu.nom) LIKE LOWER(:nomLieu)')
+                ->setParameter('nomLieu', '%' . $nomLieu . '%');
+        }
+
+        // Filtre par date de début
+        if ($dateDebut !== null) {
+            $qb->andWhere('e.commenceLe >= :dateDebut')
+                ->setParameter('dateDebut', $dateDebut);
+        }
+
+        // Filtre par date de fin
+        if ($dateFin !== null) {
+            $qb->andWhere('e.seTermineLe <= :dateFin')
+                ->setParameter('dateFin', $dateFin);
+        }
+
+        // Filtre par type d'événement
+        if ($typeEvenementId !== null && $typeEvenementId !== '0') {
+            $qb->andWhere('type.id = :typeEvenementId')
+                ->setParameter('typeEvenementId', $typeEvenementId);
+        }
+
+        // Filtre par prix minimum
+        if ($prixMin !== null && $prixMin > 0) {
+            $qb->andHaving('MIN(tb.prixDeBase) >= :prixMin')
+                ->setParameter('prixMin', $prixMin);
+        }
+
+        // Filtre par prix maximum
+        if ($prixMax !== null && $prixMax > 0) {
+            $qb->andHaving('MIN(tb.prixDeBase) <= :prixMax')
+                ->setParameter('prixMax', $prixMax);
+        }
+
+        // Filtre par statut
+        if ($statut !== null && $statut !== '') {
+            $qb->andWhere('e.statut = :statut')
+                ->setParameter('statut', $statut);
+        }
+
+        return (int) $qb->getQuery()->getSingleScalarResult();
+    }
+
+    /**
+     * Recherche multicritères avec pagination complète
+     *
+     * @param string $idOrganisateur ID du profil organisateur (obligatoire)
+     * @param string|null $nomLieu Nom du lieu (peut être null)
+     * @param \DateTimeInterface|null $dateDebut Date de début (peut être null)
+     * @param \DateTimeInterface|null $dateFin Date de fin (peut être null)
+     * @param string|null $typeEvenementId ID du type d'événement (peut être null)
+     * @param float|null $prixMin Prix minimum (peut être null ou 0)
+     * @param float|null $prixMax Prix maximum (peut être null ou 0)
+     * @param string|null $triPrix 'asc' pour croissant, 'desc' pour décroissant, null pour pas de tri par prix
+     * @param int $page Numéro de page (commence à 1)
+     * @param int $limit Nombre d'éléments par page
+     * @param string|null $statut Statut de l'événement (draft, published, cancelled, archived)
+     * @return array ['items' => Event[], 'pagination' => ['total' => int, 'page' => int, 'limit' => int, 'totalPages' => int, 'hasNext' => bool, 'hasPrev' => bool]]
+     */
+    public function searchMultiCriteriaWithPagination(
+        string $idOrganisateur,
+        ?string $nomLieu = null,
+        ?\DateTimeInterface $dateDebut = null,
+        ?\DateTimeInterface $dateFin = null,
+        ?string $typeEvenementId = null,
+        ?float $prixMin = null,
+        ?float $prixMax = null,
+        ?string $triPrix = null,
+        int $page = 1,
+        int $limit = 20,
+        ?string $statut = null
+    ): array {
+        // Calculer l'offset
+        $offset = ($page - 1) * $limit;
+
+        // Récupérer les résultats
+        $items = $this->searchMultiCriteria(
+            $idOrganisateur,
+            $nomLieu,
+            $dateDebut,
+            $dateFin,
+            $typeEvenementId,
+            $prixMin,
+            $prixMax,
+            $triPrix,
+            $limit,
+            $offset,
+            $statut
+        );
+
+        // Compter le total
+        $total = $this->countSearchMultiCriteria(
+            $idOrganisateur,
+            $nomLieu,
+            $dateDebut,
+            $dateFin,
+            $typeEvenementId,
+            $prixMin,
+            $prixMax,
+            $statut
+        );
+
+        // Calculer les informations de pagination
+        $totalPages = (int) ceil($total / $limit);
+        $hasNext = $page < $totalPages;
+        $hasPrev = $page > 1;
+
+        return [
+            'items' => $items,
+            'pagination' => [
+                'total' => $total,
+                'page' => $page,
+                'limit' => $limit,
+                'totalPages' => $totalPages,
+                'hasNext' => $hasNext,
+                'hasPrev' => $hasPrev,
+                'offset' => $offset,
+                'startItem' => $total > 0 ? $offset + 1 : 0,
+                'endItem' => min($offset + $limit, $total),
+            ],
         ];
     }
 }

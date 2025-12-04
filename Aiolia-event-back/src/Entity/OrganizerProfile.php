@@ -2,7 +2,7 @@
 
 namespace App\Entity;
 
-use App\Repository\OrganizerProfileRepository;
+use App\Repository\Organisateur\OrganizerProfileRepository;
 use Doctrine\DBAL\Types\Types;
 use Doctrine\ORM\Mapping as ORM;
 
@@ -73,11 +73,15 @@ class OrganizerProfile
     #[ORM\Column(name: 'modifie_le', type: Types::DATETIMETZ_MUTABLE)]
     private ?\DateTimeInterface $modifieLe = null;
 
+    #[ORM\OneToMany(targetEntity: OrganisateurEvenement::class, mappedBy: 'profilOrganisateur', cascade: ['persist', 'remove'])]
+    private \Doctrine\Common\Collections\Collection $organisateursEvenements;
+
     public function __construct()
     {
         $now = new \DateTimeImmutable();
         $this->creeLe = $now;
         $this->modifieLe = $now;
+        $this->organisateursEvenements = new \Doctrine\Common\Collections\ArrayCollection();
     }
 
     #[ORM\PrePersist]
@@ -277,6 +281,30 @@ class OrganizerProfile
         $this->modifieLe = $modifieLe;
 
         return $this;
+    }
+
+    /**
+     * @return \Doctrine\Common\Collections\Collection<int, OrganisateurEvenement>
+     */
+    public function getOrganisateursEvenements(): \Doctrine\Common\Collections\Collection
+    {
+        return $this->organisateursEvenements;
+    }
+
+    /**
+     * Récupère tous les événements associés à cet organisateur (via la table de liaison)
+     *
+     * @return \Doctrine\Common\Collections\Collection<int, Event>
+     */
+    public function getEvenements(): \Doctrine\Common\Collections\Collection
+    {
+        $evenements = new \Doctrine\Common\Collections\ArrayCollection();
+        foreach ($this->organisateursEvenements as $organisateurEvenement) {
+            if ($organisateurEvenement->getEvenement()) {
+                $evenements->add($organisateurEvenement->getEvenement());
+            }
+        }
+        return $evenements;
     }
 }
 

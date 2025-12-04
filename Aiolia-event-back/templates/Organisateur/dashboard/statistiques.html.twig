@@ -59,22 +59,23 @@
                     {% for event in recentEvents %}
                         <div class="event-item">
                             <div class="event-info">
-                                <h3>{{ event.title }}</h3>
+                                <h3>{{ event.titre }}</h3>
                                 <p class="event-meta">
-                                    <span class="event-status status-{{ event.status }}">
-                                        {{ event.status|capitalize }}
+                                    <span class="event-status status-{{ event.statut }}">
+                                        {{ event.statut|capitalize }}
                                     </span>
                                     <span class="event-date">
                                         <i class="fas fa-calendar"></i>
-                                        {{ event.createdAt|date('d/m/Y') }}
+                                        {{ event.creeLe|date('d/m/Y') }}
                                     </span>
                                 </p>
                             </div>
                             <div class="event-actions">
-                                <a href="{{ path('app_event_show', {id: event.id}) }}" class="btn btn-sm btn-primary">
+                                {# TODO: Ajouter une vraie route de détail d'événement pour l'organisateur #}
+                                <button type="button" class="btn btn-sm btn-primary" data-event-id="{{ event.id }}">
                                     <i class="fas fa-eye"></i>
                                     <span data-i18n="common.view">Voir</span>
-                                </a>
+                                </button>
                             </div>
                         </div>
                     {% endfor %}

@@ -209,9 +209,10 @@
                                     <td>{{ event.startDate ? event.startDate|date('d/m/Y H:i') : '-' }}</td>
                                     <td>{{ event.location ?? '-' }}</td>
                                     <td>
-                                        <a href="{{ path('app_event_show', {id: event.id}) }}" class="btn btn-sm btn-primary">
+                                        {# TODO: lier vers une page détail d'événement quand elle existera dans le back/front #}
+                                        <button type="button" class="btn btn-sm btn-primary" data-event-id="{{ event.id }}">
                                             <i class="fas fa-eye"></i> Voir
-                                        </a>
+                                        </button>
                                     </td>
                                 </tr>
                                 {% endfor %}

@@ -155,6 +155,9 @@ class Event
     #[ORM\OneToMany(targetEntity: LienAccessibiliteEvenement::class, mappedBy: 'evenement', cascade: ['persist', 'remove'])]
     private Collection $liensAccessibilites;
 
+    #[ORM\OneToMany(targetEntity: OrganisateurEvenement::class, mappedBy: 'evenement', cascade: ['persist', 'remove'])]
+    private Collection $organisateursEvenements;
+
     #[ORM\PreUpdate]
     public function updateModifiedAt(): void
     {
@@ -165,6 +168,7 @@ class Event
     {
         $this->liensLangues = new ArrayCollection();
         $this->liensAccessibilites = new ArrayCollection();
+        $this->organisateursEvenements = new ArrayCollection();
     }
 
     // Getters et Setters pour les relations
@@ -183,6 +187,14 @@ class Event
         $this->profilOrganisateur = $profilOrganisateur;
 
         return $this;
+    }
+
+    /**
+     * Helper method pour récupérer l'utilisateur organisateur
+     */
+    public function getOrganizer(): ?User
+    {
+        return $this->profilOrganisateur?->getUtilisateur();
     }
 
     public function getCategoriePrincipale(): ?EventCategory
@@ -646,6 +658,79 @@ class Event
         if ($this->liensAccessibilites->removeElement($lienAccessibilite)) {
             if ($lienAccessibilite->getEvenement() === $this) {
                 $lienAccessibilite->setEvenement(null);
+            }
+        }
+
+        return $this;
+    }
+
+    /**
+     * @return Collection<int, OrganisateurEvenement>
+     */
+    public function getOrganisateursEvenements(): Collection
+    {
+        return $this->organisateursEvenements;
+    }
+
+    /**
+     * Récupère tous les organisateurs associés à cet événement (via la table de liaison)
+     *
+     * @return Collection<int, OrganizerProfile>
+     */
+    public function getOrganisateurs(): Collection
+    {
+        $organisateurs = new ArrayCollection();
+        foreach ($this->organisateursEvenements as $organisateurEvenement) {
+            if ($organisateurEvenement->getProfilOrganisateur()) {
+                $organisateurs->add($organisateurEvenement->getProfilOrganisateur());
+            }
+        }
+        return $organisateurs;
+    }
+
+    /**
+     * Vérifie si un organisateur est associé à cet événement
+     */
+    public function hasOrganisateur(OrganizerProfile $organisateur): bool
+    {
+        foreach ($this->organisateursEvenements as $organisateurEvenement) {
+            if ($organisateurEvenement->getProfilOrganisateur() === $organisateur) {
+                return true;
+            }
+        }
+        return false;
+    }
+
+    /**
+     * Ajoute un organisateur à cet événement
+     */
+    public function addOrganisateur(OrganizerProfile $organisateur, string $role = OrganisateurEvenement::ROLE_CO_ORGANISATEUR, ?OrganizerProfile $ajoutePar = null): static
+    {
+        if (!$this->hasOrganisateur($organisateur)) {
+            $organisateurEvenement = new OrganisateurEvenement();
+            $organisateurEvenement->setEvenement($this);
+            $organisateurEvenement->setProfilOrganisateur($organisateur);
+            $organisateurEvenement->setRole($role);
+            $organisateurEvenement->setAjoutePar($ajoutePar);
+            $this->organisateursEvenements->add($organisateurEvenement);
+        }
+
+        return $this;
+    }
+
+    /**
+     * Retire un organisateur de cet événement
+     */
+    public function removeOrganisateur(OrganizerProfile $organisateur): static
+    {
+        foreach ($this->organisateursEvenements as $organisateurEvenement) {
+            if ($organisateurEvenement->getProfilOrganisateur() === $organisateur) {
+                if ($this->organisateursEvenements->removeElement($organisateurEvenement)) {
+                    if ($organisateurEvenement->getEvenement() === $this) {
+                        $organisateurEvenement->setEvenement(null);
+                    }
+                }
+                break;
             }
         }
 

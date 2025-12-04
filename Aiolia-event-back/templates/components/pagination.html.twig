@@ -1,0 +1,168 @@
+{# Composant de pagination générique
+   Variables attendues :
+   - pagination: { total, page, limit, totalPages, hasNext, hasPrev, startItem, endItem }
+   - route: nom de la route Symfony
+   - criteria: tableau de critères (sera fusionné avec { page: X })
+#}
+
+{% if pagination.total > pagination.limit %}
+    <div class="pagination-section">
+        <nav aria-label="Pagination">
+            <ul class="pagination pagination-horizontal">
+                {# Précédent #}
+                <li class="page-item {% if not pagination.hasPrev %}disabled{% endif %}">
+                    <a class="page-link"
+                       href="{% if pagination.hasPrev %}{{ path(route, criteria|merge({page: pagination.page - 1})) }}{% else %}#{% endif %}"
+                       aria-label="Précédent">
+                        <i class="fas fa-chevron-left"></i>
+                    </a>
+                </li>
+
+                {# Première page + ellipsis éventuel #}
+                {% if pagination.page > 3 and pagination.totalPages > 5 %}
+                    <li class="page-item {% if pagination.page == 1 %}active{% endif %}">
+                        <a class="page-link" href="{{ path(route, criteria|merge({page: 1})) }}">1</a>
+                    </li>
+                    {% if pagination.page > 4 %}
+                        <li class="page-item disabled">
+                            <span class="page-link">…</span>
+                        </li>
+                    {% endif %}
+                {% endif %}
+
+                {# Pages autour de la page courante #}
+                {% set startPage = max(1, pagination.page - 2) %}
+                {% set endPage = min(pagination.totalPages, pagination.page + 2) %}
+
+                {% for p in startPage..endPage %}
+                    <li class="page-item {% if p == pagination.page %}active{% endif %}">
+                        <a class="page-link" href="{{ path(route, criteria|merge({page: p})) }}">{{ p }}</a>
+                    </li>
+                {% endfor %}
+
+                {# Dernière page + ellipsis éventuel #}
+                {% if pagination.page < pagination.totalPages - 2 and pagination.totalPages > 5 %}
+                    {% if pagination.page < pagination.totalPages - 3 %}
+                        <li class="page-item disabled">
+                            <span class="page-link">…</span>
+                        </li>
+                    {% endif %}
+                    <li class="page-item {% if pagination.page == pagination.totalPages %}active{% endif %}">
+                        <a class="page-link"
+                           href="{{ path(route, criteria|merge({page: pagination.totalPages})) }}">{{ pagination.totalPages }}</a>
+                    </li>
+                {% endif %}
+
+                {# Suivant #}
+                <li class="page-item {% if not pagination.hasNext %}disabled{% endif %}">
+                    <a class="page-link"
+                       href="{% if pagination.hasNext %}{{ path(route, criteria|merge({page: pagination.page + 1})) }}{% else %}#{% endif %}"
+                       aria-label="Suivant">
+                        <i class="fas fa-chevron-right"></i>
+                    </a>
+                </li>
+            </ul>
+        </nav>
+
+        <div class="pagination-info">
+            <p>
+                Affichage de
+                <strong>{{ pagination.startItem }}</strong>
+                à
+                <strong>{{ pagination.endItem }}</strong>
+                sur
+                <strong>{{ pagination.total }}</strong>
+                événement(s)
+            </p>
+            <p>
+                Page <strong>{{ pagination.page }}</strong>
+                sur <strong>{{ pagination.totalPages }}</strong>
+            </p>
+        </div>
+    </div>
+{% elseif pagination.total > 0 %}
+    <div class="pagination-section">
+        <div class="pagination-info">
+            <p>
+                Affichage de <strong>1</strong> à <strong>{{ pagination.total }}</strong>
+                sur <strong>{{ pagination.total }}</strong> événement(s)
+            </p>
+        </div>
+    </div>
+{% endif %}
+
+{# Styles locaux harmonisés avec la charte Aiolia (mêmes variables que les autres pages) #}
+<style>
+.pagination-section {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    margin-top: 32px;
+    padding: 20px 24px;
+    background: var(--bg-card, #0f172a);
+    border-radius: var(--border-radius-md, 12px);
+    border: 1px solid var(--border-color, #1f2937);
+    box-shadow: var(--shadow-sm, 0 4px 12px rgba(15, 23, 42, 0.35));
+}
+
+.pagination-horizontal {
+    display: inline-flex;
+    gap: 6px;
+    align-items: center;
+    flex-wrap: wrap;
+    justify-content: center;
+    list-style: none;
+    margin: 0;
+    padding: 0;
+}
+
+.pagination-horizontal .page-item {
+    margin: 0;
+}
+
+.pagination-horizontal .page-link {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    min-width: 36px;
+    height: 36px;
+    padding: 6px 10px;
+    border-radius: 999px;
+    border: 1px solid var(--border-color, #1f2937);
+    background: var(--bg-card, #0b1220);
+    color: var(--text-secondary, #9ca3af);
+    font-weight: 500;
+    font-size: 0.85rem;
+    text-decoration: none;
+    transition: all 0.2s ease;
+}
+
+.pagination-horizontal .page-link:hover:not(.disabled) {
+    background: rgba(59, 130, 246, 0.08);
+    border-color: var(--primary, #3b82f6);
+    color: var(--primary, #3b82f6);
+    transform: translateY(-1px);
+    box-shadow: 0 2px 8px rgba(15, 23, 42, 0.35);
+}
+
+.pagination-horizontal .page-item.active .page-link {
+    background: var(--primary, #3b82f6);
+    border-color: var(--primary, #3b82f6);
+    color: #ffffff;
+    box-shadow: 0 3px 10px rgba(59, 130, 246, 0.45);
+}
+
+.pagination-horizontal .page-item.disabled .page-link {
+    opacity: 0.4;
+    cursor: not-allowed;
+    pointer-events: none;
+}
+
+.pagination-info {
+    margin-top: 10px;
+    font-size: 0.8rem;
+    color: var(--text-secondary, #9ca3af);
+    text-align: center;
+}
+</style>
+

@@ -6,6 +6,7 @@ use App\Entity\Event;
 use App\Entity\EventCategory;
 use App\Entity\EventType;
 use App\Entity\EspaceLieu;
+use App\Entity\OrganisateurEvenement;
 use App\Entity\OrganizerProfile;
 use App\Entity\User;
 use App\Entity\Venue;
@@ -157,6 +158,245 @@ class EventService
     }
 
     /**
+     * Recherche multicritères d'événements
+     *
+     * @param array $criteria Critères de recherche :
+     *   - 'idOrganisateur' (string) : ID du profil organisateur (obligatoire)
+     *   - 'nomLieu' (string|null) : Nom du lieu
+     *   - 'dateDebut' (\DateTimeInterface|null) : Date de début
+     *   - 'dateFin' (\DateTimeInterface|null) : Date de fin
+     *   - 'typeEvenementId' (string|null) : ID du type d'événement
+     *   - 'prixMin' (float|null) : Prix minimum
+     *   - 'prixMax' (float|null) : Prix maximum
+     *   - 'triPrix' (string|null) : 'asc' pour croissant, 'desc' pour décroissant
+     *   - 'limit' (int|null) : Limite de résultats
+     *   - 'offset' (int|null) : Offset pour la pagination
+     * @return array Tableau d'événements
+     * @throws \InvalidArgumentException Si idOrganisateur n'est pas fourni
+     */
+    public function searchMultiCriteria(array $criteria): array
+    {
+        $idOrganisateur = $criteria['idOrganisateur'] ?? null;
+        if ($idOrganisateur === null || $idOrganisateur === '') {
+            throw new \InvalidArgumentException('Le paramètre idOrganisateur est obligatoire');
+        }
+
+        $nomLieu = $criteria['nomLieu'] ?? null;
+        $dateDebut = $criteria['dateDebut'] ?? null;
+        $dateFin = $criteria['dateFin'] ?? null;
+        $typeEvenementId = $criteria['typeEvenementId'] ?? null;
+        $statut = $criteria['statut'] ?? null;
+        $prixMin = $criteria['prixMin'] ?? null;
+        $prixMax = $criteria['prixMax'] ?? null;
+        $triPrix = $criteria['triPrix'] ?? null;
+        $limit = $criteria['limit'] ?? null;
+        $offset = $criteria['offset'] ?? null;
+
+        // Normaliser les valeurs null/0 pour les prix
+        if ($prixMin !== null && ($prixMin === 0 || $prixMin === '0')) {
+            $prixMin = null;
+        }
+        if ($prixMax !== null && ($prixMax === 0 || $prixMax === '0')) {
+            $prixMax = null;
+        }
+
+        // Normaliser le type d'événement
+        if ($typeEvenementId !== null && ($typeEvenementId === '0' || $typeEvenementId === '')) {
+            $typeEvenementId = null;
+        }
+
+        // Normaliser le statut
+        if ($statut !== null && $statut === '') {
+            $statut = null;
+        }
+
+        // Convertir les dates si elles sont des strings
+        if ($dateDebut !== null && is_string($dateDebut)) {
+            try {
+                $dateDebut = new \DateTime($dateDebut);
+            } catch (\Exception $e) {
+                $dateDebut = null;
+            }
+        }
+
+        if ($dateFin !== null && is_string($dateFin)) {
+            try {
+                $dateFin = new \DateTime($dateFin);
+            } catch (\Exception $e) {
+                $dateFin = null;
+            }
+        }
+
+        return $this->eventRepository->searchMultiCriteria(
+            $idOrganisateur,
+            $nomLieu,
+            $dateDebut,
+            $dateFin,
+            $typeEvenementId,
+            $statut,
+            $prixMin,
+            $prixMax,
+            $triPrix,
+            $limit,
+            $offset
+        );
+    }
+
+    /**
+     * Compte les résultats d'une recherche multicritères
+     *
+     * @param array $criteria Critères de recherche (même format que searchMultiCriteria)
+     * @return int Nombre de résultats
+     * @throws \InvalidArgumentException Si idOrganisateur n'est pas fourni
+     */
+    public function countSearchMultiCriteria(array $criteria): int
+    {
+        $idOrganisateur = $criteria['idOrganisateur'] ?? null;
+        if ($idOrganisateur === null || $idOrganisateur === '') {
+            throw new \InvalidArgumentException('Le paramètre idOrganisateur est obligatoire');
+        }
+
+        $nomLieu = $criteria['nomLieu'] ?? null;
+        $dateDebut = $criteria['dateDebut'] ?? null;
+        $dateFin = $criteria['dateFin'] ?? null;
+        $typeEvenementId = $criteria['typeEvenementId'] ?? null;
+        $statut = $criteria['statut'] ?? null;
+        $prixMin = $criteria['prixMin'] ?? null;
+        $prixMax = $criteria['prixMax'] ?? null;
+
+        // Normaliser les valeurs null/0 pour les prix
+        if ($prixMin !== null && ($prixMin === 0 || $prixMin === '0')) {
+            $prixMin = null;
+        }
+        if ($prixMax !== null && ($prixMax === 0 || $prixMax === '0')) {
+            $prixMax = null;
+        }
+
+        // Normaliser le type d'événement
+        if ($typeEvenementId !== null && ($typeEvenementId === '0' || $typeEvenementId === '')) {
+            $typeEvenementId = null;
+        }
+
+        // Normaliser le statut
+        if ($statut !== null && $statut === '') {
+            $statut = null;
+        }
+
+        // Convertir les dates si elles sont des strings
+        if ($dateDebut !== null && is_string($dateDebut)) {
+            try {
+                $dateDebut = new \DateTime($dateDebut);
+            } catch (\Exception $e) {
+                $dateDebut = null;
+            }
+        }
+
+        if ($dateFin !== null && is_string($dateFin)) {
+            try {
+                $dateFin = new \DateTime($dateFin);
+            } catch (\Exception $e) {
+                $dateFin = null;
+            }
+        }
+
+        return $this->eventRepository->countSearchMultiCriteria(
+            $idOrganisateur,
+            $nomLieu,
+            $dateDebut,
+            $dateFin,
+            $typeEvenementId,
+            $prixMin,
+            $prixMax,
+            $statut
+        );
+    }
+
+    /**
+     * Recherche multicritères avec pagination complète
+     *
+     * @param array $criteria Critères de recherche :
+     *   - 'idOrganisateur' (string) : ID du profil organisateur (obligatoire)
+     *   - 'nomLieu' (string|null) : Nom du lieu
+     *   - 'dateDebut' (\DateTimeInterface|null) : Date de début
+     *   - 'dateFin' (\DateTimeInterface|null) : Date de fin
+     *   - 'typeEvenementId' (string|null) : ID du type d'événement
+     *   - 'prixMin' (float|null) : Prix minimum
+     *   - 'prixMax' (float|null) : Prix maximum
+     *   - 'triPrix' (string|null) : 'asc' pour croissant, 'desc' pour décroissant
+     *   - 'page' (int) : Numéro de page (commence à 1, défaut: 1)
+     *   - 'limit' (int) : Nombre d'éléments par page (défaut: 20)
+     * @return array ['items' => Event[], 'pagination' => array]
+     * @throws \InvalidArgumentException Si idOrganisateur n'est pas fourni
+     */
+    public function searchMultiCriteriaWithPagination(array $criteria): array
+    {
+        $idOrganisateur = $criteria['idOrganisateur'] ?? null;
+        if ($idOrganisateur === null || $idOrganisateur === '') {
+            throw new \InvalidArgumentException('Le paramètre idOrganisateur est obligatoire');
+        }
+
+        $nomLieu = $criteria['nomLieu'] ?? null;
+        $dateDebut = $criteria['dateDebut'] ?? null;
+        $dateFin = $criteria['dateFin'] ?? null;
+        $typeEvenementId = $criteria['typeEvenementId'] ?? null;
+        $statut = $criteria['statut'] ?? null;
+        $prixMin = $criteria['prixMin'] ?? null;
+        $prixMax = $criteria['prixMax'] ?? null;
+        $triPrix = $criteria['triPrix'] ?? null;
+        $page = max(1, (int) ($criteria['page'] ?? 1));
+        $limit = max(1, (int) ($criteria['limit'] ?? 20));
+
+        // Normaliser les valeurs null/0 pour les prix
+        if ($prixMin !== null && ($prixMin === 0 || $prixMin === '0')) {
+            $prixMin = null;
+        }
+        if ($prixMax !== null && ($prixMax === 0 || $prixMax === '0')) {
+            $prixMax = null;
+        }
+
+        // Normaliser le type d'événement
+        if ($typeEvenementId !== null && ($typeEvenementId === '0' || $typeEvenementId === '')) {
+            $typeEvenementId = null;
+        }
+
+        // Normaliser le statut
+        if ($statut !== null && $statut === '') {
+            $statut = null;
+        }
+
+        // Convertir les dates si elles sont des strings
+        if ($dateDebut !== null && is_string($dateDebut)) {
+            try {
+                $dateDebut = new \DateTime($dateDebut);
+            } catch (\Exception $e) {
+                $dateDebut = null;
+            }
+        }
+
+        if ($dateFin !== null && is_string($dateFin)) {
+            try {
+                $dateFin = new \DateTime($dateFin);
+            } catch (\Exception $e) {
+                $dateFin = null;
+            }
+        }
+
+        return $this->eventRepository->searchMultiCriteriaWithPagination(
+            $idOrganisateur,
+            $nomLieu,
+            $dateDebut,
+            $dateFin,
+            $typeEvenementId,
+            $prixMin,
+            $prixMax,
+            $triPrix,
+            $page,
+            $limit,
+            $statut
+        );
+    }
+
+    /**
      * Récupère les statistiques d'un événement
      */
     public function getEventStatistics(Event $event): array
@@ -166,23 +406,96 @@ class EventService
 
     /**
      * Vérifie si un utilisateur peut modifier un événement
+     * Vérifie si l'utilisateur est l'organisateur principal, un co-organisateur, ou un admin
      */
     public function canEdit(Event $event, User $user): bool
     {
-        $organizerProfile = $event->getProfilOrganisateur();
-        if ($organizerProfile === null) {
-            return in_array('ROLE_ADMIN', $user->getRoles());
+        // Les admins peuvent toujours modifier
+        if (in_array('ROLE_ADMIN', $user->getRoles())) {
+            return true;
         }
 
-        return $organizerProfile->getUtilisateur() === $user || in_array('ROLE_ADMIN', $user->getRoles());
+        // Vérifier si l'utilisateur est l'organisateur principal
+        $organizerProfile = $event->getProfilOrganisateur();
+        if ($organizerProfile !== null && $organizerProfile->getUtilisateur() === $user) {
+            return true;
+        }
+
+        // Vérifier si l'utilisateur est un co-organisateur avec les permissions appropriées
+        foreach ($event->getOrganisateursEvenements() as $organisateurEvenement) {
+            $profil = $organisateurEvenement->getProfilOrganisateur();
+            if ($profil && $profil->getUtilisateur() === $user) {
+                $role = $organisateurEvenement->getRole();
+                // Les créateurs et co-organisateurs peuvent modifier
+                if (in_array($role, [
+                    OrganisateurEvenement::ROLE_CREATEUR,
+                    OrganisateurEvenement::ROLE_CO_ORGANISATEUR
+                ])) {
+                    return true;
+                }
+            }
+        }
+
+        return false;
     }
 
     /**
      * Vérifie si un utilisateur peut supprimer un événement
+     * Seuls l'organisateur principal (créateur) ou un admin peuvent supprimer
      */
     public function canDelete(Event $event, User $user): bool
     {
-        return $this->canEdit($event, $user);
+        // Les admins peuvent toujours supprimer
+        if (in_array('ROLE_ADMIN', $user->getRoles())) {
+            return true;
+        }
+
+        // Seul l'organisateur principal peut supprimer
+        $organizerProfile = $event->getProfilOrganisateur();
+        if ($organizerProfile !== null && $organizerProfile->getUtilisateur() === $user) {
+            return true;
+        }
+
+        return false;
+    }
+
+    /**
+     * Ajoute un organisateur à un événement
+     */
+    public function addOrganisateurToEvent(
+        Event $event,
+        OrganizerProfile $organisateur,
+        string $role = OrganisateurEvenement::ROLE_CO_ORGANISATEUR,
+        ?OrganizerProfile $ajoutePar = null
+    ): Event {
+        $event->addOrganisateur($organisateur, $role, $ajoutePar);
+        return $this->eventRepository->update($event);
+    }
+
+    /**
+     * Retire un organisateur d'un événement
+     */
+    public function removeOrganisateurFromEvent(Event $event, OrganizerProfile $organisateur): Event
+    {
+        $event->removeOrganisateur($organisateur);
+        return $this->eventRepository->update($event);
+    }
+
+    /**
+     * Met à jour le rôle d'un organisateur dans un événement
+     */
+    public function updateOrganisateurRole(
+        Event $event,
+        OrganizerProfile $organisateur,
+        string $role
+    ): Event {
+        foreach ($event->getOrganisateursEvenements() as $organisateurEvenement) {
+            if ($organisateurEvenement->getProfilOrganisateur() === $organisateur) {
+                $organisateurEvenement->setRole($role);
+                break;
+            }
+        }
+        return $this->eventRepository->update($event);
     }
 
     /**
