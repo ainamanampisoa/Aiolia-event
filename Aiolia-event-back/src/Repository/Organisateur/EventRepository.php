@@ -19,6 +19,55 @@ class EventRepository extends ServiceEntityRepository
     }
 
     /**
+     * Récupère tous les événements
+     */
+    public function getAll(): array
+    {
+        return $this->createQueryBuilder('e')
+            ->orderBy('e.creeLe', 'DESC')
+            ->getQuery()
+            ->getResult();
+    }
+
+    /**
+     * Récupère un événement par son ID
+     */
+    public function getById(string $id): ?Event
+    {
+        return $this->find($id);
+    }
+
+    /**
+     * Crée un nouvel événement
+     */
+    public function create(Event $event): Event
+    {
+        $this->getEntityManager()->persist($event);
+        $this->getEntityManager()->flush();
+
+        return $event;
+    }
+
+    /**
+     * Met à jour un événement
+     */
+    public function update(Event $event): Event
+    {
+        $this->getEntityManager()->flush();
+
+        return $event;
+    }
+
+    /**
+     * Supprime un événement
+     */
+    public function delete(Event $event): void
+    {
+        $this->getEntityManager()->remove($event);
+        $this->getEntityManager()->flush();
+    }
+
+    /**
      * Récupère tous les événements publiés à venir
      */
     public function findUpcomingEvents(int $limit = 0): array

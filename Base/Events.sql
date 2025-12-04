@@ -42,6 +42,12 @@ DECLARE
     v_id_cat_vip BIGINT;
     v_id_cat_gratuit BIGINT;
     v_id_cat_promo BIGINT;
+    v_id_langue_fr BIGINT;
+    v_id_langue_mg BIGINT;
+    v_id_langue_en BIGINT;
+    v_id_type_access_wheelchair BIGINT;
+    v_id_type_access_hearing BIGINT;
+    v_id_session BIGINT;
 BEGIN
     -- Récupérer l'ID de l'utilisateur organisateur (créé par data.sql)
     SELECT id INTO v_id_utilisateur_org 
@@ -97,6 +103,36 @@ BEGIN
         ('spectacle', 'Spectacle', 'Spectacle vivant'),
         ('projection', 'Projection', 'Projection cinéma')
     ON CONFLICT (slug) DO NOTHING;
+
+    -- ============================================================
+    -- CRÉER LES LANGUES DE RÉFÉRENCE
+    -- ============================================================
+    INSERT INTO aiolia.langues (code, libelle, est_actif)
+    VALUES 
+        ('mg', 'Malagasy', TRUE),
+        ('fr', 'Français', TRUE),
+        ('en', 'Anglais', TRUE)
+    ON CONFLICT (code) DO NOTHING;
+
+    -- ============================================================
+    -- CRÉER LES TYPES D'ACCESSIBILITÉ DE RÉFÉRENCE
+    -- ============================================================
+    INSERT INTO aiolia.types_accessibilite (code, libelle, est_actif)
+    VALUES 
+        ('wheelchair', 'Accès fauteuil roulant', TRUE),
+        ('hearing', 'Accessible aux malentendants', TRUE),
+        ('visual', 'Accessible aux malvoyants', TRUE),
+        ('mobility', 'Accessible mobilité réduite', TRUE),
+        ('cognitive', 'Accessible troubles cognitifs', TRUE),
+        ('other', 'Autre', TRUE)
+    ON CONFLICT (code) DO NOTHING;
+
+    -- Récupérer les IDs des langues et types d'accessibilité
+    SELECT id INTO v_id_langue_fr FROM aiolia.langues WHERE code = 'fr';
+    SELECT id INTO v_id_langue_mg FROM aiolia.langues WHERE code = 'mg';
+    SELECT id INTO v_id_langue_en FROM aiolia.langues WHERE code = 'en';
+    SELECT id INTO v_id_type_access_wheelchair FROM aiolia.types_accessibilite WHERE code = 'wheelchair';
+    SELECT id INTO v_id_type_access_hearing FROM aiolia.types_accessibilite WHERE code = 'hearing';
 
     -- Créer un lieu principal
     INSERT INTO aiolia.lieux (
@@ -300,19 +336,51 @@ BEGIN
             (v_id_event, 'visa', TRUE),
             (v_id_event, 'mastercard', TRUE);
 
-        -- Ajouter langues
-        INSERT INTO aiolia.langues_evenements (id_evenement, code_langue)
-        VALUES 
-            (v_id_event, 'fr'),
-            (v_id_event, 'mg'),
-            (v_id_event, 'en');
+        -- Ajouter langues (via table de liaison)
+        IF v_id_langue_fr IS NOT NULL THEN
+            INSERT INTO aiolia.liens_langues_evenements (id_evenement, id_langue)
+            VALUES (v_id_event, v_id_langue_fr)
+            ON CONFLICT DO NOTHING;
+        END IF;
+        IF v_id_langue_mg IS NOT NULL THEN
+            INSERT INTO aiolia.liens_langues_evenements (id_evenement, id_langue)
+            VALUES (v_id_event, v_id_langue_mg)
+            ON CONFLICT DO NOTHING;
+        END IF;
+        IF v_id_langue_en IS NOT NULL THEN
+            INSERT INTO aiolia.liens_langues_evenements (id_evenement, id_langue)
+            VALUES (v_id_event, v_id_langue_en)
+            ON CONFLICT DO NOTHING;
+        END IF;
 
-        -- Ajouter accessibilité
+        -- Ajouter accessibilité (via table de liaison)
         IF i % 3 = 0 THEN
-            INSERT INTO aiolia.accessibilite_evenements (id_evenement, type_accessibilite, description)
-            VALUES 
-                (v_id_event, 'wheelchair', 'Accès complet pour fauteuils roulants'),
-                (v_id_event, 'hearing', 'Boucle magnétique disponible');
+            IF v_id_type_access_wheelchair IS NOT NULL THEN
+                INSERT INTO aiolia.liens_accessibilite_evenements (id_evenement, id_type_accessibilite, description)
+                VALUES (v_id_event, v_id_type_access_wheelchair, 'Accès complet pour fauteuils roulants')
+                ON CONFLICT DO NOTHING;
+            END IF;
+            IF v_id_type_access_hearing IS NOT NULL THEN
+                INSERT INTO aiolia.liens_accessibilite_evenements (id_evenement, id_type_accessibilite, description)
+                VALUES (v_id_event, v_id_type_access_hearing, 'Boucle magnétique disponible')
+                ON CONFLICT DO NOTHING;
+            END IF;
+        END IF;
+
+        -- Créer des sessions pour certains événements (1 session sur 3)
+        IF i % 3 = 1 THEN
+            INSERT INTO aiolia.sessions_evenements (
+                id_evenement, id_espace_lieu, titre, description,
+                commence_le, se_termine_le, capacite
+            ) VALUES (
+                v_id_event,
+                v_id_espace,
+                'Session principale',
+                'Session principale de l''événement',
+                v_date_debut,
+                v_date_fin,
+                (ARRAY[500, 800, 300])[1 + (i % 3)]
+            ) RETURNING id INTO v_id_session;
         END IF;
 
         -- ============================================================
@@ -357,6 +425,34 @@ BEGIN
                     CASE WHEN i <= 18 THEN (3 + j) ELSE 0 END,
                     CASE WHEN i <= 18 THEN (15 + (j * 5)) ELSE 0 END
                 );
+
+                -- Ajouter une règle de tarification pour certains billets
+                IF j = 1 AND i % 5 = 0 THEN
+                    INSERT INTO aiolia.regles_tarification (
+                        id_type_billet, type_regle, valeur_seuil, valeur,
+                        commence_le, se_termine_le
+                    ) VALUES (
+                        v_id_type_billet,
+                        'time_window'::pricing_rule_type_enum,
+                        NULL,
+                        v_prix * 0.8, -- Réduction de 20%
+                        v_date_debut - INTERVAL '30 days',
+                        v_date_debut - INTERVAL '7 days'
+                    );
+                END IF;
+
+                -- Ajouter un historique de prix si le prix a changé
+                IF j > 1 THEN
+                    INSERT INTO aiolia.historique_prix_billets (
+                        id_type_billet, modifie_par, prix_precedent, nouveau_prix, raison
+                    ) VALUES (
+                        v_id_type_billet,
+                        v_id_utilisateur_org,
+                        v_prix * 0.9,
+                        v_prix,
+                        'Ajustement tarifaire initial'
+                    );
+                END IF;
             END LOOP;
 
         -- Scénario 2: Événements avec tarification différenciée adulte/enfant
@@ -376,6 +472,19 @@ BEGIN
                 v_date_debut - INTERVAL '30 days', v_date_debut - INTERVAL '1 hour', 1, 10
             ) RETURNING id INTO v_id_type_billet;
             INSERT INTO aiolia.inventaire_billets VALUES (v_id_type_billet, 120, 8, 40);
+
+            -- Ajouter une règle de tarification pour les billets adulte
+            INSERT INTO aiolia.regles_tarification (
+                id_type_billet, type_regle, valeur_seuil, valeur,
+                commence_le, se_termine_le
+            ) VALUES (
+                v_id_type_billet,
+                'tier'::pricing_rule_type_enum,
+                50,
+                v_prix * 0.9, -- Réduction de 10% après 50 billets
+                v_date_debut - INTERVAL '30 days',
+                v_date_debut - INTERVAL '1 hour'
+            );
 
             INSERT INTO aiolia.types_billets (
                 id_evenement, id_configuration_categorie, id_configuration_segment,
@@ -459,6 +568,21 @@ BEGIN
                     CASE WHEN i <= 18 THEN (2 + j) ELSE 0 END,
                     CASE WHEN i <= 18 THEN (20 + (j * 3)) ELSE 0 END
                 );
+
+                -- Ajouter des règles de tarification pour les billets Early Bird
+                IF j = 1 THEN
+                    INSERT INTO aiolia.regles_tarification (
+                        id_type_billet, type_regle, valeur_seuil, valeur,
+                        commence_le, se_termine_le
+                    ) VALUES (
+                        v_id_type_billet,
+                        'time_window'::pricing_rule_type_enum,
+                        NULL,
+                        v_prix * 0.7, -- Réduction de 30% pour Early Bird
+                        v_date_debut - INTERVAL '30 days',
+                        v_date_debut - INTERVAL '14 days'
+                    );
+                END IF;
             END LOOP;
 
         -- Scénario 4: Événements avec catégories multiples et tarifs variés
@@ -493,6 +617,19 @@ BEGIN
                 v_date_debut - INTERVAL '30 days', v_date_debut - INTERVAL '1 hour', 1, 8
             ) RETURNING id INTO v_id_type_billet;
             INSERT INTO aiolia.inventaire_billets VALUES (v_id_type_billet, 200, 10, 60);
+
+            -- Ajouter une règle de tarification pour les billets standard
+            INSERT INTO aiolia.regles_tarification (
+                id_type_billet, type_regle, valeur_seuil, valeur,
+                commence_le, se_termine_le
+            ) VALUES (
+                v_id_type_billet,
+                'promo'::pricing_rule_type_enum,
+                NULL,
+                v_prix * 0.85, -- Réduction de 15% avec code promo
+                v_date_debut - INTERVAL '30 days',
+                v_date_debut - INTERVAL '1 hour'
+            );
 
             -- VIP Adulte uniquement
             v_prix := 60000;

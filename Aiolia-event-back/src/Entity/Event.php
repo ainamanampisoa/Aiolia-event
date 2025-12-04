@@ -3,6 +3,8 @@
 namespace App\Entity;
 
 use App\Repository\Organisateur\EventRepository;
+use Doctrine\Common\Collections\ArrayCollection;
+use Doctrine\Common\Collections\Collection;
 use Doctrine\DBAL\Types\Types;
 use Doctrine\ORM\Mapping as ORM;
 
@@ -20,198 +22,218 @@ class Event
     public const VISIBILITY_PRIVATE = 'private';
     public const VISIBILITY_UNLISTED = 'unlisted';
 
+    public const FORMAT_IN_PERSON = 'in_person';
+    public const FORMAT_ONLINE = 'online';
+    public const FORMAT_HYBRID = 'hybrid';
+
     #[ORM\Id]
     #[ORM\GeneratedValue]
     #[ORM\Column(type: Types::BIGINT)]
     private ?string $id = null;
 
-    #[ORM\Column(name: 'id_profil_organisateur', type: Types::BIGINT, nullable: true)]
-    private ?string $organizerProfileId = null;
-    
-    private ?User $organizer = null;
+    #[ORM\ManyToOne(targetEntity: OrganizerProfile::class)]
+    #[ORM\JoinColumn(name: 'id_profil_organisateur', referencedColumnName: 'id', nullable: true, onDelete: 'SET NULL')]
+    private ?OrganizerProfile $profilOrganisateur = null;
 
     #[ORM\ManyToOne(targetEntity: EventCategory::class)]
     #[ORM\JoinColumn(name: 'id_categorie_principale', referencedColumnName: 'id', nullable: true, onDelete: 'SET NULL')]
-    private ?EventCategory $primaryCategory = null;
+    private ?EventCategory $categoriePrincipale = null;
 
-    #[ORM\Column(name: 'id_lieu', type: Types::BIGINT, nullable: true)]
-    private ?string $venueId = null;
+    #[ORM\ManyToOne(targetEntity: EventType::class)]
+    #[ORM\JoinColumn(name: 'id_type_evenement', referencedColumnName: 'id', nullable: true, onDelete: 'SET NULL')]
+    private ?EventType $typeEvenement = null;
+
+    #[ORM\ManyToOne(targetEntity: Venue::class)]
+    #[ORM\JoinColumn(name: 'id_lieu', referencedColumnName: 'id', nullable: true, onDelete: 'SET NULL')]
+    private ?Venue $lieu = null;
+
+    #[ORM\ManyToOne(targetEntity: EspaceLieu::class)]
+    #[ORM\JoinColumn(name: 'id_espace_principal', referencedColumnName: 'id', nullable: true, onDelete: 'SET NULL')]
+    private ?EspaceLieu $espacePrincipal = null;
 
     #[ORM\Column(name: 'slug', type: Types::STRING, length: 255, unique: true)]
     private string $slug;
 
     #[ORM\Column(name: 'titre', type: Types::STRING, length: 255)]
-    private string $title;
+    private string $titre;
 
     #[ORM\Column(name: 'sous_titre', type: Types::STRING, length: 255, nullable: true)]
-    private ?string $subtitle = null;
+    private ?string $sousTitre = null;
 
     #[ORM\Column(name: 'resume', type: Types::TEXT, nullable: true)]
-    private ?string $summary = null;
+    private ?string $resume = null;
 
     #[ORM\Column(name: 'description', type: Types::TEXT, nullable: true)]
     private ?string $description = null;
 
     #[ORM\Column(name: 'url_image_couverture', type: Types::TEXT, nullable: true)]
-    private ?string $coverImageUrl = null;
+    private ?string $urlImageCouverture = null;
 
-    #[ORM\Column(name: 'statut', type: Types::STRING, length: 20, options: ['default' => self::STATUS_DRAFT])]
-    private string $status = self::STATUS_DRAFT;
+    #[ORM\Column(name: 'statut', type: Types::STRING, length: 20, options: ['default' => self::STATUS_DRAFT], columnDefinition: "event_status_enum NOT NULL DEFAULT 'draft'")]
+    private string $statut = self::STATUS_DRAFT;
 
-    #[ORM\Column(name: 'visibilite', type: Types::STRING, length: 20, options: ['default' => self::VISIBILITY_PUBLIC])]
-    private string $visibility = self::VISIBILITY_PUBLIC;
+    #[ORM\Column(name: 'visibilite', type: Types::STRING, length: 20, options: ['default' => self::VISIBILITY_PUBLIC], columnDefinition: "event_visibility_enum NOT NULL DEFAULT 'public'")]
+    private string $visibilite = self::VISIBILITY_PUBLIC;
+
+    #[ORM\Column(name: 'format_evenement', type: Types::STRING, length: 20, options: ['default' => self::FORMAT_IN_PERSON], columnDefinition: "event_format_enum NOT NULL DEFAULT 'in_person'")]
+    private string $formatEvenement = self::FORMAT_IN_PERSON;
 
     #[ORM\Column(name: 'capacite', type: Types::INTEGER, nullable: true)]
-    private ?int $capacity = null;
+    private ?int $capacite = null;
 
     #[ORM\Column(name: 'fuseau_horaire', type: Types::STRING, length: 64, options: ['default' => 'Indian/Antananarivo'])]
-    private string $timezone = 'Indian/Antananarivo';
+    private string $fuseauHoraire = 'Indian/Antananarivo';
+
+    #[ORM\Column(name: 'localisation_override', type: Types::JSON, nullable: true)]
+    private ?array $localisationOverride = null;
+
+    #[ORM\Column(name: 'url_live', type: Types::TEXT, nullable: true)]
+    private ?string $urlLive = null;
+
+    #[ORM\Column(name: 'plateforme_streaming', type: Types::TEXT, nullable: true)]
+    private ?string $plateformeStreaming = null;
 
     #[ORM\Column(name: 'commence_le', type: Types::DATETIMETZ_MUTABLE)]
-    private \DateTimeInterface $startsAt;
+    private ?\DateTimeInterface $commenceLe = null;
 
     #[ORM\Column(name: 'se_termine_le', type: Types::DATETIMETZ_MUTABLE)]
-    private \DateTimeInterface $endsAt;
+    private ?\DateTimeInterface $seTermineLe = null;
 
     #[ORM\Column(name: 'ventes_commencent_le', type: Types::DATETIMETZ_MUTABLE, nullable: true)]
-    private ?\DateTimeInterface $salesStartsAt = null;
+    private ?\DateTimeInterface $ventesCommencentLe = null;
 
     #[ORM\Column(name: 'ventes_se_terminent_le', type: Types::DATETIMETZ_MUTABLE, nullable: true)]
-    private ?\DateTimeInterface $salesEndsAt = null;
+    private ?\DateTimeInterface $ventesSeTerminentLe = null;
 
     #[ORM\Column(name: 'restriction_age', type: Types::STRING, length: 120, nullable: true)]
-    private ?string $ageRestriction = null;
+    private ?string $restrictionAge = null;
 
     #[ORM\Column(name: 'code_langue', type: Types::STRING, length: 10, options: ['default' => 'fr-FR'])]
-    private string $languageCode = 'fr-FR';
+    private string $codeLangue = 'fr-FR';
 
     #[ORM\Column(name: 'est_en_vedette', type: Types::BOOLEAN, options: ['default' => false])]
-    private bool $isFeatured = false;
+    private bool $estEnVedette = false;
 
     #[ORM\Column(name: 'est_mis_en_avant', type: Types::BOOLEAN, options: ['default' => false])]
-    private bool $isHighlighted = false;
+    private bool $estMisEnAvant = false;
 
     #[ORM\Column(name: 'url_youtube', type: Types::TEXT, nullable: true)]
-    private ?string $youtubeUrl = null;
+    private ?string $urlYoutube = null;
 
     #[ORM\Column(name: 'nom_lieu_texte', type: Types::TEXT, nullable: true)]
-    private ?string $venueNameText = null;
+    private ?string $nomLieuTexte = null;
 
     #[ORM\Column(name: 'adresse_complete', type: Types::TEXT, nullable: true)]
-    private ?string $fullAddress = null;
+    private ?string $adresseComplete = null;
 
     #[ORM\Column(name: 'tarif_unique', type: Types::BOOLEAN, options: ['default' => false])]
-    private bool $singlePrice = false;
+    private bool $tarifUnique = false;
+
+    #[ORM\Column(name: 'code_qr', type: Types::TEXT, nullable: true)]
+    private ?string $codeQr = null;
+
+    #[ORM\Column(name: 'checksum_qr', type: Types::TEXT, nullable: true)]
+    private ?string $checksumQr = null;
 
     #[ORM\Column(name: 'cree_le', type: Types::DATETIMETZ_MUTABLE)]
-    private ?\DateTimeInterface $createdAt = null;
+    private ?\DateTimeInterface $creeLe = null;
 
     #[ORM\Column(name: 'modifie_le', type: Types::DATETIMETZ_MUTABLE)]
-    private ?\DateTimeInterface $updatedAt = null;
-
-    #[ORM\ManyToMany(targetEntity: EventTag::class)]
-    #[ORM\JoinTable(
-        name: 'liens_tags_evenements',
-        schema: 'aiolia',
-        joinColumns: [new ORM\JoinColumn(name: 'id_evenement', referencedColumnName: 'id')],
-        inverseJoinColumns: [new ORM\JoinColumn(name: 'id_tag', referencedColumnName: 'id')]
-    )]
-    private \Doctrine\Common\Collections\Collection $tags;
-
-    #[ORM\OneToMany(targetEntity: EventLanguage::class, mappedBy: 'event', cascade: ['persist', 'remove'], orphanRemoval: true)]
-    private \Doctrine\Common\Collections\Collection $languages;
-
-    #[ORM\OneToMany(targetEntity: EventAccessibility::class, mappedBy: 'event', cascade: ['persist', 'remove'], orphanRemoval: true)]
-    private \Doctrine\Common\Collections\Collection $accessibilities;
-
-    #[ORM\OneToMany(targetEntity: EventPaymentMethod::class, mappedBy: 'event', cascade: ['persist', 'remove'], orphanRemoval: true)]
-    private \Doctrine\Common\Collections\Collection $paymentMethods;
-
-    #[ORM\OneToMany(targetEntity: EventMedia::class, mappedBy: 'event', cascade: ['persist', 'remove'], orphanRemoval: true)]
-    private \Doctrine\Common\Collections\Collection $media;
-
-    public function __construct()
-    {
-        $now = new \DateTimeImmutable();
-        $this->createdAt = $now;
-        $this->updatedAt = $now;
-        $this->tags = new \Doctrine\Common\Collections\ArrayCollection();
-        $this->languages = new \Doctrine\Common\Collections\ArrayCollection();
-        $this->accessibilities = new \Doctrine\Common\Collections\ArrayCollection();
-        $this->paymentMethods = new \Doctrine\Common\Collections\ArrayCollection();
-        $this->media = new \Doctrine\Common\Collections\ArrayCollection();
-    }
+    private ?\DateTimeInterface $modifieLe = null;
 
     #[ORM\PrePersist]
     public function initializeTimestamps(): void
     {
         $now = new \DateTimeImmutable();
-        $this->createdAt ??= $now;
-        $this->updatedAt = $now;
+        $this->creeLe ??= $now;
+        $this->modifieLe ??= $now;
     }
+
+    #[ORM\OneToMany(targetEntity: LienLangueEvenement::class, mappedBy: 'evenement', cascade: ['persist', 'remove'])]
+    private Collection $liensLangues;
+
+    #[ORM\OneToMany(targetEntity: LienAccessibiliteEvenement::class, mappedBy: 'evenement', cascade: ['persist', 'remove'])]
+    private Collection $liensAccessibilites;
 
     #[ORM\PreUpdate]
-    public function touchUpdatedAt(): void
+    public function updateModifiedAt(): void
     {
-        $this->updatedAt = new \DateTimeImmutable();
+        $this->modifieLe = new \DateTimeImmutable();
     }
 
+    public function __construct()
+    {
+        $this->liensLangues = new ArrayCollection();
+        $this->liensAccessibilites = new ArrayCollection();
+    }
+
+    // Getters et Setters pour les relations
     public function getId(): ?string
     {
         return $this->id;
     }
 
-    public function getOrganizerProfileId(): ?string
+    public function getProfilOrganisateur(): ?OrganizerProfile
     {
-        return $this->organizerProfileId;
+        return $this->profilOrganisateur;
     }
 
-    public function setOrganizerProfileId(?string $organizerProfileId): static
+    public function setProfilOrganisateur(?OrganizerProfile $profilOrganisateur): static
     {
-        $this->organizerProfileId = $organizerProfileId;
-        $this->organizer = null; // Réinitialiser le cache
+        $this->profilOrganisateur = $profilOrganisateur;
 
         return $this;
     }
 
-    public function getOrganizer(): ?User
+    public function getCategoriePrincipale(): ?EventCategory
     {
-        return $this->organizer;
+        return $this->categoriePrincipale;
     }
 
-    public function setOrganizer(?User $organizer): static
+    public function setCategoriePrincipale(?EventCategory $categoriePrincipale): static
     {
-        // Cette méthode est gardée pour la compatibilité mais ne modifie pas la base de données directement
-        // Pour modifier l'organizer, il faut utiliser setOrganizerProfileId via organizer_profiles
-        $this->organizer = $organizer;
+        $this->categoriePrincipale = $categoriePrincipale;
 
         return $this;
     }
 
-    public function getPrimaryCategory(): ?EventCategory
+    public function getTypeEvenement(): ?EventType
     {
-        return $this->primaryCategory;
+        return $this->typeEvenement;
     }
 
-    public function setPrimaryCategory(?EventCategory $primaryCategory): static
+    public function setTypeEvenement(?EventType $typeEvenement): static
     {
-        $this->primaryCategory = $primaryCategory;
+        $this->typeEvenement = $typeEvenement;
 
         return $this;
     }
 
-    public function getVenueId(): ?string
+    public function getLieu(): ?Venue
     {
-        return $this->venueId;
+        return $this->lieu;
     }
 
-    public function setVenueId(?string $venueId): static
+    public function setLieu(?Venue $lieu): static
     {
-        $this->venueId = $venueId;
+        $this->lieu = $lieu;
 
         return $this;
     }
 
+    public function getEspacePrincipal(): ?EspaceLieu
+    {
+        return $this->espacePrincipal;
+    }
+
+    public function setEspacePrincipal(?EspaceLieu $espacePrincipal): static
+    {
+        $this->espacePrincipal = $espacePrincipal;
+
+        return $this;
+    }
+
+    // Getters et Setters pour les propriétés de base
     public function getSlug(): string
     {
         return $this->slug;
@@ -224,38 +246,38 @@ class Event
         return $this;
     }
 
-    public function getTitle(): string
+    public function getTitre(): string
     {
-        return $this->title;
+        return $this->titre;
     }
 
-    public function setTitle(string $title): static
+    public function setTitre(string $titre): static
     {
-        $this->title = $title;
+        $this->titre = $titre;
 
         return $this;
     }
 
-    public function getSubtitle(): ?string
+    public function getSousTitre(): ?string
     {
-        return $this->subtitle;
+        return $this->sousTitre;
     }
 
-    public function setSubtitle(?string $subtitle): static
+    public function setSousTitre(?string $sousTitre): static
     {
-        $this->subtitle = $subtitle;
+        $this->sousTitre = $sousTitre;
 
         return $this;
     }
 
-    public function getSummary(): ?string
+    public function getResume(): ?string
     {
-        return $this->summary;
+        return $this->resume;
     }
 
-    public function setSummary(?string $summary): static
+    public function setResume(?string $resume): static
     {
-        $this->summary = $summary;
+        $this->resume = $resume;
 
         return $this;
     }
@@ -272,363 +294,367 @@ class Event
         return $this;
     }
 
-    public function getCoverImageUrl(): ?string
+    public function getUrlImageCouverture(): ?string
     {
-        return $this->coverImageUrl;
+        return $this->urlImageCouverture;
     }
 
-    public function setCoverImageUrl(?string $coverImageUrl): static
+    public function setUrlImageCouverture(?string $urlImageCouverture): static
     {
-        $this->coverImageUrl = $coverImageUrl;
+        $this->urlImageCouverture = $urlImageCouverture;
 
         return $this;
     }
 
-    public function getStatus(): string
+    public function getStatut(): string
     {
-        return $this->status;
+        return $this->statut;
     }
 
-    public function setStatus(string $status): static
+    public function setStatut(string $statut): static
     {
-        $this->status = $status;
+        $this->statut = $statut;
 
         return $this;
     }
 
-    public function getVisibility(): string
+    public function getVisibilite(): string
     {
-        return $this->visibility;
+        return $this->visibilite;
     }
 
-    public function setVisibility(string $visibility): static
+    public function setVisibilite(string $visibilite): static
     {
-        $this->visibility = $visibility;
+        $this->visibilite = $visibilite;
 
         return $this;
     }
 
-    public function getCapacity(): ?int
+    public function getFormatEvenement(): string
     {
-        return $this->capacity;
+        return $this->formatEvenement;
     }
 
-    public function setCapacity(?int $capacity): static
+    public function setFormatEvenement(string $formatEvenement): static
     {
-        $this->capacity = $capacity;
+        $this->formatEvenement = $formatEvenement;
 
         return $this;
     }
 
-    public function getTimezone(): string
+    public function getCapacite(): ?int
     {
-        return $this->timezone;
+        return $this->capacite;
     }
 
-    public function setTimezone(string $timezone): static
+    public function setCapacite(?int $capacite): static
     {
-        $this->timezone = $timezone;
+        $this->capacite = $capacite;
 
         return $this;
     }
 
-    public function getStartsAt(): \DateTimeInterface
+    public function getFuseauHoraire(): string
     {
-        return $this->startsAt;
+        return $this->fuseauHoraire;
     }
 
-    public function setStartsAt(\DateTimeInterface $startsAt): static
+    public function setFuseauHoraire(string $fuseauHoraire): static
     {
-        $this->startsAt = $startsAt;
+        $this->fuseauHoraire = $fuseauHoraire;
 
         return $this;
     }
 
-    public function getEndsAt(): \DateTimeInterface
+    public function getLocalisationOverride(): ?array
     {
-        return $this->endsAt;
+        return $this->localisationOverride;
     }
 
-    public function setEndsAt(\DateTimeInterface $endsAt): static
+    public function setLocalisationOverride(?array $localisationOverride): static
     {
-        $this->endsAt = $endsAt;
+        $this->localisationOverride = $localisationOverride;
 
         return $this;
     }
 
-    public function getSalesStartsAt(): ?\DateTimeInterface
+    public function getUrlLive(): ?string
     {
-        return $this->salesStartsAt;
+        return $this->urlLive;
     }
 
-    public function setSalesStartsAt(?\DateTimeInterface $salesStartsAt): static
+    public function setUrlLive(?string $urlLive): static
     {
-        $this->salesStartsAt = $salesStartsAt;
+        $this->urlLive = $urlLive;
 
         return $this;
     }
 
-    public function getSalesEndsAt(): ?\DateTimeInterface
+    public function getPlateformeStreaming(): ?string
     {
-        return $this->salesEndsAt;
+        return $this->plateformeStreaming;
     }
 
-    public function setSalesEndsAt(?\DateTimeInterface $salesEndsAt): static
+    public function setPlateformeStreaming(?string $plateformeStreaming): static
     {
-        $this->salesEndsAt = $salesEndsAt;
+        $this->plateformeStreaming = $plateformeStreaming;
 
         return $this;
     }
 
-    public function getAgeRestriction(): ?string
+    public function getCommenceLe(): ?\DateTimeInterface
     {
-        return $this->ageRestriction;
+        return $this->commenceLe;
     }
 
-    public function setAgeRestriction(?string $ageRestriction): static
+    public function setCommenceLe(?\DateTimeInterface $commenceLe): static
     {
-        $this->ageRestriction = $ageRestriction;
+        $this->commenceLe = $commenceLe;
 
         return $this;
     }
 
-    public function getLanguageCode(): string
+    public function getSeTermineLe(): ?\DateTimeInterface
     {
-        return $this->languageCode;
+        return $this->seTermineLe;
     }
 
-    public function setLanguageCode(string $languageCode): static
+    public function setSeTermineLe(?\DateTimeInterface $seTermineLe): static
     {
-        $this->languageCode = $languageCode;
+        $this->seTermineLe = $seTermineLe;
 
         return $this;
     }
 
-    public function isFeatured(): bool
+    public function getVentesCommencentLe(): ?\DateTimeInterface
     {
-        return $this->isFeatured;
+        return $this->ventesCommencentLe;
     }
 
-    public function setIsFeatured(bool $isFeatured): static
+    public function setVentesCommencentLe(?\DateTimeInterface $ventesCommencentLe): static
     {
-        $this->isFeatured = $isFeatured;
+        $this->ventesCommencentLe = $ventesCommencentLe;
 
         return $this;
     }
 
-    public function isHighlighted(): bool
+    public function getVentesSeTerminentLe(): ?\DateTimeInterface
     {
-        return $this->isHighlighted;
+        return $this->ventesSeTerminentLe;
     }
 
-    public function setIsHighlighted(bool $isHighlighted): static
+    public function setVentesSeTerminentLe(?\DateTimeInterface $ventesSeTerminentLe): static
     {
-        $this->isHighlighted = $isHighlighted;
+        $this->ventesSeTerminentLe = $ventesSeTerminentLe;
 
         return $this;
     }
 
-    public function getCreatedAt(): ?\DateTimeInterface
+    public function getRestrictionAge(): ?string
     {
-        return $this->createdAt;
+        return $this->restrictionAge;
     }
 
-    public function setCreatedAt(?\DateTimeInterface $createdAt): static
+    public function setRestrictionAge(?string $restrictionAge): static
     {
-        $this->createdAt = $createdAt;
+        $this->restrictionAge = $restrictionAge;
 
         return $this;
     }
 
-    public function getUpdatedAt(): ?\DateTimeInterface
+    public function getCodeLangue(): string
     {
-        return $this->updatedAt;
+        return $this->codeLangue;
     }
 
-    public function setUpdatedAt(?\DateTimeInterface $updatedAt): static
+    public function setCodeLangue(string $codeLangue): static
     {
-        $this->updatedAt = $updatedAt;
+        $this->codeLangue = $codeLangue;
 
         return $this;
     }
 
-    public function getYoutubeUrl(): ?string
+    public function isEstEnVedette(): bool
     {
-        return $this->youtubeUrl;
+        return $this->estEnVedette;
     }
 
-    public function setYoutubeUrl(?string $youtubeUrl): static
+    public function setEstEnVedette(bool $estEnVedette): static
     {
-        $this->youtubeUrl = $youtubeUrl;
+        $this->estEnVedette = $estEnVedette;
+
         return $this;
     }
 
-    public function getVenueNameText(): ?string
+    public function isEstMisEnAvant(): bool
     {
-        return $this->venueNameText;
+        return $this->estMisEnAvant;
     }
 
-    public function setVenueNameText(?string $venueNameText): static
+    public function setEstMisEnAvant(bool $estMisEnAvant): static
     {
-        $this->venueNameText = $venueNameText;
+        $this->estMisEnAvant = $estMisEnAvant;
+
         return $this;
     }
 
-    public function getFullAddress(): ?string
+    public function getUrlYoutube(): ?string
     {
-        return $this->fullAddress;
+        return $this->urlYoutube;
     }
 
-    public function setFullAddress(?string $fullAddress): static
+    public function setUrlYoutube(?string $urlYoutube): static
     {
-        $this->fullAddress = $fullAddress;
+        $this->urlYoutube = $urlYoutube;
+
         return $this;
     }
 
-    public function isSinglePrice(): bool
+    public function getNomLieuTexte(): ?string
     {
-        return $this->singlePrice;
+        return $this->nomLieuTexte;
     }
 
-    public function setSinglePrice(bool $singlePrice): static
+    public function setNomLieuTexte(?string $nomLieuTexte): static
     {
-        $this->singlePrice = $singlePrice;
+        $this->nomLieuTexte = $nomLieuTexte;
+
+        return $this;
+    }
+
+    public function getAdresseComplete(): ?string
+    {
+        return $this->adresseComplete;
+    }
+
+    public function setAdresseComplete(?string $adresseComplete): static
+    {
+        $this->adresseComplete = $adresseComplete;
+
+        return $this;
+    }
+
+    public function isTarifUnique(): bool
+    {
+        return $this->tarifUnique;
+    }
+
+    public function setTarifUnique(bool $tarifUnique): static
+    {
+        $this->tarifUnique = $tarifUnique;
+
+        return $this;
+    }
+
+    public function getCodeQr(): ?string
+    {
+        return $this->codeQr;
+    }
+
+    public function setCodeQr(?string $codeQr): static
+    {
+        $this->codeQr = $codeQr;
+
+        return $this;
+    }
+
+    public function getChecksumQr(): ?string
+    {
+        return $this->checksumQr;
+    }
+
+    public function setChecksumQr(?string $checksumQr): static
+    {
+        $this->checksumQr = $checksumQr;
+
+        return $this;
+    }
+
+    public function getCreeLe(): ?\DateTimeInterface
+    {
+        return $this->creeLe;
+    }
+
+    public function setCreeLe(?\DateTimeInterface $creeLe): static
+    {
+        $this->creeLe = $creeLe;
+
+        return $this;
+    }
+
+    public function getModifieLe(): ?\DateTimeInterface
+    {
+        return $this->modifieLe;
+    }
+
+    public function setModifieLe(?\DateTimeInterface $modifieLe): static
+    {
+        $this->modifieLe = $modifieLe;
+
         return $this;
     }
 
     /**
-     * @return \Doctrine\Common\Collections\Collection<int, EventTag>
+     * @return Collection<int, LienLangueEvenement>
      */
-    public function getTags(): \Doctrine\Common\Collections\Collection
+    public function getLiensLangues(): Collection
     {
-        return $this->tags;
+        return $this->liensLangues;
     }
 
-    public function addTag(EventTag $tag): static
+    public function addLienLangue(LienLangueEvenement $lienLangue): static
     {
-        if (!$this->tags->contains($tag)) {
-            $this->tags->add($tag);
+        if (!$this->liensLangues->contains($lienLangue)) {
+            $this->liensLangues->add($lienLangue);
+            $lienLangue->setEvenement($this);
         }
+
         return $this;
     }
 
-    public function removeTag(EventTag $tag): static
+    public function removeLienLangue(LienLangueEvenement $lienLangue): static
     {
-        $this->tags->removeElement($tag);
-        return $this;
-    }
-
-    /**
-     * @return \Doctrine\Common\Collections\Collection<int, EventLanguage>
-     */
-    public function getLanguages(): \Doctrine\Common\Collections\Collection
-    {
-        return $this->languages;
-    }
-
-    public function addLanguage(EventLanguage $language): static
-    {
-        if (!$this->languages->contains($language)) {
-            $this->languages->add($language);
-            $language->setEvent($this);
-        }
-        return $this;
-    }
-
-    public function removeLanguage(EventLanguage $language): static
-    {
-        if ($this->languages->removeElement($language)) {
-            if ($language->getEvent() === $this) {
-                $language->setEvent(null);
+        if ($this->liensLangues->removeElement($lienLangue)) {
+            if ($lienLangue->getEvenement() === $this) {
+                $lienLangue->setEvenement(null);
             }
         }
+
         return $this;
     }
 
     /**
-     * @return \Doctrine\Common\Collections\Collection<int, EventAccessibility>
+     * @return Collection<int, LienAccessibiliteEvenement>
      */
-    public function getAccessibilities(): \Doctrine\Common\Collections\Collection
+    public function getLiensAccessibilites(): Collection
     {
-        return $this->accessibilities;
+        return $this->liensAccessibilites;
     }
 
-    public function addAccessibility(EventAccessibility $accessibility): static
+    public function addLienAccessibilite(LienAccessibiliteEvenement $lienAccessibilite): static
     {
-        if (!$this->accessibilities->contains($accessibility)) {
-            $this->accessibilities->add($accessibility);
-            $accessibility->setEvent($this);
+        if (!$this->liensAccessibilites->contains($lienAccessibilite)) {
+            $this->liensAccessibilites->add($lienAccessibilite);
+            $lienAccessibilite->setEvenement($this);
         }
+
         return $this;
     }
 
-    public function removeAccessibility(EventAccessibility $accessibility): static
+    public function removeLienAccessibilite(LienAccessibiliteEvenement $lienAccessibilite): static
     {
-        if ($this->accessibilities->removeElement($accessibility)) {
-            if ($accessibility->getEvent() === $this) {
-                $accessibility->setEvent(null);
+        if ($this->liensAccessibilites->removeElement($lienAccessibilite)) {
+            if ($lienAccessibilite->getEvenement() === $this) {
+                $lienAccessibilite->setEvenement(null);
             }
         }
-        return $this;
-    }
 
-    /**
-     * @return \Doctrine\Common\Collections\Collection<int, EventPaymentMethod>
-     */
-    public function getPaymentMethods(): \Doctrine\Common\Collections\Collection
-    {
-        return $this->paymentMethods;
-    }
-
-    public function addPaymentMethod(EventPaymentMethod $paymentMethod): static
-    {
-        if (!$this->paymentMethods->contains($paymentMethod)) {
-            $this->paymentMethods->add($paymentMethod);
-            $paymentMethod->setEvent($this);
-        }
-        return $this;
-    }
-
-    public function removePaymentMethod(EventPaymentMethod $paymentMethod): static
-    {
-        if ($this->paymentMethods->removeElement($paymentMethod)) {
-            if ($paymentMethod->getEvent() === $this) {
-                $paymentMethod->setEvent(null);
-            }
-        }
-        return $this;
-    }
-
-    /**
-     * @return \Doctrine\Common\Collections\Collection<int, EventMedia>
-     */
-    public function getMedia(): \Doctrine\Common\Collections\Collection
-    {
-        return $this->media;
-    }
-
-    public function addMedium(EventMedia $medium): static
-    {
-        if (!$this->media->contains($medium)) {
-            $this->media->add($medium);
-            $medium->setEvent($this);
-        }
-        return $this;
-    }
-
-    public function removeMedium(EventMedia $medium): static
-    {
-        if ($this->media->removeElement($medium)) {
-            if ($medium->getEvent() === $this) {
-                $medium->setEvent(null);
-            }
-        }
         return $this;
     }
 
     public function __toString(): string
     {
-        return $this->title ?? '';
+        return $this->titre ?? '';
     }
 }
 

@@ -3,9 +3,15 @@
 namespace App\Service\Organisateur;
 
 use App\Entity\Event;
-use App\Entity\EventMedia;
+use App\Entity\EventCategory;
+use App\Entity\EventType;
+use App\Entity\EspaceLieu;
+use App\Entity\OrganizerProfile;
 use App\Entity\User;
+use App\Entity\Venue;
 use App\Repository\Organisateur\EventRepository;
+use App\Service\Organisateur\EventTypeService;
+use App\Service\Organisateur\EspaceLieuService;
 use Doctrine\ORM\EntityManagerInterface;
 use Symfony\Component\String\Slugger\SluggerInterface;
 
@@ -14,45 +20,60 @@ class EventService
     public function __construct(
         private EntityManagerInterface $entityManager,
         private EventRepository $eventRepository,
+        private EventTypeService $eventTypeService,
+        private EspaceLieuService $espaceLieuService,
         private SluggerInterface $slugger
     ) {
     }
 
     /**
+     * Récupère tous les événements
+     */
+    public function getAll(): array
+    {
+        return $this->eventRepository->getAll();
+    }
+
+    /**
+     * Récupère un événement par son ID
+     */
+    public function getById(string $id): ?Event
+    {
+        return $this->eventRepository->getById($id);
+    }
+
+    /**
      * Crée un nouvel événement
      */
-    public function createEvent(array $data, User $organizer): Event
+    public function create(array $data, ?OrganizerProfile $organizerProfile = null): Event
     {
         $event = new Event();
-        $event->setOrganizer($organizer);
-        
+
+        if ($organizerProfile !== null) {
+            $event->setProfilOrganisateur($organizerProfile);
+        }
+
         $this->updateEventFromData($event, $data);
 
-        $this->entityManager->persist($event);
-        $this->entityManager->flush();
-
-        return $event;
+        return $this->eventRepository->create($event);
     }
 
     /**
      * Met à jour un événement
      */
-    public function updateEvent(Event $event, array $data): Event
+    public function update(Event $event, array $data): Event
     {
         $this->updateEventFromData($event, $data);
-        
-        $this->entityManager->flush();
 
-        return $event;
+        return $this->eventRepository->update($event);
     }
 
     /**
      * Supprime un événement
      */
-    public function deleteEvent(Event $event): void
+    public function delete(Event $event): void
     {
-        $this->entityManager->remove($event);
-        $this->entityManager->flush();
+        $this->eventRepository->delete($event);
     }
 
     /**
@@ -60,46 +81,55 @@ class EventService
      */
     public function publishEvent(Event $event): Event
     {
-        $event->setStatus(Event::STATUS_PUBLISHED);
-        $this->entityManager->flush();
-
-        return $event;
+        $event->setStatut(Event::STATUS_PUBLISHED);
+        return $this->eventRepository->update($event);
     }
 
     /**
      * Annule un événement
      */
-    public function cancelEvent(Event $event, string $reason = null): Event
+    public function cancelEvent(Event $event): Event
     {
-        $event->setStatus('cancelled');
-        $this->entityManager->flush();
+        $event->setStatut(Event::STATUS_CANCELLED);
+        return $this->eventRepository->update($event);
+    }
 
-        // TODO: Envoyer des notifications aux participants
-
-        return $event;
+    /**
+     * Archive un événement
+     */
+    public function archiveEvent(Event $event): Event
+    {
+        $event->setStatut(Event::STATUS_ARCHIVED);
+        return $this->eventRepository->update($event);
     }
 
     /**
      * Duplique un événement
      */
-    public function duplicateEvent(Event $originalEvent, User $organizer): Event
+    public function duplicateEvent(Event $originalEvent, ?OrganizerProfile $organizerProfile = null): Event
     {
         $newEvent = new Event();
-        $newEvent->setOrganizer($organizer);
-        $newEvent->setPrimaryCategory($originalEvent->getPrimaryCategory());
-        $newEvent->setTitle($originalEvent->getTitle() . ' (Copie)');
-        $newEvent->setSlug($this->generateUniqueSlug($originalEvent->getTitle() . ' Copie'));
+        
+        if ($organizerProfile !== null) {
+            $newEvent->setProfilOrganisateur($organizerProfile);
+        }
+
+        $newEvent->setCategoriePrincipale($originalEvent->getCategoriePrincipale());
+        $newEvent->setTypeEvenement($originalEvent->getTypeEvenement());
+        $newEvent->setLieu($originalEvent->getLieu());
+        $newEvent->setEspacePrincipal($originalEvent->getEspacePrincipal());
+        $newEvent->setTitre($originalEvent->getTitre() . ' (Copie)');
+        $newEvent->setSlug($this->generateUniqueSlug($originalEvent->getTitre() . ' Copie'));
         $newEvent->setDescription($originalEvent->getDescription());
-        $newEvent->setSubtitle($originalEvent->getSubtitle());
-        $newEvent->setSummary($originalEvent->getSummary());
-        $newEvent->setTimezone($originalEvent->getTimezone());
-        $newEvent->setCapacity($originalEvent->getCapacity());
-        $newEvent->setStatus(Event::STATUS_DRAFT);
+        $newEvent->setSousTitre($originalEvent->getSousTitre());
+        $newEvent->setResume($originalEvent->getResume());
+        $newEvent->setFuseauHoraire($originalEvent->getFuseauHoraire());
+        $newEvent->setCapacite($originalEvent->getCapacite());
+        $newEvent->setStatut(Event::STATUS_DRAFT);
+        $newEvent->setVisibilite($originalEvent->getVisibilite());
+        $newEvent->setFormatEvenement($originalEvent->getFormatEvenement());
 
-        $this->entityManager->persist($newEvent);
-        $this->entityManager->flush();
-
-        return $newEvent;
+        return $this->eventRepository->create($newEvent);
     }
 
     /**
@@ -139,7 +169,12 @@ class EventService
      */
     public function canEdit(Event $event, User $user): bool
     {
-        return $event->getOrganizer() === $user || in_array('ROLE_ADMIN', $user->getRoles());
+        $organizerProfile = $event->getProfilOrganisateur();
+        if ($organizerProfile === null) {
+            return in_array('ROLE_ADMIN', $user->getRoles());
+        }
+
+        return $organizerProfile->getUtilisateur() === $user || in_array('ROLE_ADMIN', $user->getRoles());
     }
 
     /**
@@ -147,7 +182,7 @@ class EventService
      */
     public function canDelete(Event $event, User $user): bool
     {
-        return $event->getOrganizer() === $user || in_array('ROLE_ADMIN', $user->getRoles());
+        return $this->canEdit($event, $user);
     }
 
     /**
@@ -155,55 +190,165 @@ class EventService
      */
     private function updateEventFromData(Event $event, array $data): void
     {
-        if (isset($data['title'])) {
-            $event->setTitle($data['title']);
+        if (isset($data['titre'])) {
+            $event->setTitre($data['titre']);
             if (!$event->getSlug()) {
-                $event->setSlug($this->generateUniqueSlug($data['title']));
+                $event->setSlug($this->generateUniqueSlug($data['titre']));
             }
         }
 
-        if (isset($data['category'])) {
-            $event->setPrimaryCategory($data['category']);
+        if (isset($data['profilOrganisateur']) && $data['profilOrganisateur'] instanceof OrganizerProfile) {
+            $event->setProfilOrganisateur($data['profilOrganisateur']);
+        } elseif (isset($data['profilOrganisateurId'])) {
+            // Si on passe juste l'ID, on doit charger l'entité
+            $organizerProfile = $this->entityManager->getRepository(OrganizerProfile::class)->find($data['profilOrganisateurId']);
+            if ($organizerProfile) {
+                $event->setProfilOrganisateur($organizerProfile);
+            }
+        }
+
+        if (isset($data['categoriePrincipale']) && $data['categoriePrincipale'] instanceof EventCategory) {
+            $event->setCategoriePrincipale($data['categoriePrincipale']);
+        } elseif (isset($data['categoriePrincipaleId'])) {
+            $category = $this->entityManager->getRepository(EventCategory::class)->find($data['categoriePrincipaleId']);
+            if ($category) {
+                $event->setCategoriePrincipale($category);
+            }
+        }
+
+        if (isset($data['typeEvenement']) && $data['typeEvenement'] instanceof EventType) {
+            $event->setTypeEvenement($data['typeEvenement']);
+        } elseif (isset($data['typeEvenementId'])) {
+            $type = $this->eventTypeService->getById($data['typeEvenementId']);
+            if ($type) {
+                $event->setTypeEvenement($type);
+            }
+        }
+
+        if (isset($data['lieu']) && $data['lieu'] instanceof Venue) {
+            $event->setLieu($data['lieu']);
+        } elseif (isset($data['lieuId'])) {
+            $venue = $this->entityManager->getRepository(Venue::class)->find($data['lieuId']);
+            if ($venue) {
+                $event->setLieu($venue);
+            }
+        }
+
+        if (isset($data['espacePrincipal']) && $data['espacePrincipal'] instanceof EspaceLieu) {
+            $event->setEspacePrincipal($data['espacePrincipal']);
+        } elseif (isset($data['espacePrincipalId'])) {
+            $espace = $this->espaceLieuService->getById($data['espacePrincipalId']);
+            if ($espace) {
+                $event->setEspacePrincipal($espace);
+            }
+        }
+
+        if (isset($data['slug'])) {
+            $event->setSlug($data['slug']);
+        }
+
+        if (isset($data['sousTitre'])) {
+            $event->setSousTitre($data['sousTitre']);
+        }
+
+        if (isset($data['resume'])) {
+            $event->setResume($data['resume']);
         }
 
         if (isset($data['description'])) {
             $event->setDescription($data['description']);
         }
 
-        if (isset($data['summary'])) {
-            $event->setSummary($data['summary']);
+        if (isset($data['urlImageCouverture'])) {
+            $event->setUrlImageCouverture($data['urlImageCouverture']);
         }
 
-        if (isset($data['subtitle'])) {
-            $event->setSubtitle($data['subtitle']);
+        if (isset($data['statut'])) {
+            $event->setStatut($data['statut']);
         }
 
-        if (isset($data['shortDescription'])) {
-            $event->setSubtitle($data['shortDescription']);
+        if (isset($data['visibilite'])) {
+            $event->setVisibilite($data['visibilite']);
         }
 
-        if (isset($data['timezone'])) {
-            $event->setTimezone($data['timezone']);
+        if (isset($data['formatEvenement'])) {
+            $event->setFormatEvenement($data['formatEvenement']);
         }
 
-        if (isset($data['startDate']) || isset($data['startsAt'])) {
-            $event->setStartsAt($data['startsAt'] ?? $data['startDate']);
+        if (isset($data['capacite'])) {
+            $event->setCapacite($data['capacite']);
         }
 
-        if (isset($data['endDate']) || isset($data['endsAt'])) {
-            $event->setEndsAt($data['endsAt'] ?? $data['endDate']);
+        if (isset($data['fuseauHoraire'])) {
+            $event->setFuseauHoraire($data['fuseauHoraire']);
         }
 
-        if (isset($data['capacity']) || isset($data['totalCapacity'])) {
-            $event->setCapacity($data['capacity'] ?? $data['totalCapacity']);
+        if (isset($data['localisationOverride'])) {
+            $event->setLocalisationOverride($data['localisationOverride']);
         }
 
-        if (isset($data['status'])) {
-            $event->setStatus($data['status']);
+        if (isset($data['urlLive'])) {
+            $event->setUrlLive($data['urlLive']);
         }
 
-        if (isset($data['isFeatured'])) {
-            $event->setIsFeatured($data['isFeatured']);
+        if (isset($data['plateformeStreaming'])) {
+            $event->setPlateformeStreaming($data['plateformeStreaming']);
+        }
+
+        if (isset($data['commenceLe'])) {
+            $event->setCommenceLe($data['commenceLe']);
+        }
+
+        if (isset($data['seTermineLe'])) {
+            $event->setSeTermineLe($data['seTermineLe']);
+        }
+
+        if (isset($data['ventesCommencentLe'])) {
+            $event->setVentesCommencentLe($data['ventesCommencentLe']);
+        }
+
+        if (isset($data['ventesSeTerminentLe'])) {
+            $event->setVentesSeTerminentLe($data['ventesSeTerminentLe']);
+        }
+
+        if (isset($data['restrictionAge'])) {
+            $event->setRestrictionAge($data['restrictionAge']);
+        }
+
+        if (isset($data['codeLangue'])) {
+            $event->setCodeLangue($data['codeLangue']);
+        }
+
+        if (isset($data['estEnVedette'])) {
+            $event->setEstEnVedette($data['estEnVedette']);
+        }
+
+        if (isset($data['estMisEnAvant'])) {
+            $event->setEstMisEnAvant($data['estMisEnAvant']);
+        }
+
+        if (isset($data['urlYoutube'])) {
+            $event->setUrlYoutube($data['urlYoutube']);
+        }
+
+        if (isset($data['nomLieuTexte'])) {
+            $event->setNomLieuTexte($data['nomLieuTexte']);
+        }
+
+        if (isset($data['adresseComplete'])) {
+            $event->setAdresseComplete($data['adresseComplete']);
+        }
+
+        if (isset($data['tarifUnique'])) {
+            $event->setTarifUnique($data['tarifUnique']);
+        }
+
+        if (isset($data['codeQr'])) {
+            $event->setCodeQr($data['codeQr']);
+        }
+
+        if (isset($data['checksumQr'])) {
+            $event->setChecksumQr($data['checksumQr']);
         }
     }
 

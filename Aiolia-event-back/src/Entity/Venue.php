@@ -2,6 +2,8 @@
 
 namespace App\Entity;
 
+use Doctrine\Common\Collections\ArrayCollection;
+use Doctrine\Common\Collections\Collection;
 use Doctrine\DBAL\Types\Types;
 use Doctrine\ORM\Mapping as ORM;
 
@@ -82,11 +84,15 @@ class Venue
     #[ORM\Column(name: 'modifie_le', type: Types::DATETIMETZ_MUTABLE)]
     private ?\DateTimeInterface $modifieLe = null;
 
+    #[ORM\OneToMany(targetEntity: EspaceLieu::class, mappedBy: 'lieu', cascade: ['persist', 'remove'])]
+    private Collection $espaces;
+
     public function __construct()
     {
         $now = new \DateTimeImmutable();
         $this->creeLe = $now;
         $this->modifieLe = $now;
+        $this->espaces = new ArrayCollection();
     }
 
     #[ORM\PrePersist]
@@ -347,6 +353,35 @@ class Venue
     public function setModifieLe(?\DateTimeInterface $modifieLe): static
     {
         $this->modifieLe = $modifieLe;
+        return $this;
+    }
+
+    /**
+     * @return Collection<int, EspaceLieu>
+     */
+    public function getEspaces(): Collection
+    {
+        return $this->espaces;
+    }
+
+    public function addEspace(EspaceLieu $espace): static
+    {
+        if (!$this->espaces->contains($espace)) {
+            $this->espaces->add($espace);
+            $espace->setLieu($this);
+        }
+
+        return $this;
+    }
+
+    public function removeEspace(EspaceLieu $espace): static
+    {
+        if ($this->espaces->removeElement($espace)) {
+            if ($espace->getLieu() === $this) {
+                $espace->setLieu(null);
+            }
+        }
+
         return $this;
     }
 }
