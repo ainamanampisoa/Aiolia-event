@@ -1,0 +1,87 @@
+{% extends 'base.html.twig' %}
+
+{% block title %}Rapports - Aiolia Event{% endblock %}
+
+{% block body %}
+<div class="dashboard-container">
+    <div class="dashboard-header">
+        <h1>
+            <i class="fas fa-chart-bar"></i>
+            Rapports
+        </h1>
+        <p class="dashboard-subtitle">Générez et consultez vos rapports détaillés</p>
+    </div>
+
+    <div class="content-card">
+        <div class="card-body">
+            <div class="empty-state">
+                <i class="fas fa-chart-bar"></i>
+                <p data-i18n="organisateur.reports.coming_soon">Cette fonctionnalité sera bientôt disponible</p>
+            </div>
+        </div>
+    </div>
+</div>
+
+<style>
+.dashboard-container {
+    padding: 24px;
+    max-width: 1400px;
+    margin: 0 auto;
+}
+
+.dashboard-header {
+    margin-bottom: 32px;
+}
+
+.dashboard-header h1 {
+    font-size: 2rem;
+    font-weight: 700;
+    color: var(--text-primary);
+    margin-bottom: 8px;
+    display: flex;
+    align-items: center;
+    gap: 12px;
+}
+
+.dashboard-header h1 i {
+    color: var(--accent);
+    font-size: 2rem;
+    display: inline-block;
+    line-height: 1;
+    flex-shrink: 0;
+}
+
+.dashboard-subtitle {
+    color: var(--text-secondary);
+    font-size: 1rem;
+}
+
+.content-card {
+    background: var(--bg-card);
+    border-radius: var(--border-radius-lg);
+    box-shadow: var(--shadow-md);
+    border: 1px solid var(--border-color);
+    overflow: hidden;
+}
+
+.card-body {
+    padding: 24px;
+}
+
+.empty-state {
+    text-align: center;
+    padding: 48px 24px;
+}
+
+.empty-state i {
+    font-size: 3rem;
+    color: var(--text-tertiary);
+    margin-bottom: 16px;
+}
+
+.empty-state p {
+    color: var(--text-secondary);
+}
+</style>
+{% endblock %}
+

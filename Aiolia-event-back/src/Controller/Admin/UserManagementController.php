@@ -3,11 +3,13 @@
 namespace App\Controller\Admin;
 
 use App\Entity\User;
+use App\Entity\OrganizerProfile;
+use App\Enum\Role as UserRoleEnum;
 use App\Repository\UserRepository;
 use App\Repository\AuditLogRepository;
-use App\Repository\EventRepository;
+use App\Repository\Organisateur\EventRepository;
 use App\Service\AuditLogService;
-use App\Service\UserNotificationService;
+use App\Service\Organisateur\UserNotificationService;
 use Doctrine\ORM\EntityManagerInterface;
 use Symfony\Bundle\FrameworkBundle\Controller\AbstractController;
 use Symfony\Component\HttpFoundation\JsonResponse;
@@ -49,7 +51,7 @@ class UserManagementController extends AbstractController
 
         // Construction de la requête pour compter le total (avec filtres)
         $countQb = $this->userRepository->createQueryBuilder('u')
-            ->select('COUNT(u.id)');
+            ->select('COUNT(DISTINCT u.id)');
 
         // Construction de la requête pour récupérer les utilisateurs (avec filtres)
         $qb = $this->userRepository->createQueryBuilder('u');
@@ -58,10 +60,10 @@ class UserManagementController extends AbstractController
         if ($search) {
             $searchTerm = '%' . trim($search) . '%';
             $searchCondition = '
-                u.firstName LIKE :search OR 
-                u.lastName LIKE :search OR 
-                u.email LIKE :search OR 
-                u.phone LIKE :search
+                u.prenom LIKE :search OR 
+                u.nom LIKE :search OR 
+                u.email LIKE :search OR
+                u.telephone LIKE :search
             ';
             $qb->andWhere($searchCondition)
                ->setParameter('search', $searchTerm);
@@ -70,24 +72,91 @@ class UserManagementController extends AbstractController
         }
 
         // Filtre par rôle
-        if ($role && in_array($role, ['user', 'organizer', 'admin'])) {
+        if ($role && in_array($role, UserRoleEnum::all(), true)) {
+            // Si un rôle est sélectionné, filtrer par ce rôle
             $qb->andWhere('u.role = :role')
                ->setParameter('role', $role);
+
             $countQb->andWhere('u.role = :role')
                     ->setParameter('role', $role);
+        } else {
+            // Par défaut (sans filtre de rôle), exclure les users
+            // Afficher uniquement les admins et organisateurs
+            $qb->andWhere('u.role IN (:allowedRoles)')
+               ->setParameter('allowedRoles', [UserRoleEnum::ADMIN, UserRoleEnum::ORGANIZER]);
+
+            $countQb->andWhere('u.role IN (:allowedRoles)')
+                    ->setParameter('allowedRoles', [UserRoleEnum::ADMIN, UserRoleEnum::ORGANIZER]);
         }
 
         // Filtre par statut
-        if ($status && in_array($status, ['active', 'pending_validation', 'rejected', 'suspended'])) {
-            $qb->andWhere('u.accountStatus = :status')
-               ->setParameter('status', $status);
-            $countQb->andWhere('u.accountStatus = :status')
-                    ->setParameter('status', $status);
+        if ($status === 'paused') {
+            // Utiliser SQL natif pour filtrer les organisateurs en pause
+            $conn = $this->entityManager->getConnection();
+            $sql = "
+                SELECT DISTINCT po.id_utilisateur
+                FROM aiolia.abonnements_organisateurs os
+                INNER JOIN aiolia.profils_organisateurs po ON po.id = os.id_profil_organisateur
+                WHERE os.annule_le IS NULL
+                    AND os.statut = 'paused'
+            ";
+            $pausedUserIds = $conn->fetchFirstColumn($sql);
+            
+            if (empty($pausedUserIds)) {
+                // Aucun utilisateur en pause, retourner une liste vide
+                $qb->andWhere('1 = 0');
+                $countQb->andWhere('1 = 0');
+            } else {
+                $qb->andWhere('u.role = :pausedRole')
+                   ->setParameter('pausedRole', UserRoleEnum::ORGANIZER)
+                   ->andWhere('u.id IN (:pausedUserIds)')
+                   ->setParameter('pausedUserIds', $pausedUserIds);
+
+                $countQb->andWhere('u.role = :pausedRole')
+                        ->setParameter('pausedRole', UserRoleEnum::ORGANIZER)
+                        ->andWhere('u.id IN (:pausedUserIds)')
+                        ->setParameter('pausedUserIds', $pausedUserIds);
+            }
+        } elseif ($status && in_array($status, ['active', 'pending_validation', 'rejected'], true)) {
+            if ($status === 'pending_validation') {
+                // Pour les organisateurs non validés, filtrer par statut_verification du profil organisateur
+                $qb->leftJoin('App\Entity\OrganizerProfile', 'op', 'WITH', 'op.utilisateur = u.id')
+                   ->andWhere('u.role = :organizerRole')
+                   ->andWhere('op.statutVerification = :verificationStatus')
+                   ->setParameter('organizerRole', UserRoleEnum::ORGANIZER)
+                   ->setParameter('verificationStatus', 'pending');
+                
+                $countQb->leftJoin('App\Entity\OrganizerProfile', 'op', 'WITH', 'op.utilisateur = u.id')
+                        ->andWhere('u.role = :organizerRole')
+                        ->andWhere('op.statutVerification = :verificationStatus')
+                        ->setParameter('organizerRole', UserRoleEnum::ORGANIZER)
+                        ->setParameter('verificationStatus', 'pending');
+            } elseif ($status === 'rejected') {
+                // Pour les organisateurs rejetés, filtrer par statut_verification = 'rejected'
+                $qb->leftJoin('App\Entity\OrganizerProfile', 'op', 'WITH', 'op.utilisateur = u.id')
+                   ->andWhere('u.role = :organizerRole')
+                   ->andWhere('op.statutVerification = :verificationStatus')
+                   ->setParameter('organizerRole', UserRoleEnum::ORGANIZER)
+                   ->setParameter('verificationStatus', 'rejected');
+                
+                $countQb->leftJoin('App\Entity\OrganizerProfile', 'op', 'WITH', 'op.utilisateur = u.id')
+                        ->andWhere('u.role = :organizerRole')
+                        ->andWhere('op.statutVerification = :verificationStatus')
+                        ->setParameter('organizerRole', UserRoleEnum::ORGANIZER)
+                        ->setParameter('verificationStatus', 'rejected');
+            } else {
+                // Pour 'active', utiliser le statut du compte utilisateur
+                $databaseStatus = User::accountStatusToDatabaseStatus($status);
+                $qb->andWhere('u.statut = :statut')
+                   ->setParameter('statut', $databaseStatus);
+                $countQb->andWhere('u.statut = :statut')
+                        ->setParameter('statut', $databaseStatus);
+            }
         }
 
         // Tri par défaut : date de création décroissante (plus récents en premier)
-        $validSortFields = ['created_at' => 'createdAt', 'email' => 'email', 'first_name' => 'firstName', 'last_name' => 'lastName'];
-        $sortField = $validSortFields[$sort] ?? 'createdAt';
+        $validSortFields = ['created_at' => 'creeLe', 'email' => 'email', 'first_name' => 'prenom', 'last_name' => 'nom'];
+        $sortField = $validSortFields[$sort] ?? 'creeLe';
         $qb->orderBy('u.' . $sortField, strtoupper($order) === 'ASC' ? 'ASC' : 'DESC');
 
         // Compter le total d'utilisateurs avec les filtres appliqués
@@ -101,6 +170,31 @@ class UserManagementController extends AbstractController
         // Récupérer les utilisateurs de la page courante depuis la base de données
         $users = $qb->getQuery()->getResult();
 
+        // Récupérer le statut d'abonnement et de vérification des organisateurs affichés
+        $organizerIds = array_values(array_filter(
+            array_map(static function ($user) {
+                return $user instanceof User && $user->getRole() === UserRoleEnum::ORGANIZER ? $user->getId() : null;
+            }, $users),
+            static fn($id) => $id !== null
+        ));
+
+        $subscriptionStatuses = $this->userRepository->getOrganizerSubscriptionStatuses($organizerIds);
+        
+        // Récupérer les statuts de vérification des organisateurs
+        $verificationStatuses = [];
+        if (!empty($organizerIds)) {
+            $conn = $this->entityManager->getConnection();
+            $sql = "
+                SELECT id_utilisateur, statut_verification
+                FROM aiolia.profils_organisateurs
+                WHERE id_utilisateur IN (:userIds)
+            ";
+            $results = $conn->fetchAllAssociative($sql, ['userIds' => $organizerIds], ['userIds' => \Doctrine\DBAL\ArrayParameterType::INTEGER]);
+            foreach ($results as $row) {
+                $verificationStatuses[$row['id_utilisateur']] = $row['statut_verification'];
+            }
+        }
+
         // Calculer les statistiques depuis la base de données
         $statsQb = $this->userRepository->createQueryBuilder('u');
         
@@ -109,31 +203,39 @@ class UserManagementController extends AbstractController
             ->getQuery()
             ->getSingleScalarResult();
 
-        // Utilisateurs en attente
+        // Utilisateurs en attente (organisateurs avec statut_verification = 'pending')
         $pendingUsers = (int) $this->userRepository->createQueryBuilder('u')
-            ->select('COUNT(u.id)')
-            ->where('u.accountStatus = :status')
-            ->setParameter('status', 'pending_validation')
+            ->select('COUNT(DISTINCT u.id)')
+            ->leftJoin('App\Entity\OrganizerProfile', 'op', 'WITH', 'op.utilisateur = u.id')
+            ->where('u.role = :organizerRole')
+            ->andWhere('op.statutVerification = :verificationStatus')
+            ->setParameter('organizerRole', UserRoleEnum::ORGANIZER)
+            ->setParameter('verificationStatus', 'pending')
             ->getQuery()
             ->getSingleScalarResult();
 
-        // Utilisateurs actifs
-        $activeUsers = (int) $this->userRepository->createQueryBuilder('u')
-            ->select('COUNT(u.id)')
-            ->where('u.accountStatus = :status')
-            ->setParameter('status', 'active')
-            ->getQuery()
-            ->getSingleScalarResult();
-
-        // Organisateurs
-        $organizers = (int) $this->userRepository->createQueryBuilder('u')
-            ->select('COUNT(u.id)')
+        // Organisateurs actifs uniquement (exclure ceux en attente de validation)
+        $activeOrganizers = (int) $this->userRepository->createQueryBuilder('u')
+            ->select('COUNT(DISTINCT u.id)')
+            ->leftJoin('App\Entity\OrganizerProfile', 'op', 'WITH', 'op.utilisateur = u.id')
             ->where('u.role = :role')
-            ->setParameter('role', 'organizer')
+            ->andWhere('u.statut = :statut')
+            ->andWhere('(op.statutVerification IS NULL OR op.statutVerification != :pendingStatus)')
+            ->setParameter('role', UserRoleEnum::ORGANIZER)
+            ->setParameter('statut', User::STATUS_ACTIVE)
+            ->setParameter('pendingStatus', 'pending')
             ->getQuery()
             ->getSingleScalarResult();
 
-        return $this->render('admin/users/list.html.twig', [
+        // Total organisateurs (tous les statuts)
+        $totalOrganizers = (int) $this->userRepository->createQueryBuilder('u')
+            ->select('COUNT(DISTINCT u.id)')
+            ->where('u.role = :role')
+            ->setParameter('role', UserRoleEnum::ORGANIZER)
+            ->getQuery()
+            ->getSingleScalarResult();
+
+        return $this->render('@Admin/users/list.html.twig', [
             'users' => $users,
             'search' => $search,
             'currentRole' => $role,
@@ -147,9 +249,11 @@ class UserManagementController extends AbstractController
             'stats' => [
                 'total' => $totalUsers,
                 'pending' => $pendingUsers,
-                'active' => $activeUsers,
-                'organizers' => $organizers,
+                'activeOrganizers' => $activeOrganizers,
+                'totalOrganizers' => $totalOrganizers,
             ],
+            'subscriptionStatuses' => $subscriptionStatuses,
+            'verificationStatuses' => $verificationStatuses,
         ]);
     }
 
@@ -166,7 +270,7 @@ class UserManagementController extends AbstractController
         }
 
         $users = $this->userRepository->createQueryBuilder('u')
-            ->where('u.firstName LIKE :query OR u.lastName LIKE :query OR u.email LIKE :query')
+            ->where('u.prenom LIKE :query OR u.nom LIKE :query OR u.email LIKE :query')
             ->setParameter('query', '%' . $query . '%')
             ->setMaxResults(10)
             ->getQuery()
@@ -176,7 +280,7 @@ class UserManagementController extends AbstractController
         foreach ($users as $user) {
             $results[] = [
                 'id' => $user->getId(),
-                'text' => sprintf('%s (%s)', $user->getFullName(), $user->getEmail()),
+                'text' => sprintf('%s (%s)', $user->getNomComplet(), $user->getEmail()),
                 'email' => $user->getEmail(),
                 'role' => $user->getRole(),
             ];
@@ -210,12 +314,42 @@ class UserManagementController extends AbstractController
         $eventsCount = count($events);
         $publishedEventsCount = count(array_filter($events, fn($e) => $e->getStatus() === 'published'));
 
-        return $this->render('admin/users/show.html.twig', [
+        // Récupérer les informations d'abonnement si c'est un organisateur
+        $subscriptionInfo = null;
+        if ($user->getRole() === 'organizer') {
+            $conn = $this->entityManager->getConnection();
+            $sql = "
+                SELECT 
+                    os.id,
+                    os.statut,
+                    os.mois_prepayes_restants,
+                    os.mis_en_pause_le,
+                    os.repris_le,
+                    sp.niveau,
+                    sp.nom,
+                    sp.code,
+                    sp.periode_facturation
+                FROM aiolia.abonnements_organisateurs os
+                INNER JOIN aiolia.profils_organisateurs po ON po.id = os.id_profil_organisateur
+                INNER JOIN aiolia.plans_abonnements sp ON sp.id = os.id_plan
+                WHERE po.id_utilisateur = :userId
+                    AND os.annule_le IS NULL
+                ORDER BY os.cree_le DESC
+                LIMIT 1
+            ";
+            $result = $conn->fetchAssociative($sql, ['userId' => $user->getId()]);
+            if ($result) {
+                $subscriptionInfo = $result;
+            }
+        }
+
+        return $this->render('@Admin/users/show.html.twig', [
             'user' => $user,
             'auditLogs' => $auditLogs,
             'events' => $events,
             'eventsCount' => $eventsCount,
             'publishedEventsCount' => $publishedEventsCount,
+            'subscriptionInfo' => $subscriptionInfo,
         ]);
     }
 
@@ -233,7 +367,7 @@ class UserManagementController extends AbstractController
         }
 
         $newRole = $request->request->get('role');
-        if (!in_array($newRole, ['user', 'organizer', 'admin'])) {
+        if (!in_array($newRole, UserRoleEnum::all(), true)) {
             $this->addFlash('error', 'Rôle invalide');
             return $this->redirectToRoute('admin_users_show', ['id' => $id]);
         }
@@ -259,7 +393,7 @@ class UserManagementController extends AbstractController
 
         $this->addFlash('success', sprintf(
             'Rôle de %s modifié : %s → %s',
-            $user->getFullName(),
+            $user->getNomComplet(),
             $this->getRoleLabel($oldRole),
             $this->getRoleLabel($newRole)
         ));
@@ -286,9 +420,9 @@ class UserManagementController extends AbstractController
             return $this->redirectToRoute('admin_users_list');
         }
 
-        $oldStatus = $user->getAccountStatus();
-        $newStatus = $user->getAccountStatus() === 'suspended' ? 'active' : 'suspended';
-        $user->setAccountStatus($newStatus);
+        $oldStatus = $user->getStatutCompte();
+        $newStatus = $user->getStatutCompte() === 'pending_validation' ? 'active' : 'pending_validation';
+        $user->setStatutCompte($newStatus);
         $this->entityManager->flush();
 
         // Logger l'action
@@ -297,7 +431,7 @@ class UserManagementController extends AbstractController
             'User',
             $user->getId(),
             [
-                'action' => $newStatus === 'suspended' ? 'suspended' : 'activated',
+                'action' => $newStatus === 'pending_validation' ? 'disabled' : 'activated',
             ],
             $this->getUser()
         );
@@ -307,8 +441,8 @@ class UserManagementController extends AbstractController
 
         $this->addFlash('success', sprintf(
             'Compte de %s %s',
-            $user->getFullName(),
-            $newStatus === 'suspended' ? 'suspendu' : 'activé'
+            $user->getNomComplet(),
+            $newStatus === 'pending_validation' ? 'désactivé' : 'activé'
         ));
 
         return $this->redirectToRoute('admin_users_show', ['id' => $id]);
@@ -334,7 +468,7 @@ class UserManagementController extends AbstractController
             return $this->redirectToRoute('admin_users_show', ['id' => $id]);
         }
 
-        $userName = $user->getFullName();
+        $userName = $user->getNomComplet();
         $userId = $user->getId();
 
         // Logger l'action avant la suppression
@@ -382,7 +516,7 @@ class UserManagementController extends AbstractController
 
         $actionStats = $this->auditLogRepository->getActionStatistics();
 
-        return $this->render('admin/users/audit_history.html.twig', [
+        return $this->render('@Admin/users/audit_history.html.twig', [
             'auditLogs' => $auditLogs,
             'actionStats' => $actionStats,
             'currentAction' => $action,
@@ -404,13 +538,108 @@ class UserManagementController extends AbstractController
             throw $this->createNotFoundException('Utilisateur non trouvé');
         }
 
-        // TODO: Récupérer les paiements réels depuis la base de données
-        // Pour l'instant, on retourne une liste vide
-        $payments = [];
+        $conn = $this->entityManager->getConnection();
+        
+        // Récupérer l'abonnement actif de l'organisateur
+        $subscriptionInfo = null;
+        $nextPaymentDate = null;
+        $prepaidMonths = 0;
+        $isPaused = false;
+        $pauseMonth = null;
+        
+        if ($user->getRole() === 'organizer') {
+            $sql = "
+                SELECT 
+                    os.id,
+                    os.statut,
+                    os.mois_prepayes_restants,
+                    os.mis_en_pause_le,
+                    os.repris_le,
+                    sp.niveau,
+                    sp.nom,
+                    sp.code,
+                    sp.periode_facturation
+                FROM aiolia.abonnements_organisateurs os
+                INNER JOIN aiolia.profils_organisateurs po ON po.id = os.id_profil_organisateur
+                INNER JOIN aiolia.plans_abonnements sp ON sp.id = os.id_plan
+                WHERE po.id_utilisateur = :userId
+                    AND os.annule_le IS NULL
+                ORDER BY os.cree_le DESC
+                LIMIT 1
+            ";
+            $result = $conn->fetchAssociative($sql, ['userId' => $user->getId()]);
+            if ($result) {
+                $subscriptionInfo = $result;
+                $prepaidMonths = (int) ($result['mois_prepayes_restants'] ?? 0);
+                
+                // Vérifier si en pause
+                $isPaused = $result['statut'] === 'paused' || 
+                           ($result['mis_en_pause_le'] !== null && 
+                            ($result['repris_le'] === null || new \DateTime($result['repris_le']) > new \DateTime()));
+                
+                if ($isPaused && $result['mis_en_pause_le']) {
+                    $pauseDate = new \DateTime($result['mis_en_pause_le']);
+                    $monthNames = [
+                        1 => 'Janvier', 2 => 'Février', 3 => 'Mars', 4 => 'Avril',
+                        5 => 'Mai', 6 => 'Juin', 7 => 'Juillet', 8 => 'Août',
+                        9 => 'Septembre', 10 => 'Octobre', 11 => 'Novembre', 12 => 'Décembre'
+                    ];
+                    $pauseMonth = $monthNames[(int)$pauseDate->format('n')] ?? $pauseDate->format('F');
+                }
+                
+                // Calculer le prochain paiement (première facture non payée à venir)
+                $sqlNextPayment = "
+                    SELECT 
+                        (mois_facturation + INTERVAL '1 month')::date as next_payment
+                    FROM aiolia.factures_abonnements
+                    WHERE id_abonnement = :subscriptionId
+                        AND statut IN ('issued', 'draft', 'pending')
+                        AND mois_facturation >= DATE_TRUNC('month', CURRENT_DATE)
+                    ORDER BY mois_facturation ASC
+                    LIMIT 1
+                ";
+                $nextPaymentResult = $conn->fetchOne($sqlNextPayment, ['subscriptionId' => $result['id']]);
+                if ($nextPaymentResult) {
+                    $nextPaymentDate = new \DateTime($nextPaymentResult);
+                } else {
+                    // Si aucune facture en attente, calculer à partir du mois suivant
+                    $nextPaymentDate = new \DateTime('first day of next month');
+                }
+            }
+        }
+        
+        // Récupérer l'historique des paiements (factures payées)
+        $sqlPayments = "
+            SELECT 
+                fa.id,
+                fa.numero_facture,
+                fa.montant_total,
+                fa.devise,
+                fa.mois_facturation,
+                fa.statut,
+                fa.payee_le,
+                fa.emise_le,
+                fa.echeance_le,
+                COALESCE(sp.niveau, 'basic') as niveau,
+                COALESCE(sp.nom, 'Plan inconnu') as plan_nom
+            FROM aiolia.factures_abonnements fa
+            INNER JOIN aiolia.abonnements_organisateurs os ON os.id = fa.id_abonnement
+            INNER JOIN aiolia.profils_organisateurs po ON po.id = os.id_profil_organisateur
+            LEFT JOIN aiolia.plans_abonnements sp ON sp.id = os.id_plan
+            WHERE po.id_utilisateur = :userId
+            ORDER BY fa.mois_facturation DESC, fa.cree_le DESC
+            LIMIT 50
+        ";
+        $payments = $conn->fetchAllAssociative($sqlPayments, ['userId' => $user->getId()]);
 
-        return $this->render('admin/users/payments.html.twig', [
+        return $this->render('@Admin/users/payments.html.twig', [
             'user' => $user,
             'payments' => $payments,
+            'subscriptionInfo' => $subscriptionInfo,
+            'nextPaymentDate' => $nextPaymentDate,
+            'prepaidMonths' => $prepaidMonths,
+            'isPaused' => $isPaused,
+            'pauseMonth' => $pauseMonth,
         ]);
     }
 
@@ -426,7 +655,7 @@ class UserManagementController extends AbstractController
             throw $this->createNotFoundException('Utilisateur non trouvé');
         }
 
-        return $this->render('admin/users/info.html.twig', [
+        return $this->render('@Admin/users/info.html.twig', [
             'user' => $user,
         ]);
     }
@@ -443,7 +672,7 @@ class UserManagementController extends AbstractController
             throw $this->createNotFoundException('Utilisateur non trouvé');
         }
 
-        if ($user->getRole() !== 'organizer') {
+        if ($user->getRole() !== UserRoleEnum::ORGANIZER) {
             $this->addFlash('warning', 'Cet utilisateur n\'est pas un organisateur');
             return $this->redirectToRoute('admin_users_show', ['id' => $id]);
         }
@@ -465,7 +694,7 @@ class UserManagementController extends AbstractController
         $eventsCount = $totalEvents;
         $publishedEventsCount = count(array_filter($allEvents, fn($e) => $e->getStatus() === 'published'));
 
-        return $this->render('admin/users/events.html.twig', [
+        return $this->render('@Admin/users/events.html.twig', [
             'user' => $user,
             'events' => $events,
             'eventsCount' => $eventsCount,

@@ -1,3 +1,8 @@
 framework:
     mailer:
-        dsn: '%env(MAILER_DSN)%'
+        transports:
+            smtp: 'smtp://%env(MAIL_USERNAME)%:%env(MAIL_PASSWORD)%@%env(MAIL_HOST)%:%env(int:MAIL_PORT)%?encryption=%env(MAIL_ENCRYPTION)%'
+        envelope:
+            sender: '%env(MAIL_FROM_ADDRESS)%'
+        headers:
+            From: '%env(MAIL_FROM_NAME)% <%env(MAIL_FROM_ADDRESS)%>'

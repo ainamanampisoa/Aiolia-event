@@ -1,0 +1,1592 @@
+{% extends 'base.html.twig' %}
+
+{% block title %}Facture N° FA-{{ invoice.invoiceNumber }} - Aiolia Event{% endblock %}
+
+{% block body %}
+<div class="dashboard">
+    <div class="dashboard-header">
+        <div>
+            <h1><i class="fas fa-file-invoice"></i> <span data-i18n="billing.invoice.title" data-i18n-params='{"number": "N° FA-{{ invoice.invoiceNumber }}" }'>Facture N° FA-{{ invoice.invoiceNumber }}</span></h1>
+            <p class="dashboard-subtitle">
+                {% if type == 'ticket' %}
+                    <span data-i18n="billing.invoice.type.ticket">Facture de billet</span>
+                {% else %}
+                    <span data-i18n="billing.invoice.type.subscription">Facture d'abonnement</span>
+                {% endif %}
+            </p>
+        </div>
+        <div class="header-actions">
+            {% if type == 'ticket' %}
+                <a href="{{ path('admin_billing_ticket_invoice_pdf', {id: invoice.id}) }}" class="btn btn-primary" target="_blank">
+                    <i class="fas fa-file-pdf"></i>
+                    <span data-i18n="billing.invoice.actions.download_pdf">Télécharger PDF</span>
+                </a>
+                <form method="post" action="{{ path('admin_billing_ticket_invoice_resend', {id: invoice.id}) }}" class="d-inline">
+                    <button type="submit" class="btn btn-secondary">
+                        <i class="fas fa-envelope"></i>
+                        <span data-i18n="billing.invoice.actions.resend_email">Renvoyer par email</span>
+                    </button>
+                </form>
+            {% else %}
+                <a href="{{ path('admin_billing_subscription_invoice_pdf', {id: invoice.id}) }}" class="btn btn-primary" target="_blank">
+                    <i class="fas fa-file-pdf"></i>
+                    <span data-i18n="billing.invoice.actions.download_pdf">Télécharger PDF</span>
+                </a>
+                {% if invoice.status == 'paid' %}
+                    <form method="post" action="{{ path('admin_billing_subscription_invoice_resend', {id: invoice.id}) }}" class="d-inline">
+                        <button type="submit" class="btn btn-secondary">
+                            <i class="fas fa-envelope"></i>
+                            <span data-i18n="billing.invoice.actions.resend_email">Renvoyer par email</span>
+                        </button>
+                    </form>
+                {% elseif invoice.status == 'overdue' %}
+                    <form method="post" action="{{ path('admin_billing_subscription_invoice_notify', {id: invoice.id}) }}" class="d-inline">
+                        <button type="submit" class="btn btn-warning">
+                            <i class="fas fa-exclamation-triangle"></i>
+                            <span data-i18n="billing.invoice.actions.report_delay">Signaler le retard</span>
+                        </button>
+                    </form>
+                {% endif %}
+            {% endif %}
+            <a href="{{ path('admin_billing_invoices') }}" class="btn btn-outline">
+                <i class="fas fa-arrow-left"></i>
+                <span data-i18n="billing.invoice.actions.back">Retour</span>
+            </a>
+        </div>
+    </div>
+
+    <div class="invoice-container">
+        <!-- Invoice Header Card -->
+        <div class="invoice-card invoice-header-card invoice-header-{{ invoice.status }}">
+            <div class="invoice-header-content">
+                <div class="invoice-title-section">
+                    <div class="invoice-number-wrapper">
+                        <span class="invoice-label" data-i18n="billing.invoice.label">Facture</span>
+                        <h1 class="invoice-number invoice-number-status-{{ invoice.status }}">N° FA-{{ invoice.invoiceNumber }}</h1>
+                    </div>
+                    {% set monthNames = {
+                        '1': {'fr': 'Janvier', 'en': 'January'},
+                        '2': {'fr': 'Février', 'en': 'February'},
+                        '3': {'fr': 'Mars', 'en': 'March'},
+                        '4': {'fr': 'Avril', 'en': 'April'},
+                        '5': {'fr': 'Mai', 'en': 'May'},
+                        '6': {'fr': 'Juin', 'en': 'June'},
+                        '7': {'fr': 'Juillet', 'en': 'July'},
+                        '8': {'fr': 'Août', 'en': 'August'},
+                        '9': {'fr': 'Septembre', 'en': 'September'},
+                        '10': {'fr': 'Octobre', 'en': 'October'},
+                        '11': {'fr': 'Novembre', 'en': 'November'},
+                        '12': {'fr': 'Décembre', 'en': 'December'}
+                    } %}
+                    {% if type == 'subscription' and invoice.billingMonth is defined and invoice.billingMonth %}
+                        {% set billingDate = invoice.billingMonth %}
+                    {% else %}
+                        {% set billingDate = invoice.issuedAt %}
+                    {% endif %}
+                    {% set month = billingDate|date('n') %}
+                    {% set year = billingDate|date('Y') %}
+                    <div class="invoice-meta-info">
+                        <span class="invoice-meta-item">
+                            <i class="fas fa-calendar-alt"></i>
+                            <span data-i18n-fr="Mois de facturation : {{ monthNames[month].fr }} {{ year }}" data-i18n-en="Billing month: {{ monthNames[month].en }} {{ year }}">
+                                {{ monthNames[month].fr }} {{ year }}
+                            </span>
+                        </span>
+                        <span class="invoice-meta-separator">•</span>
+                        <span class="invoice-meta-item">
+                            <i class="fas fa-clock"></i>
+                            <span data-i18n-fr="Émise le {{ invoice.issuedAt|date('d/m/Y à H:i') }}" data-i18n-en="Issued on {{ invoice.issuedAt|date('m/d/Y at H:i') }}">
+                                {{ invoice.issuedAt|date('d/m/Y à H:i') }}
+                            </span>
+                        </span>
+                        {% if type == 'subscription' and invoice.isPauseMonth is defined and invoice.isPauseMonth %}
+                            <span class="invoice-meta-separator">•</span>
+                            <span class="invoice-meta-item invoice-pause-badge">
+                                <i class="fas fa-pause-circle"></i>
+                                <span data-i18n="billing.invoice.pause_month">Mois en pause</span>
+                            </span>
+                        {% endif %}
+                    </div>
+                </div>
+                <div class="invoice-status-wrapper">
+                    {% if invoice.status == 'paid' %}
+                        <div class="status-badge status-badge-paid">
+                            <i class="fas fa-check-circle"></i>
+                            <span data-i18n="billing.invoice.status.paid">Payée</span>
+                        </div>
+                    {% elseif invoice.status == 'overdue' %}
+                        {% set daysOverdue = invoice.getDaysOverdue() %}
+                        <div class="status-badge-wrapper">
+                            {% if daysOverdue is not null %}
+                                <div class="overdue-indicator-large">
+                                    <div class="overdue-icon">
+                                        <i class="fas fa-exclamation-triangle"></i>
+                                    </div>
+                                    <div class="overdue-content">
+                                        <span class="overdue-days-count">{{ daysOverdue }}</span>
+                                        <span class="overdue-days-label" data-i18n-fr="jour{{ daysOverdue > 1 ? 's' : '' }} de retard" data-i18n-en="day{{ daysOverdue != 1 ? 's' : '' }} overdue">
+                                            jour{{ daysOverdue > 1 ? 's' : '' }} de retard
+                                        </span>
+                                    </div>
+                                </div>
+                            {% endif %}
+                            <div class="status-badge status-badge-overdue">
+                                <i class="fas fa-times-circle"></i>
+                                <span data-i18n="billing.invoice.status.overdue">En retard</span>
+                            </div>
+                        </div>
+                    {% elseif invoice.status == 'issued' or invoice.status == 'draft' %}
+                        <div class="status-badge status-badge-pending">
+                            <i class="fas fa-hourglass-half"></i>
+                            <span data-i18n="billing.invoice.status.pending">En attente</span>
+                        </div>
+                    {% elseif invoice.status == 'suspendue' %}
+                        <div class="status-badge status-badge-suspended">
+                            <i class="fas fa-pause-circle"></i>
+                            <span data-i18n="billing.invoice.status.suspended">Suspendue</span>
+                        </div>
+                    {% elseif invoice.status == 'void' %}
+                        <div class="status-badge status-badge-cancelled">
+                            <i class="fas fa-ban"></i>
+                            <span data-i18n="billing.invoice.status.cancelled">Annulée</span>
+                        </div>
+                    {% elseif invoice.status == 'refunded' %}
+                        <div class="status-badge status-badge-refunded">
+                            <i class="fas fa-undo"></i>
+                            <span data-i18n="billing.invoice.status.refunded">Remboursée</span>
+                        </div>
+                    {% else %}
+                        <div class="status-badge status-badge-secondary">
+                            {{ invoice.status }}
+                        </div>
+                    {% endif %}
+                </div>
+            </div>
+        </div>
+
+        <!-- Information Grid -->
+        <div class="invoice-info-grid">
+            <!-- Client/Organisateur Information Card -->
+            <div class="invoice-card invoice-info-card">
+                <div class="card-header">
+                    <i class="fas fa-user-circle"></i>
+                    <h3 data-i18n-fr="{% if type == 'subscription' %}Organisateur{% else %}Client{% endif %}" data-i18n-en="{% if type == 'subscription' %}Organizer{% else %}Customer{% endif %}">
+                        {% if type == 'subscription' %}Organisateur{% else %}Client{% endif %}
+                    </h3>
+                </div>
+                <div class="card-body">
+                    <div class="info-row">
+                        <span class="info-label" data-i18n="billing.invoice.customer.name">Nom</span>
+                        <span class="info-value">{{ invoice.customer.nomComplet }}</span>
+                    </div>
+                    {% if type == 'subscription' %}
+                        <div class="info-row">
+                            <span class="info-label">
+                                <i class="fas fa-id-card"></i>
+                                <span data-i18n="billing.invoice.customer.organizer_id">ID Organisateur</span>
+                            </span>
+                            <span class="info-value">#{{ invoice.customer.id }}</span>
+                        </div>
+                    {% endif %}
+                    <div class="info-row">
+                        <span class="info-label">
+                            <i class="fas fa-envelope"></i>
+                            <span data-i18n="billing.invoice.customer.email">Email</span>
+                        </span>
+                        <span class="info-value">{{ invoice.customer.email }}</span>
+                    </div>
+                    {% if invoice.customer.telephone %}
+                        <div class="info-row">
+                            <span class="info-label">
+                                <i class="fas fa-phone"></i>
+                                <span data-i18n="billing.invoice.customer.phone">Téléphone</span>
+                            </span>
+                            <span class="info-value">{{ invoice.customer.telephone|phone_format(invoice.customer.codePays) }}</span>
+                        </div>
+                    {% endif %}
+                    {% if type == 'subscription' and planInfo is defined and planInfo %}
+                        {% set tierLabels = {
+                            'basic': {'fr': 'Basic', 'en': 'Basic', 'icon': 'tag'},
+                            'pro': {'fr': 'Pro', 'en': 'Pro', 'icon': 'star'},
+                            'enterprise': {'fr': 'Enterprise', 'en': 'Enterprise', 'icon': 'crown'}
+                        } %}
+                        {% set periodLabels = {
+                            'monthly': {'fr': 'Mensuel', 'en': 'Monthly', 'icon': 'calendar-alt'},
+                            'quarterly': {'fr': 'Trimestriel', 'en': 'Quarterly', 'icon': 'calendar-week'},
+                            'yearly': {'fr': 'Annuel', 'en': 'Yearly', 'icon': 'calendar-check'}
+                        } %}
+                        {% set planTier = planInfo.niveau ?? null %}
+                        {% set billingPeriod = planInfo.periode_facturation ?? null %}
+                        {% set tierLabel = tierLabels[planTier] ?? {'fr': planTier|upper, 'en': planTier|upper, 'icon': 'tag'} %}
+                        {% set periodLabel = billingPeriod ? (periodLabels[billingPeriod] ?? {'fr': billingPeriod|capitalize, 'en': billingPeriod|capitalize, 'icon': 'calendar-alt'}) : null %}
+                        {% if planTier %}
+                            <div class="info-row info-row-plan">
+                                <span class="info-label">
+                                    <i class="fas fa-{{ tierLabel.icon }}"></i>
+                                    <span data-i18n="billing.invoice.customer.active_plan">Offre active</span>
+                                </span>
+                                <div class="plan-display-wrapper-detail plan-display-horizontal-detail">
+                                    <span class="plan-tier-badge-modern plan-tier-{{ planTier }}" data-i18n-fr="{{ tierLabel.fr }}" data-i18n-en="{{ tierLabel.en }}">
+                                        <i class="fas fa-{{ tierLabel.icon }}"></i>
+                                        <span class="tier-name">{{ tierLabel.fr }}</span>
+                                    </span>
+                                    {% if periodLabel %}
+                                        <span class="billing-period-badge-modern" data-i18n-fr="{{ periodLabel.fr }}" data-i18n-en="{{ periodLabel.en }}">
+                                            <i class="fas fa-{{ periodLabel.icon }}"></i>
+                                            <span class="period-text">{{ periodLabel.fr }}</span>
+                                        </span>
+                                    {% endif %}
+                                </div>
+                            </div>
+                        {% endif %}
+                        {% if planInfo.nom is defined and planInfo.nom %}
+                            <div class="info-row">
+                                <span class="info-label">
+                                    <i class="fas fa-file-contract"></i>
+                                    <span data-i18n="billing.invoice.customer.plan_name">Nom du plan</span>
+                                </span>
+                                <span class="info-value">{{ planInfo.nom }}</span>
+                            </div>
+                        {% endif %}
+                        {% if planChanged is defined and planChanged %}
+                            <div class="info-row info-row-plan-change">
+                                <span class="info-label">
+                                    <i class="fas fa-exchange-alt"></i>
+                                    <span data-i18n="billing.invoice.customer.plan_change">Changement de plan</span>
+                                </span>
+                                <span class="info-value plan-change-badge">
+                                    <i class="fas fa-check-circle"></i>
+                                    <span data-i18n="billing.invoice.customer.plan_change.yes">Oui</span>
+                                </span>
+                            </div>
+                        {% endif %}
+                    {% endif %}
+                </div>
+            </div>
+
+            <!-- Billing Information Card -->
+            <div class="invoice-card invoice-info-card">
+                <div class="card-header">
+                    <i class="fas fa-file-invoice"></i>
+                    <h3 data-i18n="billing.invoice.billing_info.title">Informations de facturation</h3>
+                </div>
+                <div class="card-body">
+                    <div class="info-row">
+                        <span class="info-label">
+                            <i class="fas fa-calendar-alt"></i>
+                            <span data-i18n-fr="Date d'émission" data-i18n-en="Issue date">Date d'émission</span>
+                        </span>
+                        <span class="info-value">{{ invoice.issuedAt|date('d/m/Y à H:i') }}</span>
+                    </div>
+                    {% if invoice.dueAt %}
+                        <div class="info-row info-row-due-date">
+                            <span class="info-label">
+                                <i class="fas fa-calendar-check"></i>
+                                <span data-i18n-fr="Date d'échéance" data-i18n-en="Due date">Date d'échéance</span>
+                            </span>
+                            <span class="info-value due-date-value due-date-{{ invoice.status }}">
+                                {{ invoice.dueAt|date('d/m/Y') }}
+                                {% if invoice.status == 'overdue' %}
+                                    {% set daysOverdue = invoice.getDaysOverdue() %}
+                                    {% if daysOverdue is not null %}
+                                        <span class="overdue-badge-inline" data-i18n-fr="{{ daysOverdue }}j" data-i18n-en="{{ daysOverdue }}d">
+                                            {{ daysOverdue }}j
+                                        </span>
+                                    {% endif %}
+                                {% endif %}
+                            </span>
+                        </div>
+                    {% endif %}
+                    {% if invoice.paidAt %}
+                        <div class="info-row info-row-paid">
+                            <span class="info-label">
+                                <i class="fas fa-check-circle"></i>
+                                <span data-i18n-fr="Payée le" data-i18n-en="Paid on">Payée le</span>
+                            </span>
+                            <span class="info-value paid-date-value">{{ invoice.paidAt|date('d/m/Y à H:i') }}</span>
+                        </div>
+                    {% endif %}
+                    {% if type == 'subscription' and invoice.billingMonth is defined and invoice.billingMonth %}
+                        {% set monthNames = {
+                            '1': {'fr': 'Janvier', 'en': 'January'},
+                            '2': {'fr': 'Février', 'en': 'February'},
+                            '3': {'fr': 'Mars', 'en': 'March'},
+                            '4': {'fr': 'Avril', 'en': 'April'},
+                            '5': {'fr': 'Mai', 'en': 'May'},
+                            '6': {'fr': 'Juin', 'en': 'June'},
+                            '7': {'fr': 'Juillet', 'en': 'July'},
+                            '8': {'fr': 'Août', 'en': 'August'},
+                            '9': {'fr': 'Septembre', 'en': 'September'},
+                            '10': {'fr': 'Octobre', 'en': 'October'},
+                            '11': {'fr': 'Novembre', 'en': 'November'},
+                            '12': {'fr': 'Décembre', 'en': 'December'}
+                        } %}
+                        {% set month = invoice.billingMonth|date('n') %}
+                        {% set year = invoice.billingMonth|date('Y') %}
+                        <div class="info-row">
+                            <span class="info-label">
+                                <i class="fas fa-calendar"></i>
+                                <span data-i18n-fr="Mois de facturation" data-i18n-en="Billing month">Mois de facturation</span>
+                            </span>
+                            <span class="info-value">
+                                <span data-i18n-fr="{{ monthNames[month].fr }} {{ year }}" data-i18n-en="{{ monthNames[month].en }} {{ year }}">
+                                    {{ monthNames[month].fr }} {{ year }}
+                                </span>
+                            </span>
+                        </div>
+                    {% endif %}
+                    {% if invoice.status == 'overdue' %}
+                        {% set daysOverdue = invoice.getDaysOverdue() %}
+                        {% if daysOverdue is not null %}
+                            <div class="overdue-alert-modern">
+                                <div class="overdue-alert-icon">
+                                    <i class="fas fa-exclamation-triangle"></i>
+                                </div>
+                                <div class="overdue-alert-content">
+                                    <div class="overdue-alert-title" data-i18n-fr="Paiement en retard" data-i18n-en="Payment overdue">Paiement en retard</div>
+                                    <div class="overdue-alert-days">
+                                        <span class="overdue-number-large">{{ daysOverdue }}</span>
+                                        <span class="overdue-text" data-i18n-fr="jour{{ daysOverdue > 1 ? 's' : '' }} de retard" data-i18n-en="day{{ daysOverdue != 1 ? 's' : '' }} overdue">
+                                            jour{{ daysOverdue > 1 ? 's' : '' }} de retard
+                                        </span>
+                                    </div>
+                                </div>
+                            </div>
+                        {% endif %}
+                    {% endif %}
+                </div>
+            </div>
+        </div>
+
+        <!-- Summary Card -->
+        <div class="invoice-card invoice-summary-card invoice-summary-{{ invoice.status }}">
+            <div class="card-header">
+                <i class="fas fa-calculator"></i>
+                <h3 data-i18n-fr="Résumé financier" data-i18n-en="Financial summary">Résumé financier</h3>
+            </div>
+            <div class="card-body summary-body">
+                {% if invoice.amountHt is defined and invoice.amountHt %}
+                    <div class="summary-row">
+                        <span class="summary-label" data-i18n-fr="Montant HT" data-i18n-en="Amount excl. VAT">Montant HT</span>
+                        <span class="summary-value">{{ invoice.amountHt|number_format(0, ',', ' ') }} {{ invoice.currency }}</span>
+                    </div>
+                    <div class="summary-row">
+                        <span class="summary-label" data-i18n-fr="TVA (20%)" data-i18n-en="VAT (20%)">TVA (20%)</span>
+                        <span class="summary-value">{{ invoice.amountTva|number_format(0, ',', ' ') }} {{ invoice.currency }}</span>
+                    </div>
+                    <div class="summary-divider"></div>
+                    <div class="summary-row summary-total summary-total-{{ invoice.status }}">
+                        <span class="summary-label" data-i18n-fr="Montant TTC" data-i18n-en="Amount incl. VAT">Montant TTC</span>
+                        <span class="summary-total-value">{{ invoice.amountTtc|number_format(0, ',', ' ') }} {{ invoice.currency }}</span>
+                    </div>
+                {% else %}
+                    <div class="summary-row">
+                        <span class="summary-label" data-i18n-fr="Sous-total" data-i18n-en="Subtotal">Sous-total</span>
+                        <span class="summary-value">{{ invoice.subtotalAmount|number_format(0, ',', ' ') }} {{ invoice.currency }}</span>
+                    </div>
+                    <div class="summary-row">
+                        <span class="summary-label" data-i18n-fr="TVA ({{ invoice.taxAmount|number_format(0, ',', ' ') }} {{ invoice.currency }})" data-i18n-en="VAT ({{ invoice.taxAmount|number_format(0, ',', ' ') }} {{ invoice.currency }})">TVA</span>
+                        <span class="summary-value">{{ invoice.taxAmount|number_format(0, ',', ' ') }} {{ invoice.currency }}</span>
+                    </div>
+                    <div class="summary-divider"></div>
+                    <div class="summary-row summary-total summary-total-{{ invoice.status }}">
+                        <span class="summary-label" data-i18n-fr="Total à payer" data-i18n-en="Total to pay">Total à payer</span>
+                        <span class="summary-total-value">{{ invoice.totalAmount|number_format(0, ',', ' ') }} {{ invoice.currency }}</span>
+                    </div>
+                {% endif %}
+                {% if type == 'subscription' and invoice.isPrepaid is defined and invoice.isPrepaid %}
+                    <div class="summary-row summary-prepaid">
+                        <span class="summary-label">
+                            <i class="fas fa-credit-card"></i>
+                            <span data-i18n-fr="Facture prépayée" data-i18n-en="Prepaid invoice">Facture prépayée</span>
+                        </span>
+                        <span class="summary-value prepaid-badge">
+                            <i class="fas fa-check"></i>
+                        </span>
+                    </div>
+                {% endif %}
+            </div>
+        </div>
+
+        {% if type == 'subscription' and invoiceItems is defined and invoiceItems|length > 0 %}
+            <div class="invoice-card invoice-items-card">
+                <div class="card-header">
+                    <i class="fas fa-list"></i>
+                    <h3 data-i18n-fr="Détails de la facture" data-i18n-en="Invoice items">Détails de la facture</h3>
+                </div>
+                <div class="card-body">
+                    <div class="table-responsive invoice-items-table-wrapper">
+                        <table class="table invoice-items-table">
+                            <thead>
+                                <tr>
+                                    <th data-i18n-fr="Description" data-i18n-en="Description">Description</th>
+                                    <th class="text-center" data-i18n-fr="Quantité" data-i18n-en="Quantity">Quantité</th>
+                                    <th class="text-right" data-i18n-fr="Prix unitaire" data-i18n-en="Unit price">Prix unitaire</th>
+                                    <th class="text-right" data-i18n-fr="Montant" data-i18n-en="Amount">Montant</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                {% for item in invoiceItems %}
+                                    <tr>
+                                        <td>
+                                            <div class="item-description">
+                                                <span class="item-title">{{ item.description ?? (planInfo.nom ?? 'N/A') }}</span>
+                                                {% if item.plan_name %}
+                                                    <span class="item-subtitle">{{ item.plan_name }}</span>
+                                                {% endif %}
+                                            </div>
+                                        </td>
+                                        <td class="text-center">{{ item.quantite }}</td>
+                                        <td class="text-right">{{ item.prix_unitaire|number_format(0, ',', ' ') }} {{ invoice.currency }}</td>
+                                        <td class="text-right item-total">{{ item.montant_total|number_format(0, ',', ' ') }} {{ invoice.currency }}</td>
+                                    </tr>
+                                {% endfor %}
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+        {% endif %}
+
+        {% if type == 'subscription' and previousInvoices is defined and previousInvoices|length > 0 %}
+            <!-- Historique des paiements précédents -->
+            <div class="invoice-card invoice-info-card">
+                <div class="card-header">
+                    <i class="fas fa-history"></i>
+                    <h3 data-i18n-fr="Historique des paiements précédents" data-i18n-en="Previous payment history">Historique des paiements précédents</h3>
+                </div>
+                <div class="card-body">
+                    <div class="payment-history-list">
+                        {% set monthNames = {
+                            '1': {'fr': 'Janvier', 'en': 'January'},
+                            '2': {'fr': 'Février', 'en': 'February'},
+                            '3': {'fr': 'Mars', 'en': 'March'},
+                            '4': {'fr': 'Avril', 'en': 'April'},
+                            '5': {'fr': 'Mai', 'en': 'May'},
+                            '6': {'fr': 'Juin', 'en': 'June'},
+                            '7': {'fr': 'Juillet', 'en': 'July'},
+                            '8': {'fr': 'Août', 'en': 'August'},
+                            '9': {'fr': 'Septembre', 'en': 'September'},
+                            '10': {'fr': 'Octobre', 'en': 'October'},
+                            '11': {'fr': 'Novembre', 'en': 'November'},
+                            '12': {'fr': 'Décembre', 'en': 'December'}
+                        } %}
+                        {% set tierLabels = {
+                            'basic': {'fr': 'Basic', 'en': 'Basic', 'icon': 'tag'},
+                            'pro': {'fr': 'Pro', 'en': 'Pro', 'icon': 'star'},
+                            'enterprise': {'fr': 'Enterprise', 'en': 'Enterprise', 'icon': 'crown'}
+                        } %}
+                        {% set periodLabels = {
+                            'monthly': {'fr': 'Mensuel', 'en': 'Monthly', 'icon': 'calendar-alt'},
+                            'quarterly': {'fr': 'Trimestriel', 'en': 'Quarterly', 'icon': 'calendar-week'},
+                            'yearly': {'fr': 'Annuel', 'en': 'Yearly', 'icon': 'calendar-check'}
+                        } %}
+                        {% for prevInvoiceData in previousInvoices|slice(0, 5) %}
+                            {% set prevInvoice = prevInvoiceData.invoice %}
+                            {% set prevPlanInfo = prevInvoiceData.planInfo %}
+                            {% set prevPlanTier = prevInvoiceData.planTier %}
+                            {% if prevInvoice.billingMonth is defined and prevInvoice.billingMonth %}
+                                {% set billingDate = prevInvoice.billingMonth %}
+                            {% else %}
+                                {% set billingDate = prevInvoice.issuedAt %}
+                            {% endif %}
+                            {% set month = billingDate|date('n') %}
+                            {% set year = billingDate|date('Y') %}
+                            {% set prevBillingPeriod = prevPlanInfo.periode_facturation ?? null %}
+                            {% set prevTierLabel = tierLabels[prevPlanTier] ?? {'fr': prevPlanTier|upper, 'en': prevPlanTier|upper, 'icon': 'tag'} %}
+                            {% set prevPeriodLabel = prevBillingPeriod ? (periodLabels[prevBillingPeriod] ?? {'fr': prevBillingPeriod|capitalize, 'en': prevBillingPeriod|capitalize, 'icon': 'calendar-alt'}) : null %}
+                            <div class="payment-history-item">
+                                <div class="payment-history-header">
+                                    <span class="payment-history-number">N° FA-{{ prevInvoice.invoiceNumber }}</span>
+                                    <span class="payment-history-status status-{{ prevInvoice.status }}">
+                                        {% if prevInvoice.status == 'paid' %}
+                                            <span data-i18n="billing.invoice.status.paid">Payée</span>
+                                        {% elseif prevInvoice.status == 'overdue' %}
+                                            <span data-i18n="billing.invoice.status.overdue">En retard</span>
+                                        {% else %}
+                                            <span data-i18n="billing.invoice.status.pending">En attente</span>
+                                        {% endif %}
+                                    </span>
+                                </div>
+                                <div class="payment-history-details">
+                                    <span class="payment-history-date">
+                                        <span data-i18n-fr="{{ monthNames[month].fr }} {{ year }}" data-i18n-en="{{ monthNames[month].en }} {{ year }}">
+                                            {{ monthNames[month].fr }} {{ year }}
+                                        </span>
+                                    </span>
+                                    <span class="payment-history-amount">{{ prevInvoice.totalAmount|number_format(0, ',', ' ') }} {{ prevInvoice.currency }}</span>
+                                </div>
+                                {% if prevPlanTier %}
+                                <div class="payment-history-plan">
+                                    <span class="payment-history-plan-label" data-i18n-fr="Offre active" data-i18n-en="Active plan">Offre active :</span>
+                                    <div class="plan-display-wrapper-detail plan-display-horizontal-detail">
+                                        <span class="plan-tier-badge-modern plan-tier-{{ prevPlanTier }}" data-i18n-fr="{{ prevTierLabel.fr }}" data-i18n-en="{{ prevTierLabel.en }}">
+                                            <i class="fas fa-{{ prevTierLabel.icon }}"></i>
+                                            <span class="tier-name">{{ prevTierLabel.fr }}</span>
+                                        </span>
+                                        {% if prevPeriodLabel %}
+                                            <span class="billing-period-badge-modern" data-i18n-fr="{{ prevPeriodLabel.fr }}" data-i18n-en="{{ prevPeriodLabel.en }}">
+                                                <i class="fas fa-{{ prevPeriodLabel.icon }}"></i>
+                                                <span class="period-text">{{ prevPeriodLabel.fr }}</span>
+                                            </span>
+                                        {% endif %}
+                                    </div>
+                                </div>
+                                {% endif %}
+                            </div>
+                        {% endfor %}
+                    </div>
+                </div>
+            </div>
+        {% endif %}
+
+        <!-- Informations supplémentaires -->
+        <div class="invoice-card invoice-info-card">
+            <div class="card-header">
+                <i class="fas fa-info-circle"></i>
+                <h3 data-i18n-fr="Informations supplémentaires" data-i18n-en="Additional information">Informations supplémentaires</h3>
+            </div>
+            <div class="card-body">
+                <div class="info-row">
+                    <span class="info-label">
+                        <i class="fas fa-hashtag"></i>
+                        <span data-i18n-fr="Référence unique" data-i18n-en="Unique reference">Référence unique</span>
+                    </span>
+                    <span class="info-value invoice-ref">N° FA-{{ invoice.invoiceNumber }}</span>
+                </div>
+                {% set paymentMethodFromDb = paymentMethod|default(null) %}
+                {% set paymentMethodLabels = {
+                    'espace': 'Espèce',
+                    'orange': 'Orange Money',
+                    'airtel': 'Airtel Money',
+                    'telma': 'Mvola',
+                    'mvola': 'Mvola',
+                    'bank_transfer': 'Virement bancaire'
+                } %}
+                {% set paymentMethodLabel = paymentMethodFromDb ? (paymentMethodLabels[paymentMethodFromDb] ?? paymentMethodFromDb|capitalize) : 'Mobile Money / Virement' %}
+                <div class="info-row info-row-payment">
+                    <span class="info-label">
+                        <i class="fas fa-credit-card"></i>
+                        <span data-i18n-fr="Mode de paiement" data-i18n-en="Payment method">Mode de paiement</span>
+                    </span>
+                    <span class="info-value payment-method-badge">
+                        <span data-i18n-fr="{{ paymentMethodLabel }}" data-i18n-en="{{ paymentMethodLabel }}">{{ paymentMethodLabel }}</span>
+                    </span>
+                </div>
+                {% if type == 'subscription' and invoice.isPauseMonth is defined and invoice.isPauseMonth %}
+                    <div class="info-row info-row-pause">
+                        <span class="info-label">
+                            <i class="fas fa-pause-circle"></i>
+                            <span data-i18n-fr="Période d'utilisation" data-i18n-en="Usage period">Période d'utilisation</span>
+                        </span>
+                        <span class="info-value pause-period">
+                            <span data-i18n-fr="Mois en pause - Facture à 0 Ar" data-i18n-en="Pause month - 0 Ar invoice">Mois en pause - Facture à 0 Ar</span>
+                        </span>
+                    </div>
+                {% endif %}
+            </div>
+        </div>
+    </div>
+</div>
+
+<style>
+/* Styles pour les titres avec icônes */
+.dashboard-header h1 {
+    display: flex !important;
+    align-items: center;
+    gap: 12px;
+}
+
+.dashboard-header h1 i {
+    font-size: 2rem !important;
+    color: var(--accent) !important;
+    display: inline-block !important;
+    visibility: visible !important;
+    opacity: 1 !important;
+}
+
+/* ============================================
+   INVOICE DETAIL PAGE - MODERN PROFESSIONAL DESIGN
+   ============================================ */
+
+.invoice-container {
+    max-width: 1200px;
+    margin: 0 auto;
+    padding: 2rem 0;
+    display: flex;
+    flex-direction: column;
+    gap: 1.5rem;
+}
+
+/* Invoice Card Base */
+.invoice-card {
+    background: var(--bg-card, var(--white, #ffffff));
+    border-radius: 16px;
+    box-shadow: var(--shadow-sm, 0 2px 4px rgba(0, 0, 0, 0.06)), var(--shadow-md, 0 4px 8px rgba(0, 0, 0, 0.08));
+    border: 1px solid var(--border-color, rgba(0, 0, 0, 0.08));
+    overflow: hidden;
+    transition: var(--transition-base, all 0.3s ease);
+}
+
+.invoice-card:hover {
+    box-shadow: var(--shadow-md, 0 4px 8px rgba(0, 0, 0, 0.08)), var(--shadow-lg, 0 10px 20px rgba(0, 0, 0, 0.1));
+    transform: translateY(-2px);
+}
+
+/* Header Card */
+.invoice-header-card {
+    padding: 2.5rem;
+    background: linear-gradient(135deg, var(--gray-50, #F8F9FA) 0%, var(--white, #ffffff) 100%);
+    border-left: 6px solid;
+}
+
+.invoice-header-paid {
+    border-left-color: var(--success, #27AE60);
+    background: linear-gradient(135deg, rgba(39, 174, 96, 0.04) 0%, var(--white, #ffffff) 100%);
+}
+
+.invoice-header-overdue {
+    border-left-color: var(--danger, #E74C3C);
+    background: linear-gradient(135deg, rgba(231, 76, 60, 0.04) 0%, var(--white, #ffffff) 100%);
+}
+
+.invoice-header-issued,
+.invoice-header-draft {
+    border-left-color: var(--warning, #F39C12);
+    background: linear-gradient(135deg, rgba(243, 156, 18, 0.04) 0%, var(--white, #ffffff) 100%);
+}
+
+.invoice-header-content {
+    display: flex;
+    justify-content: space-between;
+    align-items: flex-start;
+    gap: 2rem;
+}
+
+.invoice-title-section {
+    flex: 1;
+}
+
+.invoice-number-wrapper {
+    margin-bottom: 1rem;
+}
+
+.invoice-label {
+    font-size: 0.875rem;
+    font-weight: 500;
+    color: #6c757d;
+    text-transform: uppercase;
+    letter-spacing: 1px;
+    display: block;
+    margin-bottom: 0.5rem;
+}
+
+.invoice-number {
+    font-size: 2.5rem;
+    font-weight: 700;
+    margin: 0;
+    line-height: 1.2;
+    letter-spacing: -0.5px;
+}
+
+.invoice-number-status-paid {
+    color: var(--success, #27AE60);
+}
+
+.invoice-number-status-overdue {
+    color: var(--danger, #E74C3C);
+}
+
+.invoice-number-status-issued,
+.invoice-number-status-draft {
+    color: var(--warning, #F39C12);
+}
+
+.invoice-meta-info {
+    display: flex;
+    align-items: center;
+    gap: 1rem;
+    flex-wrap: wrap;
+    margin-top: 1rem;
+}
+
+.invoice-meta-item {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.5rem;
+    color: var(--text-secondary, #6C757D);
+    font-size: 0.9375rem;
+}
+
+.invoice-meta-item i {
+    font-size: 0.875rem;
+    opacity: 0.7;
+}
+
+.invoice-meta-separator {
+    color: var(--border-color, #DEE2E6);
+    font-weight: 300;
+}
+
+/* Status Badges */
+.invoice-status-wrapper {
+    display: flex;
+    flex-direction: column;
+    align-items: flex-end;
+    gap: 1rem;
+}
+
+.status-badge-wrapper {
+    display: flex;
+    flex-direction: column;
+    align-items: flex-end;
+    gap: 0.75rem;
+}
+
+.status-badge {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.5rem;
+    padding: 0.625rem 1.25rem;
+    border-radius: 8px;
+    font-weight: 600;
+    font-size: 0.9375rem;
+    white-space: nowrap;
+    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+}
+
+.status-badge i {
+    font-size: 1rem;
+}
+
+.status-badge-paid {
+    background: linear-gradient(135deg, var(--success, #27AE60), var(--success-light, #2ECC71));
+    color: white;
+}
+
+.status-badge-overdue {
+    background: linear-gradient(135deg, var(--danger, #E74C3C), var(--danger-light, #EC7063));
+    color: white;
+}
+
+.status-badge-pending {
+    background: linear-gradient(135deg, var(--warning, #F39C12), var(--warning-light, #F1C40F));
+    color: var(--text-primary, #212529);
+}
+
+.status-badge-suspended {
+    background: var(--bg-secondary);
+    color: #F39C12;
+    border: 1px solid var(--border-color);
+}
+
+.status-badge-cancelled {
+    background: linear-gradient(135deg, var(--gray-600, #6C757D), var(--gray-700, #495057));
+    color: white;
+}
+
+.status-badge-refunded {
+    background: linear-gradient(135deg, #8B4513, #A0522D);
+    color: white;
+}
+
+.status-badge-secondary {
+    background: var(--gray-200, #E9ECEF);
+    color: var(--text-secondary, #495057);
+    padding: 0.625rem 1.25rem;
+    border-radius: 8px;
+    font-weight: 600;
+}
+
+/* Overdue Indicator */
+.overdue-indicator-large {
+    display: flex;
+    align-items: center;
+    gap: 1rem;
+    padding: 1rem 1.5rem;
+    background: linear-gradient(135deg, rgba(231, 76, 60, 0.08), rgba(231, 76, 60, 0.05));
+    border: 2px solid var(--danger, #E74C3C);
+    border-radius: 12px;
+    box-shadow: 0 4px 12px rgba(231, 76, 60, 0.12);
+}
+
+.overdue-icon {
+    width: 48px;
+    height: 48px;
+    background: linear-gradient(135deg, var(--danger, #E74C3C), var(--danger-light, #EC7063));
+    border-radius: 12px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    color: white;
+    font-size: 1.5rem;
+    box-shadow: 0 2px 8px rgba(231, 76, 60, 0.2);
+}
+
+.overdue-content {
+    display: flex;
+    align-items: baseline;
+    gap: 0.5rem;
+}
+
+.overdue-days-count {
+    font-size: 2rem;
+    font-weight: 800;
+    color: var(--danger, #E74C3C);
+    line-height: 1;
+}
+
+.overdue-days-label {
+    font-size: 0.875rem;
+    font-weight: 600;
+    color: var(--danger, #E74C3C);
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+}
+
+/* Information Grid */
+.invoice-info-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(400px, 1fr));
+    gap: 1.5rem;
+}
+
+.invoice-info-card {
+    display: flex;
+    flex-direction: column;
+}
+
+.card-header {
+    display: flex;
+    align-items: center;
+    gap: 0.75rem;
+    padding: 1.25rem 1.5rem;
+    background: var(--gray-50, #F8F9FA);
+    border-bottom: 2px solid var(--border-light, #E9ECEF);
+}
+
+.card-header i {
+    font-size: 1.25rem;
+    color: var(--text-secondary, #495057);
+    width: 24px;
+    text-align: center;
+}
+
+.card-header h3 {
+    margin: 0;
+    font-size: 1.125rem;
+    font-weight: 600;
+    color: var(--text-primary, #212529);
+}
+
+.card-body {
+    padding: 1.5rem;
+    display: flex;
+    flex-direction: column;
+    gap: 1rem;
+}
+
+/* Info Rows */
+.info-row {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 0.875rem 0;
+    border-bottom: 1px solid var(--border-light, #F1F3F5);
+}
+
+.info-row:last-child {
+    border-bottom: none;
+}
+
+.info-label {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    font-size: 0.9375rem;
+    font-weight: 500;
+    color: var(--text-secondary, #6C757D);
+    min-width: 140px;
+}
+
+.info-label i {
+    width: 18px;
+    text-align: center;
+    font-size: 0.875rem;
+    color: var(--text-muted, #ADB5BD);
+}
+
+.info-value {
+    font-size: 0.9375rem;
+    font-weight: 600;
+    color: var(--text-primary, #212529);
+    text-align: right;
+}
+
+.info-value.text-muted {
+    color: var(--text-secondary, #6C757D);
+    font-weight: 500;
+}
+
+.phone-formatted {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    white-space: nowrap;
+}
+
+.phone-flag {
+    font-size: 1em;
+    line-height: 1;
+    display: inline-block;
+}
+
+.phone-country-code {
+    font-weight: 600;
+    color: inherit;
+}
+
+.phone-number {
+    color: inherit;
+}
+
+.info-row-plan {
+    padding-top: 1rem;
+    border-top: 2px solid var(--border-color, #E9ECEF);
+    border-bottom: none;
+}
+
+.due-date-value {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.5rem;
+}
+
+.due-date-paid {
+    color: var(--success, #27AE60);
+}
+
+.due-date-overdue {
+    color: var(--danger, #E74C3C);
+}
+
+.due-date-issued,
+.due-date-draft {
+    color: var(--warning, #F39C12);
+}
+
+.overdue-badge-inline {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    padding: 0.25rem 0.625rem;
+    background: var(--danger, #E74C3C);
+    color: white;
+    border-radius: 6px;
+    font-size: 0.75rem;
+    font-weight: 700;
+    min-width: 32px;
+}
+
+.paid-date-value {
+    color: var(--success, #27AE60);
+    font-weight: 600;
+}
+
+/* Plan Display Wrapper for Detail Page */
+.plan-display-wrapper-detail {
+    display: flex;
+    flex-direction: column;
+    align-items: flex-end;
+    gap: 8px;
+    min-width: 140px;
+}
+
+.plan-display-wrapper-detail.plan-display-horizontal-detail {
+    flex-direction: row;
+    align-items: center;
+    justify-content: flex-end;
+    gap: 10px;
+    flex-wrap: wrap;
+    min-width: auto;
+}
+
+/* Plan Tier Badge Modern */
+.plan-tier-badge-modern {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.5rem;
+    padding: 0.625rem 1.25rem;
+    border-radius: 10px;
+    font-size: 0.9rem;
+    font-weight: 600;
+    box-shadow: 0 2px 6px rgba(0, 0, 0, 0.12), 0 1px 3px rgba(0, 0, 0, 0.08);
+    transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+    border: 1px solid transparent;
+    position: relative;
+    overflow: hidden;
+}
+
+
+.plan-tier-badge-modern .tier-name {
+    font-weight: 600;
+    letter-spacing: 0.4px;
+    position: relative;
+    z-index: 1;
+}
+
+.plan-tier-badge-modern i {
+    font-size: 0.9rem;
+    opacity: 1;
+    position: relative;
+    z-index: 1;
+    filter: drop-shadow(0 1px 2px rgba(0, 0, 0, 0.1));
+}
+
+.plan-tier-badge-modern.plan-tier-basic {
+    background: var(--bg-secondary);
+    color: #3498DB;
+    border-color: rgba(52, 152, 219, 0.3);
+}
+
+.plan-tier-badge-modern.plan-tier-basic:hover {
+    background: var(--bg-primary);
+    border-color: rgba(52, 152, 219, 0.5);
+    box-shadow: 0 2px 8px rgba(52, 152, 219, 0.15);
+    transform: translateY(-1px);
+}
+
+.plan-tier-badge-modern.plan-tier-basic i {
+    color: #3498DB;
+}
+
+.plan-tier-badge-modern.plan-tier-basic .tier-name {
+    color: #3498DB;
+}
+
+.plan-tier-badge-modern.plan-tier-pro {
+    background: var(--bg-secondary);
+    color: #9B59B6;
+    border-color: rgba(155, 89, 182, 0.3);
+}
+
+.plan-tier-badge-modern.plan-tier-pro:hover {
+    background: var(--bg-primary);
+    border-color: rgba(155, 89, 182, 0.5);
+    box-shadow: 0 2px 8px rgba(155, 89, 182, 0.15);
+    transform: translateY(-1px);
+}
+
+.plan-tier-badge-modern.plan-tier-pro i {
+    color: #9B59B6;
+}
+
+.plan-tier-badge-modern.plan-tier-pro .tier-name {
+    color: #9B59B6;
+}
+
+.plan-tier-badge-modern.plan-tier-enterprise {
+    background: var(--bg-secondary);
+    color: #F39C12;
+    border-color: rgba(243, 156, 18, 0.3);
+}
+
+.plan-tier-badge-modern.plan-tier-enterprise:hover {
+    background: var(--bg-primary);
+    border-color: rgba(243, 156, 18, 0.5);
+    box-shadow: 0 2px 8px rgba(243, 156, 18, 0.15);
+    transform: translateY(-1px);
+}
+
+.plan-tier-badge-modern.plan-tier-enterprise i {
+    color: #F39C12;
+}
+
+.plan-tier-badge-modern.plan-tier-enterprise .tier-name {
+    color: #F39C12;
+}
+
+.billing-period-badge-modern {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.5rem;
+    padding: 0.5rem 0.875rem;
+    border-radius: 8px;
+    font-size: 0.8rem;
+    font-weight: 500;
+    background: linear-gradient(135deg, var(--bg-secondary) 0%, var(--bg-primary) 100%);
+    color: var(--text-secondary);
+    border: 1.5px solid var(--border-color);
+    box-shadow: 0 1px 3px rgba(0, 0, 0, 0.08);
+    transition: all 0.2s ease;
+}
+
+.billing-period-badge-modern:hover {
+    border-color: var(--accent);
+    color: var(--accent);
+    box-shadow: 0 2px 6px rgba(52, 152, 219, 0.15);
+    transform: translateY(-1px);
+}
+
+.billing-period-badge-modern i {
+    font-size: 0.75rem;
+    opacity: 0.8;
+}
+
+.billing-period-badge-modern .period-text {
+    font-weight: 500;
+    letter-spacing: 0.2px;
+}
+
+/* Overdue Alert Modern */
+.overdue-alert-modern {
+    display: flex;
+    align-items: flex-start;
+    gap: 1rem;
+    padding: 1.25rem;
+    background: linear-gradient(135deg, rgba(231, 76, 60, 0.06), rgba(231, 76, 60, 0.03));
+    border: 2px solid var(--danger, #E74C3C);
+    border-radius: 12px;
+    margin-top: 0.5rem;
+}
+
+.overdue-alert-icon {
+    width: 40px;
+    height: 40px;
+    background: linear-gradient(135deg, var(--danger, #E74C3C), var(--danger-light, #EC7063));
+    border-radius: 10px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    color: white;
+    font-size: 1.25rem;
+    flex-shrink: 0;
+    box-shadow: 0 2px 6px rgba(231, 76, 60, 0.2);
+}
+
+.overdue-alert-content {
+    flex: 1;
+}
+
+.overdue-alert-title {
+    font-size: 0.9375rem;
+    font-weight: 600;
+    color: var(--danger, #E74C3C);
+    margin-bottom: 0.5rem;
+}
+
+.overdue-alert-days {
+    display: flex;
+    align-items: baseline;
+    gap: 0.5rem;
+}
+
+.overdue-number-large {
+    font-size: 2rem;
+    font-weight: 800;
+    color: var(--danger, #E74C3C);
+    line-height: 1;
+}
+
+.overdue-text {
+    font-size: 1rem;
+    font-weight: 600;
+    color: var(--danger, #E74C3C);
+}
+
+/* Summary Card */
+.invoice-summary-card {
+    border-left: 6px solid;
+}
+
+.invoice-summary-paid {
+    border-left-color: var(--success, #27AE60);
+}
+
+.invoice-summary-overdue {
+    border-left-color: var(--danger, #E74C3C);
+}
+
+.invoice-summary-issued,
+.invoice-summary-draft {
+    border-left-color: var(--warning, #F39C12);
+}
+
+.summary-body {
+    padding: 2rem 1.5rem;
+}
+
+.summary-row {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 1rem 0;
+    border-bottom: 1px solid var(--border-color, #E9ECEF);
+}
+
+.summary-row:last-child {
+    border-bottom: none;
+}
+
+.summary-label {
+    font-size: 1rem;
+    font-weight: 500;
+    color: var(--text-secondary, #495057);
+}
+
+.summary-value {
+    font-size: 1rem;
+    font-weight: 600;
+    color: var(--text-primary, #212529);
+}
+
+.summary-divider {
+    height: 2px;
+    background: linear-gradient(90deg, transparent, var(--border-color, #DEE2E6), transparent);
+    margin: 0.5rem 0;
+}
+
+.summary-total {
+    padding: 1.5rem 0 0 0;
+    margin-top: 0.5rem;
+    border-top: 3px solid;
+}
+
+.summary-total-paid {
+    border-top-color: var(--success, #27AE60);
+}
+
+.summary-total-overdue {
+    border-top-color: var(--danger, #E74C3C);
+}
+
+.summary-total-issued,
+.summary-total-draft {
+    border-top-color: var(--warning, #F39C12);
+}
+
+.summary-total .summary-label {
+    font-size: 1.25rem;
+    font-weight: 600;
+    color: var(--text-primary, #212529);
+}
+
+.summary-total-value {
+    font-size: 2rem;
+    font-weight: 800;
+    letter-spacing: -0.5px;
+}
+
+.summary-total-paid .summary-total-value {
+    color: var(--success, #27AE60);
+}
+
+.summary-total-overdue .summary-total-value {
+    color: var(--danger, #E74C3C);
+}
+
+.summary-total-issued .summary-total-value,
+.summary-total-draft .summary-total-value {
+    color: var(--warning, #F39C12);
+}
+
+/* Responsive */
+@media (max-width: 992px) {
+    .invoice-info-grid {
+        grid-template-columns: 1fr;
+    }
+    
+    .invoice-header-content {
+        flex-direction: column;
+        align-items: flex-start;
+    }
+    
+    .invoice-status-wrapper {
+        align-items: flex-start;
+        width: 100%;
+    }
+}
+
+@media (max-width: 768px) {
+    .invoice-container {
+        padding: 1rem 0;
+        gap: 1rem;
+    }
+    
+    .invoice-header-card {
+        padding: 1.5rem;
+    }
+    
+    .invoice-number {
+        font-size: 2rem;
+    }
+    
+    .invoice-meta-info {
+        flex-direction: column;
+        align-items: flex-start;
+        gap: 0.5rem;
+    }
+    
+    .invoice-meta-separator {
+        display: none;
+    }
+    
+    .card-body {
+        padding: 1rem;
+    }
+    
+    .info-row {
+        flex-direction: column;
+        align-items: flex-start;
+        gap: 0.5rem;
+    }
+    
+    .info-value {
+        text-align: left;
+    }
+}
+
+/* Utility Classes */
+.text-danger {
+    color: var(--danger, #E74C3C);
+}
+
+.text-success {
+    color: var(--success, #27AE60);
+}
+
+.text-muted {
+    color: var(--text-secondary, #6C757D);
+}
+
+/* Styles pour les nouveaux éléments */
+.invoice-pause-badge {
+    color: var(--warning, #F39C12);
+    font-weight: 600;
+}
+
+.plan-change-badge {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.5rem;
+    color: var(--success, #27AE60);
+    font-weight: 600;
+}
+
+.info-row-plan-change {
+    border-top: 2px solid var(--border-color, #E9ECEF);
+    padding-top: 1rem;
+    margin-top: 0.5rem;
+}
+
+.payment-history-list {
+    display: flex;
+    flex-direction: column;
+    gap: 1rem;
+}
+
+.payment-history-item {
+    padding: 1rem;
+    background: var(--gray-50, #F8F9FA);
+    border-radius: 8px;
+    border: 1px solid var(--border-color, #E9ECEF);
+}
+
+.payment-history-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 0.5rem;
+}
+
+.payment-history-number {
+    font-weight: 600;
+    color: var(--text-primary, #212529);
+    font-size: 0.9375rem;
+}
+
+.payment-history-status {
+    font-size: 0.8125rem;
+    padding: 0.25rem 0.625rem;
+    border-radius: 6px;
+    font-weight: 600;
+}
+
+.payment-history-status.status-paid {
+    background: rgba(39, 174, 96, 0.1);
+    color: var(--success, #27AE60);
+}
+
+.payment-history-status.status-overdue {
+    background: rgba(231, 76, 60, 0.1);
+    color: var(--danger, #E74C3C);
+}
+
+.payment-history-status.status-issued,
+.payment-history-status.status-draft {
+    background: rgba(243, 156, 18, 0.1);
+    color: var(--warning, #F39C12);
+}
+
+.payment-history-details {
+    display: flex;
+    gap: 1rem;
+    flex-wrap: wrap;
+    font-size: 0.875rem;
+    color: var(--text-secondary, #6C757D);
+}
+
+.payment-history-date {
+    display: flex;
+    align-items: center;
+    gap: 0.375rem;
+}
+
+.payment-history-amount {
+    font-weight: 600;
+    color: var(--text-primary, #212529);
+}
+
+.payment-history-plan {
+    margin-top: 0.75rem;
+    padding-top: 0.75rem;
+    border-top: 1px solid var(--border-color, #E9ECEF);
+    display: flex;
+    align-items: center;
+    gap: 0.75rem;
+    flex-wrap: wrap;
+}
+
+.payment-history-plan-label {
+    font-size: 0.875rem;
+    font-weight: 600;
+    color: var(--text-secondary, #6C757D);
+    min-width: 100px;
+}
+
+.summary-prepaid {
+    margin-top: 1rem;
+    padding-top: 1rem;
+    border-top: 1px solid var(--border-color, #E9ECEF);
+}
+
+.prepaid-badge {
+    color: var(--success, #27AE60);
+    font-weight: 600;
+}
+
+.invoice-items-table-wrapper {
+    border: 1px solid var(--border-color, #E9ECEF);
+    border-radius: 12px;
+    padding: 1rem;
+}
+
+.invoice-items-table {
+    width: 100%;
+    border-collapse: collapse;
+}
+
+.invoice-items-table thead th {
+    font-size: 0.75rem;
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+    color: var(--text-secondary);
+    border-bottom: 1px solid var(--border-color);
+    padding-bottom: 0.75rem;
+}
+
+.invoice-items-table tbody td {
+    padding: 0.85rem 0;
+    border-bottom: 1px solid var(--border-color);
+    font-size: 0.95rem;
+    color: var(--text-primary);
+}
+
+.invoice-items-table tbody tr:last-child td {
+    border-bottom: none;
+}
+
+.item-description {
+    display: flex;
+    flex-direction: column;
+}
+
+.item-title {
+    font-weight: var(--font-weight-medium);
+    color: var(--text-primary);
+}
+
+.item-subtitle {
+    font-size: 0.8rem;
+    color: var(--text-secondary);
+}
+
+.item-total {
+    font-weight: var(--font-weight-semibold);
+}
+
+.info-row-pause {
+    border-top: 2px solid var(--border-color, #E9ECEF);
+    padding-top: 1rem;
+    margin-top: 0.5rem;
+}
+
+.pause-period {
+    color: var(--warning, #F39C12);
+    font-weight: 600;
+}
+
+.invoice-ref {
+    font-family: 'Courier New', monospace;
+    font-weight: 600;
+    color: var(--accent, #3498DB);
+}
+
+.info-row-payment {
+    border-top: 2px solid var(--border-color, #E9ECEF);
+    padding-top: 1rem;
+    margin-top: 0.5rem;
+}
+
+.payment-method-badge {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.5rem;
+    padding: 0.5rem 1rem;
+    border-radius: 8px;
+    font-weight: 600;
+    font-size: 0.9375rem;
+    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+}
+
+.payment-method-badge i {
+    font-size: 1rem;
+}
+
+.payment-method-espace {
+    background: linear-gradient(135deg, #3498DB, #2980B9);
+    color: white;
+}
+
+.payment-method-orange {
+    background: linear-gradient(135deg, #FF6600, #FF8533);
+    color: white;
+}
+
+.payment-method-airtel {
+    background: linear-gradient(135deg, #E60012, #FF1A2E);
+    color: white;
+}
+
+.payment-method-telma {
+    background: linear-gradient(135deg, #00A859, #00C96A);
+    color: white;
+}
+
+.payment-method-bank_transfer {
+    background: linear-gradient(135deg, #6C757D, #495057);
+    color: white;
+}
+</style>
+{% endblock %}
+

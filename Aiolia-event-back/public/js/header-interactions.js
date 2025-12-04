@@ -13,6 +13,11 @@ class HeaderManager {
         this.userDropdown = document.querySelector('.user-dropdown');
         this.userTrigger = document.querySelector('.user-trigger');
         this.dropdownMenu = document.querySelector('.dropdown-menu');
+        this.themeToggle = document.getElementById('themeToggle');
+        this.themeIcon = document.getElementById('themeIcon');
+        this.themeToggleLabel = document.getElementById('themeToggleLabel');
+        this.notificationLabel = document.getElementById('notificationLabel');
+        this.searchLabel = document.getElementById('headerSearchLabel');
         
         // Configuration
         this.config = {
@@ -38,6 +43,8 @@ class HeaderManager {
         }
         
         // Initialiser les composants
+        this.initTranslations();
+        this.initThemeToggle();
         this.initUserDropdown();
         this.initSearch();
         this.initNotifications();
@@ -51,6 +58,69 @@ class HeaderManager {
     // USER DROPDOWN
     // ============================================
     
+    initTranslations() {
+        const applyTranslations = () => {
+            const manager = window.languageManager;
+            const translate = (key, fallback) => manager?.translate?.(key) || fallback;
+
+            const themeLabel = translate('layout.header.toggle_theme', 'Basculer le thème');
+            const notifLabel = translate('layout.header.notifications', 'Notifications');
+            const searchLabel = translate('layout.header.search_label', 'Rechercher');
+            const searchPlaceholder = translate('layout.header.search_placeholder', 'Rechercher des billets...');
+
+            if (this.themeToggle) {
+                this.themeToggle.setAttribute('aria-label', themeLabel);
+            }
+            if (this.themeToggleLabel) {
+                this.themeToggleLabel.textContent = themeLabel;
+            }
+            if (this.notificationBtn) {
+                this.notificationBtn.setAttribute('aria-label', notifLabel);
+            }
+            if (this.notificationLabel) {
+                this.notificationLabel.textContent = notifLabel;
+            }
+            if (this.searchLabel) {
+                this.searchLabel.textContent = searchLabel;
+            }
+            if (this.searchInput) {
+                this.searchInput.setAttribute('placeholder', searchPlaceholder);
+            }
+        };
+
+        applyTranslations();
+        document.addEventListener('aiolia:language-changed', applyTranslations);
+    }
+
+    initThemeToggle() {
+        if (!this.themeToggle || !this.themeIcon) {
+            return;
+        }
+
+        const updateIcon = () => {
+            const frameworkTheme = document.body.getAttribute('data-theme');
+            const managerTheme = window.themeManager ? window.themeManager.getTheme() : null;
+            const theme = managerTheme || (frameworkTheme === 'dark' ? 'dark' : 'light');
+            const iconClass = theme === 'dark' ? 'fa-moon' : 'fa-sun';
+
+            this.themeIcon.classList.remove('fa-moon', 'fa-sun');
+            this.themeIcon.classList.add('fas', iconClass);
+            this.themeIcon.dataset.themeIcon = iconClass === 'fa-moon' ? 'moon' : 'sun';
+        };
+
+        updateIcon();
+
+        if (window.themeManager) {
+            document.addEventListener('aiolia:theme-changed', () => {
+                requestAnimationFrame(updateIcon);
+            });
+        }
+
+        this.themeToggle.addEventListener('click', () => {
+            setTimeout(updateIcon, 0);
+        });
+    }
+
     initUserDropdown() {
         if (!this.userTrigger || !this.dropdownMenu) {
             return;

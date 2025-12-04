@@ -1,9 +1,7 @@
 {% set currentRoute = app.request.attributes.get('_route') %}
-{% set isDashboard = currentRoute starts with 'app_dashboard' %}
-{% set isReportsMain = currentRoute == 'app_reports_rapports' %}
 {% set isStats = currentRoute == 'app_reports_statistiques' %}
 {% set isUserManagement = currentRoute starts with 'admin_users' or currentRoute starts with 'admin_audit_' %}
-{% set isValidation = currentRoute starts with 'admin_validation' %}
+{% set isBilling = currentRoute starts with 'admin_billing' %}
 {% set isProfile = currentRoute starts with 'app_profile' %}
 {% set isSettings = currentRoute starts with 'app_settings' %}
 
@@ -16,28 +14,8 @@
     
     <nav class="sidebar-nav" aria-label="Main navigation">
         <ul class="nav-menu">
-            <li class="nav-item {{ isDashboard ? 'active' }}">
-                <a href="{{ path('app_dashboard') }}" class="nav-link {{ isDashboard ? 'active' }}" {% if isDashboard %}aria-current="page"{% endif %}>
-                    <div class="nav-icon">
-                        <i class="fas fa-tachometer-alt"></i>
-                    </div>
-                    <span class="nav-text" data-i18n="layout.sidebar.dashboard"></span>
-                    <span class="nav-tooltip" data-i18n="layout.sidebar.dashboard"></span>
-                </a>
-            </li>
-            
             <li class="nav-section">
-                <span class="nav-section-title" data-i18n="layout.sidebar.analytics_section"></span>
-            </li>
-            
-            <li class="nav-item {{ isReportsMain ? 'active' }}">
-                <a href="{{ path('app_reports_rapports') }}" class="nav-link {{ isReportsMain ? 'active' }}" {% if isReportsMain %}aria-current="page"{% endif %}>
-                    <div class="nav-icon">
-                        <i class="fas fa-chart-bar"></i>
-                    </div>
-                    <span class="nav-text" data-i18n="layout.sidebar.analytics_reports"></span>
-                    <span class="nav-tooltip" data-i18n="layout.sidebar.analytics_reports"></span>
-                </a>
+                <span class="nav-section-title" data-i18n="layout.sidebar.analytics_section">Analytique & Rapports</span>
             </li>
             
             <li class="nav-item {{ isStats ? 'active' }}">
@@ -45,8 +23,8 @@
                     <div class="nav-icon">
                         <i class="fas fa-chart-line"></i>
                     </div>
-                    <span class="nav-text" data-i18n="layout.sidebar.analytics_stats"></span>
-                    <span class="nav-tooltip" data-i18n="layout.sidebar.analytics_stats"></span>
+                    <span class="nav-text" data-i18n="layout.sidebar.analytics_stats">Statistiques</span>
+                    <span class="nav-tooltip" data-i18n="layout.sidebar.analytics_stats">Statistiques</span>
                 </a>
             </li>
             
@@ -65,13 +43,13 @@
                 </a>
             </li>
             
-            <li class="nav-item {{ isValidation ? 'active' }}">
-                <a href="{{ path('admin_validation_pending') }}" class="nav-link {{ isValidation ? 'active' }}" {% if isValidation %}aria-current="page"{% endif %}>
+            <li class="nav-item {{ isBilling ? 'active' }}">
+                <a href="{{ path('admin_billing_invoices') }}" class="nav-link {{ isBilling ? 'active' }}" {% if isBilling %}aria-current="page"{% endif %}>
                     <div class="nav-icon">
-                        <i class="fas fa-user-check"></i>
+                        <i class="fas fa-file-invoice-dollar"></i>
                     </div>
-                    <span class="nav-text" data-i18n="layout.sidebar.validation"></span>
-                    <span class="nav-tooltip" data-i18n="layout.sidebar.validation"></span>
+                    <span class="nav-text" data-i18n="layout.sidebar.billing">Facturation & Paiement</span>
+                    <span class="nav-tooltip" data-i18n="layout.sidebar.billing">Facturation & Paiement</span>
                 </a>
             </li>
             {% endif %}

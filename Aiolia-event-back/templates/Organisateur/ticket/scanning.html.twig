@@ -1,0 +1,32 @@
+{% extends 'base.html.twig' %}
+
+{% block title %}Scanner de billets - Aiolia Event{% endblock %}
+
+{% block body %}
+<div class="dashboard">
+    <div class="dashboard-header">
+        <div>
+            <h1>📷 Scanner de billets</h1>
+            <p style="color: var(--gray-600); margin-top: 8px; font-size: 1rem;">
+                Validez les billets à l'entrée
+            </p>
+        </div>
+    </div>
+
+    <div class="chart-card">
+        <div class="card-body" style="text-align: center; padding: 60px;">
+            <div style="font-size: 5rem; color: var(--gray-300); margin-bottom: 20px;">
+                <i class="fas fa-camera"></i>
+            </div>
+            <h3 style="color: var(--primary); margin-bottom: 12px;">Scanner QR Code</h3>
+            <p style="color: var(--gray-600); margin-bottom: 24px;">
+                Activez votre caméra pour scanner les billets
+            </p>
+            <button class="btn" style="background: #3498DB !important; color: white; border: none; padding: 14px 32px; border-radius: 10px; font-weight: 600;">
+                <i class="fas fa-camera"></i> Activer la caméra
+            </button>
+        </div>
+    </div>
+</div>
+{% endblock %}
+

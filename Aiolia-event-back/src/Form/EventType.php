@@ -4,16 +4,24 @@ namespace App\Form;
 
 use App\Entity\Event;
 use App\Entity\EventCategory;
+use App\Entity\EventTag;
+use App\Entity\EventPaymentMethod;
+use App\Entity\EventAccessibility;
+use App\Entity\EventLanguage;
 use Symfony\Bridge\Doctrine\Form\Type\EntityType;
 use Symfony\Component\Form\AbstractType;
 use Symfony\Component\Form\Extension\Core\Type\CheckboxType;
 use Symfony\Component\Form\Extension\Core\Type\ChoiceType;
+use Symfony\Component\Form\Extension\Core\Type\CollectionType;
 use Symfony\Component\Form\Extension\Core\Type\DateTimeType;
+use Symfony\Component\Form\Extension\Core\Type\FileType;
 use Symfony\Component\Form\Extension\Core\Type\IntegerType;
 use Symfony\Component\Form\Extension\Core\Type\NumberType;
 use Symfony\Component\Form\Extension\Core\Type\TextareaType;
 use Symfony\Component\Form\Extension\Core\Type\TextType;
 use Symfony\Component\Form\FormBuilderInterface;
+use Symfony\Component\Form\FormEvent;
+use Symfony\Component\Form\FormEvents;
 use Symfony\Component\OptionsResolver\OptionsResolver;
 use Symfony\Component\Validator\Constraints\NotBlank;
 
@@ -32,21 +40,29 @@ class EventType extends AbstractType
                     new NotBlank(['message' => 'Le titre est obligatoire']),
                 ],
             ])
-            ->add('category', EntityType::class, [
+            ->add('primaryCategory', EntityType::class, [
                 'label' => 'Catégorie',
                 'class' => EventCategory::class,
-                'choice_label' => 'name',
+                'choice_label' => 'label',
                 'placeholder' => 'Sélectionner une catégorie',
                 'attr' => ['class' => 'form-control'],
                 'constraints' => [
                     new NotBlank(['message' => 'La catégorie est obligatoire']),
                 ],
             ])
-            ->add('shortDescription', TextType::class, [
-                'label' => 'Description courte',
+            ->add('subtitle', TextType::class, [
+                'label' => 'Sous-titre',
                 'attr' => [
                     'class' => 'form-control',
-                    'placeholder' => 'Une courte description (max 500 caractères)',
+                    'placeholder' => 'Sous-titre de l\'événement'
+                ],
+                'required' => false,
+            ])
+            ->add('summary', TextType::class, [
+                'label' => 'Résumé',
+                'attr' => [
+                    'class' => 'form-control',
+                    'placeholder' => 'Résumé court de l\'événement (max 500 caractères)',
                     'maxlength' => 500
                 ],
                 'required' => false,
@@ -60,42 +76,24 @@ class EventType extends AbstractType
                 ],
                 'required' => false,
             ])
-            ->add('location', TextType::class, [
-                'label' => 'Lieu',
+            ->add('venueNameText', TextType::class, [
+                'label' => 'Nom du lieu',
                 'attr' => [
                     'class' => 'form-control',
-                    'placeholder' => 'Ex: Antananarivo'
+                    'placeholder' => 'Ex: Le Grand Café de la Gare'
                 ],
                 'required' => false,
             ])
-            ->add('address', TextareaType::class, [
+            ->add('fullAddress', TextareaType::class, [
                 'label' => 'Adresse complète',
                 'attr' => [
                     'class' => 'form-control',
                     'rows' => 3,
-                    'placeholder' => 'Adresse détaillée'
+                    'placeholder' => 'Adresse détaillée de l\'événement'
                 ],
                 'required' => false,
             ])
-            ->add('latitude', NumberType::class, [
-                'label' => 'Latitude',
-                'attr' => [
-                    'class' => 'form-control',
-                    'placeholder' => 'Ex: -18.8792',
-                    'step' => '0.00000001'
-                ],
-                'required' => false,
-            ])
-            ->add('longitude', NumberType::class, [
-                'label' => 'Longitude',
-                'attr' => [
-                    'class' => 'form-control',
-                    'placeholder' => 'Ex: 47.5079',
-                    'step' => '0.00000001'
-                ],
-                'required' => false,
-            ])
-            ->add('startDate', DateTimeType::class, [
+            ->add('startsAt', DateTimeType::class, [
                 'label' => 'Date et heure de début',
                 'widget' => 'single_text',
                 'attr' => ['class' => 'form-control'],
@@ -103,7 +101,7 @@ class EventType extends AbstractType
                     new NotBlank(['message' => 'La date de début est obligatoire']),
                 ],
             ])
-            ->add('endDate', DateTimeType::class, [
+            ->add('endsAt', DateTimeType::class, [
                 'label' => 'Date et heure de fin',
                 'widget' => 'single_text',
                 'attr' => ['class' => 'form-control'],
@@ -116,7 +114,7 @@ class EventType extends AbstractType
                 'attr' => ['class' => 'form-control'],
                 'data' => 'Indian/Antananarivo',
             ])
-            ->add('totalCapacity', IntegerType::class, [
+            ->add('capacity', IntegerType::class, [
                 'label' => 'Capacité totale',
                 'attr' => [
                     'class' => 'form-control',
@@ -140,7 +138,138 @@ class EventType extends AbstractType
                 'label' => 'Événement en vedette',
                 'required' => false,
             ])
+            ->add('youtubeUrl', TextType::class, [
+                'label' => 'URL YouTube',
+                'attr' => [
+                    'class' => 'form-control',
+                    'placeholder' => 'https://www.youtube.com/watch?v=...'
+                ],
+                'required' => false,
+            ])
+            ->add('tags', EntityType::class, [
+                'label' => 'Tags',
+                'class' => EventTag::class,
+                'choice_label' => 'label',
+                'multiple' => true,
+                'expanded' => false,
+                'required' => false,
+                'attr' => ['class' => 'form-control'],
+            ])
+            ->add('paymentMethodsData', ChoiceType::class, [
+                'label' => 'Modes de paiement',
+                'choices' => EventPaymentMethod::METHODS,
+                'multiple' => true,
+                'expanded' => false,
+                'required' => false,
+                'mapped' => false,
+                'attr' => ['class' => 'form-control'],
+            ])
+            ->add('accessibilitiesData', ChoiceType::class, [
+                'label' => 'Accessibilité',
+                'choices' => EventAccessibility::TYPES,
+                'multiple' => true,
+                'expanded' => false,
+                'required' => false,
+                'mapped' => false,
+                'attr' => ['class' => 'form-control'],
+            ])
+            ->add('languagesData', ChoiceType::class, [
+                'label' => 'Langues',
+                'choices' => EventLanguage::LANGUAGES,
+                'multiple' => true,
+                'expanded' => false,
+                'required' => false,
+                'mapped' => false,
+                'attr' => ['class' => 'form-control'],
+            ])
+            ->add('photos', FileType::class, [
+                'label' => 'Photos de l\'événement',
+                'multiple' => true,
+                'required' => false,
+                'mapped' => false,
+                'attr' => [
+                    'accept' => 'image/*',
+                    'class' => 'form-control'
+                ],
+            ])
         ;
+
+        // Écouter les événements du formulaire pour gérer les relations
+        $builder->addEventListener(FormEvents::POST_SUBMIT, function (FormEvent $event) {
+            $eventEntity = $event->getData();
+            $form = $event->getForm();
+
+            // Gérer les modes de paiement
+            $paymentMethodsData = $form->get('paymentMethodsData')->getData();
+            if ($paymentMethodsData) {
+                foreach ($eventEntity->getPaymentMethods() as $pm) {
+                    $eventEntity->removePaymentMethod($pm);
+                }
+                foreach ($paymentMethodsData as $method) {
+                    $pm = new EventPaymentMethod();
+                    $pm->setPaymentMethod($method);
+                    $pm->setEvent($eventEntity);
+                    $eventEntity->addPaymentMethod($pm);
+                }
+            }
+
+            // Gérer l'accessibilité
+            $accessibilitiesData = $form->get('accessibilitiesData')->getData();
+            if ($accessibilitiesData) {
+                foreach ($eventEntity->getAccessibilities() as $acc) {
+                    $eventEntity->removeAccessibility($acc);
+                }
+                foreach ($accessibilitiesData as $type) {
+                    $acc = new EventAccessibility();
+                    $acc->setAccessibilityType($type);
+                    $acc->setEvent($eventEntity);
+                    $eventEntity->addAccessibility($acc);
+                }
+            }
+
+            // Gérer les langues
+            $languagesData = $form->get('languagesData')->getData();
+            if ($languagesData) {
+                foreach ($eventEntity->getLanguages() as $lang) {
+                    $eventEntity->removeLanguage($lang);
+                }
+                foreach ($languagesData as $langCode) {
+                    $lang = new EventLanguage();
+                    $lang->setLanguageCode($langCode);
+                    $lang->setEvent($eventEntity);
+                    $eventEntity->addLanguage($lang);
+                }
+            }
+        });
+
+        // Pré-remplir les données si on édite
+        $builder->addEventListener(FormEvents::PRE_SET_DATA, function (FormEvent $event) {
+            $eventEntity = $event->getData();
+            $form = $event->getForm();
+
+            if ($eventEntity && $eventEntity->getId()) {
+                // Pré-remplir les modes de paiement
+                $paymentMethods = [];
+                foreach ($eventEntity->getPaymentMethods() as $pm) {
+                    $paymentMethods[] = $pm->getPaymentMethod();
+                }
+                $form->get('paymentMethodsData')->setData($paymentMethods);
+
+                // Pré-remplir l'accessibilité
+                $accessibilities = [];
+                foreach ($eventEntity->getAccessibilities() as $acc) {
+                    $accessibilities[] = $acc->getAccessibilityType();
+                }
+                $form->get('accessibilitiesData')->setData($accessibilities);
+
+                // Pré-remplir les langues
+                $languages = [];
+                foreach ($eventEntity->getLanguages() as $lang) {
+                    $languages[] = $lang->getLanguageCode();
+                }
+                $form->get('languagesData')->setData($languages);
+            }
+        });
     }
 
     public function configureOptions(OptionsResolver $resolver): void

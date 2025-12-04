@@ -217,23 +217,55 @@
                         </div> #}
 
                         <!-- Login Form -->
-                        <form method="post" class="auth-form">
+                        <form method="post" class="auth-form" autocomplete="off">
                             {% if error %}
-                                <div class="alert alert-danger">{{ error.messageKey|trans(error.messageData, 'security') }}</div>
+                                <div class="alert alert-danger subscription-error">
+                                    <div class="error-header">
+                                        <i class="fas fa-exclamation-triangle"></i>
+                                        <strong>Accès refusé</strong>
+                                    </div>
+                                    <div class="error-message">
+                                        {{ error.messageKey|trans(error.messageData, 'security') }}
+                                    </div>
+                                    {% if 'ne pouvez pas vous connecter' in error.messageKey|trans(error.messageData, 'security')|lower or 'facture' in error.messageKey|trans(error.messageData, 'security')|lower or 'suspendu' in error.messageKey|trans(error.messageData, 'security')|lower %}
+                                        <div class="error-info">
+                                            <p><strong>Règle d'abonnement :</strong></p>
+                                            <ul>
+                                                <li>Si vous ne payez pas la facture d'un mois, vous ne pouvez pas vous connecter <strong>pour ce mois précis</strong></li>
+                                                <li>Vous pouvez faire une pause dans votre activité et vous reconnecter plus tard</li>
+                                                <li>Pour vous reconnecter un mois donné, vous devez avoir payé la facture de <strong>ce mois-là</strong></li>
+                                                <li>Vous pouvez régler votre abonnement dans les <strong>5 derniers jours du mois précédent</strong> ou dans les <strong>5 premiers jours du mois courant</strong></li>
+                                                <li><strong>Exemple :</strong> Si votre dernière connexion était en septembre (payé) et que vous n'avez pas payé octobre/novembre, vous ne pouvez pas vous connecter en octobre ni en novembre. Mais si vous payez en décembre, vous pouvez vous reconnecter en décembre même si octobre/novembre ne sont pas payés.</li>
+                                            </ul>
+                                            <p class="contact-info">
+                                                <i class="fas fa-envelope"></i>
+                                                Pour toute question, contactez l'administration.
+                                            </p>
+                                        </div>
+                                    {% endif %}
+                                </div>
                             {% endif %}
 
+                            <div style="position:absolute; opacity:0; height:0; width:0; pointer-events:none;">
+                                <input type="text" name="identifier" id="hiddenIdentifier" autocomplete="username" tabindex="-1">
+                                <input type="password" name="password" id="hiddenPassword" autocomplete="new-password" tabindex="-1">
+                            </div>
+
                             <div class="form-group">
-                                <label for="inputEmail">Email <span>*</span></label>
-                                <input type="email" value="{{ last_username }}" name="email" id="inputEmail" 
-                                       class="form-control" autocomplete="email" required autofocus 
-                                       placeholder="votre@email.com">
+                                <label for="identifierField">Email ou Prénom Nom <span>*</span></label>
+                                <input type="text" name="identifier_visible" id="identifierField"
+                                       class="form-control" required autocomplete="off" autofocus
+                                       placeholder="ex: admin@aiolia.mg ou Jean Dupont">
+                                <small class="form-text text-muted">
+                                    Saisissez votre email ou votre prénom suivi de votre nom.
+                                </small>
                             </div>
 
                             <div class="form-group">
                                 <label for="inputPassword">Mot de passe <span>*</span></label>
                                 <div class="password-input">
-                                    <input type="password" name="password" id="inputPassword" 
-                                           class="form-control" autocomplete="current-password" required 
+                                    <input type="password" name="password_visible" id="inputPassword" 
+                                           class="form-control" autocomplete="off" required 
                                            placeholder="Votre mot de passe">
                                     <button type="button" class="toggle-password" id="togglePassword">
                                         <i class="far fa-eye"></i>
@@ -267,6 +299,37 @@
     <script>
         // Toggle password visibility
         document.addEventListener('DOMContentLoaded', function() {
+            const identifierField = document.querySelector('#identifierField');
+            const passwordField = document.querySelector('#inputPassword');
+            const hiddenIdentifier = document.querySelector('#hiddenIdentifier');
+            const hiddenPassword = document.querySelector('#hiddenPassword');
+            const loginForm = document.querySelector('.auth-form');
+
+            const clearFields = () => {
+                if (identifierField) {
+                    identifierField.value = '';
+                }
+                if (passwordField) {
+                    passwordField.value = '';
+                }
+            };
+
+            clearFields();
+            setTimeout(clearFields, 150);
+            setTimeout(clearFields, 400);
+            window.addEventListener('pageshow', clearFields);
+
+            if (loginForm) {
+                loginForm.addEventListener('submit', function() {
+                    if (identifierField && hiddenIdentifier) {
+                        hiddenIdentifier.value = identifierField.value;
+                    }
+                    if (passwordField && hiddenPassword) {
+                        hiddenPassword.value = passwordField.value;
+                    }
+                });
+            }
+
             const togglePassword = document.querySelector('#togglePassword');
             const password = document.querySelector('#inputPassword');
             const icon = togglePassword.querySelector('i');

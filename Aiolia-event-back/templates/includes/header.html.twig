@@ -4,7 +4,7 @@
             <i class="fas fa-bars"></i>
         </button>
         
-        <form class="header-search" role="search" aria-label="Recherche">
+        {# <form class="header-search" role="search" aria-label="Recherche">
             <label class="sr-only" for="headerSearchInput" id="headerSearchLabel">Rechercher</label>
             <i class="fas fa-search"></i>
             <input
@@ -12,7 +12,7 @@
                 id="headerSearchInput"
                 class="search-input"
                 placeholder="Rechercher des billets...">
-        </form>
+        </form> #}
     </div>
     
     <div class="header-right">
@@ -32,19 +32,22 @@
         
         <div class="header-user">
             <div class="user-dropdown">
-                <button class="user-trigger" aria-expanded="false" aria-haspopup="true">
+                {% set avatarUrl = app.user.urlAvatar %}
+                {% set userInitials = app.user.urlPhoto %}
+
+                <button class="user-trigger" type="button" aria-expanded="false" aria-haspopup="true">
                     <div class="user-avatar">
-                        {% if app.user.photoUrl %}
-                            <img src="{{ app.user.photoUrl }}" alt="Avatar de {{ app.user.firstName }} {{ app.user.lastName }}">
+                        {% if avatarUrl %}
+                            <img src="{{ avatarUrl }}" alt="Avatar de {{ app.user.prenom }} {{ app.user.nom }}">
                         {% else %}
                             <div class="user-avatar-initials">
-                                {{ app.user.firstName|first|upper }}{{ app.user.lastName|first|upper }}
+                                {{ userInitials ?: (app.user.email|first|upper) }}
                             </div>
                         {% endif %}
                         <div class="user-status"></div>
                     </div>
                     <div class="user-details">
-                        <span class="user-name">{{ app.user.firstName }} {{ app.user.lastName }}</span>
+                        <span class="user-name">{{ app.user.prenom }} {{ app.user.nom }}</span>
                         <span class="user-role">{{ app.user.role|capitalize }}</span>
                     </div>
                     <i class="fas fa-chevron-down dropdown-arrow"></i>
@@ -53,16 +56,16 @@
                 <div class="dropdown-menu" role="menu">
                     <div class="dropdown-header">
                         <div class="user-avatar-sm">
-                            {% if app.user.photoUrl %}
-                                <img src="{{ app.user.photoUrl }}" alt="Avatar">
+                            {% if avatarUrl %}
+                                <img src="{{ avatarUrl }}" alt="Avatar">
                             {% else %}
                                 <div class="user-avatar-initials-sm">
-                                    {{ app.user.firstName|first|upper }}{{ app.user.lastName|first|upper }}
+                                    {{ userInitials ?: (app.user.email|first|upper) }}
                                 </div>
                             {% endif %}
                         </div>
                         <div class="user-info-sm">
-                            <span class="user-name-sm">{{ app.user.firstName }} {{ app.user.lastName }}</span>
+                            <span class="user-name-sm">{{ app.user.prenom }} {{ app.user.nom }}</span>
                             <span class="user-email-sm">{{ app.user.email }}</span>
                         </div>
                     </div>
@@ -96,238 +99,4 @@
     </div>
 </header>
 
-{% block javascripts %}
-<script>
-// ============================================
-// HEADER INTERACTIONS
-// ============================================
-
-function applyHeaderTranslations() {
-    const manager = window.languageManager;
-    if (!manager) {
-        return;
-    }
-
-    const themeToggle = document.getElementById('themeToggle');
-    const themeLabelSpan = document.getElementById('themeToggleLabel');
-    const notifBtn = document.querySelector('.notification-btn');
-    const notifLabelSpan = document.getElementById('notificationLabel');
-    const searchInput = document.getElementById('headerSearchInput');
-    const searchLabel = document.getElementById('headerSearchLabel');
-
-    const themeLabel = manager.translate('layout.header.toggle_theme') || 'Basculer le thème';
-    const notifLabel = manager.translate('layout.header.notifications') || 'Notifications';
-    const searchLabelText = manager.translate('layout.header.search_label') || 'Rechercher';
-    const searchPlaceholder = manager.translate('layout.header.search_placeholder') || 'Rechercher des billets...';
-
-    if (themeToggle) {
-        themeToggle.setAttribute('aria-label', themeLabel);
-    }
-    if (themeLabelSpan) {
-        themeLabelSpan.textContent = themeLabel;
-    }
-    if (notifBtn) {
-        notifBtn.setAttribute('aria-label', notifLabel);
-    }
-    if (notifLabelSpan) {
-        notifLabelSpan.textContent = notifLabel;
-    }
-    if (searchLabel) {
-        searchLabel.textContent = searchLabelText;
-    }
-    if (searchInput) {
-        searchInput.setAttribute('placeholder', searchPlaceholder);
-    }
-}
-
-document.addEventListener('DOMContentLoaded', function() {
-    applyHeaderTranslations();
-    document.addEventListener('aiolia:language-changed', applyHeaderTranslations);
-
-    const themeToggle = document.getElementById('themeToggle');
-    const themeIcon = document.getElementById('themeIcon');
-    if (themeToggle && themeIcon) {
-        const updateIcon = () => {
-            const frameworkTheme = document.body.getAttribute('data-theme');
-            const managerTheme = window.themeManager ? window.themeManager.getTheme() : null;
-            const theme = managerTheme || (frameworkTheme === 'dark' ? 'dark' : 'light');
-            const iconClass = theme === 'dark' ? 'fa-moon' : 'fa-sun';
-            themeIcon.classList.remove('fa-moon', 'fa-sun');
-            themeIcon.classList.add('fas', iconClass);
-            themeIcon.dataset.themeIcon = iconClass === 'fa-moon' ? 'moon' : 'sun';
-        };
-
-        updateIcon();
-
-        if (window.themeManager) {
-            document.addEventListener('aiolia:theme-changed', () => {
-                requestAnimationFrame(updateIcon);
-            });
-        }
-
-        themeToggle.addEventListener('click', () => {
-            setTimeout(updateIcon, 0);
-        });
-    }
-    
-    // ============================================
-    // USER DROPDOWN
-    // ============================================
-    const userTrigger = document.querySelector('.user-trigger');
-    const dropdownMenu = document.querySelector('.dropdown-menu');
-    const userDropdown = document.querySelector('.user-dropdown');
-    
-    if (userTrigger && dropdownMenu) {
-        // Toggle dropdown
-        userTrigger.addEventListener('click', function(e) {
-            e.preventDefault();
-            e.stopPropagation();
-            
-            const isExpanded = this.getAttribute('aria-expanded') === 'true';
-            
-            if (isExpanded) {
-                closeDropdown();
-            } else {
-                openDropdown();
-            }
-        });
-        
-        // Fermeture au clic extérieur
-        document.addEventListener('click', function(e) {
-            if (userDropdown && !userDropdown.contains(e.target)) {
-                closeDropdown();
-            }
-        });
-        
-        // Navigation clavier
-        userTrigger.addEventListener('keydown', function(e) {
-            if (e.key === 'Enter' || e.key === ' ') {
-                e.preventDefault();
-                const isExpanded = this.getAttribute('aria-expanded') === 'true';
-                if (isExpanded) {
-                    closeDropdown();
-                } else {
-                    openDropdown();
-                }
-            } else if (e.key === 'Escape') {
-                closeDropdown();
-            }
-        });
-        
-        // Navigation dans le menu
-        const dropdownItems = dropdownMenu.querySelectorAll('.dropdown-item');
-        dropdownItems.forEach((item, index) => {
-            item.addEventListener('keydown', function(e) {
-                if (e.key === 'ArrowDown') {
-                    e.preventDefault();
-                    const next = dropdownItems[index + 1];
-                    if (next) next.focus();
-                } else if (e.key === 'ArrowUp') {
-                    e.preventDefault();
-                    const prev = dropdownItems[index - 1];
-                    if (prev) {
-                        prev.focus();
-                    } else {
-                        userTrigger.focus();
-                    }
-                } else if (e.key === 'Escape') {
-                    closeDropdown();
-                    userTrigger.focus();
-                }
-            });
-        });
-        
-        function openDropdown() {
-            userTrigger.setAttribute('aria-expanded', 'true');
-            dropdownMenu.classList.add('show');
-            
-            // Focus premier item après animation
-            setTimeout(() => {
-                const firstItem = dropdownMenu.querySelector('.dropdown-item');
-                if (firstItem) firstItem.focus();
-            }, 100);
-        }
-        
-        function closeDropdown() {
-            userTrigger.setAttribute('aria-expanded', 'false');
-            dropdownMenu.classList.remove('show');
-        }
-    }
-    
-    // ============================================
-    // SEARCH INPUT
-    // ============================================
-    const searchInput = document.querySelector('.search-input');
-    
-    if (searchInput) {
-        // Raccourci clavier (Ctrl/Cmd + K)
-        document.addEventListener('keydown', function(e) {
-            if ((e.ctrlKey || e.metaKey) && e.key === 'k') {
-                e.preventDefault();
-                searchInput.focus();
-            }
-            
-            // Échapper pour sortir de la recherche
-            if (e.key === 'Escape' && document.activeElement === searchInput) {
-                searchInput.blur();
-            }
-        });
-        
-        // Debounce pour la recherche
-        let searchTimeout;
-        searchInput.addEventListener('input', function(e) {
-            clearTimeout(searchTimeout);
-            const query = e.target.value;
-            
-            if (query.length >= 2) {
-                searchTimeout = setTimeout(() => {
-                    performSearch(query);
-                }, 300);
-            }
-        });
-        
-        function performSearch(query) {
-            console.log('🔍 Recherche:', query);
-            // Implémenter la logique de recherche ici
-            // Exemple: fetch('/api/search?q=' + encodeURIComponent(query))
-        }
-    }
-    
-    // ============================================
-    // NOTIFICATIONS
-    // ============================================
-    const notificationBtn = document.querySelector('.notification-btn');
-    
-    if (notificationBtn) {
-        notificationBtn.addEventListener('click', function() {
-            console.log('🔔 Notifications ouvertes');
-            // Implémenter le panneau de notifications
-            showNotificationPanel();
-        });
-    }
-    
-    function showNotificationPanel() {
-        // Placeholder pour le panneau de notifications
-        // Vous pouvez créer un modal ou un dropdown pour afficher les notifications
-        const manager = window.languageManager;
-        const message = manager ? (manager.translate('layout.header.notifications_alert') || manager.getTranslation('layout.header.notifications_alert')) : 'Panneau de notifications à implémenter';
-        alert(message);
-    }
-    
-    // ============================================
-    // HEADER SCROLL BEHAVIOR
-    // ============================================
-    const header = document.querySelector('.admin-header');
-    
-    // ============================================
-    // ANIMATIONS AU CHARGEMENT
-    // ============================================
-    setTimeout(() => {
-        if (header) {
-            header.style.opacity = '1';
-            header.style.transform = 'translateY(0)';
-        }
-    }, 100);
-});
-</script>
-{% endblock %}
+{% block javascripts %}{% endblock %}

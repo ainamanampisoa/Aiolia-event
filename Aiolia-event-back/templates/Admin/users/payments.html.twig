@@ -1,0 +1,685 @@
+{% extends 'base.html.twig' %}
+
+{% block title %}Historique des paiements - {{ user.nomComplet }}{% endblock %}
+
+{% block stylesheets %}
+{{ parent() }}
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+<style>
+.payments-page {
+    background-color: var(--bg-primary);
+    min-height: calc(100vh - 80px);
+    padding: 1.5rem 0;
+}
+
+.payments-page .breadcrumb-horizontal {
+    display: flex;
+    align-items: center;
+    gap: 0.75rem;
+    font-size: 1rem;
+    font-weight: var(--font-weight-semibold);
+    color: var(--text-primary);
+    margin-bottom: 1.5rem;
+    padding: 0.75rem 0;
+}
+
+.payments-page .breadcrumb-horizontal a {
+    color: var(--accent);
+    text-decoration: none;
+    transition: var(--transition-fast);
+}
+
+.payments-page .breadcrumb-horizontal a:hover {
+    color: var(--accent-light);
+}
+
+.payments-page .breadcrumb-active {
+    color: var(--text-secondary);
+    font-weight: var(--font-weight-semibold);
+}
+
+/* Carte d'informations d'abonnement */
+.payments-page .subscription-info-card {
+    border: 1px solid var(--border-color);
+    border-radius: var(--border-radius-xl);
+    box-shadow: var(--shadow-md);
+    overflow: hidden;
+    background: var(--bg-card);
+    margin-bottom: 1.5rem;
+}
+
+.payments-page .subscription-info-item {
+    padding: 1.5rem;
+    border-right: 1px solid var(--border-color);
+    transition: var(--transition-base);
+    background: var(--bg-card);
+}
+
+.payments-page .subscription-info-item:last-child {
+    border-right: none;
+}
+
+.payments-page .subscription-info-item:hover {
+    background: var(--bg-secondary);
+}
+
+.payments-page .subscription-info-item .info-icon {
+    width: 48px;
+    height: 48px;
+    border-radius: var(--border-radius-md);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    margin-bottom: 1rem;
+    font-size: 1.25rem;
+    background: var(--bg-secondary);
+    border: 1px solid var(--border-color);
+}
+
+.payments-page .subscription-info-item .info-icon.icon-success i {
+    color: #27AE60;
+}
+
+.payments-page .subscription-info-item .info-icon.icon-primary i {
+    color: #3498DB;
+}
+
+.payments-page .subscription-info-item .info-icon.icon-warning i {
+    color: #F39C12;
+}
+
+.payments-page .subscription-info-item .info-icon.icon-info i {
+    color: #3498DB;
+}
+
+.payments-page .subscription-info-item .info-label {
+    font-size: 0.85rem;
+    color: var(--text-secondary);
+    font-weight: var(--font-weight-medium);
+    margin-bottom: 0.5rem;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+}
+
+.payments-page .subscription-info-item .info-value {
+    font-size: 1.5rem;
+    font-weight: var(--font-weight-bold);
+    color: var(--text-primary);
+    line-height: 1.2;
+}
+
+.payments-page .subscription-info-item .info-badge {
+    display: inline-block;
+    margin-top: 0.5rem;
+}
+
+.payments-page .card {
+    border: 1px solid var(--border-color);
+    border-radius: var(--border-radius-xl);
+    box-shadow: var(--shadow-md);
+    overflow: hidden;
+    background: var(--bg-card);
+}
+
+.payments-page .payments-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 1.5rem 2rem;
+    border-bottom: 2px solid var(--border-color);
+    background: linear-gradient(135deg, var(--bg-secondary), var(--bg-primary));
+}
+
+.payments-page .payments-header h5 {
+    margin: 0;
+    font-size: 1.5rem;
+    font-weight: var(--font-weight-bold);
+    display: inline-flex;
+    align-items: center;
+    gap: 0.75rem;
+    color: var(--text-primary);
+    letter-spacing: -0.3px;
+}
+
+.payments-page .payments-header h5 i {
+    color: var(--accent);
+    font-size: 1.3rem;
+}
+
+.payments-page .payments-header .btn,
+.payments-page .payments-header .btn-outline-primary {
+    border-radius: var(--border-radius-md);
+    font-weight: var(--font-weight-semibold);
+    padding: 0.5rem 1.25rem;
+    transition: var(--transition-base);
+    background: var(--bg-secondary);
+    border: 1px solid var(--border-color);
+    color: var(--accent);
+}
+
+.payments-page .payments-header .btn i,
+.payments-page .payments-header .btn-outline-primary i {
+    color: var(--accent);
+}
+
+.payments-page .payments-header .btn:hover,
+.payments-page .payments-header .btn-outline-primary:hover {
+    background: var(--bg-primary);
+    border-color: var(--accent);
+    color: var(--accent);
+    transform: none;
+    box-shadow: none;
+}
+
+.payments-page .payments-header .btn:hover i,
+.payments-page .payments-header .btn-outline-primary:hover i {
+    color: var(--accent);
+}
+
+.payments-page .card-body {
+    padding: 0;
+}
+
+.payments-page .table {
+    margin-bottom: 0;
+    border-collapse: separate;
+    border-spacing: 0;
+}
+
+.payments-page .table thead {
+    background: var(--bg-secondary);
+}
+
+.payments-page .table thead th {
+    background: var(--bg-secondary);
+    border-bottom: 2px solid var(--border-color);
+    color: var(--text-primary);
+    font-weight: var(--font-weight-semibold);
+    font-size: 0.85rem;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+    padding: 1.25rem 1.5rem;
+    vertical-align: middle;
+    white-space: nowrap;
+}
+
+/* Alignements pour les en-têtes */
+.payments-page .table thead th.col-left { 
+    text-align: left; 
+}
+
+.payments-page .table thead th.col-center { 
+    text-align: center; 
+}
+
+.payments-page .table thead th.col-right { 
+    text-align: right; 
+}
+
+.payments-page .table tbody tr {
+    border-bottom: 1px solid var(--border-color);
+    transition: var(--transition-base);
+    background: var(--bg-card);
+}
+
+.payments-page .table tbody tr:hover {
+    background: var(--bg-secondary);
+    transform: none;
+}
+
+.payments-page .table tbody tr:last-child {
+    border-bottom: none;
+}
+
+.payments-page .table tbody td {
+    vertical-align: middle;
+    padding: 1.25rem 1.5rem;
+    border-color: var(--border-color);
+    color: var(--text-primary);
+}
+
+/* Alignements colonnes */
+.payments-page .col-left { 
+    text-align: left; 
+}
+
+.payments-page .col-center { 
+    text-align: center; 
+}
+
+.payments-page .col-right { 
+    text-align: right; 
+}
+
+.payments-page .table tbody td strong {
+    font-size: 1.1rem;
+    color: var(--text-primary);
+    font-weight: var(--font-weight-semibold);
+}
+
+.payments-page .badge,
+.payments-page .status-badge,
+.payments-page .plan-badge {
+    font-size: 0.78rem;
+    padding: 6px 12px;
+    border-radius: var(--border-radius-sm);
+    font-weight: var(--font-weight-medium);
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    white-space: nowrap;
+    transition: var(--transition-base);
+    box-shadow: var(--shadow-xs);
+    background: var(--bg-secondary);
+    border: 1px solid var(--border-color);
+}
+
+.payments-page .badge:hover,
+.payments-page .status-badge:hover,
+.payments-page .plan-badge:hover {
+    transform: none;
+    box-shadow: var(--shadow-sm);
+}
+
+.payments-page .badge.bg-success,
+.payments-page .status-badge.status-paid {
+    background: var(--bg-secondary) !important;
+    color: var(--success, #27AE60);
+    border: 1px solid var(--border-color);
+}
+
+.payments-page .badge.bg-success i,
+.payments-page .status-badge.status-paid i {
+    color: var(--success, #27AE60);
+}
+
+.payments-page .badge.bg-warning,
+.payments-page .status-badge.status-issued {
+    background: var(--bg-secondary) !important;
+    color: var(--warning, #F39C12);
+    border: 1px solid var(--border-color);
+}
+
+.payments-page .badge.bg-warning i,
+.payments-page .status-badge.status-issued i {
+    color: var(--warning, #F39C12);
+}
+
+.payments-page .badge.bg-danger,
+.payments-page .status-badge.status-overdue {
+    background: var(--bg-secondary) !important;
+    color: var(--danger, #E74C3C);
+    border: 1px solid var(--border-color);
+}
+
+.payments-page .badge.bg-danger i,
+.payments-page .status-badge.status-overdue i {
+    color: var(--danger, #E74C3C);
+}
+
+.payments-page .badge.bg-info,
+.payments-page .status-badge.status-pending {
+    background: var(--bg-secondary) !important;
+    color: var(--info, #3498DB);
+    border: 1px solid var(--border-color);
+}
+
+.payments-page .badge.bg-info i,
+.payments-page .status-badge.status-pending i {
+    color: var(--info, #3498DB);
+}
+
+.payments-page .status-badge.status-suspended {
+    background: var(--bg-secondary) !important;
+    color: #F39C12;
+    border: 1px solid var(--border-color);
+}
+
+.payments-page .status-badge.status-suspended i {
+    color: #F39C12;
+}
+
+.payments-page .badge.bg-secondary,
+.payments-page .plan-badge {
+    background: var(--bg-secondary) !important;
+    color: var(--text-secondary);
+    border: 1px solid var(--border-color);
+}
+
+.payments-page .plan-badge.plan-basic {
+    color: #3498DB;
+}
+
+.payments-page .plan-badge.plan-pro {
+    color: #9B59B6;
+}
+
+.payments-page .plan-badge.plan-enterprise {
+    color: #F39C12;
+}
+
+.payments-page .btn-sm,
+.payments-page .btn-sm.btn-primary {
+    padding: 0.5rem 1rem;
+    font-size: 0.85rem;
+    border-radius: var(--border-radius-sm);
+    font-weight: var(--font-weight-medium);
+    transition: var(--transition-base);
+    background: var(--bg-secondary);
+    border: 1px solid var(--border-color);
+    color: var(--accent);
+}
+
+.payments-page .btn-sm i,
+.payments-page .btn-sm.btn-primary i {
+    color: var(--accent);
+}
+
+.payments-page .btn-sm:hover,
+.payments-page .btn-sm.btn-primary:hover {
+    background: var(--bg-primary);
+    border-color: var(--accent);
+    color: var(--accent);
+    transform: none;
+    box-shadow: none;
+}
+
+.payments-page .btn-sm:hover i,
+.payments-page .btn-sm.btn-primary:hover i {
+    color: var(--accent);
+}
+
+.payments-page .empty-state {
+    text-align: center;
+    padding: 4rem 1.5rem;
+    color: var(--text-secondary);
+}
+
+.payments-page .empty-state i {
+    font-size: 4rem;
+    color: var(--text-secondary);
+    opacity: 0.3;
+    margin-bottom: 1.5rem;
+}
+
+.payments-page .empty-state p {
+    font-size: 1.1rem;
+    color: var(--text-secondary);
+    margin: 0;
+}
+
+/* Responsive */
+@media (max-width: 992px) {
+    .payments-page .subscription-info-item {
+        border-right: none;
+        border-bottom: 1px solid var(--border-color);
+    }
+    
+    .payments-page .subscription-info-item:last-child {
+        border-bottom: none;
+    }
+    
+    .payments-page .table thead th,
+    .payments-page .table tbody td {
+        padding: 1rem;
+        font-size: 0.9rem;
+    }
+    
+    .payments-page .payments-header {
+        flex-direction: column;
+        gap: 1rem;
+        align-items: flex-start;
+    }
+}
+
+@media (max-width: 768px) {
+    .payments-page {
+        padding: 1rem 0 1.5rem;
+    }
+    
+    .payments-page .table-responsive {
+        overflow-x: auto;
+    }
+    
+    .payments-page .table thead th,
+    .payments-page .table tbody td {
+        padding: 0.75rem;
+        font-size: 0.85rem;
+    }
+    
+    .payments-page .subscription-info-item {
+        padding: 1.25rem;
+    }
+    
+    .payments-page .subscription-info-item .info-value {
+        font-size: 1.25rem;
+    }
+}
+</style>
+{% endblock %}
+
+{% block body %}
+<div class="container-fluid payments-page">
+    <!-- Fil d'Ariane -->
+    <div class="row">
+        <div class="col-12">
+            <div class="breadcrumb-horizontal">
+                <a href="{{ path('admin_users_list') }}">Gestion des utilisateurs</a>
+                <span>/</span>
+                <a href="{{ path('admin_users_show', {id: user.id}) }}">{{ user.nomComplet }}</a>
+                <span>/</span>
+                <span class="breadcrumb-active">Historique des paiements</span>
+            </div>
+        </div>
+    </div>
+
+    <div class="row">
+        <div class="col-12">
+            {% if subscriptionInfo is defined and subscriptionInfo %}
+            <!-- Informations d'abonnement -->
+            <div class="subscription-info-card">
+                <div class="row g-0">
+                    <div class="col-md-3">
+                        <div class="subscription-info-item">
+                            <div class="info-icon icon-success">
+                                <i class="fas fa-calendar-check"></i>
+                            </div>
+                            <div class="info-label" data-i18n="users.payments.prepaid_months">Mois restants prépayés</div>
+                            <div class="info-value">{{ prepaidMonths }}</div>
+                        </div>
+                    </div>
+                    <div class="col-md-3">
+                        <div class="subscription-info-item">
+                            <div class="info-icon icon-primary">
+                                <i class="fas fa-calendar-alt"></i>
+                            </div>
+                            <div class="info-label" data-i18n="users.payments.next_payment">Prochain paiement prévu</div>
+                            <div class="info-value">
+                                {% if nextPaymentDate %}
+                                    {{ nextPaymentDate|date('d/m/Y') }}
+                                {% else %}
+                                    <span style="font-size: 1rem; color: var(--text-secondary);" data-i18n="users.payments.pause.none">Aucun</span>
+                                {% endif %}
+                            </div>
+                        </div>
+                    </div>
+                    <div class="col-md-3">
+                        <div class="subscription-info-item">
+                            <div class="info-icon icon-warning">
+                                <i class="fas fa-pause-circle"></i>
+                            </div>
+                            <div class="info-label" data-i18n="users.payments.current_pause">Pause actuelle</div>
+                            <div class="info-value">
+                                {% if isPaused %}
+                                    <span style="color: #F39C12;" data-i18n-fr="Oui{% if pauseMonth %} ({{ pauseMonth }}){% endif %}" data-i18n-en="Yes{% if pauseMonth %} ({{ pauseMonth }}){% endif %}">Oui{% if pauseMonth %} ({{ pauseMonth }}){% endif %}</span>
+                                {% else %}
+                                    <span style="color: #27AE60; font-size: 1rem;" data-i18n="users.payments.pause.no">Non</span>
+                                {% endif %}
+                            </div>
+                        </div>
+                    </div>
+                    <div class="col-md-3">
+                        <div class="subscription-info-item">
+                            <div class="info-icon icon-info">
+                                <i class="fas fa-tag"></i>
+                            </div>
+                            <div class="info-label" data-i18n="users.payments.active_plan">Offre active</div>
+                            <div class="info-value">
+                                {% set tierLabels = {
+                                    'basic': {'fr': 'Basic', 'en': 'Basic'},
+                                    'pro': {'fr': 'Pro', 'en': 'Pro'},
+                                    'enterprise': {'fr': 'Enterprise', 'en': 'Enterprise'}
+                                } %}
+                                {% set periodLabels = {
+                                    'monthly': {'fr': 'Mensuel', 'en': 'Monthly'},
+                                    'quarterly': {'fr': 'Trimestriel', 'en': 'Quarterly'},
+                                    'yearly': {'fr': 'Annuel', 'en': 'Yearly'}
+                                } %}
+                                {% set tierLabel = tierLabels[subscriptionInfo.niveau] ?? {'fr': subscriptionInfo.niveau|upper, 'en': subscriptionInfo.niveau|upper} %}
+                                {% set periodLabel = periodLabels[subscriptionInfo.periode_facturation] ?? {'fr': subscriptionInfo.periode_facturation|capitalize, 'en': subscriptionInfo.periode_facturation|capitalize} %}
+                                <span class="plan-badge plan-{{ subscriptionInfo.niveau }} info-badge" data-i18n-fr="{{ tierLabel.fr }} {{ periodLabel.fr }}" data-i18n-en="{{ tierLabel.en }} {{ periodLabel.en }}">{{ tierLabel.fr }} {{ periodLabel.fr }}</span>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            {% endif %}
+            
+            <div class="card">
+                <div class="payments-header">
+                    <h5 class="mb-0">
+                        <i class="fas fa-receipt"></i><span data-i18n="users.payments.title">Historique des paiements</span> · {{ user.nomComplet }}
+                    </h5>
+                    <a href="{{ path('admin_users_show', {id: user.id}) }}" class="btn btn-outline-primary btn-sm">
+                        <i class="fas fa-user"></i> <span data-i18n="users.payments.subtitle">Fiche utilisateur</span>
+                    </a>
+                </div>
+                <div class="card-body">
+                    {% if payments is not empty %}
+                    <div class="table-responsive">
+                        <table class="table table-hover">
+                            <thead>
+                                <tr>
+                                    <th class="col-left" data-i18n="users.payments.table.billing_month">Mois de facturation</th>
+                                    <th class="col-right" data-i18n="users.payments.table.amount">Montant</th>
+                                    <th class="col-center" data-i18n="users.payments.table.plan">Plan</th>
+                                    <th class="col-center" data-i18n="users.payments.table.status">Statut</th>
+                                    <th class="col-center" data-i18n="users.payments.table.payment_date">Date de paiement</th>
+                                    <th class="col-left" data-i18n="users.payments.table.reference">Référence</th>
+                                    <th class="col-center" data-i18n="users.payments.table.actions">Actions</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                {% for payment in payments %}
+                                <tr>
+                                    <td class="col-left">
+                                        {% if payment.mois_facturation %}
+                                            {% set monthNames = {
+                                                '1': {'fr': 'Janvier', 'en': 'January'},
+                                                '2': {'fr': 'Février', 'en': 'February'},
+                                                '3': {'fr': 'Mars', 'en': 'March'},
+                                                '4': {'fr': 'Avril', 'en': 'April'},
+                                                '5': {'fr': 'Mai', 'en': 'May'},
+                                                '6': {'fr': 'Juin', 'en': 'June'},
+                                                '7': {'fr': 'Juillet', 'en': 'July'},
+                                                '8': {'fr': 'Août', 'en': 'August'},
+                                                '9': {'fr': 'Septembre', 'en': 'September'},
+                                                '10': {'fr': 'Octobre', 'en': 'October'},
+                                                '11': {'fr': 'Novembre', 'en': 'November'},
+                                                '12': {'fr': 'Décembre', 'en': 'December'}
+                                            } %}
+                                            {% set billingDate = payment.mois_facturation|date('Y-m-d') %}
+                                            {% set month = billingDate|date('n') %}
+                                            {% set year = billingDate|date('Y') %}
+                                            <div style="display: flex; align-items: center; gap: 0.5rem;">
+                                                <i class="fas fa-calendar-alt" style="color: var(--accent); font-size: 0.9rem;"></i>
+                                                <span data-i18n-fr="{{ monthNames[month].fr }} {{ year }}" data-i18n-en="{{ monthNames[month].en }} {{ year }}">{{ monthNames[month].fr }} {{ year }}</span>
+                                            </div>
+                                        {% else %}
+                                            <span class="text-muted">-</span>
+                                        {% endif %}
+                                    </td>
+                                    <td class="col-right">
+                                        <strong style="color: var(--text-primary);">{{ payment.montant_total|number_format(0, ',', ' ') }} {{ payment.devise }}</strong>
+                                    </td>
+                                    <td class="col-center">
+                                        {% if payment.niveau %}
+                                            {% set tierLabels = {
+                                                'basic': {'fr': 'Basic', 'en': 'Basic'},
+                                                'pro': {'fr': 'Pro', 'en': 'Pro'},
+                                                'enterprise': {'fr': 'Enterprise', 'en': 'Enterprise'}
+                                            } %}
+                                            {% set tierLabel = tierLabels[payment.niveau] ?? {'fr': payment.niveau|upper, 'en': payment.niveau|upper} %}
+                                            <span class="plan-badge plan-{{ payment.niveau }}" data-i18n-fr="{{ tierLabel.fr }}" data-i18n-en="{{ tierLabel.en }}">{{ tierLabel.fr }}</span>
+                                        {% else %}
+                                            <span class="plan-badge" data-i18n="common.na">N/A</span>
+                                        {% endif %}
+                                    </td>
+                                    <td class="col-center">
+                                        {% if payment.statut %}
+                                            {% if payment.statut == 'paid' %}
+                                                <span class="status-badge status-paid" data-i18n="users.payments.status.paid">
+                                                    <i class="fas fa-check-circle"></i> Payé
+                                                </span>
+                                            {% elseif payment.statut == 'issued' %}
+                                                <span class="status-badge status-issued" data-i18n="users.payments.status.issued">
+                                                    <i class="fas fa-file-invoice"></i> Émise
+                                                </span>
+                                            {% elseif payment.statut == 'overdue' %}
+                                                <span class="status-badge status-overdue" data-i18n="users.payments.status.overdue">
+                                                    <i class="fas fa-exclamation-triangle"></i> En retard
+                                                </span>
+                                            {% elseif payment.statut == 'pending' %}
+                                                <span class="status-badge status-pending" data-i18n="users.payments.status.pending">
+                                                    <i class="fas fa-clock"></i> En attente
+                                                </span>
+                                            {% elseif payment.statut == 'suspendue' %}
+                                                <span class="status-badge status-suspended" data-i18n-fr="Suspendue" data-i18n-en="Suspended">
+                                                    <i class="fas fa-pause-circle"></i> Suspendue
+                                                </span>
+                                            {% else %}
+                                                <span class="status-badge" style="color: var(--text-secondary);">{{ payment.statut }}</span>
+                                            {% endif %}
+                                        {% else %}
+                                            <span class="status-badge" style="color: var(--text-secondary);" data-i18n-fr="N/A" data-i18n-en="N/A">N/A</span>
+                                        {% endif %}
+                                    </td>
+                                    <td class="col-center">
+                                        {% if payment.payee_le %}
+                                            <div style="display: flex; align-items: center; justify-content: center; gap: 0.5rem;">
+                                                <i class="fas fa-check-circle" style="color: #27AE60; font-size: 0.85rem;"></i>
+                                                <span>{{ payment.payee_le|date('d/m/Y') }}</span>
+                                            </div>
+                                        {% else %}
+                                            <span class="text-muted" style="display: flex; align-items: center; justify-content: center; gap: 0.5rem;">
+                                                <i class="fas fa-times-circle" style="font-size: 0.85rem;"></i>
+                                                <span data-i18n-fr="Non payé" data-i18n-en="Not paid">Non payé</span>
+                                            </span>
+                                        {% endif %}
+                                    </td>
+                                    <td class="col-left">
+                                        <code style="background: var(--bg-secondary); padding: 0.25rem 0.5rem; border-radius: var(--border-radius-sm); font-size: 0.85rem; color: var(--text-secondary);">{{ payment.numero_facture ?? '-' }}</code>
+                                    </td>
+                                    <td class="col-center">
+                                        <a href="{{ path('admin_billing_subscription_invoice_show', {id: payment.id}) }}" class="btn btn-sm btn-primary" target="_blank" rel="noopener noreferrer">
+                                            <i class="fas fa-eye"></i> <span data-i18n-fr="Détails" data-i18n-en="Details">Détails</span>
+                                        </a>
+                                    </td>
+                                </tr>
+                                {% endfor %}
+                            </tbody>
+                        </table>
+                    </div>
+                    {% else %}
+                    <div class="empty-state">
+                        <i class="fas fa-receipt"></i>
+                        <p data-i18n-fr="Aucun paiement enregistré pour cet utilisateur" data-i18n-en="No payment recorded for this user">Aucun paiement enregistré pour cet utilisateur</p>
+                    </div>
+                    {% endif %}
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+

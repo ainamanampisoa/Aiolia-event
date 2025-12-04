@@ -3,10 +3,9 @@
 namespace App\Controller;
 
 use App\Entity\User;
-use App\Entity\UserValidationRequest;
+use App\Enum\Role as UserRoleEnum;
 use App\Form\RegistrationFormType;
 use App\Service\AuditLogService;
-use App\Service\UserStatsService;
 use Doctrine\ORM\EntityManagerInterface;
 use Symfony\Bundle\FrameworkBundle\Controller\AbstractController;
 use Symfony\Component\HttpFoundation\Request;
@@ -17,22 +16,46 @@ use Symfony\Component\Security\Http\Authentication\AuthenticationUtils;
 
 class AuthController extends AbstractController
 {
+    /**
+     * Redirige l'utilisateur connecté vers la page appropriée selon son rôle
+     */
+    private function redirectBasedOnRole(): Response
+    {
+        $user = $this->getUser();
+        
+        if (!$user instanceof User) {
+            return $this->redirectToRoute('app_login');
+        }
+        
+        $role = $user->getRole();
+        
+        if ($role === UserRoleEnum::ADMIN) {
+            return $this->redirectToRoute('app_reports_statistiques');
+        }
+        
+        if ($role === UserRoleEnum::ORGANIZER) {
+            return $this->redirectToRoute('organisateur_dashboard_statistiques');
+        }
+        
+        // Pour les utilisateurs normaux, rediriger vers la liste des événements
+        return $this->redirectToRoute('app_event_index');
+    }
+
     #[Route('/login', name: 'app_login')]
     public function login(AuthenticationUtils $authenticationUtils): Response
     {
-        // Si l'utilisateur est déjà connecté, rediriger vers le dashboard
+        // Si l'utilisateur est déjà connecté, rediriger selon son rôle
         if ($this->getUser()) {
-            return $this->redirectToRoute('app_dashboard');
+            return $this->redirectBasedOnRole();
         }
 
         // Récupérer l'erreur de connexion s'il y en a une
         $error = $authenticationUtils->getLastAuthenticationError();
         
-        // Dernier nom d'utilisateur saisi
-        $lastUsername = $authenticationUtils->getLastUsername();
+        $lastIdentifier = $authenticationUtils->getLastUsername();
 
         return $this->render('security/login.html.twig', [
-            'last_username' => $lastUsername,
+            'last_identifier' => $lastIdentifier,
             'error' => $error,
         ]);
     }
@@ -44,9 +67,9 @@ class AuthController extends AbstractController
         EntityManagerInterface $entityManager,
         AuditLogService $auditLogService
     ): Response {
-        // Si l'utilisateur est déjà connecté, rediriger vers le dashboard
+        // Si l'utilisateur est déjà connecté, rediriger selon son rôle
         if ($this->getUser()) {
-            return $this->redirectToRoute('app_dashboard');
+            return $this->redirectBasedOnRole();
         }
 
         $user = new User();
@@ -58,38 +81,29 @@ class AuthController extends AbstractController
             $requestReason = $form->get('requestReason')->getData();
 
             // Encoder le mot de passe
-            $user->setPasswordHash(
+            $user->setHashMotDePasse(
                 $userPasswordHasher->hashPassword(
                     $user,
                     $form->get('plainPassword')->getData()
                 )
             );
 
-            // Déterminer le statut du compte selon le rôle demandé
-            if (in_array($requestedRole, ['organizer', 'co_organizer'])) {
-                // Si l'utilisateur demande à être organisateur ou co-organisateur
-                // Le compte est en attente de validation
-                $user->setRole('user'); // Rôle temporaire
-                $user->setAccountStatus('pending_validation');
-                
-                // Créer une demande de validation
-                $validationRequest = new UserValidationRequest();
-                $validationRequest->setUser($user);
-                $validationRequest->setRequestedRole($requestedRole);
-                $validationRequest->setReason($requestReason);
-                $validationRequest->setStatus('pending');
-                
-                $entityManager->persist($validationRequest);
-                
-                $message = 'Votre demande d\'inscription en tant que ' . 
-                    ($requestedRole === 'organizer' ? 'Organisateur' : 'Co-organisateur') . 
-                    ' a été envoyée. Vous recevrez une notification une fois que votre compte sera validé par un administrateur.';
+            // Exemple d'extrait dans la méthode register
+
+            if ($requestedRole === UserRoleEnum::ORGANIZER) {
+                $user->setRole(UserRoleEnum::ORGANIZER);
+                $user->setStatutCompte('pending_validation');
+
+                $message = 'Votre demande d\'inscription en tant qu\'organisateur est en cours de traitement. Vous serez informé dès la validation de votre compte.';
             } else {
-                // Utilisateur normal - compte actif immédiatement
-                $user->setRole('user');
-                $user->setAccountStatus('active');
-                $message = 'Votre compte a été créé avec succès ! Vous pouvez maintenant vous connecter.';
+                $user->setRole(UserRoleEnum::USER);
+                $user->setStatutCompte('active');
+                $message = 'Inscription réussie ! Vous pouvez maintenant vous connecter.';
             }
+
+
+            $user->setIdentifiantConnexion($user->getEmail());
+            $user->setMethodeConnexion(User::AUTH_PROVIDER_PASSWORD);
 
             // Sauvegarder l'utilisateur
             $entityManager->persist($user);
@@ -102,9 +116,10 @@ class AuthController extends AbstractController
                 $user->getId(),
                 [
                     'email' => $user->getEmail(),
-                    'name' => $user->getFullName(),
+                    'name' => $user->getNomComplet(),
                     'requested_role' => $requestedRole,
-                    'account_status' => $user->getAccountStatus(),
+                    'request_reason' => $requestReason,
+                    'account_status' => $user->getStatutCompte(),
                 ],
                 null
             );
@@ -123,9 +138,9 @@ class AuthController extends AbstractController
     #[Route('/forgot-password', name: 'app_forgot_password_request')]
     public function forgotPasswordRequest(Request $request): Response
     {
-        // Si l'utilisateur est déjà connecté, rediriger vers le dashboard
+        // Si l'utilisateur est déjà connecté, rediriger selon son rôle
         if ($this->getUser()) {
-            return $this->redirectToRoute('app_dashboard');
+            return $this->redirectBasedOnRole();
         }
 
         if ($request->isMethod('POST')) {
@@ -152,9 +167,9 @@ class AuthController extends AbstractController
     #[Route('/', name: 'app_home')]
     public function home(): Response
     {
-        // Si l'utilisateur est connecté, rediriger vers le dashboard
+        // Si l'utilisateur est connecté, rediriger selon son rôle
         if ($this->getUser()) {
-            return $this->redirectToRoute('app_dashboard');
+            return $this->redirectBasedOnRole();
         }
 
         // Sinon, rediriger vers la page de connexion
@@ -162,18 +177,20 @@ class AuthController extends AbstractController
     }
 
     #[Route('/dashboard', name: 'app_dashboard')]
-    public function dashboard(UserStatsService $userStatsService): Response
+    public function dashboard(): Response
     {
-        // Cette route nécessite une authentification (accepte aussi remember-me)
-        $this->denyAccessUnlessGranted('IS_AUTHENTICATED_REMEMBERED');
-
-        // Récupérer les statistiques calculées dynamiquement
-        $stats = $userStatsService->getUserStatistics($this->getUser());
-
-        return $this->render('dashboard/index.html.twig', [
-            'user' => $this->getUser(),
-            'stats' => $stats,
-        ]);
+        // Rediriger selon le rôle de l'utilisateur
+        if ($this->getUser()) {
+            return $this->redirectBasedOnRole();
+        }
+        
+        // Si non connecté, rediriger vers la page de connexion
+        return $this->redirectToRoute('app_login');
     }
 
+    /**
+     * Découpe un identifiant "Prénom Nom" en deux parties.
+     *
+     * @return array{0: string, 1: string}
+     */
 }

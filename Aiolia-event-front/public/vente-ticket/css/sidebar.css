@@ -177,6 +177,9 @@
 .nav-item-calendar i { background: linear-gradient(135deg, #7E22CE, #A855F7); }
 .nav-item-calendar:hover::after { color: #7E22CE; }
 
+.nav-item-settings i { background: linear-gradient(135deg, #0EA5E9, #2563EB); }
+.nav-item-settings:hover::after { color: #0EA5E9; }
+
 .nav-item-chance i { background: linear-gradient(135deg, #EA580C, #F97316); }
 .nav-item-chance:hover::after { color: #EA580C; }
 
@@ -188,6 +191,7 @@
 .nav-item-stats:hover { border-color: rgba(5, 150, 105, 0.2); }
 .nav-item-financial:hover { border-color: rgba(220, 38, 38, 0.2); }
 .nav-item-calendar:hover { border-color: rgba(126, 34, 206, 0.2); }
+.nav-item-settings:hover { border-color: rgba(14, 165, 233, 0.2); }
 .nav-item-chance:hover { border-color: rgba(234, 88, 12, 0.2); }
 
 .user-sidebar-footer {

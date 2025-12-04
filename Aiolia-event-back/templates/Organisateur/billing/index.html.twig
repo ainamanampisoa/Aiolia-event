@@ -1,0 +1,83 @@
+{% extends 'base.html.twig' %}
+
+{% block title %}Facturation - Aiolia Event{% endblock %}
+
+{% block body %}
+<div class="dashboard-container">
+    <div class="dashboard-header">
+        <h1>
+            <i class="fas fa-file-invoice-dollar"></i>
+            <span data-i18n="organisateur.billing.title">Facturation</span>
+        </h1>
+        <p class="dashboard-subtitle" data-i18n="organisateur.billing.subtitle">Consultez vos factures et paiements</p>
+    </div>
+
+    <div class="content-card">
+        <div class="card-body">
+            <div class="empty-state">
+                <i class="fas fa-file-invoice-dollar"></i>
+                <p data-i18n="organisateur.billing.coming_soon">Cette fonctionnalité sera bientôt disponible</p>
+            </div>
+        </div>
+    </div>
+</div>
+
+<style>
+.dashboard-container {
+    padding: 24px;
+    max-width: 1400px;
+    margin: 0 auto;
+}
+
+.dashboard-header {
+    margin-bottom: 32px;
+}
+
+.dashboard-header h1 {
+    font-size: 2rem;
+    font-weight: 700;
+    color: var(--text-primary);
+    margin-bottom: 8px;
+    display: flex;
+    align-items: center;
+    gap: 12px;
+}
+
+.dashboard-header h1 i {
+    color: var(--accent);
+}
+
+.dashboard-subtitle {
+    color: var(--text-secondary);
+    font-size: 1rem;
+}
+
+.content-card {
+    background: var(--bg-card);
+    border-radius: var(--border-radius-lg);
+    box-shadow: var(--shadow-md);
+    border: 1px solid var(--border-color);
+    overflow: hidden;
+}
+
+.card-body {
+    padding: 24px;
+}
+
+.empty-state {
+    text-align: center;
+    padding: 48px 24px;
+}
+
+.empty-state i {
+    font-size: 3rem;
+    color: var(--text-tertiary);
+    margin-bottom: 16px;
+}
+
+.empty-state p {
+    color: var(--text-secondary);
+}
+</style>
+{% endblock %}
+

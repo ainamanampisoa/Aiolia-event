@@ -20,7 +20,9 @@
         </div>
     </div>
 
-    <form method="post" enctype="multipart/form-data" class="event-form">
+    <div class="event-form-container">
+        {{ form_start(form, {'attr': {'class': 'event-form', 'enctype': 'multipart/form-data'}}) }}
+        
         <!-- Section 1: Informations principales -->
         <div class="form-section">
             <div class="section-header">
@@ -28,50 +30,41 @@
                     <i class="fas fa-info-circle"></i>
                 </div>
                 <div>
-                    <h2>Informations principales</h2>
+                    <h2>01. Informations sur l'événement</h2>
                     <p>Les détails essentiels de votre événement</p>
                 </div>
             </div>
 
             <div class="form-grid">
                 <div class="form-group span-2">
-                    <label>Nom de l'événement <span class="required">*</span></label>
-                    <input type="text" name="name" class="form-control" placeholder="Ex: Concert Rock Nation 2025" required>
-                    <small class="form-help">Un nom accrocheur et descriptif</small>
+                    {{ form_label(form.title, null, {'label_attr': {'class': 'form-label'}}) }}
+                    {{ form_widget(form.title, {'attr': {'class': 'form-control', 'placeholder': 'Ex: Concert de Jazz à Antananarivo'}}) }}
+                    {{ form_errors(form.title) }}
                 </div>
 
                 <div class="form-group">
-                    <label>Catégorie <span class="required">*</span></label>
-                    <select name="category" class="form-control" required>
-                        <option value="">Sélectionner...</option>
-                        <option value="concert">🎸 Concert</option>
-                        <option value="festival">🎵 Festival</option>
-                        <option value="sport">⚽ Sport</option>
-                        <option value="theatre">🎭 Théâtre</option>
-                        <option value="conference">📚 Conférence</option>
-                        <option value="autre">✨ Autre</option>
-                    </select>
+                    {{ form_label(form.primaryCategory, null, {'label_attr': {'class': 'form-label'}}) }}
+                    {{ form_widget(form.primaryCategory, {'attr': {'class': 'form-control'}}) }}
+                    {{ form_errors(form.primaryCategory) }}
                 </div>
 
                 <div class="form-group">
-                    <label>Type d'événement <span class="required">*</span></label>
-                    <select name="type" class="form-control" required>
-                        <option value="">Sélectionner...</option>
-                        <option value="public">Public</option>
-                        <option value="prive">Privé</option>
-                        <option value="professionnel">Professionnel</option>
-                    </select>
+                    {{ form_label(form.subtitle, null, {'label_attr': {'class': 'form-label'}}) }}
+                    {{ form_widget(form.subtitle, {'attr': {'class': 'form-control', 'placeholder': 'Sous-titre optionnel'}}) }}
+                    {{ form_errors(form.subtitle) }}
                 </div>
 
                 <div class="form-group span-2">
-                    <label>Description courte <span class="required">*</span></label>
-                    <textarea name="description_short" class="form-control" rows="3" placeholder="Une brève description de votre événement (max 200 caractères)" maxlength="200" required></textarea>
-                    <small class="form-help"><span id="charCount">0</span>/200 caractères</small>
+                    {{ form_label(form.summary, null, {'label_attr': {'class': 'form-label'}}) }}
+                    {{ form_widget(form.summary, {'attr': {'class': 'form-control', 'placeholder': 'Résumé court de l\'événement', 'maxlength': '500'}}) }}
+                    {{ form_errors(form.summary) }}
+                    <small class="form-help">Maximum 500 caractères</small>
                 </div>
 
                 <div class="form-group span-2">
-                    <label>Description complète</label>
-                    <textarea name="description" class="form-control" rows="6" placeholder="Décrivez votre événement en détail..."></textarea>
+                    {{ form_label(form.description, null, {'label_attr': {'class': 'form-label'}}) }}
+                    {{ form_widget(form.description, {'attr': {'class': 'form-control', 'rows': '8', 'placeholder': 'Décrivez votre événement en détails...'}}) }}
+                    {{ form_errors(form.description) }}
                 </div>
             </div>
         </div>
@@ -90,308 +83,256 @@
 
             <div class="form-grid">
                 <div class="form-group">
-                    <label>Date de début <span class="required">*</span></label>
-                    <input type="datetime-local" name="date_start" class="form-control" required>
+                    {{ form_label(form.startsAt, null, {'label_attr': {'class': 'form-label'}}) }}
+                    {{ form_widget(form.startsAt, {'attr': {'class': 'form-control'}}) }}
+                    {{ form_errors(form.startsAt) }}
                 </div>
 
                 <div class="form-group">
-                    <label>Date de fin</label>
-                    <input type="datetime-local" name="date_end" class="form-control">
+                    {{ form_label(form.endsAt, null, {'label_attr': {'class': 'form-label'}}) }}
+                    {{ form_widget(form.endsAt, {'attr': {'class': 'form-control'}}) }}
+                    {{ form_errors(form.endsAt) }}
                 </div>
 
                 <div class="form-group">
-                    <label>Lieu / Salle <span class="required">*</span></label>
-                    <input type="text" name="venue" class="form-control" placeholder="Ex: Stade Municipal" required>
+                    {{ form_label(form.timezone, null, {'label_attr': {'class': 'form-label'}}) }}
+                    {{ form_widget(form.timezone, {'attr': {'class': 'form-control'}}) }}
+                    {{ form_errors(form.timezone) }}
                 </div>
 
                 <div class="form-group">
-                    <label>Ville <span class="required">*</span></label>
-                    <input type="text" name="city" class="form-control" placeholder="Ex: Antananarivo" required>
+                    {{ form_label(form.capacity, null, {'label_attr': {'class': 'form-label'}}) }}
+                    {{ form_widget(form.capacity, {'attr': {'class': 'form-control', 'placeholder': 'Nombre de places', 'min': '1'}}) }}
+                    {{ form_errors(form.capacity) }}
                 </div>
 
                 <div class="form-group span-2">
-                    <label>Adresse complète <span class="required">*</span></label>
-                    <input type="text" name="address" class="form-control" placeholder="Ex: Avenue de l'Indépendance, 101 Antananarivo" required>
+                    {{ form_label(form.venueNameText, null, {'label_attr': {'class': 'form-label'}}) }}
+                    {{ form_widget(form.venueNameText, {'attr': {'class': 'form-control', 'placeholder': 'Ex: Le Grand Café de la Gare'}}) }}
+                    {{ form_errors(form.venueNameText) }}
+                </div>
+
+                <div class="form-group span-2">
+                    {{ form_label(form.fullAddress, null, {'label_attr': {'class': 'form-label'}}) }}
+                    {{ form_widget(form.fullAddress, {'attr': {'class': 'form-control', 'rows': '3', 'placeholder': 'Adresse complète de l\'événement'}}) }}
+                    {{ form_errors(form.fullAddress) }}
                 </div>
             </div>
         </div>
 
-        <!-- Section 3: Médias -->
+        <!-- Section 3: Tags -->
         <div class="form-section">
             <div class="section-header">
                 <div class="section-icon" style="background: linear-gradient(135deg, rgba(155, 89, 182, 0.15), rgba(155, 89, 182, 0.05)); color: #9B59B6;">
-                    <i class="fas fa-image"></i>
+                    <i class="fas fa-tags"></i>
                 </div>
                 <div>
-                    <h2>Images et médias</h2>
-                    <p>Ajoutez des visuels attractifs pour votre événement</p>
+                    <h2>Tags</h2>
+                    <p>Ajoutez des tags pour faciliter la recherche</p>
                 </div>
             </div>
 
             <div class="form-grid">
                 <div class="form-group span-2">
-                    <label>Image principale <span class="required">*</span></label>
-                    <div class="file-upload-area" id="imageUpload">
-                        <div class="upload-icon">
-                            <i class="fas fa-cloud-upload-alt"></i>
-                        </div>
-                        <div class="upload-text">
-                            <strong>Cliquez pour uploader</strong> ou glissez-déposez
-                        </div>
-                        <div class="upload-info">
-                            PNG, JPG jusqu'à 10MB
-                        </div>
-                        <input type="file" name="image" accept="image/*" class="file-input" required>
-                    </div>
-                    <div id="imagePreview" class="image-preview"></div>
-                </div>
-
-                <div class="form-group span-2">
-                    <label>Images supplémentaires</label>
-                    <div class="file-upload-area" id="galleryUpload">
-                        <div class="upload-icon">
-                            <i class="fas fa-images"></i>
-                        </div>
-                        <div class="upload-text">
-                            <strong>Ajouter des images</strong> (max 5)
-                        </div>
-                        <input type="file" name="gallery[]" accept="image/*" class="file-input" multiple>
-                    </div>
-                    <div id="galleryPreview" class="gallery-preview"></div>
+                    {{ form_label(form.tags, null, {'label_attr': {'class': 'form-label'}}) }}
+                    {{ form_widget(form.tags, {'attr': {'class': 'form-control'}}) }}
+                    {{ form_errors(form.tags) }}
+                    <small class="form-help">Sélectionnez plusieurs tags en maintenant Ctrl (ou Cmd sur Mac)</small>
                 </div>
             </div>
         </div>
 
-        <!-- Section 4: Billets et tarifs -->
+        <!-- Section 4: Modes de paiement -->
         <div class="form-section">
             <div class="section-header">
                 <div class="section-icon" style="background: linear-gradient(135deg, rgba(243, 156, 18, 0.15), rgba(243, 156, 18, 0.05)); color: var(--warning);">
-                    <i class="fas fa-ticket-alt"></i>
+                    <i class="fas fa-credit-card"></i>
                 </div>
                 <div>
-                    <h2>Billets et tarifs</h2>
-                    <p>Configurez les catégories de billets et leurs prix</p>
+                    <h2>Mode de paiement</h2>
+                    <p>Sélectionnez les modes de paiement acceptés</p>
                 </div>
             </div>
 
-            <div id="ticketsContainer">
-                <div class="ticket-category">
-                    <div class="ticket-header">
-                        <h3>Catégorie 1</h3>
-                        <button type="button" class="btn-remove-ticket" onclick="removeTicket(this)">
-                            <i class="fas fa-times"></i>
-                        </button>
-                    </div>
-                    <div class="form-grid">
-                        <div class="form-group">
-                            <label>Nom de la catégorie <span class="required">*</span></label>
-                            <input type="text" name="ticket_name[]" class="form-control" placeholder="Ex: VIP, Standard..." required>
-                        </div>
-                        <div class="form-group">
-                            <label>Prix (€) <span class="required">*</span></label>
-                            <input type="number" name="ticket_price[]" class="form-control" placeholder="0.00" min="0" step="0.01" required>
-                        </div>
-                        <div class="form-group">
-                            <label>Quantité <span class="required">*</span></label>
-                            <input type="number" name="ticket_quantity[]" class="form-control" placeholder="100" min="1" required>
-                        </div>
-                        <div class="form-group">
-                            <label>Description</label>
-                            <input type="text" name="ticket_description[]" class="form-control" placeholder="Avantages de cette catégorie">
-                        </div>
-                    </div>
+            <div class="form-grid">
+                <div class="form-group span-2">
+                    {{ form_label(form.paymentMethodsData, null, {'label_attr': {'class': 'form-label'}}) }}
+                    {{ form_widget(form.paymentMethodsData, {'attr': {'class': 'form-control'}}) }}
+                    {{ form_errors(form.paymentMethodsData) }}
+                    <small class="form-help">Sélectionnez plusieurs modes de paiement</small>
                 </div>
             </div>
-
-            <button type="button" class="btn-add-ticket" onclick="addTicket()">
-                <i class="fas fa-plus"></i>
-                Ajouter une catégorie de billet
-            </button>
         </div>
 
-        <!-- Section 5: Options avancées -->
+        <!-- Section 5: Accessibilité -->
+        <div class="form-section">
+            <div class="section-header">
+                <div class="section-icon" style="background: linear-gradient(135deg, rgba(39, 174, 96, 0.15), rgba(39, 174, 96, 0.05)); color: var(--success);">
+                    <i class="fas fa-universal-access"></i>
+                </div>
+                <div>
+                    <h2>Accessibilité</h2>
+                    <p>Indiquez les types d'accessibilité disponibles</p>
+                </div>
+            </div>
+
+            <div class="form-grid">
+                <div class="form-group span-2">
+                    {{ form_label(form.accessibilitiesData, null, {'label_attr': {'class': 'form-label'}}) }}
+                    {{ form_widget(form.accessibilitiesData, {'attr': {'class': 'form-control'}}) }}
+                    {{ form_errors(form.accessibilitiesData) }}
+                    <small class="form-help">Sélectionnez les types d'accessibilité disponibles pour votre événement</small>
+                </div>
+            </div>
+        </div>
+
+        <!-- Section 6: Langues -->
+        <div class="form-section">
+            <div class="section-header">
+                <div class="section-icon" style="background: linear-gradient(135deg, rgba(52, 152, 219, 0.15), rgba(52, 152, 219, 0.05)); color: var(--accent);">
+                    <i class="fas fa-language"></i>
+                </div>
+                <div>
+                    <h2>Langues</h2>
+                    <p>Langues supportées par l'événement</p>
+                </div>
+            </div>
+
+            <div class="form-grid">
+                <div class="form-group span-2">
+                    {{ form_label(form.languagesData, null, {'label_attr': {'class': 'form-label'}}) }}
+                    {{ form_widget(form.languagesData, {'attr': {'class': 'form-control'}}) }}
+                    {{ form_errors(form.languagesData) }}
+                    <small class="form-help">Sélectionnez les langues supportées</small>
+                </div>
+            </div>
+        </div>
+
+        <!-- Section 7: Médias -->
+        <div class="form-section">
+            <div class="section-header">
+                <div class="section-icon" style="background: linear-gradient(135deg, rgba(52, 152, 219, 0.15), rgba(52, 152, 219, 0.05)); color: var(--accent);">
+                    <i class="fas fa-images"></i>
+                </div>
+                <div>
+                    <h2>02. Médiathèque</h2>
+                    <p>Ajoutez des photos pour votre événement</p>
+                </div>
+            </div>
+
+            <div class="form-grid">
+                <div class="form-group span-2">
+                    <div class="form-label">Ajouter des photos de l'événement</div>
+                    <div class="format-info">Formats conseillés : JPG, PNG et webp. Poids maximum : 3Mo</div>
+                    <div class="photos-upload-container">
+                        <div class="photo-upload-slot" data-slot="1">
+                            <div class="photo-upload-placeholder">
+                                <svg width="60" height="60" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5">
+                                    <rect x="3" y="3" width="18" height="18" rx="2" ry="2"/>
+                                    <circle cx="8.5" cy="8.5" r="1.5"/>
+                                    <path d="M21 15l-5-5L5 21"/>
+                                </svg>
+                                <button type="button" class="photo-add-btn" onclick="triggerPhotoUpload(1)">
+                                    <i class="fas fa-plus"></i>
+                                </button>
+                            </div>
+                            <input type="file" name="photo_1" id="photo_1" accept="image/*" class="photo-input" onchange="handlePhotoUpload(1, this)">
+                            <div class="photo-preview" id="preview_1"></div>
+                        </div>
+                        <div class="photo-upload-slot" data-slot="2">
+                            <div class="photo-upload-placeholder">
+                                <svg width="60" height="60" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5">
+                                    <rect x="3" y="3" width="18" height="18" rx="2" ry="2"/>
+                                    <circle cx="8.5" cy="8.5" r="1.5"/>
+                                    <path d="M21 15l-5-5L5 21"/>
+                                </svg>
+                                <button type="button" class="photo-add-btn" onclick="triggerPhotoUpload(2)">
+                                    <i class="fas fa-plus"></i>
+                                </button>
+                            </div>
+                            <input type="file" name="photo_2" id="photo_2" accept="image/*" class="photo-input" onchange="handlePhotoUpload(2, this)">
+                            <div class="photo-preview" id="preview_2"></div>
+                        </div>
+                        <div class="photo-upload-slot" data-slot="3">
+                            <div class="photo-upload-placeholder">
+                                <svg width="60" height="60" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5">
+                                    <rect x="3" y="3" width="18" height="18" rx="2" ry="2"/>
+                                    <circle cx="8.5" cy="8.5" r="1.5"/>
+                                    <path d="M21 15l-5-5L5 21"/>
+                                </svg>
+                                <button type="button" class="photo-add-btn" onclick="triggerPhotoUpload(3)">
+                                    <i class="fas fa-plus"></i>
+                                </button>
+                            </div>
+                            <input type="file" name="photo_3" id="photo_3" accept="image/*" class="photo-input" onchange="handlePhotoUpload(3, this)">
+                            <div class="photo-preview" id="preview_3"></div>
+                        </div>
+                    </div>
+                    {{ form_widget(form.photos, {'attr': {'style': 'display: none;'}}) }}
+                    {{ form_errors(form.photos) }}
+                </div>
+
+                <div class="form-group span-2">
+                    {{ form_label(form.youtubeUrl, null, {'label_attr': {'class': 'form-label'}}) }}
+                    {{ form_widget(form.youtubeUrl, {'attr': {'class': 'form-control', 'placeholder': 'https://www.youtube.com/watch?v=...'}}) }}
+                    {{ form_errors(form.youtubeUrl) }}
+                    <small class="form-help">ou URL youtube</small>
+                </div>
+            </div>
+        </div>
+
+        <!-- Section 8: Options -->
         <div class="form-section">
             <div class="section-header">
                 <div class="section-icon" style="background: linear-gradient(135deg, rgba(231, 76, 60, 0.15), rgba(231, 76, 60, 0.05)); color: var(--danger);">
                     <i class="fas fa-cog"></i>
                 </div>
                 <div>
-                    <h2>Options avancées</h2>
+                    <h2>Options</h2>
                     <p>Paramètres supplémentaires</p>
                 </div>
             </div>
 
             <div class="form-grid">
                 <div class="form-group">
-                    <label class="checkbox-label">
-                        <input type="checkbox" name="is_featured" value="1">
-                        <span>Événement mis en avant</span>
-                    </label>
-                    <small class="form-help">L'événement sera affiché en priorité</small>
+                    {{ form_label(form.status, null, {'label_attr': {'class': 'form-label'}}) }}
+                    {{ form_widget(form.status, {'attr': {'class': 'form-control'}}) }}
+                    {{ form_errors(form.status) }}
                 </div>
 
                 <div class="form-group">
                     <label class="checkbox-label">
-                        <input type="checkbox" name="allow_waiting_list" value="1" checked>
-                        <span>Activer la liste d'attente</span>
+                        {{ form_widget(form.isFeatured) }}
+                        <span>{{ form_label(form.isFeatured) }}</span>
                     </label>
-                    <small class="form-help">Si complet, les utilisateurs pourront s'inscrire</small>
-                </div>
-
-                <div class="form-group">
-                    <label class="checkbox-label">
-                        <input type="checkbox" name="send_reminders" value="1" checked>
-                        <span>Envoyer des rappels automatiques</span>
-                    </label>
-                    <small class="form-help">Les participants recevront des rappels avant l'événement</small>
-                </div>
-
-                <div class="form-group">
-                    <label class="checkbox-label">
-                        <input type="checkbox" name="publish_immediately" value="1" checked>
-                        <span>Publier immédiatement</span>
-                    </label>
-                    <small class="form-help">L'événement sera visible tout de suite</small>
+                    {{ form_errors(form.isFeatured) }}
                 </div>
             </div>
         </div>
 
         <!-- Actions -->
         <div class="form-actions">
-            <button type="submit" class="btn btn-primary" style="background: linear-gradient(135deg, var(--accent), var(--accent-light)); color: white; border: none; padding: 14px 32px; border-radius: 10px; font-weight: 600; font-size: 1rem; cursor: pointer; box-shadow: 0 4px 12px rgba(52, 152, 219, 0.3);">
+            <button type="submit" class="btn btn-primary" style="background: linear-gradient(135deg, #3498DB, #5DADE2) !important; color: white; border: none; padding: 14px 32px; border-radius: 10px; font-weight: 600; font-size: 1rem; cursor: pointer; box-shadow: 0 4px 12px rgba(52, 152, 219, 0.3);">
                 <i class="fas fa-check"></i>
                 Créer l'événement
-            </button>
-            <button type="button" class="btn btn-secondary" style="background: white; color: var(--gray-700); border: 2px solid var(--gray-300); padding: 14px 32px; border-radius: 10px; font-weight: 600; font-size: 1rem; cursor: pointer;">
-                <i class="fas fa-save"></i>
-                Enregistrer comme brouillon
             </button>
             <a href="{{ path('app_event_index') }}" class="btn btn-text" style="color: var(--gray-600); text-decoration: none; padding: 14px 24px;">
                 Annuler
             </a>
         </div>
-    </form>
+
+        {{ form_end(form) }}
+    </div>
 </div>
 
-<script>
-// Compteur de caractères
-document.addEventListener('DOMContentLoaded', function() {
-    const textarea = document.querySelector('textarea[name="description_short"]');
-    const charCount = document.getElementById('charCount');
-    
-    if (textarea && charCount) {
-        textarea.addEventListener('input', function() {
-            charCount.textContent = this.value.length;
-        });
-    }
-
-    // Upload d'image avec prévisualisation
-    setupImageUpload('imageUpload', 'imagePreview', false);
-    setupImageUpload('galleryUpload', 'galleryPreview', true);
-});
-
-function setupImageUpload(uploadId, previewId, multiple) {
-    const uploadArea = document.getElementById(uploadId);
-    const preview = document.getElementById(previewId);
-    const input = uploadArea.querySelector('input[type="file"]');
-
-    uploadArea.addEventListener('click', () => input.click());
-
-    input.addEventListener('change', function() {
-        preview.innerHTML = '';
-        const files = Array.from(this.files);
-        
-        files.forEach(file => {
-            if (file.type.startsWith('image/')) {
-                const reader = new FileReader();
-                reader.onload = function(e) {
-                    const img = document.createElement('div');
-                    img.className = 'preview-image';
-                    img.innerHTML = `
-                        <img src="${e.target.result}" alt="Preview">
-                        <button type="button" class="remove-image" onclick="this.parentElement.remove()">
-                            <i class="fas fa-times"></i>
-                        </button>
-                    `;
-                    preview.appendChild(img);
-                };
-                reader.readAsDataURL(file);
-            }
-        });
-    });
-
-    // Drag and drop
-    uploadArea.addEventListener('dragover', (e) => {
-        e.preventDefault();
-        uploadArea.style.borderColor = 'var(--accent)';
-        uploadArea.style.background = 'rgba(52, 152, 219, 0.05)';
-    });
-
-    uploadArea.addEventListener('dragleave', () => {
-        uploadArea.style.borderColor = 'var(--gray-300)';
-        uploadArea.style.background = 'var(--gray-50)';
-    });
-
-    uploadArea.addEventListener('drop', (e) => {
-        e.preventDefault();
-        uploadArea.style.borderColor = 'var(--gray-300)';
-        uploadArea.style.background = 'var(--gray-50)';
-        input.files = e.dataTransfer.files;
-        input.dispatchEvent(new Event('change'));
-    });
-}
-
-// Gestion des catégories de billets
-let ticketCount = 1;
-
-function addTicket() {
-    ticketCount++;
-    const container = document.getElementById('ticketsContainer');
-    const ticketHTML = `
-        <div class="ticket-category">
-            <div class="ticket-header">
-                <h3>Catégorie ${ticketCount}</h3>
-                <button type="button" class="btn-remove-ticket" onclick="removeTicket(this)">
-                    <i class="fas fa-times"></i>
-                </button>
-            </div>
-            <div class="form-grid">
-                <div class="form-group">
-                    <label>Nom de la catégorie <span class="required">*</span></label>
-                    <input type="text" name="ticket_name[]" class="form-control" placeholder="Ex: VIP, Standard..." required>
-                </div>
-                <div class="form-group">
-                    <label>Prix (€) <span class="required">*</span></label>
-                    <input type="number" name="ticket_price[]" class="form-control" placeholder="0.00" min="0" step="0.01" required>
-                </div>
-                <div class="form-group">
-                    <label>Quantité <span class="required">*</span></label>
-                    <input type="number" name="ticket_quantity[]" class="form-control" placeholder="100" min="1" required>
-                </div>
-                <div class="form-group">
-                    <label>Description</label>
-                    <input type="text" name="ticket_description[]" class="form-control" placeholder="Avantages de cette catégorie">
-                </div>
-            </div>
-        </div>
-    `;
-    container.insertAdjacentHTML('beforeend', ticketHTML);
-}
-
-function removeTicket(btn) {
-    const tickets = document.querySelectorAll('.ticket-category');
-    if (tickets.length > 1) {
-        btn.closest('.ticket-category').remove();
-    } else {
-        alert('Vous devez avoir au moins une catégorie de billet');
-    }
-}
-</script>
-
 <style>
-.event-form {
+.event-form-container {
     max-width: 1200px;
     margin: 0 auto;
+}
+
+.event-form {
+    width: 100%;
 }
 
 .form-section {
@@ -451,15 +392,11 @@ function removeTicket(btn) {
     grid-column: span 2;
 }
 
-.form-group label {
+.form-label {
     font-size: 0.9rem;
     font-weight: var(--font-weight-semibold);
     color: var(--gray-700);
     margin-bottom: 8px;
-}
-
-.required {
-    color: var(--danger);
 }
 
 .form-control {
@@ -498,150 +435,6 @@ function removeTicket(btn) {
     cursor: pointer;
 }
 
-/* Upload de fichiers */
-.file-upload-area {
-    border: 2px dashed var(--gray-300);
-    border-radius: var(--border-radius-md);
-    padding: 32px;
-    text-align: center;
-    background: var(--gray-50);
-    cursor: pointer;
-    transition: var(--transition-base);
-}
-
-.file-upload-area:hover {
-    border-color: var(--accent);
-    background: rgba(52, 152, 219, 0.05);
-}
-
-.upload-icon {
-    font-size: 3rem;
-    color: var(--gray-400);
-    margin-bottom: 12px;
-}
-
-.upload-text {
-    font-size: 1rem;
-    color: var(--gray-700);
-    margin-bottom: 6px;
-}
-
-.upload-info {
-    font-size: 0.85rem;
-    color: var(--gray-500);
-}
-
-.file-input {
-    display: none;
-}
-
-.image-preview, .gallery-preview {
-    display: grid;
-    grid-template-columns: repeat(auto-fill, minmax(150px, 1fr));
-    gap: 12px;
-    margin-top: 16px;
-}
-
-.preview-image {
-    position: relative;
-    border-radius: var(--border-radius-md);
-    overflow: hidden;
-    aspect-ratio: 1;
-}
-
-.preview-image img {
-    width: 100%;
-    height: 100%;
-    object-fit: cover;
-}
-
-.remove-image {
-    position: absolute;
-    top: 8px;
-    right: 8px;
-    background: var(--danger);
-    color: white;
-    border: none;
-    width: 28px;
-    height: 28px;
-    border-radius: 50%;
-    cursor: pointer;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    opacity: 0.9;
-    transition: var(--transition-base);
-}
-
-.remove-image:hover {
-    opacity: 1;
-    transform: scale(1.1);
-}
-
-/* Catégories de billets */
-.ticket-category {
-    background: var(--gray-50);
-    border-radius: var(--border-radius-md);
-    padding: 20px;
-    margin-bottom: 16px;
-    border: 1px solid var(--gray-200);
-}
-
-.ticket-header {
-    display: flex;
-    justify-content: space-between;
-    align-items: center;
-    margin-bottom: 16px;
-}
-
-.ticket-header h3 {
-    font-size: 1.1rem;
-    color: var(--primary);
-    margin: 0;
-}
-
-.btn-remove-ticket {
-    background: var(--danger);
-    color: white;
-    border: none;
-    width: 32px;
-    height: 32px;
-    border-radius: 50%;
-    cursor: pointer;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    transition: var(--transition-base);
-}
-
-.btn-remove-ticket:hover {
-    background: #c0392b;
-    transform: scale(1.1);
-}
-
-.btn-add-ticket {
-    width: 100%;
-    padding: 14px;
-    background: white;
-    border: 2px dashed var(--accent);
-    color: var(--accent);
-    border-radius: var(--border-radius-md);
-    cursor: pointer;
-    font-weight: var(--font-weight-semibold);
-    font-size: 0.95rem;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    gap: 8px;
-    transition: var(--transition-base);
-}
-
-.btn-add-ticket:hover {
-    background: rgba(52, 152, 219, 0.05);
-    border-color: var(--accent-light);
-}
-
-/* Actions du formulaire */
 .form-actions {
     display: flex;
     gap: 16px;
@@ -651,6 +444,114 @@ function removeTicket(btn) {
     border-radius: var(--border-radius-xl);
     box-shadow: var(--shadow-md);
     border: 1px solid var(--gray-200);
+}
+
+/* Upload de photos */
+.format-info {
+    font-size: 0.85rem;
+    color: var(--gray-600);
+    margin-bottom: 16px;
+}
+
+.photos-upload-container {
+    display: flex;
+    gap: 16px;
+    flex-wrap: wrap;
+}
+
+.photo-upload-slot {
+    position: relative;
+    width: 180px;
+    height: 180px;
+    border: 2px dashed var(--gray-300);
+    border-radius: 8px;
+    background: var(--gray-50);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    cursor: pointer;
+    transition: var(--transition-base);
+}
+
+.photo-upload-slot:hover {
+    border-color: var(--accent);
+    background: rgba(52, 152, 219, 0.05);
+}
+
+.photo-upload-placeholder {
+    position: relative;
+    width: 100%;
+    height: 100%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    color: var(--gray-400);
+}
+
+.photo-add-btn {
+    position: absolute;
+    top: 8px;
+    right: 8px;
+    width: 32px;
+    height: 32px;
+    background: var(--accent);
+    color: white;
+    border: none;
+    border-radius: 50%;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 14px;
+    box-shadow: 0 2px 8px rgba(52, 152, 219, 0.3);
+    transition: var(--transition-base);
+}
+
+.photo-add-btn:hover {
+    background: var(--accent-light);
+    transform: scale(1.1);
+}
+
+.photo-input {
+    display: none;
+}
+
+.photo-preview {
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    border-radius: 8px;
+    overflow: hidden;
+    display: none;
+}
+
+.photo-preview img {
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+}
+
+.photo-preview.active {
+    display: block;
+}
+
+.photo-preview .remove-photo {
+    position: absolute;
+    top: 8px;
+    right: 8px;
+    width: 28px;
+    height: 28px;
+    background: var(--danger);
+    color: white;
+    border: none;
+    border-radius: 50%;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 12px;
 }
 
 @media (max-width: 768px) {
@@ -674,5 +575,97 @@ function removeTicket(btn) {
     }
 }
 </style>
+
+<script>
+// Gestion des photos individuelles
+function triggerPhotoUpload(slot) {
+    document.getElementById('photo_' + slot).click();
+}
+
+function handlePhotoUpload(slot, input) {
+    const file = input.files[0];
+    if (file && file.type.startsWith('image/')) {
+        // Vérifier la taille (3Mo max)
+        if (file.size > 3 * 1024 * 1024) {
+            alert('Le fichier est trop volumineux. Maximum 3Mo.');
+            input.value = '';
+            return;
+        }
+        
+        const reader = new FileReader();
+        reader.onload = function(e) {
+            const preview = document.getElementById('preview_' + slot);
+            const placeholder = preview.previousElementSibling;
+            
+            preview.innerHTML = `
+                <img src="${e.target.result}" alt="Preview">
+                <button type="button" class="remove-photo" onclick="removePhoto(${slot})">
+                    <i class="fas fa-times"></i>
+                </button>
+            `;
+            preview.classList.add('active');
+            placeholder.style.display = 'none';
+            
+            // Mettre à jour le champ photos du formulaire Symfony
+            updatePhotosField();
+        };
+        reader.readAsDataURL(file);
+    }
+}
+
+function removePhoto(slot) {
+    const input = document.getElementById('photo_' + slot);
+    const preview = document.getElementById('preview_' + slot);
+    const placeholder = preview.previousElementSibling;
+    
+    input.value = '';
+    preview.innerHTML = '';
+    preview.classList.remove('active');
+    placeholder.style.display = 'flex';
+    
+    // Mettre à jour le champ photos du formulaire Symfony
+    updatePhotosField();
+}
+
+// Gestion du champ photos Symfony (collecter tous les fichiers)
+function updatePhotosField() {
+    const symfonyPhotosInput = document.querySelector('input[type="file"][name*="[photos]"]');
+    if (!symfonyPhotosInput) {
+        // Si le champ n'existe pas, on le crée
+        const form = document.querySelector('.event-form');
+        if (form) {
+            const hiddenInput = document.createElement('input');
+            hiddenInput.type = 'file';
+            hiddenInput.name = 'event[photos][]';
+            hiddenInput.multiple = true;
+            hiddenInput.style.display = 'none';
+            form.appendChild(hiddenInput);
+        }
+        return;
+    }
+    
+    const dt = new DataTransfer();
+    [1, 2, 3].forEach(slot => {
+        const input = document.getElementById('photo_' + slot);
+        if (input && input.files.length > 0) {
+            dt.items.add(input.files[0]);
+        }
+    });
+    
+    if (dt.files.length > 0) {
+        symfonyPhotosInput.files = dt.files;
+    }
+}
+
+// Mettre à jour lors de la soumission du formulaire
+document.addEventListener('DOMContentLoaded', function() {
+    const form = document.querySelector('.event-form');
+    if (form) {
+        form.addEventListener('submit', function() {
+            updatePhotosField();
+        });
+    }
+});
+</script>
 {% endblock %}
 

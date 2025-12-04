@@ -1,0 +1,733 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+    <meta charset="UTF-8">
+    <title>Facture {{ invoice.invoiceNumber }} - Aiolia Event</title>
+    <style>
+        @page {
+            margin: 0.6cm;
+            size: A4;
+        }
+        
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+        
+        body {
+            font-family: 'DejaVu Sans', Arial, sans-serif;
+            color: #2c3e50;
+            line-height: 1.5;
+            font-size: 11px;
+            background: #ffffff;
+        }
+        
+        .invoice-wrapper {
+            width: 100%;
+            background: #ffffff;
+        }
+        
+        /* Titre Aiolia Event en première ligne */
+        .brand-header {
+            text-align: center;
+            margin-bottom: 20px;
+            padding-bottom: 15px;
+            border-bottom: 3px solid #3498DB;
+        }
+        
+        .brand-title {
+            font-size: 28px;
+            font-weight: 800;
+            color: #3498DB;
+            margin-bottom: 5px;
+            text-transform: uppercase;
+            letter-spacing: 2px;
+        }
+        
+        .brand-subtitle {
+            font-size: 12px;
+            color: #7f8c8d;
+            font-weight: 500;
+        }
+        
+        /* Informations Admin */
+        .admin-info {
+            background: #f8f9fa;
+            padding: 12px 15px;
+            border-radius: 6px;
+            margin-bottom: 0;
+            border-left: 4px solid #3498DB;
+        }
+        
+        .admin-title {
+            font-size: 11px;
+            font-weight: 700;
+            color: #3498DB;
+            margin-bottom: 8px;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+        }
+        
+        .admin-details {
+            font-size: 10px;
+            color: #2c3e50;
+            line-height: 1.6;
+        }
+        
+        .admin-row {
+            margin-bottom: 4px;
+        }
+        
+        .admin-label {
+            font-weight: 600;
+            color: #34495e;
+        }
+        
+        /* En-tête facture */
+        .invoice-header {
+            background: linear-gradient(135deg, #3498DB 0%, #2980B9 100%);
+            color: white;
+            padding: 15px 18px;
+            border-radius: 8px;
+            margin-bottom: 18px;
+            box-shadow: 0 2px 8px rgba(52, 152, 219, 0.2);
+        }
+        
+        .header-content {
+            display: table;
+            width: 100%;
+        }
+        
+        .invoice-title-section {
+            display: table-cell;
+            vertical-align: middle;
+            width: 60%;
+        }
+        
+        .invoice-meta-section {
+            display: table-cell;
+            vertical-align: middle;
+            width: 40%;
+            text-align: right;
+        }
+        
+        .invoice-title {
+            font-size: 24px;
+            font-weight: 700;
+            margin-bottom: 5px;
+            letter-spacing: 1px;
+        }
+        
+        .invoice-subtitle {
+            font-size: 11px;
+            opacity: 0.95;
+            font-weight: 500;
+        }
+        
+        .invoice-number {
+            font-size: 18px;
+            font-weight: 700;
+            margin-bottom: 8px;
+        }
+        
+        .invoice-status {
+            display: inline-block;
+            padding: 8px 16px;
+            border-radius: 25px;
+            font-size: 11px;
+            font-weight: 800;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.2);
+        }
+        
+        .status-paid { 
+            background: #27ae60; 
+            color: white;
+            border: 2px solid #229954;
+        }
+        .status-pending { 
+            background: #f39c12; 
+            color: white;
+            border: 2px solid #e67e22;
+        }
+        .status-overdue { 
+            background: #e74c3c; 
+            color: white;
+            border: 2px solid #c0392b;
+        }
+        .status-suspendue { 
+            background: #f39c12; 
+            color: white;
+            border: 2px solid #e67e22;
+        }
+        .status-issued { 
+            background: #3498DB; 
+            color: white;
+            border: 2px solid #2980B9;
+        }
+        .status-draft { 
+            background: #95a5a6; 
+            color: white;
+            border: 2px solid #7f8c8d;
+        }
+        
+        /* Informations client et facturation */
+        .info-section {
+            display: table;
+            width: 100%;
+            margin-bottom: 18px;
+            border-spacing: 12px 0;
+        }
+        
+        .info-block {
+            display: table-cell;
+            vertical-align: top;
+            width: 50%;
+            background: #f8f9fa;
+            padding: 15px;
+            border-radius: 8px;
+            border-left: 4px solid #3498DB;
+        }
+        
+        .info-title {
+            font-size: 12px;
+            font-weight: 700;
+            color: #3498DB;
+            margin-bottom: 12px;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+            padding-bottom: 8px;
+            border-bottom: 2px solid #3498DB;
+        }
+        
+        .info-row {
+            margin-bottom: 8px;
+            font-size: 10px;
+            line-height: 1.5;
+            display: table;
+            width: 100%;
+        }
+        
+        .info-label {
+            font-weight: 600;
+            color: #34495e;
+            display: table-cell;
+            width: 45%;
+            vertical-align: top;
+        }
+        
+        .info-value {
+            color: #2c3e50;
+            font-weight: 500;
+            display: table-cell;
+            width: 55%;
+            vertical-align: top;
+        }
+        
+        /* Badges */
+        .badge-container {
+            margin-top: 10px;
+            padding-top: 8px;
+            border-top: 1px solid #e0e0e0;
+        }
+        
+        .badge {
+            display: inline-block;
+            padding: 5px 10px;
+            border-radius: 5px;
+            font-size: 9px;
+            font-weight: 700;
+            text-transform: uppercase;
+            margin-right: 6px;
+            margin-top: 5px;
+        }
+        
+        .badge-plan-basic { background: #3498DB; color: white; }
+        .badge-plan-pro { background: #9b59b6; color: white; }
+        .badge-plan-enterprise { background: #f39c12; color: white; }
+        .badge-period { background: #95a5a6; color: white; }
+        .badge-payment { background: #27ae60; color: white; }
+        .badge-payment-espace { background: #34495e; color: white; }
+        .badge-payment-orange { background: #ff6600; color: white; }
+        .badge-payment-airtel { background: #e60000; color: white; }
+        .badge-payment-telma { background: #00a651; color: white; }
+        .badge-payment-mvola { background: #00a651; color: white; }
+        .badge-payment-bank { background: #3498DB; color: white; }
+        
+        /* Tableau des éléments */
+        .items-section {
+            margin-bottom: 18px;
+        }
+        
+        .section-title {
+            font-size: 13px;
+            font-weight: 700;
+            color: #3498DB;
+            margin-bottom: 10px;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+            padding-bottom: 8px;
+            border-bottom: 2px solid #3498DB;
+        }
+        
+        .items-table {
+            width: 100%;
+            border-collapse: collapse;
+            background: white;
+            border-radius: 8px;
+            overflow: hidden;
+            box-shadow: 0 2px 6px rgba(0,0,0,0.08);
+        }
+        
+        .items-table thead {
+            background: linear-gradient(135deg, #3498DB 0%, #2980B9 100%);
+            color: white;
+        }
+        
+        .items-table th {
+            padding: 10px 12px;
+            text-align: left;
+            font-size: 10px;
+            font-weight: 700;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+        }
+        
+        .items-table th.text-right {
+            text-align: right;
+        }
+        
+        .items-table th.text-center {
+            text-align: center;
+        }
+        
+        .items-table td {
+            padding: 10px 12px;
+            border-bottom: 1px solid #ecf0f1;
+            font-size: 10px;
+        }
+        
+        .items-table tbody tr:nth-child(even) {
+            background: #f8f9fa;
+        }
+        
+        .item-name {
+            font-weight: 600;
+            color: #2c3e50;
+        }
+        
+        .item-details {
+            font-size: 9px;
+            color: #7f8c8d;
+            margin-top: 3px;
+        }
+        
+        .text-right {
+            text-align: right;
+        }
+        
+        .text-center {
+            text-align: center;
+        }
+        
+        /* Totaux */
+        .totals-section {
+            margin-bottom: 18px;
+        }
+        
+        .totals-table {
+            width: 100%;
+            border-collapse: collapse;
+            background: white;
+            border-radius: 8px;
+            overflow: hidden;
+            box-shadow: 0 2px 6px rgba(0,0,0,0.08);
+        }
+        
+        .totals-table tr {
+            border-bottom: 1px solid #ecf0f1;
+        }
+        
+        .totals-table td {
+            padding: 10px 15px;
+            font-size: 10px;
+        }
+        
+        .total-row {
+            background: #f8f9fa;
+            font-weight: 600;
+        }
+        
+        .grand-total {
+            background: linear-gradient(135deg, #3498DB 0%, #2980B9 100%) !important;
+            color: white !important;
+            font-weight: 800;
+        }
+        
+        .grand-total td {
+            padding: 12px 15px;
+            font-size: 13px;
+            color: white !important;
+        }
+        
+        .status-row {
+            background: #f8f9fa;
+            border-top: 2px solid #3498DB;
+        }
+        
+        .status-row td {
+            padding: 10px 15px;
+            font-size: 10px;
+        }
+        
+        .status-row .invoice-status {
+            display: inline-block;
+            padding: 4px 12px;
+            border-radius: 20px;
+            font-size: 10px;
+            font-weight: 700;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+        }
+        
+        .amount {
+            font-weight: 600;
+            text-align: right;
+        }
+        
+        .grand-total .amount {
+            color: white;
+            font-size: 15px;
+        }
+        
+        /* Informations de paiement */
+        .payment-info {
+            background: #f8f9fa;
+            padding: 12px 15px;
+            border-radius: 8px;
+            border-left: 4px solid #3498DB;
+            margin-bottom: 18px;
+        }
+        
+        .payment-title {
+            font-size: 11px;
+            font-weight: 700;
+            color: #3498DB;
+            margin-bottom: 8px;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+        }
+        
+        .payment-method {
+            display: inline-block;
+            padding: 8px 14px;
+            border-radius: 6px;
+            font-weight: 700;
+            color: white;
+            font-size: 11px;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+        }
+        
+        /* Notes spéciales */
+        .notes-section {
+            margin-bottom: 15px;
+            font-size: 9px;
+            color: #7f8c8d;
+            line-height: 1.5;
+            padding: 10px 12px;
+            background: #f8f9fa;
+            border-radius: 6px;
+            border-left: 3px solid #3498DB;
+        }
+        
+        .note-item {
+            margin-bottom: 5px;
+        }
+        
+        .note-paid {
+            color: #27ae60;
+            font-weight: 600;
+        }
+        
+        .note-pause {
+            color: #f39c12;
+            font-weight: 600;
+        }
+        
+        /* Footer */
+        .invoice-footer {
+            margin-top: 20px;
+            padding-top: 15px;
+            border-top: 2px solid #ecf0f1;
+            text-align: center;
+            font-size: 9px;
+            color: #7f8c8d;
+        }
+        
+        .footer-content {
+            margin-bottom: 6px;
+            line-height: 1.5;
+        }
+        
+        .footer-title {
+            font-weight: 700;
+            color: #3498DB;
+        }
+        
+        .copyright {
+            margin-top: 10px;
+            padding-top: 10px;
+            border-top: 1px solid #ecf0f1;
+            font-size: 8px;
+            color: #95a5a6;
+        }
+    </style>
+</head>
+<body>
+    <div class="invoice-wrapper">
+        <!-- Titre Aiolia Event en première ligne -->
+        <div class="brand-header">
+            <div class="brand-title">Aiolia Event</div>
+            <div class="brand-subtitle">Plateforme de gestion d'événements</div>
+        </div>
+
+        <!-- Informations Admin qui télécharge le PDF -->
+        {% if admin %}
+        <div class="admin-info">
+            <div class="admin-title">Informations Société</div>
+            <div class="admin-details">
+                <div class="admin-row">
+                    <span class="admin-label">Nom :</span> {{ admin.nomComplet }}
+                </div>
+                <div class="admin-row">
+                    <span class="admin-label">Email :</span> {{ admin.email }}
+                </div>
+                {% if admin.telephone %}
+                <div class="admin-row">
+                    <span class="admin-label">Téléphone :</span> {{ admin.telephone|phone_format_text(admin.codePays) }}
+                </div>
+                {% endif %}
+                <div class="admin-row">
+                    <span class="admin-label">Adresse :</span> Antananarivo, Madagascar
+                </div>
+                <div class="admin-row">
+                    <span class="admin-label">RCS :</span> [À configurer] | 
+                    <span class="admin-label">NIF :</span> [À configurer] | 
+                    <span class="admin-label">STAT :</span> [À configurer]
+                </div>
+            </div>
+        </div>
+        {% endif %}
+
+        <!-- En-tête facture -->
+        <div class="invoice-header">
+            <div class="header-content">
+                <div class="invoice-title-section">
+                    <div class="invoice-title">FACTURE</div>
+                    <div class="invoice-subtitle">Facture d'abonnement mensuel</div>
+                </div>
+                <div class="invoice-meta-section">
+                    <div class="invoice-number">N° {{ invoice.invoiceNumber }}</div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Informations client et facturation -->
+        <div class="info-section">
+            <div class="info-block">
+                <div class="info-title">Client / Organisateur</div>
+                <div class="info-row">
+                    <span class="info-label">Nom :</span>
+                    <span class="info-value">{{ invoice.customer.nomComplet }}</span>
+                </div>
+                <div class="info-row">
+                    <span class="info-label">Email :</span>
+                    <span class="info-value">{{ invoice.customer.email }}</span>
+                </div>
+                {% if invoice.customer.telephone %}
+                <div class="info-row">
+                    <span class="info-label">Téléphone :</span>
+                    <span class="info-value">{{ invoice.customer.telephone|phone_format_text(invoice.customer.codePays) }}</span>
+                </div>
+                {% endif %}
+                {% if planInfo and planTier %}
+                    {% set tierLabels = {
+                        'basic': 'Basic',
+                        'pro': 'Pro',
+                        'enterprise': 'Enterprise'
+                    } %}
+                    {% set periodLabels = {
+                        'monthly': 'Mensuel',
+                        'quarterly': 'Trimestriel',
+                        'yearly': 'Annuel'
+                    } %}
+                    <div class="badge-container">
+                        <span class="badge badge-plan-{{ planTier }}">
+                            {{ tierLabels[planTier] ?? planTier|upper }}
+                        </span>
+                        {% if planInfo.periode_facturation %}
+                            <span class="badge badge-period">
+                                {{ periodLabels[planInfo.periode_facturation] ?? planInfo.periode_facturation|capitalize }}
+                            </span>
+                        {% endif %}
+                        {% if paymentMethod %}
+                            {% set paymentMethodLabels = {
+                                'espace': 'Espèce',
+                                'orange': 'Orange Money',
+                                'airtel': 'Airtel Money',
+                                'telma': 'Mvola',
+                                'mvola': 'Mvola',
+                                'bank_transfer': 'Virement'
+                            } %}
+                            {% set paymentClass = paymentMethod == 'bank_transfer' ? 'bank' : paymentMethod %}
+                            <span class="badge badge-payment-{{ paymentClass }}">
+                                {{ paymentMethodLabels[paymentMethod] ?? paymentMethod|capitalize }}
+                            </span>
+                        {% endif %}
+                    </div>
+                {% endif %}
+            </div>
+            
+            <div class="info-block">
+                <div class="info-title">Informations de Facturation</div>
+                <div class="info-row">
+                    <span class="info-label">Date d'émission :</span>
+                    <span class="info-value">{{ invoice.issuedAt|date('d/m/Y à H:i') }}</span>
+                </div>
+                {% if invoice.dueAt %}
+                <div class="info-row">
+                    <span class="info-label">Date d'échéance :</span>
+                    <span class="info-value">{{ invoice.dueAt|date('d/m/Y') }}</span>
+                </div>
+                {% endif %}
+                {% if invoice.paidAt %}
+                <div class="info-row">
+                    <span class="info-label">Payée le :</span>
+                    <span class="info-value">{{ invoice.paidAt|date('d/m/Y à H:i') }}</span>
+                </div>
+                {% endif %}
+                {% if invoice.billingMonth %}
+                    {% set monthNames = {
+                        '1': 'Janvier', '2': 'Février', '3': 'Mars', '4': 'Avril',
+                        '5': 'Mai', '6': 'Juin', '7': 'Juillet', '8': 'Août',
+                        '9': 'Septembre', '10': 'Octobre', '11': 'Novembre', '12': 'Décembre'
+                    } %}
+                    {% set month = invoice.billingMonth|date('n') %}
+                    {% set year = invoice.billingMonth|date('Y') %}
+                    <div class="info-row">
+                        <span class="info-label">Mois de facturation :</span>
+                        <span class="info-value">{{ monthNames[month] }} {{ year }}</span>
+                    </div>
+                {% endif %}
+            </div>
+        </div>
+
+        <!-- Détails de la facture -->
+        {% if invoiceItems|length > 0 %}
+        <div class="items-section">
+            <div class="section-title">Détails de la Facture</div>
+            <table class="items-table">
+                <thead>
+                    <tr>
+                        <th>Description</th>
+                        <th class="text-center">Quantité</th>
+                        <th class="text-right">Prix Unitaire</th>
+                        <th class="text-right">Montant</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for item in invoiceItems %}
+                    <tr>
+                        <td>
+                            <div class="item-name">{{ item.description ?? (planInfo.nom ?? 'Abonnement') }}</div>
+                            {% if item.plan_name %}
+                            <div class="item-details">{{ item.plan_name }}</div>
+                            {% endif %}
+                        </td>
+                        <td class="text-center">{{ item.quantite }}</td>
+                        <td class="text-right">{{ item.prix_unitaire|number_format(0, ',', ' ') }} {{ invoice.currency }}</td>
+                        <td class="text-right"><strong>{{ item.montant_total|number_format(0, ',', ' ') }} {{ invoice.currency }}</strong></td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+        {% endif %}
+
+        <!-- Totaux -->
+        <div class="totals-section">
+            <div class="section-title">Résumé Financier</div>
+            <table class="totals-table">
+                <tr>
+                    <td>Montant HT</td>
+                    <td class="text-right amount">{{ invoice.subtotalAmount|number_format(0, ',', ' ') }} {{ invoice.currency }}</td>
+                </tr>
+                <tr class="total-row">
+                    <td>TVA (20%)</td>
+                    <td class="text-right amount">{{ invoice.taxAmount|number_format(0, ',', ' ') }} {{ invoice.currency }}</td>
+                </tr>
+                <tr class="grand-total">
+                    <td><strong>Montant TTC</strong></td>
+                    <td class="text-right amount"><strong>{{ invoice.totalAmount|number_format(0, ',', ' ') }} {{ invoice.currency }}</strong></td>
+                </tr>
+                <tr class="status-row">
+                    <td><strong>Statut</strong></td>
+                    <td class="text-right">
+                        <span class="invoice-status status-{{ invoice.status }}">
+                            {% if invoice.status == 'paid' %}
+                                PAYÉE
+                            {% elseif invoice.status == 'pending' %}
+                                EN ATTENTE
+                            {% elseif invoice.status == 'overdue' %}
+                                EN RETARD
+                            {% elseif invoice.status == 'suspendue' %}
+                                SUSPENDUE
+                            {% elseif invoice.status == 'issued' %}
+                                ÉMISE
+                            {% elseif invoice.status == 'draft' %}
+                                BROUILLON
+                            {% else %}
+                                {{ invoice.status|upper }}
+                            {% endif %}
+                        </span>
+                    </td>
+                </tr>
+            </table>
+        </div>
+
+        <!-- Notes spéciales -->
+        {% if invoice.isPrepaid is defined and invoice.isPrepaid or invoice.isPauseMonth is defined and invoice.isPauseMonth %}
+        <div class="notes-section">
+            {% if invoice.isPrepaid is defined and invoice.isPrepaid %}
+            <div class="note-item note-paid">✓ Facture prépayée</div>
+            {% endif %}
+            {% if invoice.isPauseMonth is defined and invoice.isPauseMonth %}
+            <div class="note-item note-pause">⚠ Mois en pause - Facture à 0 {{ invoice.currency }}</div>
+            {% endif %}
+        </div>
+        {% endif %}
+
+        <!-- Footer -->
+        <div class="invoice-footer">
+            <div class="footer-content">
+                <span class="footer-title">Aiolia Event</span> - Plateforme de gestion d'événements
+            </div>
+            <div class="footer-content">
+                Email: {% if admin %}{{ admin.email }}{% else %}contact@aiolia-event.mg{% endif %}
+                {% if admin and admin.telephone %}
+                    | Téléphone: {{ admin.telephone|phone_format_text(admin.codePays) }}
+                {% endif %}
+            </div>
+            <div class="footer-content">
+                Antananarivo, Madagascar | RCS: [À configurer] | NIF: [À configurer] | STAT: [À configurer]
+            </div>
+            <div class="copyright">
+                &copy; {{ "now"|date("Y") }} Aiolia Event - Tous droits réservés. Facture générée électroniquement.
+            </div>
+        </div>
+    </div>
+</body>
+</html>

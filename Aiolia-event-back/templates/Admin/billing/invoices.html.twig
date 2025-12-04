@@ -1,0 +1,1461 @@
+{% extends 'base.html.twig' %}
+
+{% block title %}Facturation & Paiement - Aiolia Event{% endblock %}
+
+{% block stylesheets %}
+{{ parent() }}
+<!-- Flatpickr CSS -->
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/flatpickr/dist/flatpickr.min.css">
+{% endblock %}
+
+{% block body %}
+<div class="dashboard">
+    <!-- En-tête -->
+    <div class="dashboard-header">
+        <div>
+            <h1><i class="fas fa-credit-card"></i> <span data-i18n="billing.header.title">Facturation & Paiement</span></h1>
+            <p class="dashboard-subtitle" data-i18n="billing.header.subtitle">
+                Gérez les factures et les paiements
+            </p>
+        </div>
+    </div>
+    <!-- Recherche et filtres -->
+    <div class="search-section">
+        <div class="search-header">
+            <div class="search-header-content">
+                <div class="search-icon-wrapper">
+                    <i class="fas fa-filter"></i>
+                </div>
+                <h3 data-i18n="billing.filters.title">Filtres de recherche</h3>
+            </div>
+        </div>
+
+        <div class="search-form">
+            <form method="get" action="{{ path('admin_billing_invoices') }}">
+                <div class="search-grid">
+                    <div class="search-field">
+                        <label for="search-input">
+                            <i class="fas fa-search"></i>
+                            <span data-i18n="billing.filters.search">Recherche</span>
+                        </label>
+                        <input 
+                            type="text" 
+                            id="search-input"
+                            name="search" 
+                            class="form-input" 
+                            value="{{ currentSearch|default('') }}" 
+                            placeholder="Numéro, email, nom..."
+                            autocomplete="off"
+                        >
+                    </div>
+
+                    <div class="search-field">
+                        <label for="status-select">
+                            <i class="fas fa-tag"></i>
+                            <span data-i18n="billing.filters.status">Statut</span>
+                        </label>
+                        <div class="select-wrapper">
+                            <select id="status-select" name="status" class="form-input form-select">
+                                <option value="" {{ currentStatus == '' or currentStatus is null ? 'selected' : '' }} data-i18n="billing.filters.status.all">Tous les statuts</option>
+                                <option value="draft" {{ currentStatus == 'draft' ? 'selected' : '' }} data-i18n="billing.filters.status.draft">Brouillon</option>
+                                <option value="issued" {{ currentStatus == 'issued' ? 'selected' : '' }} data-i18n="billing.filters.status.issued">Émise</option>
+                                <option value="paid" {{ currentStatus == 'paid' ? 'selected' : '' }} data-i18n="billing.filters.status.paid">Payée</option>
+                                <option value="overdue" {{ currentStatus == 'overdue' ? 'selected' : '' }} data-i18n="billing.filters.status.overdue">En retard</option>
+                                <option value="void" {{ currentStatus == 'void' ? 'selected' : '' }} data-i18n="billing.filters.status.void">Annulée</option>
+                                <option value="refunded" {{ currentStatus == 'refunded' ? 'selected' : '' }} data-i18n="billing.filters.status.refunded">Remboursée</option>
+                            </select>
+                        </div>
+                    </div>
+
+                    <div class="search-field">
+                        <label for="date-from">
+                            <i class="fas fa-calendar-alt"></i>
+                            <span data-i18n="billing.filters.date_from">Date de début</span>
+                        </label>
+                        <div class="date-input-wrapper">
+                            <input 
+                                type="text" 
+                                id="date-from"
+                                name="date_from" 
+                                class="form-input date-picker-input" 
+                                value="{{ currentDateFrom|default('') }}"
+                                placeholder="Sélectionner une date"
+                                autocomplete="off"
+                                readonly
+                            >
+                            <i class="fas fa-calendar-alt date-picker-icon"></i>
+                        </div>
+                    </div>
+
+                    <div class="search-field">
+                        <label for="date-to">
+                            <i class="fas fa-calendar-alt"></i>
+                            <span data-i18n="billing.filters.date_to">Date de fin</span>
+                        </label>
+                        <div class="date-input-wrapper">
+                            <input 
+                                type="text" 
+                                id="date-to"
+                                name="date_to" 
+                                class="form-input date-picker-input" 
+                                value="{{ currentDateTo|default('') }}"
+                                placeholder="Sélectionner une date"
+                                autocomplete="off"
+                                readonly
+                            >
+                            <i class="fas fa-calendar-alt date-picker-icon"></i>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="search-actions">
+                    <button type="submit" class="btn btn-primary btn-search">
+                        <i class="fas fa-search"></i>
+                        <span data-i18n="billing.actions.search">Rechercher</span>
+                    </button>
+                    <a href="{{ path('admin_billing_invoices') }}" class="btn btn-secondary btn-reset">
+                        <i class="fas fa-redo"></i>
+                        <span data-i18n="billing.actions.reset">Réinitialiser</span>
+                    </a>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <!-- Liste des factures -->
+    <div class="card validation-card">
+        <div class="card-body">
+            <div class="table-responsive">
+                <table class="table table-hover validation-table invoices-table">
+                    <thead>
+                        <tr>
+                            <th class="col-left" data-i18n="billing.table.number">Numéro</th>
+                            <th class="col-left" data-i18n="billing.table.customer">Client</th>
+                            <th class="col-center" data-i18n="billing.table.plan">Offre</th>
+                            <th class="col-right" data-i18n="billing.table.amount">Montant</th>
+                            <th class="col-center" data-i18n="billing.table.status">Statut</th>
+                            <th class="col-center" data-i18n="billing.table.period">Période</th>
+                            <th class="col-center actions-header" data-i18n="billing.table.actions">Actions</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% if allInvoices|length > 0 %}
+                            {% for invoice in allInvoices %}
+                                {% set isSubscription = false %}
+                                {% if invoice.invoiceType is defined and invoice.invoiceType == 'subscription' %}
+                                    {% set isSubscription = true %}
+                                {% elseif invoice.getInvoiceType() == 'subscription' %}
+                                    {% set isSubscription = true %}
+                                {% endif %}
+                                {% set planInfo = isSubscription ? (planInfos[invoice.id] ?? null) : null %}
+                                {% set planTier = planInfo ? planInfo.niveau : null %}
+                                {% set billingPeriod = planInfo ? planInfo.periode_facturation : null %}
+                                <tr>
+                                    <td class="col-left">
+                                        <span style="color: var(--text-primary); font-size: 0.95rem; font-weight: var(--font-weight-medium);">N° FA-{{ invoice.invoiceNumber }}</span>
+                                    </td>
+                                    <td class="col-left">
+                                        <div class="user-info">
+                                            <div class="user-details">
+                                                <span class="user-name">{{ invoice.customer.nomComplet }}</span>
+                                                <div class="user-meta">
+                                                    <span class="user-email">
+                                                        <i class="fas fa-envelope"></i>{{ invoice.customer.email }}
+                                                    </span>
+                                                </div>
+                                            </div>
+                                        </div>
+                                    </td>
+                                    <td class="col-center">
+                                        {% if isSubscription %}
+                                            {% if planTier %}
+                                                {% set tierLabels = {
+                                                    'basic': {'fr': 'Basic', 'en': 'Basic', 'icon': 'tag'},
+                                                    'pro': {'fr': 'Pro', 'en': 'Pro', 'icon': 'star'},
+                                                    'enterprise': {'fr': 'Enterprise', 'en': 'Enterprise', 'icon': 'crown'}
+                                                } %}
+                                                {% set periodLabels = {
+                                                    'monthly': {'fr': 'Mensuel', 'en': 'Monthly', 'icon': 'calendar-alt'},
+                                                    'quarterly': {'fr': 'Trimestriel', 'en': 'Quarterly', 'icon': 'calendar-week'},
+                                                    'yearly': {'fr': 'Annuel', 'en': 'Yearly', 'icon': 'calendar-check'}
+                                                } %}
+                                                {% set tierLabel = tierLabels[planTier] ?? {'fr': planTier|upper, 'en': planTier|upper, 'icon': 'tag'} %}
+                                                {% set periodLabel = billingPeriod ? (periodLabels[billingPeriod] ?? {'fr': billingPeriod|capitalize, 'en': billingPeriod|capitalize, 'icon': 'calendar-alt'}) : null %}
+                                                <div class="plan-display-wrapper plan-display-horizontal">
+                                                    <span class="plan-tier-badge plan-tier-{{ planTier }}" data-i18n="billing.plan.tier.{{ planTier }}" title="{{ tierLabel.fr }}">
+                                                        <i class="fas fa-{{ tierLabel.icon }}"></i>
+                                                        <span class="tier-name">{{ tierLabel.fr }}</span>
+                                                    </span>
+                                                    {% if periodLabel %}
+                                                        <span class="billing-period-badge" data-i18n="billing.plan.period.{{ billingPeriod }}" title="{{ periodLabel.fr }}">
+                                                            <i class="fas fa-{{ periodLabel.icon }}"></i>
+                                                            <span class="period-text">{{ periodLabel.fr }}</span>
+                                                        </span>
+                                                    {% endif %}
+                                                </div>
+                                            {% else %}
+                                                <span class="text-muted" style="color: var(--warning);" title="Type d'offre non disponible">
+                                                    <i class="fas fa-exclamation-triangle"></i>
+                                                    <span data-i18n="billing.plan.missing">Non disponible</span>
+                                                </span>
+                                            {% endif %}
+                                        {% else %}
+                                            <span class="text-muted" data-i18n="common.na">N/A</span>
+                                        {% endif %}
+                                    </td>
+                                    <td class="col-right">
+                                        <span style="color: var(--text-primary); font-size: 1rem; font-weight: var(--font-weight-medium);">{{ invoice.totalAmount|number_format(0, ',', ' ') }} {{ invoice.currency }}</span>
+                                    </td>
+                                    <td class="col-center">
+                                        {% if invoice.status == 'paid' %}
+                                            <span class="badge status-badge status-active" data-i18n="billing.invoice.status.paid">Payée</span>
+                                        {% elseif invoice.status == 'issued' or invoice.status == 'draft' %}
+                                            <span class="badge status-badge status-pending" data-i18n="billing.invoice.status.pending">En attente</span>
+                                        {% elseif invoice.status == 'suspendue' %}
+                                            <span class="badge status-badge status-suspended" data-i18n="billing.invoice.status.suspended">Suspendue</span>
+                                        {% elseif invoice.status == 'overdue' %}
+                                            {% set daysOverdue = invoice.getDaysOverdue() %}
+                                            <div style="display: flex; flex-direction: column; align-items: center; gap: 6px;">
+                                                <span class="badge status-badge status-rejected" data-i18n="billing.invoice.status.overdue">En retard</span>
+                                                {% if daysOverdue is not null %}
+                                                    <span class="days-overdue-indicator" data-i18n="billing.invoice.overdue.days" data-i18n-params='{"days": {{ daysOverdue }}, "s": "{{ daysOverdue > 1 ? 's' : '' }}" }'>
+                                                        <i class="fas fa-clock" style="font-size: 0.7rem;"></i> {{ daysOverdue }}j
+                                                    </span>
+                                                {% endif %}
+                                            </div>
+                                        {% elseif invoice.status == 'void' %}
+                                            <span class="badge status-badge status-inactive" data-i18n="billing.invoice.status.cancelled">Annulée</span>
+                                        {% elseif invoice.status == 'refunded' %}
+                                            <span class="badge status-badge status-refunded" data-i18n="billing.invoice.status.refunded">Remboursée</span>
+                                        {% else %}
+                                            <span class="badge status-badge status-inactive">{{ invoice.status }}</span>
+                                        {% endif %}
+                                    </td>
+                                    <td class="col-center">
+                                        <div class="date-info">
+                                            {% set monthNames = {
+                                                '1': {'fr': 'Janvier', 'en': 'January'},
+                                                '2': {'fr': 'Février', 'en': 'February'},
+                                                '3': {'fr': 'Mars', 'en': 'March'},
+                                                '4': {'fr': 'Avril', 'en': 'April'},
+                                                '5': {'fr': 'Mai', 'en': 'May'},
+                                                '6': {'fr': 'Juin', 'en': 'June'},
+                                                '7': {'fr': 'Juillet', 'en': 'July'},
+                                                '8': {'fr': 'Août', 'en': 'August'},
+                                                '9': {'fr': 'Septembre', 'en': 'September'},
+                                                '10': {'fr': 'Octobre', 'en': 'October'},
+                                                '11': {'fr': 'Novembre', 'en': 'November'},
+                                                '12': {'fr': 'Décembre', 'en': 'December'}
+                                            } %}
+                                            {# Utiliser le mois de facturation réel plutôt que la date d'émission #}
+                                            {% set month = invoice.billingMonth|date('n') %}
+                                            {% set year = invoice.billingMonth|date('Y') %}
+                                            <span class="date-primary" data-i18n-fr="{{ monthNames[month].fr }} {{ year }}" data-i18n-en="{{ monthNames[month].en }} {{ year }}">
+                                                {{ monthNames[month].fr }} {{ year }}
+                                            </span>
+                                        </div>
+                                    </td>
+                                    <td class="col-center actions-cell">
+                                        {% if invoice.invoiceType == 'ticket' %}
+                                            <a href="{{ path('admin_billing_ticket_invoice_show', {id: invoice.id}) }}" class="validation-action-pill pill-view">
+                                                <i class="fas fa-eye"></i><span data-i18n="common.view">Voir</span>
+                                            </a>
+                                            <a href="{{ path('admin_billing_ticket_invoice_pdf', {id: invoice.id}) }}" class="validation-action-pill pill-info" target="_blank">
+                                                <i class="fas fa-file-pdf"></i><span data-i18n-fr="PDF" data-i18n-en="PDF">PDF</span>
+                                            </a>
+                                        {% else %}
+                                            <a href="{{ path('admin_billing_subscription_invoice_show', {id: invoice.id}) }}" class="validation-action-pill pill-view">
+                                                <i class="fas fa-eye"></i><span data-i18n="common.view">Voir</span>
+                                            </a>
+                                            <a href="{{ path('admin_billing_subscription_invoice_pdf', {id: invoice.id}) }}" class="validation-action-pill pill-info" target="_blank">
+                                                <i class="fas fa-file-pdf"></i><span data-i18n-fr="PDF" data-i18n-en="PDF">PDF</span>
+                                            </a>
+                                        {% endif %}
+                                    </td>
+                                </tr>
+                            {% endfor %}
+                        {% else %}
+                            <tr>
+                                <td colspan="8" class="text-center" style="padding: 40px;">
+                                    <i class="fas fa-inbox" style="font-size: 3rem; color: var(--text-secondary); margin-bottom: 1rem;"></i>
+                                    <p style="color: var(--text-secondary);" data-i18n="billing.table.empty">Aucune facture trouvée</p>
+                                </td>
+                            </tr>
+                        {% endif %}
+                    </tbody>
+                </table>
+            </div>
+
+            <!-- Pagination -->
+            {% if totalPages > 1 %}
+                {% set maxPagesToShow = 5 %}
+                {% set startPage = currentPage - 2 %}
+                {% if startPage < 1 %}
+                    {% set startPage = 1 %}
+                {% endif %}
+                {% set endPage = startPage + maxPagesToShow - 1 %}
+                {% if endPage > totalPages %}
+                    {% set endPage = totalPages %}
+                {% endif %}
+                {% set startPage = endPage - maxPagesToShow + 1 %}
+                {% if startPage < 1 %}
+                    {% set startPage = 1 %}
+                {% endif %}
+
+                <div class="pagination-wrapper">
+                    <ul class="pagination pagination-rounded">
+                        <li class="page-item {{ currentPage == 1 ? 'disabled' }}">
+                            {% if currentPage == 1 %}
+                                <span class="page-link" aria-disabled="true" data-i18n="pagination.previous">Précédent</span>
+                            {% else %}
+                                <a class="page-link" href="{{ path('admin_billing_invoices', {
+                                    page: currentPage - 1,
+                                    status: currentStatus,
+                                    search: currentSearch,
+                                    date_from: currentDateFrom,
+                                    date_to: currentDateTo
+                                }) }}" rel="prev" data-i18n="pagination.previous">Précédent</a>
+                            {% endif %}
+                        </li>
+
+                        {% if startPage > 1 %}
+                            <li class="page-item">
+                                <a class="page-link" href="{{ path('admin_billing_invoices', {
+                                    page: 1,
+                                    status: currentStatus,
+                                    search: currentSearch,
+                                    date_from: currentDateFrom,
+                                    date_to: currentDateTo
+                                }) }}">1</a>
+                            </li>
+                            {% if startPage > 2 %}
+                                <li class="page-item ellipsis" aria-hidden="true"><span class="page-link">…</span></li>
+                            {% endif %}
+                        {% endif %}
+
+                        {% for page in startPage..endPage %}
+                            <li class="page-item {{ page == currentPage ? 'active' }}">
+                                {% if page == currentPage %}
+                                    <span class="page-link" aria-current="page">{{ page }}</span>
+                                {% else %}
+                                    <a class="page-link" href="{{ path('admin_billing_invoices', {
+                                        page: page,
+                                        status: currentStatus,
+                                        search: currentSearch,
+                                        date_from: currentDateFrom,
+                                        date_to: currentDateTo
+                                    }) }}">{{ page }}</a>
+                                {% endif %}
+                            </li>
+                        {% endfor %}
+
+                        {% if endPage < totalPages %}
+                            {% if endPage < totalPages - 1 %}
+                                <li class="page-item ellipsis" aria-hidden="true"><span class="page-link">…</span></li>
+                            {% endif %}
+                            <li class="page-item">
+                                <a class="page-link" href="{{ path('admin_billing_invoices', {
+                                    page: totalPages,
+                                    status: currentStatus,
+                                    search: currentSearch,
+                                    date_from: currentDateFrom,
+                                    date_to: currentDateTo
+                                }) }}">{{ totalPages }}</a>
+                            </li>
+                        {% endif %}
+
+                        <li class="page-item {{ currentPage == totalPages ? 'disabled' }}">
+                            {% if currentPage == totalPages %}
+                                <span class="page-link" aria-disabled="true" data-i18n="pagination.next">Suivant</span>
+                            {% else %}
+                                <a class="page-link" href="{{ path('admin_billing_invoices', {
+                                    page: currentPage + 1,
+                                    status: currentStatus,
+                                    search: currentSearch,
+                                    date_from: currentDateFrom,
+                                    date_to: currentDateTo
+                                }) }}" rel="next" data-i18n="pagination.next">Suivant</a>
+                            {% endif %}
+                        </li>
+                    </ul>
+                </div>
+                <div class="pagination-summary">
+                    <small data-i18n-target="html" data-i18n-fr="Page {{ currentPage }} sur {{ totalPages }} - Affichage de {{ allInvoices|length }} facture(s) sur {{ totalInvoices|default(0) }} total" data-i18n-en="Page {{ currentPage }} of {{ totalPages }} - Showing {{ allInvoices|length }} invoice(s) of {{ totalInvoices|default(0) }} total">Page {{ currentPage }} sur {{ totalPages }} - Affichage de {{ allInvoices|length }} facture(s) sur {{ totalInvoices|default(0) }} total</small>
+                </div>
+            {% elseif allInvoices|length > 0 %}
+                <div class="pagination-wrapper">
+                    <div class="pagination-summary">
+                        <small data-i18n-target="html" data-i18n-fr="Affichage de {{ allInvoices|length }} facture(s) sur {{ totalInvoices|default(0) }} total" data-i18n-en="Showing {{ allInvoices|length }} invoice(s) of {{ totalInvoices|default(0) }} total">Affichage de {{ allInvoices|length }} facture(s) sur {{ totalInvoices|default(0) }} total</small>
+                    </div>
+                </div>
+            {% endif %}
+        </div>
+    </div>
+</div>
+
+<style>
+/* Styles pour les titres avec icônes */
+.dashboard-header h1 {
+    display: flex !important;
+    align-items: center;
+    gap: 12px;
+}
+
+.dashboard-header h1 i {
+    font-size: 2rem !important;
+    color: var(--accent) !important;
+    display: inline-block !important;
+    visibility: visible !important;
+    opacity: 1 !important;
+}
+
+/* Styles pour la section de recherche et filtres */
+.search-section {
+    background: var(--bg-card);
+    border: 1px solid var(--border-color);
+    border-radius: var(--border-radius-lg);
+    padding: 24px;
+    margin-bottom: 24px;
+    box-shadow: var(--shadow-md);
+    transition: var(--transition-base);
+}
+
+.search-section:hover {
+    box-shadow: var(--shadow-lg);
+}
+
+.search-header {
+    margin-bottom: 20px;
+    padding-bottom: 16px;
+    border-bottom: 1px solid var(--border-light);
+}
+
+.search-header-content {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+}
+
+.search-icon-wrapper {
+    width: 40px;
+    height: 40px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    background: var(--bg-secondary);
+    border-radius: var(--border-radius-sm);
+    color: var(--accent);
+    font-size: 1.1rem;
+}
+
+.search-header h3 {
+    font-size: 1.2rem;
+    font-weight: var(--font-weight-medium);
+    color: var(--text-primary);
+    margin: 0;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+}
+
+.search-form {
+    margin-top: 0;
+    padding-top: 0;
+    border-top: none;
+}
+
+.search-grid {
+    display: grid;
+    grid-template-columns: repeat(4, 1fr);
+    gap: 20px;
+    margin-bottom: 24px;
+}
+
+.search-field {
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+}
+
+.search-field label {
+    font-size: 0.875rem;
+    font-weight: var(--font-weight-medium);
+    color: var(--text-primary);
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    margin-bottom: 0;
+}
+
+.search-field label i {
+    font-size: 0.875rem;
+    color: var(--text-secondary);
+    width: 16px;
+    text-align: center;
+}
+
+.form-input {
+    padding: 12px 16px;
+    border: 2px solid var(--border-color);
+    border-radius: var(--border-radius-sm);
+    font-size: 0.9rem;
+    font-family: var(--font-family);
+    transition: var(--transition-base);
+    background: var(--bg-secondary);
+    color: var(--text-primary);
+    width: 100%;
+}
+
+.form-input:focus {
+    outline: none;
+    border-color: var(--accent);
+    box-shadow: 0 0 0 3px rgba(52, 152, 219, 0.1);
+    background: var(--bg-primary);
+}
+
+.form-input::placeholder {
+    color: var(--text-muted);
+}
+
+.form-select {
+    appearance: none;
+    background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' viewBox='0 0 12 12'%3E%3Cpath fill='%236C757D' d='M6 9L1 4h10z'/%3E%3C/svg%3E");
+    background-repeat: no-repeat;
+    background-position: right 14px center;
+    background-size: 12px;
+    padding-right: 40px;
+    cursor: pointer;
+}
+
+.select-wrapper {
+    position: relative;
+}
+
+.search-actions {
+    display: flex;
+    gap: 12px;
+    align-items: center;
+    padding-top: 8px;
+    border-top: 1px solid var(--border-light);
+}
+
+.btn-search,
+.btn-reset {
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+    padding: 12px 24px;
+    border-radius: var(--border-radius-sm);
+    font-size: 0.9rem;
+    font-weight: var(--font-weight-medium);
+    text-decoration: none;
+    transition: var(--transition-base);
+    border: none;
+    cursor: pointer;
+    white-space: nowrap;
+}
+
+.btn-search {
+    background: linear-gradient(135deg, #3498DB, #5DADE2) !important;
+    color: var(--text-inverse);
+    box-shadow: var(--shadow-sm);
+}
+
+.btn-search:hover {
+    background: linear-gradient(135deg, #5DADE2, #3498DB) !important;
+    transform: translateY(-1px);
+    box-shadow: var(--shadow-md);
+}
+
+.btn-search:active {
+    transform: translateY(0);
+}
+
+.btn-reset {
+    background: var(--bg-secondary);
+    color: var(--text-secondary);
+    border: 2px solid var(--border-color);
+}
+
+.btn-reset:hover {
+    background: var(--bg-primary);
+    color: var(--text-primary);
+    border-color: var(--border-dark);
+    transform: translateY(-1px);
+}
+
+.btn-search i,
+.btn-reset i {
+    font-size: 0.875rem;
+}
+
+/* Responsive pour tablettes */
+@media (max-width: 992px) {
+    .search-grid {
+        grid-template-columns: repeat(2, 1fr);
+    }
+}
+
+/* Responsive pour mobiles */
+@media (max-width: 768px) {
+    .search-section {
+        padding: 20px;
+    }
+    
+    .search-grid {
+        grid-template-columns: 1fr;
+        gap: 16px;
+    }
+    
+    .search-actions {
+        flex-direction: column;
+        width: 100%;
+    }
+    
+    .btn-search,
+    .btn-reset {
+        width: 100%;
+        justify-content: center;
+    }
+}
+
+/* Styles harmonisés avec la liste des utilisateurs */
+.validation-card {
+    border: 1px solid var(--border-color);
+    border-radius: var(--border-radius-lg);
+    box-shadow: var(--shadow-sm);
+    overflow: hidden;
+    background: var(--bg-card);
+}
+
+.validation-table {
+    width: 100%;
+    border-collapse: separate;
+    border-spacing: 0;
+    background: var(--bg-card);
+}
+
+.validation-table thead {
+    background: var(--bg-secondary);
+    position: sticky;
+    top: 0;
+    z-index: 10;
+}
+
+.validation-table thead th {
+    color: var(--text-primary);
+    border-bottom: 1px solid var(--border-color);
+    font-weight: var(--font-weight-medium);
+    text-transform: uppercase;
+    font-size: 0.82rem;
+    letter-spacing: 0.02em;
+    padding: 16px 20px;
+    white-space: nowrap;
+}
+
+.validation-table tbody td {
+    border-bottom: none;
+    padding: 18px 20px;
+    vertical-align: middle;
+    background: var(--bg-card);
+}
+
+.validation-table tbody tr {
+    border-bottom: 1px solid var(--border-color);
+    transition: var(--transition-base);
+}
+
+.validation-table tbody tr:last-child {
+    border-bottom: none;
+}
+
+.validation-table tbody tr:hover {
+    background: var(--gray-50);
+    transform: none;
+    box-shadow: none;
+}
+
+/* Alignements colonnes */
+.col-left { text-align: left; }
+.col-center { text-align: center; }
+.col-right { text-align: right; }
+
+.invoices-table .user-info {
+    display: flex;
+    align-items: center;
+    gap: 14px;
+    min-width: 0;
+}
+
+.invoices-table .user-details {
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+    min-width: 0;
+    flex: 1;
+}
+
+.invoices-table .user-name {
+    color: var(--text-primary);
+    font-size: 1rem;
+    font-weight: var(--font-weight-medium);
+    margin: 0;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+
+.invoices-table .user-meta {
+    display: flex;
+    flex-direction: column;
+    gap: 3px;
+    color: var(--text-secondary);
+    font-size: 0.82rem;
+}
+
+.invoices-table .user-email {
+    color: var(--text-secondary);
+    display: flex;
+    align-items: center;
+    gap: 6px;
+}
+
+.invoices-table .user-email i {
+    font-size: 0.75rem;
+    opacity: 0.6;
+    width: 14px;
+    text-align: center;
+    color: var(--text-secondary);
+}
+
+.role-badge {
+    font-size: 0.78rem;
+    padding: 6px 12px;
+    border-radius: var(--border-radius-sm);
+    font-weight: var(--font-weight-medium);
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    white-space: nowrap;
+    transition: var(--transition-base);
+    box-shadow: var(--shadow-xs);
+}
+
+.role-badge:hover {
+    transform: none;
+    box-shadow: var(--shadow-sm);
+}
+
+.role-organizer {
+    background: var(--bg-secondary);
+    color: var(--text-secondary);
+    border: 1px solid var(--border-color);
+}
+
+.role-user {
+    background: var(--bg-secondary);
+    color: var(--text-secondary);
+    border: 1px solid var(--border-color);
+}
+
+.plan-display-wrapper {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 6px;
+    min-width: 120px;
+}
+
+.plan-display-wrapper.plan-display-horizontal {
+    flex-direction: row;
+    align-items: center;
+    justify-content: center;
+    gap: 8px;
+    flex-wrap: wrap;
+    min-width: auto;
+}
+
+.plan-tier-badge {
+    font-size: 0.8rem;
+    padding: 8px 14px;
+    border-radius: 10px;
+    font-weight: var(--font-weight-semibold);
+    display: inline-flex;
+    align-items: center;
+    gap: 7px;
+    white-space: nowrap;
+    box-shadow: 0 2px 6px rgba(0, 0, 0, 0.12), 0 1px 3px rgba(0, 0, 0, 0.08);
+    transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+    border: 1px solid transparent;
+    position: relative;
+    overflow: hidden;
+}
+
+
+.plan-tier-badge .tier-name {
+    font-weight: var(--font-weight-semibold);
+    letter-spacing: 0.4px;
+    position: relative;
+    z-index: 1;
+}
+
+.plan-tier-badge i {
+    font-size: 0.85rem;
+    opacity: 1;
+    position: relative;
+    z-index: 1;
+    filter: drop-shadow(0 1px 2px rgba(0, 0, 0, 0.1));
+}
+
+.plan-tier-basic {
+    background: var(--bg-secondary);
+    color: #3498DB;
+    border-color: rgba(52, 152, 219, 0.3);
+}
+
+.plan-tier-basic:hover {
+    background: var(--bg-primary);
+    border-color: rgba(52, 152, 219, 0.5);
+    box-shadow: 0 2px 8px rgba(52, 152, 219, 0.15);
+    transform: translateY(-1px);
+}
+
+.plan-tier-basic i {
+    color: #3498DB;
+}
+
+.plan-tier-basic .tier-name {
+    color: #3498DB;
+}
+
+.plan-tier-pro {
+    background: var(--bg-secondary);
+    color: #9B59B6;
+    border-color: rgba(155, 89, 182, 0.3);
+}
+
+.plan-tier-pro:hover {
+    background: var(--bg-primary);
+    border-color: rgba(155, 89, 182, 0.5);
+    box-shadow: 0 2px 8px rgba(155, 89, 182, 0.15);
+    transform: translateY(-1px);
+}
+
+.plan-tier-pro i {
+    color: #9B59B6;
+}
+
+.plan-tier-pro .tier-name {
+    color: #9B59B6;
+}
+
+.plan-tier-enterprise {
+    background: var(--bg-secondary);
+    color: #F39C12;
+    border-color: rgba(243, 156, 18, 0.3);
+}
+
+.plan-tier-enterprise:hover {
+    background: var(--bg-primary);
+    border-color: rgba(243, 156, 18, 0.5);
+    box-shadow: 0 2px 8px rgba(243, 156, 18, 0.15);
+    transform: translateY(-1px);
+}
+
+.plan-tier-enterprise i {
+    color: #F39C12;
+}
+
+.plan-tier-enterprise .tier-name {
+    color: #F39C12;
+}
+
+.billing-period-badge {
+    font-size: 0.72rem;
+    padding: 5px 10px;
+    border-radius: 8px;
+    font-weight: var(--font-weight-medium);
+    background: linear-gradient(135deg, var(--bg-secondary) 0%, var(--bg-primary) 100%);
+    color: var(--text-secondary);
+    border: 1.5px solid var(--border-color);
+    white-space: nowrap;
+    display: inline-flex;
+    align-items: center;
+    gap: 5px;
+    box-shadow: 0 1px 3px rgba(0, 0, 0, 0.08);
+    transition: all 0.2s ease;
+}
+
+.billing-period-badge:hover {
+    border-color: var(--accent);
+    color: var(--accent);
+    box-shadow: 0 2px 6px rgba(52, 152, 219, 0.15);
+    transform: translateY(-1px);
+}
+
+.billing-period-badge i {
+    font-size: 0.65rem;
+    opacity: 0.8;
+}
+
+.billing-period-badge .period-text {
+    font-weight: var(--font-weight-medium);
+    letter-spacing: 0.2px;
+}
+
+.days-overdue-indicator {
+    font-size: 0.75rem;
+    color: var(--danger-color);
+    font-weight: var(--font-weight-medium);
+    display: inline-flex;
+    align-items: center;
+    gap: 4px;
+    padding: 3px 8px;
+    background: rgba(220, 53, 69, 0.1);
+    border-radius: var(--border-radius-sm);
+}
+
+.status-badge {
+    font-size: 0.78rem;
+    padding: 6px 12px;
+    border-radius: var(--border-radius-sm);
+    font-weight: var(--font-weight-medium);
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    white-space: nowrap;
+    transition: var(--transition-base);
+    box-shadow: var(--shadow-xs);
+}
+
+.status-badge:hover {
+    transform: none;
+    box-shadow: var(--shadow-sm);
+}
+
+.status-active {
+    background: var(--bg-secondary);
+    color: var(--success);
+    border: 1px solid var(--border-color);
+}
+
+.status-pending {
+    background: var(--bg-secondary);
+    color: var(--warning);
+    border: 1px solid var(--border-color);
+}
+
+.status-suspended {
+    background: var(--bg-secondary);
+    color: #F39C12;
+    border: 1px solid var(--border-color);
+}
+
+.status-rejected {
+    background: var(--bg-secondary);
+    color: var(--danger);
+    border: 1px solid var(--border-color);
+}
+
+.status-inactive {
+    background: var(--bg-secondary);
+    color: var(--text-muted);
+    border: 1px solid var(--border-color);
+}
+
+.status-refunded {
+    background: linear-gradient(135deg, rgba(139, 69, 19, 0.1), rgba(160, 82, 45, 0.05));
+    color: #8B4513;
+    border: 1px solid rgba(139, 69, 19, 0.3);
+    font-weight: var(--font-weight-semibold);
+}
+
+.date-info {
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+    font-size: 0.85rem;
+    color: var(--text-secondary);
+}
+
+.date-primary {
+    font-weight: var(--font-weight-medium);
+    color: var(--text-primary);
+    font-size: 0.9rem;
+}
+
+.actions-header {
+    text-align: center;
+}
+
+.actions-cell {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 0.6rem;
+    border-bottom: none;
+    flex-wrap: wrap;
+    min-width: 200px;
+}
+
+.validation-action-pill {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.4rem;
+    padding: 8px 14px;
+    border-radius: var(--border-radius-sm);
+    font-size: 0.85rem;
+    font-weight: var(--font-weight-medium);
+    border: 1px solid var(--border-color);
+    text-decoration: none;
+    transition: var(--transition-base);
+    white-space: nowrap;
+    box-shadow: var(--shadow-xs);
+    background: var(--bg-secondary);
+    color: var(--text-primary);
+}
+
+.validation-action-pill i {
+    font-size: 0.85rem;
+}
+
+.validation-action-pill.pill-view {
+    background: var(--bg-secondary);
+    color: var(--accent);
+    border-color: var(--border-color);
+}
+
+.validation-action-pill.pill-view:hover {
+    background: var(--bg-primary);
+    border-color: var(--accent);
+    color: var(--accent);
+    transform: none;
+    box-shadow: none;
+}
+
+.validation-action-pill.pill-info {
+    background: var(--bg-secondary);
+    color: var(--text-secondary);
+    border-color: var(--border-color);
+}
+
+.validation-action-pill.pill-info:hover {
+    background: var(--bg-primary);
+    border-color: var(--accent);
+    color: var(--accent);
+    transform: none;
+    box-shadow: none;
+}
+
+.validation-action-pill:hover {
+    filter: none;
+    transform: none;
+    box-shadow: none;
+}
+
+/* Pagination harmonisée */
+.pagination-wrapper {
+    display: flex;
+    justify-content: center;
+    margin-top: 1rem;
+}
+
+.pagination {
+    list-style: none;
+    padding: 0;
+    margin: 0;
+    display: inline-flex;
+    align-items: center;
+    gap: 0.35rem;
+}
+
+.pagination-rounded .page-link {
+    border-radius: 999px !important;
+}
+
+.pagination .page-item.disabled .page-link {
+    pointer-events: none;
+    opacity: 0.5;
+}
+
+.pagination .page-item.active .page-link {
+    background: var(--accent);
+    border-color: var(--accent);
+    color: var(--text-inverse);
+    font-weight: var(--font-weight-medium);
+}
+
+.pagination .page-link {
+    border-radius: var(--border-radius-sm);
+    border: 1px solid var(--border-color);
+    padding: 6px 14px;
+    color: var(--text-secondary);
+    background: var(--bg-secondary);
+    transition: var(--transition-base);
+    text-decoration: none;
+}
+
+.pagination .page-link:hover {
+    color: var(--accent);
+    border-color: var(--accent);
+}
+
+.pagination .ellipsis .page-link {
+    border: none;
+    background: transparent;
+    color: var(--text-secondary);
+}
+
+.pagination-summary {
+    text-align: center;
+    margin-top: 0.75rem;
+    color: var(--text-secondary);
+    font-size: 0.9rem;
+}
+
+/* Amélioration du scroll horizontal */
+.table-responsive {
+    overflow-x: auto;
+    -webkit-overflow-scrolling: touch;
+    border-radius: var(--border-radius-md);
+}
+
+.table-responsive::-webkit-scrollbar {
+    height: 8px;
+}
+
+.table-responsive::-webkit-scrollbar-track {
+    background: var(--bg-secondary);
+    border-radius: 4px;
+}
+
+.table-responsive::-webkit-scrollbar-thumb {
+    background: var(--border-color);
+    border-radius: 4px;
+}
+
+.table-responsive::-webkit-scrollbar-thumb:hover {
+    background: var(--text-secondary);
+}
+
+/* Responsive pour tablettes */
+@media (max-width: 992px) {
+    .validation-table thead th,
+    .validation-table tbody td {
+        padding: 14px 16px;
+        font-size: 0.9rem;
+    }
+    
+    .validation-action-pill {
+        padding: 8px 14px;
+        font-size: 0.8rem;
+    }
+    
+    .actions-cell {
+        gap: 0.5rem;
+        min-width: 180px;
+    }
+}
+
+/* Responsive pour mobiles */
+@media (max-width: 768px) {
+    .validation-table {
+        font-size: 0.85rem;
+    }
+    
+    .validation-table thead th {
+        padding: 12px 10px;
+        font-size: 0.75rem;
+    }
+    
+    .validation-table tbody td {
+        padding: 12px 10px;
+    }
+    
+    .role-badge,
+    .status-badge {
+        font-size: 0.7rem;
+        padding: 5px 10px;
+    }
+    
+    .date-info {
+        font-size: 0.75rem;
+    }
+    
+    .date-primary {
+        font-size: 0.8rem;
+    }
+    
+    .actions-cell {
+        flex-direction: column;
+        gap: 0.4rem;
+        align-items: stretch;
+        min-width: auto;
+    }
+    
+    .validation-action-pill {
+        width: 100%;
+        justify-content: center;
+        padding: 8px 12px;
+        font-size: 0.8rem;
+    }
+}
+
+/* Styles pour les date pickers */
+.date-input-wrapper {
+    position: relative;
+    display: flex;
+    align-items: center;
+}
+
+.date-picker-input {
+    padding-right: 40px !important;
+    cursor: pointer;
+}
+
+.date-picker-input:focus {
+    cursor: text;
+}
+
+.date-picker-icon {
+    position: absolute;
+    right: 14px;
+    color: var(--text-secondary);
+    pointer-events: none;
+    font-size: 0.9rem;
+    z-index: 1;
+}
+
+.date-input-wrapper:hover .date-picker-icon {
+    color: var(--accent);
+}
+
+/* Styles personnalisés pour Flatpickr */
+.flatpickr-calendar {
+    background: var(--bg-card) !important;
+    border: 1px solid var(--border-color) !important;
+    border-radius: var(--border-radius-lg) !important;
+    box-shadow: 0 10px 40px rgba(0, 0, 0, 0.2) !important;
+    font-family: var(--font-family) !important;
+}
+
+.flatpickr-months {
+    background: var(--bg-secondary) !important;
+    border-radius: var(--border-radius-lg) var(--border-radius-lg) 0 0 !important;
+    padding: 12px !important;
+}
+
+.flatpickr-month {
+    color: var(--text-primary) !important;
+    fill: var(--text-primary) !important;
+}
+
+.flatpickr-current-month {
+    color: var(--text-primary) !important;
+    font-weight: var(--font-weight-medium) !important;
+}
+
+.flatpickr-prev-month,
+.flatpickr-next-month {
+    color: var(--text-secondary) !important;
+    fill: var(--text-secondary) !important;
+    padding: 8px !important;
+    border-radius: var(--border-radius-sm) !important;
+    transition: var(--transition-base) !important;
+}
+
+.flatpickr-prev-month:hover,
+.flatpickr-next-month:hover {
+    background: var(--bg-primary) !important;
+    color: var(--accent) !important;
+    fill: var(--accent) !important;
+}
+
+.flatpickr-weekdays {
+    background: var(--bg-secondary) !important;
+    border-bottom: 1px solid var(--border-color) !important;
+}
+
+.flatpickr-weekday {
+    color: var(--text-secondary) !important;
+    font-weight: var(--font-weight-medium) !important;
+    text-transform: uppercase !important;
+    font-size: 0.75rem !important;
+}
+
+.flatpickr-days {
+    padding: 8px !important;
+}
+
+.flatpickr-day {
+    color: var(--text-primary) !important;
+    border-radius: var(--border-radius-sm) !important;
+    border: 1px solid transparent !important;
+    transition: var(--transition-base) !important;
+}
+
+.flatpickr-day:hover {
+    background: var(--bg-secondary) !important;
+    border-color: var(--accent) !important;
+    color: var(--accent) !important;
+}
+
+.flatpickr-day.selected,
+.flatpickr-day.startRange,
+.flatpickr-day.endRange {
+    background: var(--accent) !important;
+    border-color: var(--accent) !important;
+    color: #fff !important;
+    font-weight: var(--font-weight-medium) !important;
+}
+
+.flatpickr-day.selected:hover,
+.flatpickr-day.startRange:hover,
+.flatpickr-day.endRange:hover {
+    background: var(--accent-dark, #2980b9) !important;
+    border-color: var(--accent-dark, #2980b9) !important;
+}
+
+.flatpickr-day.today {
+    border-color: var(--accent) !important;
+    color: var(--accent) !important;
+    font-weight: var(--font-weight-bold) !important;
+}
+
+.flatpickr-day.today:hover {
+    background: var(--bg-secondary) !important;
+}
+
+.flatpickr-day.flatpickr-disabled,
+.flatpickr-day.prevMonthDay,
+.flatpickr-day.nextMonthDay {
+    color: var(--text-muted) !important;
+    opacity: 0.4 !important;
+}
+
+.flatpickr-day.inRange {
+    background: rgba(52, 152, 219, 0.1) !important;
+    border-color: transparent !important;
+    color: var(--text-primary) !important;
+}
+
+.flatpickr-time {
+    border-top: 1px solid var(--border-color) !important;
+    background: var(--bg-secondary) !important;
+}
+
+.flatpickr-time input {
+    color: var(--text-primary) !important;
+    background: transparent !important;
+}
+
+.flatpickr-time input:hover {
+    background: var(--bg-primary) !important;
+}
+
+.flatpickr-am-pm {
+    color: var(--text-primary) !important;
+}
+
+.flatpickr-am-pm:hover {
+    background: var(--bg-primary) !important;
+}
+</style>
+
+<!-- Flatpickr JS -->
+<script src="https://cdn.jsdelivr.net/npm/flatpickr"></script>
+<script src="https://cdn.jsdelivr.net/npm/flatpickr/dist/l10n/fr.js"></script>
+
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    const dateFromInput = document.getElementById('date-from');
+    const dateToInput = document.getElementById('date-to');
+    
+    let dateFromPicker = null;
+    let dateToPicker = null;
+
+    // Configuration pour la date de début
+    if (dateFromInput) {
+        dateFromPicker = flatpickr(dateFromInput, {
+            dateFormat: 'Y-m-d',
+            locale: 'fr',
+            altInput: false,
+            allowInput: false,
+            clickOpens: true,
+            animate: true,
+            monthSelectorType: 'static',
+            onChange: function(selectedDates, dateStr, instance) {
+                // Si une date de fin est sélectionnée et que la date de début est après, réinitialiser la date de fin
+                if (dateToPicker) {
+                    const dateTo = dateToPicker.selectedDates[0];
+                    if (dateTo && selectedDates[0] && selectedDates[0] > dateTo) {
+                        dateToPicker.clear();
+                    }
+                    // Mettre à jour la date minimale pour la date de fin
+                    dateToPicker.set('minDate', selectedDates[0] || null);
+                }
+            },
+            onReady: function(selectedDates, dateStr, instance) {
+                // Ajouter un style personnalisé au calendrier
+                instance.calendarContainer.classList.add('custom-flatpickr');
+            }
+        });
+    }
+
+    // Configuration pour la date de fin
+    if (dateToInput) {
+        const minDate = dateFromPicker && dateFromPicker.selectedDates[0] 
+            ? dateFromPicker.selectedDates[0] 
+            : null;
+
+        dateToPicker = flatpickr(dateToInput, {
+            dateFormat: 'Y-m-d',
+            locale: 'fr',
+            altInput: false,
+            allowInput: false,
+            clickOpens: true,
+            animate: true,
+            monthSelectorType: 'static',
+            minDate: minDate,
+            onChange: function(selectedDates, dateStr, instance) {
+                // Si une date de début est sélectionnée et que la date de fin est avant, réinitialiser la date de début
+                if (dateFromPicker) {
+                    const dateFrom = dateFromPicker.selectedDates[0];
+                    if (dateFrom && selectedDates[0] && selectedDates[0] < dateFrom) {
+                        dateFromPicker.clear();
+                    }
+                    // Mettre à jour la date maximale pour la date de début
+                    dateFromPicker.set('maxDate', selectedDates[0] || null);
+                }
+            },
+            onReady: function(selectedDates, dateStr, instance) {
+                // Ajouter un style personnalisé au calendrier
+                instance.calendarContainer.classList.add('custom-flatpickr');
+            }
+        });
+    }
+});
+
+// Réinitialiser les date pickers lors du clic sur le bouton réinitialiser
+document.addEventListener('DOMContentLoaded', function() {
+    const resetBtn = document.querySelector('.btn-reset');
+    if (resetBtn) {
+        resetBtn.addEventListener('click', function(e) {
+            // Ne pas empêcher la navigation, juste réinitialiser les dates
+            setTimeout(function() {
+                const dateFromInput = document.getElementById('date-from');
+                const dateToInput = document.getElementById('date-to');
+                
+                if (dateFromInput && dateFromInput._flatpickr) {
+                    dateFromInput._flatpickr.clear();
+                }
+                if (dateToInput && dateToInput._flatpickr) {
+                    dateToInput._flatpickr.clear();
+                }
+            }, 100);
+        });
+    }
+});
+</script>
+{% endblock %}
+

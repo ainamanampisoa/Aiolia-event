@@ -2,7 +2,7 @@
 
 ## Vue d'ensemble
 
-Ce système permet de gérer les demandes d'inscription en tant qu'organisateur ou co-organisateur. Les administrateurs doivent valider ces demandes avant que les utilisateurs puissent obtenir les rôles correspondants.
+Ce système permet de gérer les demandes d'inscription en tant qu'organisateur. Les administrateurs doivent valider ces demandes avant que les utilisateurs puissent obtenir ce rôle.
 
 ## Fonctionnalités
 
@@ -10,7 +10,6 @@ Ce système permet de gérer les demandes d'inscription en tant qu'organisateur 
 - Les utilisateurs peuvent s'inscrire en choisissant leur type de compte :
   - **Utilisateur** : Compte activé immédiatement
   - **Organisateur** : Nécessite une validation admin
-  - **Co-organisateur** : Nécessite une validation admin
 
 - Pour les rôles nécessitant une validation, l'utilisateur doit fournir une raison.
 
@@ -86,7 +85,7 @@ Nouveau champ ajouté :
 ```sql
 - id
 - user_id (FK users)
-- requested_role ('organizer' ou 'co_organizer')
+- requested_role ('organizer')
 - status ('pending', 'approved', 'rejected')
 - reason (texte fourni par l'utilisateur)
 - admin_comment (commentaire de l'admin)
@@ -143,12 +142,150 @@ php bin/console debug:router | grep admin
 
 ## Utilisation
 
+### Identifiants de test
+
+**Important** : Pour vous connecter, utilisez l'**email** comme identifiant et le mot de passe correspondant.
+
+**Résumé des comptes disponibles** :
+- **2 administrateurs** (tous actifs)
+- **26 organisateurs** (23 validés, 3 en attente de validation)
+- **78 utilisateurs** (tous actifs)
+- **Total : 106 comptes**
+
+#### Administrateurs (2 comptes disponibles)
+| Email | Mot de passe | Statut | ID |
+|-------|--------------|--------|-----|
+| admin1@yopmail.com | azerty | Actif | 1 |
+| admin2@yopmail.com | azerty | Actif | 2 |
+
+#### Organisateurs (23 comptes validés disponibles sur 26 créés)
+| Email | Mot de passe | Statut | ID | Notes |
+|-------|--------------|--------|-----|-------|
+| organisateur001@yopmail.com | Org#Test123 | Validé | 3 | Actif - Juin 2025 |
+| organisateur010@yopmail.com | Org#Test123 | Validé | 12 | Actif - Juin 2025 |
+| organisateur011@yopmail.com | Org#Test123 | Validé | 13 | Actif - Juillet 2025 |
+| organisateur012@yopmail.com | Org#Test123 | Validé | 14 | Actif - Juillet 2025 |
+| organisateur023@yopmail.com | Org#Test123 | Validé | 23 | Actif - Octobre 2025 |
+| organisateur024@yopmail.com | Org#Test123 | Validé | 24 | Actif - Octobre 2025 |
+| organisateur026@yopmail.com | Org#Test123 | Validé | 26 | Actif - Novembre 2025 |
+
+
+**Notes importantes** :
+- **Total : 23 organisateurs validés** (IDs 3-24, 26) peuvent se connecter
+- **3 organisateurs non validés** (IDs 25, 27-28) ne peuvent pas se connecter
+- **Répartition par mois de création** :
+  - Juin 2025 : 10 organisateurs (IDs 3-12) - Tous validés
+  - Juillet 2025 : +2 nouveaux organisateurs (IDs 13-14) - Tous validés
+  - Août 2025 : +4 nouveaux organisateurs (IDs 15-18) - Tous validés
+  - Septembre 2025 : +4 nouveaux organisateurs (IDs 19-22) - Tous validés
+  - Octobre 2025 : +3 nouveaux organisateurs (IDs 23-25) - 2 validés (23-24), 1 non validé (25)
+  - Novembre 2025 : +3 nouveaux organisateurs (IDs 26-28) - 1 validé (26), 2 non validés (27-28)
+- **Pauses d'abonnement** (selon les critères) :
+  - Août 2025 : 2 organisateurs en pause (payant mensuel) qui reprennent en octobre
+  - Octobre 2025 : 4 organisateurs en pause (2 payant mensuel, 2 payant trimestre) qui reprennent en décembre
+- Tous les organisateurs validés en pause **peuvent se connecter**, mais avec des accès limités (voir section ci-dessous)
+
+#### Détails des abonnements par mois
+
+**Juin 2025** :
+- 10 organisateurs actifs, 0 en pause, 0 non validés
+- Abonnements mensuels : 5 Basic, 2 Pro, 3 Entreprise
+- 10 organisateurs paient mensuellement
+- Offre populaire : Basic Mensuel
+
+**Juillet 2025** :
+- 12 organisateurs actifs, 0 en pause, 0 non validés
+- Abonnements mensuels : 4 Basic, 6 Pro, 2 Entreprise
+- 12 organisateurs paient mensuellement
+- Offre populaire : Pro Mensuel
+
+**Août 2025** :
+- 16 organisateurs actifs, 0 en pause, 0 non validés
+- Abonnements mensuels : 4 Basic, 5 Pro, 7 Entreprise
+- 16 organisateurs paient mensuellement
+- Offre populaire : Entreprise Mensuel
+- 2 organisateurs en pause (payant mensuel) qui reprennent en octobre
+
+**Septembre 2025** :
+- 18 organisateurs actifs, 2 en pause, 0 non validés
+- Abonnements mensuels : 2 Basic, 3 Pro, 4 Entreprise
+- Abonnements trimestriels : 3 Basic, 4 Pro, 2 Entreprise
+- 9 organisateurs paient mensuellement, 9 organisateurs paient trimestriellement
+- Offre populaire : Pro Trimestriel
+
+**Octobre 2025** :
+- 22 organisateurs actifs, 0 en pause, 1 non validé
+- Abonnements mensuels : 3 Basic, 3 Pro, 2 Entreprise
+- Abonnements trimestriels : 1 Basic, 2 Pro, 4 Entreprise
+- 6 organisateurs paient mensuellement, 7 organisateurs paient trimestriellement, 9 prépayés
+- Offre populaire : Entreprise Trimestriel
+- 4 organisateurs en pause (2 payant mensuel, 2 payant trimestre) qui reprennent en décembre
+
+**Novembre 2025** :
+- 19 organisateurs actifs, 4 en pause, 3 non validés
+- Abonnements mensuels : 0 Basic, 2 Pro, 1 Entreprise
+- Abonnements trimestriels : 1 Basic, 1 Pro, 0 Entreprise
+- 3 organisateurs paient mensuellement, 2 organisateurs paient trimestriellement, 14 prépayés
+- Offre populaire : Pro Mensuel
+
+**Décembre 2025** :
+- 23 organisateurs actifs, 0 en pause, 3 non validés
+- 0 organisateurs paient mensuellement, 0 organisateurs paient trimestriellement, 7 prépayés
+- Offre populaire : Entreprise Trimestriel
+
+#### Statuts d'abonnement des organisateurs
+
+Les organisateurs ont **trois statuts d'abonnement possibles** :
+
+1. **`pending` (En attente)** : L'organisateur a créé son compte mais n'a pas encore souscrit d'abonnement, ou son abonnement est en attente d'activation
+2. **`active` (Actif)** : L'organisateur a un abonnement actif et à jour. Il peut utiliser toutes les fonctionnalités de la plateforme
+3. **`paused` (En pause)** : L'abonnement est en pause (généralement à cause d'un non-paiement). L'organisateur peut se connecter mais avec des accès limités
+
+**Règles de transition entre statuts** :
+- `pending` → `active` : Lorsque l'organisateur souscrit à un plan d'abonnement
+- `active` → `paused` : Automatiquement si la facture du mois courant n'est pas payée avant le 11ème jour du mois suivant
+- `paused` → `active` : Lorsque l'organisateur paie toutes les factures en retard et la facture du mois courant
+
+### Règles d'accès pour les organisateurs en pause
+
+**Important** : Seuls les **organisateurs qui paient un abonnement** sont concernés par les règles de pause. Les administrateurs et les utilisateurs simples ne sont **pas** affectés par ces règles.
+
+#### Connexion autorisée
+✅ **Tous les organisateurs en pause peuvent se connecter** à leur compte, mais avec des accès limités.
+
+#### Tableau des actions autorisées/interdites
+
+| Action | Possible en pause ? | Description |
+|--------|---------------------|------------|
+| **Accéder au dashboard** | ✅ **Oui** (En lecture seule) | L'organisateur peut voir son dashboard, mais en mode lecture seule |
+| **Voir ses événements** | ✅ **Oui** | L'organisateur peut consulter la liste de ses événements existants |
+| **Créer/modifier un événement** | ❌ **Non** | Impossible de créer ou modifier des événements pendant la pause |
+| **Publier un événement** | ❌ **Non** | Les événements ne peuvent pas être publiés pendant la pause |
+| **Vendre des billets** | ❌ **Non** | Les ventes de billets sont suspendues pendant la pause |
+| **Voir les statistiques** | ✅ **Oui** | L'organisateur peut consulter ses statistiques existantes |
+| **Reprendre le service** | ✅ **Oui** | L'organisateur peut reprendre son service en payant les factures en retard |
+
+#### Conditions de mise en pause automatique
+
+Un organisateur est automatiquement mis en pause si :
+- Il ne paie pas son abonnement du mois courant **avant le 11ème jour du mois suivant**
+- Exemple : Si la facture de septembre n'est pas payée avant le 11 octobre, le compte est mis en pause le 11 octobre
+
+#### Reprise du service
+
+Pour reprendre le service, l'organisateur doit :
+1. Payer toutes les factures en retard (statut `overdue`)
+2. Payer la facture du mois courant (statut `issued`)
+3. Le compte reprendra automatiquement au statut `active` lors de la génération des factures du mois suivant
+
+**Note** : Ces règles d'accès seront implémentées dans le module organisateur (front-end). Pour l'instant, seule la logique de facturation et de mise en pause automatique est active dans le module admin.
+
 ### Pour les utilisateurs
 
 1. **S'inscrire** : Aller sur `/register`
 2. **Choisir le type de compte** :
    - Utilisateur : Accès immédiat
-   - Organisateur/Co-organisateur : Fournir une raison et attendre la validation
+   - Organisateur : Fournir une raison et attendre la validation
 
 3. **Se connecter** : Aller sur `/login`
    - Si le compte est en attente, un message informatif s'affiche
@@ -208,7 +345,6 @@ Pour créer des endpoints API pour le frontend React :
 'choices' => [
     'Utilisateur' => 'user',
     'Organisateur' => 'organizer',
-    'Co-organisateur' => 'co_organizer',
     // Ajouter d'autres rôles ici
 ],
 ```
@@ -244,3 +380,97 @@ Pour toute question ou problème, consultez :
 - Documentation Symfony : https://symfony.com/doc
 - Documentation Doctrine : https://www.doctrine-project.org/
 
+---------
+sudo cp /home/fifah/Documents/GitHub/Aiolia-event/Base/schema.sql /tmp/schema.sql
+sudo chown postgres:postgres /tmp/schema.sql
+
+sudo cp /home/fifah/Documents/GitHub/Aiolia-event/Base/logic.sql /tmp/logic.sql
+sudo chown postgres:postgres /tmp/logic.sql
+
+sudo cp /home/fifah/Documents/GitHub/Aiolia-event/Base/data.sql /tmp/data.sql
+sudo chown postgres:postgres /tmp/data.sql
+
+sudo cp /home/fifah/Documents/GitHub/Aiolia-event/Base/Events.sql /tmp/Events.sql
+sudo chown postgres:postgres /tmp/Events.sql
+
+sudo -i -u postgres
+psql
+
+\i /tmp/schema.sql
+\i /tmp/logic.sql
+\i /tmp/data.sql
+\i /tmp/Events.sql
+
+
+psql -U aiolia_user -d aiolia_event -h 127.0.0.1 -p 5432
+
+psql -d aiolia_event
+
+-----------
+sudo cp ~/Documents/MyProject/Aiolia-event/Base/schema.sql /tmp/
+sudo chown postgres:postgres /tmp/schema.sql
+
+sudo cp ~/Documents/MyProject/Aiolia-event/Base/script.sql /tmp/
+sudo chown postgres:postgres /tmp/script.sql
+
+\i /tmp/script.sql
+
+mail : https://mailtrap.io/home
+
+Dbdiagrma : https://dbdiagram.io/d/69313c70d6676488ba8af59e
+
+explication : https://chatgpt.com/c/691c09da-a1b0-8328-b7a2-1b815d4289f6
+
+📊 Rapports mensuels (abonnements)
+Synthèse des abonnements et revenus par mois
+
+redonne moi le @data.sql avec ces critere
+# pour le nombre organisateur: 26
+-juin 2025 : 10 (actifs)
+-juillet 2025 : + plus 2 new organisateur 
+-aout 2025: +  plus 4 new organisateur
+-septembre 2025: +  plus 4 new organisateur
+-octobre 2025: +  plus 3 new organisateur(1 non valider)
+-novembre 2025: + plus 3 new organisateur (2 non valider)
+# 78 utilisateur 
+# 2 admin
+# Abonnement : facture des mois
+-juin 2025 : mensuelle (5 organisateur basic , 2 organisateur pro,3 organisateur entreprise)
+=> 10 organisateurs actifs ,0 organisateur en pausse ,0 organisateur non valider 
+=> 10 organisateurs paye mensuelle
+=> offre populaire : basic mensuelle
+
+-juillet 2025: mensuelle (4 organisateur basic , 6 organisateur pro,2 organisateur entreprise)
+=> 12 organisateurs actifs ,0 organisateur en pausse ,0 organisateur non valider 
+=> 12 organisateurs paye mensuelle
+=> offre populaire (le plus utiliser): pro mensuelle
+
+-aout 2025: mensuelle ( 4 organisateur basic , 5 organisateur pro,7 organisateur entreprise)
+=> 16 organisateurs actifs ,0 organisateur en pausse ,0 organisateur non valider 
+=> 16 organisateurs paye mensuelle
+=> offre populaire (le plus utiliser): entreprise mensuelle
+* 2 organisateur pausse (2 paye mensuelle ,0 paye trimestre)et revient octobre 
+
+-septembre 2025:  mensuelle (2 organisateur basic , 3 organisateur pro,4 organisateur entreprise)
+-septembre 2025:  trimestre (3 organisateur basic , 4 organisateur pro,2 organisateur entreprise)
+=> 18 organisateurs actifs , 2 organisateur en pausse ,0 organisateur non valider 
+=> 9 organisateurs paye mensuelle ,  9 organisateurs paye trimestre
+=> offre populaire (le plus utiliser): pro trimestre (mensuelle < trimenstre < annulle)
+
+-octobre 2025: mensuelle (3 organisateur basic , 3 organisateur pro,2 organisateur entreprise)
+-octobre 2025: trimestre (1 organisateur basic , 2 organisateur pro,4 organisateur entreprise)
+=> 22 organisateurs actifs ,0 organisateur en pausse ,total 1 organisateur  non valider 
+=> 6 organisateurs paye mensuelle,7 organisateurs paye trimestre , 9 prepraid
+=> offre populaire (le plus utiliser): entreprise trimestre
+* 4 organisateur en pausse (2 paye mensuelle ,2 paye trimestre) et revient dec 
+  
+-novembre 2025: mesuelle (0 organisateur basic , 2 organisateur pro,1 organisateur entreprise)
+-novembre 2025: trimestre (1 organisateur basic , 1 organisateur pro,0 organisateur entreprise)
+=> 19 organisateurs actifs ,4 organisateur en pausse ,total 3 organisateur non valider 
+=> 3 organisateurs paye mensuelle,2 organisateurs paye trimestre ,14 prepraid
+=> offre populaire (le plus utiliser): pro mesuelle
+
+-decembre 2025:
+=> 23 organisateurs actifs ,0 organisateur en pausse ,total 3 organisateur non valider 
+=> 0 organisateurs paye mensuelle,0 organisateurs paye trimestre , 7 prepraid
+=> offre populaire (le plus utiliser): entreprise trimestre

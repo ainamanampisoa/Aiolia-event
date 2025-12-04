@@ -22,7 +22,7 @@ class RegistrationFormType extends AbstractType
     public function buildForm(FormBuilderInterface $builder, array $options): void
     {
         $builder
-            ->add('firstName', TextType::class, [
+            ->add('prenom', TextType::class, [
                 'label' => 'Prénom',
                 'attr' => [
                     'class' => 'form-control',
@@ -30,7 +30,7 @@ class RegistrationFormType extends AbstractType
                 ],
                 'required' => true,
             ])
-            ->add('lastName', TextType::class, [
+            ->add('nom', TextType::class, [
                 'label' => 'Nom',
                 'attr' => [
                     'class' => 'form-control',
@@ -50,7 +50,7 @@ class RegistrationFormType extends AbstractType
                     ]),
                 ],
             ])
-            ->add('phone', TextType::class, [
+            ->add('telephone', TextType::class, [
                 'label' => 'Téléphone',
                 'attr' => [
                     'class' => 'form-control',

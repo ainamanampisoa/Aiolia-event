@@ -1,0 +1,178 @@
+{% extends 'base.html.twig' %}
+
+{% block title %}Gestion des billets - Aiolia Event{% endblock %}
+
+{% block body %}
+<div class="dashboard">
+    <div class="dashboard-header">
+        <div>
+            <h1>🎫 Gestion des billets</h1>
+            <p style="color: var(--gray-600); margin-top: 8px; font-size: 1rem;">
+                Vue d'ensemble de tous vos billets vendus
+            </p>
+        </div>
+        <div class="header-actions" style="display: flex; gap: 10px;">
+            <a href="{{ path('app_ticket_categories') }}" class="btn" style="background: white; color: #3498DB !important; border: 2px solid #3498DB !important; padding: 12px 20px; border-radius: 8px; text-decoration: none; font-weight: 600;">
+                <i class="fas fa-tags"></i> Catégories
+            </a>
+            <a href="{{ path('app_ticket_qrcodes') }}" class="btn" style="background: #3498DB !important; color: white; border: none; padding: 12px 20px; border-radius: 8px; text-decoration: none; font-weight: 600;">
+                <i class="fas fa-qrcode"></i> QR Codes
+            </a>
+        </div>
+    </div>
+
+    <!-- Tabs de navigation -->
+    <div class="tabs-nav">
+        <a href="{{ path('app_ticket_index') }}" class="tab-link active">
+            <i class="fas fa-ticket-alt"></i> Tous les billets
+        </a>
+        <a href="{{ path('app_ticket_scanning') }}" class="tab-link">
+            <i class="fas fa-qrcode"></i> Scanner
+        </a>
+        <a href="{{ path('app_ticket_stock_alerts') }}" class="tab-link">
+            <i class="fas fa-exclamation-triangle"></i> Alertes stock
+        </a>
+    </div>
+
+    <!-- Stats rapides des billets -->
+    <div class="stats-grid stats-grid-compact">
+        <div class="stat-card stat-card-compact">
+            <div class="stat-icon stat-icon-compact" style="background: linear-gradient(135deg, rgba(52, 152, 219, 0.1), rgba(52, 152, 219, 0.05)); color: var(--accent);">
+                <i class="fas fa-ticket-alt"></i>
+            </div>
+            <div class="stat-content">
+                <h3>1,248</h3>
+                <p>Billets vendus</p>
+            </div>
+        </div>
+
+        <div class="stat-card stat-card-compact">
+            <div class="stat-icon stat-icon-compact" style="background: linear-gradient(135deg, rgba(39, 174, 96, 0.1), rgba(39, 174, 96, 0.05)); color: var(--success);">
+                <i class="fas fa-check-circle"></i>
+            </div>
+            <div class="stat-content">
+                <h3>987</h3>
+                <p>Billets utilisés</p>
+            </div>
+        </div>
+
+        <div class="stat-card stat-card-compact">
+            <div class="stat-icon stat-icon-compact" style="background: linear-gradient(135deg, rgba(243, 156, 18, 0.1), rgba(243, 156, 18, 0.05)); color: var(--warning);">
+                <i class="fas fa-hourglass-half"></i>
+            </div>
+            <div class="stat-content">
+                <h3>261</h3>
+                <p>En attente</p>
+            </div>
+        </div>
+
+        <div class="stat-card stat-card-compact">
+            <div class="stat-icon stat-icon-compact" style="background: linear-gradient(135deg, rgba(231, 76, 60, 0.1), rgba(231, 76, 60, 0.05)); color: var(--danger);">
+                <i class="fas fa-ban"></i>
+            </div>
+            <div class="stat-content">
+                <h3>12</h3>
+                <p>Annulés</p>
+            </div>
+        </div>
+    </div>
+
+    <!-- Tableau des billets -->
+    <div class="chart-card">
+        <div class="card-header">
+            <h3>📋 Liste des billets</h3>
+        </div>
+        <div class="card-body">
+            <table class="sales-table">
+                <thead>
+                    <tr>
+                        <th>Code billet</th>
+                        <th>Événement</th>
+                        <th>Client</th>
+                        <th>Catégorie</th>
+                        <th>Prix</th>
+                        <th>Date achat</th>
+                        <th>Statut</th>
+                        <th>QR Code</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    <tr>
+                        <td class="td-id">#TKT-001248</td>
+                        <td>🎸 Concert Rock Nation</td>
+                        <td>Jean Dupont</td>
+                        <td><span class="ticket-cat-badge">VIP</span></td>
+                        <td class="td-amount">49.00 €</td>
+                        <td>17 Oct 2025</td>
+                        <td><span class="status-badge status-success">Validé</span></td>
+                        <td>
+                            <button class="btn-icon-sm" title="Voir QR Code">
+                                <i class="fas fa-qrcode"></i>
+                            </button>
+                        </td>
+                    </tr>
+                    <tr>
+                        <td class="td-id">#TKT-001247</td>
+                        <td>🎵 Festival Jazz</td>
+                        <td>Marie Martin</td>
+                        <td><span class="ticket-cat-badge">Standard</span></td>
+                        <td class="td-amount">40.00 €</td>
+                        <td>16 Oct 2025</td>
+                        <td><span class="status-badge status-pending">En attente</span></td>
+                        <td>
+                            <button class="btn-icon-sm" title="Voir QR Code">
+                                <i class="fas fa-qrcode"></i>
+                            </button>
+                        </td>
+                    </tr>
+                </tbody>
+            </table>
+        </div>
+    </div>
+</div>
+
+<style>
+.tabs-nav {
+    display: flex;
+    gap: 8px;
+    margin-bottom: 24px;
+    background: var(--white);
+    padding: 8px;
+    border-radius: var(--border-radius-lg);
+    box-shadow: var(--shadow-sm);
+}
+
+.tab-link {
+    padding: 10px 20px;
+    background: transparent;
+    color: var(--gray-600);
+    text-decoration: none;
+    border-radius: var(--border-radius-md);
+    font-weight: var(--font-weight-medium);
+    transition: var(--transition-base);
+    display: flex;
+    align-items: center;
+    gap: 8px;
+}
+
+.tab-link:hover {
+    background: var(--gray-100);
+    color: var(--primary);
+}
+
+.tab-link.active {
+    background: var(--accent);
+    color: white;
+}
+
+.ticket-cat-badge {
+    padding: 4px 12px;
+    background: rgba(155, 89, 182, 0.1);
+    color: #9B59B6;
+    border-radius: 12px;
+    font-size: 0.8rem;
+    font-weight: var(--font-weight-bold);
+}
+</style>
+{% endblock %}
+

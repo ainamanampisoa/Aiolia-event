@@ -2,10 +2,11 @@
 
 namespace App\Controller\Admin;
 
+use App\Entity\User;
+use App\Enum\Role as UserRoleEnum;
 use App\Repository\UserRepository;
-use App\Repository\UserValidationRequestRepository;
 use App\Service\AuditLogService;
-use App\Service\UserNotificationService;
+use App\Service\Organisateur\UserNotificationService;
 use Doctrine\ORM\EntityManagerInterface;
 use Symfony\Bundle\FrameworkBundle\Controller\AbstractController;
 use Symfony\Component\HttpFoundation\Request;
@@ -19,7 +20,6 @@ class UserValidationController extends AbstractController
 {
     public function __construct(
         private EntityManagerInterface $entityManager,
-        private UserValidationRequestRepository $validationRequestRepository,
         private UserRepository $userRepository,
         private AuditLogService $auditLogService,
         private UserNotificationService $notificationService
@@ -27,125 +27,86 @@ class UserValidationController extends AbstractController
     }
 
     /**
-     * Liste des demandes de validation en attente
-     */
-    #[Route('/pending', name: 'admin_validation_pending')]
-    public function pending(Request $request): Response
-    {
-        $pendingRequests = $this->validationRequestRepository->findPendingRequests();
-
-        $pendingAccounts = array_values(array_filter(
-            $this->userRepository->findAccountsPendingValidation(),
-            static fn($user) => in_array($user->getRole(), ['organizer', 'user'], true)
-        ));
-
-        $perPage = 5;
-        $totalAccounts = count($pendingAccounts);
-        $totalPages = max(1, (int) ceil($totalAccounts / $perPage));
-        $page = max(1, (int) $request->query->get('page', 1));
-        if ($page > $totalPages) {
-            $page = $totalPages;
-        }
-
-        $offset = ($page - 1) * $perPage;
-        $paginatedPendingAccounts = array_slice($pendingAccounts, $offset, $perPage);
-
-        $pendingOrganizers = array_filter($pendingAccounts, static fn($user) => $user->getRole() === 'organizer');
-        $pendingUsers = array_filter($pendingAccounts, static fn($user) => $user->getRole() === 'user');
-
-        $pendingRequestUserIds = array_map(static fn($request) => $request->getUser()->getId(), $pendingRequests);
-
-        $pendingAccountsWithoutRequest = array_values(array_filter(
-            $pendingAccounts,
-            static fn($user) => !in_array($user->getId(), $pendingRequestUserIds, true)
-        ));
-
-        $requestsByUserId = [];
-        foreach ($pendingRequests as $request) {
-            $requestsByUserId[$request->getUser()->getId()] = $request;
-        }
-
-        return $this->render('admin/validation/pending.html.twig', [
-            'requests' => $pendingRequests,
-            'pendingAccounts' => $pendingAccounts,
-            'paginatedPendingAccounts' => $paginatedPendingAccounts,
-            'pendingAccountsWithoutRequest' => $pendingAccountsWithoutRequest,
-            'pendingStats' => [
-                'total' => count($pendingAccounts),
-                'organizer' => count($pendingOrganizers),
-                'user' => count($pendingUsers),
-            ],
-            'requestsByUserId' => $requestsByUserId,
-            'pendingRequestUserIds' => $pendingRequestUserIds,
-            'currentPage' => $page,
-            'totalPages' => $totalPages,
-        ]);
-    }
-
-
-    /**
      * Approuver une demande
      */
     #[Route('/{id}/approve', name: 'admin_validation_approve', methods: ['POST'])]
-    public function approve(
-        int $id,
-        Request $request
-    ): Response {
-        $validationRequest = $this->validationRequestRepository->find($id);
+    public function approve(int $id, Request $request): Response
+    {
+        $user = $this->userRepository->find($id);
 
-        if (!$validationRequest) {
-            $this->addFlash('error', 'Demande non trouvée');
-            return $this->redirectToRoute('admin_validation_pending');
+        if (!$user instanceof User) {
+            $this->addFlash('error', 'Utilisateur introuvable');
+            return $this->redirectToRoute('admin_users_list');
         }
 
-        if ($validationRequest->getStatus() !== 'pending') {
-            $this->addFlash('error', 'Cette demande a déjà été traitée');
-            return $this->redirectToRoute('admin_validation_pending');
+        if ($user->getStatutCompte() !== 'pending_validation') {
+            $this->addFlash('error', 'Ce compte a déjà été traité');
+            return $this->redirectToRoute('admin_users_list');
         }
 
-        $user = $validationRequest->getUser();
-        $requestedRole = $validationRequest->getRequestedRole();
+        $targetRole = $request->request->get('target_role', $user->getRole());
+        $targetRole = UserRoleEnum::normalize($targetRole);
 
-        // Mettre à jour le rôle de l'utilisateur
-        $oldRole = $user->getRole();
-        $user->setRole($requestedRole);
-        $user->setAccountStatus('active');
+        if (!UserRoleEnum::isValid($targetRole)) {
+            $targetRole = $user->getRole();
+        }
 
-        // Mettre à jour la demande
-        $validationRequest->setStatus('approved');
-        $validationRequest->setValidatedBy($this->getUser());
-        $validationRequest->setValidatedAt(new \DateTime());
-        $validationRequest->setAdminComment($request->request->get('comment'));
+        $comment = $request->request->get('comment');
 
+        // Sauvegarde des anciennes valeurs
+        $oldRole   = $user->getRole();
+        $oldStatus = $user->getStatutCompte();
+
+        // ⚠️ Ne pas encore valider en base, seulement mettre en mémoire
+        $user->setRole($targetRole);
+        $user->setStatutCompte('active');
+
+        // Envoyer l'email AVANT flush()
+        $emailSent = $this->notificationService->sendValidationApprovedNotification(
+            $user,
+            $user->getRole(),
+            $comment
+        );
+
+        if (!$emailSent) {
+
+            // 🔄 Rollback des valeurs non validées
+            $user->setRole($oldRole);
+            $user->setStatutCompte($oldStatus);
+
+            $this->addFlash('error', sprintf(
+                'Échec de l\'envoi de l\'email pour %s. Aucune modification enregistrée.',
+                $user->getNomComplet()
+            ));
+
+            return $this->redirectToRoute('admin_users_list');
+        }
+
+        // L’email est OK → on valide en base
         $this->entityManager->flush();
 
-        // Logger l'action
+        // Log
         $this->auditLogService->log(
             AuditLogService::ACTION_USER_VALIDATED,
             'User',
             $user->getId(),
             [
                 'old_role' => $oldRole,
-                'new_role' => $requestedRole,
-                'validation_request_id' => $validationRequest->getId(),
+                'new_role' => $user->getRole(),
+                'old_status' => $oldStatus,
+                'new_status' => $user->getStatutCompte(),
+                'comment' => $comment,
             ],
             $this->getUser()
         );
 
-        // Envoyer une notification par email
-        $this->notificationService->sendValidationApprovedNotification(
-            $user,
-            $requestedRole,
-            $request->request->get('comment')
-        );
-
         $this->addFlash('success', sprintf(
             'Demande approuvée : %s est maintenant %s',
-            $user->getFullName(),
-            $this->getRoleLabel($requestedRole)
+            $user->getNomComplet(),
+            $this->getRoleLabel($user->getRole())
         ));
 
-        return $this->redirectToRoute('admin_validation_pending');
+        return $this->redirectToRoute('admin_users_list');
     }
 
     /**
@@ -156,28 +117,23 @@ class UserValidationController extends AbstractController
         int $id,
         Request $request
     ): Response {
-        $validationRequest = $this->validationRequestRepository->find($id);
+        $user = $this->userRepository->find($id);
 
-        if (!$validationRequest) {
-            $this->addFlash('error', 'Demande non trouvée');
-            return $this->redirectToRoute('admin_validation_pending');
+        if (!$user instanceof User) {
+            $this->addFlash('error', 'Utilisateur introuvable');
+            return $this->redirectToRoute('admin_users_list');
         }
 
-        if ($validationRequest->getStatus() !== 'pending') {
-            $this->addFlash('error', 'Cette demande a déjà été traitée');
-            return $this->redirectToRoute('admin_validation_pending');
+        if ($user->getStatus() !== User::STATUS_PENDING) {
+            $this->addFlash('error', 'Ce compte a déjà été traité');
+            return $this->redirectToRoute('admin_users_list');
         }
 
-        $user = $validationRequest->getUser();
+        $comment = $request->request->get('comment');
+        $oldStatus = $user->getStatutCompte();
 
         // Mettre à jour le statut du compte
-        $user->setAccountStatus('rejected');
-
-        // Mettre à jour la demande
-        $validationRequest->setStatus('rejected');
-        $validationRequest->setValidatedBy($this->getUser());
-        $validationRequest->setValidatedAt(new \DateTime());
-        $validationRequest->setAdminComment($request->request->get('comment'));
+        $user->setStatutCompte('rejected');
 
         $this->entityManager->flush();
 
@@ -187,9 +143,10 @@ class UserValidationController extends AbstractController
             'User',
             $user->getId(),
             [
-                'requested_role' => $validationRequest->getRequestedRole(),
-                'validation_request_id' => $validationRequest->getId(),
-                'reason' => $request->request->get('comment'),
+                'requested_role' => $user->getRole(),
+                'old_status' => $oldStatus,
+                'new_status' => $user->getStatutCompte(),
+                'reason' => $comment,
             ],
             $this->getUser()
         );
@@ -197,16 +154,17 @@ class UserValidationController extends AbstractController
         // Envoyer une notification par email
         $this->notificationService->sendValidationRejectedNotification(
             $user,
-            $validationRequest->getRequestedRole(),
-            $request->request->get('comment')
+            $user->getRole(),
+            $comment
         );
 
         $this->addFlash('success', sprintf(
             'Demande rejetée : %s',
-            $user->getFullName()
+            $user->getNomComplet()
         ));
 
-        return $this->redirectToRoute('admin_validation_pending');
+        // Après rejet, rediriger vers la liste globale des utilisateurs
+        return $this->redirectToRoute('admin_users_list');
     }
 
     private function getRoleLabel(string $role): string

@@ -46,7 +46,7 @@ Aiolia Event est une **solution moderne et complète** pour la gestion d'événe
 
 - 🔐 Authentification JWT + OAuth (Google, Facebook)
 - 👤 Gestion de profil complet (photo, infos personnelles)
-- 🎭 Système de rôles (Utilisateur / Co-organisateur / Organisateur / Admin)
+- 🎭 Système de rôles (Utilisateur / Organisateur / Admin)
 - 📊 Statistiques personnelles (événements assistés, dépenses)
 - 💰 Historique financier détaillé avec graphiques
 - 🎟️ Mes billets (à venir / passés / annulés)

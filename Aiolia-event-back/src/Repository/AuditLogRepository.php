@@ -27,7 +27,7 @@ class AuditLogRepository extends ServiceEntityRepository
         int $limit = 100
     ): array {
         $qb = $this->createQueryBuilder('a')
-            ->leftJoin('a.performedBy', 'u')
+            ->leftJoin('a.actor', 'u')
             ->addSelect('u');
 
         if ($action) {
@@ -36,7 +36,7 @@ class AuditLogRepository extends ServiceEntityRepository
         }
 
         if ($userId) {
-            $qb->andWhere('a.performedBy = :userId')
+            $qb->andWhere('a.actor = :userId')
                ->setParameter('userId', $userId);
         }
 
@@ -62,7 +62,7 @@ class AuditLogRepository extends ServiceEntityRepository
     public function findByUser(int $userId, int $limit = 50): array
     {
         return $this->createQueryBuilder('a')
-            ->where('a.performedBy = :userId')
+            ->where('a.actor = :userId')
             ->setParameter('userId', $userId)
             ->orderBy('a.createdAt', 'DESC')
             ->setMaxResults($limit)
