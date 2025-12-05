@@ -233,15 +233,14 @@
                             
                             <div class="event-actions">
                                 {# Actions visibles en permanence au lieu d'un dropdown #}
-                                <button
-                                    type="button"
+                                <a
+                                    href="{{ path('organisateur_events_show', {'id': event.id}) }}"
                                     class="event-action-btn"
                                     title="Voir les détails"
                                     aria-label="Voir les détails de l'événement"
-                                    data-event-id="{{ event.id }}"
                                 >
                                     <i class="fas fa-eye"></i>
-                                </button>
+                                </a>
                                 <button
                                     type="button"
                                     class="event-action-btn"

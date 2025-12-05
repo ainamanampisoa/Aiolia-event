@@ -414,7 +414,7 @@ sudo cp ~/Documents/MyProject/Aiolia-event/Base/script.sql /tmp/
 sudo chown postgres:postgres /tmp/script.sql
 
 \i /tmp/script.sql
-
+j
 mail : https://mailtrap.io/home
 
 Dbdiagrma : https://dbdiagram.io/d/69313c70d6676488ba8af59e

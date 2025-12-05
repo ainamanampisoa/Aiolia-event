@@ -1,0 +1,206 @@
+{% extends 'base.html.twig' %}
+
+{% block title %}{{ event.titre ?? 'Événement' }} - Informations - Aiolia Event{% endblock %}
+
+{% block body %}
+<div class="dashboard">
+    {% include 'Organisateur/events/_header.html.twig' %}
+
+    <!-- Contenu Informations -->
+    <div class="event-content-grid">
+        <!-- Colonne gauche -->
+        <div class="event-main-content">
+            <!-- Informations -->
+            <div class="content-card">
+                <div class="card-title">
+                    <i class="fas fa-info-circle"></i>
+                    Informations détaillées
+                </div>
+                <div class="card-content">
+                    <div class="info-list">
+                        <div class="info-item">
+                            <div class="info-label">
+                                <i class="fas fa-calendar"></i>
+                                Date de début
+                            </div>
+                            <div class="info-value">
+                                {% if event.commenceLe %}
+                                    {{ event.commenceLe|date('d M Y, H:i') }}
+                                {% else %}
+                                    Non définie
+                                {% endif %}
+                            </div>
+                        </div>
+                        <div class="info-item">
+                            <div class="info-label">
+                                <i class="fas fa-calendar-check"></i>
+                                Date de fin
+                            </div>
+                            <div class="info-value">
+                                {% if event.seTermineLe %}
+                                    {{ event.seTermineLe|date('d M Y, H:i') }}
+                                {% else %}
+                                    Non définie
+                                {% endif %}
+                            </div>
+                        </div>
+                        <div class="info-item">
+                            <div class="info-label">
+                                <i class="fas fa-map-marker-alt"></i>
+                                Lieu
+                            </div>
+                            <div class="info-value">
+                                {% if event.lieu %}
+                                    {{ event.lieu.nom }}
+                                    {% if event.lieu.ville %}
+                                        <br><small style="color: var(--gray-600);">{{ event.lieu.ville }}, {{ event.lieu.codePays }}</small>
+                                    {% endif %}
+                                {% elseif event.nomLieuTexte %}
+                                    {{ event.nomLieuTexte }}
+                                {% else %}
+                                    Non renseigné
+                                {% endif %}
+                            </div>
+                        </div>
+                        <div class="info-item">
+                            <div class="info-label">
+                                <i class="fas fa-tag"></i>
+                                Catégorie
+                            </div>
+                            <div class="info-value">
+                                {% if event.categoriePrincipale %}
+                                    {{ event.categoriePrincipale.label }}
+                                {% else %}
+                                    Aucune catégorie
+                                {% endif %}
+                            </div>
+                        </div>
+                        <div class="info-item">
+                            <div class="info-label">
+                                <i class="fas fa-clock"></i>
+                                Créé le
+                            </div>
+                            <div class="info-value">
+                                {% if event.creeLe %}
+                                    {{ event.creeLe|date('d M Y, H:i') }}
+                                {% else %}
+                                    -
+                                {% endif %}
+                            </div>
+                        </div>
+                        <div class="info-item">
+                            <div class="info-label">
+                                <i class="fas fa-edit"></i>
+                                Modifié le
+                            </div>
+                            <div class="info-value">
+                                {% if event.modifieLe %}
+                                    {{ event.modifieLe|date('d M Y, H:i') }}
+                                {% else %}
+                                    -
+                                {% endif %}
+                            </div>
+                        </div>
+                        <div class="info-item">
+                            <div class="info-label">
+                                <i class="fas fa-globe"></i>
+                                Langue
+                            </div>
+                            <div class="info-value">
+                                {{ event.codeLangue|default('fr-FR')|upper }}
+                            </div>
+                        </div>
+                        <div class="info-item">
+                            <div class="info-label">
+                                <i class="fas fa-clock"></i>
+                                Fuseau horaire
+                            </div>
+                            <div class="info-value">
+                                {{ event.fuseauHoraire|default('Indian/Antananarivo') }}
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Colonne droite -->
+        <div class="event-sidebar-info">
+            <!-- Collaborateurs -->
+            <div class="info-card">
+                <div class="info-card-title">
+                    <i class="fas fa-users"></i>
+                    Équipe organisatrice
+                </div>
+                <div class="collaborators-list">
+                    {% if primaryOrganizer %}
+                        <div class="collaborator-item">
+                            <div class="collaborator-avatar">
+                                {{ primaryOrganizer.nomAffichage|slice(0, 1)|upper }}
+                            </div>
+                            <div class="collaborator-info">
+                                <strong>{{ primaryOrganizer.nomAffichage }}</strong>
+                                <span>Organisateur principal (vous)</span>
+                            </div>
+                        </div>
+                    {% endif %}
+
+                    {% if coOrganizers is defined and coOrganizers|length > 0 %}
+                        {% for organizer in coOrganizers %}
+                            {% if primaryOrganizer is not defined or organizer.id != primaryOrganizer.id %}
+                                <div class="collaborator-item">
+                                    <div class="collaborator-avatar">
+                                        {{ organizer.nomAffichage|slice(0, 1)|upper }}
+                                    </div>
+                                    <div class="collaborator-info">
+                                        <strong>{{ organizer.nomAffichage }}</strong>
+                                        <span>Co-organisateur</span>
+                                    </div>
+                                </div>
+                            {% endif %}
+                        {% endfor %}
+                    {% endif %}
+
+                    {% if not primaryOrganizer and (coOrganizers is not defined or coOrganizers|length == 0) %}
+                        <p style="font-size: 0.85rem; color: var(--gray-600);">
+                            Aucun profil organisateur n'est encore associé à cet événement.
+                        </p>
+                    {% endif %}
+                </div>
+                <button class="btn-add-collaborator" style="width: 100%; padding: 10px; background: rgba(52, 152, 219, 0.1); color: #3498DB !important; border: none; border-radius: 8px; cursor: pointer; font-weight: 600; margin-top: 12px;">
+                    <i class="fas fa-user-plus"></i> Ajouter un collaborateur
+                </button>
+            </div>
+
+            <!-- Actions rapides -->
+            <div class="info-card">
+                <div class="info-card-title">
+                    <i class="fas fa-bolt"></i>
+                    Actions rapides
+                </div>
+                <div class="quick-actions-list">
+                    <button class="action-btn">
+                        <i class="fas fa-qrcode"></i>
+                        Générer QR Codes
+                    </button>
+                    <button class="action-btn">
+                        <i class="fas fa-download"></i>
+                        Export participants
+                    </button>
+                    <button class="action-btn">
+                        <i class="fas fa-copy"></i>
+                        Dupliquer événement
+                    </button>
+                    <a href="{{ path('organisateur_events_export_pdf', {id: event.id}) }}" class="action-btn">
+                        <i class="fas fa-file-pdf"></i>
+                        Exporter en PDF
+                    </a>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+{% include 'Organisateur/events/_styles.html.twig' %}
+{% endblock %}
+

@@ -3,6 +3,7 @@
 namespace App\Repository\Organisateur;
 
 use App\Entity\Billet;
+use App\Entity\Event;
 use App\Entity\ElementCommande;
 use App\Entity\TypeBillet;
 use App\Entity\User;
@@ -117,6 +118,50 @@ class BilletRepository extends ServiceEntityRepository
     {
         $this->getEntityManager()->remove($billet);
         $this->getEntityManager()->flush();
+    }
+
+    /**
+     * Évolution des ventes (nombre de billets et revenu) par jour pour un événement
+     */
+    public function getSalesEvolutionByEvent(Event $event): array
+    {
+        // Utilisation d'une requête SQL native car Doctrine ORM ne supporte pas DATE() en DQL
+        $conn = $this->getEntityManager()->getConnection();
+        
+        $statuses = [Billet::STATUT_VALID, Billet::STATUT_USED];
+        
+        // Échapper les valeurs pour la clause IN
+        $quotedStatuses = array_map(function ($status) use ($conn) {
+            return $conn->quote($status);
+        }, $statuses);
+        
+        $sql = "
+            SELECT
+                DATE(b.emis_le) AS jour,
+                COUNT(b.id) AS tickets_sold,
+                COALESCE(SUM(tb.prix_de_base::numeric), 0) AS revenue
+            FROM aiolia.billets b
+            INNER JOIN aiolia.types_billets tb ON b.id_type_billet = tb.id
+            INNER JOIN aiolia.evenements e ON tb.id_evenement = e.id
+            WHERE e.id = :event_id
+                AND b.statut IN (" . implode(', ', $quotedStatuses) . ")
+            GROUP BY DATE(b.emis_le)
+            ORDER BY DATE(b.emis_le) ASC
+        ";
+
+        $result = $conn->executeQuery($sql, [
+            'event_id' => $event->getId(),
+        ]);
+
+        $results = $result->fetchAllAssociative();
+
+        return array_map(static function (array $row): array {
+            return [
+                'date' => $row['jour'],
+                'ticketsSold' => (int) $row['tickets_sold'],
+                'revenue' => (float) $row['revenue'],
+            ];
+        }, $results);
     }
 }
 

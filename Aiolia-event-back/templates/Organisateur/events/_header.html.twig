@@ -1,0 +1,135 @@
+<!-- En-tête avec actions -->
+<div class="event-detail-header">
+    <div class="header-breadcrumb">
+        <a href="{{ path('organisateur_events_index') }}">Événements</a>
+        <i class="fas fa-chevron-right"></i>
+        <span>{{ event.titre ?? 'Événement' }}</span>
+    </div>
+    <div class="header-actions-row">
+        <button class="btn btn-primary" style="background: #3498DB !important; color: white; border: none; padding: 10px 20px; border-radius: 8px; cursor: pointer; font-weight: 600;">
+            <i class="fas fa-edit"></i> Modifier
+        </button>
+        <button class="btn" style="background: var(--success); color: white; border: none; padding: 10px 20px; border-radius: 8px; cursor: pointer; font-weight: 600;">
+            <i class="fas fa-share-alt"></i> Partager
+        </button>
+    </div>
+</div>
+
+<!-- Bannière de l'événement -->
+<div class="event-banner">
+    <img src="{{ event.urlImageCouverture ?: 'https://via.placeholder.com/1200x400/3498db/ffffff?text=Votre+événement' }}"
+         alt="{{ event.titre }}">
+    <div class="event-overlay">
+        <div class="event-badge-status">
+            {% if event.statut == 'published' %}
+                <i class="fas fa-circle"></i> En vente
+            {% elseif event.statut == 'draft' %}
+                <i class="fas fa-edit"></i> Brouillon
+            {% elseif event.statut == 'cancelled' %}
+                <i class="fas fa-times-circle"></i> Annulé
+            {% else %}
+                <i class="fas fa-circle"></i> {{ event.statut|capitalize }}
+            {% endif %}
+        </div>
+        <h1 class="event-title">{{ event.titre }}</h1>
+        <div class="event-meta-quick">
+            <span>
+                <i class="fas fa-calendar"></i>
+                {% if event.commenceLe %}
+                    {{ event.commenceLe|date('d F Y') }}
+                {% else %}
+                    Date non définie
+                {% endif %}
+            </span>
+            <span>
+                <i class="fas fa-clock"></i>
+                {% if event.commenceLe %}
+                    {{ event.commenceLe|date('H:i') }}
+                {% endif %}
+            </span>
+            <span>
+                <i class="fas fa-map-marker-alt"></i>
+                {% if event.lieu %}
+                    {{ event.lieu.nom }}
+                {% elseif event.nomLieuTexte %}
+                    {{ event.nomLieuTexte }}
+                {% else %}
+                    Lieu non défini
+                {% endif %}
+            </span>
+        </div>
+    </div>
+</div>
+
+<!-- Stats rapides -->
+<div class="quick-stats">
+    <div class="quick-stat-card">
+        <div class="qstat-icon" style="color: var(--accent);">
+            <i class="fas fa-ticket-alt"></i>
+        </div>
+        <div class="qstat-content">
+            <div class="qstat-value">
+                {% if event.capacite %}
+                    {{ event.capacite }}
+                {% else %}
+                    -
+                {% endif %}
+            </div>
+            <div class="qstat-label">Capacité totale</div>
+        </div>
+    </div>
+
+    <div class="quick-stat-card">
+        <div class="qstat-icon" style="color: var(--success);">
+            <i class="fas fa-signal"></i>
+        </div>
+        <div class="qstat-content">
+            <div class="qstat-value">{{ event.statut|upper }}</div>
+            <div class="qstat-label">Statut de l'événement</div>
+        </div>
+    </div>
+
+    <div class="quick-stat-card">
+        <div class="qstat-icon" style="color: var(--warning);">
+            <i class="fas fa-broadcast-tower"></i>
+        </div>
+        <div class="qstat-content">
+            <div class="qstat-value">
+                {{ event.formatEvenement|replace({'_': ' '})|title }}
+            </div>
+            <div class="qstat-label">Format</div>
+        </div>
+    </div>
+
+    <div class="quick-stat-card">
+        <div class="qstat-icon" style="color: #9B59B6;">
+            <i class="fas fa-eye"></i>
+        </div>
+        <div class="qstat-content">
+            <div class="qstat-value">
+                {{ event.visibilite|capitalize }}
+            </div>
+            <div class="qstat-label">Visibilité</div>
+        </div>
+    </div>
+</div>
+
+<!-- Navigation entre les pages -->
+<div class="event-nav-tabs">
+    <a href="{{ path('organisateur_events_show', {id: event.id}) }}" 
+       class="event-nav-tab {% if app.request.attributes.get('_route') == 'organisateur_events_show' %}active{% endif %}">
+        <i class="fas fa-home"></i>
+        Vue d'ensemble
+    </a>
+    <a href="{{ path('organisateur_events_statistics', {id: event.id}) }}" 
+       class="event-nav-tab {% if app.request.attributes.get('_route') == 'organisateur_events_statistics' %}active{% endif %}">
+        <i class="fas fa-chart-bar"></i>
+        Statistiques
+    </a>
+    <a href="{{ path('organisateur_events_information', {id: event.id}) }}" 
+       class="event-nav-tab {% if app.request.attributes.get('_route') == 'organisateur_events_information' %}active{% endif %}">
+        <i class="fas fa-info-circle"></i>
+        Informations
+    </a>
+</div>
+
