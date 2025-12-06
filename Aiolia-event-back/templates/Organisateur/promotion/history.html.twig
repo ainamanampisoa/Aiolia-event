@@ -1,0 +1,328 @@
+{% extends 'base.html.twig' %}
+
+{% block title %}Historique - {{ promotion.code }} - Aiolia Event{% endblock %}
+
+{% block body %}
+<div class="dashboard">
+    <div class="dashboard-header">
+        <div>
+            <h1>📊 Historique du code promo</h1>
+            <p style="color: var(--gray-600); margin-top: 8px; font-size: 1rem;">
+                Détails des utilisations du code <strong>{{ promotion.code }}</strong>
+            </p>
+        </div>
+        <div class="header-actions">
+            <a href="{{ path('organisateur_promotions_index') }}" class="btn" style="background: white; color: var(--gray-700); border: 2px solid var(--gray-300); padding: 12px 20px; border-radius: 8px; text-decoration: none; font-weight: 600; display: inline-flex; align-items: center; gap: 8px;">
+                <i class="fas fa-arrow-left"></i> Retour
+            </a>
+        </div>
+    </div>
+
+    <!-- Informations du code promo -->
+    <div class="chart-card" style="margin-bottom: 24px;">
+        <div class="card-header">
+            <h3>ℹ️ Informations du code promo</h3>
+        </div>
+        <div class="card-body">
+            <div class="promo-info-grid">
+                <div class="info-item">
+                    <div class="info-label">Code</div>
+                    <div class="info-value promo-code-display">{{ promotion.code }}</div>
+                </div>
+                <div class="info-item">
+                    <div class="info-label">Type de réduction</div>
+                    <div class="info-value">
+                        {% if promotion.typePromotion == 'percent' %}
+                            -{{ promotion.valeur }}%
+                        {% else %}
+                            -{{ promotion.valeur|number_format(2, ',', ' ') }}€
+                        {% endif %}
+                    </div>
+                </div>
+                <div class="info-item">
+                    <div class="info-label">Statut</div>
+                    <div class="info-value">
+                        {% if promotion.isActive() %}
+                            <span class="status-badge status-active">Active</span>
+                        {% else %}
+                            <span class="status-badge status-inactive">Inactive</span>
+                        {% endif %}
+                    </div>
+                </div>
+                <div class="info-item">
+                    <div class="info-label">Date de création</div>
+                    <div class="info-value">{{ promotion.creeLe|date('d/m/Y à H:i') }}</div>
+                </div>
+                {% if promotion.commenceLe %}
+                <div class="info-item">
+                    <div class="info-label">Date de début</div>
+                    <div class="info-value">{{ promotion.commenceLe|date('d/m/Y à H:i') }}</div>
+                </div>
+                {% endif %}
+                {% if promotion.seTermineLe %}
+                <div class="info-item">
+                    <div class="info-label">Date de fin</div>
+                    <div class="info-value">{{ promotion.seTermineLe|date('d/m/Y à H:i') }}</div>
+                </div>
+                {% endif %}
+                <div class="info-item">
+                    <div class="info-label">Utilisations totales</div>
+                    <div class="info-value">{{ totalUtilisations }}</div>
+                </div>
+                <div class="info-item">
+                    <div class="info-label">Réductions accordées</div>
+                    <div class="info-value" style="color: var(--success); font-weight: bold;">
+                        -{{ totalRemise|number_format(2, ',', ' ') }}€
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Historique des utilisations -->
+    <div class="chart-card">
+        <div class="card-header">
+            <h3>📋 Historique des utilisations</h3>
+            <div style="color: var(--gray-600); font-size: 0.9rem;">
+                {{ applications|length }} utilisation{{ applications|length > 1 ? 's' : '' }}
+            </div>
+        </div>
+        <div class="card-body">
+            {% if applications|length > 0 %}
+            <div class="table-responsive">
+                <table class="history-table">
+                    <thead>
+                        <tr>
+                            <th>Date</th>
+                            <th>Utilisateur</th>
+                            <th>Commande</th>
+                            <th>Montant remise</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for application in applications %}
+                        <tr>
+                            <td>
+                                <div class="date-cell">
+                                    <i class="fas fa-calendar"></i>
+                                    {{ application.appliqueLe|date('d/m/Y') }}
+                                </div>
+                                <div class="time-cell">
+                                    {{ application.appliqueLe|date('H:i') }}
+                                </div>
+                            </td>
+                            <td>
+                                <div class="user-cell">
+                                    <i class="fas fa-user"></i>
+                                    {{ application.utilisateur.email ?? 'Utilisateur #' ~ application.utilisateur.id }}
+                                </div>
+                            </td>
+                            <td>
+                                <div class="order-cell">
+                                    <i class="fas fa-shopping-cart"></i>
+                                    Commande #{{ application.commande.id }}
+                                </div>
+                            </td>
+                            <td>
+                                <div class="amount-cell">
+                                    <span class="discount-amount">-{{ application.montantRemise|number_format(2, ',', ' ') }}€</span>
+                                </div>
+                            </td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                    <tfoot>
+                        <tr>
+                            <td colspan="3" style="text-align: right; font-weight: bold;">Total :</td>
+                            <td>
+                                <span class="total-amount">-{{ totalRemise|number_format(2, ',', ' ') }}€</span>
+                            </td>
+                        </tr>
+                    </tfoot>
+                </table>
+            </div>
+            {% else %}
+            <div style="text-align: center; padding: 40px; color: var(--gray-600);">
+                <i class="fas fa-history" style="font-size: 3rem; margin-bottom: 16px; opacity: 0.3;"></i>
+                <p style="font-size: 1.1rem; margin-bottom: 8px;">Aucune utilisation enregistrée</p>
+                <p style="font-size: 0.9rem;">Ce code promo n'a pas encore été utilisé.</p>
+            </div>
+            {% endif %}
+        </div>
+    </div>
+</div>
+
+<style>
+.promo-info-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+    gap: 24px;
+}
+
+.info-item {
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+}
+
+.info-label {
+    font-size: 0.85rem;
+    color: var(--gray-600);
+    font-weight: var(--font-weight-medium);
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+}
+
+.info-value {
+    font-size: 1.1rem;
+    color: var(--primary);
+    font-weight: var(--font-weight-semibold);
+}
+
+.promo-code-display {
+    font-family: 'Courier New', monospace;
+    font-size: 1.4rem;
+    font-weight: var(--font-weight-bold);
+    color: var(--accent);
+    background: var(--gray-100);
+    padding: 8px 16px;
+    border-radius: var(--border-radius-sm);
+    display: inline-block;
+}
+
+.status-badge {
+    padding: 6px 12px;
+    border-radius: 12px;
+    font-size: 0.85rem;
+    font-weight: var(--font-weight-bold);
+    display: inline-block;
+}
+
+.status-badge.status-active {
+    background: rgba(39, 174, 96, 0.1);
+    color: var(--success);
+}
+
+.status-badge.status-inactive {
+    background: rgba(149, 165, 166, 0.1);
+    color: var(--gray-600);
+}
+
+.table-responsive {
+    overflow-x: auto;
+}
+
+.history-table {
+    width: 100%;
+    border-collapse: collapse;
+}
+
+.history-table thead {
+    background: var(--gray-50);
+    border-bottom: 2px solid var(--gray-200);
+}
+
+.history-table th {
+    padding: 16px;
+    text-align: left;
+    font-weight: var(--font-weight-semibold);
+    color: var(--gray-700);
+    font-size: 0.9rem;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+}
+
+.history-table tbody tr {
+    border-bottom: 1px solid var(--gray-200);
+    transition: var(--transition-base);
+}
+
+.history-table tbody tr:hover {
+    background: var(--gray-50);
+}
+
+.history-table td {
+    padding: 16px;
+    color: var(--gray-700);
+}
+
+.history-table tfoot {
+    background: var(--gray-50);
+    border-top: 2px solid var(--gray-200);
+}
+
+.history-table tfoot td {
+    padding: 16px;
+    font-weight: var(--font-weight-bold);
+}
+
+.date-cell {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    font-weight: var(--font-weight-semibold);
+}
+
+.date-cell i {
+    color: var(--accent);
+}
+
+.time-cell {
+    font-size: 0.85rem;
+    color: var(--gray-600);
+    margin-top: 4px;
+}
+
+.user-cell {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+}
+
+.user-cell i {
+    color: var(--accent);
+}
+
+.order-cell {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+}
+
+.order-cell i {
+    color: var(--accent);
+}
+
+.amount-cell {
+    text-align: right;
+}
+
+.discount-amount {
+    color: var(--success);
+    font-weight: var(--font-weight-bold);
+    font-size: 1.1rem;
+}
+
+.total-amount {
+    color: var(--success);
+    font-weight: var(--font-weight-bold);
+    font-size: 1.2rem;
+}
+
+@media (max-width: 768px) {
+    .promo-info-grid {
+        grid-template-columns: 1fr;
+    }
+    
+    .history-table {
+        font-size: 0.9rem;
+    }
+    
+    .history-table th,
+    .history-table td {
+        padding: 12px 8px;
+    }
+}
+</style>
+{% endblock %}
+

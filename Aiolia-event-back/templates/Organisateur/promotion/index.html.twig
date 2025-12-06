@@ -26,7 +26,7 @@
                 <i class="fas fa-tags"></i>
             </div>
             <div class="stat-content">
-                <h3>24</h3>
+                <h3>{{ promotionsActives }}</h3>
                 <p>Codes actifs</p>
             </div>
         </div>
@@ -36,7 +36,7 @@
                 <i class="fas fa-chart-line"></i>
             </div>
             <div class="stat-content">
-                <h3>456</h3>
+                <h3>{{ totalUtilisations }}</h3>
                 <p>Utilisations</p>
             </div>
         </div>
@@ -46,7 +46,7 @@
                 <i class="fas fa-euro-sign"></i>
             </div>
             <div class="stat-content">
-                <h3>-8,450 €</h3>
+                <h3>-{{ totalRemises|number_format(2, ',', ' ') }} €</h3>
                 <p>Réductions accordées</p>
             </div>
         </div>
@@ -56,115 +56,242 @@
                 <i class="fas fa-clock"></i>
             </div>
             <div class="stat-content">
-                <h3>5</h3>
+                <h3>{{ promotionsExpirantBientot }}</h3>
                 <p>Expirent bientôt</p>
             </div>
         </div>
     </div>
 
+    <!-- Filtres de recherche -->
+    <div class="filters-card">
+        <div class="filters-header">
+            <div class="filters-header-content">
+                <i class="fas fa-filter"></i>
+                <h3>Recherche et filtres</h3>
+            </div>
+        </div>
+        <div class="filters-body">
+            <form method="get" action="{{ path('organisateur_promotions_index') }}" class="filters-form">
+                <div class="filters-grid">
+                    <div class="filter-group">
+                        <label for="date_debut">
+                            <i class="fas fa-calendar-alt"></i>
+                            Date de début
+                        </label>
+                        <div class="filter-input-wrapper">
+                            <input type="date" id="date_debut" name="date_debut" value="{{ filters.date_debut }}" class="filter-input">
+                        </div>
+                    </div>
+                    <div class="filter-group">
+                        <label for="date_fin">
+                            <i class="fas fa-calendar-check"></i>
+                            Date de fin
+                        </label>
+                        <div class="filter-input-wrapper">
+                            <input type="date" id="date_fin" name="date_fin" value="{{ filters.date_fin }}" class="filter-input">
+                        </div>
+                    </div>
+                    <div class="filter-actions">
+                        <button type="submit" class="btn-filter btn-filter-primary">
+                            <i class="fas fa-search"></i>
+                            <span>Rechercher</span>
+                        </button>
+                        <a href="{{ path('organisateur_promotions_index') }}" class="btn-filter btn-filter-secondary">
+                            <i class="fas fa-redo"></i>
+                            <span>Réinitialiser</span>
+                        </a>
+                    </div>
+                </div>
+            </form>
+        </div>
+    </div>
+
     <!-- Liste des promotions -->
     <div class="chart-card">
-        <div class="card-header">
-            <h3>🏷️ Codes promo actifs</h3>
+        <div class="card-header" style="display: flex; justify-content: space-between; align-items: center;">
+            <h3>🏷️ Mes codes promo</h3>
+            {% if pagination.total_items > 0 %}
+            <span class="pagination-info" style="color: var(--gray-600); font-size: 0.9rem;">
+                Affichage de {{ ((pagination.current_page - 1) * pagination.per_page + 1) }} à {{ min(pagination.current_page * pagination.per_page, pagination.total_items) }} sur {{ pagination.total_items }} code{{ pagination.total_items > 1 ? 's' : '' }}
+            </span>
+            {% endif %}
         </div>
         <div class="card-body">
+            {% if promotions|length > 0 %}
             <div class="promotions-grid">
-                <div class="promo-card">
-                    <div class="promo-header">
-                        <div class="promo-code">EARLYBIRD</div>
-                        <span class="promo-status status-active">Active</span>
-                    </div>
-                    <div class="promo-details">
-                        <div class="promo-discount">-20%</div>
-                        <p>Réduction pour les achats anticipés</p>
-                    </div>
-                    <div class="promo-info">
-                        <div class="promo-stat">
-                            <i class="fas fa-calendar"></i>
-                            Expire le 31 Oct 2025
+                {% for item in promotions %}
+                    {% set promo = item.promotion %}
+                    {% set isActive = promo.isActive() %}
+                    {% set now = date('now') %}
+                    {% set expiresSoon = promo.seTermineLe and promo.seTermineLe <= date('+7 days') and promo.seTermineLe > now %}
+                    
+                    <div class="promo-card {% if expiresSoon %}promo-card-expiring{% endif %}">
+                        {% if expiresSoon %}
+                        <div class="promo-expiring-banner">
+                            <i class="fas fa-exclamation-circle"></i>
+                            <span>Expire bientôt</span>
                         </div>
-                        <div class="promo-stat">
-                            <i class="fas fa-users"></i>
-                            156 utilisations
+                        {% endif %}
+                        <div class="promo-header">
+                            <div class="promo-code {% if expiresSoon %}promo-code-expiring{% endif %}">{{ promo.code }}</div>
+                            {% if isActive %}
+                                <span class="promo-status status-active">Active</span>
+                            {% elseif expiresSoon %}
+                                <span class="promo-status status-warning">Expire bientôt</span>
+                            {% else %}
+                                <span class="promo-status status-inactive">Expirée</span>
+                            {% endif %}
                         </div>
-                    </div>
-                    <div class="promo-actions">
-                        <button class="btn-promo-action">
-                            <i class="fas fa-edit"></i>
-                        </button>
-                        <button class="btn-promo-action">
-                            <i class="fas fa-pause"></i>
-                        </button>
-                        <button class="btn-promo-action" style="color: var(--danger);">
-                            <i class="fas fa-trash"></i>
-                        </button>
-                    </div>
-                </div>
-
-                <div class="promo-card">
-                    <div class="promo-header">
-                        <div class="promo-code">FESTIVAL50</div>
-                        <span class="promo-status status-active">Active</span>
-                    </div>
-                    <div class="promo-details">
-                        <div class="promo-discount">-50%</div>
-                        <p>Offre spéciale Festival Jazz</p>
-                    </div>
-                    <div class="promo-info">
-                        <div class="promo-stat">
-                            <i class="fas fa-calendar"></i>
-                            Expire le 20 Nov 2025
+                        <div class="promo-details">
+                            <div class="promo-discount">
+                                {% if promo.typePromotion == 'percent' %}
+                                    -{{ promo.valeur }}%
+                                {% else %}
+                                    -{{ promo.valeur|number_format(2, ',', ' ') }}€
+                                {% endif %}
+                            </div>
+                            <p>{{ promo.metadonnees.description ?? 'Aucune description' }}</p>
                         </div>
-                        <div class="promo-stat">
-                            <i class="fas fa-users"></i>
-                            89 / 100 utilisations
+                        <div class="promo-info">
+                            {% if promo.seTermineLe %}
+                            <div class="promo-stat">
+                                <i class="fas fa-calendar"></i>
+                                <span>
+                                    Expire le {{ promo.seTermineLe|date('d M Y') }}
+                                    {% if expiresSoon %}
+                                        {% set endTimestamp = promo.seTermineLe|date('U') %}
+                                        {% set nowTimestamp = now|date('U') %}
+                                        {% set daysLeft = ((endTimestamp - nowTimestamp) / 86400)|round %}
+                                        <span class="expiring-text">({{ daysLeft }} jour{{ daysLeft > 1 ? 's' : '' }})</span>
+                                    {% endif %}
+                                </span>
+                            </div>
+                            {% endif %}
+                            <div class="promo-stat">
+                                <i class="fas fa-users"></i>
+                                {{ item.utilisations }}
+                                {% if promo.utilisationMaximaleTotale %}
+                                    / {{ promo.utilisationMaximaleTotale }} utilisations
+                                {% else %}
+                                    utilisations
+                                {% endif %}
+                            </div>
+                            {% if promo.commenceLe %}
+                            <div class="promo-stat">
+                                <i class="fas fa-play-circle"></i>
+                                Commence le {{ promo.commenceLe|date('d M Y') }}
+                            </div>
+                            {% endif %}
                         </div>
-                    </div>
-                    <div class="promo-actions">
-                        <button class="btn-promo-action">
-                            <i class="fas fa-edit"></i>
-                        </button>
-                        <button class="btn-promo-action">
-                            <i class="fas fa-pause"></i>
-                        </button>
-                        <button class="btn-promo-action" style="color: var(--danger);">
-                            <i class="fas fa-trash"></i>
-                        </button>
-                    </div>
-                </div>
-
-                <div class="promo-card">
-                    <div class="promo-header">
-                        <div class="promo-code">VIP10</div>
-                        <span class="promo-status status-warning">Expire bientôt</span>
-                    </div>
-                    <div class="promo-details">
-                        <div class="promo-discount">-10€</div>
-                        <p>Réduction fixe sur billets VIP</p>
-                    </div>
-                    <div class="promo-info">
-                        <div class="promo-stat">
-                            <i class="fas fa-calendar"></i>
-                            Expire le 18 Oct 2025
-                        </div>
-                        <div class="promo-stat">
-                            <i class="fas fa-users"></i>
-                            43 utilisations
+                        <div class="promo-actions">
+                            <a href="{{ path('organisateur_promotions_edit', {id: promo.id}) }}" class="btn-promo-action" title="Modifier">
+                                <i class="fas fa-edit"></i>
+                            </a>
+                            <a href="{{ path('organisateur_promotions_history', {id: promo.id}) }}" class="btn-promo-action" title="Historique">
+                                <i class="fas fa-history"></i>
+                            </a>
+                            <form method="post" action="{{ path('organisateur_promotions_delete', {id: promo.id}) }}" style="display: inline;" onsubmit="return confirm('Êtes-vous sûr de vouloir supprimer ce code promo ?');">
+                                <input type="hidden" name="_token" value="{{ csrf_token('delete_promotion') }}">
+                                <button type="submit" class="btn-promo-action" style="color: var(--danger); border: none; background: none; cursor: pointer;" title="Supprimer">
+                                    <i class="fas fa-trash"></i>
+                                </button>
+                            </form>
                         </div>
                     </div>
-                    <div class="promo-actions">
-                        <button class="btn-promo-action">
-                            <i class="fas fa-edit"></i>
-                        </button>
-                        <button class="btn-promo-action">
-                            <i class="fas fa-pause"></i>
-                        </button>
-                        <button class="btn-promo-action" style="color: var(--danger);">
-                            <i class="fas fa-trash"></i>
-                        </button>
-                    </div>
-                </div>
+                {% endfor %}
             </div>
+            {% else %}
+            <div style="text-align: center; padding: 40px; color: var(--gray-600);">
+                <i class="fas fa-tags" style="font-size: 3rem; margin-bottom: 16px; opacity: 0.3;"></i>
+                <p style="font-size: 1.1rem; margin-bottom: 8px;">Aucun code promo trouvé</p>
+                <p style="font-size: 0.9rem;">
+                    {% if filters.date_debut or filters.date_fin %}
+                        Aucun code promo ne correspond à vos critères de recherche. Essayez de modifier les filtres.
+                    {% else %}
+                        Créez votre premier code promo pour commencer à offrir des réductions à vos clients.
+                    {% endif %}
+                </p>
+            </div>
+            {% endif %}
+
+            <!-- Pagination -->
+            {% if pagination.total_pages > 1 %}
+            <div class="pagination-wrapper" style="margin-top: 30px; padding-top: 20px; border-top: 1px solid var(--gray-200);">
+                <nav class="pagination" aria-label="Pagination">
+                    {% set currentPage = pagination.current_page %}
+                    {% set totalPages = pagination.total_pages %}
+                    {% set queryParams = app.request.query.all|merge({'page': null})|filter(v => v != null) %}
+                    
+                    <ul class="pagination-list">
+                        {# Bouton Précédent #}
+                        <li class="pagination-item">
+                            {% if currentPage > 1 %}
+                                <a href="{{ path('organisateur_promotions_index', queryParams|merge({'page': currentPage - 1})) }}" class="pagination-link">
+                                    <i class="fas fa-chevron-left"></i>
+                                    Précédent
+                                </a>
+                            {% else %}
+                                <span class="pagination-link disabled">
+                                    <i class="fas fa-chevron-left"></i>
+                                    Précédent
+                                </span>
+                            {% endif %}
+                        </li>
+
+                        {# Numéros de pages #}
+                        {% set startPage = max(1, currentPage - 2) %}
+                        {% set endPage = min(totalPages, currentPage + 2) %}
+                        
+                        {% if startPage > 1 %}
+                            <li class="pagination-item">
+                                <a href="{{ path('organisateur_promotions_index', queryParams|merge({'page': 1})) }}" class="pagination-link">1</a>
+                            </li>
+                            {% if startPage > 2 %}
+                                <li class="pagination-item">
+                                    <span class="pagination-ellipsis">...</span>
+                                </li>
+                            {% endif %}
+                        {% endif %}
+
+                        {% for page in startPage..endPage %}
+                            <li class="pagination-item">
+                                {% if page == currentPage %}
+                                    <span class="pagination-link active">{{ page }}</span>
+                                {% else %}
+                                    <a href="{{ path('organisateur_promotions_index', queryParams|merge({'page': page})) }}" class="pagination-link">{{ page }}</a>
+                                {% endif %}
+                            </li>
+                        {% endfor %}
+
+                        {% if endPage < totalPages %}
+                            {% if endPage < totalPages - 1 %}
+                                <li class="pagination-item">
+                                    <span class="pagination-ellipsis">...</span>
+                                </li>
+                            {% endif %}
+                            <li class="pagination-item">
+                                <a href="{{ path('organisateur_promotions_index', queryParams|merge({'page': totalPages})) }}" class="pagination-link">{{ totalPages }}</a>
+                            </li>
+                        {% endif %}
+
+                        {# Bouton Suivant #}
+                        <li class="pagination-item">
+                            {% if currentPage < totalPages %}
+                                <a href="{{ path('organisateur_promotions_index', queryParams|merge({'page': currentPage + 1})) }}" class="pagination-link">
+                                    Suivant
+                                    <i class="fas fa-chevron-right"></i>
+                                </a>
+                            {% else %}
+                                <span class="pagination-link disabled">
+                                    Suivant
+                                    <i class="fas fa-chevron-right"></i>
+                                </span>
+                            {% endif %}
+                        </li>
+                    </ul>
+                </nav>
+            </div>
+            {% endif %}
         </div>
     </div>
 </div>
@@ -180,13 +307,39 @@
     background: var(--white);
     border-radius: var(--border-radius-lg);
     padding: 20px;
-    border: 2px solid var(--gray-200);
+    border: 1px solid var(--gray-200);
     transition: var(--transition-base);
+    position: relative;
 }
 
 .promo-card:hover {
-    border-color: var(--accent);
-    box-shadow: var(--shadow-md);
+    border-color: var(--gray-300);
+    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.05);
+}
+
+.promo-card-expiring {
+    padding-top: 36px;
+}
+
+.promo-expiring-banner {
+    position: absolute;
+    top: 0;
+    left: 0;
+    right: 0;
+    background: var(--warning);
+    color: white;
+    padding: 6px 12px;
+    border-radius: var(--border-radius-lg) var(--border-radius-lg) 0 0;
+    font-size: 0.75rem;
+    font-weight: var(--font-weight-semibold);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 6px;
+}
+
+.promo-expiring-banner i {
+    font-size: 0.8rem;
 }
 
 .promo-header {
@@ -198,19 +351,23 @@
 
 .promo-code {
     font-family: 'Courier New', monospace;
-    font-size: 1.3rem;
+    font-size: 1.2rem;
     font-weight: var(--font-weight-bold);
-    color: var(--primary);
+    color: var(--gray-800);
     background: var(--gray-100);
-    padding: 6px 14px;
+    padding: 6px 12px;
     border-radius: var(--border-radius-sm);
+}
+
+.promo-code-expiring {
+    color: var(--warning);
 }
 
 .promo-status {
     padding: 4px 10px;
-    border-radius: 12px;
+    border-radius: 6px;
     font-size: 0.75rem;
-    font-weight: var(--font-weight-bold);
+    font-weight: var(--font-weight-semibold);
 }
 
 .status-active {
@@ -221,6 +378,11 @@
 .status-warning {
     background: rgba(243, 156, 18, 0.1);
     color: var(--warning);
+}
+
+.status-inactive {
+    background: rgba(149, 165, 166, 0.1);
+    color: var(--gray-600);
 }
 
 .promo-details {
@@ -257,8 +419,14 @@
 }
 
 .promo-stat i {
-    color: var(--accent);
+    color: var(--gray-500);
     width: 16px;
+}
+
+.expiring-text {
+    color: var(--warning);
+    font-weight: var(--font-weight-semibold);
+    margin-left: 4px;
 }
 
 .promo-actions {
@@ -280,6 +448,277 @@
 .btn-promo-action:hover {
     background: var(--accent);
     color: white;
+}
+
+.filters-card {
+    background: var(--white);
+    border-radius: var(--border-radius-xl);
+    box-shadow: var(--shadow-md);
+    border: 1px solid var(--gray-200);
+    margin-bottom: 24px;
+    overflow: hidden;
+}
+
+.filters-header {
+    background: linear-gradient(135deg, rgba(52, 152, 219, 0.08), rgba(52, 152, 219, 0.03));
+    padding: 18px 24px;
+    border-bottom: 1px solid var(--gray-200);
+}
+
+.filters-header-content {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+}
+
+.filters-header-content i {
+    color: var(--accent);
+    font-size: 1.1rem;
+}
+
+.filters-header-content h3 {
+    margin: 0;
+    font-size: 1.1rem;
+    font-weight: var(--font-weight-bold);
+    color: var(--gray-800);
+}
+
+.filters-body {
+    padding: 24px;
+}
+
+.filters-form {
+    padding: 0;
+}
+
+.filters-grid {
+    display: grid;
+    grid-template-columns: 1fr 1fr 1fr;
+    gap: 24px;
+    align-items: end;
+}
+
+.filter-group {
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+}
+
+.filter-group label {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    font-weight: var(--font-weight-semibold);
+    color: var(--gray-700);
+    font-size: 0.95rem;
+}
+
+.filter-group label i {
+    color: var(--accent);
+    font-size: 0.9rem;
+}
+
+.filter-input-wrapper {
+    position: relative;
+}
+
+.filter-input {
+    width: 100%;
+    padding: 12px 16px;
+    border: 2px solid var(--gray-200);
+    border-radius: var(--border-radius-md);
+    font-size: 0.95rem;
+    color: var(--gray-800);
+    background: var(--white);
+    transition: all 0.2s ease;
+    font-family: inherit;
+    box-sizing: border-box;
+}
+
+.filter-input:hover {
+    border-color: var(--gray-300);
+}
+
+.filter-input:focus {
+    outline: none;
+    border-color: var(--accent);
+    box-shadow: 0 0 0 4px rgba(52, 152, 219, 0.1);
+    background: var(--white);
+}
+
+.filter-input::-webkit-calendar-picker-indicator {
+    cursor: pointer;
+    opacity: 0.7;
+    transition: opacity 0.2s ease;
+    padding: 4px;
+    margin-left: 4px;
+}
+
+.filter-input::-webkit-calendar-picker-indicator:hover {
+    opacity: 1;
+}
+
+.filter-input::-webkit-datetime-edit-text {
+    color: var(--gray-600);
+    padding: 0 2px;
+}
+
+.filter-input::-webkit-datetime-edit-month-field,
+.filter-input::-webkit-datetime-edit-day-field,
+.filter-input::-webkit-datetime-edit-year-field {
+    color: var(--gray-800);
+    padding: 0 2px;
+}
+
+.filter-input::-webkit-datetime-edit-month-field:focus,
+.filter-input::-webkit-datetime-edit-day-field:focus,
+.filter-input::-webkit-datetime-edit-year-field:focus {
+    background-color: rgba(52, 152, 219, 0.1);
+    color: var(--accent);
+    border-radius: 2px;
+}
+
+.filter-actions {
+    display: flex;
+    gap: 12px;
+    align-items: flex-end;
+    width: 100%;
+}
+
+.btn-filter {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    gap: 8px;
+    padding: 12px 20px;
+    border-radius: var(--border-radius-md);
+    font-weight: var(--font-weight-semibold);
+    font-size: 0.95rem;
+    text-decoration: none;
+    border: none;
+    cursor: pointer;
+    transition: all 0.2s ease;
+    white-space: nowrap;
+    flex: 1;
+    min-height: 48px;
+    box-sizing: border-box;
+}
+
+.btn-filter i {
+    font-size: 0.9rem;
+}
+
+.btn-filter-primary {
+    background: linear-gradient(135deg, #3498DB, #2980B9);
+    color: white;
+    box-shadow: 0 2px 8px rgba(52, 152, 219, 0.3);
+}
+
+.btn-filter-primary:hover {
+    background: linear-gradient(135deg, #2980B9, #1F618D);
+    box-shadow: 0 4px 12px rgba(52, 152, 219, 0.4);
+    transform: translateY(-1px);
+}
+
+.btn-filter-secondary {
+    background: var(--gray-100);
+    color: var(--gray-700);
+    border: 2px solid var(--gray-200);
+}
+
+.btn-filter-secondary:hover {
+    background: var(--gray-200);
+    border-color: var(--gray-300);
+    color: var(--gray-800);
+}
+
+.pagination-wrapper {
+    display: flex;
+    justify-content: center;
+}
+
+.pagination-list {
+    display: flex;
+    list-style: none;
+    padding: 0;
+    margin: 0;
+    gap: 8px;
+    align-items: center;
+}
+
+.pagination-item {
+    margin: 0;
+}
+
+.pagination-link {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    padding: 10px 16px;
+    background: var(--white);
+    border: 2px solid var(--gray-200);
+    border-radius: var(--border-radius-md);
+    color: var(--gray-700);
+    text-decoration: none;
+    font-weight: var(--font-weight-medium);
+    transition: var(--transition-base);
+    cursor: pointer;
+}
+
+.pagination-link:hover:not(.disabled):not(.active) {
+    background: var(--accent);
+    color: white;
+    border-color: var(--accent);
+}
+
+.pagination-link.active {
+    background: var(--accent);
+    color: white;
+    border-color: var(--accent);
+    font-weight: var(--font-weight-bold);
+}
+
+.pagination-link.disabled {
+    opacity: 0.5;
+    cursor: not-allowed;
+    background: var(--gray-100);
+}
+
+.pagination-ellipsis {
+    padding: 10px 8px;
+    color: var(--gray-500);
+}
+
+.pagination-info {
+    display: inline-flex;
+    align-items: center;
+}
+
+@media (max-width: 768px) {
+    .filters-grid {
+        grid-template-columns: 1fr;
+        gap: 20px;
+    }
+    
+    .filter-actions {
+        width: 100%;
+        flex-direction: row;
+        gap: 10px;
+    }
+    
+    .filter-actions .btn-filter {
+        flex: 1;
+        min-width: 0;
+    }
+    
+    .pagination-list {
+        flex-wrap: wrap;
+        justify-content: center;
+    }
+    
+    .filters-body {
+        padding: 20px;
+    }
 }
 </style>
 {% endblock %}

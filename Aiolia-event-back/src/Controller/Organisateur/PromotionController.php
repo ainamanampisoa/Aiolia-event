@@ -2,10 +2,16 @@
 
 namespace App\Controller\Organisateur;
 
+use App\Repository\Organisateur\OrganizerProfileRepository;
+use App\Service\Organisateur\ApplicationPromotionService;
+use App\Service\Organisateur\CodePromotionnelService;
+use App\Service\Organisateur\EventService;
 use Symfony\Bundle\FrameworkBundle\Controller\AbstractController;
 use Symfony\Component\HttpFoundation\Request;
 use Symfony\Component\HttpFoundation\Response;
 use Symfony\Component\Routing\Attribute\Route;
+use Symfony\Component\Security\Csrf\CsrfToken;
+use Symfony\Component\Security\Csrf\CsrfTokenManagerInterface;
 use Symfony\Component\Security\Http\Attribute\IsGranted;
 
 #[Route('/organisateur/promotions')]
@@ -13,17 +19,410 @@ use Symfony\Component\Security\Http\Attribute\IsGranted;
 class PromotionController extends AbstractController
 {
     #[Route('', name: 'organisateur_promotions_index')]
-    public function index(): Response
-    {
-        return $this->render('Organisateur/promotion/index.html.twig');
+    public function index(
+        Request $request,
+        CodePromotionnelService $codePromotionnelService,
+        ApplicationPromotionService $applicationPromotionService,
+        OrganizerProfileRepository $organizerProfileRepository
+    ): Response {
+        $user = $this->getUser();
+        if (!$user) {
+            throw $this->createAccessDeniedException('Vous devez être connecté pour accéder à cette page.');
+        }
+
+        // Récupérer le profil organisateur
+        $organizerProfile = $organizerProfileRepository->findOneBy(['utilisateur' => $user]);
+        if (!$organizerProfile) {
+            throw $this->createAccessDeniedException('Profil organisateur non trouvé.');
+        }
+
+        // Récupérer le numéro de page depuis la requête (par défaut page 1)
+        $page = max(1, (int) $request->query->get('page', 1));
+        $perPage = 4;
+
+        // Récupérer les filtres de date (peuvent être null)
+        $dateDebut = null;
+        $dateFin = null;
+        
+        if ($request->query->has('date_debut') && $request->query->get('date_debut')) {
+            try {
+                $dateDebut = new \DateTimeImmutable($request->query->get('date_debut'));
+            } catch (\Exception $e) {
+                // Si la date est invalide, on ignore le filtre
+                $dateDebut = null;
+            }
+        }
+        
+        if ($request->query->has('date_fin') && $request->query->get('date_fin')) {
+            try {
+                $dateFin = new \DateTimeImmutable($request->query->get('date_fin'));
+                // Ajouter 23h59:59 pour inclure toute la journée
+                $dateFin = $dateFin->setTime(23, 59, 59);
+            } catch (\Exception $e) {
+                // Si la date est invalide, on ignore le filtre
+                $dateFin = null;
+            }
+        }
+
+        // Récupérer les promotions paginées avec filtres
+        $paginationData = $codePromotionnelService->getByOrganisateurPaginated(
+            $organizerProfile,
+            $page,
+            $perPage,
+            $dateDebut,
+            $dateFin
+        );
+        $promotions = $paginationData['items'];
+        
+        // Récupérer les statistiques globales (toutes les promotions, pas seulement la page courante)
+        $allPromotions = $codePromotionnelService->getByOrganisateur($organizerProfile);
+        $promotionsActives = $codePromotionnelService->getActiveByOrganisateur($organizerProfile);
+        $promotionsExpirantBientot = $codePromotionnelService->getExpiringSoon($organizerProfile, 7);
+
+        // Calculer les statistiques globales
+        $totalUtilisations = 0;
+        $totalRemises = 0;
+        foreach ($allPromotions as $promotion) {
+            $totalUtilisations += $codePromotionnelService->countUtilisations($promotion);
+            $totalRemises += $codePromotionnelService->getTotalRemise($promotion);
+        }
+
+        // Calculer les statistiques pour les promotions de la page courante
+        $promotionsAvecStats = [];
+        foreach ($promotions as $promotion) {
+            $utilisations = $codePromotionnelService->countUtilisations($promotion);
+            $remise = $codePromotionnelService->getTotalRemise($promotion);
+            
+            $promotionsAvecStats[] = [
+                'promotion' => $promotion,
+                'utilisations' => $utilisations,
+                'remise' => $remise,
+            ];
+        }
+
+        return $this->render('Organisateur/promotion/index.html.twig', [
+            'promotions' => $promotionsAvecStats,
+            'promotionsActives' => count($promotionsActives),
+            'totalUtilisations' => $totalUtilisations,
+            'totalRemises' => $totalRemises,
+            'promotionsExpirantBientot' => count($promotionsExpirantBientot),
+            'pagination' => [
+                'current_page' => $paginationData['current_page'],
+                'total_pages' => $paginationData['pages'],
+                'total_items' => $paginationData['total'],
+                'per_page' => $paginationData['per_page'],
+            ],
+            'filters' => [
+                'date_debut' => $dateDebut ? $dateDebut->format('Y-m-d') : '',
+                'date_fin' => $dateFin ? $dateFin->format('Y-m-d') : '',
+            ],
+        ]);
     }
 
     #[Route('/new', name: 'organisateur_promotions_new', methods: ['GET', 'POST'])]
-    public function new(Request $request): Response
-    {
+    public function new(
+        Request $request,
+        CodePromotionnelService $codePromotionnelService,
+        OrganizerProfileRepository $organizerProfileRepository,
+        EventService $eventService
+    ): Response {
         $this->denyAccessUnlessGranted('IS_AUTHENTICATED_REMEMBERED');
 
-        return $this->render('Organisateur/promotion/new.html.twig');
+        $user = $this->getUser();
+        if (!$user) {
+            throw $this->createAccessDeniedException('Vous devez être connecté pour accéder à cette page.');
+        }
+
+        // Récupérer le profil organisateur
+        $organizerProfile = $organizerProfileRepository->findOneBy(['utilisateur' => $user]);
+        if (!$organizerProfile) {
+            throw $this->createAccessDeniedException('Profil organisateur non trouvé.');
+        }
+
+        if ($request->isMethod('POST')) {
+            $data = $request->request->all();
+            
+            // Convertir les dates (format: Y-m-d H:i ou Y-m-d\TH:i)
+            if (!empty($data['start_date'])) {
+                $dateStr = str_replace(' ', 'T', $data['start_date']);
+                $data['commenceLe'] = new \DateTime($dateStr);
+            }
+            if (!empty($data['end_date'])) {
+                $dateStr = str_replace(' ', 'T', $data['end_date']);
+                $data['seTermineLe'] = new \DateTime($dateStr);
+            }
+
+            // Convertir le type de promotion
+            $data['typePromotion'] = $data['discount_type'] === 'percentage' ? 'percent' : 'amount';
+            $data['valeur'] = $data['discount_value'] ?? 0;
+
+            // Gérer les métadonnées
+            $metadonnees = [];
+            if (isset($data['description'])) {
+                $metadonnees['description'] = $data['description'];
+            }
+            if (isset($data['events'])) {
+                $metadonnees['events'] = $data['events'];
+            }
+            if (isset($data['categories'])) {
+                $metadonnees['categories'] = $data['categories'];
+            }
+            if (isset($data['min_order'])) {
+                $metadonnees['min_order'] = $data['min_order'];
+            }
+            if (isset($data['first_purchase'])) {
+                $metadonnees['first_purchase'] = (bool) $data['first_purchase'];
+            }
+            if (isset($data['cumulative'])) {
+                $metadonnees['cumulative'] = (bool) $data['cumulative'];
+            }
+            if (isset($data['auto_apply'])) {
+                $metadonnees['auto_apply'] = (bool) $data['auto_apply'];
+            }
+            $data['metadonnees'] = $metadonnees;
+
+            // Gérer les utilisations maximales
+            if (!empty($data['max_uses'])) {
+                $data['utilisationMaximaleTotale'] = (int) $data['max_uses'];
+            }
+            if (!empty($data['max_uses_per_user'])) {
+                $data['utilisationMaximaleParUtilisateur'] = (int) $data['max_uses_per_user'];
+            }
+
+            try {
+                $codePromotionnelService->create($data, $organizerProfile);
+                $this->addFlash('success', 'Code promo créé avec succès !');
+                return $this->redirectToRoute('organisateur_promotions_index');
+            } catch (\Exception $e) {
+                $this->addFlash('error', 'Erreur lors de la création du code promo : ' . $e->getMessage());
+            }
+        }
+
+        // Récupérer les événements en cours ou à venir de l'organisateur
+        $now = new \DateTime();
+        $events = $eventService->searchMultiCriteria([
+            'idOrganisateur' => $organizerProfile->getId(),
+            'dateFin' => null, // Pas de filtre sur la date de fin dans la recherche
+            'limit' => 1000,
+        ]);
+        
+        // Filtrer pour garder uniquement les événements en cours ou à venir
+        $upcomingEvents = array_filter($events, function($event) use ($now) {
+            // Un événement est en cours ou à venir si sa date de fin est dans le futur ou nulle
+            if ($event->getSeTermineLe() === null) {
+                // Si pas de date de fin, vérifier la date de début
+                return $event->getCommenceLe() === null || $event->getCommenceLe() >= $now;
+            }
+            return $event->getSeTermineLe() >= $now;
+        });
+
+        return $this->render('Organisateur/promotion/new.html.twig', [
+            'events' => $upcomingEvents,
+        ]);
+    }
+
+    #[Route('/{id}/edit', name: 'organisateur_promotions_edit', methods: ['GET', 'POST'])]
+    public function edit(
+        string $id,
+        Request $request,
+        CodePromotionnelService $codePromotionnelService,
+        OrganizerProfileRepository $organizerProfileRepository,
+        EventService $eventService
+    ): Response {
+        $user = $this->getUser();
+        if (!$user) {
+            throw $this->createAccessDeniedException('Vous devez être connecté pour accéder à cette page.');
+        }
+
+        // Récupérer le profil organisateur
+        $organizerProfile = $organizerProfileRepository->findOneBy(['utilisateur' => $user]);
+        if (!$organizerProfile) {
+            throw $this->createAccessDeniedException('Profil organisateur non trouvé.');
+        }
+
+        // Récupérer la promotion
+        $promotion = $codePromotionnelService->getById($id);
+        if (!$promotion) {
+            throw $this->createNotFoundException('Promotion non trouvée.');
+        }
+
+        // Vérifier que la promotion appartient à l'organisateur
+        if ($promotion->getProfilOrganisateur()?->getId() !== $organizerProfile->getId()) {
+            throw $this->createAccessDeniedException('Vous n\'avez pas accès à cette promotion.');
+        }
+
+        if ($request->isMethod('POST')) {
+            $data = $request->request->all();
+            
+            // Convertir les dates (format: Y-m-d H:i ou Y-m-d\TH:i)
+            if (!empty($data['start_date'])) {
+                $dateStr = str_replace(' ', 'T', $data['start_date']);
+                $data['commenceLe'] = new \DateTime($dateStr);
+            } elseif (isset($data['start_date']) && $data['start_date'] === '') {
+                $data['commenceLe'] = null;
+            }
+            if (!empty($data['end_date'])) {
+                $dateStr = str_replace(' ', 'T', $data['end_date']);
+                $data['seTermineLe'] = new \DateTime($dateStr);
+            }
+
+            // Convertir le type de promotion
+            $data['typePromotion'] = $data['discount_type'] === 'percentage' ? 'percent' : 'amount';
+            $data['valeur'] = $data['discount_value'] ?? 0;
+
+            // Gérer les métadonnées
+            $metadonnees = $promotion->getMetadonnees() ?? [];
+            if (isset($data['description'])) {
+                $metadonnees['description'] = $data['description'];
+            }
+            if (isset($data['events'])) {
+                $metadonnees['events'] = $data['events'];
+            }
+            if (isset($data['categories'])) {
+                $metadonnees['categories'] = $data['categories'];
+            }
+            if (isset($data['min_order'])) {
+                $metadonnees['min_order'] = $data['min_order'];
+            }
+            if (isset($data['first_purchase'])) {
+                $metadonnees['first_purchase'] = (bool) $data['first_purchase'];
+            }
+            if (isset($data['cumulative'])) {
+                $metadonnees['cumulative'] = (bool) $data['cumulative'];
+            }
+            if (isset($data['auto_apply'])) {
+                $metadonnees['auto_apply'] = (bool) $data['auto_apply'];
+            }
+            $data['metadonnees'] = $metadonnees;
+
+            // Gérer les utilisations maximales
+            if (!empty($data['max_uses'])) {
+                $data['utilisationMaximaleTotale'] = (int) $data['max_uses'];
+            } elseif (isset($data['max_uses']) && $data['max_uses'] === '') {
+                $data['utilisationMaximaleTotale'] = null;
+            }
+            if (!empty($data['max_uses_per_user'])) {
+                $data['utilisationMaximaleParUtilisateur'] = (int) $data['max_uses_per_user'];
+            }
+
+            try {
+                $codePromotionnelService->update($promotion, $data);
+                $this->addFlash('success', 'Code promo modifié avec succès !');
+                return $this->redirectToRoute('organisateur_promotions_index');
+            } catch (\Exception $e) {
+                $this->addFlash('error', 'Erreur lors de la modification du code promo : ' . $e->getMessage());
+            }
+        }
+
+        // Récupérer les événements en cours ou à venir de l'organisateur
+        $now = new \DateTime();
+        $events = $eventService->searchMultiCriteria([
+            'idOrganisateur' => $organizerProfile->getId(),
+            'dateFin' => null, // Pas de filtre sur la date de fin dans la recherche
+            'limit' => 1000,
+        ]);
+        
+        // Filtrer pour garder uniquement les événements en cours ou à venir
+        $upcomingEvents = array_filter($events, function($event) use ($now) {
+            // Un événement est en cours ou à venir si sa date de fin est dans le futur ou nulle
+            if ($event->getSeTermineLe() === null) {
+                // Si pas de date de fin, vérifier la date de début
+                return $event->getCommenceLe() === null || $event->getCommenceLe() >= $now;
+            }
+            return $event->getSeTermineLe() >= $now;
+        });
+
+        return $this->render('Organisateur/promotion/edit.html.twig', [
+            'promotion' => $promotion,
+            'events' => $upcomingEvents,
+        ]);
+    }
+
+    #[Route('/{id}/history', name: 'organisateur_promotions_history', methods: ['GET'])]
+    public function history(
+        string $id,
+        CodePromotionnelService $codePromotionnelService,
+        ApplicationPromotionService $applicationPromotionService,
+        OrganizerProfileRepository $organizerProfileRepository
+    ): Response {
+        $user = $this->getUser();
+        if (!$user) {
+            throw $this->createAccessDeniedException('Vous devez être connecté pour accéder à cette page.');
+        }
+
+        // Récupérer le profil organisateur
+        $organizerProfile = $organizerProfileRepository->findOneBy(['utilisateur' => $user]);
+        if (!$organizerProfile) {
+            throw $this->createAccessDeniedException('Profil organisateur non trouvé.');
+        }
+
+        // Récupérer la promotion
+        $promotion = $codePromotionnelService->getById($id);
+        if (!$promotion) {
+            throw $this->createNotFoundException('Promotion non trouvée.');
+        }
+
+        // Vérifier que la promotion appartient à l'organisateur
+        if ($promotion->getProfilOrganisateur()?->getId() !== $organizerProfile->getId()) {
+            throw $this->createAccessDeniedException('Vous n\'avez pas accès à cette promotion.');
+        }
+
+        // Récupérer l'historique des applications
+        $applications = $applicationPromotionService->getByPromotion($promotion);
+        $totalUtilisations = $codePromotionnelService->countUtilisations($promotion);
+        $totalRemise = $codePromotionnelService->getTotalRemise($promotion);
+
+        return $this->render('Organisateur/promotion/history.html.twig', [
+            'promotion' => $promotion,
+            'applications' => $applications,
+            'totalUtilisations' => $totalUtilisations,
+            'totalRemise' => $totalRemise,
+        ]);
+    }
+
+    #[Route('/{id}/delete', name: 'organisateur_promotions_delete', methods: ['POST'])]
+    public function delete(
+        string $id,
+        Request $request,
+        CodePromotionnelService $codePromotionnelService,
+        OrganizerProfileRepository $organizerProfileRepository,
+        CsrfTokenManagerInterface $csrfTokenManager
+    ): Response {
+        // Vérifier le token CSRF
+        $token = $request->request->get('_token');
+        if (!$csrfTokenManager->isTokenValid(new CsrfToken('delete_promotion', $token))) {
+            throw $this->createAccessDeniedException('Token CSRF invalide.');
+        }
+        $user = $this->getUser();
+        if (!$user) {
+            throw $this->createAccessDeniedException('Vous devez être connecté pour accéder à cette page.');
+        }
+
+        // Récupérer le profil organisateur
+        $organizerProfile = $organizerProfileRepository->findOneBy(['utilisateur' => $user]);
+        if (!$organizerProfile) {
+            throw $this->createAccessDeniedException('Profil organisateur non trouvé.');
+        }
+
+        // Récupérer la promotion
+        $promotion = $codePromotionnelService->getById($id);
+        if (!$promotion) {
+            throw $this->createNotFoundException('Promotion non trouvée.');
+        }
+
+        // Vérifier que la promotion appartient à l'organisateur
+        if ($promotion->getProfilOrganisateur()?->getId() !== $organizerProfile->getId()) {
+            throw $this->createAccessDeniedException('Vous n\'avez pas accès à cette promotion.');
+        }
+
+        try {
+            $codePromotionnelService->delete($promotion);
+            $this->addFlash('success', 'Code promo supprimé avec succès !');
+        } catch (\Exception $e) {
+            $this->addFlash('error', 'Erreur lors de la suppression du code promo : ' . $e->getMessage());
+        }
+
+        return $this->redirectToRoute('organisateur_promotions_index');
     }
 }
 
