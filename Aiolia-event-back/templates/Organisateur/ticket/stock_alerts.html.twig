@@ -28,30 +28,28 @@
         </div>
     </div>
 
-    <!-- Statistiques des alertes -->
+    <!-- Statistiques des alertes (toujours le total, même avec filtres) -->
     <div class="alerts-stats">
-        <div class="stat-card stat-card-animated" data-aos="fade-up" data-aos-delay="100">
+        <div class="stat-card">
             <div class="stat-icon" style="background: linear-gradient(135deg, var(--warning), #f39c12);">
                 <i class="fas fa-exclamation-triangle"></i>
-                <div class="pulse-ring"></div>
             </div>
             <div class="stat-content">
-                <h3 class="counter" data-target="12">0</h3>
+                <h3>{{ alertesTotal|length }}</h3>
                 <p>Alertes actives</p>
                 <div class="stat-trend">
-                    <i class="fas fa-arrow-up"></i>
-                    <span>+2 depuis hier</span>
+                    <i class="fas fa-info-circle"></i>
+                    <span>Total des alertes</span>
                 </div>
             </div>
         </div>
         
-        <div class="stat-card stat-card-animated" data-aos="fade-up" data-aos-delay="200">
+        <div class="stat-card">
             <div class="stat-icon" style="background: linear-gradient(135deg, var(--danger), #e74c3c);">
                 <i class="fas fa-fire"></i>
-                <div class="pulse-ring"></div>
             </div>
             <div class="stat-content">
-                <h3 class="counter" data-target="3">0</h3>
+                <h3>{{ alertesCritiques|length }}</h3>
                 <p>Stock critique</p>
                 <div class="stat-trend critical">
                     <i class="fas fa-exclamation"></i>
@@ -60,39 +58,37 @@
             </div>
         </div>
         
-        <div class="stat-card stat-card-animated" data-aos="fade-up" data-aos-delay="300">
-            <div class="stat-icon" style="background: linear-gradient(135deg, var(--info), #3498db);">
-                <i class="fas fa-clock"></i>
-                <div class="pulse-ring"></div>
+        <div class="stat-card">
+            <div class="stat-icon" style="background: linear-gradient(135deg, var(--warning), #f39c12);">
+                <i class="fas fa-exclamation-triangle"></i>
             </div>
             <div class="stat-content">
-                <h3 class="counter" data-target="5">0</h3>
-                <p>Rappels événements</p>
+                <h3>{{ alertesAttention|length }}</h3>
+                <p>Attention</p>
                 <div class="stat-trend">
                     <i class="fas fa-bell"></i>
-                    <span>Prochains 7 jours</span>
+                    <span>Surveillance nécessaire</span>
                 </div>
             </div>
         </div>
         
-        <div class="stat-card stat-card-animated" data-aos="fade-up" data-aos-delay="400">
+        <div class="stat-card">
             <div class="stat-icon" style="background: linear-gradient(135deg, var(--success), #27ae60);">
                 <i class="fas fa-check-circle"></i>
-                <div class="pulse-ring"></div>
             </div>
             <div class="stat-content">
-                <h3 class="counter" data-target="24">0</h3>
-                <p>Résolues aujourd'hui</p>
+                <h3>{{ alertesTotal|length == 0 ? 1 : 0 }}</h3>
+                <p>Aucune alerte</p>
                 <div class="stat-trend success">
-                    <i class="fas fa-arrow-up"></i>
-                    <span>+8 vs hier</span>
+                    <i class="fas fa-check"></i>
+                    <span>Tout va bien</span>
                 </div>
             </div>
         </div>
     </div>
 
     <!-- Filtres des alertes -->
-    <div class="alerts-filters" data-aos="fade-up" data-aos-delay="500">
+    <div class="alerts-filters">
         <div class="filters-header">
             <h3>
                 <i class="fas fa-filter"></i>
@@ -107,65 +103,72 @@
         <div class="filters-content">
             <div class="filter-group">
                 <label>
-                    <i class="fas fa-tag"></i>
-                    Type d'alerte
-                </label>
-                <select class="filter-select">
-                    <option value="all">Toutes les alertes</option>
-                    <option value="stock">Stock bas</option>
-                    <option value="reminder">Rappels</option>
-                    <option value="system">Système</option>
-                </select>
-            </div>
-            
-            <div class="filter-group">
-                <label>
                     <i class="fas fa-exclamation-circle"></i>
-                    Priorité
+                    Niveau
                 </label>
-                <select class="filter-select">
-                    <option value="all">Toutes</option>
-                    <option value="critical">Critique</option>
-                    <option value="warning">Attention</option>
-                    <option value="info">Information</option>
+                <select id="filterNiveau" class="filter-select">
+                    <option value="">Tous les niveaux</option>
+                    <option value="critique" {% if niveauFilter == 'critique' %}selected{% endif %}>Critique</option>
+                    <option value="attention" {% if niveauFilter == 'attention' %}selected{% endif %}>Attention</option>
                 </select>
             </div>
             
             <div class="filter-group">
                 <label>
-                    <i class="fas fa-eye"></i>
-                    Statut
+                    <i class="fas fa-tag"></i>
+                    Catégorie
                 </label>
-                <select class="filter-select">
-                    <option value="all">Toutes</option>
-                    <option value="unread">Non lues</option>
-                    <option value="read">Lues</option>
+                <select id="filterCategorie" class="filter-select">
+                    <option value="">Toutes les catégories</option>
+                    {% for categorieNom in categories %}
+                        <option value="{{ categorieNom }}" {% if categorieFilter == categorieNom %}selected{% endif %}>
+                            {{ categorieNom|capitalize }}
+                        </option>
+                    {% endfor %}
                 </select>
             </div>
             
             <div class="filter-group">
                 <label>
-                    <i class="fas fa-search"></i>
-                    Recherche
+                    <i class="fas fa-user"></i>
+                    Segment d'âge
                 </label>
-                <input type="text" class="filter-search" placeholder="Rechercher dans les alertes...">
+                <select id="filterSegment" class="filter-select">
+                    <option value="">Tous les segments</option>
+                    {% for segmentNom in segments %}
+                        <option value="{{ segmentNom }}" {% if segmentFilter == segmentNom %}selected{% endif %}>
+                            {{ segmentNom|capitalize }}
+                        </option>
+                    {% endfor %}
+                </select>
             </div>
         </div>
     </div>
 
     <!-- Liste des alertes -->
     <div class="alerts-container">
+        {% if alertes is empty %}
+            <div style="text-align: center; padding: 60px; color: var(--gray-600);">
+                <i class="fas fa-check-circle" style="font-size: 4rem; margin-bottom: 16px; display: block; color: var(--success); opacity: 0.5;"></i>
+                <h3 style="color: var(--success); margin-bottom: 8px;">Aucune alerte</h3>
+                <p>Tous vos stocks sont à un niveau acceptable.</p>
+            </div>
+        {% else %}
+            {% if alertesCritiquesPaginated|length > 0 %}
         <div class="alerts-section">
             <h3 class="section-title">
                 <i class="fas fa-exclamation-triangle" style="color: var(--danger);"></i>
                 Alertes critiques
             </h3>
             
-            <div class="alert-item alert-critical" data-aos="fade-right" data-aos-delay="600">
+                    {% for alerte in alertesCritiquesPaginated %}
+                        {% set typeBillet = alerte.typeBillet %}
+                        {% set inventaire = alerte.inventaire %}
+                        {% set evenement = typeBillet.evenement %}
+                        <div class="alert-item alert-critical">
                 <div class="alert-status">
                     <div class="alert-icon">
                         <i class="fas fa-fire"></i>
-                        <div class="alert-pulse"></div>
                     </div>
                     <div class="alert-priority">
                         <span class="priority-badge critical">
@@ -177,101 +180,62 @@
                 
                 <div class="alert-content">
                     <div class="alert-header">
-                        <h4>Concert Rock Nation - Billets VIP</h4>
-                        <span class="alert-time">Il y a 2 minutes</span>
+                                    <h4>{{ evenement ? evenement.titre : 'N/A' }} - {{ typeBillet.nom }}</h4>
+                                    <span class="alert-time">Stock bas</span>
                     </div>
                     <p class="alert-description">
-                        Stock critique : seulement 3 billets VIP restants sur 50 (6%)
+                                    Stock critique : seulement {{ alerte.quantiteRestante }} billet(s) restant(s) sur {{ inventaire.quantiteTotale }} ({{ alerte.pourcentage|number_format(1) }}%)
                     </p>
                     <div class="alert-details">
+                                    {% if evenement %}
+                                        {% if evenement.commenceLe %}
                         <span class="detail-item">
                             <i class="fas fa-calendar"></i>
-                            Événement : 15 Mars 2024
+                                                Événement : {{ evenement.commenceLe|date('d M Y') }}
                         </span>
+                                        {% endif %}
+                                        {% if evenement.lieu %}
                         <span class="detail-item">
                             <i class="fas fa-map-marker-alt"></i>
-                            Paris, Zénith
+                                                {{ evenement.lieu.nom }}
                         </span>
+                                        {% endif %}
+                                    {% endif %}
                         <span class="detail-item">
                             <i class="fas fa-euro-sign"></i>
-                            Prix : 89€
+                                        Prix : {{ typeBillet.prixDeBase|number_format(2, ',', ' ') }} {{ typeBillet.devise }}
                         </span>
                     </div>
                 </div>
                 
                 <div class="alert-actions">
-                    <button class="btn btn-sm btn-primary">
+                                {% if evenement %}
+                                    <a href="{{ path('organisateur_events_show', { id: evenement.id }) }}" class="btn btn-sm btn-primary">
                         <i class="fas fa-eye"></i>
                         Voir l'événement
-                    </button>
+                                    </a>
+                                {% endif %}
                     <button class="btn btn-sm btn-secondary">
                         <i class="fas fa-edit"></i>
                         Modifier stock
                     </button>
-                    <button class="btn btn-sm btn-success">
-                        <i class="fas fa-check"></i>
-                        Marquer comme lu
-                    </button>
                 </div>
             </div>
+                    {% endfor %}
+                    </div>
+            {% endif %}
             
-            <div class="alert-item alert-critical">
-                <div class="alert-status">
-                    <div class="alert-icon">
-                        <i class="fas fa-exclamation-circle"></i>
-                    </div>
-                    <div class="alert-priority">
-                        <span class="priority-badge critical">CRITIQUE</span>
-                    </div>
-                </div>
-                
-                <div class="alert-content">
-                    <div class="alert-header">
-                        <h4>Festival Summer Vibes - Pass 3 jours</h4>
-                        <span class="alert-time">Il y a 15 minutes</span>
-                    </div>
-                    <p class="alert-description">
-                        Plus que 5 billets disponibles ! Vente en cours depuis 2h
-                    </p>
-                    <div class="alert-details">
-                        <span class="detail-item">
-                            <i class="fas fa-calendar"></i>
-                            Événement : 20-22 Juillet 2024
-                        </span>
-                        <span class="detail-item">
-                            <i class="fas fa-map-marker-alt"></i>
-                            Nice, Parc Phoenix
-                        </span>
-                        <span class="detail-item">
-                            <i class="fas fa-euro-sign"></i>
-                            Prix : 149€
-                        </span>
-                    </div>
-                </div>
-                
-                <div class="alert-actions">
-                    <button class="btn btn-sm btn-primary">
-                        <i class="fas fa-eye"></i>
-                        Voir l'événement
-                    </button>
-                    <button class="btn btn-sm btn-secondary">
-                        <i class="fas fa-edit"></i>
-                        Modifier stock
-                    </button>
-                    <button class="btn btn-sm btn-success">
-                        <i class="fas fa-check"></i>
-                        Marquer comme lu
-                    </button>
-                </div>
-            </div>
-        </div>
-        
+            {% if alertesAttentionPaginated|length > 0 %}
         <div class="alerts-section">
             <h3 class="section-title">
                 <i class="fas fa-exclamation-triangle" style="color: var(--warning);"></i>
                 Alertes d'attention
             </h3>
             
+                    {% for alerte in alertesAttentionPaginated %}
+                        {% set typeBillet = alerte.typeBillet %}
+                        {% set inventaire = alerte.inventaire %}
+                        {% set evenement = typeBillet.evenement %}
             <div class="alert-item alert-warning">
                 <div class="alert-status">
                     <div class="alert-icon">
@@ -284,101 +248,152 @@
                 
                 <div class="alert-content">
                     <div class="alert-header">
-                        <h4>Conférence Tech Summit - Standard</h4>
-                        <span class="alert-time">Il y a 1 heure</span>
+                                    <h4>{{ evenement ? evenement.titre : 'N/A' }} - {{ typeBillet.nom }}</h4>
+                                    <span class="alert-time">Surveillance requise</span>
                     </div>
                     <p class="alert-description">
-                        Stock bas : 25 billets restants sur 200 (12.5%)
+                                    Stock bas : {{ alerte.quantiteRestante }} billet(s) restant(s) sur {{ inventaire.quantiteTotale }} ({{ alerte.pourcentage|number_format(1) }}%)
                     </p>
                     <div class="alert-details">
+                                    {% if evenement %}
+                                        {% if evenement.commenceLe %}
                         <span class="detail-item">
                             <i class="fas fa-calendar"></i>
-                            Événement : 10 Avril 2024
+                                                Événement : {{ evenement.commenceLe|date('d M Y') }}
                         </span>
+                                        {% endif %}
+                                        {% if evenement.lieu %}
                         <span class="detail-item">
                             <i class="fas fa-map-marker-alt"></i>
-                            Lyon, Centre de Congrès
+                                                {{ evenement.lieu.nom }}
                         </span>
+                                        {% endif %}
+                                    {% endif %}
                         <span class="detail-item">
                             <i class="fas fa-euro-sign"></i>
-                            Prix : 45€
+                                        Prix : {{ typeBillet.prixDeBase|number_format(2, ',', ' ') }} {{ typeBillet.devise }}
                         </span>
                     </div>
                 </div>
                 
                 <div class="alert-actions">
-                    <button class="btn btn-sm btn-primary">
+                                {% if evenement %}
+                                    <a href="{{ path('organisateur_events_show', { id: evenement.id }) }}" class="btn btn-sm btn-primary">
                         <i class="fas fa-eye"></i>
                         Voir l'événement
-                    </button>
+                                    </a>
+                                {% endif %}
                     <button class="btn btn-sm btn-secondary">
                         <i class="fas fa-edit"></i>
                         Modifier stock
                     </button>
-                    <button class="btn btn-sm btn-success">
-                        <i class="fas fa-check"></i>
-                        Marquer comme lu
-                    </button>
                 </div>
             </div>
+                    {% endfor %}
         </div>
-        
-        <div class="alerts-section">
-            <h3 class="section-title">
-                <i class="fas fa-info-circle" style="color: var(--info);"></i>
-                Rappels et informations
-            </h3>
-            
-            <div class="alert-item alert-info">
-                <div class="alert-status">
-                    <div class="alert-icon">
-                        <i class="fas fa-clock"></i>
-                    </div>
-                    <div class="alert-priority">
-                        <span class="priority-badge info">RAPPEL</span>
-                    </div>
+            {% endif %}
+        {% endif %}
+
+        <!-- Pagination -->
+        {% if totalPages > 1 %}
+            {% set maxPagesToShow = 5 %}
+            {% set startPage = currentPage - 2 %}
+            {% if startPage < 1 %}
+                {% set startPage = 1 %}
+            {% endif %}
+            {% set endPage = startPage + maxPagesToShow - 1 %}
+            {% if endPage > totalPages %}
+                {% set endPage = totalPages %}
+            {% endif %}
+            {% set startPage = endPage - maxPagesToShow + 1 %}
+            {% if startPage < 1 %}
+                {% set startPage = 1 %}
+            {% endif %}
+
+            <div class="pagination-wrapper" style="margin-top: 2rem;">
+                <ul class="pagination pagination-rounded">
+                    <li class="page-item {{ currentPage == 1 ? 'disabled' }}">
+                        {% if currentPage == 1 %}
+                            <span class="page-link" aria-disabled="true">Précédent</span>
+                        {% else %}
+                            <a class="page-link" href="{{ path('app_ticket_stock_alerts', { 
+                                page: currentPage - 1,
+                                niveau: niveauFilter|default(''),
+                                categorie: categorieFilter|default(''),
+                                segment: segmentFilter|default('')
+                            }) }}" rel="prev">Précédent</a>
+                        {% endif %}
+                    </li>
+
+                    {% if startPage > 1 %}
+                        <li class="page-item">
+                            <a class="page-link" href="{{ path('app_ticket_stock_alerts', { 
+                                page: 1,
+                                niveau: niveauFilter|default(''),
+                                categorie: categorieFilter|default(''),
+                                segment: segmentFilter|default('')
+                            }) }}">1</a>
+                        </li>
+                        {% if startPage > 2 %}
+                            <li class="page-item ellipsis" aria-hidden="true"><span class="page-link">…</span></li>
+                        {% endif %}
+                    {% endif %}
+
+                    {% for page in startPage..endPage %}
+                        <li class="page-item {{ page == currentPage ? 'active' }}">
+                            {% if page == currentPage %}
+                                <span class="page-link" aria-current="page">{{ page }}</span>
+                            {% else %}
+                                <a class="page-link" href="{{ path('app_ticket_stock_alerts', { 
+                                    page: page,
+                                    niveau: niveauFilter|default(''),
+                                    categorie: categorieFilter|default(''),
+                                    segment: segmentFilter|default('')
+                                }) }}">{{ page }}</a>
+                            {% endif %}
+                        </li>
+                    {% endfor %}
+
+                    {% if endPage < totalPages %}
+                        {% if endPage < totalPages - 1 %}
+                            <li class="page-item ellipsis" aria-hidden="true"><span class="page-link">…</span></li>
+                        {% endif %}
+                        <li class="page-item">
+                            <a class="page-link" href="{{ path('app_ticket_stock_alerts', { 
+                                page: totalPages,
+                                niveau: niveauFilter|default(''),
+                                categorie: categorieFilter|default(''),
+                                segment: segmentFilter|default('')
+                            }) }}">{{ totalPages }}</a>
+                        </li>
+                    {% endif %}
+
+                    <li class="page-item {{ currentPage == totalPages ? 'disabled' }}">
+                        {% if currentPage == totalPages %}
+                            <span class="page-link" aria-disabled="true">Suivant</span>
+                        {% else %}
+                            <a class="page-link" href="{{ path('app_ticket_stock_alerts', { 
+                                page: currentPage + 1,
+                                niveau: niveauFilter|default(''),
+                                categorie: categorieFilter|default(''),
+                                segment: segmentFilter|default('')
+                            }) }}" rel="next">Suivant</a>
+                        {% endif %}
+                    </li>
+                </ul>
                 </div>
-                
-                <div class="alert-content">
-                    <div class="alert-header">
-                        <h4>Rappel : Concert Jazz Night dans 2 jours</h4>
-                        <span class="alert-time">Il y a 3 heures</span>
-                    </div>
-                    <p class="alert-description">
-                        N'oubliez pas de préparer les derniers détails pour votre événement
-                    </p>
-                    <div class="alert-details">
-                        <span class="detail-item">
-                            <i class="fas fa-calendar"></i>
-                            Événement : 18 Mars 2024
-                        </span>
-                        <span class="detail-item">
-                            <i class="fas fa-map-marker-alt"></i>
-                            Marseille, Opéra
-                        </span>
-                        <span class="detail-item">
-                            <i class="fas fa-ticket-alt"></i>
-                            127 billets vendus
-                        </span>
-                    </div>
-                </div>
-                
-                <div class="alert-actions">
-                    <button class="btn btn-sm btn-primary">
-                        <i class="fas fa-eye"></i>
-                        Voir l'événement
-                    </button>
-                    <button class="btn btn-sm btn-secondary">
-                        <i class="fas fa-cog"></i>
-                        Paramètres
-                    </button>
-                    <button class="btn btn-sm btn-success">
-                        <i class="fas fa-check"></i>
-                        Marquer comme lu
-                    </button>
-                </div>
+            <div class="pagination-summary" style="text-align: center; margin-top: 0.75rem; color: var(--text-secondary); font-size: 0.9rem;">
+                {% set startItem = ((currentPage - 1) * limit) + 1 %}
+                {% set endItem = min(currentPage * limit, totalItems) %}
+                <small>Page {{ currentPage }} sur {{ totalPages }} - Affichage de {{ startItem }} à {{ endItem }} sur {{ totalItems }} alerte(s)</small>
             </div>
+        {% elseif totalItems > 0 %}
+            <div class="pagination-wrapper" style="margin-top: 2rem;">
+                <div class="pagination-summary" style="text-align: center; color: var(--text-secondary); font-size: 0.9rem;">
+                    <small>Affichage de {{ totalItems }} alerte(s)</small>
         </div>
+            </div>
+        {% endif %}
     </div>
 </div>
 
@@ -391,64 +406,11 @@
     margin-bottom: 30px;
 }
 
-/* Animations des cartes de statistiques */
-.stat-card-animated {
-    position: relative;
-    overflow: hidden;
-    transition: all 0.3s ease;
-    transform: translateY(0);
-}
-
-.stat-card-animated:hover {
-    transform: translateY(-5px);
-    box-shadow: 0 15px 35px rgba(0,0,0,0.1);
-}
-
-.stat-card-animated::before {
-    content: '';
-    position: absolute;
-    top: 0;
-    left: -100%;
-    width: 100%;
-    height: 100%;
-    background: linear-gradient(90deg, transparent, rgba(255,255,255,0.2), transparent);
-    transition: left 0.5s;
-}
-
-.stat-card-animated:hover::before {
-    left: 100%;
-}
-
-/* Effet de pulsation pour les icônes critiques */
-.pulse-ring {
-    position: absolute;
-    top: 50%;
-    left: 50%;
-    transform: translate(-50%, -50%);
-    width: 60px;
-    height: 60px;
-    border: 2px solid rgba(231, 76, 60, 0.3);
-    border-radius: 50%;
-    animation: pulse 2s infinite;
-}
-
-@keyframes pulse {
-    0% {
-        transform: translate(-50%, -50%) scale(0.8);
-        opacity: 1;
-    }
-    100% {
-        transform: translate(-50%, -50%) scale(1.2);
-        opacity: 0;
-    }
-}
-
-/* Compteurs animés */
-.counter {
+/* Styles des cartes de statistiques */
+.stat-card h3 {
     font-size: 2.5rem;
     font-weight: var(--font-weight-bold);
     color: var(--text-primary);
-    transition: all 0.3s ease;
 }
 
 .stat-trend {
@@ -624,28 +586,6 @@
     overflow: hidden;
 }
 
-.alert-pulse {
-    position: absolute;
-    top: 50%;
-    left: 50%;
-    transform: translate(-50%, -50%);
-    width: 100%;
-    height: 100%;
-    border-radius: 50%;
-    background: rgba(255, 255, 255, 0.3);
-    animation: alertPulse 1.5s infinite;
-}
-
-@keyframes alertPulse {
-    0% {
-        transform: translate(-50%, -50%) scale(0.8);
-        opacity: 1;
-    }
-    100% {
-        transform: translate(-50%, -50%) scale(1.4);
-        opacity: 0;
-    }
-}
 
 .alert-critical .alert-icon {
     background: var(--danger);
@@ -669,16 +609,6 @@
     display: flex;
     align-items: center;
     gap: 4px;
-    animation: badgeGlow 2s infinite;
-}
-
-@keyframes badgeGlow {
-    0%, 100% {
-        box-shadow: 0 0 5px rgba(231, 76, 60, 0.3);
-    }
-    50% {
-        box-shadow: 0 0 15px rgba(231, 76, 60, 0.6);
-    }
 }
 
 .priority-badge.critical {
@@ -800,211 +730,126 @@
         gap: 8px;
     }
 }
+
+/* Pagination */
+.pagination-wrapper {
+    display: flex;
+    justify-content: center;
+    margin-top: 1rem;
+}
+
+.pagination {
+    list-style: none;
+    padding: 0;
+    margin: 0;
+    display: inline-flex;
+    align-items: center;
+    gap: 0.35rem;
+}
+
+.pagination-rounded .page-link {
+    border-radius: 999px !important;
+}
+
+.pagination .page-item.disabled .page-link {
+    pointer-events: none;
+    opacity: 0.5;
+}
+
+.pagination .page-item.active .page-link {
+    background: var(--accent);
+    border-color: var(--accent);
+    color: var(--text-inverse);
+    font-weight: var(--font-weight-medium);
+}
+
+.pagination .page-link {
+    border-radius: var(--border-radius-sm);
+    border: 1px solid var(--border-color);
+    padding: 6px 14px;
+    color: var(--text-secondary);
+    background: var(--bg-secondary);
+    transition: var(--transition-base);
+    text-decoration: none;
+}
+
+.pagination .page-link:hover {
+    color: var(--accent);
+    border-color: var(--accent);
+}
+
+.pagination .ellipsis .page-link {
+    border: none;
+    background: transparent;
+    color: var(--text-secondary);
+}
+
+.pagination-summary {
+    text-align: center;
+    margin-top: 0.75rem;
+    color: var(--text-secondary);
+    font-size: 0.9rem;
+}
 </style>
 
 <script>
 document.addEventListener('DOMContentLoaded', function() {
-    // Animation des compteurs
-    function animateCounters() {
-        const counters = document.querySelectorAll('.counter');
-        counters.forEach(counter => {
-            const target = parseInt(counter.getAttribute('data-target'));
-            const duration = 2000; // 2 secondes
-            const increment = target / (duration / 16); // 60fps
-            let current = 0;
-            
-            const timer = setInterval(() => {
-                current += increment;
-                if (current >= target) {
-                    current = target;
-                    clearInterval(timer);
-                }
-                counter.textContent = Math.floor(current);
-            }, 16);
-        });
+    // Gestion des filtres
+    function updateFilters() {
+        const url = new URL(window.location.href);
+        const selectedNiveau = document.getElementById('filterNiveau')?.value || '';
+        const selectedCategorie = document.getElementById('filterCategorie')?.value || '';
+        const selectedSegment = document.getElementById('filterSegment')?.value || '';
+        
+        if (selectedNiveau) {
+            url.searchParams.set('niveau', selectedNiveau);
+        } else {
+            url.searchParams.delete('niveau');
+        }
+        
+        if (selectedCategorie) {
+            url.searchParams.set('categorie', selectedCategorie);
+        } else {
+            url.searchParams.delete('categorie');
+        }
+        
+        if (selectedSegment) {
+            url.searchParams.set('segment', selectedSegment);
+        } else {
+            url.searchParams.delete('segment');
+        }
+        
+        url.searchParams.delete('page'); // Réinitialiser à la page 1 lors du changement de filtre
+        
+        window.location.href = url.toString();
     }
     
-    // Délai pour l'animation des compteurs
-    setTimeout(animateCounters, 500);
-    
-    // Gestion des filtres
     const clearFiltersBtn = document.getElementById('clearFilters');
-    const filterSelects = document.querySelectorAll('.filter-select');
-    const filterSearch = document.querySelector('.filter-search');
+    const filterNiveau = document.getElementById('filterNiveau');
+    const filterCategorie = document.getElementById('filterCategorie');
+    const filterSegment = document.getElementById('filterSegment');
     
     if (clearFiltersBtn) {
         clearFiltersBtn.addEventListener('click', function() {
-            filterSelects.forEach(select => {
-                select.selectedIndex = 0;
-            });
-            if (filterSearch) {
-                filterSearch.value = '';
-            }
+            if (filterNiveau) filterNiveau.selectedIndex = 0;
+            if (filterCategorie) filterCategorie.selectedIndex = 0;
+            if (filterSegment) filterSegment.selectedIndex = 0;
+            updateFilters();
         });
     }
     
-    // Animation des cartes d'alertes au scroll
-    const observerOptions = {
-        threshold: 0.1,
-        rootMargin: '0px 0px -50px 0px'
-    };
-    
-    const observer = new IntersectionObserver((entries) => {
-        entries.forEach(entry => {
-            if (entry.isIntersecting) {
-                entry.target.style.opacity = '1';
-                entry.target.style.transform = 'translateX(0)';
-            }
-        });
-    }, observerOptions);
-    
-    // Observer toutes les cartes d'alertes
-    const alertItems = document.querySelectorAll('.alert-item');
-    alertItems.forEach((item, index) => {
-        item.style.opacity = '0';
-        item.style.transform = 'translateX(-30px)';
-        item.style.transition = `all 0.6s ease ${index * 0.1}s`;
-        observer.observe(item);
-    });
-    
-    // Effet de survol sur les cartes de stats
-    const statCards = document.querySelectorAll('.stat-card-animated');
-    statCards.forEach(card => {
-        card.addEventListener('mouseenter', function() {
-            this.style.transform = 'translateY(-8px) scale(1.02)';
-        });
-        
-        card.addEventListener('mouseleave', function() {
-            this.style.transform = 'translateY(0) scale(1)';
-        });
-    });
-    
-    // Animation des boutons d'action
-    const actionButtons = document.querySelectorAll('.alert-actions .btn');
-    actionButtons.forEach(button => {
-        button.addEventListener('click', function(e) {
-            e.preventDefault();
-            
-            // Effet de clic
-            this.style.transform = 'scale(0.95)';
-            setTimeout(() => {
-                this.style.transform = 'scale(1)';
-            }, 150);
-            
-            // Simulation d'action
-            const originalText = this.innerHTML;
-            this.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Traitement...';
-            this.disabled = true;
-            
-            setTimeout(() => {
-                this.innerHTML = originalText;
-                this.disabled = false;
-                
-                // Ajouter un effet de succès
-                this.style.background = 'var(--success)';
-                this.style.borderColor = 'var(--success)';
-                setTimeout(() => {
-                    this.style.background = '';
-                    this.style.borderColor = '';
-                }, 1000);
-            }, 1500);
-        });
-    });
-    
-    // Auto-refresh des alertes (simulation)
-    const refreshBtn = document.getElementById('refreshAlerts');
-    if (refreshBtn) {
-        refreshBtn.addEventListener('click', function() {
-            this.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Actualisation...';
-            this.disabled = true;
-            
-            setTimeout(() => {
-                this.innerHTML = '<i class="fas fa-sync-alt"></i> Actualiser';
-                this.disabled = false;
-                
-                // Animation de rafraîchissement
-                const alertItems = document.querySelectorAll('.alert-item');
-                alertItems.forEach((item, index) => {
-                    item.style.animation = 'none';
-                    setTimeout(() => {
-                        item.style.animation = `fadeInUp 0.5s ease ${index * 0.1}s`;
-                    }, 10);
-                });
-            }, 2000);
-        });
+    if (filterNiveau) {
+        filterNiveau.addEventListener('change', updateFilters);
     }
     
-    // Marquer toutes les alertes comme lues
-    const markAllReadBtn = document.getElementById('markAllRead');
-    if (markAllReadBtn) {
-        markAllReadBtn.addEventListener('click', function() {
-            const alertItems = document.querySelectorAll('.alert-item');
-            alertItems.forEach((item, index) => {
-                setTimeout(() => {
-                    item.style.opacity = '0.6';
-                    item.style.transform = 'scale(0.98)';
-                    
-                    // Ajouter un indicateur "lu"
-                    const readIndicator = document.createElement('div');
-                    readIndicator.className = 'read-indicator';
-                    readIndicator.innerHTML = '<i class="fas fa-check"></i> Lu';
-                    readIndicator.style.cssText = `
-                        position: absolute;
-                        top: 10px;
-                        right: 10px;
-                        background: var(--success);
-                        color: white;
-                        padding: 4px 8px;
-                        border-radius: 4px;
-                        font-size: 0.7rem;
-                        opacity: 0;
-                        transform: translateY(-10px);
-                        transition: all 0.3s ease;
-                    `;
-                    
-                    item.style.position = 'relative';
-                    item.appendChild(readIndicator);
-                    
-                    setTimeout(() => {
-                        readIndicator.style.opacity = '1';
-                        readIndicator.style.transform = 'translateY(0)';
-                    }, 100);
-                }, index * 100);
-            });
-        });
+    if (filterCategorie) {
+        filterCategorie.addEventListener('change', updateFilters);
+    }
+    
+    if (filterSegment) {
+        filterSegment.addEventListener('change', updateFilters);
     }
 });
-
-// CSS pour les animations
-const style = document.createElement('style');
-style.textContent = `
-    @keyframes fadeInUp {
-        from {
-            opacity: 0;
-            transform: translateY(20px);
-        }
-        to {
-            opacity: 1;
-            transform: translateY(0);
-        }
-    }
-    
-    .read-indicator {
-        animation: slideInRight 0.3s ease;
-    }
-    
-    @keyframes slideInRight {
-        from {
-            opacity: 0;
-            transform: translateX(20px);
-        }
-        to {
-            opacity: 1;
-            transform: translateX(0);
-        }
-    }
-`;
-document.head.appendChild(style);
 </script>
 {% endblock %}
 

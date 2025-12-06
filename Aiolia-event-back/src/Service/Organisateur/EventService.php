@@ -11,6 +11,7 @@ use App\Entity\OrganizerProfile;
 use App\Entity\User;
 use App\Entity\Venue;
 use App\Repository\Organisateur\EventRepository;
+use App\Repository\Organisateur\BilletRepository;
 use App\Service\Organisateur\EventTypeService;
 use App\Service\Organisateur\EspaceLieuService;
 use Doctrine\ORM\EntityManagerInterface;
@@ -23,7 +24,8 @@ class EventService
         private EventRepository $eventRepository,
         private EventTypeService $eventTypeService,
         private EspaceLieuService $espaceLieuService,
-        private SluggerInterface $slugger
+        private SluggerInterface $slugger,
+        private BilletRepository $billetRepository
     ) {
     }
 
@@ -401,7 +403,12 @@ class EventService
      */
     public function getEventStatistics(Event $event): array
     {
-        return $this->eventRepository->getEventStatistics($event);
+        $baseStats = $this->eventRepository->getEventStatistics($event);
+        $salesEvolution = $this->billetRepository->getSalesEvolutionByEvent($event);
+
+        return array_merge($baseStats, [
+            'salesEvolution' => $salesEvolution,
+        ]);
     }
 
     /**

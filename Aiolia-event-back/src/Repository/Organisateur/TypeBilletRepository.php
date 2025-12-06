@@ -4,7 +4,9 @@ namespace App\Repository\Organisateur;
 
 use App\Entity\Event;
 use App\Entity\TypeBillet;
+use App\Entity\User;
 use Doctrine\Bundle\DoctrineBundle\Repository\ServiceEntityRepository;
+use Doctrine\ORM\Tools\Pagination\Paginator;
 use Doctrine\Persistence\ManagerRegistry;
 
 /**
@@ -77,6 +79,60 @@ class TypeBilletRepository extends ServiceEntityRepository
     {
         $this->getEntityManager()->remove($typeBillet);
         $this->getEntityManager()->flush();
+    }
+
+    /**
+     * Récupère tous les types de billets pour un organisateur (via ses événements)
+     */
+    public function findByOrganizer(User $organizer): array
+    {
+        return $this->createQueryBuilder('t')
+            ->innerJoin('t.evenement', 'e')
+            ->leftJoin('e.profilOrganisateur', 'op')
+            ->leftJoin('App\Entity\OrganisateurEvenement', 'oe', 'WITH', 'oe.evenement = e')
+            ->leftJoin('oe.profilOrganisateur', 'op2')
+            ->where('op.utilisateur = :organizer OR op2.utilisateur = :organizer')
+            ->setParameter('organizer', $organizer)
+            ->orderBy('t.creeLe', 'DESC')
+            ->getQuery()
+            ->getResult();
+    }
+
+    /**
+     * Récupère tous les types de billets pour un organisateur avec pagination
+     *
+     * @param User $organizer
+     * @param int $page Numéro de page (commence à 1)
+     * @param int $limit Nombre d'éléments par page
+     * @param string|null $categorieFilter ID de la catégorie pour filtrer (optionnel)
+     * @param string|null $segmentFilter ID du segment pour filtrer (optionnel)
+     * @return Paginator
+     */
+    public function findByOrganizerPaginated(User $organizer, int $page = 1, int $limit = 6, ?string $categorieFilter = null, ?string $segmentFilter = null): Paginator
+    {
+        $qb = $this->createQueryBuilder('t')
+            ->innerJoin('t.evenement', 'e')
+            ->leftJoin('e.profilOrganisateur', 'op')
+            ->leftJoin('App\Entity\OrganisateurEvenement', 'oe', 'WITH', 'oe.evenement = e')
+            ->leftJoin('oe.profilOrganisateur', 'op2')
+            ->where('op.utilisateur = :organizer OR op2.utilisateur = :organizer')
+            ->setParameter('organizer', $organizer);
+
+        if ($categorieFilter) {
+            $qb->andWhere('t.configurationCategorie = :categorie')
+               ->setParameter('categorie', $categorieFilter);
+        }
+
+        if ($segmentFilter) {
+            $qb->andWhere('t.configurationSegment = :segment')
+               ->setParameter('segment', $segmentFilter);
+        }
+
+        $qb->orderBy('t.creeLe', 'DESC')
+           ->setFirstResult(($page - 1) * $limit)
+           ->setMaxResults($limit);
+
+        return new Paginator($qb, true);
     }
 }
 

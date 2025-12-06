@@ -1,0 +1,409 @@
+{% extends 'base.html.twig' %}
+
+{% block title %}Détails du billet - Aiolia Event{% endblock %}
+
+{% block body %}
+<div class="dashboard">
+    <div class="dashboard-header">
+        <div>
+            <h1><i class="fas fa-ticket-alt"></i> Détails du billet #TKT-{{ billet.id|slice(-6) }}</h1>
+            <p style="color: var(--gray-600); margin-top: 8px; font-size: 1rem;">
+                Informations complètes et QR code du billet
+            </p>
+        </div>
+        <div class="header-actions">
+            <a href="{{ path('organisateur_tickets_index') }}" class="btn-header">
+                <i class="fas fa-arrow-left"></i>
+                <span>Retour à la liste</span>
+            </a>
+        </div>
+    </div>
+
+    <div class="ticket-details-container">
+        <div class="ticket-details-grid">
+            <!-- Informations du billet -->
+            <div class="card validation-card">
+                <div class="card-header">
+                    <h3><i class="fas fa-info-circle"></i> Informations du billet</h3>
+                </div>
+                <div class="card-body">
+                    <div class="detail-row">
+                        <div class="detail-label">
+                            <i class="fas fa-hashtag"></i>
+                            Code billet
+                        </div>
+                        <div class="detail-value">
+                            #TKT-{{ billet.id|slice(-6) }}
+                        </div>
+                    </div>
+                    
+                    <div class="detail-row">
+                        <div class="detail-label">
+                            <i class="fas fa-calendar-check"></i>
+                            Statut
+                        </div>
+                        <div class="detail-value">
+                            {% if billet.statut == 'valid' %}
+                                <span class="badge status-badge status-pending">En attente</span>
+                            {% elseif billet.statut == 'used' %}
+                                <span class="badge status-badge status-active">Utilisé</span>
+                            {% elseif billet.statut == 'cancelled' %}
+                                <span class="badge status-badge status-inactive">Annulé</span>
+                            {% elseif billet.statut == 'refunded' %}
+                                <span class="badge status-badge status-refunded">Remboursé</span>
+                            {% elseif billet.statut == 'transferred' %}
+                                <span class="badge status-badge status-active">Transféré</span>
+                            {% else %}
+                                <span class="badge status-badge status-inactive">{{ billet.statut }}</span>
+                            {% endif %}
+                        </div>
+                    </div>
+                    
+                    {% if billet.typeBillet %}
+                        <div class="detail-row">
+                            <div class="detail-label">
+                                <i class="fas fa-calendar-alt"></i>
+                                Événement
+                            </div>
+                            <div class="detail-value">
+                                {% if billet.typeBillet.evenement %}
+                                    {{ billet.typeBillet.evenement.titre }}
+                                {% else %}
+                                    <span class="text-muted">N/A</span>
+                                {% endif %}
+                            </div>
+                        </div>
+                        
+                        <div class="detail-row">
+                            <div class="detail-label">
+                                <i class="fas fa-tags"></i>
+                                Catégorie
+                            </div>
+                            <div class="detail-value">
+                                {% if billet.typeBillet.configurationCategorie %}
+                                    <span class="ticket-cat-badge">{{ billet.typeBillet.configurationCategorie.nom|capitalize }}</span>
+                                {% else %}
+                                    <span class="text-muted">N/A</span>
+                                {% endif %}
+                            </div>
+                        </div>
+                        
+                        <div class="detail-row">
+                            <div class="detail-label">
+                                <i class="fas fa-euro-sign"></i>
+                                Prix
+                            </div>
+                            <div class="detail-value">
+                                {{ billet.typeBillet.prixDeBase|number_format(2, ',', ' ') }} {{ billet.typeBillet.devise }}
+                            </div>
+                        </div>
+                    {% endif %}
+                    
+                    {% if billet.utilisateurProprietaire %}
+                        <div class="detail-row">
+                            <div class="detail-label">
+                                <i class="fas fa-user"></i>
+                                Client
+                            </div>
+                            <div class="detail-value">
+                                {{ billet.utilisateurProprietaire.prenom }} {{ billet.utilisateurProprietaire.nom }}
+                            </div>
+                        </div>
+                        
+                        <div class="detail-row">
+                            <div class="detail-label">
+                                <i class="fas fa-envelope"></i>
+                                Email
+                            </div>
+                            <div class="detail-value">
+                                {{ billet.utilisateurProprietaire.email }}
+                            </div>
+                        </div>
+                    {% endif %}
+                    
+                    {% if billet.emisLe %}
+                        <div class="detail-row">
+                            <div class="detail-label">
+                                <i class="fas fa-clock"></i>
+                                Date d'émission
+                            </div>
+                            <div class="detail-value">
+                                {{ billet.emisLe|date('d/m/Y à H:i') }}
+                            </div>
+                        </div>
+                    {% endif %}
+                </div>
+            </div>
+
+            <!-- QR Code -->
+            <div class="card validation-card">
+                <div class="card-header">
+                    <h3><i class="fas fa-qrcode"></i> QR Code du billet</h3>
+                </div>
+                <div class="card-body">
+                    <div class="qr-code-container">
+                        <div class="qr-code-image-wrapper">
+                            <img src="{{ qrCodeUrl }}" alt="QR Code #TKT-{{ billet.id|slice(-6) }}" class="qr-code-image">
+                        </div>
+                        <p class="qr-code-label">#TKT-{{ billet.id|slice(-6) }}</p>
+                        <div class="qr-code-actions">
+                            <a href="{{ qrCodeUrl }}" download="qrcode-TKT-{{ billet.id|slice(-6) }}.png" class="btn-download-qr">
+                                <i class="fas fa-download"></i>
+                                Télécharger le QR code
+                            </a>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<style>
+/* Styles pour les boutons d'en-tête */
+.header-actions {
+    display: flex;
+    gap: 12px;
+    align-items: center;
+    flex-wrap: wrap;
+}
+
+.btn-header {
+    display: inline-flex;
+    align-items: center;
+    gap: 10px;
+    padding: 12px 24px;
+    border-radius: 12px;
+    text-decoration: none;
+    font-weight: var(--font-weight-semibold);
+    font-size: 0.95rem;
+    transition: all 0.3s ease;
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+    border: none;
+    white-space: nowrap;
+    background: linear-gradient(135deg, #5DADE2 0%, #3498DB 100%);
+    color: white;
+}
+
+.btn-header i {
+    font-size: 1rem;
+    opacity: 0.9;
+}
+
+.btn-header:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+    background: linear-gradient(135deg, #3498DB 0%, #2980B9 100%);
+    color: white;
+}
+
+/* Style pour l'icône dans le titre */
+h1 i {
+    margin-right: 10px;
+    color: var(--accent);
+}
+
+.ticket-details-container {
+    margin-top: 24px;
+}
+
+.ticket-details-grid {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 24px;
+}
+
+.card-header {
+    padding: 20px;
+    border-bottom: 1px solid var(--border-color);
+    background: var(--bg-secondary);
+}
+
+.card-header h3 {
+    margin: 0;
+    font-size: 1.2rem;
+    font-weight: var(--font-weight-semibold);
+    color: var(--text-primary);
+    display: flex;
+    align-items: center;
+    gap: 10px;
+}
+
+.card-header h3 i {
+    color: var(--accent);
+    font-size: 1.1rem;
+}
+
+.card-body {
+    padding: 24px;
+}
+
+.detail-row {
+    display: flex;
+    justify-content: space-between;
+    align-items: flex-start;
+    padding: 16px 0;
+    border-bottom: 1px solid var(--border-color);
+}
+
+.detail-row:last-child {
+    border-bottom: none;
+}
+
+.detail-label {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    font-weight: var(--font-weight-medium);
+    color: var(--text-secondary);
+    font-size: 0.95rem;
+    min-width: 180px;
+}
+
+.detail-label i {
+    color: var(--accent);
+    font-size: 0.9rem;
+    width: 18px;
+    text-align: center;
+}
+
+.detail-value {
+    flex: 1;
+    text-align: right;
+    color: var(--text-primary);
+    font-size: 1rem;
+}
+
+.qr-code-container {
+    text-align: center;
+    padding: 20px;
+}
+
+.qr-code-image-wrapper {
+    width: 300px;
+    height: 300px;
+    margin: 0 auto 20px;
+    padding: 20px;
+    background: white;
+    border: 2px solid var(--border-color);
+    border-radius: var(--border-radius-md);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+}
+
+.qr-code-image {
+    max-width: 100%;
+    max-height: 100%;
+    width: auto;
+    height: auto;
+}
+
+.qr-code-label {
+    font-size: 1.2rem;
+    font-weight: var(--font-weight-semibold);
+    color: var(--text-primary);
+    margin: 0 0 20px 0;
+}
+
+.qr-code-actions {
+    margin-top: 20px;
+}
+
+.btn-download-qr {
+    display: inline-flex;
+    align-items: center;
+    gap: 10px;
+    padding: 12px 24px;
+    background: linear-gradient(135deg, #5DADE2 0%, #3498DB 100%);
+    color: white;
+    border: none;
+    border-radius: var(--border-radius-md);
+    text-decoration: none;
+    font-weight: var(--font-weight-semibold);
+    font-size: 1rem;
+    transition: all 0.3s ease;
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+}
+
+.btn-download-qr:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+    background: linear-gradient(135deg, #3498DB 0%, #2980B9 100%);
+    color: white;
+}
+
+.ticket-cat-badge {
+    padding: 6px 12px;
+    background: rgba(155, 89, 182, 0.12);
+    color: #9B59B6;
+    border-radius: 6px;
+    font-size: 0.9rem;
+    font-weight: var(--font-weight-semibold);
+    display: inline-block;
+}
+
+.status-badge {
+    font-size: 0.85rem;
+    padding: 6px 12px;
+    border-radius: var(--border-radius-sm);
+    font-weight: var(--font-weight-medium);
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    white-space: nowrap;
+}
+
+.status-active {
+    background: var(--bg-secondary);
+    color: var(--success);
+    border: 1px solid var(--border-color);
+}
+
+.status-pending {
+    background: var(--bg-secondary);
+    color: var(--warning);
+    border: 1px solid var(--border-color);
+}
+
+.status-inactive {
+    background: var(--bg-secondary);
+    color: var(--text-muted);
+    border: 1px solid var(--border-color);
+}
+
+.status-refunded {
+    background: linear-gradient(135deg, rgba(139, 69, 19, 0.1), rgba(160, 82, 45, 0.05));
+    color: #8B4513;
+    border: 1px solid rgba(139, 69, 19, 0.3);
+    font-weight: var(--font-weight-semibold);
+}
+
+.text-muted {
+    color: var(--text-muted);
+}
+
+/* Responsive */
+@media (max-width: 992px) {
+    .ticket-details-grid {
+        grid-template-columns: 1fr;
+    }
+    
+    .detail-row {
+        flex-direction: column;
+        gap: 8px;
+    }
+    
+    .detail-value {
+        text-align: left;
+    }
+    
+    .qr-code-image-wrapper {
+        width: 250px;
+        height: 250px;
+    }
+}
+</style>
+{% endblock %}
+

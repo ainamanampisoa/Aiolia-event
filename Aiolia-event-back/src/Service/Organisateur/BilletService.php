@@ -7,6 +7,7 @@ use App\Entity\ElementCommande;
 use App\Entity\TypeBillet;
 use App\Entity\User;
 use App\Repository\Organisateur\BilletRepository;
+use Doctrine\ORM\Tools\Pagination\Paginator;
 
 class BilletService
 {
@@ -132,6 +133,30 @@ class BilletService
     public function delete(Billet $billet): void
     {
         $this->repository->delete($billet);
+    }
+
+    /**
+     * Récupère tous les billets pour un organisateur
+     */
+    public function getByOrganizer(User $organizer): array
+    {
+        return $this->repository->findByOrganizer($organizer);
+    }
+
+    /**
+     * Récupère les billets paginés pour un organisateur
+     */
+    public function getByOrganizerPaginated(User $organizer, int $page = 1, int $limit = 10): Paginator
+    {
+        return $this->repository->findByOrganizerPaginated($organizer, $page, $limit);
+    }
+
+    /**
+     * Récupère les statistiques des billets pour un organisateur
+     */
+    public function getStatsByOrganizer(User $organizer): array
+    {
+        return $this->repository->getStatsByOrganizer($organizer);
     }
 }
 

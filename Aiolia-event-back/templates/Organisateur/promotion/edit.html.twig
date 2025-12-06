@@ -1,6 +1,6 @@
 {% extends 'base.html.twig' %}
 
-{% block title %}Nouveau code promo - Aiolia Event{% endblock %}
+{% block title %}Modifier le code promo - Aiolia Event{% endblock %}
 
 {% block stylesheets %}
     {{ parent() }}
@@ -12,9 +12,9 @@
     <!-- En-tête -->
     <div class="dashboard-header">
         <div>
-            <h1>🎁 Créer un code promo</h1>
+            <h1>✏️ Modifier le code promo</h1>
             <p style="color: var(--gray-600); margin-top: 8px; font-size: 1rem;">
-                Offrez des réductions à vos clients
+                Modifiez les paramètres de votre code promo
             </p>
         </div>
         <div class="header-actions">
@@ -41,11 +41,7 @@
                 <div class="form-group span-2">
                     <label>Code promo <span class="required">*</span></label>
                     <div class="code-input-group">
-                        <input type="text" name="code" class="form-control code-input" placeholder="Ex: EARLYBIRD2025" required style="text-transform: uppercase; font-family: 'Courier New', monospace; font-size: 1.2rem; font-weight: bold;">
-                        <button type="button" class="btn-generate" onclick="generatePromoCode()">
-                            <i class="fas fa-magic"></i>
-                            Générer
-                        </button>
+                        <input type="text" name="code" class="form-control code-input" value="{{ promotion.code }}" required style="text-transform: uppercase; font-family: 'Courier New', monospace; font-size: 1.2rem; font-weight: bold;">
                     </div>
                     <small class="form-help">
                         <i class="fas fa-lightbulb"></i>
@@ -55,7 +51,7 @@
 
                 <div class="form-group span-2">
                     <label>Description <span class="required">*</span></label>
-                    <textarea name="description" class="form-control" rows="3" placeholder="Décrivez cette promotion pour vos clients..." required></textarea>
+                    <textarea name="description" class="form-control" rows="3" placeholder="Décrivez cette promotion pour vos clients..." required>{{ promotion.metadonnees.description ?? '' }}</textarea>
                 </div>
             </div>
         </div>
@@ -74,7 +70,7 @@
 
             <div class="discount-type-selector">
                 <label class="discount-card">
-                    <input type="radio" name="discount_type" value="percentage" checked>
+                    <input type="radio" name="discount_type" value="percentage" {{ promotion.typePromotion == 'percent' ? 'checked' : '' }}>
                     <div class="discount-card-content">
                         <div class="discount-icon" style="background: linear-gradient(135deg, #3498DB, #2980B9); color: white;">
                             <i class="fas fa-percentage"></i>
@@ -88,7 +84,7 @@
                 </label>
 
                 <label class="discount-card">
-                    <input type="radio" name="discount_type" value="fixed">
+                    <input type="radio" name="discount_type" value="fixed" {{ promotion.typePromotion == 'amount' ? 'checked' : '' }}>
                     <div class="discount-card-content">
                         <div class="discount-icon" style="background: linear-gradient(135deg, #27AE60, #229954); color: white;">
                             <i class="fas fa-euro-sign"></i>
@@ -106,16 +102,16 @@
                 <div class="form-group">
                     <label>Valeur de la réduction <span class="required">*</span></label>
                     <div class="value-input-group">
-                        <input type="number" name="discount_value" class="form-control value-input" placeholder="20" min="0" max="100" required>
-                        <span class="value-unit" id="discountUnit">%</span>
+                        <input type="number" name="discount_value" class="form-control value-input" value="{{ promotion.valeur }}" min="0" max="100" required>
+                        <span class="value-unit" id="discountUnit">{{ promotion.typePromotion == 'percent' ? '%' : '€' }}</span>
                     </div>
-                    <small class="form-help">Maximum : <span id="maxValue">100%</span></small>
+                    <small class="form-help">Maximum : <span id="maxValue">{{ promotion.typePromotion == 'percent' ? '100%' : '1000€' }}</span></small>
                 </div>
 
                 <div class="form-group">
                     <label>Montant minimum de commande</label>
                     <div class="value-input-group">
-                        <input type="number" name="min_order" class="form-control" placeholder="0" min="0" step="0.01">
+                        <input type="number" name="min_order" class="form-control" value="{{ promotion.metadonnees.min_order ?? '' }}" min="0" step="0.01">
                         <span class="value-unit">€</span>
                     </div>
                     <small class="form-help">Optionnel : commande minimum pour utiliser le code</small>
@@ -138,13 +134,13 @@
             <div class="form-grid">
                 <div class="form-group">
                     <label>Nombre d'utilisations maximum</label>
-                    <input type="number" name="max_uses" class="form-control" placeholder="∞ Illimité" min="1">
+                    <input type="number" name="max_uses" class="form-control" value="{{ promotion.utilisationMaximaleTotale ?? '' }}" placeholder="∞ Illimité" min="1">
                     <small class="form-help">Laissez vide pour illimité</small>
                 </div>
 
                 <div class="form-group">
                     <label>Utilisations par utilisateur</label>
-                    <input type="number" name="max_uses_per_user" class="form-control" placeholder="1" min="1" value="1">
+                    <input type="number" name="max_uses_per_user" class="form-control" value="{{ promotion.utilisationMaximaleParUtilisateur ?? 1 }}" min="1">
                     <small class="form-help">Nombre de fois qu'un client peut utiliser ce code</small>
                 </div>
 
@@ -152,15 +148,15 @@
                     <label>Date de début</label>
                     <div class="datetime-group">
                         <div class="date-input-wrapper">
-                            <input type="text" name="start_date" id="start_date" class="form-control date-picker-input" placeholder="--/--/----" autocomplete="off" readonly>
-                            <button type="button" class="clear-date-btn" id="clear_start_date" style="display: none;">
+                            <input type="text" name="start_date" id="start_date" class="form-control date-picker-input" placeholder="--/--/----" autocomplete="off" readonly value="{{ promotion.commenceLe ? promotion.commenceLe|date('d/m/Y') : '' }}">
+                            <button type="button" class="clear-date-btn" id="clear_start_date" style="display: {{ promotion.commenceLe ? 'flex' : 'none' }};">
                                 <i class="fas fa-times"></i>
                             </button>
                         </div>
                         <div class="time-group">
                             <label class="time-label">De :</label>
                             <div class="time-input-wrapper">
-                                <input type="text" name="start_time" id="start_time" class="form-control time-picker-input" placeholder="--:--" autocomplete="off" readonly>
+                                <input type="text" name="start_time" id="start_time" class="form-control time-picker-input" placeholder="--:--" autocomplete="off" readonly value="{{ promotion.commenceLe ? promotion.commenceLe|date('H:i') : '' }}">
                             </div>
                         </div>
                     </div>
@@ -171,15 +167,15 @@
                     <label>Date de fin <span class="required">*</span></label>
                     <div class="datetime-group">
                         <div class="date-input-wrapper">
-                            <input type="text" name="end_date" id="end_date" class="form-control date-picker-input" placeholder="--/--/----" required autocomplete="off" readonly>
-                            <button type="button" class="clear-date-btn" id="clear_end_date" style="display: none;">
+                            <input type="text" name="end_date" id="end_date" class="form-control date-picker-input" placeholder="--/--/----" required autocomplete="off" readonly value="{{ promotion.seTermineLe ? promotion.seTermineLe|date('d/m/Y') : '' }}">
+                            <button type="button" class="clear-date-btn" id="clear_end_date" style="display: {{ promotion.seTermineLe ? 'flex' : 'none' }};">
                                 <i class="fas fa-times"></i>
                             </button>
                         </div>
                         <div class="time-group">
                             <label class="time-label">De :</label>
                             <div class="time-input-wrapper">
-                                <input type="text" name="end_time" id="end_time" class="form-control time-picker-input" placeholder="--:--" required autocomplete="off" readonly>
+                                <input type="text" name="end_time" id="end_time" class="form-control time-picker-input" placeholder="--:--" required autocomplete="off" readonly value="{{ promotion.seTermineLe ? promotion.seTermineLe|date('H:i') : '' }}">
                             </div>
                         </div>
                     </div>
@@ -214,9 +210,11 @@
                                 </tr>
                             </thead>
                             <tbody>
+                                {% set selectedEvents = promotion.metadonnees.events ?? [] %}
+                                {% set allSelected = selectedEvents|length == 0 or 'all' in selectedEvents %}
                                 <tr class="event-row">
                                     <td class="checkbox-col">
-                                        <input type="checkbox" name="events[]" value="all" id="event_all" class="event-checkbox" checked>
+                                        <input type="checkbox" name="events[]" value="all" id="event_all" class="event-checkbox" {{ allSelected ? 'checked' : '' }}>
                                     </td>
                                     <td>
                                         <label for="event_all" class="event-label">
@@ -229,7 +227,7 @@
                                     {% for event in events %}
                                     <tr class="event-row">
                                         <td class="checkbox-col">
-                                            <input type="checkbox" name="events[]" value="{{ event.id }}" id="event_{{ event.id }}" class="event-checkbox">
+                                            <input type="checkbox" name="events[]" value="{{ event.id }}" id="event_{{ event.id }}" class="event-checkbox" {{ event.id in selectedEvents ? 'checked' : '' }}>
                                         </td>
                                         <td>
                                             <label for="event_{{ event.id }}" class="event-label">
@@ -274,15 +272,15 @@
                     <label>Catégories de billets</label>
                     <div class="checkbox-group">
                         <label class="checkbox-item">
-                            <input type="checkbox" name="categories[]" value="all" checked>
+                            <input type="checkbox" name="categories[]" value="all" {{ (promotion.metadonnees.categories ?? [])|length == 0 or 'all' in (promotion.metadonnees.categories ?? []) ? 'checked' : '' }}>
                             <span>Toutes les catégories</span>
                         </label>
                         <label class="checkbox-item">
-                            <input type="checkbox" name="categories[]" value="vip">
+                            <input type="checkbox" name="categories[]" value="vip" {{ 'vip' in (promotion.metadonnees.categories ?? []) ? 'checked' : '' }}>
                             <span>VIP uniquement</span>
                         </label>
                         <label class="checkbox-item">
-                            <input type="checkbox" name="categories[]" value="standard">
+                            <input type="checkbox" name="categories[]" value="standard" {{ 'standard' in (promotion.metadonnees.categories ?? []) ? 'checked' : '' }}>
                             <span>Standard uniquement</span>
                         </label>
                     </div>
@@ -292,35 +290,18 @@
                     <label>Options avancées</label>
                     <div class="checkbox-group">
                         <label class="checkbox-item">
-                            <input type="checkbox" name="first_purchase" value="1">
+                            <input type="checkbox" name="first_purchase" value="1" {{ (promotion.metadonnees.first_purchase ?? false) ? 'checked' : '' }}>
                             <span>Premier achat uniquement</span>
                         </label>
                         <label class="checkbox-item">
-                            <input type="checkbox" name="cumulative" value="1">
+                            <input type="checkbox" name="cumulative" value="1" {{ (promotion.metadonnees.cumulative ?? false) ? 'checked' : '' }}>
                             <span>Cumulable avec d'autres promos</span>
                         </label>
                         <label class="checkbox-item">
-                            <input type="checkbox" name="auto_apply" value="1">
+                            <input type="checkbox" name="auto_apply" value="1" {{ (promotion.metadonnees.auto_apply ?? false) ? 'checked' : '' }}>
                             <span>Application automatique</span>
                         </label>
                     </div>
-                </div>
-            </div>
-        </div>
-
-        <!-- Aperçu de la promotion -->
-        <div class="promo-preview">
-            <div class="preview-header">
-                <i class="fas fa-eye"></i>
-                Aperçu de votre code promo
-            </div>
-            <div class="preview-card">
-                <div class="preview-code" id="previewCode">EARLYBIRD2025</div>
-                <div class="preview-discount" id="previewDiscount">-20%</div>
-                <div class="preview-description" id="previewDescription">Réduction pour les achats anticipés</div>
-                <div class="preview-validity">
-                    <i class="fas fa-calendar"></i>
-                    <span id="previewValidity">Valide jusqu'au 31 Oct 2025</span>
                 </div>
             </div>
         </div>
@@ -329,11 +310,7 @@
         <div class="form-actions">
             <button type="submit" class="btn btn-primary" style="background: linear-gradient(135deg, #3498DB, #5DADE2) !important; color: white; border: none; padding: 16px 36px; border-radius: 12px; font-weight: 600; font-size: 1.05rem; box-shadow: 0 4px 12px rgba(52, 152, 219, 0.3);">
                 <i class="fas fa-check"></i>
-                Créer le code promo
-            </button>
-            <button type="button" class="btn btn-secondary" style="background: white; color: var(--gray-700); border: 2px solid var(--gray-300); padding: 16px 32px; border-radius: 12px; font-weight: 600; font-size: 1.05rem;">
-                <i class="fas fa-save"></i>
-                Enregistrer brouillon
+                Enregistrer les modifications
             </button>
             <a href="{{ path('organisateur_promotions_index') }}" class="btn" style="color: var(--gray-600); text-decoration: none; padding: 16px 24px;">
                 Annuler
@@ -390,19 +367,6 @@ document.addEventListener('DOMContentLoaded', function() {
         }
     };
     
-    // Générer les options d'heure (de 00:00 à 23:45 par tranches de 15 minutes)
-    function generateTimeOptions() {
-        const times = [];
-        for (let h = 0; h < 24; h++) {
-            for (let m = 0; m < 60; m += 15) {
-                const hour = String(h).padStart(2, '0');
-                const minute = String(m).padStart(2, '0');
-                times.push(`${hour}:${minute}`);
-            }
-        }
-        return times;
-    }
-    
     // Configuration Flatpickr pour les heures avec dropdown
     const timePickerOptions = {
         enableTime: true,
@@ -433,8 +397,15 @@ document.addEventListener('DOMContentLoaded', function() {
     
     // Initialiser le date picker pour la date de début
     if (startDateInput) {
+        let startDateValue = startDateInput.value;
+        // Convertir le format DD/MM/YYYY si présent
+        if (startDateValue && startDateValue.includes('/')) {
+            const [day, month, year] = startDateValue.split('/');
+            startDateValue = `${year}-${month}-${day}`;
+        }
         startDatePicker = flatpickr(startDateInput, {
             ...datePickerOptions,
+            defaultDate: startDateValue || null,
             onChange: function(selectedDates, dateStr, instance) {
                 updatePreview();
                 // Mettre à jour la date minimale de fin
@@ -450,10 +421,12 @@ document.addEventListener('DOMContentLoaded', function() {
         });
     }
     
-    // Initialiser les time pickers pour la date de début
+    // Initialiser le time picker pour l'heure de début
     if (startTimeInput) {
+        const startTimeValue = startTimeInput.value;
         startTimePicker = flatpickr(startTimeInput, {
             ...timePickerOptions,
+            defaultDate: startTimeValue ? '1970-01-01 ' + startTimeValue : null,
             onChange: function(selectedDates, dateStr, instance) {
                 updatePreview();
             }
@@ -462,8 +435,15 @@ document.addEventListener('DOMContentLoaded', function() {
     
     // Initialiser le date picker pour la date de fin
     if (endDateInput) {
+        let endDateValue = endDateInput.value;
+        // Convertir le format DD/MM/YYYY si présent
+        if (endDateValue && endDateValue.includes('/')) {
+            const [day, month, year] = endDateValue.split('/');
+            endDateValue = `${year}-${month}-${day}`;
+        }
         endDatePicker = flatpickr(endDateInput, {
             ...datePickerOptions,
+            defaultDate: endDateValue || null,
             onChange: function(selectedDates, dateStr, instance) {
                 updatePreview();
                 // Afficher/masquer le bouton de suppression
@@ -475,10 +455,12 @@ document.addEventListener('DOMContentLoaded', function() {
         });
     }
     
-    // Initialiser les time pickers pour la date de fin
+    // Initialiser le time picker pour l'heure de fin
     if (endTimeInput) {
+        const endTimeValue = endTimeInput.value;
         endTimePicker = flatpickr(endTimeInput, {
             ...timePickerOptions,
+            defaultDate: endTimeValue ? '1970-01-01 ' + endTimeValue : null,
             onChange: function(selectedDates, dateStr, instance) {
                 updatePreview();
             }
@@ -509,20 +491,20 @@ document.addEventListener('DOMContentLoaded', function() {
             }
         });
     }
-
-    // ============================================
-    // ============================================
-    // GÉNÉRATEUR DE CODE PROMO
-    // ============================================
-    window.generatePromoCode = function() {
-        const chars = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789';
-        let code = '';
-        for (let i = 0; i < 8; i++) {
-            code += chars.charAt(Math.floor(Math.random() * chars.length));
+    
+    function updatePreview() {
+        // Fonction pour mettre à jour l'aperçu si nécessaire
+    }
+        
+        // Mettre à jour la date minimale de fin quand la date de début change
+        if (startDatePicker) {
+            startDatePicker.config.onChange.push(function(selectedDates) {
+                if (selectedDates.length > 0 && endDatePicker) {
+                    endDatePicker.set('minDate', selectedDates[0]);
+                }
+            });
         }
-        document.querySelector('input[name="code"]').value = code;
-        updatePreview();
-    };
+    }
 
     // ============================================
     // CHANGEMENT TYPE DE RÉDUCTION
@@ -543,49 +525,8 @@ document.addEventListener('DOMContentLoaded', function() {
                 maxValue.textContent = '1000€';
                 valueInput.max = 1000;
             }
-            updatePreview();
         });
     });
-
-    // ============================================
-    // APERÇU EN TEMPS RÉEL
-    // ============================================
-    function updatePreview() {
-        const code = document.querySelector('input[name="code"]').value || 'VOTRECODE';
-        const description = document.querySelector('textarea[name="description"]').value || 'Description de votre promotion';
-        const discountValue = document.querySelector('input[name="discount_value"]').value || '0';
-        const discountType = document.querySelector('input[name="discount_type"]:checked').value;
-        const endDate = endDatePicker ? endDatePicker.selectedDates[0] : null;
-        const endTime = endTimeInput ? endTimeInput.value : null;
-        
-        document.getElementById('previewCode').textContent = code;
-        
-        if (discountType === 'percentage') {
-            document.getElementById('previewDiscount').textContent = `-${discountValue}%`;
-        } else {
-            document.getElementById('previewDiscount').textContent = `-${discountValue}€`;
-        }
-        
-        document.getElementById('previewDescription').textContent = description;
-        
-        if (endDate) {
-            const options = { year: 'numeric', month: 'long', day: 'numeric' };
-            let dateStr = endDate.toLocaleDateString('fr-FR', options);
-            if (endTime) {
-                dateStr += ` à ${endTime}`;
-            }
-            document.getElementById('previewValidity').textContent = `Valide jusqu'au ${dateStr}`;
-        } else {
-            document.getElementById('previewValidity').textContent = 'Sélectionnez une date de fin';
-        }
-    }
-    
-    // Écouter les changements
-    document.querySelector('input[name="code"]').addEventListener('input', updatePreview);
-    document.querySelector('textarea[name="description"]').addEventListener('input', updatePreview);
-    document.querySelector('input[name="discount_value"]').addEventListener('input', updatePreview);
-    
-    // Mise à jour de l'aperçu pour les dates (géré par Flatpickr onChange)
 
     // ============================================
     // CONVERSION DU FORMAT DE DATE AVANT SOUMISSION
@@ -605,6 +546,9 @@ document.addEventListener('DOMContentLoaded', function() {
                     String(hours || '00').padStart(2, '0') + ':' + 
                     String(minutes || '00').padStart(2, '0');
                 startDateInput.value = formattedDate;
+            } else if (startDateInput && !startDateInput.value) {
+                // Si la date est vide, envoyer une chaîne vide
+                startDateInput.value = '';
             }
             
             // Combiner date et heure de fin (convertir DD/MM/YYYY en YYYY-MM-DD)
@@ -800,7 +744,6 @@ document.addEventListener('DOMContentLoaded', function() {
     color: var(--accent);
 }
 
-/* Input avec bouton générer */
 .code-input-group {
     display: flex;
     gap: 12px;
@@ -810,27 +753,6 @@ document.addEventListener('DOMContentLoaded', function() {
     flex: 1;
 }
 
-.btn-generate {
-    padding: 14px 24px;
-    background: linear-gradient(135deg, #9B59B6, #8E44AD);
-    color: white;
-    border: none;
-    border-radius: var(--border-radius-md);
-    cursor: pointer;
-    font-weight: var(--font-weight-semibold);
-    display: flex;
-    align-items: center;
-    gap: 8px;
-    transition: var(--transition-base);
-    white-space: nowrap;
-}
-
-.btn-generate:hover {
-    transform: translateY(-2px);
-    box-shadow: 0 4px 12px rgba(155, 89, 182, 0.3);
-}
-
-/* Sélecteur de type de réduction */
 .discount-type-selector {
     display: grid;
     grid-template-columns: 1fr 1fr;
@@ -906,7 +828,6 @@ document.addEventListener('DOMContentLoaded', function() {
     color: var(--accent);
 }
 
-/* Input avec unité */
 .value-input-group {
     position: relative;
     display: flex;
@@ -926,7 +847,6 @@ document.addEventListener('DOMContentLoaded', function() {
     color: var(--accent);
 }
 
-/* Checkbox group */
 .checkbox-group {
     display: flex;
     flex-direction: column;
@@ -960,75 +880,6 @@ document.addEventListener('DOMContentLoaded', function() {
     font-size: 0.95rem;
     color: var(--gray-700);
     font-weight: var(--font-weight-medium);
-}
-
-/* Aperçu de la promotion */
-.promo-preview {
-    background: linear-gradient(135deg, var(--accent), var(--accent-light));
-    border-radius: var(--border-radius-xl);
-    padding: 32px;
-    margin-bottom: 24px;
-    box-shadow: var(--shadow-lg);
-}
-
-.preview-header {
-    color: white;
-    font-size: 1.1rem;
-    font-weight: var(--font-weight-semibold);
-    margin-bottom: 20px;
-    display: flex;
-    align-items: center;
-    gap: 10px;
-    opacity: 0.95;
-}
-
-.preview-card {
-    background: white;
-    border-radius: var(--border-radius-lg);
-    padding: 32px;
-    text-align: center;
-    box-shadow: 0 8px 24px rgba(0,0,0,0.15);
-}
-
-.preview-code {
-    font-family: 'Courier New', monospace;
-    font-size: 1.5rem;
-    font-weight: var(--font-weight-bold);
-    color: var(--primary);
-    background: linear-gradient(135deg, var(--accent), var(--accent-light));
-    -webkit-background-clip: text;
-    -webkit-text-fill-color: transparent;
-    background-clip: text;
-    margin-bottom: 16px;
-}
-
-.preview-discount {
-    font-size: 1.8rem;
-    font-weight: var(--font-weight-bold);
-    color: var(--success);
-    margin-bottom: 12px;
-}
-
-.preview-description {
-    font-size: 1.1rem;
-    color: var(--gray-700);
-    margin-bottom: 20px;
-    padding: 0 20px;
-}
-
-.preview-validity {
-    display: inline-flex;
-    align-items: center;
-    gap: 8px;
-    padding: 10px 20px;
-    background: var(--gray-100);
-    border-radius: 20px;
-    font-size: 0.9rem;
-    color: var(--gray-700);
-}
-
-.preview-validity i {
-    color: var(--accent);
 }
 
 .form-actions {
@@ -1070,14 +921,6 @@ document.addEventListener('DOMContentLoaded', function() {
         width: 100%;
         text-align: center;
         justify-content: center;
-    }
-    
-    .preview-code {
-        font-size: 1.3rem;
-    }
-    
-    .preview-discount {
-        font-size: 1.5rem;
     }
 }
 
@@ -1406,6 +1249,38 @@ document.addEventListener('DOMContentLoaded', function() {
     transform: scale(1.2);
 }
 
+@media (max-width: 768px) {
+    .datetime-group {
+        flex-direction: column;
+        align-items: stretch;
+        gap: 12px;
+    }
+    
+    .date-input-wrapper {
+        width: 100%;
+        min-width: auto;
+    }
+    
+    .time-group {
+        flex-direction: row;
+        align-items: center;
+        gap: 8px;
+    }
+    
+    .time-input-wrapper {
+        width: 120px;
+        max-width: 100%;
+    }
+    
+    .events-table-container {
+        max-height: 250px;
+    }
+    
+    .event-label {
+        padding: 10px 12px;
+    }
+}
+
 /* Styles pour le tableau des événements */
 .events-table-container {
     background: var(--white);
@@ -1535,37 +1410,6 @@ document.addEventListener('DOMContentLoaded', function() {
     color: var(--accent);
     font-weight: var(--font-weight-bold);
 }
-
-@media (max-width: 768px) {
-    .datetime-group {
-        flex-direction: column;
-        align-items: stretch;
-        gap: 12px;
-    }
-    
-    .date-input-wrapper {
-        width: 100%;
-        min-width: auto;
-    }
-    
-    .time-group {
-        flex-direction: row;
-        align-items: center;
-        gap: 8px;
-    }
-    
-    .time-input-wrapper {
-        width: 120px;
-        max-width: 100%;
-    }
-    
-    .events-table-container {
-        max-height: 250px;
-    }
-    
-    .event-label {
-        padding: 10px 12px;
-    }
-}
 </style>
 {% endblock %}
+
