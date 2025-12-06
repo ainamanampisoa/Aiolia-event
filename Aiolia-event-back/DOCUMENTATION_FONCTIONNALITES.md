@@ -6,10 +6,286 @@
 
 ## 📋 Table des Matières
 
-1. [💰 Module Facturation](#module-facturation)
-2. [👥 Module Gestion des Utilisateurs](#module-gestion-des-utilisateurs)
-3. [📊 Module Statistiques](#module-statistiques)
-4. [📋 Plans d'Abonnement](#plans-dabonnement)
+1. [📦 Packages et Dépendances](#packages-et-dépendances)
+2. [💰 Module Facturation](#module-facturation)
+3. [👥 Module Gestion des Utilisateurs](#module-gestion-des-utilisateurs)
+4. [📊 Module Statistiques](#module-statistiques)
+5. [📋 Plans d'Abonnement](#plans-dabonnement)
+
+---
+
+## 📦 Packages et Dépendances
+
+### Vue d'ensemble
+
+Cette section liste tous les packages PHP installés dans le projet via Composer, leurs versions et leurs usages spécifiques.
+
+### 📚 Packages Principaux (Production)
+
+#### Framework et Core
+
+| Package | Version | Usage |
+|---------|---------|-------|
+| **symfony/framework-bundle** | 7.3.* | Framework Symfony principal |
+| **symfony/console** | 7.3.* | Commandes CLI Symfony |
+| **symfony/runtime** | 7.3.* | Runtime Symfony |
+| **symfony/flex** | ^2 | Plugin Composer pour Symfony |
+
+#### Base de Données et ORM
+
+| Package | Version | Usage |
+|---------|---------|-------|
+| **doctrine/orm** | ^3.5 | ORM Doctrine pour la gestion des entités |
+| **doctrine/dbal** | ^4.3 | Abstraction de base de données |
+| **doctrine/doctrine-bundle** | ^2.16 | Intégration Doctrine avec Symfony |
+| **doctrine/doctrine-migrations-bundle** | ^3.4 | Gestion des migrations de base de données |
+
+#### Templates et Vues
+
+| Package | Version | Usage |
+|---------|---------|-------|
+| **twig/twig** | ^2.12\|^3.0 | Moteur de templates Twig |
+| **twig/extra-bundle** | ^2.12\|^3.0 | Extensions Twig supplémentaires |
+| **symfony/twig-bundle** | 7.3.* | Intégration Twig avec Symfony |
+
+#### Sécurité et Authentification
+
+| Package | Version | Usage |
+|---------|---------|-------|
+| **symfony/security-bundle** | 7.3.* | Système de sécurité et authentification |
+| **symfony/validator** | 7.3.* | Validation des données |
+
+#### Formulaires
+
+| Package | Version | Usage |
+|---------|---------|-------|
+| **symfony/form** | 7.3.* | Gestion des formulaires Symfony |
+| **symfony/property-access** | 7.3.* | Accès aux propriétés d'objets |
+| **symfony/property-info** | 7.3.* | Métadonnées des propriétés |
+
+#### Communication et Notifications
+
+| Package | Version | Usage |
+|---------|---------|-------|
+| **symfony/mailer** | 7.3.* | Envoi d'emails |
+| **symfony/mime** | 7.3.* | Gestion des types MIME |
+| **symfony/notifier** | 7.3.* | Notifications multi-canal (Email, SMS, Push) |
+| **symfony/http-client** | 7.3.* | Client HTTP pour requêtes externes |
+
+#### Assets et Frontend
+
+| Package | Version | Usage |
+|---------|---------|-------|
+| **symfony/asset** | 7.3.* | Gestion des assets (CSS, JS, images) |
+| **symfony/asset-mapper** | 7.3.* | Mapper d'assets moderne |
+| **symfony/stimulus-bundle** | ^2.30 | Intégration Stimulus.js |
+| **symfony/ux-turbo** | ^2.30 | Intégration Turbo (Hotwire) |
+
+#### Internationalisation
+
+| Package | Version | Usage |
+|---------|---------|-------|
+| **symfony/translation** | 7.3.* | Système de traduction |
+| **symfony/intl** | 7.3.* | Internationalisation (dates, nombres, devises) |
+
+#### Utilitaires
+
+| Package | Version | Usage |
+|---------|---------|-------|
+| **symfony/string** | 7.3.* | Manipulation de chaînes |
+| **symfony/process** | 7.3.* | Exécution de processus système |
+| **symfony/serializer** | 7.3.* | Sérialisation/désérialisation (JSON, XML) |
+| **symfony/yaml** | 7.3.* | Parsing de fichiers YAML |
+| **symfony/expression-language** | 7.3.* | Langage d'expression pour règles métier |
+| **symfony/web-link** | 7.3.* | Gestion des liens HTTP |
+| **symfony/dotenv** | 7.3.* | Chargement des variables d'environnement |
+| **symfony/doctrine-messenger** | 7.3.* | Intégration Doctrine avec Messenger |
+
+#### Logging
+
+| Package | Version | Usage |
+|---------|---------|-------|
+| **symfony/monolog-bundle** | ^3.0 | Intégration Monolog pour les logs |
+
+### 🎨 Packages Spécialisés
+
+#### Génération de PDF
+
+| Package | Version | Usage | Fichiers |
+|---------|---------|--------|----------|
+| **dompdf/dompdf** | ^3.1 | Génération de PDF depuis HTML | `InvoicePdfService.php`, `EventsController.php` |
+
+**Utilisation** :
+- Génération de factures PDF (`src/Service/Organisateur/InvoicePdfService.php`)
+- Export PDF des événements (`src/Controller/Organisateur/EventsController.php`)
+- Conversion HTML vers PDF avec support SVG
+
+#### Génération de QR Codes
+
+| Package | Version | Usage | Fichiers |
+|---------|---------|--------|----------|
+| **endroid/qr-code** | ^6.0 | Génération de codes QR | `QrCodeService.php` |
+
+**Utilisation** :
+- Génération de QR codes pour les billets (`src/Service/QrCodeService.php`)
+- Validation des QR codes avec checksum SHA256
+- Export en PNG, base64 ou fichier
+
+#### Traitement d'Images
+
+| Package | Version | Usage | Fichiers |
+|---------|---------|--------|----------|
+| **imagine/imagine** | ^1.5 | Manipulation d'images (redimensionnement, crop, etc.) | `SvgToImageConverter.php` |
+
+**Utilisation** :
+- Conversion SVG vers images (`src/Service/Organisateur/SvgToImageConverter.php`)
+- Redimensionnement d'images
+- Traitement des images avant upload
+
+#### Stockage Cloud (Images/Vidéos)
+
+| Package | Version | Usage | Fichiers |
+|---------|---------|--------|----------|
+| **cloudinary/cloudinary_php** | ^3.1 | Upload et gestion de médias sur Cloudinary | `CloudinaryService.php`, `MediaService.php` |
+
+**Utilisation** :
+- Upload d'images et vidéos (`src/Service/Admin/CloudinaryService.php`)
+- Génération de thumbnails automatiques
+- Optimisation automatique des images
+- Gestion des avatars utilisateurs (`src/Controller/ProfileController.php`)
+- Stockage des médias d'événements (`src/Service/Organisateur/MediaService.php`)
+
+**Configuration** :
+- Variables d'environnement requises : `CLOUDINARY_CLOUD_NAME`, `CLOUDINARY_API_KEY`, `CLOUDINARY_API_SECRET`
+
+### 📝 Documentation et Analyse
+
+| Package | Version | Usage |
+|---------|---------|-------|
+| **phpdocumentor/reflection-docblock** | ^5.6 | Parsing des docblocks PHP |
+| **phpstan/phpdoc-parser** | ^2.3 | Parser de docblocks pour PHPStan |
+
+### 🧪 Packages de Développement
+
+| Package | Version | Usage |
+|---------|---------|-------|
+| **phpunit/phpunit** | ^12.4 | Framework de tests unitaires |
+| **symfony/maker-bundle** | ^1.64 | Génération de code (entités, contrôleurs, etc.) |
+| **symfony/debug-bundle** | 7.3.* | Outils de débogage Symfony |
+| **symfony/web-profiler-bundle** | 7.3.* | Profiler web Symfony |
+| **symfony/browser-kit** | 7.3.* | Tests fonctionnels (navigateur simulé) |
+| **symfony/css-selector** | 7.3.* | Sélecteurs CSS pour tests |
+| **symfony/stopwatch** | 7.3.* | Mesure de performance |
+
+### 📦 Extensions PHP Requises
+
+| Extension | Usage |
+|-----------|-------|
+| **ext-ctype** | Vérification de types de caractères |
+| **ext-iconv** | Conversion de jeux de caractères |
+
+### 🔧 Configuration des Packages
+
+#### DomPDF
+
+**Fichier** : `src/Service/Organisateur/InvoicePdfService.php`
+
+```php
+$options = new Options();
+$options->set('defaultFont', 'DejaVu Sans');
+$options->set('isRemoteEnabled', true);
+$options->set('isHtml5ParserEnabled', true);
+```
+
+#### Endroid QR Code
+
+**Fichier** : `src/Service/QrCodeService.php`
+
+**Méthodes disponibles** :
+- `generateQrCodeUrl()` : Génère une URL d'image QR
+- `generateQrCodeBase64()` : Génère un QR code en base64
+- `generateQrCodeFile()` : Sauvegarde un QR code dans un fichier
+- `generateChecksum()` : Génère un checksum SHA256 pour validation
+
+#### Cloudinary
+
+**Fichier** : `src/Service/Admin/CloudinaryService.php`
+
+**Fonctionnalités** :
+- Upload d'images avec optimisation automatique
+- Upload de vidéos
+- Génération de thumbnails
+- Transformation d'images (redimensionnement, crop, etc.)
+- Suppression de fichiers
+
+**Variables d'environnement** :
+```env
+CLOUDINARY_CLOUD_NAME=votre_cloud_name
+CLOUDINARY_API_KEY=votre_api_key
+CLOUDINARY_API_SECRET=votre_api_secret
+```
+
+#### Imagine
+
+**Fichier** : `src/Service/Organisateur/SvgToImageConverter.php`
+
+**Fonctionnalités** :
+- Manipulation d'images (redimensionnement, crop)
+- Conversion de formats
+- Traitement avant upload
+
+### 📊 Résumé des Usages par Module
+
+#### Module Facturation
+- **dompdf/dompdf** : Génération de factures PDF
+
+#### Module Billets
+- **endroid/qr-code** : Génération de QR codes pour les billets
+
+#### Module Médias
+- **cloudinary/cloudinary_php** : Stockage et optimisation d'images/vidéos
+- **imagine/imagine** : Traitement d'images avant upload
+
+#### Module Utilisateurs
+- **cloudinary/cloudinary_php** : Gestion des avatars utilisateurs
+
+#### Module Événements
+- **cloudinary/cloudinary_php** : Upload des images d'événements
+- **dompdf/dompdf** : Export PDF des événements
+
+### 🚀 Installation des Packages
+
+Pour installer tous les packages :
+
+```bash
+cd Aiolia-event-back
+composer install
+```
+
+Pour installer un package spécifique :
+
+```bash
+# PDF
+composer require dompdf/dompdf
+
+# QR Code
+composer require endroid/qr-code
+
+# Images
+composer require imagine/imagine
+
+# Cloud Storage
+composer require cloudinary/cloudinary_php
+```
+
+### 📝 Notes Importantes
+
+- ✅ **Tous les packages** sont versionnés avec des contraintes de compatibilité
+- ✅ **Symfony 7.3** : Tous les packages Symfony sont en version 7.3.*
+- ✅ **PHP 8.2+** : Requis pour tous les packages
+- ✅ **Stabilité** : Tous les packages sont en stabilité "stable"
+- ⚠️ **Cloudinary** : Nécessite une configuration dans `.env.local`
+- ⚠️ **DomPDF** : Nécessite des polices pour le support UTF-8 (DejaVu Sans par défaut)
 
 ---
 

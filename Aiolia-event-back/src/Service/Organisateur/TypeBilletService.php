@@ -7,7 +7,9 @@ use App\Entity\ConfigurationSegmentBillet;
 use App\Entity\Event;
 use App\Entity\SessionEvenement;
 use App\Entity\TypeBillet;
+use App\Entity\User;
 use App\Repository\Organisateur\TypeBilletRepository;
+use Doctrine\ORM\Tools\Pagination\Paginator;
 
 class TypeBilletService
 {
@@ -177,6 +179,22 @@ class TypeBilletService
     public function delete(TypeBillet $typeBillet): void
     {
         $this->repository->delete($typeBillet);
+    }
+
+    /**
+     * Récupère tous les types de billets pour un organisateur
+     */
+    public function getByOrganizer(User $organizer): array
+    {
+        return $this->repository->findByOrganizer($organizer);
+    }
+
+    /**
+     * Récupère tous les types de billets pour un organisateur avec pagination
+     */
+    public function getByOrganizerPaginated(User $organizer, int $page = 1, int $limit = 6, ?string $categorieFilter = null, ?string $segmentFilter = null): Paginator
+    {
+        return $this->repository->findByOrganizerPaginated($organizer, $page, $limit, $categorieFilter, $segmentFilter);
     }
 }
 

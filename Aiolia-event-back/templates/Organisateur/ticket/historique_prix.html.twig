@@ -1,0 +1,592 @@
+{% extends 'base.html.twig' %}
+
+{% block title %}Historique des prix - Aiolia Event{% endblock %}
+
+{% block body %}
+<div class="dashboard">
+    <div class="dashboard-header">
+        <div>
+            <h1><i class="fas fa-history"></i> Historique des prix</h1>
+            <p style="color: var(--gray-600); margin-top: 8px; font-size: 1rem;">
+                Consultation de l'historique des modifications de prix pour vos types de billets
+            </p>
+        </div>
+        <div class="header-actions">
+            <a href="{{ path('app_ticket_categories') }}" class="btn-header">
+                <i class="fas fa-tags"></i>
+                <span>Catégories</span>
+            </a>
+            <a href="{{ path('organisateur_tickets_index') }}" class="btn-header">
+                <i class="fas fa-ticket-alt"></i>
+                <span>Billets</span>
+            </a>
+        </div>
+    </div>
+
+    <!-- Filtres -->
+    <div class="card validation-card" style="margin-bottom: 24px;">
+        <div class="card-header" style="display: flex; align-items: center; gap: 12px;">
+            <div style="width: 40px; height: 40px; display: flex; align-items: center; justify-content: center; background: var(--bg-secondary); border-radius: var(--border-radius-sm); color: var(--accent); font-size: 1.1rem;">
+                <i class="fas fa-filter"></i>
+            </div>
+            <h3 style="margin: 0; font-size: 1.2rem; font-weight: var(--font-weight-medium); color: var(--text-primary);">Filtres</h3>
+        </div>
+        <div class="card-body" style="display: flex; gap: 20px; flex-wrap: wrap;">
+            <div style="flex: 1; min-width: 250px;">
+                <label for="filterCategorie" style="display: block; margin-bottom: 8px; font-size: 0.9rem; font-weight: var(--font-weight-medium); color: var(--text-secondary);">Catégorie</label>
+                <select id="filterCategorie" class="filter-select">
+                    <option value="">Toutes les catégories</option>
+                    {% for categorieNom in categories %}
+                        <option value="{{ categorieNom }}" {% if app.request.query.get('categorie') == categorieNom %}selected{% endif %}>
+                            {{ categorieNom|capitalize }}
+                        </option>
+                    {% endfor %}
+                </select>
+            </div>
+            <div style="flex: 1; min-width: 250px;">
+                <label for="filterSegment" style="display: block; margin-bottom: 8px; font-size: 0.9rem; font-weight: var(--font-weight-medium); color: var(--text-secondary);">Segment d'âge</label>
+                <select id="filterSegment" class="filter-select">
+                    <option value="">Tous les segments</option>
+                    {% for segmentNom in segments %}
+                        <option value="{{ segmentNom }}" {% if app.request.query.get('segment') == segmentNom %}selected{% endif %}>
+                            {{ segmentNom|capitalize }}
+                        </option>
+                    {% endfor %}
+                </select>
+            </div>
+        </div>
+    </div>
+
+    <!-- Historique des prix -->
+    {% if historiques is empty %}
+        <div class="card validation-card">
+            <div class="card-body" style="text-align: center; padding: 60px;">
+                <i class="fas fa-history" style="font-size: 4rem; color: var(--text-secondary); margin-bottom: 1rem; opacity: 0.3;"></i>
+                <h3 style="margin-bottom: 8px; color: var(--text-secondary);">Aucun historique</h3>
+                <p style="color: var(--text-secondary);">Aucune modification de prix enregistrée pour vos billets.</p>
+            </div>
+        </div>
+    {% else %}
+        {# Affichage groupé par type quand aucun filtre n'est sélectionné #}
+        {% for typeId, data in historiques %}
+            {% set typeBillet = data.typeBillet %}
+            {% set historiqueList = data.historique %}
+            <div class="card validation-card historique-section" data-type-billet="{{ typeBillet.id }}" style="margin-bottom: 24px;">
+                <div class="card-header">
+                    <h3>
+                        <i class="fas fa-ticket-alt" style="color: #9B59B6; margin-right: 8px;"></i>
+                        {{ typeBillet.nom }}
+                        {% if typeBillet.evenement %}
+                            <span style="color: var(--gray-600); font-size: 0.9rem; font-weight: normal;">
+                                - {{ typeBillet.evenement.titre }}
+                            </span>
+                        {% endif %}
+                    </h3>
+                </div>
+                <div class="card-body">
+                    <div class="table-responsive">
+                        <table class="table table-hover validation-table historique-table">
+                            <thead>
+                                <tr>
+                                    <th class="col-left">Date</th>
+                                    <th class="col-right">Prix précédent</th>
+                                    <th class="col-right">Nouveau prix</th>
+                                    <th class="col-center">Variation</th>
+                                    <th class="col-left">Modifié par</th>
+                                    <th class="col-left">Raison</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                {% for hist in historiqueList %}
+                                    {% set variation = hist.prixPrecedent and hist.nouveauPrix ? ((hist.nouveauPrix - hist.prixPrecedent) / hist.prixPrecedent * 100) : 0 %}
+                                    <tr>
+                                        <td class="col-left">
+                                            <span style="color: var(--text-primary); font-weight: var(--font-weight-medium); font-size: 0.9rem; white-space: nowrap;">{{ hist.modifieLe|date('d/m/Y à H:i') }}</span>
+                                        </td>
+                                        <td class="col-right">
+                                            {% if hist.prixPrecedent %}
+                                                <span style="color: var(--text-primary); font-size: 0.95rem;">{{ hist.prixPrecedent|number_format(2, ',', ' ') }} {{ typeBillet.devise }}</span>
+                                            {% else %}
+                                                <span class="text-muted">-</span>
+                                            {% endif %}
+                                        </td>
+                                        <td class="col-right">
+                                            {% if hist.nouveauPrix %}
+                                                <span style="color: var(--text-primary); font-size: 1rem; font-weight: var(--font-weight-semibold);">{{ hist.nouveauPrix|number_format(2, ',', ' ') }} {{ typeBillet.devise }}</span>
+                                            {% else %}
+                                                <span class="text-muted">-</span>
+                                            {% endif %}
+                                        </td>
+                                        <td class="col-center">
+                                            {% if variation != 0 %}
+                                                <span class="badge status-badge {% if variation > 0 %}status-rejected{% else %}status-active{% endif %}">
+                                                    {% if variation > 0 %}
+                                                        <i class="fas fa-arrow-up"></i> +{{ variation|number_format(2, ',', ' ') }}%
+                                                    {% else %}
+                                                        <i class="fas fa-arrow-down"></i> {{ variation|number_format(2, ',', ' ') }}%
+                                                    {% endif %}
+                                                </span>
+                                            {% else %}
+                                                <span class="text-muted">-</span>
+                                            {% endif %}
+                                        </td>
+                                        <td class="col-left">
+                                            {% if hist.modifiePar %}
+                                                <span style="color: var(--text-primary); font-weight: var(--font-weight-medium); font-size: 0.95rem;">{{ hist.modifiePar.prenom }} {{ hist.modifiePar.nom }}</span>
+                                            {% else %}
+                                                <span class="text-muted">Système</span>
+                                            {% endif %}
+                                        </td>
+                                        <td class="col-left">
+                                            {% if hist.raison %}
+                                                <span style="color: var(--text-secondary); font-size: 0.9rem; white-space: nowrap;">{{ hist.raison }}</span>
+                                            {% else %}
+                                                <span class="text-muted">-</span>
+                                            {% endif %}
+                                        </td>
+                                    </tr>
+                                {% endfor %}
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+        {% endfor %}
+    {% endif %}
+
+    <!-- Pagination -->
+    {% if pagination is defined and pagination is not empty and pagination.totalPages is defined and pagination.totalPages > 1 %}
+            {% set maxPagesToShow = 5 %}
+            {% set currentPage = pagination.currentPage %}
+            {% set totalPages = pagination.totalPages %}
+            {% set startPage = currentPage - 2 %}
+            {% if startPage < 1 %}
+                {% set startPage = 1 %}
+            {% endif %}
+            {% set endPage = startPage + maxPagesToShow - 1 %}
+            {% if endPage > totalPages %}
+                {% set endPage = totalPages %}
+            {% endif %}
+            {% set startPage = endPage - maxPagesToShow + 1 %}
+            {% if startPage < 1 %}
+                {% set startPage = 1 %}
+            {% endif %}
+
+            <div class="pagination-wrapper">
+                <ul class="pagination pagination-rounded">
+                    <li class="page-item {{ currentPage == 1 ? 'disabled' }}">
+                        {% if currentPage == 1 %}
+                            <span class="page-link" aria-disabled="true">Précédent</span>
+                        {% else %}
+                            <a class="page-link" href="{{ path('app_ticket_historique_prix', {
+                                page: currentPage - 1,
+                                categorie: pagination.categorieFilter|default(''),
+                                segment: pagination.segmentFilter|default('')
+                            }) }}" rel="prev">Précédent</a>
+                        {% endif %}
+                    </li>
+
+                    {% if startPage > 1 %}
+                        <li class="page-item">
+                            <a class="page-link" href="{{ path('app_ticket_historique_prix', {
+                                page: 1,
+                                categorie: pagination.categorieFilter|default(''),
+                                segment: pagination.segmentFilter|default('')
+                            }) }}">1</a>
+                        </li>
+                        {% if startPage > 2 %}
+                            <li class="page-item ellipsis" aria-hidden="true"><span class="page-link">…</span></li>
+                        {% endif %}
+                    {% endif %}
+
+                    {% for page in startPage..endPage %}
+                        <li class="page-item {{ page == currentPage ? 'active' }}">
+                            {% if page == currentPage %}
+                                <span class="page-link" aria-current="page">{{ page }}</span>
+                            {% else %}
+                            <a class="page-link" href="{{ path('app_ticket_historique_prix', {
+                                page: page,
+                                categorie: pagination.categorieFilter|default(''),
+                                segment: pagination.segmentFilter|default('')
+                            }) }}">{{ page }}</a>
+                            {% endif %}
+                        </li>
+                    {% endfor %}
+
+                    {% if endPage < totalPages %}
+                        {% if endPage < totalPages - 1 %}
+                            <li class="page-item ellipsis" aria-hidden="true"><span class="page-link">…</span></li>
+                        {% endif %}
+                        <li class="page-item">
+                            <a class="page-link" href="{{ path('app_ticket_historique_prix', {
+                                page: totalPages,
+                                categorie: pagination.categorieFilter|default(''),
+                                segment: pagination.segmentFilter|default('')
+                            }) }}">{{ totalPages }}</a>
+                        </li>
+                    {% endif %}
+
+                    <li class="page-item {{ currentPage == totalPages ? 'disabled' }}">
+                        {% if currentPage == totalPages %}
+                            <span class="page-link" aria-disabled="true">Suivant</span>
+                        {% else %}
+                            <a class="page-link" href="{{ path('app_ticket_historique_prix', {
+                                page: currentPage + 1,
+                                categorie: pagination.categorieFilter|default(''),
+                                segment: pagination.segmentFilter|default('')
+                            }) }}" rel="next">Suivant</a>
+                        {% endif %}
+                    </li>
+                </ul>
+            </div>
+            <div class="pagination-summary">
+                {% set startItem = ((currentPage - 1) * pagination.limit) + 1 %}
+                {% set endItem = pagination.itemsOnCurrentPage is defined ? (startItem + pagination.itemsOnCurrentPage - 1) : min(currentPage * pagination.limit, pagination.totalItems) %}
+                <small>Page {{ currentPage }} sur {{ totalPages }} - Affichage de {{ startItem }} à {{ endItem }} sur {{ pagination.totalItems }} modification(s)</small>
+            </div>
+        {% elseif pagination is defined and pagination.totalItems > 0 %}
+            <div class="pagination-wrapper">
+                <div class="pagination-summary">
+                    <small>Affichage de {{ pagination.totalItems }} modification(s)</small>
+                </div>
+            </div>
+        {% endif %}
+</div>
+
+<style>
+/* Style pour l'icône dans le titre */
+.dashboard-header h1 i {
+    margin-right: 10px;
+    color: var(--accent);
+}
+
+/* Styles pour les boutons d'en-tête */
+.header-actions {
+    display: flex;
+    gap: 12px;
+    align-items: center;
+    flex-wrap: wrap;
+}
+
+.btn-header {
+    display: inline-flex;
+    align-items: center;
+    gap: 10px;
+    padding: 12px 24px;
+    border-radius: 12px;
+    text-decoration: none;
+    font-weight: var(--font-weight-semibold);
+    font-size: 0.95rem;
+    transition: all 0.3s ease;
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+    border: none;
+    white-space: nowrap;
+    background: linear-gradient(135deg, #5DADE2 0%, #3498DB 100%);
+    color: white;
+}
+
+.btn-header i {
+    font-size: 1rem;
+    opacity: 0.9;
+}
+
+.btn-header:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+    background: linear-gradient(135deg, #3498DB 0%, #2980B9 100%);
+    color: white;
+}
+
+/* Styles pour le filtre */
+.filter-select {
+    width: 100%;
+    padding: 12px 16px;
+    border: 2px solid var(--border-color);
+    border-radius: var(--border-radius-sm);
+    font-size: 0.9rem;
+    font-family: var(--font-family);
+    transition: var(--transition-base);
+    background: var(--bg-secondary);
+    color: var(--text-primary);
+    appearance: none;
+    background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' viewBox='0 0 12 12'%3E%3Cpath fill='%236C757D' d='M6 9L1 4h10z'/%3E%3C/svg%3E");
+    background-repeat: no-repeat;
+    background-position: right 14px center;
+    background-size: 12px;
+    padding-right: 40px;
+    cursor: pointer;
+}
+
+.filter-select:focus {
+    outline: none;
+    border-color: var(--accent);
+    box-shadow: 0 0 0 3px rgba(52, 152, 219, 0.1);
+    background-color: var(--bg-primary);
+}
+
+/* Styles harmonisés avec la liste des factures */
+.validation-card {
+    border: 1px solid var(--border-color);
+    border-radius: var(--border-radius-lg);
+    box-shadow: var(--shadow-sm);
+    overflow: hidden;
+    background: var(--bg-card);
+}
+
+.validation-table {
+    width: 100%;
+    border-collapse: separate;
+    border-spacing: 0;
+    background: var(--bg-card);
+}
+
+.validation-table thead {
+    background: var(--bg-secondary);
+    position: sticky;
+    top: 0;
+    z-index: 10;
+}
+
+.validation-table thead th {
+    color: var(--text-primary);
+    border-bottom: 1px solid var(--border-color);
+    font-weight: var(--font-weight-medium);
+    text-transform: uppercase;
+    font-size: 0.82rem;
+    letter-spacing: 0.02em;
+    padding: 16px 20px;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+
+.validation-table tbody td {
+    border-bottom: none;
+    padding: 18px 20px;
+    vertical-align: middle;
+    background: var(--bg-card);
+    white-space: nowrap;
+}
+
+.validation-table tbody tr {
+    border-bottom: 1px solid var(--border-color);
+    transition: var(--transition-base);
+}
+
+.validation-table tbody tr:last-child {
+    border-bottom: none;
+}
+
+.validation-table tbody tr:hover {
+    background: var(--gray-50);
+    transform: none;
+    box-shadow: none;
+}
+
+/* Alignements colonnes */
+.col-left { text-align: left; }
+.col-center { text-align: center; }
+.col-right { text-align: right; }
+
+
+.status-badge {
+    font-size: 0.78rem;
+    padding: 6px 12px;
+    border-radius: var(--border-radius-sm);
+    font-weight: var(--font-weight-medium);
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    white-space: nowrap;
+    transition: var(--transition-base);
+    box-shadow: var(--shadow-xs);
+}
+
+.status-badge i {
+    font-size: 0.75rem;
+    margin-right: 4px;
+}
+
+.status-badge:hover {
+    transform: none;
+    box-shadow: var(--shadow-sm);
+}
+
+.status-active {
+    background: var(--bg-secondary);
+    color: var(--success);
+    border: 1px solid var(--border-color);
+}
+
+.status-rejected {
+    background: var(--bg-secondary);
+    color: var(--danger);
+    border: 1px solid var(--border-color);
+}
+
+.text-muted {
+    color: var(--text-muted);
+}
+
+.historique-section {
+    transition: opacity 0.3s ease;
+}
+
+.historique-section.hidden {
+    display: none;
+}
+
+/* Pagination harmonisée */
+.pagination-wrapper {
+    display: flex;
+    justify-content: center;
+    margin-top: 1rem;
+}
+
+.pagination {
+    list-style: none;
+    padding: 0;
+    margin: 0;
+    display: inline-flex;
+    align-items: center;
+    gap: 0.35rem;
+}
+
+.pagination-rounded .page-link {
+    border-radius: 999px !important;
+}
+
+.pagination .page-item.disabled .page-link {
+    pointer-events: none;
+    opacity: 0.5;
+}
+
+.pagination .page-item.active .page-link {
+    background: var(--accent);
+    border-color: var(--accent);
+    color: var(--text-inverse);
+    font-weight: var(--font-weight-medium);
+}
+
+.pagination .page-link {
+    border-radius: var(--border-radius-sm);
+    border: 1px solid var(--border-color);
+    padding: 6px 14px;
+    color: var(--text-secondary);
+    background: var(--bg-secondary);
+    transition: var(--transition-base);
+    text-decoration: none;
+}
+
+.pagination .page-link:hover {
+    color: var(--accent);
+    border-color: var(--accent);
+}
+
+.pagination .ellipsis .page-link {
+    border: none;
+    background: transparent;
+    color: var(--text-secondary);
+}
+
+.pagination-summary {
+    text-align: center;
+    margin-top: 0.75rem;
+    color: var(--text-secondary);
+    font-size: 0.9rem;
+}
+
+/* Amélioration du scroll horizontal */
+.table-responsive {
+    overflow-x: auto;
+    -webkit-overflow-scrolling: touch;
+    border-radius: var(--border-radius-md);
+}
+
+.table-responsive::-webkit-scrollbar {
+    height: 8px;
+}
+
+.table-responsive::-webkit-scrollbar-track {
+    background: var(--bg-secondary);
+    border-radius: 4px;
+}
+
+.table-responsive::-webkit-scrollbar-thumb {
+    background: var(--border-color);
+    border-radius: 4px;
+}
+
+.table-responsive::-webkit-scrollbar-thumb:hover {
+    background: var(--text-secondary);
+}
+
+/* Responsive pour tablettes */
+@media (max-width: 992px) {
+    .validation-table thead th,
+    .validation-table tbody td {
+        padding: 14px 16px;
+        font-size: 0.9rem;
+    }
+}
+
+/* Responsive pour mobiles */
+@media (max-width: 768px) {
+    .validation-table {
+        font-size: 0.85rem;
+    }
+    
+    .validation-table thead th {
+        padding: 12px 10px;
+        font-size: 0.75rem;
+    }
+    
+    .validation-table tbody td {
+        padding: 12px 10px;
+    }
+    
+    .status-badge {
+        font-size: 0.7rem;
+        padding: 5px 10px;
+    }
+}
+</style>
+
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    function updateFilters() {
+        const url = new URL(window.location.href);
+        const selectedCategorie = document.getElementById('filterCategorie')?.value || '';
+        const selectedSegment = document.getElementById('filterSegment')?.value || '';
+        
+        if (selectedCategorie) {
+            url.searchParams.set('categorie', selectedCategorie);
+        } else {
+            url.searchParams.delete('categorie');
+        }
+        
+        if (selectedSegment) {
+            url.searchParams.set('segment', selectedSegment);
+        } else {
+            url.searchParams.delete('segment');
+        }
+        
+        url.searchParams.delete('page'); // Réinitialiser à la page 1 lors du changement de filtre
+        
+        window.location.href = url.toString();
+    }
+    
+    const filterCategorie = document.getElementById('filterCategorie');
+    const filterSegment = document.getElementById('filterSegment');
+    
+    if (filterCategorie) {
+        filterCategorie.addEventListener('change', updateFilters);
+    }
+    
+    if (filterSegment) {
+        filterSegment.addEventListener('change', updateFilters);
+    }
+});
+</script>
+{% endblock %}
+

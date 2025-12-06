@@ -8,6 +8,7 @@ use App\Entity\ElementCommande;
 use App\Entity\TypeBillet;
 use App\Entity\User;
 use Doctrine\Bundle\DoctrineBundle\Repository\ServiceEntityRepository;
+use Doctrine\ORM\Tools\Pagination\Paginator;
 use Doctrine\Persistence\ManagerRegistry;
 
 /**
@@ -118,6 +119,111 @@ class BilletRepository extends ServiceEntityRepository
     {
         $this->getEntityManager()->remove($billet);
         $this->getEntityManager()->flush();
+    }
+
+    /**
+     * Récupère tous les billets pour un organisateur (via ses événements)
+     */
+    public function findByOrganizer(User $organizer): array
+    {
+        return $this->createQueryBuilder('b')
+            ->innerJoin('b.typeBillet', 'tb')
+            ->innerJoin('tb.evenement', 'e')
+            ->leftJoin('e.profilOrganisateur', 'op')
+            ->leftJoin('App\Entity\OrganisateurEvenement', 'oe', 'WITH', 'oe.evenement = e')
+            ->leftJoin('oe.profilOrganisateur', 'op2')
+            ->where('op.utilisateur = :organizer OR op2.utilisateur = :organizer')
+            ->setParameter('organizer', $organizer)
+            ->orderBy('b.emisLe', 'DESC')
+            ->getQuery()
+            ->getResult();
+    }
+
+    /**
+     * Récupère les billets paginés pour un organisateur
+     *
+     * @param User $organizer
+     * @param int $page Numéro de page (commence à 1)
+     * @param int $limit Nombre d'éléments par page
+     * @return Paginator
+     */
+    public function findByOrganizerPaginated(User $organizer, int $page = 1, int $limit = 10): Paginator
+    {
+        $query = $this->createQueryBuilder('b')
+            ->innerJoin('b.typeBillet', 'tb')
+            ->innerJoin('tb.evenement', 'e')
+            ->leftJoin('e.profilOrganisateur', 'op')
+            ->leftJoin('App\Entity\OrganisateurEvenement', 'oe', 'WITH', 'oe.evenement = e')
+            ->leftJoin('oe.profilOrganisateur', 'op2')
+            ->where('op.utilisateur = :organizer OR op2.utilisateur = :organizer')
+            ->setParameter('organizer', $organizer)
+            ->orderBy('b.emisLe', 'DESC')
+            ->setFirstResult(($page - 1) * $limit)
+            ->setMaxResults($limit)
+            ->getQuery();
+
+        return new Paginator($query, true);
+    }
+
+    /**
+     * Récupère les statistiques des billets pour un organisateur
+     */
+    public function getStatsByOrganizer(User $organizer): array
+    {
+        $baseConditions = function($qb) use ($organizer) {
+            return $qb->innerJoin('b.typeBillet', 'tb')
+                ->innerJoin('tb.evenement', 'e')
+                ->leftJoin('e.profilOrganisateur', 'op')
+                ->leftJoin('App\Entity\OrganisateurEvenement', 'oe', 'WITH', 'oe.evenement = e')
+                ->leftJoin('oe.profilOrganisateur', 'op2')
+                ->where('op.utilisateur = :organizer OR op2.utilisateur = :organizer')
+                ->setParameter('organizer', $organizer);
+        };
+
+        $countSelect = 'COUNT(b.id)';
+        $statusCondition = 'b.statut = :status';
+
+        $total = (int) $baseConditions($this->createQueryBuilder('b'))
+            ->select($countSelect)
+            ->getQuery()
+            ->getSingleScalarResult();
+
+        $vendus = (int) $baseConditions($this->createQueryBuilder('b'))
+            ->select($countSelect)
+            ->andWhere('b.statut IN (:statuses)')
+            ->setParameter('statuses', [Billet::STATUT_VALID, Billet::STATUT_USED])
+            ->getQuery()
+            ->getSingleScalarResult();
+
+        $utilises = (int) $baseConditions($this->createQueryBuilder('b'))
+            ->select($countSelect)
+            ->andWhere($statusCondition)
+            ->setParameter('status', Billet::STATUT_USED)
+            ->getQuery()
+            ->getSingleScalarResult();
+
+        // Les billets "en attente" sont ceux qui sont valides mais pas encore utilisés
+        $enAttente = (int) $baseConditions($this->createQueryBuilder('b'))
+            ->select($countSelect)
+            ->andWhere($statusCondition)
+            ->setParameter('status', Billet::STATUT_VALID)
+            ->getQuery()
+            ->getSingleScalarResult();
+
+        $annules = (int) $baseConditions($this->createQueryBuilder('b'))
+            ->select($countSelect)
+            ->andWhere($statusCondition)
+            ->setParameter('status', Billet::STATUT_CANCELLED)
+            ->getQuery()
+            ->getSingleScalarResult();
+
+        return [
+            'total' => $total,
+            'vendus' => $vendus,
+            'utilises' => $utilises,
+            'enAttente' => $enAttente,
+            'annules' => $annules,
+        ];
     }
 
     /**

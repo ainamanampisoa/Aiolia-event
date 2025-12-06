@@ -11,53 +11,362 @@
                 Configurez les catégories et prix de vos billets
             </p>
         </div>
+        <div class="header-actions">
+            <a href="{{ path('organisateur_tickets_index') }}" class="btn-header">
+                <i class="fas fa-ticket-alt"></i>
+                <span>Billets</span>
+            </a>
+            <a href="{{ path('app_ticket_historique_prix') }}" class="btn-header">
+                <i class="fas fa-history"></i>
+                <span>Historique prix</span>
+            </a>
+        </div>
     </div>
 
-    <div class="chart-card">
-        <div class="card-body">
-            <div class="categories-grid">
-                <div class="category-card">
-                    <h3>VIP</h3>
-                    <div class="category-price">75 €</div>
-                    <p>Accès prioritaire + Backstage</p>
-                    <div class="category-stats">
-                        <span>156 vendus</span>
-                        <span>44 restants</span>
-                    </div>
-                </div>
-                <div class="category-card">
-                    <h3>Standard</h3>
-                    <div class="category-price">40 €</div>
-                    <p>Accès général</p>
-                    <div class="category-stats">
-                        <span>892 vendus</span>
-                        <span>108 restants</span>
-                    </div>
-                </div>
+    <!-- Filtres -->
+    <div class="card validation-card" style="margin-bottom: 24px;">
+        <div class="card-header" style="display: flex; align-items: center; gap: 12px;">
+            <div style="width: 40px; height: 40px; display: flex; align-items: center; justify-content: center; background: var(--bg-secondary); border-radius: var(--border-radius-sm); color: var(--accent); font-size: 1.1rem;">
+                <i class="fas fa-filter"></i>
             </div>
+            <h3 style="margin: 0; font-size: 1.2rem; font-weight: var(--font-weight-medium); color: var(--text-primary);">Filtres</h3>
+        </div>
+        <div class="card-body" style="display: flex; gap: 20px; flex-wrap: wrap;">
+            <div style="flex: 1; min-width: 250px;">
+                <label for="filterCategorie" style="display: block; margin-bottom: 8px; font-size: 0.9rem; font-weight: var(--font-weight-medium); color: var(--text-secondary);">Catégorie</label>
+                <select id="filterCategorie" class="filter-select">
+                    <option value="">Toutes les catégories</option>
+                    {% for categorie in categories %}
+                        <option value="{{ categorie.id }}" {% if categorieFilter == categorie.id|default('') %}selected{% endif %}>
+                            {{ categorie.nom }}
+                        </option>
+                    {% endfor %}
+                </select>
+            </div>
+            <div style="flex: 1; min-width: 250px;">
+                <label for="filterSegment" style="display: block; margin-bottom: 8px; font-size: 0.9rem; font-weight: var(--font-weight-medium); color: var(--text-secondary);">Segment d'âge</label>
+                <select id="filterSegment" class="filter-select">
+                    <option value="">Tous les segments</option>
+                    {% for segment in segments %}
+                        <option value="{{ segment.id }}" {% if segmentFilter == segment.id|default('') %}selected{% endif %}>
+                            {{ segment.nom|capitalize }}
+                        </option>
+                    {% endfor %}
+                </select>
+            </div>
+        </div>
+    </div>
+
+    <!-- Liste des catégories -->
+    <div class="card validation-card">
+        <div class="card-header" style="display: flex; justify-content: space-between; align-items: center;">
+            <h3>📋 Liste des catégories</h3>
+            {% if totalItems is defined and totalItems > 0 %}
+                <span style="color: var(--gray-600); font-size: 0.9rem;">
+                    Total : <strong>{{ totalItems }}</strong> catégorie(s)
+                </span>
+            {% endif %}
+        </div>
+        <div class="card-body">
+            {% if totalItems is defined and totalItems > 0 %}
+                <div class="categories-grid">
+                    {% for typeBillet in typesBillets %}
+                        {% set inventaire = typeBillet.inventaire %}
+                        {% set vendus = inventaire ? inventaire.quantiteVendue : 0 %}
+                        {% set restants = inventaire ? (inventaire.quantiteTotale - inventaire.quantiteVendue - inventaire.quantiteReservee) : 0 %}
+                        <div class="category-card">
+                            <div class="category-header">
+                                <h3>{{ typeBillet.nom }}</h3>
+                                {% if typeBillet.configurationCategorie %}
+                                    <span class="category-badge">{{ typeBillet.configurationCategorie.nom|lower|trim }}</span>
+                                {% endif %}
+                            </div>
+                            {% if typeBillet.evenement %}
+                                <div class="category-event">
+                                    <i class="fas fa-calendar-alt"></i>
+                                    <span>{{ typeBillet.evenement.titre }}</span>
+                                </div>
+                            {% endif %}
+                            <div class="category-price">{{ typeBillet.prixDeBase|number_format(2, ',', ' ') }} {{ typeBillet.devise }}</div>
+                            <p class="category-description">{{ typeBillet.description ?? 'Pas de description' }}</p>
+                            <div class="category-stats">
+                                <div class="stat-item">
+                                    <span class="stat-label">Vendus</span>
+                                    <span class="stat-value">{{ vendus }}</span>
+                                </div>
+                                <div class="stat-item">
+                                    <span class="stat-label">Restants</span>
+                                    <span class="stat-value">{{ restants }}</span>
+                                </div>
+                            </div>
+                            <div class="category-actions">
+                                <a href="{{ path('app_ticket_historique_prix') }}?type={{ typeBillet.id }}" class="btn-category-action">
+                                    <i class="fas fa-history"></i>
+                                    <span>Historique prix</span>
+                                </a>
+                            </div>
+                        </div>
+                    {% endfor %}
+                </div>
+
+                <!-- Pagination -->
+                {% if totalPages > 1 %}
+                    {% set maxPagesToShow = 5 %}
+                    {% set startPage = currentPage - 2 %}
+                    {% if startPage < 1 %}
+                        {% set startPage = 1 %}
+                    {% endif %}
+                    {% set endPage = startPage + maxPagesToShow - 1 %}
+                    {% if endPage > totalPages %}
+                        {% set endPage = totalPages %}
+                    {% endif %}
+                    {% set startPage = endPage - maxPagesToShow + 1 %}
+                    {% if startPage < 1 %}
+                        {% set startPage = 1 %}
+                    {% endif %}
+
+                    <div class="pagination-wrapper">
+                        <ul class="pagination pagination-rounded">
+                            <li class="page-item {{ currentPage == 1 ? 'disabled' }}">
+                                {% if currentPage == 1 %}
+                                    <span class="page-link" aria-disabled="true">Précédent</span>
+                                {% else %}
+                                    <a class="page-link" href="{{ path('app_ticket_categories', {
+                                        page: currentPage - 1,
+                                        categorie: categorieFilter|default(''),
+                                        segment: segmentFilter|default('')
+                                    }) }}" rel="prev">Précédent</a>
+                                {% endif %}
+                            </li>
+
+                            {% if startPage > 1 %}
+                                <li class="page-item">
+                                    <a class="page-link" href="{{ path('app_ticket_categories', {
+                                        page: 1,
+                                        categorie: categorieFilter|default(''),
+                                        segment: segmentFilter|default('')
+                                    }) }}">1</a>
+                                </li>
+                                {% if startPage > 2 %}
+                                    <li class="page-item ellipsis" aria-hidden="true"><span class="page-link">…</span></li>
+                                {% endif %}
+                            {% endif %}
+
+                            {% for page in startPage..endPage %}
+                                <li class="page-item {{ page == currentPage ? 'active' }}">
+                                    {% if page == currentPage %}
+                                        <span class="page-link" aria-current="page">{{ page }}</span>
+                                    {% else %}
+                                        <a class="page-link" href="{{ path('app_ticket_categories', {
+                                            page: page,
+                                            categorie: categorieFilter|default(''),
+                                            segment: segmentFilter|default('')
+                                        }) }}">{{ page }}</a>
+                                    {% endif %}
+                                </li>
+                            {% endfor %}
+
+                            {% if endPage < totalPages %}
+                                {% if endPage < totalPages - 1 %}
+                                    <li class="page-item ellipsis" aria-hidden="true"><span class="page-link">…</span></li>
+                                {% endif %}
+                                <li class="page-item">
+                                    <a class="page-link" href="{{ path('app_ticket_categories', {
+                                        page: totalPages,
+                                        categorie: categorieFilter|default(''),
+                                        segment: segmentFilter|default('')
+                                    }) }}">{{ totalPages }}</a>
+                                </li>
+                            {% endif %}
+
+                            <li class="page-item {{ currentPage == totalPages ? 'disabled' }}">
+                                {% if currentPage == totalPages %}
+                                    <span class="page-link" aria-disabled="true">Suivant</span>
+                                {% else %}
+                                    <a class="page-link" href="{{ path('app_ticket_categories', {
+                                        page: currentPage + 1,
+                                        categorie: categorieFilter|default(''),
+                                        segment: segmentFilter|default('')
+                                    }) }}" rel="next">Suivant</a>
+                                {% endif %}
+                            </li>
+                        </ul>
+                    </div>
+                    <div class="pagination-summary">
+                        <small>Page {{ currentPage }} sur {{ totalPages }} - Affichage de {{ typesBillets|length }} catégorie(s) sur {{ totalItems }} total</small>
+                    </div>
+                {% elseif totalItems > 0 %}
+                    <div class="pagination-wrapper">
+                        <div class="pagination-summary">
+                            <small>Affichage de {{ totalItems }} catégorie(s)</small>
+                        </div>
+                    </div>
+                {% endif %}
+            {% else %}
+                <div style="text-align: center; padding: 60px;">
+                    <i class="fas fa-tags" style="font-size: 4rem; color: var(--text-secondary); margin-bottom: 1rem; opacity: 0.3;"></i>
+                    <h3 style="margin-bottom: 8px; color: var(--text-secondary);">Aucune catégorie trouvée</h3>
+                    <p style="color: var(--text-secondary);">Aucune catégorie de billet trouvée pour vos événements.</p>
+                </div>
+            {% endif %}
         </div>
     </div>
 </div>
 
 <style>
+/* Styles pour les boutons d'en-tête */
+.header-actions {
+    display: flex;
+    gap: 12px;
+    align-items: center;
+    flex-wrap: wrap;
+}
+
+.btn-header {
+    display: inline-flex;
+    align-items: center;
+    gap: 10px;
+    padding: 12px 24px;
+    border-radius: 12px;
+    text-decoration: none;
+    font-weight: var(--font-weight-semibold);
+    font-size: 0.95rem;
+    transition: all 0.3s ease;
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+    border: none;
+    white-space: nowrap;
+    background: linear-gradient(135deg, #5DADE2 0%, #3498DB 100%);
+    color: white;
+}
+
+.btn-header i {
+    font-size: 1rem;
+    opacity: 0.9;
+}
+
+.btn-header:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+    background: linear-gradient(135deg, #3498DB 0%, #2980B9 100%);
+    color: white;
+}
+
+/* Styles pour le filtre */
+.filter-select {
+    width: 100%;
+    max-width: 400px;
+    padding: 12px 16px;
+    border: 2px solid var(--border-color);
+    border-radius: var(--border-radius-sm);
+    font-size: 0.9rem;
+    font-family: var(--font-family);
+    transition: var(--transition-base);
+    background: var(--bg-secondary);
+    color: var(--text-primary);
+    appearance: none;
+    background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' viewBox='0 0 12 12'%3E%3Cpath fill='%236C757D' d='M6 9L1 4h10z'/%3E%3C/svg%3E");
+    background-repeat: no-repeat;
+    background-position: right 14px center;
+    background-size: 12px;
+    padding-right: 40px;
+    cursor: pointer;
+}
+
+.filter-select:focus {
+    outline: none;
+    border-color: var(--accent);
+    box-shadow: 0 0 0 3px rgba(52, 152, 219, 0.1);
+    background-color: var(--bg-primary);
+}
+
+/* Styles harmonisés avec la liste des factures */
+.validation-card {
+    border: 1px solid var(--border-color);
+    border-radius: var(--border-radius-lg);
+    box-shadow: var(--shadow-sm);
+    overflow: hidden;
+    background: var(--bg-card);
+}
+
+/* Grille des catégories - 3 colonnes */
 .categories-grid {
     display: grid;
-    grid-template-columns: repeat(auto-fill, minmax(250px, 1fr));
-    gap: 20px;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 24px;
 }
 
 .category-card {
-    background: var(--gray-50);
-    padding: 24px;
+    background: var(--bg-card);
+    border: 1px solid var(--border-color);
     border-radius: var(--border-radius-lg);
-    border: 2px solid var(--gray-200);
-    text-align: center;
+    padding: 24px;
+    transition: var(--transition-base);
+    box-shadow: var(--shadow-xs);
+    display: flex;
+    flex-direction: column;
+    height: 100%;
+}
+
+.category-card:hover {
+    box-shadow: var(--shadow-sm);
+    transform: translateY(-2px);
+    border-color: var(--border-color);
+}
+
+.category-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: flex-start;
+    margin-bottom: 16px;
+    gap: 12px;
+    padding-bottom: 16px;
+    border-bottom: 1px solid var(--border-color);
 }
 
 .category-card h3 {
     font-size: 1.3rem;
-    color: var(--primary);
+    color: var(--text-primary);
+    margin: 0;
+    font-weight: var(--font-weight-semibold);
+    flex: 1;
+}
+
+.category-badge {
+    padding: 10px 20px;
+    background: var(--bg-secondary);
+    color: var(--text-primary);
+    border-radius: 6px;
+    font-size: 0.88rem;
+    font-weight: var(--font-weight-semibold);
+    text-transform: lowercase;
+    white-space: nowrap;
+    border: 1px solid var(--border-color);
+    width: 100px;
+    height: 36px;
+    text-align: center;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+}
+
+.category-event {
     margin-bottom: 12px;
+    padding: 8px 12px;
+    background: var(--bg-secondary);
+    border-radius: var(--border-radius-sm);
+    display: flex;
+    align-items: center;
+    gap: 8px;
+}
+
+.category-event i {
+    color: var(--text-secondary);
+    font-size: 0.85rem;
+}
+
+.category-event span {
+    color: var(--text-secondary);
+    font-size: 0.9rem;
 }
 
 .category-price {
@@ -65,20 +374,194 @@
     font-weight: var(--font-weight-bold);
     color: var(--success);
     margin-bottom: 12px;
+    display: inline-block;
+}
+
+.category-description {
+    color: var(--text-secondary);
+    font-size: 0.9rem;
+    margin-bottom: 20px;
+    min-height: 40px;
+    flex: 1;
 }
 
 .category-stats {
     display: flex;
     justify-content: space-around;
-    margin-top: 16px;
-    padding-top: 16px;
-    border-top: 1px solid var(--gray-200);
+    padding: 16px 0;
+    border-top: 1px solid var(--border-color);
+    border-bottom: 1px solid var(--border-color);
+    margin-bottom: 16px;
+    margin-top: auto;
 }
 
-.category-stats span {
+.stat-item {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 4px;
+}
+
+.stat-label {
     font-size: 0.85rem;
-    color: var(--gray-600);
+    color: var(--text-secondary);
+    font-weight: var(--font-weight-medium);
+}
+
+.stat-value {
+    font-size: 1.5rem;
+    font-weight: var(--font-weight-bold);
+    color: var(--text-primary);
+}
+
+.category-actions {
+    display: flex;
+    gap: 8px;
+}
+
+.btn-category-action {
+    flex: 1;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    gap: 8px;
+    padding: 10px 16px;
+    background: linear-gradient(135deg, #5DADE2 0%, #3498DB 100%);
+    color: white;
+    border-radius: var(--border-radius-sm);
+    text-decoration: none;
+    font-size: 0.9rem;
+    font-weight: var(--font-weight-medium);
+    transition: var(--transition-base);
+    box-shadow: 0 2px 4px rgba(52, 152, 219, 0.2);
+}
+
+.btn-category-action:hover {
+    background: linear-gradient(135deg, #3498DB 0%, #2980B9 100%);
+    box-shadow: 0 4px 8px rgba(52, 152, 219, 0.3);
+    transform: translateY(-1px);
+    color: white;
+}
+
+/* Pagination harmonisée */
+.pagination-wrapper {
+    display: flex;
+    justify-content: center;
+    margin-top: 1rem;
+}
+
+.pagination {
+    list-style: none;
+    padding: 0;
+    margin: 0;
+    display: inline-flex;
+    align-items: center;
+    gap: 0.35rem;
+}
+
+.pagination-rounded .page-link {
+    border-radius: 999px !important;
+}
+
+.pagination .page-item.disabled .page-link {
+    pointer-events: none;
+    opacity: 0.5;
+}
+
+.pagination .page-item.active .page-link {
+    background: var(--accent);
+    border-color: var(--accent);
+    color: var(--text-inverse);
+    font-weight: var(--font-weight-medium);
+}
+
+.pagination .page-link {
+    border-radius: var(--border-radius-sm);
+    border: 1px solid var(--border-color);
+    padding: 6px 14px;
+    color: var(--text-secondary);
+    background: var(--bg-secondary);
+    transition: var(--transition-base);
+    text-decoration: none;
+}
+
+.pagination .page-link:hover {
+    color: var(--accent);
+    border-color: var(--accent);
+}
+
+.pagination .ellipsis .page-link {
+    border: none;
+    background: transparent;
+    color: var(--text-secondary);
+}
+
+.pagination-summary {
+    text-align: center;
+    margin-top: 0.75rem;
+    color: var(--text-secondary);
+    font-size: 0.9rem;
+}
+
+/* Responsive pour tablettes */
+@media (max-width: 992px) {
+    .categories-grid {
+        grid-template-columns: repeat(2, 1fr);
+        gap: 20px;
+    }
+}
+
+/* Responsive pour mobiles */
+@media (max-width: 768px) {
+    .categories-grid {
+        grid-template-columns: 1fr;
+        gap: 16px;
+    }
+    
+    .category-card {
+        padding: 20px;
+    }
+    
+    .category-price {
+        font-size: 1.75rem;
+    }
 }
 </style>
-{% endblock %}
 
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    const filterCategorie = document.getElementById('filterCategorie');
+    const filterSegment = document.getElementById('filterSegment');
+    
+    function updateFilters() {
+        const url = new URL(window.location.href);
+        const selectedCategorie = filterCategorie ? filterCategorie.value : '';
+        const selectedSegment = filterSegment ? filterSegment.value : '';
+        
+        if (selectedCategorie) {
+            url.searchParams.set('categorie', selectedCategorie);
+        } else {
+            url.searchParams.delete('categorie');
+        }
+        
+        if (selectedSegment) {
+            url.searchParams.set('segment', selectedSegment);
+        } else {
+            url.searchParams.delete('segment');
+        }
+        
+        url.searchParams.delete('page'); // Réinitialiser à la page 1 lors du changement de filtre
+        
+        window.location.href = url.toString();
+    }
+    
+    if (filterCategorie) {
+        filterCategorie.addEventListener('change', updateFilters);
+    }
+    
+    if (filterSegment) {
+        filterSegment.addEventListener('change', updateFilters);
+    }
+});
+</script>
+{% endblock %}

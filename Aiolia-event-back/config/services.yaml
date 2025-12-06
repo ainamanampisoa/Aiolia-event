@@ -31,3 +31,7 @@ services:
             $secret: '%env(APP_SECRET)%'
             $accessTokenTtl: '%app.access_token_ttl%'
             $refreshTokenTtl: '%app.refresh_token_ttl%'
+
+    App\Service\QrCodeService:
+        arguments:
+            $publicPath: '%kernel.project_dir%/public'

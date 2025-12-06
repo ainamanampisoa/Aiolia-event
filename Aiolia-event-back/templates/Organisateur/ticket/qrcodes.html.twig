@@ -6,62 +6,189 @@
 <div class="dashboard">
     <div class="dashboard-header">
         <div>
-            <h1>📱 QR Codes des billets</h1>
+            <h1><i class="fas fa-qrcode"></i> QR Codes des billets</h1>
+            <p style="color: var(--gray-600); margin-top: 8px; font-size: 1rem;">
+                Téléchargez et gérez les QR codes de vos billets
+            </p>
         </div>
     </div>
 
-    <div class="chart-card">
+    <div class="card validation-card">
         <div class="card-body">
-            <div class="qrcodes-grid">
-                <div class="qrcode-item">
-                    <div class="qr-placeholder">
-                        <i class="fas fa-qrcode"></i>
-                    </div>
-                    <p>#TKT-001248</p>
-                    <button class="btn-download">Télécharger</button>
+            {% if billetsWithQr is empty %}
+                <div style="text-align: center; padding: 60px; color: var(--gray-600);">
+                    <i class="fas fa-qrcode" style="font-size: 4rem; margin-bottom: 16px; display: block; color: var(--gray-400); opacity: 0.5;"></i>
+                    <h3 style="color: var(--gray-600); margin-bottom: 8px;">Aucun billet trouvé</h3>
+                    <p>Aucun billet n'a encore été émis pour vos événements.</p>
                 </div>
-            </div>
+            {% else %}
+                <div class="qrcodes-grid">
+                    {% for item in billetsWithQr %}
+                        {% set billet = item.billet %}
+                        {% set qrCodeUrl = item.qrCodeUrl %}
+                        <div class="qrcode-item">
+                            <div class="qr-image-container">
+                                <img src="{{ qrCodeUrl }}" alt="QR Code #TKT-{{ billet.id|slice(-6) }}" class="qr-image">
+                            </div>
+                            <p class="qr-code-label">#TKT-{{ billet.id|slice(-6) }}</p>
+                            {% if billet.typeBillet and billet.typeBillet.evenement %}
+                                <p class="qr-event-name">{{ billet.typeBillet.evenement.titre }}</p>
+                            {% endif %}
+                            <div class="qr-actions">
+                                <a href="{{ qrCodeUrl }}" download="qrcode-TKT-{{ billet.id|slice(-6) }}.png" class="btn-download">
+                                    <i class="fas fa-download"></i>
+                                    Télécharger
+                                </a>
+                            </div>
+                        </div>
+                    {% endfor %}
+                </div>
+            {% endif %}
         </div>
     </div>
 </div>
 
 <style>
+/* Styles pour les boutons d'en-tête */
+.header-actions {
+    display: flex;
+    gap: 12px;
+    align-items: center;
+    flex-wrap: wrap;
+}
+
+.btn-header {
+    display: inline-flex;
+    align-items: center;
+    gap: 10px;
+    padding: 12px 24px;
+    border-radius: 12px;
+    text-decoration: none;
+    font-weight: var(--font-weight-semibold);
+    font-size: 0.95rem;
+    transition: all 0.3s ease;
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+    border: none;
+    white-space: nowrap;
+    background: linear-gradient(135deg, #5DADE2 0%, #3498DB 100%);
+    color: white;
+}
+
+.btn-header i {
+    font-size: 1rem;
+    opacity: 0.9;
+}
+
+.btn-header:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+    background: linear-gradient(135deg, #3498DB 0%, #2980B9 100%);
+    color: white;
+}
+
+/* Style pour l'icône dans le titre */
+h1 i {
+    margin-right: 10px;
+    color: var(--accent);
+}
+
+/* Styles pour les icônes Font Awesome */
+.fas, .far, .fab {
+    font-family: "Font Awesome 5 Free", "Font Awesome 5 Brands", "Font Awesome 5 Pro";
+    font-weight: 900;
+    display: inline-block;
+    font-style: normal;
+    font-variant: normal;
+    text-rendering: auto;
+    line-height: 1;
+}
+
 .qrcodes-grid {
     display: grid;
-    grid-template-columns: repeat(auto-fill, minmax(150px, 1fr));
-    gap: 16px;
+    grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
+    gap: 24px;
 }
 
 .qrcode-item {
     text-align: center;
-    padding: 16px;
-    background: var(--gray-50);
+    padding: 20px;
+    background: var(--bg-card);
+    border: 1px solid var(--border-color);
     border-radius: var(--border-radius-md);
+    transition: box-shadow 0.3s ease;
 }
 
-.qr-placeholder {
-    width: 120px;
-    height: 120px;
+.qrcode-item:hover {
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+}
+
+.qr-image-container {
+    width: 200px;
+    height: 200px;
+    margin: 0 auto 16px;
+    padding: 12px;
     background: white;
-    border: 2px solid var(--gray-300);
+    border: 1px solid var(--border-color);
     border-radius: var(--border-radius-sm);
     display: flex;
     align-items: center;
     justify-content: center;
-    margin: 0 auto 12px;
-    font-size: 3rem;
-    color: var(--gray-400);
+}
+
+.qr-image {
+    max-width: 100%;
+    max-height: 100%;
+    width: auto;
+    height: auto;
+}
+
+.qr-code-label {
+    font-weight: var(--font-weight-semibold);
+    color: var(--text-primary);
+    margin: 0 0 8px 0;
+    font-size: 1rem;
+}
+
+.qr-event-name {
+    font-size: 0.85rem;
+    color: var(--text-secondary);
+    margin: 0 0 16px 0;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+
+.qr-actions {
+    margin-top: 12px;
 }
 
 .btn-download {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    gap: 8px;
     width: 100%;
-    padding: 8px;
-    background: var(--accent);
+    padding: 10px 16px;
+    background: linear-gradient(135deg, #5DADE2 0%, #3498DB 100%);
     color: white;
     border: none;
     border-radius: var(--border-radius-sm);
     cursor: pointer;
-    font-size: 0.85rem;
+    font-size: 0.9rem;
+    font-weight: var(--font-weight-medium);
+    text-decoration: none;
+    transition: all 0.3s ease;
+}
+
+.btn-download:hover {
+    background: linear-gradient(135deg, #3498DB 0%, #2980B9 100%);
+    transform: translateY(-2px);
+    box-shadow: 0 4px 8px rgba(0, 0, 0, 0.15);
+    color: white;
+}
+
+.btn-download i {
+    font-size: 0.9rem;
 }
 </style>
 {% endblock %}
