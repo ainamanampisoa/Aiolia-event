@@ -585,6 +585,55 @@ class PaymentService
                 ]);
             }
 
+            // EN SANDBOX : Créer automatiquement les tickets après un court délai
+            // Car le callback ne peut pas être appelé depuis localhost
+            // En production, on attendra le callback réel
+            $baseUrl = $this->mvolaClient ? $this->mvolaClient->getBaseUrl() : '';
+            $isSandbox = !empty($baseUrl) && strpos($baseUrl, 'devapi.mvola.mg') !== false;
+            
+            $this->logDebug('Vérification mode sandbox', [
+                'base_url' => $baseUrl,
+                'is_sandbox' => $isSandbox,
+                'server_correlation_id' => $serverCorrelationId,
+                'mvola_client_null' => $this->mvolaClient === null
+            ]);
+            
+            if ($isSandbox && $serverCorrelationId) {
+                $this->logInfo('Mode sandbox détecté - Création automatique des tickets après délai', [
+                    'order_id' => $orderId,
+                    'server_correlation_id' => $serverCorrelationId
+                ]);
+                
+                // Créer les tickets après 2 secondes (simule le délai du callback)
+                // Utiliser un processus asynchrone ou un délai simple
+                // Pour l'instant, on crée directement les tickets
+                try {
+                    // Attendre 1 seconde pour simuler le délai du callback
+                    sleep(1);
+                    
+                    // Créer les tickets automatiquement en sandbox
+                    $ticketResult = $this->createTicketsAfterPayment($orderId);
+                    
+                    if ($ticketResult['success']) {
+                        $this->logInfo('Tickets créés automatiquement en sandbox', [
+                            'order_id' => $orderId,
+                            'tickets_count' => count($ticketResult['tickets'] ?? [])
+                        ]);
+                    } else {
+                        $this->logError('Erreur lors de la création automatique des tickets en sandbox', [
+                            'order_id' => $orderId,
+                            'error' => $ticketResult['error'] ?? 'Erreur inconnue'
+                        ]);
+                    }
+                } catch (\Throwable $e) {
+                    $this->logError('Exception lors de la création automatique des tickets en sandbox', [
+                        'order_id' => $orderId,
+                        'message' => $e->getMessage(),
+                        'trace' => $e->getTraceAsString()
+                    ]);
+                }
+            }
+
             return [
                 'success' => true,
                 'serverCorrelationId' => $serverCorrelationId,
@@ -918,6 +967,8 @@ class PaymentService
             ]);
 
             // Mettre à jour le statut de la commande à "paid"
+            // IMPORTANT: Même si Mvola renvoie 'pending' en sandbox, pour nous c'est un paiement réussi
+            // Donc on met toujours le statut à 'paid' quand le callback indique un succès
             $this->connection->update(
                 'aiolia.orders',
                 [
@@ -926,6 +977,12 @@ class PaymentService
                 ],
                 ['id' => $orderId]
             );
+            
+            $this->logInfo('Statut de la commande mis à jour à paid', [
+                'order_id' => $orderId,
+                'total_order_items' => count($orderItems),
+                'total_tickets' => count($tickets)
+            ]);
             
             // Retirer uniquement les items payés du panier si le panier existe encore
             // Utiliser les cart_keys sauvegardés dans la commande si disponibles

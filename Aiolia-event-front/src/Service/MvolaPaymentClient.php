@@ -64,6 +64,14 @@ class MvolaPaymentClient
     }
 
     /**
+     * Retourne l'URL de base de l'API MVola.
+     */
+    public function getBaseUrl(): string
+    {
+        return $this->baseUrl;
+    }
+
+    /**
      * Méthode helper pour logger (utilise le logger Symfony si disponible, sinon error_log)
      */
     private function log(string $level, string $message, array $context = []): void

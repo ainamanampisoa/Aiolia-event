@@ -16,13 +16,16 @@ class UserStatsRepository
      */
     public function findUserStatistics(int $userId, ?\DateTimeImmutable $dateFrom = null): ?array
     {
+        // D'abord, récupérer les statistiques depuis order_items (si disponibles)
+        // Note: L'enum order_status_enum accepte: 'pending', 'paid', 'cancelled', 'failed'
+        // Les commandes en attente de paiement ont le statut 'pending', pas 'initiated'
         $sql = <<<SQL
             SELECT 
-                COALESCE(SUM(CASE WHEN o.status = 'paid' THEN oi.quantity ELSE 0 END), 0) as total_tickets,
+                COALESCE(SUM(CASE WHEN o.status IN ('paid', 'pending') THEN oi.quantity ELSE 0 END), 0) as total_tickets,
                 COUNT(DISTINCT o.id) as total_orders,
-                COUNT(DISTINCT CASE WHEN o.status = 'paid' THEN e.id ELSE NULL END) as unique_events,
-                SUM(CASE WHEN o.status = 'paid' THEN o.total_amount ELSE 0 END) as total_spent,
-                AVG(CASE WHEN o.status = 'paid' THEN o.total_amount ELSE NULL END) as avg_cart
+                COUNT(DISTINCT CASE WHEN o.status IN ('paid', 'pending') THEN e.id ELSE NULL END) as unique_events,
+                SUM(CASE WHEN o.status IN ('paid', 'pending') THEN o.total_amount ELSE 0 END) as total_spent,
+                AVG(CASE WHEN o.status IN ('paid', 'pending') THEN o.total_amount ELSE NULL END) as avg_cart
             FROM aiolia.orders o
             LEFT JOIN aiolia.order_items oi ON oi.order_id = o.id
             LEFT JOIN aiolia.ticket_types tt ON tt.id = oi.ticket_type_id
@@ -43,16 +46,84 @@ class UserStatsRepository
             return null;
         }
 
+        $totalTickets = (int) ($row['total_tickets'] ?? 0);
         $totalSpent = (float) ($row['total_spent'] ?? 0);
         $avgCart = (float) ($row['avg_cart'] ?? 0);
+        $uniqueEvents = (int) ($row['unique_events'] ?? 0);
+        $totalOrders = (int) ($row['total_orders'] ?? 0);
+
+        // Si les order_items n'existent pas (total_tickets = 0), calculer depuis les notes
+        if ($totalTickets === 0) {
+            $sqlNotes = <<<SQL
+                SELECT 
+                    o.id,
+                    o.status,
+                    o.total_amount,
+                    o.notes
+                FROM aiolia.orders o
+                WHERE o.user_id = :user_id
+                  AND o.status IN ('paid', 'pending')
+            SQL;
+            
+            $paramsNotes = ['user_id' => $userId];
+            
+            if ($dateFrom !== null) {
+                $sqlNotes .= ' AND o.created_at >= :date_from';
+                $paramsNotes['date_from'] = $dateFrom->format('Y-m-d H:i:s');
+            }
+            
+            $orders = $this->connection->executeQuery($sqlNotes, $paramsNotes)->fetchAllAssociative();
+            
+            $calculatedTickets = 0;
+            $calculatedSpent = 0;
+            $eventIds = [];
+            $orderCount = 0;
+            
+            foreach ($orders as $order) {
+                $notes = json_decode($order['notes'] ?? '{}', true);
+                if (is_array($notes) && !empty($notes['cart_items_data'])) {
+                    $orderCount++;
+                    $calculatedSpent += (float) ($order['total_amount'] ?? 0);
+                    
+                    foreach ($notes['cart_items_data'] as $item) {
+                        $calculatedTickets += (int) ($item['adult_quantity'] ?? 0);
+                        $calculatedTickets += (int) ($item['child_quantity'] ?? 0);
+                        if ($calculatedTickets === 0 && isset($item['quantity'])) {
+                            $calculatedTickets += (int) $item['quantity'];
+                        }
+                        
+                        if (isset($item['event_id'])) {
+                            $eventIds[] = (int) $item['event_id'];
+                        }
+                    }
+                }
+            }
+            
+            if ($calculatedTickets > 0) {
+                $totalTickets = $calculatedTickets;
+            }
+            
+            if ($calculatedSpent > 0) {
+                $totalSpent = $calculatedSpent;
+                $avgCart = $orderCount > 0 ? $totalSpent / $orderCount : 0;
+            }
+            
+            if (!empty($eventIds)) {
+                $uniqueEvents = count(array_unique($eventIds));
+            }
+            
+            if ($orderCount > 0) {
+                $totalOrders = $orderCount;
+            }
+        }
 
         return [
-            'total_tickets' => (int) ($row['total_tickets'] ?? 0),
+            'total_tickets' => $totalTickets,
             'total_spent' => number_format($totalSpent, 0, ',', ' ') . ' MGA',
             'total_spent_raw' => $totalSpent,
-            'unique_events' => (int) ($row['unique_events'] ?? 0),
+            'unique_events' => $uniqueEvents,
             'avg_cart' => number_format($avgCart, 0, ',', ' ') . ' MGA',
-            'total_orders' => (int) ($row['total_orders'] ?? 0),
+            'total_orders' => $totalOrders,
         ];
     }
 

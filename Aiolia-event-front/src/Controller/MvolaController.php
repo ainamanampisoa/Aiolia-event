@@ -108,8 +108,8 @@ class MvolaController extends AbstractController
             );
 
             // Si le paiement est réussi, mettre à jour la commande
-            // En sandbox MVola, plusieurs statuts peuvent indiquer un paiement réussi
-            // IMPORTANT: En sandbox, Mvola retourne souvent 'pending' pour un paiement réussi
+            // IMPORTANT: En sandbox MVola, le statut 'pending' signifie que le paiement est RÉUSSI
+            // Donc quand Mvola renvoie 'pending', c'est un paiement réussi pour nous
             $successStatuses = ['completed', 'success', 'paid', 'processing', 'pending'];
             $isSuccessful = in_array(strtolower($transactionStatus ?? ''), $successStatuses, true);
             
@@ -119,12 +119,15 @@ class MvolaController extends AbstractController
                 'transaction_status' => $transactionStatus,
                 'order_id' => $transaction['order_id'] ?? null,
                 'is_successful' => $isSuccessful,
+                'note' => $transactionStatus === 'pending' ? 'pending = paiement réussi en sandbox' : null,
             ], JSON_UNESCAPED_UNICODE) . "\n";
             @file_put_contents($this->logFile, $logLine, FILE_APPEND);
             
             if ($isSuccessful) {
-                $logLine = '[' . date('Y-m-d H:i:s') . '] [INFO] Appel de handleSuccessfulPayment | Context: ' . json_encode([
+                $logLine = '[' . date('Y-m-d H:i:s') . '] [INFO] Paiement réussi détecté - Appel de handleSuccessfulPayment | Context: ' . json_encode([
                     'order_id' => $transaction['order_id'],
+                    'mvola_status' => $transactionStatus,
+                    'action' => 'Création des tickets et mise à jour du statut à paid',
                 ], JSON_UNESCAPED_UNICODE) . "\n";
                 @file_put_contents($this->logFile, $logLine, FILE_APPEND);
                 

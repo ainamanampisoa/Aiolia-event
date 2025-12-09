@@ -1424,10 +1424,12 @@ class ProfileController extends AbstractController
      */
     private function calculatePurchaseStats(int $userId, array $orders): array
     {
-        // Inclure les commandes payées ET les commandes initiées avec des données (en attente de callback)
+        // Inclure les commandes payées ET les commandes en attente (pending) avec des données
+        // Note: L'enum order_status_enum accepte: 'pending', 'paid', 'cancelled', 'failed'
+        // Les commandes en attente de paiement ont le statut 'pending', pas 'initiated'
         $confirmedOrders = array_filter($orders, function($o) {
             return $o['status_key'] === 'paid' 
-                || ($o['status_key'] === 'initiated' && $o['tickets'] > 0);
+                || ($o['status_key'] === 'pending' && $o['tickets'] > 0);
         });
         
         $totalSpent = array_sum(array_column($confirmedOrders, 'amount_raw'));
