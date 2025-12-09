@@ -30,6 +30,7 @@ class EventsController extends AbstractController
     public function index(
         EventService $eventService,
         EventTypeService $eventTypeService,
+        TypeBilletService $typeBilletService,
         OrganizerProfileRepository $organizerProfileRepository,
         Request $request
     ): Response {
@@ -71,6 +72,116 @@ class EventsController extends AbstractController
         $events = $result['items'];
         $pagination = $result['pagination'];
 
+        // Calculer les statistiques globales (tous les événements de l'organisateur, pas seulement ceux filtrés)
+        $allEventsCriteria = [
+            'idOrganisateur' => $organizerProfile->getId(),
+            'nomLieu' => null,
+            'dateDebut' => null,
+            'dateFin' => null,
+            'typeEvenementId' => null,
+            'statut' => null,
+            'prixMin' => null,
+            'prixMax' => null,
+            'triPrix' => null,
+            'page' => 1,
+            'limit' => 10000, // Valeur élevée pour obtenir tous les événements
+        ];
+        $allEventsResult = $eventService->searchMultiCriteriaWithPagination($allEventsCriteria);
+        $allEvents = $allEventsResult['items'];
+        
+        // Calculer les totaux globaux
+        $totalEvents = count($allEvents);
+        // Utiliser le fuseau horaire par défaut (Indian/Antananarivo)
+        $now = new \DateTime('now', new \DateTimeZone('Indian/Antananarivo'));
+        $nowTimestamp = $now->getTimestamp();
+        $upcomingEvents = 0;
+        $ongoingEvents = 0;
+        
+        foreach ($allEvents as $event) {
+            if (!$event->getCommenceLe()) {
+                continue;
+            }
+            
+            $commenceLe = $event->getCommenceLe();
+            $seTermineLe = $event->getSeTermineLe();
+            $statut = $event->getStatut();
+            
+            // Convertir les dates en timestamps pour une comparaison fiable
+            $commenceLeTimestamp = $commenceLe->getTimestamp();
+            $seTermineLeTimestamp = $seTermineLe ? $seTermineLe->getTimestamp() : null;
+            
+            // Vérifier si l'événement a commencé
+            $hasStarted = $commenceLeTimestamp <= $nowTimestamp;
+            // Vérifier si l'événement est terminé
+            $isFinished = $seTermineLeTimestamp !== null && $seTermineLeTimestamp < $nowTimestamp;
+            
+            // Un événement est "en cours" si :
+            // - Il est publié ou archivé
+            // - Il a commencé
+            // - ET il n'est pas encore terminé
+            if (in_array($statut, ['published', 'archived']) && $hasStarted && !$isFinished) {
+                $ongoingEvents++;
+            }
+            
+            // Un événement est "à venir" si :
+            // - Il est publié
+            // - Il n'a pas encore commencé
+            if ($statut === 'published' && !$hasStarted) {
+                $upcomingEvents++;
+            }
+        }
+        
+        $globalStats = [
+            'total' => $totalEvents,
+            'upcoming' => $upcomingEvents,
+            'ongoing' => $ongoingEvents,
+        ];
+
+        // Calculer les statistiques pour chaque événement
+        $eventsStats = [];
+        foreach ($events as $event) {
+            $ticketTypes = $typeBilletService->getByEvenement($event);
+            $totalTickets = 0;
+            $soldTickets = 0;
+            $minPrice = null;
+            $adultTicketTypes = [];
+            
+            foreach ($ticketTypes as $ticketType) {
+                $inventaire = $ticketType->getInventaire();
+                if ($inventaire) {
+                    $totalTickets += $inventaire->getQuantiteTotale() ?? 0;
+                    $soldTickets += $inventaire->getQuantiteVendue() ?? 0;
+                }
+                
+                $price = (float) $ticketType->getPrixDeBase();
+                if ($minPrice === null || $price < $minPrice) {
+                    $minPrice = $price;
+                }
+                
+                // Filtrer les billets pour adultes (segment = 'adulte' ou 'tous')
+                $segment = $ticketType->getConfigurationSegment();
+                if ($segment && in_array($segment->getNom(), ['adulte', 'tous'])) {
+                    $adultTicketTypes[] = [
+                        'nom' => $ticketType->getNom(),
+                        'prix' => $price,
+                        'devise' => $ticketType->getDevise(),
+                    ];
+                }
+            }
+            
+            // Trier les prix par ordre croissant
+            usort($adultTicketTypes, function($a, $b) {
+                return $a['prix'] <=> $b['prix'];
+            });
+            
+            $eventsStats[$event->getId()] = [
+                'totalTickets' => $totalTickets,
+                'soldTickets' => $soldTickets,
+                'minPrice' => $minPrice,
+                'adultTicketTypes' => $adultTicketTypes,
+            ];
+        }
+
         // Récupérer les types d'événements pour le select
         $eventTypes = $eventTypeService->getAll();
 
@@ -80,6 +191,8 @@ class EventsController extends AbstractController
             'pagination' => $pagination,
             'criteria' => $criteria,
             'eventTypes' => $eventTypes,
+            'eventsStats' => $eventsStats,
+            'globalStats' => $globalStats,
         ]);
     }
 
@@ -118,6 +231,87 @@ class EventsController extends AbstractController
         return $this->render('Organisateur/events/new.html.twig', [
             'event' => $event,
             'form' => $form,
+        ]);
+    }
+
+    /**
+     * Vue calendrier des événements
+     */
+    #[Route('/calendar', name: 'organisateur_events_calendar', methods: ['GET'])]
+    public function calendar(
+        EventService $eventService,
+        OrganizerProfileRepository $organizerProfileRepository,
+        Request $request
+    ): Response {
+        $user = $this->getUser();
+        if (!$user) {
+            throw $this->createAccessDeniedException('Vous devez être connecté pour accéder à cette page.');
+        }
+
+        // Récupérer le profil organisateur de l'utilisateur
+        $organizerProfile = $organizerProfileRepository->findOneBy(['utilisateur' => $user]);
+        if (!$organizerProfile) {
+            throw $this->createAccessDeniedException('Profil organisateur non trouvé.');
+        }
+
+        // Récupérer le mois et l'année depuis la requête (par défaut: mois et année actuels)
+        $year = $request->query->getInt('year', (int) date('Y'));
+        $month = $request->query->getInt('month', (int) date('m'));
+        
+        // Valider le mois et l'année
+        $month = max(1, min(12, $month));
+        $year = max(2020, min(2100, $year));
+
+        // Récupérer tous les événements de l'organisateur
+        $allEventsCriteria = [
+            'idOrganisateur' => $organizerProfile->getId(),
+            'nomLieu' => null,
+            'dateDebut' => null,
+            'dateFin' => null,
+            'typeEvenementId' => null,
+            'statut' => null,
+            'prixMin' => null,
+            'prixMax' => null,
+            'triPrix' => null,
+            'page' => 1,
+            'limit' => 10000,
+        ];
+        $allEventsResult = $eventService->searchMultiCriteriaWithPagination($allEventsCriteria);
+        $allEvents = $allEventsResult['items'];
+
+        // Organiser les événements par date
+        $eventsByDate = [];
+        foreach ($allEvents as $event) {
+            if ($event->getCommenceLe()) {
+                $dateKey = $event->getCommenceLe()->format('Y-m-d');
+                if (!isset($eventsByDate[$dateKey])) {
+                    $eventsByDate[$dateKey] = [];
+                }
+                $eventsByDate[$dateKey][] = $event;
+            }
+        }
+
+        // Calculer les informations du calendrier
+        $firstDay = new \DateTime(sprintf('%d-%02d-01', $year, $month));
+        $lastDay = new \DateTime($firstDay->format('Y-m-t'));
+        $daysInMonth = (int) $lastDay->format('d');
+        $startingDayOfWeek = (int) $firstDay->format('w'); // 0 = dimanche, 6 = samedi
+        $adjustedStartingDay = $startingDayOfWeek == 0 ? 6 : $startingDayOfWeek - 1; // Ajuster pour lundi = 0
+        
+        $monthNames = [
+            1 => 'Janvier', 2 => 'Février', 3 => 'Mars', 4 => 'Avril',
+            5 => 'Mai', 6 => 'Juin', 7 => 'Juillet', 8 => 'Août',
+            9 => 'Septembre', 10 => 'Octobre', 11 => 'Novembre', 12 => 'Décembre'
+        ];
+
+        return $this->render('Organisateur/events/calendar.html.twig', [
+            'events' => $allEvents,
+            'eventsByDate' => $eventsByDate,
+            'currentYear' => $year,
+            'currentMonth' => $month,
+            'monthName' => $monthNames[$month],
+            'daysInMonth' => $daysInMonth,
+            'startingDayOfWeek' => $adjustedStartingDay,
         ]);
     }
 

@@ -1,0 +1,627 @@
+{% extends 'base.html.twig' %}
+
+{% block title %}Calendrier des événements - Aiolia Event{% endblock %}
+
+{% block body %}
+<div class="dashboard">
+    <!-- En-tête de la page -->
+    <div class="dashboard-header">
+        <div>
+            <h1>📅 Calendrier des événements</h1>
+            <p style="color: var(--text-secondary); margin-top: 8px; font-size: 1rem;">
+                Visualisez tous vos événements dans un calendrier mensuel
+            </p>
+        </div>
+        <div class="header-actions">
+            <a href="{{ path('organisateur_events_index') }}" class="btn btn-secondary">
+                <i class="fas fa-th-large"></i>
+                Vue liste
+            </a>
+            <a href="{{ path('app_event_new') }}" class="btn btn-primary">
+                <i class="fas fa-plus"></i>
+                Nouvel événement
+            </a>
+        </div>
+    </div>
+
+    <!-- Navigation du calendrier -->
+    <div class="calendar-navigation">
+        <div class="calendar-nav-group">
+            <a href="{{ path('organisateur_events_calendar', {'year': 'now'|date('Y'), 'month': 'now'|date('m')}) }}" class="calendar-nav-btn calendar-nav-today" title="Aujourd'hui">
+                <i class="fas fa-calendar-day"></i>
+                Aujourd'hui
+            </a>
+            <a href="{{ path('organisateur_events_calendar', {'year': currentMonth == 1 ? currentYear - 1 : currentYear, 'month': currentMonth == 1 ? 12 : currentMonth - 1}) }}" class="calendar-nav-btn calendar-nav-arrow" title="Mois précédent">
+                <i class="fas fa-chevron-left"></i>
+            </a>
+            <a href="{{ path('organisateur_events_calendar', {'year': currentMonth == 12 ? currentYear + 1 : currentYear, 'month': currentMonth == 12 ? 1 : currentMonth + 1}) }}" class="calendar-nav-btn calendar-nav-arrow" title="Mois suivant">
+                <i class="fas fa-chevron-right"></i>
+            </a>
+        </div>
+        <h2 class="calendar-month-year">
+            <span class="calendar-month-name">{{ monthName }}</span>
+            <span class="calendar-year">{{ currentYear }}</span>
+        </h2>
+        <div class="calendar-nav-group">
+            <select id="monthSelect" class="calendar-month-select">
+                {% for i in 1..12 %}
+                    <option value="{{ i }}" {% if i == currentMonth %}selected{% endif %}>
+                        {% set months = ['Janvier', 'Février', 'Mars', 'Avril', 'Mai', 'Juin', 'Juillet', 'Août', 'Septembre', 'Octobre', 'Novembre', 'Décembre'] %}
+                        {{ months[i-1] }}
+                    </option>
+                {% endfor %}
+            </select>
+            <select id="yearSelect" class="calendar-year-select">
+                {% for y in (currentYear - 2)..(currentYear + 2) %}
+                    <option value="{{ y }}" {% if y == currentYear %}selected{% endif %}>{{ y }}</option>
+                {% endfor %}
+            </select>
+        </div>
+    </div>
+
+    <!-- Calendrier -->
+    <div class="calendar-container">
+        <div class="calendar-grid">
+            <!-- En-têtes des jours -->
+            {% set dayHeaders = ['Lun', 'Mar', 'Mer', 'Jeu', 'Ven', 'Sam', 'Dim'] %}
+            {% for dayHeader in dayHeaders %}
+                <div class="calendar-day-header">{{ dayHeader }}</div>
+            {% endfor %}
+
+            <!-- Jours vides au début -->
+            {% if startingDayOfWeek > 0 %}
+                {% for i in 1..startingDayOfWeek %}
+                    <div class="calendar-day empty"></div>
+                {% endfor %}
+            {% endif %}
+
+            <!-- Jours du mois -->
+            {% for day in 1..daysInMonth %}
+                {% set dayStr = day < 10 ? '0' ~ day : day %}
+                {% set monthStr = currentMonth < 10 ? '0' ~ currentMonth : currentMonth %}
+                {% set dateKey = currentYear ~ '-' ~ monthStr ~ '-' ~ dayStr %}
+                {% set today = 'now'|date('Y-m-d') %}
+                {% set isToday = dateKey == today %}
+                {% set dayEvents = eventsByDate[dateKey] ?? [] %}
+                
+                <div class="calendar-day {% if isToday %}today{% endif %} {% if dayEvents|length > 0 %}has-events{% endif %}">
+                    <div class="calendar-day-header-inner">
+                        <div class="calendar-day-number">{{ day }}</div>
+                        {% if dayEvents|length > 0 %}
+                            <div class="calendar-day-badge">{{ dayEvents|length }}</div>
+                        {% endif %}
+                    </div>
+                    {% if dayEvents|length > 0 %}
+                        <div class="calendar-day-events">
+                            {% for event in dayEvents|slice(0, 3) %}
+                                <a href="{{ path('organisateur_events_show', {'id': event.id}) }}" class="calendar-event-link calendar-event-{{ event.statut }}" title="{{ event.titre }}">
+                                    <div class="calendar-event-content">
+                                        <span class="calendar-event-time">
+                                            <i class="fas fa-clock"></i>
+                                            {{ event.commenceLe|date('H:i') }}
+                                        </span>
+                                        <span class="calendar-event-title">{{ event.titre|length > 18 ? event.titre|slice(0, 18) ~ '...' : event.titre }}</span>
+                                    </div>
+                                </a>
+                            {% endfor %}
+                            {% if dayEvents|length > 3 %}
+                                <div class="calendar-event-more" title="Voir tous les événements">
+                                    <i class="fas fa-ellipsis-h"></i>
+                                    +{{ dayEvents|length - 3 }} autre(s)
+                                </div>
+                            {% endif %}
+                        </div>
+                    {% else %}
+                        <div class="calendar-day-empty">
+                            <i class="fas fa-calendar-plus"></i>
+                        </div>
+                    {% endif %}
+                </div>
+            {% endfor %}
+        </div>
+    </div>
+</div>
+
+<style>
+.calendar-navigation {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 32px;
+    padding: 20px 28px;
+    background: linear-gradient(135deg, var(--bg-card) 0%, rgba(67, 97, 238, 0.02) 100%);
+    border-radius: var(--border-radius-lg);
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.08);
+    border: 1px solid var(--border-color);
+    gap: 20px;
+}
+
+.calendar-nav-group {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+}
+
+.calendar-nav-btn {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 8px;
+    padding: 10px 16px;
+    background: var(--bg-secondary);
+    border: 1.5px solid var(--border-color);
+    border-radius: 10px;
+    text-decoration: none;
+    color: var(--text-primary);
+    font-weight: 600;
+    font-size: 0.9rem;
+    transition: all 0.3s ease;
+    white-space: nowrap;
+}
+
+.calendar-nav-btn:hover {
+    background: var(--accent);
+    color: white;
+    border-color: var(--accent);
+    transform: translateY(-2px);
+    box-shadow: 0 4px 8px rgba(67, 97, 238, 0.3);
+}
+
+.calendar-nav-arrow {
+    width: 44px;
+    height: 44px;
+    padding: 0;
+    border-radius: 50%;
+}
+
+.calendar-nav-today {
+    background: linear-gradient(135deg, rgba(67, 97, 238, 0.1) 0%, rgba(67, 97, 238, 0.05) 100%);
+    border-color: var(--accent);
+}
+
+.calendar-month-year {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 4px;
+    margin: 0;
+    flex: 1;
+}
+
+.calendar-month-name {
+    font-size: 2rem;
+    font-weight: 800;
+    color: var(--text-primary);
+    letter-spacing: -0.5px;
+}
+
+.calendar-year {
+    font-size: 1.2rem;
+    font-weight: 600;
+    color: var(--text-secondary);
+    opacity: 0.8;
+}
+
+.calendar-month-select,
+.calendar-year-select {
+    padding: 10px 14px;
+    background: var(--bg-secondary);
+    border: 1.5px solid var(--border-color);
+    border-radius: 10px;
+    color: var(--text-primary);
+    font-weight: 600;
+    font-size: 0.9rem;
+    cursor: pointer;
+    transition: all 0.3s ease;
+}
+
+.calendar-month-select {
+    min-width: 140px;
+}
+
+.calendar-year-select {
+    min-width: 90px;
+}
+
+.calendar-month-select:hover,
+.calendar-year-select:hover {
+    border-color: var(--accent);
+    background: var(--bg-card);
+}
+
+.calendar-month-select:focus,
+.calendar-year-select:focus {
+    outline: none;
+    border-color: var(--accent);
+    box-shadow: 0 0 0 3px rgba(67, 97, 238, 0.1);
+}
+
+.calendar-container {
+    background: var(--bg-card);
+    border-radius: var(--border-radius-lg);
+    padding: 28px;
+    box-shadow: 0 4px 16px rgba(0, 0, 0, 0.1);
+    border: 1px solid var(--border-color);
+}
+
+.calendar-grid {
+    display: grid;
+    grid-template-columns: repeat(7, 1fr);
+    gap: 12px;
+}
+
+.calendar-day-header {
+    text-align: center;
+    font-weight: 800;
+    font-size: 0.95rem;
+    color: var(--text-primary);
+    padding: 16px 8px;
+    text-transform: uppercase;
+    letter-spacing: 1px;
+    background: linear-gradient(135deg, rgba(67, 97, 238, 0.1) 0%, rgba(67, 97, 238, 0.05) 100%);
+    border-radius: 12px;
+    border: 1px solid rgba(67, 97, 238, 0.2);
+}
+
+.calendar-day {
+    background: linear-gradient(135deg, var(--bg-secondary) 0%, var(--bg-card) 100%);
+    border: 2px solid var(--border-color);
+    border-radius: 12px;
+    min-height: 140px;
+    padding: 12px;
+    display: flex;
+    flex-direction: column;
+    transition: all 0.3s ease;
+    position: relative;
+    overflow: hidden;
+}
+
+.calendar-day::before {
+    content: '';
+    position: absolute;
+    top: 0;
+    left: 0;
+    right: 0;
+    height: 3px;
+    background: transparent;
+    transition: all 0.3s ease;
+}
+
+.calendar-day:hover {
+    background: linear-gradient(135deg, var(--bg-card) 0%, rgba(67, 97, 238, 0.03) 100%);
+    border-color: var(--accent);
+    transform: translateY(-3px);
+    box-shadow: 0 6px 16px rgba(67, 97, 238, 0.15);
+}
+
+.calendar-day:hover::before {
+    background: linear-gradient(90deg, var(--accent), rgba(67, 97, 238, 0.5));
+}
+
+.calendar-day.empty {
+    background: transparent;
+    border: 1px dashed var(--border-color);
+    cursor: default;
+    min-height: 140px;
+}
+
+.calendar-day.empty:hover {
+    transform: none;
+    box-shadow: none;
+    border-color: var(--border-color);
+}
+
+.calendar-day.today {
+    background: linear-gradient(135deg, rgba(67, 97, 238, 0.2) 0%, rgba(67, 97, 238, 0.1) 100%);
+    border-color: var(--accent);
+    border-width: 3px;
+    box-shadow: 0 4px 12px rgba(67, 97, 238, 0.2);
+}
+
+.calendar-day.today::before {
+    background: linear-gradient(90deg, var(--accent), rgba(67, 97, 238, 0.6));
+}
+
+.calendar-day.today .calendar-day-number {
+    color: var(--accent);
+    font-weight: 900;
+    font-size: 1.3rem;
+}
+
+.calendar-day.has-events {
+    border-color: var(--accent);
+    border-width: 2.5px;
+}
+
+.calendar-day.has-events::before {
+    background: linear-gradient(90deg, var(--accent), rgba(67, 97, 238, 0.4));
+}
+
+.calendar-day-header-inner {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 8px;
+}
+
+.calendar-day-number {
+    font-size: 1.1rem;
+    font-weight: 800;
+    color: var(--text-primary);
+}
+
+.calendar-day-badge {
+    width: 24px;
+    height: 24px;
+    background: var(--accent);
+    color: white;
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 0.75rem;
+    font-weight: 800;
+    box-shadow: 0 2px 4px rgba(67, 97, 238, 0.3);
+}
+
+.calendar-day-empty {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    height: 100%;
+    color: var(--text-secondary);
+    opacity: 0.3;
+    font-size: 1.5rem;
+}
+
+.calendar-day-events {
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+    margin-top: auto;
+    max-height: 90px;
+    overflow-y: auto;
+    padding-right: 10px; /* espace pour le scrollbar pour éviter les clics involontaires */
+}
+
+.calendar-day-events::-webkit-scrollbar {
+    width: 4px;
+}
+
+.calendar-day-events::-webkit-scrollbar-track {
+    background: transparent;
+}
+
+.calendar-day-events::-webkit-scrollbar-thumb {
+    background: rgba(67, 97, 238, 0.3);
+    border-radius: 2px;
+}
+
+.calendar-event-link {
+    display: block;
+    padding: 6px 8px;
+    background: rgba(67, 97, 238, 0.08);
+    border-left: 3px solid var(--accent);
+    border-radius: 6px;
+    text-decoration: none;
+    transition: all 0.2s ease;
+    font-size: 0.75rem;
+    position: relative;
+    overflow: hidden;
+    /* Empêcher les overlays de capter les clics destinés au scrollbar */
+    pointer-events: auto;
+}
+
+.calendar-event-link::before {
+    content: '';
+    position: absolute;
+    left: 0;
+    top: 0;
+    bottom: 0;
+    width: 0;
+    background: rgba(67, 97, 238, 0.1);
+    transition: width 0.3s ease;
+    pointer-events: none;
+}
+
+.calendar-event-link:hover {
+    background: rgba(67, 97, 238, 0.15);
+    transform: translateX(3px);
+    box-shadow: 0 2px 6px rgba(67, 97, 238, 0.2);
+}
+
+.calendar-event-link:hover::before {
+    width: 100%;
+}
+
+.calendar-event-content {
+    display: flex;
+    flex-direction: column;
+    gap: 3px;
+    position: relative;
+    z-index: 1;
+}
+
+.calendar-event-time {
+    display: flex;
+    align-items: center;
+    gap: 4px;
+    font-weight: 700;
+    color: var(--accent);
+    font-size: 0.7rem;
+}
+
+.calendar-event-time i {
+    font-size: 0.65rem;
+}
+
+.calendar-event-title {
+    color: var(--text-primary);
+    font-weight: 600;
+    line-height: 1.3;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+    font-size: 0.75rem;
+}
+
+/* Couleurs selon le statut */
+.calendar-event-published {
+    border-left-color: #06d6a0;
+    background: rgba(6, 214, 160, 0.08);
+}
+
+.calendar-event-published:hover {
+    background: rgba(6, 214, 160, 0.15);
+}
+
+.calendar-event-archived {
+    border-left-color: #6c757d;
+    background: rgba(108, 117, 125, 0.08);
+}
+
+.calendar-event-archived:hover {
+    background: rgba(108, 117, 125, 0.15);
+}
+
+.calendar-event-draft {
+    border-left-color: #ffc107;
+    background: rgba(255, 193, 7, 0.08);
+}
+
+.calendar-event-draft:hover {
+    background: rgba(255, 193, 7, 0.15);
+}
+
+.calendar-event-cancelled {
+    border-left-color: #ef476f;
+    background: rgba(239, 71, 111, 0.08);
+}
+
+.calendar-event-cancelled:hover {
+    background: rgba(239, 71, 111, 0.15);
+}
+
+.calendar-event-more {
+    padding: 6px 8px;
+    background: rgba(67, 97, 238, 0.12);
+    border-left: 3px solid var(--accent);
+    border-radius: 6px;
+    font-size: 0.7rem;
+    font-weight: 700;
+    color: var(--accent);
+    text-align: center;
+    cursor: pointer;
+    transition: all 0.2s ease;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 4px;
+}
+
+.calendar-event-more:hover {
+    background: rgba(67, 97, 238, 0.2);
+    transform: scale(1.05);
+}
+
+@media (max-width: 768px) {
+    .calendar-navigation {
+        flex-direction: column;
+        gap: 16px;
+        padding: 16px;
+    }
+    
+    .calendar-nav-group {
+        width: 100%;
+        justify-content: space-between;
+    }
+    
+    .calendar-nav-btn {
+        flex: 1;
+    }
+    
+    .calendar-month-year {
+        order: -1;
+    }
+    
+    .calendar-month-select,
+    .calendar-year-select {
+        flex: 1;
+    }
+    
+    .calendar-grid {
+        gap: 6px;
+    }
+    
+    .calendar-day {
+        min-height: 100px;
+        padding: 8px;
+    }
+    
+    .calendar-day-header {
+        padding: 10px 4px;
+        font-size: 0.8rem;
+    }
+    
+    .calendar-day-events {
+        max-height: 60px;
+        gap: 4px;
+    }
+    
+    .calendar-event-link {
+        padding: 4px 6px;
+        font-size: 0.7rem;
+    }
+    
+    .calendar-event-title {
+        font-size: 0.7rem;
+    }
+}
+
+@media (max-width: 480px) {
+    .calendar-container {
+        padding: 16px;
+    }
+    
+    .calendar-day {
+        min-height: 80px;
+        padding: 6px;
+    }
+    
+    .calendar-day-number {
+        font-size: 0.95rem;
+    }
+    
+    .calendar-day-badge {
+        width: 20px;
+        height: 20px;
+        font-size: 0.65rem;
+    }
+    
+    .calendar-day-events {
+        max-height: 50px;
+    }
+}
+</style>
+
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    const monthSelect = document.getElementById('monthSelect');
+    const yearSelect = document.getElementById('yearSelect');
+    
+    if (monthSelect && yearSelect) {
+        function navigateToMonth() {
+            const month = monthSelect.value;
+            const year = yearSelect.value;
+            const url = new URL(window.location.href);
+            url.searchParams.set('month', month);
+            url.searchParams.set('year', year);
+            window.location.href = url.toString();
+        }
+        
+        monthSelect.addEventListener('change', navigateToMonth);
+        yearSelect.addEventListener('change', navigateToMonth);
+    }
+});
+</script>
+{% endblock %}

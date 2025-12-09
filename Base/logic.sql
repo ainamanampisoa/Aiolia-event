@@ -96,7 +96,67 @@ LEFT JOIN profils_organisateurs op ON op.id = os.id_profil_organisateur
 LEFT JOIN plans_abonnements sp ON sp.id = sii.id_plan;
 
 COMMENT ON VIEW aiolia.vw_subscription_invoice_items IS
-    'Détaille les lignes des factures d’abonnement, incluant plan et statut d’organisateur.';
+    'Détaille les lignes des factures d'abonnement, incluant plan et statut d'organisateur.';
+
+-- ------------------------------------------------------------
+-- Module : Statistiques de vues d'événements
+-- ------------------------------------------------------------
+CREATE OR REPLACE VIEW aiolia.vw_evenements_plus_vus AS
+SELECT
+    e.id AS id_evenement,
+    e.titre,
+    e.slug,
+    e.statut,
+    e.visibilite,
+    e.commence_le,
+    e.se_termine_le,
+    e.url_image_couverture,
+    po.id AS id_profil_organisateur,
+    po.nom_affichage AS nom_organisateur,
+    ce.libelle AS categorie,
+    COUNT(ve.id) AS nombre_vues_total,
+    COUNT(DISTINCT ve.id_utilisateur) AS nombre_visiteurs_uniques,
+    COUNT(DISTINCT DATE(ve.cree_le)) AS nombre_jours_avec_vues,
+    MAX(ve.cree_le) AS derniere_vue_le,
+    MIN(ve.cree_le) AS premiere_vue_le,
+    AVG(ve.duree_vue_secondes) AS duree_moyenne_vue_secondes,
+    COUNT(CASE WHEN ve.type_vue = 'page' THEN 1 END) AS vues_page,
+    COUNT(CASE WHEN ve.type_vue = 'listing' THEN 1 END) AS vues_listing,
+    COUNT(CASE WHEN ve.type_vue = 'search' THEN 1 END) AS vues_recherche,
+    COUNT(CASE WHEN ve.cree_le >= NOW() - INTERVAL '7 days' THEN 1 END) AS vues_7_derniers_jours,
+    COUNT(CASE WHEN ve.cree_le >= NOW() - INTERVAL '30 days' THEN 1 END) AS vues_30_derniers_jours
+FROM evenements e
+LEFT JOIN vues_evenements ve ON ve.id_evenement = e.id
+LEFT JOIN profils_organisateurs po ON po.id = e.id_profil_organisateur
+LEFT JOIN categories_evenements ce ON ce.id = e.id_categorie_principale
+WHERE e.statut = 'published'
+GROUP BY e.id, e.titre, e.slug, e.statut, e.visibilite, e.commence_le, e.se_termine_le, 
+         e.url_image_couverture, po.id, po.nom_affichage, ce.libelle
+ORDER BY nombre_vues_total DESC, derniere_vue_le DESC NULLS LAST;
+
+COMMENT ON VIEW aiolia.vw_evenements_plus_vus IS
+    'Vue agrégée des événements les plus vus avec statistiques détaillées de vues.';
+
+CREATE OR REPLACE VIEW aiolia.vw_statistiques_vues_evenements AS
+SELECT
+    DATE_TRUNC('day', ve.cree_le) AS date_vue,
+    ve.id_evenement,
+    e.titre AS titre_evenement,
+    COUNT(*) AS nombre_vues,
+    COUNT(DISTINCT ve.id_utilisateur) AS visiteurs_uniques,
+    COUNT(DISTINCT ve.adresse_ip) AS adresses_ip_uniques,
+    AVG(ve.duree_vue_secondes) AS duree_moyenne_secondes,
+    COUNT(CASE WHEN ve.type_vue = 'page' THEN 1 END) AS vues_page,
+    COUNT(CASE WHEN ve.type_vue = 'listing' THEN 1 END) AS vues_listing,
+    COUNT(CASE WHEN ve.type_vue = 'search' THEN 1 END) AS vues_recherche
+FROM vues_evenements ve
+JOIN evenements e ON e.id = ve.id_evenement
+WHERE e.statut = 'published'
+GROUP BY DATE_TRUNC('day', ve.cree_le), ve.id_evenement, e.titre
+ORDER BY date_vue DESC, nombre_vues DESC;
+
+COMMENT ON VIEW aiolia.vw_statistiques_vues_evenements IS
+    'Statistiques quotidiennes de vues par événement avec détails par type de vue.';
 
 -- ------------------------------------------------------------
 -- 3. Triggers

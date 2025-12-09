@@ -13,15 +13,15 @@
             </p>
             <div class="events-stats">
                 <span class="stat-item">
-                    <strong>{{ events|length }}</strong> événement(s)
+                    <strong>{{ globalStats.total ?? events|length }}</strong> événement(s) total
                 </span>
                 <span class="stat-item">
                     <i class="fas fa-calendar-alt"></i>
-                    {{ events|filter(e => e.statut == 'published' and e.commenceLe and e.commenceLe > date())|length }} à venir
+                    <strong>{{ globalStats.upcoming ?? events|filter(e => e.statut == 'published' and e.commenceLe and e.commenceLe > date())|length }}</strong> à venir
                 </span>
                 <span class="stat-item">
                     <i class="fas fa-broadcast-tower"></i>
-                    {{ events|filter(e => e.statut == 'published' and e.commenceLe and e.commenceLe <= date() and e.seTermineLe >= date())|length }} en cours
+                    <strong>{{ globalStats.ongoing ?? events|filter(e => e.statut == 'published' and e.commenceLe and e.commenceLe <= date() and (e.seTermineLe is null or e.seTermineLe >= date()))|length }}</strong> en cours
                 </span>
             </div>
         </div>
@@ -30,10 +30,10 @@
                 <i class="fas fa-plus"></i>
                 Nouvel événement
             </button>
-            <button class="btn btn-secondary" id="toggleViewBtn">
-                <i class="fas fa-th"></i>
-                Vue grille
-            </button>
+            <a href="{{ path('organisateur_events_calendar') }}" class="btn btn-secondary">
+                <i class="fas fa-calendar-alt"></i>
+                Vue calendrier
+            </a>
         </div>
     </div>
 
@@ -305,9 +305,10 @@
                             </div>
 
                             <div class="event-stats">
+                                {% set stats = eventsStats[event.id] ?? {'totalTickets': 0, 'soldTickets': 0, 'minPrice': null} %}
                                 <div class="stat">
                                     <i class="fas fa-ticket-alt"></i>
-                                    <span>0 / -</span>
+                                    <span>{{ stats.soldTickets }} / {{ stats.totalTickets }}</span>
                                 </div>
                                 <div class="stat">
                                     <i class="fas fa-eye"></i>
@@ -315,7 +316,7 @@
                                 </div>
                                 <div class="stat">
                                     <i class="fas fa-users"></i>
-                                    <span>0 participants</span>
+                                    <span>{{ stats.soldTickets }} participants</span>
                                 </div>
                             </div>
 
@@ -331,9 +332,9 @@
 
                         <!-- Bloc méta bas (compteur + prix/actions) aligné à droite -->
                         <div class="event-bottom-meta">
-                            <!-- Indicateur de progression -->
-                            <div class="event-progress">
-                                {% if event.commenceLe %}
+                            <!-- Indicateur de progression - seulement pour les événements futurs -->
+                            {% if event.commenceLe and event.commenceLe > date() %}
+                                <div class="event-progress">
                                     {% set daysLeft = date(event.commenceLe).diff(date()).days %}
                                     {% if daysLeft > 0 %}
                                         <div class="progress-info">
@@ -343,47 +344,41 @@
                                         <div class="progress-bar">
                                             <div class="progress-fill" style="width: {{ min(100, (30 - daysLeft) / 30 * 100) }}%"></div>
                                         </div>
-                                    {% else %}
-                                        <div class="progress-info">
-                                            <span>Événement en cours</span>
-                                        </div>
-                                        <div class="progress-bar active">
-                                            <div class="progress-fill" style="width: 100%"></div>
-                                        </div>
                                     {% endif %}
-                                {% endif %}
-                            </div>
+                                </div>
+                            {% endif %}
 
                             <!-- Pied de carte -->
                             <div class="event-card-footer">
                                 <div class="event-price">
-                                    {# TODO: brancher ici la logique de calcul du prix minimum quand les tarifs seront liés à l'événement #}
-                                    <div class="price-label-line">
-                                        <i class="fas fa-money-bill-wave"></i>
-                                        <span class="price-label">Prix non défini</span>
-                                    </div>
-                                </div>
-                                
-                                <div class="event-actions-footer">
-                                    {# Bouton placeholder en attendant la page de détails #}
-                                    <button
-                                        type="button"
-                                        class="btn btn-sm btn-outline"
-                                        data-event-id="{{ event.id }}"
-                                        title="Ouvrir l'événement (vue publique)"
-                                        aria-label="Ouvrir l'événement (vue publique)"
-                                    >
-                                        <i class="fas fa-external-link-alt"></i>
-                                    </button>
-                                    <button
-                                        type="button"
-                                        class="btn btn-sm btn-primary share-event"
-                                        data-event-id="{{ event.id }}"
-                                        title="Partager l'événement"
-                                        aria-label="Partager l'événement"
-                                    >
-                                        <i class="fas fa-share-alt"></i>
-                                    </button>
+                                    {% set stats = eventsStats[event.id] ?? {'totalTickets': 0, 'soldTickets': 0, 'minPrice': null, 'adultTicketTypes': []} %}
+                                    {% if stats.adultTicketTypes|length > 0 %}
+                                        <div class="price-section">
+                                            <div class="price-section-header">
+                                                <i class="fas fa-ticket-alt"></i>
+                                                <span class="price-section-title">Tarifs Adulte</span>
+                                            </div>
+                                            <div class="price-badges">
+                                                {% for ticketType in stats.adultTicketTypes %}
+                                                    <div class="price-badge">
+                                                        <span class="price-badge-name">{{ ticketType.nom }}</span>
+                                                        <span class="price-badge-value">{{ ticketType.prix|number_format(0, ',', ' ') }}</span>
+                                                        <span class="price-badge-currency">{{ ticketType.devise }}</span>
+                                                    </div>
+                                                {% endfor %}
+                                            </div>
+                                        </div>
+                                    {% elseif stats.minPrice is not null %}
+                                        <div class="price-label-line">
+                                            <i class="fas fa-money-bill-wave"></i>
+                                            <span class="price-value">{{ stats.minPrice|number_format(0, ',', ' ') }} MGA</span>
+                                        </div>
+                                    {% else %}
+                                        <div class="price-label-line">
+                                            <i class="fas fa-money-bill-wave"></i>
+                                            <span class="price-label">Prix non défini</span>
+                                        </div>
+                                    {% endif %}
                                 </div>
                             </div>
                         </div>
@@ -520,7 +515,6 @@ document.addEventListener('DOMContentLoaded', function() {
     // Toggle vue grille/liste
     const viewOptions = document.querySelectorAll('.view-option');
     const eventsContainer = document.getElementById('eventsContainer');
-    const toggleViewBtn = document.getElementById('toggleViewBtn');
     
     viewOptions.forEach(option => {
         option.addEventListener('click', function() {
@@ -530,12 +524,6 @@ document.addEventListener('DOMContentLoaded', function() {
             const view = this.dataset.view;
             eventsContainer.className = `events-container ${view}-view`;
             applyEventLimit();
-            
-            if (toggleViewBtn) {
-                toggleViewBtn.innerHTML = view === 'grid' 
-                    ? '<i class="fas fa-th"></i> Vue grille'
-                    : '<i class="fas fa-list"></i> Vue liste';
-            }
         });
     });
 
@@ -1349,24 +1337,28 @@ document.addEventListener('DOMContentLoaded', function() {
 /* Pied de carte */
 .event-card-footer {
     display: flex;
-    justify-content: flex-start;
-    align-items: center;
-    padding: 4px 20px 16px;
-    background: transparent;
-    border-top: none;
-    margin-top: 0;
+    justify-content: center;
+    align-items: flex-start;
+    padding: 16px 20px;
+    background: linear-gradient(to bottom, transparent, rgba(67, 97, 238, 0.02));
+    border-top: 1px solid var(--border-color);
+    margin-top: 12px;
 }
 
 .event-price {
     display: flex;
     flex-direction: column;
-    gap: 2px;
+    gap: 0;
+    width: 100%;
+    align-items: center;
 }
 
 .price-label-line {
     display: inline-flex;
     align-items: center;
-    gap: 6px;
+    justify-content: center;
+    gap: 8px;
+    width: 100%;
 }
 
 .price-label-line i {
@@ -1386,11 +1378,136 @@ document.addEventListener('DOMContentLoaded', function() {
     color: var(--accent);
 }
 
-.event-actions-footer {
+.price-section {
+    width: 100%;
+    text-align: center;
+}
+
+.price-section-header {
     display: flex;
     align-items: center;
-    gap: 8px;
-    margin-left: 12px; /* léger décalage après le texte du prix */
+    justify-content: center;
+    gap: 6px;
+    margin-bottom: 12px;
+    font-size: 0.8rem;
+    font-weight: 600;
+    color: var(--text-primary);
+    text-transform: uppercase;
+    letter-spacing: 0.8px;
+}
+
+.price-section-header i {
+    font-size: 0.85rem;
+    color: var(--accent);
+}
+
+.price-section-title {
+    font-size: 0.8rem;
+}
+
+.price-badges {
+    display: flex;
+    flex-wrap: nowrap;
+    gap: 6px;
+    align-items: stretch;
+    justify-content: center;
+    width: 100%;
+    overflow-x: auto;
+    padding: 2px 0 4px;
+    scrollbar-width: thin;
+    scrollbar-color: rgba(67, 97, 238, 0.3) transparent;
+    -ms-overflow-style: none;
+}
+
+.price-badges::-webkit-scrollbar {
+    height: 4px;
+}
+
+.price-badges::-webkit-scrollbar-track {
+    background: transparent;
+}
+
+.price-badges::-webkit-scrollbar-thumb {
+    background: rgba(67, 97, 238, 0.3);
+    border-radius: 2px;
+}
+
+.price-badges::-webkit-scrollbar-thumb:hover {
+    background: rgba(67, 97, 238, 0.5);
+}
+
+.price-badge {
+    display: inline-flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    padding: 7px 9px;
+    background: linear-gradient(135deg, rgba(67, 97, 238, 0.08) 0%, rgba(67, 97, 238, 0.03) 100%);
+    border: 2px solid rgba(67, 97, 238, 0.2);
+    border-radius: 10px;
+    min-width: 68px;
+    max-width: 85px;
+    width: auto;
+    flex: 0 0 auto;
+    transition: all 0.3s ease;
+    box-shadow: 0 3px 6px rgba(0, 0, 0, 0.06);
+    position: relative;
+    overflow: hidden;
+}
+
+.price-badge::before {
+    content: '';
+    position: absolute;
+    top: 0;
+    left: 0;
+    right: 0;
+    height: 2px;
+    background: linear-gradient(90deg, var(--accent), rgba(67, 97, 238, 0.3));
+    opacity: 0;
+    transition: opacity 0.3s ease;
+}
+
+.price-badge:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 4px 8px rgba(67, 97, 238, 0.15);
+    border-color: var(--accent);
+    background: linear-gradient(135deg, rgba(67, 97, 238, 0.1) 0%, rgba(67, 97, 238, 0.05) 100%);
+}
+
+.price-badge:hover::before {
+    opacity: 1;
+}
+
+.price-badge-name {
+    font-size: 0.7rem;
+    font-weight: 700;
+    color: var(--text-primary);
+    text-transform: uppercase;
+    letter-spacing: 0.4px;
+    margin-bottom: 3px;
+    line-height: 1.2;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    max-width: 100%;
+}
+
+.price-badge-value {
+    font-size: 0.9rem;
+    font-weight: 800;
+    color: var(--accent);
+    line-height: 1.2;
+    margin-bottom: 1px;
+    white-space: nowrap;
+}
+
+.price-badge-currency {
+    font-size: 0.65rem;
+    color: var(--text-secondary);
+    font-weight: 600;
+    margin-top: 1px;
+    opacity: 0.85;
+    white-space: nowrap;
 }
 
 .btn {
@@ -1410,21 +1527,6 @@ document.addEventListener('DOMContentLoaded', function() {
 .btn-sm {
     padding: 6px 12px;
     font-size: 0.8rem;
-}
-
-/* Boutons d'action compacts dans le pied de carte */
-.event-actions-footer .btn {
-    width: 38px;
-    height: 38px;
-    border-radius: 50%;
-    padding: 0;
-    display: inline-flex;
-    align-items: center;
-    justify-content: center;
-}
-
-.event-actions-footer .btn i {
-    font-size: 0.9rem;
 }
 
 .btn-primary {
@@ -1454,7 +1556,9 @@ document.addEventListener('DOMContentLoaded', function() {
 }
 
 .btn-secondary:hover {
-    background: var(--bg-card);
+    background: var(--bg-secondary);
+    border-color: var(--accent);
+    color: var(--accent);
 }
 
 /* Bloc méta bas : compteur + prix alignés à droite comme un ticket */
@@ -1706,6 +1810,40 @@ document.addEventListener('DOMContentLoaded', function() {
         width: 100%;
         height: 200px;
     }
+    
+    .event-card-footer {
+        padding: 12px 16px;
+    }
+    
+    .price-badges {
+        gap: 6px;
+        justify-content: flex-start;
+        padding-bottom: 4px;
+    }
+    
+    .price-badge {
+        min-width: 65px;
+        max-width: 80px;
+        padding: 6px 8px;
+    }
+    
+    .price-badge-name {
+        font-size: 0.65rem;
+        margin-bottom: 2px;
+    }
+    
+    .price-badge-value {
+        font-size: 0.85rem;
+    }
+    
+    .price-badge-currency {
+        font-size: 0.6rem;
+    }
+    
+    .price-section-header {
+        font-size: 0.75rem;
+        margin-bottom: 10px;
+    }
 }
 
 @media (max-width: 480px) {
@@ -1727,6 +1865,28 @@ document.addEventListener('DOMContentLoaded', function() {
     .sort-controls {
         flex-direction: column;
         align-items: stretch;
+    }
+    
+    .price-badges {
+        gap: 5px;
+    }
+    
+    .price-badge {
+        min-width: 60px;
+        max-width: 75px;
+        padding: 5px 7px;
+    }
+    
+    .price-badge-name {
+        font-size: 0.6rem;
+    }
+    
+    .price-badge-value {
+        font-size: 0.8rem;
+    }
+    
+    .price-badge-currency {
+        font-size: 0.55rem;
     }
 }
 </style>
