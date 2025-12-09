@@ -7,6 +7,7 @@ use App\Service\PaymentService;
 use Doctrine\DBAL\Connection;
 use Psr\Log\LoggerInterface;
 use Symfony\Bundle\FrameworkBundle\Controller\AbstractController;
+use Symfony\Component\DependencyInjection\ParameterBag\ParameterBagInterface;
 use Symfony\Component\HttpFoundation\JsonResponse;
 use Symfony\Component\HttpFoundation\Request;
 use Symfony\Component\HttpFoundation\Response;
@@ -17,12 +18,21 @@ use Symfony\Component\Routing\Annotation\Route;
  */
 class MvolaController extends AbstractController
 {
+    private string $logFile;
+
     public function __construct(
         private readonly Connection $connection,
         private readonly MvolaPaymentClient $mvolaClient,
         private readonly PaymentService $paymentService,
-        private readonly LoggerInterface $logger
+        private readonly LoggerInterface $logger,
+        ?ParameterBagInterface $parameterBag = null
     ) {
+        $projectDir = $parameterBag?->get('kernel.project_dir') ?? dirname(__DIR__, 2);
+        $logDir = $projectDir . '/var/log';
+        if (!is_dir($logDir)) {
+            @mkdir($logDir, 0755, true);
+        }
+        $this->logFile = $logDir . '/mvola.log';
     }
 
     /**
@@ -34,6 +44,13 @@ class MvolaController extends AbstractController
      */
     public function callback(Request $request): JsonResponse
     {
+        // Log dans le fichier mvola.log aussi
+        $logLine = '[' . date('Y-m-d H:i:s') . '] [INFO] MVola callback reçu | Context: ' . json_encode([
+            'method' => $request->getMethod(),
+            'content' => $request->getContent(),
+        ], JSON_UNESCAPED_UNICODE) . "\n";
+        @file_put_contents($this->logFile, $logLine, FILE_APPEND);
+        
         $this->logger->info('MVola callback reçu', [
             'method' => $request->getMethod(),
             'headers' => $request->headers->all(),
@@ -91,9 +108,28 @@ class MvolaController extends AbstractController
             );
 
             // Si le paiement est réussi, mettre à jour la commande
-            if ($transactionStatus === 'completed') {
+            // En sandbox MVola, plusieurs statuts peuvent indiquer un paiement réussi
+            // IMPORTANT: En sandbox, Mvola retourne souvent 'pending' pour un paiement réussi
+            $successStatuses = ['completed', 'success', 'paid', 'processing', 'pending'];
+            $isSuccessful = in_array(strtolower($transactionStatus ?? ''), $successStatuses, true);
+            
+            // Log dans le fichier mvola.log
+            $logLine = '[' . date('Y-m-d H:i:s') . '] [INFO] MVola callback - statut transaction | Context: ' . json_encode([
+                'server_correlation_id' => $serverCorrelationId,
+                'transaction_status' => $transactionStatus,
+                'order_id' => $transaction['order_id'] ?? null,
+                'is_successful' => $isSuccessful,
+            ], JSON_UNESCAPED_UNICODE) . "\n";
+            @file_put_contents($this->logFile, $logLine, FILE_APPEND);
+            
+            if ($isSuccessful) {
+                $logLine = '[' . date('Y-m-d H:i:s') . '] [INFO] Appel de handleSuccessfulPayment | Context: ' . json_encode([
+                    'order_id' => $transaction['order_id'],
+                ], JSON_UNESCAPED_UNICODE) . "\n";
+                @file_put_contents($this->logFile, $logLine, FILE_APPEND);
+                
                 $this->handleSuccessfulPayment((int) $transaction['order_id'], $data);
-            } elseif ($transactionStatus === 'failed') {
+            } elseif (in_array(strtolower($transactionStatus ?? ''), ['failed', 'failure', 'error'], true)) {
                 $this->handleFailedPayment((int) $transaction['order_id'], $data);
             }
 

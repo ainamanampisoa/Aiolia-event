@@ -31,6 +31,5 @@ services:
             $consumerSecret: '%env(MVOLA_CONSUMER_SECRET)%'
             $partnerMsisdn: '%env(MVOLA_PARTNER_MSISDN)%'
             $partnerName: '%env(MVOLA_PARTNER_NAME)%'
-            # Callback optionnel, pas d'erreur si la variable n'existe pas
-            $callbackUrl: '%env(default::MVOLA_CALLBACK_URL)%'
-            # Logger injecté automatiquement par Symfony (autowiring) - optionnel
+            # Callback URL optionnel - utilise la valeur de l'env ou null si non défini
+            $callbackUrl: '%env(default::string:MVOLA_CALLBACK_URL)%'

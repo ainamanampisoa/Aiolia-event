@@ -28,7 +28,7 @@ class OrderRepository
                 o.created_at,
                 o.notes,
                 COUNT(DISTINCT oi.id) as items_count,
-                SUM(oi.quantity) as total_tickets,
+                COALESCE(SUM(oi.quantity), 0) as total_tickets,
                 STRING_AGG(DISTINCT e.title, ', ') as event_titles
             FROM aiolia.orders o
             LEFT JOIN aiolia.order_items oi ON oi.order_id = o.id
@@ -64,9 +64,9 @@ class OrderRepository
                 o.updated_at,
                 o.notes,
                 COUNT(DISTINCT oi.id) as items_count,
-                SUM(oi.quantity) as total_tickets,
-                STRING_AGG(DISTINCT e.title, ', ') as event_titles,
-                STRING_AGG(DISTINCT e.starts_at::text, ', ') as event_dates
+                COALESCE(SUM(oi.quantity), 0) as total_tickets,
+                COALESCE(STRING_AGG(DISTINCT e.title, ', '), '') as event_titles,
+                COALESCE(STRING_AGG(DISTINCT e.starts_at::text, ', '), '') as event_dates
             FROM aiolia.orders o
             LEFT JOIN aiolia.order_items oi ON oi.order_id = o.id
             LEFT JOIN aiolia.ticket_types tt ON tt.id = oi.ticket_type_id

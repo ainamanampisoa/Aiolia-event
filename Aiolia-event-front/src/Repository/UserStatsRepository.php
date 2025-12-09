@@ -18,14 +18,13 @@ class UserStatsRepository
     {
         $sql = <<<SQL
             SELECT 
-                COUNT(DISTINCT t.id) as total_tickets,
+                COALESCE(SUM(CASE WHEN o.status = 'paid' THEN oi.quantity ELSE 0 END), 0) as total_tickets,
                 COUNT(DISTINCT o.id) as total_orders,
-                COUNT(DISTINCT e.id) as unique_events,
+                COUNT(DISTINCT CASE WHEN o.status = 'paid' THEN e.id ELSE NULL END) as unique_events,
                 SUM(CASE WHEN o.status = 'paid' THEN o.total_amount ELSE 0 END) as total_spent,
                 AVG(CASE WHEN o.status = 'paid' THEN o.total_amount ELSE NULL END) as avg_cart
             FROM aiolia.orders o
             LEFT JOIN aiolia.order_items oi ON oi.order_id = o.id
-            LEFT JOIN aiolia.tickets t ON t.order_item_id = oi.id
             LEFT JOIN aiolia.ticket_types tt ON tt.id = oi.ticket_type_id
             LEFT JOIN aiolia.events e ON e.id = tt.event_id
             WHERE o.user_id = :user_id
@@ -476,14 +475,13 @@ class UserStatsRepository
     {
         $sql = <<<SQL
             SELECT 
-                COUNT(DISTINCT t.id) as total_tickets,
+                COALESCE(SUM(CASE WHEN o.status = 'paid' THEN oi.quantity ELSE 0 END), 0) as total_tickets,
                 COUNT(DISTINCT o.id) as total_orders,
-                COUNT(DISTINCT e.id) as unique_events,
+                COUNT(DISTINCT CASE WHEN o.status = 'paid' THEN e.id ELSE NULL END) as unique_events,
                 SUM(CASE WHEN o.status = 'paid' THEN o.total_amount ELSE 0 END) as total_spent,
                 AVG(CASE WHEN o.status = 'paid' THEN o.total_amount ELSE NULL END) as avg_cart
             FROM aiolia.orders o
             LEFT JOIN aiolia.order_items oi ON oi.order_id = o.id
-            LEFT JOIN aiolia.tickets t ON t.order_item_id = oi.id
             LEFT JOIN aiolia.ticket_types tt ON tt.id = oi.ticket_type_id
             LEFT JOIN aiolia.events e ON e.id = tt.event_id
             WHERE o.user_id = :user_id

@@ -1276,6 +1276,49 @@ class ProfileController extends AbstractController
 
 
     /**
+     * Récupère le titre d'un événement par son ID.
+     */
+    private function getEventTitleById(int $eventId): string
+    {
+        try {
+            // Utiliser EventRepository qui a déjà une connection
+            $sql = 'SELECT title FROM aiolia.events WHERE id = :event_id LIMIT 1';
+            $connection = $this->eventRepository->getEntityManager()->getConnection();
+            $result = $connection->executeQuery($sql, ['event_id' => $eventId])->fetchAssociative();
+            return $result && isset($result['title']) ? (string) $result['title'] : '';
+        } catch (\Exception $e) {
+            error_log('Erreur lors de la récupération du titre de l\'événement: ' . $e->getMessage());
+            return '';
+        }
+    }
+    
+    /**
+     * Récupère les titres de plusieurs événements par leurs ID.
+     */
+    private function getEventTitlesByIds(array $eventIds): array
+    {
+        if (empty($eventIds)) {
+            return [];
+        }
+        
+        try {
+            $placeholders = implode(',', array_fill(0, count($eventIds), '?'));
+            $sql = 'SELECT id, title FROM aiolia.events WHERE id IN (' . $placeholders . ')';
+            $connection = $this->eventRepository->getEntityManager()->getConnection();
+            $results = $connection->executeQuery($sql, $eventIds)->fetchAllAssociative();
+            
+            $titles = [];
+            foreach ($results as $row) {
+                $titles[(int) $row['id']] = (string) $row['title'];
+            }
+            return $titles;
+        } catch (\Exception $e) {
+            error_log('Erreur lors de la récupération des titres d\'événements: ' . $e->getMessage());
+            return [];
+        }
+    }
+
+    /**
      * Récupère les commandes de l'utilisateur avec leurs détails.
      */
     private function fetchUserOrders(int $userId, string $searchQuery = '', string $statusFilter = 'all', string $paymentMethodFilter = 'all'): array
@@ -1313,10 +1356,54 @@ class ProfileController extends AbstractController
             // Utiliser la date de création de la commande (date du paiement) au lieu de la date de l'événement
             $paymentDate = !empty($row['created_at']) ? new \DateTimeImmutable($row['created_at']) : null;
 
+            // Si pas de titre d'événement ou pas de billets, essayer de les récupérer depuis les notes
+            $eventTitle = $row['event_titles'] ?? '';
+            $totalTickets = (int) ($row['total_tickets'] ?? 0);
+            $notes = json_decode($row['notes'] ?? '{}', true);
+            
+            if (empty($eventTitle) || $totalTickets === 0) {
+                if (is_array($notes) && !empty($notes['cart_items_data'])) {
+                    // Calculer le total des billets depuis les items sauvegardés
+                    $calculatedTickets = 0;
+                    $eventIds = [];
+                    
+                    foreach ($notes['cart_items_data'] as $item) {
+                        $calculatedTickets += (int) ($item['adult_quantity'] ?? 0);
+                        $calculatedTickets += (int) ($item['child_quantity'] ?? 0);
+                        if ($calculatedTickets === 0 && isset($item['quantity'])) {
+                            $calculatedTickets += (int) $item['quantity'];
+                        }
+                        
+                        // Collecter les event_id pour récupérer les titres
+                        if (isset($item['event_id'])) {
+                            $eventIds[] = (int) $item['event_id'];
+                        }
+                    }
+                    
+                    if ($totalTickets === 0 && $calculatedTickets > 0) {
+                        $totalTickets = $calculatedTickets;
+                    }
+                    
+                    // Récupérer les titres des événements
+                    if (empty($eventTitle) && !empty($eventIds)) {
+                        $eventTitles = $this->getEventTitlesByIds(array_unique($eventIds));
+                        if (!empty($eventTitles)) {
+                            $eventTitle = implode(', ', array_values($eventTitles));
+                        } else {
+                            // Fallback : essayer avec le premier event_id
+                            $firstItem = $notes['cart_items_data'][0] ?? [];
+                            if (isset($firstItem['event_id'])) {
+                                $eventTitle = $this->getEventTitleById((int) $firstItem['event_id']);
+                            }
+                        }
+                    }
+                }
+            }
+            
             return [
                 'id' => (int) $row['id'],
                 'code' => 'CMD-' . str_pad((string) $row['id'], 6, '0', STR_PAD_LEFT),
-                'title' => $row['event_titles'] ?? 'Événement',
+                'title' => !empty($eventTitle) ? $eventTitle : 'Événement',
                 'date' => $paymentDate ? $paymentDate->format('d F Y') : '',
                 'hour' => $paymentDate ? $paymentDate->format('H:i') : '',
                 'status' => $statusLabels[$status] ?? ucfirst($status),
@@ -1324,7 +1411,7 @@ class ProfileController extends AbstractController
                 'amount' => number_format((float) $row['total_amount'], 0, ',', ' ') . ' MGA',
                 'amount_raw' => (float) $row['total_amount'],
                 'method' => $paymentMethod ? ($paymentMethodLabels[$paymentMethod] ?? ucfirst(str_replace('-', ' ', $paymentMethod))) : 'Non spécifié',
-                'tickets' => (int) ($row['total_tickets'] ?? 0),
+                'tickets' => $totalTickets,
                 'items_count' => (int) ($row['items_count'] ?? 0),
                 'created_at' => new \DateTimeImmutable($row['created_at']),
             ];
@@ -1337,7 +1424,11 @@ class ProfileController extends AbstractController
      */
     private function calculatePurchaseStats(int $userId, array $orders): array
     {
-        $confirmedOrders = array_filter($orders, fn($o) => $o['status_key'] === 'paid');
+        // Inclure les commandes payées ET les commandes initiées avec des données (en attente de callback)
+        $confirmedOrders = array_filter($orders, function($o) {
+            return $o['status_key'] === 'paid' 
+                || ($o['status_key'] === 'initiated' && $o['tickets'] > 0);
+        });
         
         $totalSpent = array_sum(array_column($confirmedOrders, 'amount_raw'));
         $totalTickets = array_sum(array_column($confirmedOrders, 'tickets'));
