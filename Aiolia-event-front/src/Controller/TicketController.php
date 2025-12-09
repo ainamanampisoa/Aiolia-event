@@ -551,7 +551,45 @@ class TicketController extends AbstractController
                 $this->addFlash('success', 'Paiement effectué avec succès !');
                 return $this->redirectToRoute('checkout_confirmation');
             } else {
-                $this->addFlash('error', 'Une erreur est survenue lors du traitement du paiement.');
+                // Afficher l'erreur détaillée pour le debug
+                $errorMessage = $result['error'] ?? 'Une erreur est survenue lors du traitement du paiement.';
+                
+                // Log complet
+                $logOutput = "\n" . str_repeat('=', 80) . "\n";
+                $logOutput .= "=== ERREUR PAIEMENT MVOLA ===\n";
+                $logOutput .= "Erreur: " . $errorMessage . "\n";
+                if (isset($result['missing_field'])) {
+                    $logOutput .= "Champ manquant: " . $result['missing_field'] . "\n";
+                }
+                if (isset($result['raw_response'])) {
+                    $logOutput .= "Réponse API complète:\n" . json_encode($result['raw_response'], JSON_PRETTY_PRINT | JSON_UNESCAPED_UNICODE) . "\n";
+                }
+                if (isset($result['payload_sent'])) {
+                    $logOutput .= "Payload envoyé:\n" . json_encode($result['payload_sent'], JSON_PRETTY_PRINT | JSON_UNESCAPED_UNICODE) . "\n";
+                }
+                $logOutput .= "Résultat complet:\n" . json_encode($result, JSON_PRETTY_PRINT | JSON_UNESCAPED_UNICODE) . "\n";
+                $logOutput .= str_repeat('=', 80) . "\n";
+                
+                error_log($logOutput);
+                file_put_contents('php://stderr', $logOutput);
+                
+                // Écrire aussi dans un fichier dédié pour faciliter l'accès
+                $logFile = sys_get_temp_dir() . '/mvola_debug.log';
+                @file_put_contents($logFile, date('Y-m-d H:i:s') . "\n" . $logOutput . "\n", FILE_APPEND);
+                
+                // En mode dev, afficher plus de détails dans le message
+                if (($_ENV['APP_ENV'] ?? 'dev') === 'dev') {
+                    $detailedError = $errorMessage;
+                    if (isset($result['missing_field'])) {
+                        $detailedError .= ' - Champ manquant: ' . $result['missing_field'];
+                    }
+                    if (isset($result['raw_response'])) {
+                        $detailedError .= ' - Réponse: ' . json_encode($result['raw_response'], JSON_UNESCAPED_UNICODE);
+                    }
+                    $this->addFlash('error', '[DEV] ' . $detailedError);
+                } else {
+                    $this->addFlash('error', 'Une erreur est survenue lors du traitement du paiement.');
+                }
                 return $this->redirectToRoute('checkout_payment');
             }
         } catch (\Exception $e) {
@@ -559,7 +597,15 @@ class TicketController extends AbstractController
             error_log('Message: ' . $e->getMessage());
             error_log('Fichier: ' . $e->getFile() . ':' . $e->getLine());
             error_log('Stack trace: ' . $e->getTraceAsString());
+
+            // Message générique pour l'utilisateur
             $this->addFlash('error', 'Une erreur est survenue lors du traitement du paiement. Veuillez réessayer.');
+
+            // Message détaillé pour le debug en environnement de dev
+            if ($_ENV['APP_ENV'] ?? 'dev' === 'dev') {
+                $this->addFlash('error', sprintf('[DEV] %s', $e->getMessage()));
+            }
+
             return $this->redirectToRoute('checkout_payment', $eventParam ? ['event' => $eventParam] : []);
         }
     }

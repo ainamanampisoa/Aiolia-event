@@ -329,6 +329,9 @@ class ProfileController extends AbstractController
             'availableStatuses' => $availableStatuses,
             'currentStatusFilter' => $statusFilter,
             'currentPaymentMethodFilter' => $paymentMethodFilter,
+            // Le filtre de date n'est pas encore implémenté côté contrôleur,
+            // on utilise donc 'all' comme valeur par défaut pour éviter les erreurs Twig.
+            'currentDateFilter' => 'all',
             'searchQuery' => $searchQuery,
             'totalPages' => $totalPages,
             'currentPage' => $page,

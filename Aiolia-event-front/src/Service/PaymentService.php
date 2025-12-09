@@ -9,7 +9,8 @@ class PaymentService
 {
     public function __construct(
         private readonly Connection $connection,
-        private readonly CartSyncService $cartSyncService
+        private readonly CartSyncService $cartSyncService,
+        private readonly ?MvolaPaymentClient $mvolaClient = null
     ) {
     }
 
@@ -72,6 +73,29 @@ class PaymentService
             // Créer la commande
             $orderId = $this->createOrder($userId, $cartId, $totalAmount, $paymentData);
             
+            // Si méthode de paiement MVola, initier la transaction
+            $paymentMethod = $paymentData['payment_method'] ?? 'mvola';
+            if ($paymentMethod === 'mvola' && $this->mvolaClient !== null) {
+                $mvolaResult = $this->initiateMvolaPayment($orderId, $totalAmount, $paymentData);
+                
+                if (!$mvolaResult['success']) {
+                    throw new \RuntimeException('Erreur lors de l\'initiation du paiement MVola: ' . ($mvolaResult['error'] ?? 'Erreur inconnue'));
+                }
+                
+                // La commande reste en "awaiting_payment" jusqu'à confirmation du callback
+                $this->connection->commit();
+                
+                return [
+                    'success' => true,
+                    'order_id' => $orderId,
+                    'tickets' => [], // Les tickets seront créés après confirmation du paiement
+                    'total_amount' => $totalAmount,
+                    'payment_status' => 'pending',
+                    'mvola_correlation_id' => $mvolaResult['serverCorrelationId'] ?? null,
+                ];
+            }
+            
+            // Pour les autres méthodes de paiement ou si MVola n'est pas configuré, créer directement les tickets
             // Créer les order_items et les tickets
             $orderItems = [];
             $tickets = [];
@@ -212,7 +236,9 @@ class PaymentService
         $this->connection->insert('aiolia.orders', [
             'user_id' => $userId,
             'cart_id' => $cartId,
-            'status' => 'awaiting_payment',
+            // Le statut "awaiting_payment" n'existe plus dans l'ENUM,
+            // on utilise "pending" pour représenter une commande en attente de paiement.
+            'status' => 'pending',
             'total_amount' => $totalAmount,
             'discount_amount' => 0,
             'currency' => 'MGA',
@@ -371,6 +397,203 @@ class PaymentService
         } catch (Exception $e) {
             error_log('Erreur lors de la récupération du prix du type de billet: ' . $e->getMessage());
             return null;
+        }
+    }
+
+    /**
+     * Initie un paiement MVola et sauvegarde la transaction.
+     * 
+     * @return array{success: bool, serverCorrelationId?: string, error?: string}
+     */
+    private function initiateMvolaPayment(int $orderId, float $amount, array $paymentData): array
+    {
+        if ($this->mvolaClient === null) {
+            return [
+                'success' => false,
+                'error' => 'Service MVola non configuré',
+            ];
+        }
+
+        try {
+            // Générer une référence unique pour la transaction
+            $transactionReference = 'ORDER-' . $orderId . '-' . time();
+            
+            // Récupérer le numéro de téléphone du client
+            $customerMsisdn = trim($paymentData['payment_phone'] ?? '');
+            if (empty($customerMsisdn)) {
+                return [
+                    'success' => false,
+                    'error' => 'Numéro de téléphone MVola requis',
+                ];
+            }
+
+            // Valider que le montant est positif
+            if ($amount <= 0) {
+                return [
+                    'success' => false,
+                    'error' => 'Le montant doit être supérieur à zéro',
+                ];
+            }
+
+            // Initier la transaction MVola
+            $result = $this->mvolaClient->initiateTransaction(
+                $amount,
+                $customerMsisdn,
+                $transactionReference,
+                'Paiement de billets - Commande #' . $orderId
+            );
+
+            if (!$result['success']) {
+                return [
+                    'success' => false,
+                    'error' => $result['error'] ?? 'Erreur lors de l\'initiation de la transaction MVola',
+                ];
+            }
+
+            // Sauvegarder la transaction dans la base de données
+            $serverCorrelationId = $result['serverCorrelationId'] ?? null;
+            if ($serverCorrelationId) {
+                $this->connection->insert('aiolia.payment_transactions', [
+                    'order_id' => $orderId,
+                    'mvola_correlation_id' => $serverCorrelationId,
+                    'mvola_transaction_id' => $result['raw_response']['transactionReference'] ?? null,
+                    'transaction_reference' => $transactionReference,
+                    'status' => 'initiated', // Valeurs valides: 'initiated', 'processing', 'paid', 'failed', 'refunded'
+                    'amount' => $amount,
+                    'currency' => 'MGA',
+                    'customer_msisdn' => $customerMsisdn,
+                    'payment_method' => 'mvola',
+                    'callback_data' => json_encode($result['raw_response'] ?? []),
+                    'created_at' => (new \DateTimeImmutable())->format('Y-m-d H:i:s'),
+                    'updated_at' => (new \DateTimeImmutable())->format('Y-m-d H:i:s'),
+                ]);
+            }
+
+            return [
+                'success' => true,
+                'serverCorrelationId' => $serverCorrelationId,
+            ];
+        } catch (\Throwable $e) {
+            $errorMessage = 'Erreur lors de l\'initiation du paiement MVola: ' . $e->getMessage();
+            error_log($errorMessage);
+            error_log('Stack trace: ' . $e->getTraceAsString());
+            
+            // Écrire aussi dans un fichier dédié
+            $logFile = sys_get_temp_dir() . '/mvola_debug.log';
+            $logContent = date('Y-m-d H:i:s') . " - ERREUR MVola:\n";
+            $logContent .= "Message: " . $errorMessage . "\n";
+            $logContent .= "File: " . $e->getFile() . ":" . $e->getLine() . "\n";
+            $logContent .= "Stack trace: " . $e->getTraceAsString() . "\n";
+            $logContent .= str_repeat('=', 80) . "\n";
+            @file_put_contents($logFile, $logContent, FILE_APPEND);
+            
+            return [
+                'success' => false,
+                'error' => $errorMessage,
+                'debug' => [
+                    'message' => $e->getMessage(),
+                    'file' => $e->getFile(),
+                    'line' => $e->getLine(),
+                    'log_file' => $logFile, // Indiquer où sont les logs
+                ],
+            ];
+        }
+    }
+
+    /**
+     * Crée les tickets après confirmation du paiement MVola.
+     * Appelé depuis MvolaController après réception du callback de succès.
+     */
+    public function createTicketsAfterPayment(int $orderId): array
+    {
+        $this->connection->beginTransaction();
+        
+        try {
+            // Récupérer la commande
+            $order = $this->connection->executeQuery(
+                'SELECT * FROM aiolia.orders WHERE id = :order_id',
+                ['order_id' => $orderId]
+            )->fetchAssociative();
+
+            if (!$order) {
+                throw new \RuntimeException("Commande non trouvée: {$orderId}");
+            }
+
+            $userId = (int) $order['user_id'];
+            
+            // Récupérer les items du panier depuis la commande
+            $cartId = (int) $order['cart_id'];
+            $dbCartItems = $this->cartSyncService->getCartItems($cartId);
+            
+            if (empty($dbCartItems)) {
+                throw new \RuntimeException("Aucun item trouvé pour la commande: {$orderId}");
+            }
+
+            $orderItems = [];
+            $tickets = [];
+
+            // Convertir les items du panier au format attendu
+            $formattedCartItems = $this->cartSyncService->convertDbItemsToSessionFormat($dbCartItems);
+
+            foreach ($formattedCartItems as $item) {
+                $adultQuantity = (int) ($item['adultQuantity'] ?? 0);
+                $childQuantity = (int) ($item['childQuantity'] ?? 0);
+                $adultTicketTypeId = isset($item['adultTicketTypeId']) && $item['adultTicketTypeId'] > 0 
+                    ? (int) $item['adultTicketTypeId'] 
+                    : null;
+                $childTicketTypeId = isset($item['childTicketTypeId']) && $item['childTicketTypeId'] > 0 
+                    ? (int) $item['childTicketTypeId'] 
+                    : null;
+                $adultPrice = (float) ($item['adultPrice'] ?? 0);
+                $childPrice = (float) ($item['childPrice'] ?? 0);
+
+                // Traiter les billets adultes
+                if ($adultQuantity > 0 && $adultTicketTypeId) {
+                    $orderItemId = $this->createOrderItem($orderId, $adultTicketTypeId, $adultQuantity, $adultPrice);
+                    $orderItems[] = $orderItemId;
+                    
+                    for ($i = 0; $i < $adultQuantity; $i++) {
+                        $ticketId = $this->createTicket($orderItemId, $adultTicketTypeId, $userId, $adultPrice);
+                        $tickets[] = $ticketId;
+                    }
+                }
+                
+                // Traiter les billets enfants
+                if ($childQuantity > 0 && $childTicketTypeId) {
+                    $orderItemId = $this->createOrderItem($orderId, $childTicketTypeId, $childQuantity, $childPrice);
+                    $orderItems[] = $orderItemId;
+                    
+                    for ($i = 0; $i < $childQuantity; $i++) {
+                        $ticketId = $this->createTicket($orderItemId, $childTicketTypeId, $userId, $childPrice);
+                        $tickets[] = $ticketId;
+                    }
+                }
+            }
+
+            // Retirer les items du panier
+            $this->removeCartItems($cartId, array_keys($formattedCartItems));
+            
+            // Marquer le panier comme converti
+            $this->connection->update(
+                'aiolia.carts',
+                [
+                    'status' => 'converted',
+                    'updated_at' => (new \DateTimeImmutable())->format('Y-m-d H:i:s'),
+                ],
+                ['id' => $cartId]
+            );
+
+            $this->connection->commit();
+
+            return [
+                'success' => true,
+                'tickets' => $tickets,
+                'order_items' => $orderItems,
+            ];
+        } catch (\Throwable $e) {
+            $this->connection->rollBack();
+            error_log('Erreur lors de la création des tickets après paiement: ' . $e->getMessage());
+            throw $e;
         }
     }
 }
