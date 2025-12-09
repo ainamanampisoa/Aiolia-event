@@ -46,18 +46,20 @@ class TicketController extends AbstractController
                 $dbItems = $this->cartSyncService->convertDbItemsToSessionFormat($dbCart['items']);
                 
                 // Si la DB a des items, utiliser la DB comme source de vérité
-                // Sinon, si la session a des items, les sauvegarder dans la DB
                 if (!empty($dbItems)) {
                     // La DB est la source de vérité
                     $cartItems = $dbItems;
                     $session->set('cart_items', $cartItems);
-                } elseif (!empty($cartItems)) {
-                    // Sauvegarder les items de la session dans la DB
-                    $this->cartSyncService->saveCartItems((int) $dbCart['id'], $cartItems);
                 } else {
-                    // Les deux sont vides, s'assurer que la session est vide
+                    // La DB est vide : soit le panier est vraiment vide, soit les items ont été payés
+                    // Dans ce cas, vider aussi la session pour éviter de restaurer des items payés
                     $session->set('cart_items', []);
+                    $cartItems = [];
                 }
+            } else {
+                // Pas de panier DB, vider la session
+                $session->set('cart_items', []);
+                $cartItems = [];
             }
         }
         
@@ -512,7 +514,7 @@ class TicketController extends AbstractController
             error_log('Résultat paiement: ' . json_encode($result));
 
             if ($result['success']) {
-                // Retirer les items payés du panier en session
+                // Retirer les items payés du panier en session IMMÉDIATEMENT
                 $remainingCartItems = $session->get('cart_items', []);
                 $cartKeysToRemove = array_keys($cartItems);
                 foreach ($cartKeysToRemove as $cartKey) {
@@ -521,31 +523,39 @@ class TicketController extends AbstractController
                 
                 // Mettre à jour la session avec les items restants
                 $session->set('cart_items', $remainingCartItems);
-
-                // Synchroniser avec la DB pour s'assurer que tout est cohérent
-                // Les items ont déjà été retirés de la DB par PaymentService
-                // On met simplement à jour la session avec les items restants (qui devraient être vides)
-                $session->set('cart_items', $remainingCartItems);
                 
                 // Si l'utilisateur est connecté, forcer la synchronisation avec la DB
                 if ($userId) {
-                    // Récupérer le panier actif (un nouveau devrait être créé car l'ancien est "converted")
+                    // Récupérer le panier actif depuis la DB
+                    // Les items payés ont déjà été retirés de la DB par PaymentService
                     $dbCart = $this->cartSyncService->getOrCreateCart($userId, null);
                     if ($dbCart) {
-                        // Sauvegarder les items restants dans le panier DB
-                        $this->cartSyncService->saveCartItems((int) $dbCart['id'], $remainingCartItems);
-                        // Récupérer les items de la DB pour s'assurer qu'ils sont à jour
+                        // Récupérer les items de la DB (source de vérité)
                         $dbItems = $this->cartSyncService->convertDbItemsToSessionFormat($dbCart['items']);
-                        // Mettre à jour la session avec les items de la DB (devrait être vide)
+                        
+                        // Utiliser la DB comme source de vérité
+                        // Si la DB est vide, vider aussi la session
+                        // Si la DB a des items, synchroniser la session avec la DB
                         $session->set('cart_items', $dbItems);
+                    } else {
+                        // Pas de panier DB, vider la session
+                        $session->set('cart_items', []);
                     }
                 }
 
+                // Calculer le nombre de tickets depuis les items du panier (avant paiement)
+                // Car pour MVola, les tickets ne sont créés qu'après le callback
+                $ticketsCount = 0;
+                foreach ($cartItems as $item) {
+                    $ticketsCount += (int) ($item['adultQuantity'] ?? 0);
+                    $ticketsCount += (int) ($item['childQuantity'] ?? 0);
+                }
+                
                 // Stocker les informations de la commande dans la session pour la page de confirmation
                 $session->set('last_order', [
                     'order_id' => $result['order_id'],
                     'total_amount' => $result['total_amount'],
-                    'tickets_count' => count($result['tickets']),
+                    'tickets_count' => $ticketsCount > 0 ? $ticketsCount : count($result['tickets'] ?? []),
                 ]);
 
                 $this->addFlash('success', 'Paiement effectué avec succès !');

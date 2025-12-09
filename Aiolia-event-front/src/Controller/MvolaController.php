@@ -213,14 +213,16 @@ class MvolaController extends AbstractController
 
     /**
      * Mappe le statut MVola vers les valeurs valides de l'enum.
+     * En environnement sandbox, on utilise 'processing' au lieu de 'paid'.
      */
     private function mapMvolaStatusToEnum(?string $mvolaStatus): string
     {
         // Valeurs valides de payment_status_enum: 'initiated', 'processing', 'paid', 'failed', 'refunded'
+        // En sandbox MVola, on utilise 'processing' au lieu de 'paid' pour les paiements réussis
         $statusMap = [
-            'completed' => 'paid',
-            'success' => 'paid',
-            'paid' => 'paid',
+            'completed' => 'processing', // Sandbox: utiliser 'processing' au lieu de 'paid'
+            'success' => 'processing',   // Sandbox: utiliser 'processing' au lieu de 'paid'
+            'paid' => 'processing',       // Sandbox: utiliser 'processing' au lieu de 'paid'
             'failed' => 'failed',
             'failure' => 'failed',
             'error' => 'failed',

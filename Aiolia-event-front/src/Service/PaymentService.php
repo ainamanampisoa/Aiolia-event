@@ -70,8 +70,11 @@ class PaymentService
             
             $cartId = (int) $dbCart['id'];
             
+            // Sauvegarder les cart_keys des items payés pour pouvoir les retirer après paiement
+            $cartKeys = array_keys($cartItems);
+            
             // Créer la commande
-            $orderId = $this->createOrder($userId, $cartId, $totalAmount, $paymentData);
+            $orderId = $this->createOrder($userId, $cartId, $totalAmount, $paymentData, $cartKeys);
             
             // Si méthode de paiement MVola, initier la transaction
             $paymentMethod = $paymentData['payment_method'] ?? 'mvola';
@@ -81,6 +84,10 @@ class PaymentService
                 if (!$mvolaResult['success']) {
                     throw new \RuntimeException('Erreur lors de l\'initiation du paiement MVola: ' . ($mvolaResult['error'] ?? 'Erreur inconnue'));
                 }
+                
+                // Retirer immédiatement les items payés du panier (avant le callback)
+                // Cela évite qu'ils réapparaissent si l'utilisateur revient sur la page du panier
+                $this->removeCartItems($cartId, $cartKeys);
                 
                 // La commande reste en "awaiting_payment" jusqu'à confirmation du callback
                 $this->connection->commit();
@@ -92,6 +99,7 @@ class PaymentService
                     'total_amount' => $totalAmount,
                     'payment_status' => 'pending',
                     'mvola_correlation_id' => $mvolaResult['serverCorrelationId'] ?? null,
+                    'cart_keys_removed' => $cartKeys, // Retourner les cart_keys retirés
                 ];
             }
             
@@ -228,7 +236,7 @@ class PaymentService
     /**
      * Crée une commande dans la base de données.
      */
-    private function createOrder(?int $userId, int $cartId, float $totalAmount, array $paymentData): int
+    private function createOrder(?int $userId, int $cartId, float $totalAmount, array $paymentData, array $cartKeys = []): int
     {
         $paymentMethod = $paymentData['payment_method'] ?? 'mvola';
         $paymentDueAt = new \DateTimeImmutable('+15 minutes');
@@ -248,6 +256,7 @@ class PaymentService
                 'payment_email' => $paymentData['payment_email'] ?? null,
                 'payment_phone' => $paymentData['payment_phone'] ?? null,
                 'payment_name' => $paymentData['payment_name'] ?? null,
+                'cart_keys' => $cartKeys, // Sauvegarder les cart_keys des items payés
             ]),
         ]);
         
@@ -532,6 +541,19 @@ class PaymentService
             $orderItems = [];
             $tickets = [];
 
+            // Récupérer les cart_keys des items payés depuis les notes de la commande
+            $orderNotes = json_decode($order['notes'] ?? '{}', true);
+            $paidCartKeys = $orderNotes['cart_keys'] ?? [];
+            
+            // Si on a des cart_keys spécifiques, ne traiter que ces items
+            // Sinon, traiter tous les items du panier (comportement par défaut)
+            if (!empty($paidCartKeys)) {
+                // Filtrer les items pour ne garder que ceux qui ont été payés
+                $dbCartItems = array_filter($dbCartItems, function($item) use ($paidCartKeys) {
+                    return in_array($item['cart_key'] ?? '', $paidCartKeys);
+                });
+            }
+            
             // Convertir les items du panier au format attendu
             $formattedCartItems = $this->cartSyncService->convertDbItemsToSessionFormat($dbCartItems);
 
@@ -570,18 +592,36 @@ class PaymentService
                 }
             }
 
-            // Retirer les items du panier
-            $this->removeCartItems($cartId, array_keys($formattedCartItems));
+            // Retirer uniquement les items payés du panier
+            // Utiliser les cart_keys sauvegardés dans la commande si disponibles
+            $cartKeysToRemove = !empty($paidCartKeys) ? $paidCartKeys : array_keys($formattedCartItems);
             
-            // Marquer le panier comme converti
-            $this->connection->update(
-                'aiolia.carts',
-                [
-                    'status' => 'converted',
-                    'updated_at' => (new \DateTimeImmutable())->format('Y-m-d H:i:s'),
-                ],
-                ['id' => $cartId]
-            );
+            // Vérifier que les items existent avant de les retirer
+            // Note: Les items peuvent déjà avoir été retirés lors de l'initiation du paiement MVola
+            if (!empty($cartKeysToRemove)) {
+                $this->removeCartItems($cartId, $cartKeysToRemove);
+            }
+            
+            // Vérifier qu'il ne reste plus d'items dans le panier
+            $remainingItems = $this->cartSyncService->getCartItems($cartId);
+            
+            // Si le panier est vide ou ne contient que les items payés, le marquer comme converti
+            // Sinon, le laisser actif pour les autres items
+            if (empty($remainingItems)) {
+                // Marquer le panier comme converti seulement s'il est vide
+                $this->connection->update(
+                    'aiolia.carts',
+                    [
+                        'status' => 'converted',
+                        'updated_at' => (new \DateTimeImmutable())->format('Y-m-d H:i:s'),
+                    ],
+                    ['id' => $cartId]
+                );
+            }
+            
+            // Vider aussi le panier de la session si l'utilisateur est connecté
+            // Note: On ne peut pas accéder directement à la session ici, mais le panier DB est vidé
+            // Le contrôleur videra la session lors de la confirmation
 
             $this->connection->commit();
 
