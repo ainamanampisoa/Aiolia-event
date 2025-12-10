@@ -1472,21 +1472,28 @@
                                 >
                                     <i class="fas fa-edit"></i>
                                 </button>
-                                <button
-                                    type="button"
-                                    class="event-action-btn event-action-danger"
-                                    title="Supprimer l'événement"
-                                    aria-label="Supprimer l'événement"
-                                    data-event-id="{{ event.id }}"
-                                >
-                                    <i class="fas fa-trash"></i>
-                                </button>
+                                {% if event.statut == 'draft' %}
+                                    <form method="POST" action="{{ path('organisateur_events_delete', {'id': event.id}) }}" style="display: inline;" onsubmit="return confirm('Êtes-vous sûr de vouloir supprimer cet événement ?');">
+                                        <input type="hidden" name="_token" value="{{ csrf_token('delete_event_' ~ event.id) }}">
+                                        <button
+                                            type="submit"
+                                            class="event-action-btn event-action-danger"
+                                            title="Supprimer l'événement"
+                                            aria-label="Supprimer l'événement"
+                                        >
+                                            <i class="fas fa-trash"></i>
+                                        </button>
+                                    </form>
+                                {% endif %}
                             </div>
                         </div>
 
                         <!-- Image de l'événement -->
                         <div class="event-card-image">
-                            <img src="{{ event.urlImageCouverture ?: 'https://images.unsplash.com/photo-1540575467063-178a50c2df87?ixlib=rb-4.0.3&auto=format&fit=crop&w=800&q=80' }}" alt="{{ event.titre }}">
+                            {% set eventMedias = eventsMedias[event.id] ?? [] %}
+                            {% set primaryImage = eventMedias|filter(m => m.isMainPoster)|first %}
+                            {% set imageUrl = primaryImage ? primaryImage.url : (event.urlImageCouverture ?: 'https://images.unsplash.com/photo-1540575467063-178a50c2df87?ixlib=rb-4.0.3&auto=format&fit=crop&w=800&q=80') %}
+                            <img src="{{ imageUrl }}" alt="{{ event.titre }}">
                             <div class="event-image-overlay">
                                 <button class="btn-quick-view" data-event-id="{{ event.id }}">
                                     <i class="fas fa-expand"></i>

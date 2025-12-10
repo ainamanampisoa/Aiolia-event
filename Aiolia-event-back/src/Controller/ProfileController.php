@@ -15,10 +15,26 @@ use Symfony\Component\String\Slugger\SluggerInterface;
 #[Route('/profile')]
 class ProfileController extends AbstractController
 {
-    #[Route('/test/cloudinary', name: 'app_profile_cloudinary_test', methods: ['GET'])]
-    public function testCloudinary(CloudinaryService $cloudinaryService): Response
+    #[Route('/test/cloudinary', name: 'app_profile_cloudinary_test', methods: ['GET'], priority: 10)]
+    public function testCloudinary(CloudinaryService $cloudinaryService, Request $request): Response
     {
-        return $this->json($cloudinaryService->testConnection());
+        $connection = $cloudinaryService->testConnection();
+        $usage = $cloudinaryService->getUsage();
+        
+        // Si la requête demande du JSON (API), retourner JSON
+        if ($request->query->get('format') === 'json' || $request->headers->get('Accept') === 'application/json') {
+            return $this->json([
+                'connection' => $connection,
+                'usage' => $usage,
+                'note' => 'Les statistiques d\'usage peuvent ne pas être disponibles via l\'API sur le plan gratuit. Consultez https://console.cloudinary.com/console pour les détails complets.',
+            ], $connection['success'] ? 200 : 500);
+        }
+        
+        // Sinon, retourner une page HTML
+        return $this->render('profile/cloudinary_stats.html.twig', [
+            'connection' => $connection,
+            'usage' => $usage,
+        ]);
     }
 
     #[Route('', name: 'app_profile_index')]
@@ -111,6 +127,13 @@ class ProfileController extends AbstractController
 
         if (!$cloudinaryService->isValidImageType($uploadedFile)) {
             $this->addFlash('error', 'Format de fichier non supporté. Veuillez choisir une image JPG, PNG, GIF ou WEBP.');
+            return $this->redirectToRoute('app_profile_index');
+        }
+
+        // Validation de la taille (max 3 MB recommandé pour plan gratuit)
+        $sizeValidation = $cloudinaryService->isValidImageSize($uploadedFile, 3);
+        if (!$sizeValidation['valid']) {
+            $this->addFlash('error', $sizeValidation['error']);
             return $this->redirectToRoute('app_profile_index');
         }
 

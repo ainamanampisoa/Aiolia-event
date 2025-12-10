@@ -1,0 +1,196 @@
+{% extends 'base.html.twig' %}
+
+{% block title %}Statistiques Cloudinary - Aiolia Event{% endblock %}
+
+{% block body %}
+<div class="dashboard">
+    <div class="dashboard-header">
+        <div>
+            <h1>📊 Statistiques Cloudinary</h1>
+            <p style="color: var(--text-secondary); margin-top: 8px; font-size: 1rem;">
+                Surveillance de l'utilisation et des limites
+            </p>
+        </div>
+    </div>
+
+    <div id="cloudinary-stats" class="stats-container">
+        <div class="loading">Chargement des statistiques...</div>
+    </div>
+</div>
+
+<style>
+.stats-container {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+    gap: 24px;
+    margin-top: 24px;
+}
+
+.stat-card {
+    background: var(--bg-card);
+    border-radius: var(--border-radius-xl);
+    padding: 24px;
+    box-shadow: var(--shadow-lg);
+    border: 1px solid var(--border-color);
+}
+
+.stat-card h3 {
+    margin: 0 0 16px 0;
+    font-size: 1.2rem;
+    color: var(--text-primary);
+    display: flex;
+    align-items: center;
+    gap: 10px;
+}
+
+.stat-card h3 i {
+    color: var(--accent);
+}
+
+.stat-value {
+    font-size: 2rem;
+    font-weight: bold;
+    color: var(--accent);
+    margin: 8px 0;
+}
+
+.stat-label {
+    color: var(--text-secondary);
+    font-size: 0.9rem;
+    margin-top: 4px;
+}
+
+.progress-bar {
+    width: 100%;
+    height: 8px;
+    background: var(--bg-secondary);
+    border-radius: 4px;
+    overflow: hidden;
+    margin: 12px 0;
+}
+
+.progress-fill {
+    height: 100%;
+    background: linear-gradient(90deg, var(--accent), var(--accent-light));
+    transition: width 0.3s ease;
+}
+
+.progress-fill.warning {
+    background: linear-gradient(90deg, #f59e0b, #f97316);
+}
+
+.progress-fill.danger {
+    background: linear-gradient(90deg, #ef4444, #dc2626);
+}
+
+.loading {
+    text-align: center;
+    padding: 40px;
+    color: var(--text-secondary);
+}
+</style>
+
+<script>
+(async function() {
+    const container = document.getElementById('cloudinary-stats');
+    
+    try {
+        const response = await fetch('/profile/test/cloudinary');
+        const data = await response.json();
+        
+        if (!data.usage || !data.usage.available) {
+            container.innerHTML = `
+                <div class="stat-card">
+                    <h3><i class="fas fa-exclamation-triangle"></i> Statistiques non disponibles</h3>
+                    <p>${data.usage?.error || 'Impossible de récupérer les statistiques'}</p>
+                    <p style="margin-top: 12px; font-size: 0.9rem; color: var(--text-secondary);">
+                        ${data.note || ''}
+                    </p>
+                </div>
+            `;
+            return;
+        }
+
+        const usage = data.usage;
+        const storagePercent = usage.storage_percentage || 0;
+        const bandwidthPercent = usage.bandwidth_percentage || 0;
+        const creditsPercent = usage.credits_used_percent || 0;
+
+        const getProgressClass = (percent) => {
+            if (percent >= 90) return 'danger';
+            if (percent >= 70) return 'warning';
+            return '';
+        };
+
+        container.innerHTML = `
+            <div class="stat-card">
+                <h3><i class="fas fa-cloud"></i> Plan</h3>
+                <div class="stat-value">${usage.plan || 'Unknown'}</div>
+                <div class="stat-label">Type de compte</div>
+            </div>
+
+            <div class="stat-card">
+                <h3><i class="fas fa-database"></i> Stockage</h3>
+                <div class="stat-value">${usage.storage_used_gb?.toFixed(2) || '0'} GB</div>
+                <div class="stat-label">${usage.storage_limit_gb || '?'} GB disponibles</div>
+                <div class="progress-bar">
+                    <div class="progress-fill ${getProgressClass(storagePercent)}" 
+                         style="width: ${Math.min(storagePercent, 100)}%"></div>
+                </div>
+                <div class="stat-label">${storagePercent.toFixed(2)}% utilisé</div>
+            </div>
+
+            <div class="stat-card">
+                <h3><i class="fas fa-network-wired"></i> Bandwidth</h3>
+                <div class="stat-value">${usage.bandwidth_used_mb?.toFixed(2) || '0'} MB</div>
+                <div class="stat-label">${usage.bandwidth_limit_gb || '?'} GB disponibles</div>
+                <div class="progress-bar">
+                    <div class="progress-fill ${getProgressClass(bandwidthPercent)}" 
+                         style="width: ${Math.min(bandwidthPercent, 100)}%"></div>
+                </div>
+                <div class="stat-label">${bandwidthPercent.toFixed(2)}% utilisé</div>
+            </div>
+
+            <div class="stat-card">
+                <h3><i class="fas fa-coins"></i> Crédits</h3>
+                <div class="stat-value">${usage.credits_used_gb?.toFixed(2) || '0'} GB</div>
+                <div class="stat-label">${usage.credits_limit_gb || '?'} GB disponibles</div>
+                <div class="progress-bar">
+                    <div class="progress-fill ${getProgressClass(creditsPercent)}" 
+                         style="width: ${Math.min(creditsPercent, 100)}%"></div>
+                </div>
+                <div class="stat-label">${creditsPercent.toFixed(2)}% utilisé</div>
+            </div>
+
+            ${usage.last_updated ? `
+            <div class="stat-card">
+                <h3><i class="fas fa-calendar"></i> Dernière mise à jour</h3>
+                <div class="stat-value" style="font-size: 1.2rem;">${usage.last_updated}</div>
+                <div class="stat-label">Date de mise à jour des statistiques</div>
+            </div>
+            ` : ''}
+
+            <div class="stat-card" style="grid-column: 1 / -1;">
+                <h3><i class="fas fa-info-circle"></i> Informations</h3>
+                <p style="margin: 0; color: var(--text-secondary); line-height: 1.6;">
+                    ${data.note || 'Surveillez votre utilisation pour éviter de dépasser les limites du plan gratuit.'}
+                </p>
+                <a href="https://console.cloudinary.com/console" 
+                   target="_blank" 
+                   style="display: inline-block; margin-top: 12px; color: var(--accent); text-decoration: none;">
+                    <i class="fas fa-external-link-alt"></i> Voir sur la console Cloudinary
+                </a>
+            </div>
+        `;
+    } catch (error) {
+        container.innerHTML = `
+            <div class="stat-card">
+                <h3><i class="fas fa-exclamation-circle"></i> Erreur</h3>
+                <p>Impossible de charger les statistiques: ${error.message}</p>
+            </div>
+        `;
+    }
+})();
+</script>
+{% endblock %}
+

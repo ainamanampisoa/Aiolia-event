@@ -13,14 +13,14 @@
             </p>
         </div>
         <div class="header-actions">
-            <a href="{{ path('app_event_index') }}" class="btn btn-secondary" style="background: white; color: var(--gray-700); border: 2px solid var(--gray-300); padding: 12px 24px; border-radius: 8px; text-decoration: none; font-weight: 600; display: inline-flex; align-items: center; gap: 8px;">
+            <a href="{{ path('organisateur_events_index') }}" class="btn btn-secondary" style="background: white; color: var(--gray-700); border: 2px solid var(--gray-300); padding: 12px 24px; border-radius: 8px; text-decoration: none; font-weight: 600; display: inline-flex; align-items: center; gap: 8px;">
                 <i class="fas fa-arrow-left"></i>
                 Retour
             </a>
         </div>
     </div>
 
-    <form method="post" enctype="multipart/form-data" class="event-form">
+    {{ form_start(form, {'attr': {'class': 'event-form', 'enctype': 'multipart/form-data'}}) }}
         <!-- Section 1: Informations principales -->
         <div class="form-section">
             <div class="section-header">
@@ -36,42 +36,34 @@
             <div class="form-grid">
                 <div class="form-group span-2">
                     <label>Nom de l'événement <span class="required">*</span></label>
-                    <input type="text" name="name" class="form-control" placeholder="Ex: Concert Rock Nation 2025" required>
+                    {{ form_widget(form.titre, {'attr': {'class': 'form-control', 'placeholder': 'Ex: Concert Rock Nation 2025', 'required': 'required'}}) }}
+                    {{ form_errors(form.titre) }}
                     <small class="form-help">Un nom accrocheur et descriptif</small>
                 </div>
 
                 <div class="form-group">
                     <label>Catégorie <span class="required">*</span></label>
-                    <select name="category" class="form-control" required>
-                        <option value="">Sélectionner...</option>
-                        <option value="concert">🎸 Concert</option>
-                        <option value="festival">🎵 Festival</option>
-                        <option value="sport">⚽ Sport</option>
-                        <option value="theatre">🎭 Théâtre</option>
-                        <option value="conference">📚 Conférence</option>
-                        <option value="autre">✨ Autre</option>
-                    </select>
+                    {{ form_widget(form.categoriePrincipale, {'attr': {'class': 'form-control', 'required': 'required'}}) }}
+                    {{ form_errors(form.categoriePrincipale) }}
                 </div>
 
                 <div class="form-group">
-                    <label>Type d'événement <span class="required">*</span></label>
-                    <select name="type" class="form-control" required>
-                        <option value="">Sélectionner...</option>
-                        <option value="public">Public</option>
-                        <option value="prive">Privé</option>
-                        <option value="professionnel">Professionnel</option>
-                    </select>
+                    <label>Type d'événement</label>
+                    {{ form_widget(form.typeEvenement, {'attr': {'class': 'form-control'}}) }}
+                    {{ form_errors(form.typeEvenement) }}
                 </div>
 
                 <div class="form-group span-2">
-                    <label>Description courte <span class="required">*</span></label>
-                    <textarea name="description_short" class="form-control" rows="3" placeholder="Une brève description de votre événement (max 200 caractères)" maxlength="200" required></textarea>
-                    <small class="form-help"><span id="charCount">0</span>/200 caractères</small>
+                    <label>Résumé <span class="required">*</span></label>
+                    {{ form_widget(form.resume, {'attr': {'class': 'form-control', 'rows': 3, 'placeholder': 'Résumé court de l\'événement (max 500 caractères)', 'maxlength': 500}}) }}
+                    {{ form_errors(form.resume) }}
+                    <small class="form-help"><span id="charCount">0</span>/500 caractères</small>
                 </div>
 
                 <div class="form-group span-2">
                     <label>Description complète</label>
-                    <textarea name="description" class="form-control" rows="6" placeholder="Décrivez votre événement en détail..."></textarea>
+                    {{ form_widget(form.description, {'attr': {'class': 'form-control', 'rows': 6, 'placeholder': 'Décrivez votre événement en détail...'}}) }}
+                    {{ form_errors(form.description) }}
                 </div>
             </div>
         </div>
@@ -91,27 +83,41 @@
             <div class="form-grid">
                 <div class="form-group">
                     <label>Date de début <span class="required">*</span></label>
-                    <input type="datetime-local" name="date_start" class="form-control" required>
+                    <div class="datetime-split">
+                        <input type="text" name="date_start_date" class="form-control date-only" placeholder="jj/mm/aaaa" required>
+                        <input type="time" name="date_start_time" class="form-control time-only" placeholder="hh:mm" step="60" required>
+                        <input type="hidden" name="date_start" required>
+                    </div>
                 </div>
 
                 <div class="form-group">
                     <label>Date de fin</label>
-                    <input type="datetime-local" name="date_end" class="form-control">
-                </div>
-
-                <div class="form-group">
-                    <label>Lieu / Salle <span class="required">*</span></label>
-                    <input type="text" name="venue" class="form-control" placeholder="Ex: Stade Municipal" required>
-                </div>
-
-                <div class="form-group">
-                    <label>Ville <span class="required">*</span></label>
-                    <input type="text" name="city" class="form-control" placeholder="Ex: Antananarivo" required>
+                    <div class="datetime-split">
+                        <input type="text" name="date_end_date" class="form-control date-only" placeholder="jj/mm/aaaa">
+                        <input type="time" name="date_end_time" class="form-control time-only" placeholder="hh:mm" step="60">
+                        <input type="hidden" name="date_end">
+                    </div>
                 </div>
 
                 <div class="form-group span-2">
-                    <label>Adresse complète <span class="required">*</span></label>
-                    <input type="text" name="address" class="form-control" placeholder="Ex: Avenue de l'Indépendance, 101 Antananarivo" required>
+                    <label>Lieu <span class="required">*</span></label>
+                    <div class="venue-select-wrapper">
+                        <div class="venue-select-row">
+                            <select name="venue_id" id="venueSelect" class="form-control" required>
+                                <option value="">Sélectionner un lieu...</option>
+                                {% for venue in venues %}
+                                    <option value="{{ venue.id }}">
+                                        {{ venue.nom ?? venue.name ?? venue.label ?? ('Lieu #' ~ venue.id) }}
+                                    </option>
+                                {% endfor %}
+                            </select>
+                            <a href="/organisateur/venues/new" class="btn-create-venue" title="Créer un nouveau lieu">
+                                <i class="fas fa-plus-circle"></i>
+                                <span>Créer un lieu</span>
+                            </a>
+                        </div>
+                        <small class="form-help">Choisissez un lieu existant ou créez-en un nouveau</small>
+                    </div>
                 </div>
             </div>
         </div>
@@ -264,8 +270,28 @@
                     </div>
                     <div class="form-grid">
                         <div class="form-group">
-                            <label>Nom de la catégorie <span class="required">*</span></label>
-                            <input type="text" name="ticket_name[]" class="form-control" placeholder="Ex: VIP, Standard..." required>
+                            <label>Catégorie <span class="required">*</span></label>
+                            <select name="ticket_categorie[]" class="form-control" required>
+                                <option value="">Sélectionner une catégorie...</option>
+                                <option value="tous">Tous</option>
+                                {% for categorie in categoriesBillets %}
+                                    <option value="{{ categorie.id }}">{{ categorie.nom }}</option>
+                                {% endfor %}
+                            </select>
+                        </div>
+                        <div class="form-group">
+                            <label>Segment âge <span class="required">*</span></label>
+                            <select name="ticket_segment[]" class="form-control" required>
+                                <option value="">Sélectionner un segment...</option>
+                                <option value="tous">Tous</option>
+                                {% for segment in segmentsBillets %}
+                                    <option value="{{ segment.id }}">
+                                        {{ segment.nom }}{% if segment.ageMin is not null or segment.ageMax is not null %} 
+                                            ({% if segment.ageMin is not null %}{{ segment.ageMin }}{% endif %}{% if segment.ageMin is not null and segment.ageMax is not null %}-{% endif %}{% if segment.ageMax is not null %}{{ segment.ageMax }}{% endif %} ans)
+                                        {% endif %}
+                                    </option>
+                                {% endfor %}
+                            </select>
                         </div>
                         <div class="form-group">
                             <label>Prix (€) <span class="required">*</span></label>
@@ -275,10 +301,6 @@
                             <label>Quantité <span class="required">*</span></label>
                             <input type="number" name="ticket_quantity[]" class="form-control" placeholder="100" min="1" required>
                         </div>
-                        <div class="form-group">
-                            <label>Description</label>
-                            <input type="text" name="ticket_description[]" class="form-control" placeholder="Avantages de cette catégorie">
-                        </div>
                     </div>
                 </div>
             </div>
@@ -287,6 +309,53 @@
                 <i class="fas fa-plus"></i>
                 Ajouter une catégorie de billet
             </button>
+
+            <!-- Paramètres de vente des billets -->
+            <div class="ticket-sales-settings">
+                <div class="section-header">
+                    <div class="section-icon" style="background: linear-gradient(135deg, rgba(52, 152, 219, 0.15), rgba(52, 152, 219, 0.05)); color: var(--accent);">
+                        <i class="fas fa-cog"></i>
+                    </div>
+                    <div>
+                        <h2>Paramètres de vente</h2>
+                        <p>Configurez les dates de vente et les limites par commande pour tous les billets</p>
+                    </div>
+                </div>
+                
+                <div class="form-grid">
+                    <div class="form-group">
+                        <label>Date de début des ventes</label>
+                        <div class="datetime-split">
+                            <input type="text" name="ticket_sales_start_date" id="ticketSalesStartDate" class="form-control" placeholder="jj/mm/aaaa">
+                            <input type="time" name="ticket_sales_start_time" id="ticketSalesStartTime" class="form-control time-only" placeholder="hh:mm">
+                        </div>
+                        <input type="hidden" name="ticket_sales_start" id="ticketSalesStart">
+                        <small class="form-help">Date et heure à partir de laquelle les billets seront en vente</small>
+                    </div>
+                    
+                    <div class="form-group">
+                        <label>Date de fin des ventes</label>
+                        <div class="datetime-split">
+                            <input type="text" name="ticket_sales_end_date" id="ticketSalesEndDate" class="form-control" placeholder="jj/mm/aaaa">
+                            <input type="time" name="ticket_sales_end_time" id="ticketSalesEndTime" class="form-control time-only" placeholder="hh:mm">
+                        </div>
+                        <input type="hidden" name="ticket_sales_end" id="ticketSalesEnd">
+                        <small class="form-help">Date et heure jusqu'à laquelle les billets seront en vente</small>
+                    </div>
+                    
+                    <div class="form-group">
+                        <label>Minimum par commande</label>
+                        <input type="number" name="ticket_min_per_order" class="form-control" placeholder="1" min="1" value="1">
+                        <small class="form-help">Nombre minimum de billets par commande</small>
+                    </div>
+                    
+                    <div class="form-group">
+                        <label>Maximum par commande</label>
+                        <input type="number" name="ticket_max_per_order" class="form-control" placeholder="Illimité" min="1">
+                        <small class="form-help">Nombre maximum de billets par commande (laisser vide pour illimité)</small>
+                    </div>
+                </div>
+            </div>
         </div>
 
         <!-- Section 6: Paiement et Accessibilité -->
@@ -307,59 +376,40 @@
                     <label>Modes de paiement acceptés <span class="required">*</span></label>
                     <div class="payment-selector">
                         <div class="payment-grid">
-                            <!-- Orange Money -->
-                            <div class="payment-option">
-                                <div class="payment-card">
-                                    <div class="payment-icon">
-                                        <img src="{{ asset('images/orange-money.png') }}" alt="Orange Money" class="payment-logo">
+                            {% for modePaiement in modesPaiement %}
+                                {% set paymentValue = modePaiement.code %}
+                                {% if modePaiement.code == 'orange' %}
+                                    {% set paymentValue = 'orange_money' %}
+                                {% elseif modePaiement.code == 'airtel' %}
+                                    {% set paymentValue = 'airtel_money' %}
+                                {% elseif modePaiement.code == 'autre' %}
+                                    {% set paymentValue = 'cash' %}
+                                {% endif %}
+                                <div class="payment-option">
+                                    <div class="payment-card{% if modePaiement.code == 'mvola' %} payment-card-mvola{% endif %}">
+                                        <div class="payment-icon">
+                                            {% if modePaiement.icone %}
+                                                <img src="{{ asset('images/' ~ modePaiement.icone) }}" alt="{{ modePaiement.libelle }}" class="payment-logo">
+                                            {% else %}
+                                                {% if modePaiement.code == 'orange' %}
+                                                    <img src="{{ asset('images/orange-money.png') }}" alt="{{ modePaiement.libelle }}" class="payment-logo">
+                                                {% elseif modePaiement.code == 'airtel' %}
+                                                    <img src="{{ asset('images/airtel.png') }}" alt="{{ modePaiement.libelle }}" class="payment-logo">
+                                                {% elseif modePaiement.code == 'mvola' %}
+                                                    <img src="{{ asset('images/m-vola.png') }}" alt="{{ modePaiement.libelle }}" class="payment-logo">
+                                                {% else %}
+                                                    💰
+                                                {% endif %}
+                                            {% endif %}
+                                        </div>
+                                        <span class="payment-label">{{ modePaiement.libelle }}</span>
                                     </div>
-                                    <span class="payment-label">Orange Money</span>
+                                    <label class="payment-checkbox-label">
+                                        <input type="checkbox" name="payment_methods[]" value="{{ paymentValue }}" class="payment-checkbox">
+                                        <span class="payment-checkbox-custom"></span>
+                                    </label>
                                 </div>
-                                <label class="payment-checkbox-label">
-                                    <input type="checkbox" name="payment_methods[]" value="orange_money" class="payment-checkbox">
-                                    <span class="payment-checkbox-custom"></span>
-                                </label>
-                            </div>
-                            
-                            <!-- Airtel Money -->
-                            <div class="payment-option">
-                                <div class="payment-card">
-                                    <div class="payment-icon">
-                                        <img src="{{ asset('images/airtel.png') }}" alt="Airtel Money" class="payment-logo">
-                                    </div>
-                                    <span class="payment-label">Airtel Money</span>
-                                </div>
-                                <label class="payment-checkbox-label">
-                                    <input type="checkbox" name="payment_methods[]" value="airtel_money" class="payment-checkbox">
-                                    <span class="payment-checkbox-custom"></span>
-                                </label>
-                            </div>
-                            
-                            <!-- Mvola -->
-                            <div class="payment-option">
-                                <div class="payment-card payment-card-mvola">
-                                    <div class="payment-icon">
-                                        <img src="{{ asset('images/m-vola.png') }}" alt="Mvola" class="payment-logo">
-                                    </div>
-                                    <span class="payment-label">Mvola</span>
-                                </div>
-                                <label class="payment-checkbox-label">
-                                    <input type="checkbox" name="payment_methods[]" value="mvola" class="payment-checkbox">
-                                    <span class="payment-checkbox-custom"></span>
-                                </label>
-                            </div>
-                            
-                            <!-- Espèces -->
-                            <div class="payment-option">
-                                <div class="payment-card">
-                                    <div class="payment-icon">💰</div>
-                                    <span class="payment-label">Espèces</span>
-                                </div>
-                                <label class="payment-checkbox-label">
-                                    <input type="checkbox" name="payment_methods[]" value="cash" class="payment-checkbox">
-                                    <span class="payment-checkbox-custom"></span>
-                                </label>
-                            </div>
+                            {% endfor %}
                         </div>
                     </div>
                 </div>
@@ -369,72 +419,22 @@
                     <label>Options d'accessibilité</label>
                     <div class="accessibility-selector">
                         <div class="accessibility-grid">
-                            <label class="accessibility-option">
-                                <input type="checkbox" name="accessibility[]" value="wheelchair">
-                                <div class="accessibility-card">
-                                    <div class="accessibility-icon">
-                                        <img src="{{ asset('images/acces1.svg') }}" alt="Accès PMR" class="accessibility-logo">
+                            {% for typeAccessibilite in typesAccessibilite %}
+                                {% set accessibilityValue = typeAccessibilite.code %}
+                                {% set accessibilityLabel = typeAccessibilite.libelle %}
+                                {% set iconUrl = typeAccessibilite.urlImage ?? ('images/acces1.svg') %}
+                                <label class="accessibility-option">
+                                    <input type="checkbox" name="accessibility[]" value="{{ accessibilityValue }}">
+                                    <div class="accessibility-card">
+                                        <div class="accessibility-icon">
+                                            <img src="{{ asset(iconUrl) }}" alt="{{ accessibilityLabel }}" class="accessibility-logo">
+                                        </div>
+                                        <div class="accessibility-info">
+                                            <span class="accessibility-title">{{ accessibilityLabel }}</span>
+                                        </div>
                                     </div>
-                                    <div class="accessibility-info">
-                                        <span class="accessibility-title">Accès PMR</span>
-                                    </div>
-                                </div>
-                            </label>
-                            <label class="accessibility-option">
-                                <input type="checkbox" name="accessibility[]" value="hearing">
-                                <div class="accessibility-card">
-                                    <div class="accessibility-icon">
-                                        <img src="{{ asset('images/acces2.svg') }}" alt="Audio" class="accessibility-logo">
-                                    </div>
-                                    <div class="accessibility-info">
-                                        <span class="accessibility-title">Audio</span>
-                                    </div>
-                                </div>
-                            </label>
-                            <label class="accessibility-option">
-                                <input type="checkbox" name="accessibility[]" value="parking">
-                                <div class="accessibility-card">
-                                    <div class="accessibility-icon">
-                                        <img src="{{ asset('images/acces6.svg') }}" alt="Parking PMR" class="accessibility-logo">
-                                    </div>
-                                    <div class="accessibility-info">
-                                        <span class="accessibility-title">Parking PMR</span>
-                                    </div>
-                                </div>
-                            </label>
-                            <label class="accessibility-option">
-                                <input type="checkbox" name="accessibility[]" value="family">
-                                <div class="accessibility-card">
-                                    <div class="accessibility-icon">
-                                        <img src="{{ asset('images/acces4.svg') }}" alt="Famille" class="accessibility-logo">
-                                    </div>
-                                    <div class="accessibility-info">
-                                        <span class="accessibility-title">Famille</span>
-                                    </div>
-                                </div>
-                            </label>
-                            <label class="accessibility-option">
-                                <input type="checkbox" name="accessibility[]" value="visual">
-                                <div class="accessibility-card">
-                                    <div class="accessibility-icon">
-                                        <img src="{{ asset('images/acces3.svg') }}" alt="Visuel" class="accessibility-logo">
-                                    </div>
-                                    <div class="accessibility-info">
-                                        <span class="accessibility-title">Visuel</span>
-                                    </div>
-                                </div>
-                            </label>
-                            <label class="accessibility-option">
-                                <input type="checkbox" name="accessibility[]" value="elevator">
-                                <div class="accessibility-card">
-                                    <div class="accessibility-icon">
-                                        <img src="{{ asset('images/acces5.svg') }}" alt="Ascenseur" class="accessibility-logo">
-                                    </div>
-                                    <div class="accessibility-info">
-                                        <span class="accessibility-title">Ascenseur</span>
-                                    </div>
-                                </div>
-                            </label>
+                                </label>
+                            {% endfor %}
                         </div>
                     </div>
                 </div>
@@ -498,29 +498,303 @@
                 <i class="fas fa-save"></i>
                 Enregistrer comme brouillon
             </button>
-            <a href="{{ path('app_event_index') }}" class="btn btn-text">
+            <a href="{{ path('organisateur_events_index') }}" class="btn btn-text">
                 Annuler
             </a>
         </div>
-    </form>
+        
+        {# Masquer les champs de date du formulaire Symfony car on utilise des champs HTML personnalisés #}
+        <div style="display: none !important;">
+            {{ form_widget(form.commenceLe) }}
+            {{ form_widget(form.seTermineLe) }}
+        </div>
+        
+        {# Afficher le reste des champs non rendus (token CSRF, etc.) #}
+        {{ form_rest(form) }}
+    {{ form_end(form) }}
 </div>
 
 <script>
+// Stocker toutes les options disponibles
+const allCategories = [
+    { id: 'tous', nom: 'Tous' },
+    {% for categorie in categoriesBillets %}
+    { id: '{{ categorie.id }}', nom: '{{ categorie.nom }}' },
+    {% endfor %}
+];
+
+const allSegments = [
+    { id: 'tous', nom: 'Tous', ageMin: null, ageMax: null, label: 'Tous' },
+    {% for segment in segmentsBillets %}
+    { 
+        id: '{{ segment.id }}', 
+        nom: '{{ segment.nom }}',
+        ageMin: {{ segment.ageMin ?? 'null' }},
+        ageMax: {{ segment.ageMax ?? 'null' }},
+        label: '{{ segment.nom }}{% if segment.ageMin is not null or segment.ageMax is not null %} ({% if segment.ageMin is not null %}{{ segment.ageMin }}{% endif %}{% if segment.ageMin is not null and segment.ageMax is not null %}-{% endif %}{% if segment.ageMax is not null %}{{ segment.ageMax }}{% endif %} ans){% endif %}'
+    },
+    {% endfor %}
+];
+
+// Suivre les options déjà sélectionnées
+let selectedCategories = new Set();
+let selectedSegments = new Set();
+let hasTousCategory = false;
+let hasTousSegment = false;
+
+// Fonction pour générer toutes les options de catégories (sans filtre)
+function getAllCategoriesOptions() {
+    let options = '<option value="">Sélectionner une catégorie...</option>';
+    allCategories.forEach(cat => {
+        options += `<option value="${cat.id}">${cat.nom}</option>`;
+    });
+    return options;
+}
+
+// Fonction pour générer toutes les options de segments (sans filtre)
+function getAllSegmentsOptions() {
+    let options = '<option value="">Sélectionner un segment...</option>';
+    allSegments.forEach(seg => {
+        options += `<option value="${seg.id}">${seg.label}</option>`;
+    });
+    return options;
+}
+
+// Fonction pour générer les options de catégories filtrées (pour nouveaux ajouts)
+function getFilteredCategoriesOptions() {
+    let options = '<option value="">Sélectionner une catégorie...</option>';
+    
+    // Si "tous" a été sélectionné, ne garder que "tous"
+    if (hasTousCategory) {
+        const tousCategory = allCategories.find(c => c.id === 'tous');
+        if (tousCategory) {
+            options += `<option value="${tousCategory.id}">${tousCategory.nom}</option>`;
+        }
+        return options;
+    }
+    
+    // Sinon, exclure les options déjà sélectionnées (inclure "tous" si disponible)
+    allCategories.forEach(cat => {
+        if (!selectedCategories.has(cat.id)) {
+            options += `<option value="${cat.id}">${cat.nom}</option>`;
+        }
+    });
+    
+    return options;
+}
+
+// Fonction pour générer les options de segments filtrées (pour nouveaux ajouts)
+function getFilteredSegmentsOptions() {
+    let options = '<option value="">Sélectionner un segment...</option>';
+    
+    // Si "tous" a été sélectionné, ne garder que "tous"
+    if (hasTousSegment) {
+        const tousSegment = allSegments.find(s => s.id === 'tous');
+        if (tousSegment) {
+            options += `<option value="${tousSegment.id}">${tousSegment.label}</option>`;
+        }
+        return options;
+    }
+    
+    // Sinon, exclure les options déjà sélectionnées (inclure "tous" si disponible)
+    allSegments.forEach(seg => {
+        if (!selectedSegments.has(seg.id)) {
+            options += `<option value="${seg.id}">${seg.label}</option>`;
+        }
+    });
+    
+    return options;
+}
+
+// Fonction pour mettre à jour les selects existants
+// Les selects existants gardent toutes les options, seuls les nouveaux ajouts sont filtrés
+function updateAllSelects() {
+    // Ne pas modifier les selects existants, ils gardent toutes leurs options
+    // Cette fonction est maintenant principalement pour mettre à jour les états
+}
+
+// Fonction pour gérer le changement de sélection
+function handleSelectionChange(select, type) {
+    const value = select.value;
+    
+    if (type === 'category') {
+        // Retirer l'ancienne sélection
+        selectedCategories.clear();
+        hasTousCategory = false;
+        
+        // Ajouter toutes les sélections actuelles
+        document.querySelectorAll('select[name="ticket_categorie[]"]').forEach(s => {
+            if (s.value) {
+                const cat = allCategories.find(c => c.id === s.value);
+                if (cat) {
+                    if (cat.id === 'tous' || cat.nom === 'Tous' || cat.nom === 'tous') {
+                        hasTousCategory = true;
+                    } else {
+                        selectedCategories.add(s.value);
+                    }
+                }
+            }
+        });
+    } else if (type === 'segment') {
+        // Retirer l'ancienne sélection
+        selectedSegments.clear();
+        hasTousSegment = false;
+        
+        // Ajouter toutes les sélections actuelles
+        document.querySelectorAll('select[name="ticket_segment[]"]').forEach(s => {
+            if (s.value) {
+                const seg = allSegments.find(se => se.id === s.value);
+                if (seg) {
+                    if (seg.id === 'tous' || seg.nom === 'Tous' || seg.nom === 'tous') {
+                        hasTousSegment = true;
+                    } else {
+                        selectedSegments.add(s.value);
+                    }
+                }
+            }
+        });
+    }
+    
+    // Ne pas modifier les selects existants, ils gardent toutes leurs options
+    // Seuls les nouveaux ajouts utiliseront les options filtrées
+}
+
 // Compteur de caractères
 document.addEventListener('DOMContentLoaded', function() {
-    const textarea = document.querySelector('textarea[name="description_short"]');
+    const textarea = document.querySelector('textarea[name="event[resume]"]');
     const charCount = document.getElementById('charCount');
     
     if (textarea && charCount) {
         textarea.addEventListener('input', function() {
             charCount.textContent = this.value.length;
         });
+        // Initialiser le compteur avec la valeur actuelle
+        if (textarea.value) {
+            charCount.textContent = textarea.value.length;
+        }
     }
 
     // Upload d'image avec prévisualisation
     setupImageUpload('imageUpload', 'imagePreview', false);
     setupImageUpload('galleryUpload', 'galleryPreview', true);
+
+    // Sélecteurs date/heure séparés (jj/mm/aaaa et hh:mm)
+    setupDateTimeSplit({
+        dateSelector: 'input[name="date_start_date"]',
+        timeSelector: 'input[name="date_start_time"]',
+        hiddenSelector: 'input[name="date_start"]',
+        required: true
+    });
+    setupDateTimeSplit({
+        dateSelector: 'input[name="date_end_date"]',
+        timeSelector: 'input[name="date_end_time"]',
+        hiddenSelector: 'input[name="date_end"]',
+        required: false
+    });
+
+    // Dates de vente des billets
+    setupDateTimeSplit({
+        dateSelector: 'input[name="ticket_sales_start_date"]',
+        timeSelector: 'input[name="ticket_sales_start_time"]',
+        hiddenSelector: 'input[name="ticket_sales_start"]',
+        required: false
+    });
+    setupDateTimeSplit({
+        dateSelector: 'input[name="ticket_sales_end_date"]',
+        timeSelector: 'input[name="ticket_sales_end_time"]',
+        hiddenSelector: 'input[name="ticket_sales_end"]',
+        required: false
+    });
+
+    // Le bouton "Créer un lieu" est maintenant un lien séparé, pas besoin de gestion JS
+    
+    // Initialiser les écouteurs pour les selects de billets
+    initializeTicketSelects();
+    
+    // Vérifier l'état initial des selects
+    checkInitialTicketSelections();
 });
+
+function setupDateTimeSplit({ dateSelector, timeSelector, hiddenSelector, required }) {
+    const dateInput = document.querySelector(dateSelector);
+    const timeInput = document.querySelector(timeSelector);
+    const hiddenInput = document.querySelector(hiddenSelector);
+    if (!dateInput || !timeInput || !hiddenInput) return;
+
+    const updateHidden = () => {
+        const dateVal = dateInput.value.trim();
+        const timeVal = timeInput.value.trim();
+        if (!dateVal || !timeVal) {
+            hiddenInput.value = '';
+            return;
+        }
+        // dateVal au format d/m/Y, timeVal au format H:i
+        const [day, month, year] = dateVal.split('/');
+        if (!day || !month || !year) {
+            hiddenInput.value = '';
+            return;
+        }
+        const isoDate = `${year.padStart(4, '0')}-${month.padStart(2, '0')}-${day.padStart(2, '0')}`;
+        hiddenInput.value = `${isoDate}T${timeVal}`;
+    };
+
+    flatpickr(dateInput, {
+        dateFormat: 'd/m/Y',
+        altInput: false,
+        allowInput: true,
+        locale: 'fr',
+        onChange: updateHidden,
+        onValueUpdate: updateHidden
+    });
+
+    const initDefaultDateTime = () => {
+        const now = new Date();
+        const dd = String(now.getDate()).padStart(2, '0');
+        const mm = String(now.getMonth() + 1).padStart(2, '0');
+        const yyyy = now.getFullYear();
+        const hh = String(now.getHours()).padStart(2, '0');
+        const min = String(now.getMinutes()).padStart(2, '0');
+        if (!dateInput.value) {
+            dateInput.value = `${dd}/${mm}/${yyyy}`;
+        }
+        if (!timeInput.value) {
+            timeInput.value = `${hh}:${min}`;
+        }
+    };
+
+    initDefaultDateTime();
+
+    // Picker heure (flatpickr, format 24h) + saisie manuelle possible
+    const timePicker = flatpickr(timeInput, {
+        enableTime: true,
+        noCalendar: true,
+        dateFormat: 'H:i',
+        time_24hr: true,
+        allowInput: true,
+        locale: 'fr',
+        onChange: updateHidden,
+        onValueUpdate: updateHidden
+    });
+
+    // Écoute native en complément
+    timeInput.addEventListener('input', () => {
+        // Si l'utilisateur tape au clavier, synchroniser le picker et le hidden
+        if (timePicker) {
+            timePicker.setDate(timeInput.value, false, 'H:i');
+        }
+        updateHidden();
+    });
+    timeInput.addEventListener('change', updateHidden);
+
+    // Synchroniser initialement
+    updateHidden();
+
+    if (required) {
+        dateInput.required = true;
+        timeInput.required = true;
+        hiddenInput.required = true;
+    }
+}
 
 function setupImageUpload(uploadId, previewId, multiple) {
     const uploadArea = document.getElementById(uploadId);
@@ -576,7 +850,118 @@ function setupImageUpload(uploadId, previewId, multiple) {
 // Gestion des catégories de billets
 let ticketCount = 1;
 
+// Vérifier l'état initial des sélections
+function checkInitialTicketSelections() {
+    document.querySelectorAll('select[name="ticket_categorie[]"]').forEach(select => {
+        if (select.value) {
+            const cat = allCategories.find(c => c.id === select.value);
+            if (cat) {
+                if (cat.id === 'tous' || cat.nom === 'Tous' || cat.nom === 'tous') {
+                    hasTousCategory = true;
+                } else {
+                    selectedCategories.add(select.value);
+                }
+            }
+        }
+    });
+    
+    document.querySelectorAll('select[name="ticket_segment[]"]').forEach(select => {
+        if (select.value) {
+            const seg = allSegments.find(s => s.id === select.value);
+            if (seg) {
+                if (seg.id === 'tous' || seg.nom === 'Tous' || seg.nom === 'tous') {
+                    hasTousSegment = true;
+                } else {
+                    selectedSegments.add(select.value);
+                }
+            }
+        }
+    });
+    
+    // Ne pas modifier les selects existants, ils gardent toutes leurs options
+}
+
+// Initialiser les écouteurs pour les selects existants
+function initializeTicketSelects() {
+    document.querySelectorAll('select[name="ticket_categorie[]"]').forEach(select => {
+        select.addEventListener('change', function() {
+            handleSelectionChange(this, 'category');
+        });
+    });
+    
+    document.querySelectorAll('select[name="ticket_segment[]"]').forEach(select => {
+        select.addEventListener('change', function() {
+            handleSelectionChange(this, 'segment');
+        });
+    });
+}
+
+// Fonction pour afficher une notification toast moderne
+function showNotification(message, type = 'info', title = null) {
+    // Définir les titres par défaut selon le type
+    if (!title) {
+        switch(type) {
+            case 'error':
+                title = 'Erreur';
+                break;
+            case 'warning':
+                title = 'Attention';
+                break;
+            case 'success':
+                title = 'Succès';
+                break;
+            default:
+                title = 'Information';
+        }
+    }
+    
+    // Créer l'élément de notification
+    const notification = document.createElement('div');
+    notification.className = `toast-notification toast-${type}`;
+    notification.innerHTML = `
+        <div class="toast-icon-wrapper">
+            <i class="fas ${type === 'error' ? 'fa-exclamation-circle' : type === 'warning' ? 'fa-exclamation-triangle' : type === 'success' ? 'fa-check-circle' : 'fa-info-circle'}"></i>
+        </div>
+        <div class="toast-content">
+            <div class="toast-title">${title}</div>
+            <div class="toast-message">${message}</div>
+        </div>
+        <button class="toast-close" onclick="this.parentElement.remove()" aria-label="Fermer">
+            <i class="fas fa-times"></i>
+        </button>
+    `;
+    
+    // Ajouter au body
+    document.body.appendChild(notification);
+    
+    // Animation d'entrée
+    setTimeout(() => {
+        notification.classList.add('show');
+    }, 10);
+    
+    // Suppression automatique après 6 secondes pour les erreurs, 5 pour les autres
+    const duration = type === 'error' ? 6000 : 5000;
+    setTimeout(() => {
+        notification.classList.remove('show');
+        setTimeout(() => {
+            if (notification.parentElement) {
+                notification.remove();
+            }
+        }, 300);
+    }, duration);
+}
+
 function addTicket() {
+    // Vérifier si on peut ajouter (mais permettre le clic)
+    if (hasTousCategory && hasTousSegment) {
+        showNotification(
+            'Les deux champs <strong>Catégorie</strong> et <strong>Segment âge</strong> sont déjà sur "tous".<br>Veuillez modifier au moins une sélection avant d\'ajouter un nouveau billet.',
+            'error',
+            'Impossible d\'ajouter un billet'
+        );
+        return;
+    }
+    
     ticketCount++;
     const container = document.getElementById('ticketsContainer');
     const ticketHTML = `
@@ -589,8 +974,12 @@ function addTicket() {
             </div>
             <div class="form-grid">
                 <div class="form-group">
-                    <label>Nom de la catégorie <span class="required">*</span></label>
-                    <input type="text" name="ticket_name[]" class="form-control" placeholder="Ex: VIP, Standard..." required>
+                    <label>Catégorie <span class="required">*</span></label>
+                    <select name="ticket_categorie[]" class="form-control ticket-categorie-select" required>${getFilteredCategoriesOptions()}</select>
+                </div>
+                <div class="form-group">
+                    <label>Segment âge <span class="required">*</span></label>
+                    <select name="ticket_segment[]" class="form-control ticket-segment-select" required>${getFilteredSegmentsOptions()}</select>
                 </div>
                 <div class="form-group">
                     <label>Prix (€) <span class="required">*</span></label>
@@ -600,25 +989,72 @@ function addTicket() {
                     <label>Quantité <span class="required">*</span></label>
                     <input type="number" name="ticket_quantity[]" class="form-control" placeholder="100" min="1" required>
                 </div>
-                <div class="form-group">
-                    <label>Description</label>
-                    <input type="text" name="ticket_description[]" class="form-control" placeholder="Avantages de cette catégorie">
-                </div>
             </div>
         </div>
     `;
     container.insertAdjacentHTML('beforeend', ticketHTML);
+    
+    // Ajouter les écouteurs au nouveau select
+    const newCategorySelect = container.querySelector('.ticket-category:last-child .ticket-categorie-select');
+    const newSegmentSelect = container.querySelector('.ticket-category:last-child .ticket-segment-select');
+    
+    if (newCategorySelect) {
+        newCategorySelect.addEventListener('change', function() {
+            handleSelectionChange(this, 'category');
+        });
+    }
+    
+    if (newSegmentSelect) {
+        newSegmentSelect.addEventListener('change', function() {
+            handleSelectionChange(this, 'segment');
+        });
+    }
 }
 
 function removeTicket(btn) {
     const tickets = document.querySelectorAll('.ticket-category');
     if (tickets.length > 1) {
-        btn.closest('.ticket-category').remove();
+        const ticketToRemove = btn.closest('.ticket-category');
+        const categorySelect = ticketToRemove.querySelector('select[name="ticket_categorie[]"]');
+        const segmentSelect = ticketToRemove.querySelector('select[name="ticket_segment[]"]');
+        
+        // Retirer les sélections de cet élément
+        if (categorySelect && categorySelect.value) {
+            const cat = allCategories.find(c => c.id === categorySelect.value);
+            if (cat && (cat.id === 'tous' || cat.nom === 'Tous' || cat.nom === 'tous')) {
+                hasTousCategory = false;
+            } else if (cat) {
+                selectedCategories.delete(categorySelect.value);
+            }
+        }
+        
+        if (segmentSelect && segmentSelect.value) {
+            const seg = allSegments.find(s => s.id === segmentSelect.value);
+            if (seg && (seg.id === 'tous' || seg.nom === 'Tous' || seg.nom === 'tous')) {
+                hasTousSegment = false;
+            } else if (seg) {
+                selectedSegments.delete(segmentSelect.value);
+            }
+        }
+        
+        ticketToRemove.remove();
+        
+        // Les selects existants gardent toutes leurs options
+        // Seuls les nouveaux ajouts utiliseront les options filtrées
     } else {
-        alert('Vous devez avoir au moins une catégorie de billet');
+        showNotification(
+            'Au moins une catégorie de billet est requise pour votre événement.<br>Vous ne pouvez pas supprimer la dernière catégorie.',
+            'error',
+            'Suppression impossible'
+        );
     }
 }
 </script>
+
+<!-- Flatpickr (calendrier + heure) -->
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/flatpickr/dist/flatpickr.min.css">
+<script src="https://cdn.jsdelivr.net/npm/flatpickr"></script>
+<script src="https://cdn.jsdelivr.net/npm/flatpickr/dist/l10n/fr.js"></script>
 
 <style>
 .event-form {
@@ -717,6 +1153,27 @@ function removeTicket(btn) {
     outline: none;
     border-color: var(--accent);
     box-shadow: 0 0 0 3px rgba(52, 152, 219, 0.1);
+}
+
+/* Affichage des erreurs à droite des champs (notamment date/heure) */
+.form-group .invalid-feedback,
+.form-group .form-error-message,
+.form-group .field-error {
+    display: inline-flex;
+    align-items: center;
+    margin-left: 12px;
+    margin-top: 0;
+    color: var(--danger);
+    font-size: 0.9rem;
+    white-space: nowrap;
+}
+
+.form-group .invalid-feedback ul,
+.form-group .form-error-message ul,
+.form-group .field-error ul {
+    margin: 0;
+    padding: 0;
+    list-style: none;
 }
 
 .form-help {
@@ -1119,6 +1576,73 @@ function removeTicket(btn) {
     border-color: var(--accent-light);
 }
 
+/* Paramètres de vente des billets */
+.ticket-sales-settings {
+    margin-top: 24px;
+    padding: 28px;
+    background: var(--white);
+    border-radius: var(--border-radius-xl);
+    box-shadow: var(--shadow-md);
+    border: 1px solid var(--gray-200);
+}
+
+.ticket-sales-settings .form-grid {
+    display: grid;
+    grid-template-columns: repeat(2, 1fr);
+    gap: 20px;
+}
+
+.ticket-sales-settings .form-group {
+    margin-bottom: 0;
+}
+
+/* Sélecteur de lieu avec bouton créer */
+.venue-select-wrapper {
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+}
+
+.venue-select-row {
+    display: flex;
+    gap: 12px;
+    align-items: flex-start;
+}
+
+.venue-select-row select {
+    flex: 1;
+}
+
+.btn-create-venue {
+    background: linear-gradient(135deg, #27AE60, #2ECC71);
+    color: white;
+    border: none;
+    padding: 12px 20px;
+    border-radius: 8px;
+    font-weight: 600;
+    font-size: 0.95rem;
+    cursor: pointer;
+    text-decoration: none;
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+    white-space: nowrap;
+    box-shadow: 0 2px 8px rgba(39, 174, 96, 0.3);
+    transition: all 0.3s ease;
+    flex-shrink: 0;
+}
+
+.btn-create-venue:hover {
+    background: linear-gradient(135deg, #229954, #27AE60);
+    box-shadow: 0 4px 12px rgba(39, 174, 96, 0.4);
+    transform: translateY(-2px);
+    color: white;
+}
+
+.btn-create-venue i {
+    font-size: 1.1rem;
+}
+
 /* Actions du formulaire */
 .form-actions {
     display: flex;
@@ -1171,6 +1695,44 @@ function removeTicket(btn) {
     gap: 8px;
 }
 
+.datetime-split {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 10px;
+    align-items: center;
+}
+
+.datetime-split .time-only {
+    max-width: 130px;
+    height: 46px;
+    appearance: auto;
+    -webkit-appearance: auto;
+    -moz-appearance: auto;
+    text-align: center;
+    font-size: 1rem;
+    padding: 10px 8px;
+}
+
+/* Sélecteur de lieu */
+.venue-select-wrapper select {
+    width: 100%;
+}
+
+/* Flatpickr heure : un peu plus haut et compact */
+.flatpickr-time {
+    height: 52px;
+}
+.flatpickr-time .numInputWrapper {
+    height: 52px;
+}
+.flatpickr-time input {
+    font-size: 1.05rem;
+    padding: 10px 6px;
+}
+.flatpickr-time .arrowUp:after, .flatpickr-time .arrowDown:after {
+    font-size: 0.9rem;
+}
+
 @media (max-width: 768px) {
     .form-grid {
         grid-template-columns: 1fr;
@@ -1215,6 +1777,15 @@ function removeTicket(btn) {
         font-size: 0.85rem;
     }
     
+    .venue-select-row {
+        flex-direction: column;
+    }
+    
+    .btn-create-venue {
+        width: 100%;
+        justify-content: center;
+    }
+    
     .accessibility-card {
         flex-direction: column;
         text-align: center;
@@ -1233,6 +1804,215 @@ function removeTicket(btn) {
     .payment-grid,
     .accessibility-grid {
         grid-template-columns: 1fr;
+    }
+}
+
+/* Notifications Toast - Design Professionnel */
+.toast-notification {
+    position: fixed;
+    top: 24px;
+    right: 24px;
+    min-width: 380px;
+    max-width: 520px;
+    background: #ffffff;
+    border-radius: 16px;
+    box-shadow: 0 12px 32px rgba(0, 0, 0, 0.12), 0 4px 8px rgba(0, 0, 0, 0.08);
+    padding: 0;
+    display: flex;
+    align-items: stretch;
+    z-index: 10000;
+    transform: translateX(calc(100% + 50px));
+    opacity: 0;
+    transition: all 0.4s cubic-bezier(0.34, 1.56, 0.64, 1);
+    overflow: hidden;
+    border: 1px solid rgba(0, 0, 0, 0.06);
+}
+
+.toast-notification.show {
+    transform: translateX(0);
+    opacity: 1;
+}
+
+/* Barre latérale colorée */
+.toast-notification::before {
+    content: '';
+    position: absolute;
+    left: 0;
+    top: 0;
+    bottom: 0;
+    width: 5px;
+    background: #e74c3c;
+    z-index: 1;
+}
+
+.toast-notification.toast-error::before {
+    background: linear-gradient(180deg, #e74c3c 0%, #c0392b 100%);
+}
+
+.toast-notification.toast-warning::before {
+    background: linear-gradient(180deg, #f39c12 0%, #e67e22 100%);
+}
+
+.toast-notification.toast-info::before {
+    background: linear-gradient(180deg, #3498db 0%, #2980b9 100%);
+}
+
+.toast-notification.toast-success::before {
+    background: linear-gradient(180deg, #27ae60 0%, #229954 100%);
+}
+
+/* Icône wrapper */
+.toast-icon-wrapper {
+    width: 56px;
+    min-height: 100%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    flex-shrink: 0;
+    background: linear-gradient(135deg, rgba(231, 76, 60, 0.08), rgba(231, 76, 60, 0.03));
+    padding: 20px 16px;
+}
+
+.toast-notification.toast-error .toast-icon-wrapper {
+    background: linear-gradient(135deg, rgba(231, 76, 60, 0.12), rgba(231, 76, 60, 0.05));
+}
+
+.toast-notification.toast-warning .toast-icon-wrapper {
+    background: linear-gradient(135deg, rgba(243, 156, 18, 0.12), rgba(243, 156, 18, 0.05));
+}
+
+.toast-notification.toast-info .toast-icon-wrapper {
+    background: linear-gradient(135deg, rgba(52, 152, 219, 0.12), rgba(52, 152, 219, 0.05));
+}
+
+.toast-notification.toast-success .toast-icon-wrapper {
+    background: linear-gradient(135deg, rgba(39, 174, 96, 0.12), rgba(39, 174, 96, 0.05));
+}
+
+.toast-icon-wrapper i {
+    font-size: 1.75rem;
+    color: #e74c3c;
+}
+
+.toast-notification.toast-error .toast-icon-wrapper i {
+    color: #e74c3c;
+}
+
+.toast-notification.toast-warning .toast-icon-wrapper i {
+    color: #f39c12;
+}
+
+.toast-notification.toast-info .toast-icon-wrapper i {
+    color: #3498db;
+}
+
+.toast-notification.toast-success .toast-icon-wrapper i {
+    color: #27ae60;
+}
+
+/* Contenu */
+.toast-content {
+    flex: 1;
+    padding: 20px 20px 20px 16px;
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+    min-height: 80px;
+    justify-content: center;
+}
+
+.toast-title {
+    font-size: 1rem;
+    font-weight: 700;
+    color: #2c3e50;
+    line-height: 1.4;
+    margin: 0;
+    letter-spacing: -0.01em;
+}
+
+.toast-message {
+    font-size: 0.9rem;
+    color: #5a6c7d;
+    line-height: 1.6;
+    margin: 0;
+    font-weight: 400;
+}
+
+.toast-message strong {
+    color: #2c3e50;
+    font-weight: 600;
+}
+
+.toast-message br {
+    line-height: 1.8;
+}
+
+/* Bouton fermer */
+.toast-close {
+    background: transparent;
+    border: none;
+    color: #95a5a6;
+    cursor: pointer;
+    padding: 12px 16px;
+    display: flex;
+    align-items: flex-start;
+    justify-content: center;
+    border-radius: 0 16px 0 0;
+    transition: all 0.2s ease;
+    flex-shrink: 0;
+    width: 44px;
+    height: 44px;
+    margin-top: 8px;
+    margin-right: 4px;
+}
+
+.toast-close:hover {
+    background: rgba(0, 0, 0, 0.04);
+    color: #7f8c8d;
+}
+
+.toast-close:active {
+    background: rgba(0, 0, 0, 0.08);
+}
+
+.toast-close i {
+    font-size: 0.9rem;
+}
+
+@media (max-width: 768px) {
+    .toast-notification {
+        right: 12px;
+        left: 12px;
+        min-width: auto;
+        max-width: none;
+        transform: translateY(-120px);
+        top: 16px;
+    }
+    
+    .toast-notification.show {
+        transform: translateY(0);
+    }
+    
+    .toast-icon-wrapper {
+        width: 48px;
+        padding: 16px 12px;
+    }
+    
+    .toast-icon-wrapper i {
+        font-size: 1.5rem;
+    }
+    
+    .toast-content {
+        padding: 16px 16px 16px 12px;
+        min-height: 72px;
+    }
+    
+    .toast-title {
+        font-size: 0.95rem;
+    }
+    
+    .toast-message {
+        font-size: 0.85rem;
     }
 }
 </style>

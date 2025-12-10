@@ -198,6 +198,26 @@
                 </button>
             </div>
 
+            <!-- Publier l'événement (si brouillon) -->
+            {% if event.statut == 'draft' %}
+                <div class="info-card" style="background: linear-gradient(135deg, rgba(46, 204, 113, 0.1), rgba(46, 204, 113, 0.05)); border: 2px solid rgba(46, 204, 113, 0.3);">
+                    <div class="info-card-title" style="color: #2ECC71;">
+                        <i class="fas fa-rocket"></i>
+                        Publier l'événement
+                    </div>
+                    <p style="font-size: 0.85rem; color: var(--gray-600); margin-bottom: 16px;">
+                        Votre événement est actuellement en brouillon. Publiez-le pour le rendre visible au public.
+                    </p>
+                    <form method="POST" action="{{ path('organisateur_events_publish', {'id': event.id}) }}" style="margin: 0;">
+                        <input type="hidden" name="_token" value="{{ csrf_token('publish_event_' ~ event.id) }}">
+                        <button type="submit" class="action-btn" style="width: 100%; background: #2ECC71; color: white; border: none; padding: 12px; border-radius: 8px; font-weight: 600; cursor: pointer; transition: all 0.3s ease;">
+                            <i class="fas fa-check-circle"></i>
+                            <span>Publier maintenant</span>
+                        </button>
+                    </form>
+                </div>
+            {% endif %}
+
             <!-- Actions rapides -->
             <div class="info-card">
                 <div class="info-card-title">

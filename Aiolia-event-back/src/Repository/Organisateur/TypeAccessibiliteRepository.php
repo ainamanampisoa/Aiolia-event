@@ -20,7 +20,8 @@ class TypeAccessibiliteRepository extends ServiceEntityRepository
         return $this->createQueryBuilder('t')
             ->andWhere('t.estActif = :actif')
             ->setParameter('actif', true)
-            ->orderBy('t.libelle', 'ASC')
+            ->orderBy('t.ordreAffichage', 'ASC')
+            ->addOrderBy('t.libelle', 'ASC')
             ->getQuery()
             ->getResult();
     }

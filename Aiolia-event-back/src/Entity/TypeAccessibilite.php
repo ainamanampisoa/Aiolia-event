@@ -13,12 +13,12 @@ use Doctrine\ORM\Mapping as ORM;
 #[ORM\HasLifecycleCallbacks]
 class TypeAccessibilite
 {
-    public const CODE_WHEELCHAIR = 'wheelchair';
+    public const CODE_GENERAL = 'general';
     public const CODE_HEARING = 'hearing';
     public const CODE_VISUAL = 'visual';
-    public const CODE_MOBILITY = 'mobility';
-    public const CODE_COGNITIVE = 'cognitive';
-    public const CODE_OTHER = 'other';
+    public const CODE_PARKING = 'parking';
+    public const CODE_TOILET = 'toilet';
+    public const CODE_PETS = 'pets';
 
     #[ORM\Id]
     #[ORM\GeneratedValue]
@@ -30,6 +30,12 @@ class TypeAccessibilite
 
     #[ORM\Column(name: 'libelle', type: Types::STRING, length: 255)]
     private string $libelle;
+
+    #[ORM\Column(name: 'url_image', type: Types::STRING, length: 255, nullable: true)]
+    private ?string $urlImage = null;
+
+    #[ORM\Column(name: 'ordre_affichage', type: Types::INTEGER, options: ['default' => 0])]
+    private int $ordreAffichage = 0;
 
     #[ORM\Column(name: 'est_actif', type: Types::BOOLEAN, options: ['default' => true])]
     private bool $estActif = true;
@@ -76,6 +82,30 @@ class TypeAccessibilite
     public function setLibelle(string $libelle): static
     {
         $this->libelle = $libelle;
+
+        return $this;
+    }
+
+    public function getUrlImage(): ?string
+    {
+        return $this->urlImage;
+    }
+
+    public function setUrlImage(?string $urlImage): static
+    {
+        $this->urlImage = $urlImage;
+
+        return $this;
+    }
+
+    public function getOrdreAffichage(): int
+    {
+        return $this->ordreAffichage;
+    }
+
+    public function setOrdreAffichage(int $ordreAffichage): static
+    {
+        $this->ordreAffichage = $ordreAffichage;
 
         return $this;
     }

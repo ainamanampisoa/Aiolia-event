@@ -26,6 +26,14 @@ class LienAccessibiliteEvenementService
         return $this->repository->getById($evenement, $typeAccessibilite);
     }
 
+    /**
+     * Vérifie si un lien existe déjà pour un événement et un type d'accessibilité.
+     */
+    public function exists(Event $evenement, TypeAccessibilite $typeAccessibilite): bool
+    {
+        return $this->repository->getById($evenement, $typeAccessibilite) !== null;
+    }
+
     
     public function getByEvenement(Event $evenement): array
     {

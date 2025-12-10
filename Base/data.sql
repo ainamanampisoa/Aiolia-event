@@ -1,9 +1,8 @@
 \c aiolia_event;
-SET search_path TO aiolia, public;
+SET search_path TO aiolia;
 
 TRUNCATE TABLE
     historique_paiements_abonnements,
-    paiements_abonnements,
     elements_factures_abonnements,
     factures_abonnements,
     abonnements_organisateurs,
@@ -168,9 +167,9 @@ SELECT
     DATE '2025-05-01' + (gs || ' days')::interval
 FROM generate_series(10, 50) AS gs;
 
-SELECT setval(pg_get_serial_sequence('aiolia.utilisateurs', 'id'), 100, true);
-SELECT setval(pg_get_serial_sequence('aiolia.profils_organisateurs', 'id'), 26, true);
-SELECT setval(pg_get_serial_sequence('aiolia.profils_admin', 'id'), 2, true);
+SELECT setval(pg_get_serial_sequence('utilisateurs', 'id'), 100, true);
+SELECT setval(pg_get_serial_sequence('profils_organisateurs', 'id'), 26, true);
+SELECT setval(pg_get_serial_sequence('profils_admin', 'id'), 2, true);
 
 
 /* ========================================================================== */
@@ -198,7 +197,7 @@ INSERT INTO plans_abonnements (
     (6, 'ENTREPRISE_TRIMESTRE', 'Entreprise Trimestriel', 'enterprise', 'Entreprise trimestriel', 'quarterly', 3, 'MGA', 1260000, 20, '{"support":"dedie"}', 6),
     (7, 'ENTREPRISE_ANNUEL', 'Entreprise Prépayé', 'enterprise', 'Crédit prépayé annuel', 'yearly', 12, 'MGA', 4800000, 20, '{"support":"dedie","paquet":"prepay"}', 7);
 
-SELECT setval(pg_get_serial_sequence('aiolia.plans_abonnements', 'id'), 7, true);
+SELECT setval(pg_get_serial_sequence('plans_abonnements', 'id'), 7, true);
 
 /* ========================================================================== */
 /* 3. ABONNEMENTS MENSUELS (JUIN → DÉCEMBRE 2025)                             */
@@ -451,7 +450,7 @@ factures_actives AS (
         mois_facturation,
         est_mois_pause,
         est_prepayee,
-        methode_paiement,
+        id_mode_paiement,
         statut,
         emise_le,
         echeance_le,
@@ -470,11 +469,11 @@ factures_actives AS (
         sub.commence_le::DATE,
         FALSE,
         plan.code = 'ENTREPRISE_ANNUEL',
-        CASE
-            WHEN plan.code = 'ENTREPRISE_ANNUEL' THEN 'bank_transfer'
-            WHEN plan.periode_facturation = 'quarterly' THEN 'telma'
-            ELSE 'espace'
-        END,
+        (SELECT id FROM modes_paiement WHERE code = CASE
+            WHEN plan.code = 'ENTREPRISE_ANNUEL' THEN 'carte_bancaire'
+            WHEN plan.periode_facturation = 'quarterly' THEN 'orange'
+            ELSE 'mvola'
+        END LIMIT 1),
         CASE
             WHEN plan.code = 'ENTREPRISE_ANNUEL' THEN 'partially_paid'
             ELSE 'paid'
@@ -501,7 +500,7 @@ factures_pauses AS (
         mois_facturation,
         est_mois_pause,
         est_prepayee,
-        methode_paiement,
+        id_mode_paiement,
         statut,
         emise_le,
         echeance_le,
@@ -534,6 +533,6 @@ SELECT
     (SELECT COUNT(*) FROM factures_actives) +
     (SELECT COUNT(*) FROM factures_pauses) AS factures_generees;
 
-SELECT setval(pg_get_serial_sequence('aiolia.abonnements_organisateurs', 'id'), (SELECT COALESCE(MAX(id), 1) FROM abonnements_organisateurs), true);
-SELECT setval(pg_get_serial_sequence('aiolia.factures_abonnements', 'id'), (SELECT COALESCE(MAX(id), 1) FROM factures_abonnements), true);
+SELECT setval(pg_get_serial_sequence('abonnements_organisateurs', 'id'), (SELECT COALESCE(MAX(id), 1) FROM abonnements_organisateurs), true);
+SELECT setval(pg_get_serial_sequence('factures_abonnements', 'id'), (SELECT COALESCE(MAX(id), 1) FROM factures_abonnements), true);
 

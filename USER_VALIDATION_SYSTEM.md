@@ -421,6 +421,8 @@ Dbdiagrma : https://dbdiagram.io/d/69313c70d6676488ba8af59e
 
 explication : https://chatgpt.com/c/691c09da-a1b0-8328-b7a2-1b815d4289f6
 
+cloud : https://cloudinary.com/users/login
+
 📊 Rapports mensuels (abonnements)
 Synthèse des abonnements et revenus par mois
 

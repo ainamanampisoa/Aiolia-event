@@ -36,31 +36,18 @@
                     {% if accessLinks|length > 0 %}
                         <div class="accessibility-grid">
                             {% for lien in accessLinks %}
-                                {% set typeCode = lien.typeAccessibilite.code|lower %}
-                                {% set typeLibelle = lien.typeAccessibilite.libelle|lower %}
-                                {% set iconPath = 'images/acces1.svg' %}
-                                {% if 'fauteuil' in typeCode or 'roulant' in typeCode or 'wheelchair' in typeCode or 'fauteuil' in typeLibelle or 'roulant' in typeLibelle %}
-                                    {% set iconPath = 'images/acces1.svg' %}
-                                {% elseif 'malentendant' in typeCode or 'sourd' in typeCode or 'hearing' in typeCode or 'malentendant' in typeLibelle or 'sourd' in typeLibelle %}
-                                    {% set iconPath = 'images/acces2.svg' %}
-                                {% elseif 'malvoyant' in typeCode or 'aveugle' in typeCode or 'visuel' in typeCode or 'visual' in typeCode or 'malvoyant' in typeLibelle or 'aveugle' in typeLibelle or 'visuel' in typeLibelle %}
-                                    {% set iconPath = 'images/acces3.svg' %}
-                                {% elseif 'mobilite' in typeCode or 'mobility' in typeCode or 'mobilite' in typeLibelle %}
-                                    {% set iconPath = 'images/acces4.svg' %}
-                                {% elseif 'cognitif' in typeCode or 'cognitive' in typeCode or 'cognitif' in typeLibelle %}
-                                    {% set iconPath = 'images/acces5.svg' %}
-                                {% else %}
-                                    {% set iconPath = 'images/acces6.svg' %}
-                                {% endif %}
+                                {% set typeAccessibilite = lien.typeAccessibilite %}
+                                {% set iconUrl = typeAccessibilite.urlImage ?? 'images/acces1.svg' %}
+                                {% set libelle = typeAccessibilite.libelle %}
                                 <div class="accessibility-item">
                                     <div class="accessibility-icon-wrapper">
-                                        <img src="{{ asset(iconPath) }}" alt="{{ lien.typeAccessibilite.libelle }}" class="accessibility-icon">
+                                        <img src="{{ asset(iconUrl) }}" alt="{{ libelle }}" class="accessibility-icon">
                                         <div class="accessibility-check">
                                             <i class="fas fa-check-circle"></i>
                                         </div>
                                     </div>
                                     <div class="accessibility-content">
-                                        <h4 class="accessibility-title">{{ lien.typeAccessibilite.libelle }}</h4>
+                                        <h4 class="accessibility-title">{{ libelle }}</h4>
                                         {% if lien.description %}
                                             <p class="accessibility-description">{{ lien.description }}</p>
                                         {% endif %}

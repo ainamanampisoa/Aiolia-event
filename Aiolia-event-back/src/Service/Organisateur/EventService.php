@@ -10,10 +10,17 @@ use App\Entity\OrganisateurEvenement;
 use App\Entity\OrganizerProfile;
 use App\Entity\User;
 use App\Entity\Venue;
+use App\Entity\ConfigurationCategorieBillet;
+use App\Entity\ConfigurationSegmentBillet;
 use App\Repository\Organisateur\EventRepository;
 use App\Repository\Organisateur\BilletRepository;
 use App\Service\Organisateur\EventTypeService;
 use App\Service\Organisateur\EspaceLieuService;
+use App\Service\Organisateur\TypeBilletService;
+use App\Service\Organisateur\InventaireBilletService;
+use App\Service\Organisateur\ConfigurationCategorieBilletService;
+use App\Service\Organisateur\ConfigurationSegmentBilletService;
+use App\Service\Organisateur\MediaService;
 use Doctrine\ORM\EntityManagerInterface;
 use Symfony\Component\String\Slugger\SluggerInterface;
 
@@ -25,7 +32,12 @@ class EventService
         private EventTypeService $eventTypeService,
         private EspaceLieuService $espaceLieuService,
         private SluggerInterface $slugger,
-        private BilletRepository $billetRepository
+        private BilletRepository $billetRepository,
+        private TypeBilletService $typeBilletService,
+        private InventaireBilletService $inventaireBilletService,
+        private ConfigurationCategorieBilletService $categorieBilletService,
+        private ConfigurationSegmentBilletService $segmentBilletService,
+        private MediaService $mediaService
     ) {
     }
 
@@ -63,9 +75,241 @@ class EventService
         return $this->eventRepository->update($event);
     }
 
+    /**
+     * Persiste un événement déjà hydraté (issu d'un formulaire Symfony).
+     */
+    public function saveFromForm(Event $event): Event
+    {
+        if ($event->getTitre()) {
+            $event->setSlug($this->generateUniqueSlug($event->getTitre()));
+        }
+
+        return $this->eventRepository->create($event);
+    }
+
+    /**
+     * Crée les billets pour un événement à partir des données du formulaire.
+     *
+     * @param Event $event L'événement auquel associer les billets
+     * @param array $ticketsData Données des billets depuis le formulaire :
+     *   - ticket_categorie[] : IDs des catégories
+     *   - ticket_segment[] : IDs des segments
+     *   - ticket_price[] : Prix des billets
+     *   - ticket_quantity[] : Quantités disponibles
+     * @return array Liste des TypeBillet créés
+     */
+    public function createTicketsForEvent(Event $event, array $ticketsData): array
+    {
+        $createdTickets = [];
+        
+        $categories = $ticketsData['ticket_categorie'] ?? [];
+        $segments = $ticketsData['ticket_segment'] ?? [];
+        $prices = $ticketsData['ticket_price'] ?? [];
+        $quantities = $ticketsData['ticket_quantity'] ?? [];
+        
+        // Récupérer les paramètres de vente globaux
+        $salesStart = $this->parseDateTime(
+            $ticketsData['ticket_sales_start_date'] ?? null,
+            $ticketsData['ticket_sales_start_time'] ?? null
+        );
+        $salesEnd = $this->parseDateTime(
+            $ticketsData['ticket_sales_end_date'] ?? null,
+            $ticketsData['ticket_sales_end_time'] ?? null
+        );
+        $minPerOrder = isset($ticketsData['ticket_min_per_order']) && $ticketsData['ticket_min_per_order'] !== ''
+            ? (int) $ticketsData['ticket_min_per_order']
+            : 1;
+        $maxPerOrder = isset($ticketsData['ticket_max_per_order']) && $ticketsData['ticket_max_per_order'] !== ''
+            ? (int) $ticketsData['ticket_max_per_order']
+            : null;
+        
+        // Récupérer toutes les catégories et segments actifs (sauf "tous")
+        $allCategories = $this->categorieBilletService->getAllActive();
+        $allSegments = $this->segmentBilletService->getAllActive();
+        
+        // Filtrer pour exclure "tous"
+        $validCategories = array_filter($allCategories, fn($cat) => $cat->getNom() !== 'tous');
+        $validSegments = array_filter($allSegments, fn($seg) => $seg->getNom() !== 'tous');
+        
+        // Vérifier que tous les tableaux ont la même longueur
+        $count = max(
+            count($categories),
+            count($segments),
+            count($prices),
+            count($quantities)
+        );
+        
+        for ($i = 0; $i < $count; $i++) {
+            // Récupérer les entités catégorie et segment
+            $categorieId = $categories[$i] ?? null;
+            $segmentId = $segments[$i] ?? null;
+            $price = $prices[$i] ?? null;
+            $quantity = $quantities[$i] ?? null;
+            
+            // Valider les données - ignorer si vide ou "tous" (qui n'est pas un ID valide)
+            if (!$categorieId || !$segmentId || $price === null || $quantity === null) {
+                continue;
+            }
+            
+            // Vérifier si "tous" est sélectionné (valeur littérale "tous", pas un ID)
+            $isTousCategorie = ($categorieId === 'tous' || strtolower($categorieId) === 'tous');
+            $isTousSegment = ($segmentId === 'tous' || strtolower($segmentId) === 'tous');
+            
+            // Si "tous" est sélectionné, on utilise toutes les catégories/segments valides
+            if ($isTousCategorie && $isTousSegment) {
+                // Créer un billet pour chaque combinaison catégorie x segment
+                foreach ($validCategories as $catToUse) {
+                    foreach ($validSegments as $segToUse) {
+                        $this->createTicketType($event, $catToUse, $segToUse, $price, $quantity, $minPerOrder, $maxPerOrder, $salesStart, $salesEnd, $createdTickets);
+                    }
+                }
+                continue;
+            } elseif ($isTousCategorie) {
+                // Récupérer le segment
+                $segment = $this->entityManager->getRepository(ConfigurationSegmentBillet::class)->find($segmentId);
+                if (!$segment) {
+                    continue;
+                }
+                // Créer un billet pour chaque catégorie avec ce segment
+                foreach ($validCategories as $catToUse) {
+                    $this->createTicketType($event, $catToUse, $segment, $price, $quantity, $minPerOrder, $maxPerOrder, $salesStart, $salesEnd, $createdTickets);
+                }
+                continue;
+            } elseif ($isTousSegment) {
+                // Récupérer la catégorie
+                $categorie = $this->entityManager->getRepository(ConfigurationCategorieBillet::class)->find($categorieId);
+                if (!$categorie) {
+                    continue;
+                }
+                // Créer un billet pour chaque segment avec cette catégorie
+                foreach ($validSegments as $segToUse) {
+                    $this->createTicketType($event, $categorie, $segToUse, $price, $quantity, $minPerOrder, $maxPerOrder, $salesStart, $salesEnd, $createdTickets);
+                }
+                continue;
+            }
+            
+            // Si ni catégorie ni segment n'est "tous", récupérer les entités normalement
+            $categorie = $this->entityManager->getRepository(ConfigurationCategorieBillet::class)->find($categorieId);
+            $segment = $this->entityManager->getRepository(ConfigurationSegmentBillet::class)->find($segmentId);
+            
+            if (!$categorie || !$segment) {
+                continue;
+            }
+            
+            // Créer le billet pour cette catégorie et ce segment spécifiques
+            $this->createTicketType($event, $categorie, $segment, $price, $quantity, $minPerOrder, $maxPerOrder, $salesStart, $salesEnd, $createdTickets);
+        }
+        
+        return $createdTickets;
+    }
+
+    /**
+     * Helper method pour créer un type de billet avec inventaire
+     */
+    private function createTicketType(
+        Event $event,
+        $categorie,
+        $segment,
+        $price,
+        $quantity,
+        int $minPerOrder,
+        ?int $maxPerOrder,
+        ?\DateTimeInterface $salesStart,
+        ?\DateTimeInterface $salesEnd,
+        array &$createdTickets
+    ): void {
+        // Générer le nom du billet (catégorie + segment)
+        $nom = ucfirst($categorie->getNom()) . ' - ' . ucfirst($segment->getNom());
+        
+        // Créer le TypeBillet avec les paramètres de vente
+        $ticketData = [
+            'configurationCategorie' => $categorie,
+            'configurationSegment' => $segment,
+            'nom' => $nom,
+            'prixDeBase' => (float) $price,
+            'devise' => 'MGA',
+            'fraisService' => 0,
+            'tauxTva' => 0,
+            'minimumParCommande' => $minPerOrder,
+            'maximumParCommande' => $maxPerOrder,
+            'ventesCommencentLe' => $salesStart,
+            'ventesSeTerminentLe' => $salesEnd,
+        ];
+        
+        $typeBillet = $this->typeBilletService->create($ticketData, $event);
+        
+        // Créer l'inventaire avec la quantité
+        $inventaireData = [
+            'quantiteTotale' => (int) $quantity,
+            'quantiteReservee' => 0,
+            'quantiteVendue' => 0,
+        ];
+        
+        $this->inventaireBilletService->create($inventaireData, $typeBillet);
+        
+        $createdTickets[] = $typeBillet;
+    }
+
+    /**
+     * Parse une date et une heure séparées en un objet DateTime.
+     *
+     * @param string|null $date La date au format jj/mm/aaaa
+     * @param string|null $time L'heure au format hh:mm
+     * @return \DateTimeInterface|null
+     */
+    public function parseDateTime(?string $date, ?string $time): ?\DateTimeInterface
+    {
+        if (!$date || !$time) {
+            return null;
+        }
+
+        try {
+            // Parser la date jj/mm/aaaa
+            $dateParts = explode('/', $date);
+            if (count($dateParts) !== 3) {
+                return null;
+            }
+            $day = (int) $dateParts[0];
+            $month = (int) $dateParts[1];
+            $year = (int) $dateParts[2];
+
+            // Parser l'heure hh:mm
+            $timeParts = explode(':', $time);
+            if (count($timeParts) !== 2) {
+                return null;
+            }
+            $hour = (int) $timeParts[0];
+            $minute = (int) $timeParts[1];
+
+            return new \DateTimeImmutable(sprintf(
+                '%04d-%02d-%02d %02d:%02d:00',
+                $year,
+                $month,
+                $day,
+                $hour,
+                $minute
+            ));
+        } catch (\Exception $e) {
+            return null;
+        }
+    }
+
     
     public function delete(Event $event): void
     {
+        // Supprimer tous les types de billets associés à l'événement (et leurs inventaires en cascade)
+        $typeBillets = $this->typeBilletService->getByEvenement($event);
+        foreach ($typeBillets as $typeBillet) {
+            $this->typeBilletService->delete($typeBillet);
+        }
+        
+        // Supprimer tous les médias associés à l'événement avant de supprimer l'événement
+        $eventMedias = $this->mediaService->getEventMedias($event);
+        foreach ($eventMedias as $media) {
+            $this->mediaService->deleteMedia($media);
+        }
+        
+        // Supprimer l'événement
         $this->eventRepository->delete($event);
     }
 

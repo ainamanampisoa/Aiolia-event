@@ -17,7 +17,11 @@
 
 <!-- Bannière de l'événement -->
 <div class="event-banner">
-    <img src="{{ event.urlImageCouverture ?: 'https://via.placeholder.com/1200x400/3498db/ffffff?text=Votre+événement' }}"
+    {% set eventMedias = eventMedias ?? [] %}
+    {% set firstGalleryImage = eventMedias|filter(m => m.displayOrder == 1 and not m.isMainPoster)|first %}
+    {% set primaryImage = eventMedias|filter(m => m.isMainPoster)|first %}
+    {% set imageUrl = firstGalleryImage ? firstGalleryImage.url : (primaryImage ? primaryImage.url : (event.urlImageCouverture ?: 'https://via.placeholder.com/1200x400/3498db/ffffff?text=Votre+événement')) %}
+    <img src="{{ imageUrl }}"
          alt="{{ event.titre }}">
     <div class="event-overlay">
         <div class="event-badge-status">
