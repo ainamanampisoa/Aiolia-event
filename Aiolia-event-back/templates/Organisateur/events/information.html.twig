@@ -46,6 +46,32 @@
                         </div>
                         <div class="info-item">
                             <div class="info-label">
+                                <i class="fas fa-shopping-cart"></i>
+                                Début des ventes
+                            </div>
+                            <div class="info-value">
+                                {% if event.ventesCommencentLe %}
+                                    {{ event.ventesCommencentLe|date('d M Y, H:i') }}
+                                {% else %}
+                                    Non définie
+                                {% endif %}
+                            </div>
+                        </div>
+                        <div class="info-item">
+                            <div class="info-label">
+                                <i class="fas fa-shopping-bag"></i>
+                                Fin des ventes
+                            </div>
+                            <div class="info-value">
+                                {% if event.ventesSeTerminentLe %}
+                                    {{ event.ventesSeTerminentLe|date('d M Y, H:i') }}
+                                {% else %}
+                                    Non définie
+                                {% endif %}
+                            </div>
+                        </div>
+                        <div class="info-item">
+                            <div class="info-label">
                                 <i class="fas fa-map-marker-alt"></i>
                                 Lieu
                             </div>
@@ -179,21 +205,17 @@
                     Actions rapides
                 </div>
                 <div class="quick-actions-list">
-                    <button class="action-btn">
-                        <i class="fas fa-qrcode"></i>
-                        Générer QR Codes
-                    </button>
-                    <button class="action-btn">
-                        <i class="fas fa-download"></i>
-                        Export participants
-                    </button>
-                    <button class="action-btn">
+                    <a href="{{ path('organisateur_events_export_csv', {id: event.id}) }}" class="action-btn">
+                        <i class="fas fa-file-alt"></i>
+                        <span>Exporter ventes (CSV)</span>
+                    </a>
+                    <button class="action-btn" type="button">
                         <i class="fas fa-copy"></i>
-                        Dupliquer événement
+                        <span>Dupliquer événement</span>
                     </button>
                     <a href="{{ path('organisateur_events_export_pdf', {id: event.id}) }}" class="action-btn">
                         <i class="fas fa-file-pdf"></i>
-                        Exporter en PDF
+                        <span>Exporter en PDF</span>
                     </a>
                 </div>
             </div>

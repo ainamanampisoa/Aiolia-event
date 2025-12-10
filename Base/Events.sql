@@ -1,10 +1,9 @@
 -- DONNÉES DE TEST POUR ORGANISATEUR11@YOPMAIL.COM
 -- 27 événements avec éléments complets
--- 45+ utilisateurs par événement, 15 billets annulés au total
--- 30+ utilisateurs utilisant des codes promo
--- 5 lieux différents
--- 3+ types d'accessibilité par événement
--- Historique de prix (0-4 changements par type de billet)
+-- 30-45 billets par catégorie de billet par événement
+-- Respect strict du nombre d'utilisateurs disponibles
+-- Pas de survente
+-- Liste d'attente pour événements en cours
 -- ============================================================
 
 DO $$
@@ -28,10 +27,12 @@ DECLARE
     v_date_creation TIMESTAMPTZ;
     v_date_debut TIMESTAMPTZ;
     v_date_fin TIMESTAMPTZ;
+    v_date_debut_vente TIMESTAMPTZ;
+    v_date_fin_vente TIMESTAMPTZ;
+    v_now TIMESTAMPTZ := NOW();
     v_prix NUMERIC(12,2);
     v_statut_billet TEXT;
     v_id_utilisateur BIGINT;
-    v_compteur_billets INTEGER := 0;
     v_billets_annules_total INTEGER := 0;
     v_id_segment_adulte BIGINT;
     v_id_segment_enfant BIGINT;
@@ -53,12 +54,39 @@ DECLARE
     v_lieux_ids BIGINT[];
     v_espaces_ids BIGINT[];
     v_id_code_promo BIGINT;
-    v_utilisateurs_promo INTEGER := 0;
     v_nb_historique_prix INTEGER;
     v_prix_precedent NUMERIC(12,2);
-    v_total_participants INTEGER;
-    v_total_vues INTEGER;
+    v_nb_utilisateurs_user INTEGER;
+    v_quantite_totale INTEGER;
+    v_quantite_vendue INTEGER;
+    v_billets_par_categorie INTEGER;
+    v_event_statut TEXT;
+    v_nb_participants INTEGER;
+    v_nb_vues INTEGER;
+    v_nb_favoris INTEGER;
+    v_utilisateurs_ayant_achete BIGINT[];
+    v_utilisateurs_ayant_vu BIGINT[];
+    v_utilisateurs_favoris BIGINT[];
+    v_random_user BIGINT;
+    v_id_liste_souhaits BIGINT;
+    v_billets_valid_a_creer INTEGER;
+    v_multiplicateur INTEGER;
+    v_vues_calculees INTEGER;
+    v_vues_generees INTEGER;
+    v_tentatives_vues INTEGER;
+    v_vues_minimum INTEGER;
+    v_participants_max INTEGER;
+    v_participants_actuels INTEGER;
 BEGIN
+    -- Récupérer le nombre total d'utilisateurs avec le rôle 'user'
+    SELECT COUNT(*) INTO v_nb_utilisateurs_user
+    FROM aiolia.utilisateurs
+    WHERE role = 'user';
+    
+    IF v_nb_utilisateurs_user IS NULL OR v_nb_utilisateurs_user = 0 THEN
+        RAISE EXCEPTION 'Aucun utilisateur avec le rôle user trouvé. Veuillez exécuter data.sql avant Events.sql';
+    END IF;
+
     -- Récupérer l'ID de l'utilisateur organisateur
     SELECT id INTO v_id_utilisateur_org 
     FROM aiolia.utilisateurs 
@@ -172,7 +200,7 @@ BEGIN
     SELECT id INTO v_id_cat_promo FROM aiolia.configuration_categories_billets WHERE nom = 'promo';
 
     -- ============================================================
-    -- CRÉER 5 LIEUX DIFFÉRENTS
+    -- CRÉER 5 LIEUX DIFFÉRENTS AVEC COORDONNÉES GPS RÉALISTES
     -- ============================================================
     FOR i IN 1..5 LOOP
         INSERT INTO aiolia.lieux (
@@ -189,8 +217,8 @@ BEGIN
             'Antananarivo',
             '101',
             'MG',
-            -18.8792 + (i * 0.01),
-            47.5079 + (i * 0.01),
+            (ARRAY[-18.8792, -18.9100, -18.9286, -18.9136, -18.9250])[i],
+            (ARRAY[47.5079, 47.5200, 47.5314, 47.5250, 47.5400])[i],
             'Indian/Antananarivo',
             'contact@lieu' || i || '.mg',
             '+26134000000' || i,
@@ -199,7 +227,6 @@ BEGIN
         
         v_lieux_ids := array_append(v_lieux_ids, v_id_lieu);
 
-        -- Créer 2-3 espaces par lieu
         FOR j IN 1..2 LOOP
             INSERT INTO aiolia.espaces_lieux (id_lieu, nom, description, capacite, est_par_defaut)
             VALUES (
@@ -215,31 +242,47 @@ BEGIN
     END LOOP;
 
     -- ============================================================
-    -- CRÉER 27 ÉVÉNEMENTS
+    -- CRÉER 21 ÉVÉNEMENTS
+    -- 5 passés (juin 2025), 4 archivés, 5 en cours, 7 à venir
     -- ============================================================
-    FOR i IN 1..27 LOOP
-        -- Définir les dates (date_creation <= date_debut, toutes après juin 2025)
-        -- Date de base : 1er juillet 2025
-        IF i <= 9 THEN
-            -- Événements juillet-septembre 2025
-            v_date_debut := '2025-07-01'::TIMESTAMPTZ + (INTERVAL '7 days' * (i - 1));
-            v_date_creation := GREATEST('2025-07-01'::TIMESTAMPTZ, v_date_debut - (INTERVAL '45 days'));
-        ELSIF i <= 18 THEN
-            -- Événements octobre-décembre 2025
-            v_date_debut := '2025-10-01'::TIMESTAMPTZ + (INTERVAL '7 days' * (i - 9));
-            v_date_creation := GREATEST('2025-07-01'::TIMESTAMPTZ, v_date_debut - (INTERVAL '30 days'));
+    FOR i IN 1..21 LOOP
+        -- Réinitialiser les tableaux pour chaque événement
+        v_utilisateurs_ayant_achete := ARRAY[]::BIGINT[];
+        v_utilisateurs_ayant_vu := ARRAY[]::BIGINT[];
+        v_utilisateurs_favoris := ARRAY[]::BIGINT[];
+        
+        -- Initialiser la limite de participants (85% du nombre total d'utilisateurs)
+        -- Cela garantit qu'il y aura toujours au moins 15% d'utilisateurs disponibles pour les vues
+        v_participants_max := floor(v_nb_utilisateurs_user * 0.85)::INTEGER;
+        
+        -- Définir les dates selon la catégorie
+        IF i <= 5 THEN
+            -- Événements passés (juin 2025 - les plus anciens)
+            v_date_debut := '2025-06-01'::TIMESTAMPTZ + (INTERVAL '5 days' * (i - 1));
+            v_event_statut := 'published';
+        ELSIF i <= 9 THEN
+            -- Événements archivés (juillet 2025)
+            v_date_debut := '2025-07-01'::TIMESTAMPTZ + (INTERVAL '5 days' * (i - 5));
+            v_event_statut := 'archived';
+        ELSIF i <= 14 THEN
+            -- Événements en cours : démarrent autour d'aujourd'hui et durent 15 jours
+            v_date_debut := v_now - INTERVAL '2 days' + (INTERVAL '1 day' * (i - 9));
+            v_event_statut := 'published';
         ELSE
-            -- Événements 2026
-            v_date_debut := '2026-01-01'::TIMESTAMPTZ + (INTERVAL '7 days' * (i - 18));
-            v_date_creation := GREATEST('2025-07-01'::TIMESTAMPTZ, v_date_debut - (INTERVAL '60 days'));
+            -- Événements à venir : à partir de dans 15 jours
+            v_date_debut := v_now + INTERVAL '15 days' + (INTERVAL '5 days' * (i - 14));
+            v_event_statut := 'published';
         END IF;
-        v_date_fin := v_date_debut + INTERVAL '4 hours';
 
-        -- Sélectionner catégorie et type
+        v_date_creation := GREATEST('2025-05-01'::TIMESTAMPTZ, v_date_debut - (INTERVAL '45 days'));
+        v_date_fin := v_date_debut + INTERVAL '15 days';
+
+        -- Dates de ventes : début 30 jours avant l'événement, fin 1 heure avant la fin de l'événement
+        v_date_debut_vente := GREATEST('2025-05-01'::TIMESTAMPTZ, v_date_debut - INTERVAL '30 days');
+        v_date_fin_vente := GREATEST(v_date_debut_vente + INTERVAL '1 day', v_date_fin - INTERVAL '1 hour');
+
         SELECT id INTO v_id_categorie FROM aiolia.categories_evenements ORDER BY RANDOM() LIMIT 1;
         SELECT id INTO v_id_type_event FROM aiolia.types_evenements ORDER BY RANDOM() LIMIT 1;
-
-        -- Sélectionner un lieu et espace aléatoire
         v_id_lieu := v_lieux_ids[1 + (i % 5)];
         SELECT id INTO v_id_espace FROM aiolia.espaces_lieux WHERE id_lieu = v_id_lieu ORDER BY RANDOM() LIMIT 1;
 
@@ -264,18 +307,14 @@ BEGIN
             'Résumé captivant de l''événement #' || i,
             'Description complète et détaillée de l''événement #' || i || '. Cet événement promet d''être mémorable avec des performances exceptionnelles et une ambiance unique.',
             'https://images.unsplash.com/photo-1540575467063-178a50c2df87?w=800',
-            (CASE 
-                WHEN i <= 9 THEN 'archived'
-                WHEN i <= 18 THEN 'published'
-                ELSE 'published'
-            END)::event_status_enum,
+            v_event_statut::event_status_enum,
             'public'::event_visibility_enum,
             (CASE WHEN i % 3 = 0 THEN 'online' WHEN i % 3 = 1 THEN 'hybrid' ELSE 'in_person' END)::event_format_enum,
             (ARRAY[500, 800, 300, 1000, 150])[1 + (i % 5)],
             v_date_debut,
             v_date_fin,
-            GREATEST('2025-07-01'::TIMESTAMPTZ, v_date_debut - INTERVAL '30 days'),
-            GREATEST('2025-07-01'::TIMESTAMPTZ, v_date_debut - INTERVAL '1 hour'),
+            v_date_debut_vente,
+            v_date_fin_vente,
             CASE WHEN i % 4 = 0 THEN '18+' ELSE NULL END,
             i % 5 = 0,
             i % 7 = 0,
@@ -311,7 +350,7 @@ BEGIN
             (v_id_event, 'airtel', TRUE),
             (v_id_event, 'visa', TRUE);
 
-        -- Ajouter 3 langues
+        -- Ajouter langues
         INSERT INTO aiolia.liens_langues_evenements (id_evenement, id_langue)
         VALUES 
             (v_id_event, v_id_langue_fr),
@@ -319,7 +358,7 @@ BEGIN
             (v_id_event, v_id_langue_en)
         ON CONFLICT DO NOTHING;
 
-        -- Ajouter 3-5 types d'accessibilité
+        -- Ajouter accessibilité
         INSERT INTO aiolia.liens_accessibilite_evenements (id_evenement, id_type_accessibilite, description)
         VALUES 
             (v_id_event, v_id_type_access_wheelchair, 'Accès complet pour fauteuils roulants'),
@@ -335,10 +374,12 @@ BEGIN
         END IF;
 
         -- ============================================================
-        -- CRÉER 3-4 TYPES DE BILLETS PAR ÉVÉNEMENT
+        -- CRÉER 4 TYPES DE BILLETS PAR ÉVÉNEMENT
+        -- 20-30 billets par catégorie
         -- ============================================================
         FOR j IN 1..4 LOOP
             v_prix := (ARRAY[15000, 30000, 60000, 100000])[j];
+            v_billets_par_categorie := 20 + floor(random() * 11)::INTEGER; -- 20 à 30
             
             INSERT INTO aiolia.types_billets (
                 id_evenement, id_configuration_categorie, id_configuration_segment,
@@ -362,23 +403,38 @@ BEGIN
                 v_prix,
                 v_prix * 0.1,
                 20.0,
-                GREATEST('2025-07-01'::TIMESTAMPTZ, v_date_debut - INTERVAL '30 days'),
-                GREATEST('2025-07-01'::TIMESTAMPTZ, v_date_debut - INTERVAL '1 hour'),
+                v_date_debut_vente,
+                v_date_fin_vente,
                 1,
                 CASE WHEN j >= 3 THEN 4 ELSE 10 END,
                 v_date_creation,
                 v_date_creation
             ) RETURNING id INTO v_id_type_billet;
 
+            -- Définir quantité vendue selon le statut de l'événement
+            IF v_event_statut = 'archived' THEN
+                -- Événements archivés : 70-90% des billets vendus
+                v_quantite_vendue := floor(v_billets_par_categorie * (0.7 + random() * 0.2))::INTEGER;
+            ELSIF v_event_statut = 'published' AND v_date_debut < NOW() THEN
+                -- Événements passés (published mais date passée) : 60-85% vendus
+                v_quantite_vendue := floor(v_billets_par_categorie * (0.6 + random() * 0.25))::INTEGER;
+            ELSIF v_event_statut = 'published' AND v_date_debut >= NOW() AND v_date_debut <= NOW() + INTERVAL '90 days' THEN
+                -- Événements en cours : 30-60% vendus (le reste sera disponible, non rattaché à un utilisateur)
+                v_quantite_vendue := floor(v_billets_par_categorie * (0.3 + random() * 0.3))::INTEGER;
+            ELSE
+                -- Événements à venir : 10-30% vendus (le reste sera disponible, non rattaché à un utilisateur)
+                v_quantite_vendue := floor(v_billets_par_categorie * (0.1 + random() * 0.2))::INTEGER;
+            END IF;
+
             INSERT INTO aiolia.inventaire_billets (id_type_billet, quantite_totale, quantite_reservee, quantite_vendue)
             VALUES (
                 v_id_type_billet,
-                (ARRAY[200, 150, 80, 40])[j],
-                CASE WHEN i <= 18 THEN (5 + j) ELSE 0 END,
-                CASE WHEN i <= 18 THEN (50 + (j * 10)) ELSE 0 END
+                v_billets_par_categorie,
+                CASE WHEN v_event_statut = 'published' THEN LEAST(5, v_billets_par_categorie - v_quantite_vendue) ELSE 0 END,
+                v_quantite_vendue
             );
 
-            -- Ajouter 0-4 historiques de prix
+            -- Ajouter historiques de prix
             v_nb_historique_prix := floor(random() * 5)::INTEGER;
             v_prix_precedent := v_prix;
             
@@ -398,185 +454,548 @@ BEGIN
                 );
             END LOOP;
 
-            -- Ajouter une règle de tarification pour certains billets
-            IF j = 1 THEN
-                INSERT INTO aiolia.regles_tarification (
-                    id_type_billet, type_regle, valeur_seuil, valeur,
-                    commence_le, se_termine_le
-                ) VALUES (
-                    v_id_type_billet,
-                    'time_window'::pricing_rule_type_enum,
-                    NULL,
-                    v_prix * 0.8,
-                    GREATEST('2025-07-01'::TIMESTAMPTZ, v_date_debut - INTERVAL '30 days'),
-                    GREATEST('2025-07-01'::TIMESTAMPTZ, v_date_debut - INTERVAL '7 days')
+            -- ============================================================
+            -- CRÉER LES BILLETS SELON LA QUANTITÉ VENDUE
+            -- IMPORTANT : Limiter le nombre total de participants pour laisser des utilisateurs disponibles pour les vues
+            -- LOGIQUE : Si billets vendus > participants, certains participants achètent plusieurs billets
+            -- ============================================================
+            -- Limiter le nombre de participants à maximum 85% du nombre total d'utilisateurs
+            -- Cela garantit qu'il y aura toujours au moins 15% d'utilisateurs disponibles pour les vues
+            v_participants_max := floor(v_nb_utilisateurs_user * 0.85)::INTEGER;  -- Maximum 85% des utilisateurs
+            v_participants_actuels := COALESCE(array_length(v_utilisateurs_ayant_achete, 1), 0);
+            
+            -- Calculer le nombre de participants uniques pour cette catégorie
+            -- Si v_quantite_vendue > participants_max, on distribue les billets supplémentaires
+            DECLARE
+                v_nb_participants_categorie INTEGER;
+                v_billets_restants INTEGER;
+                v_index_participant INTEGER;
+                v_compteur_billets INTEGER;
+            BEGIN
+                -- Calculer le nombre de participants uniques pour cette catégorie
+                -- Minimum : 1 participant, Maximum : v_participants_max - v_participants_actuels
+                v_nb_participants_categorie := LEAST(
+                    v_quantite_vendue,  -- Au moins 1 billet = 1 participant
+                    GREATEST(1, v_participants_max - v_participants_actuels)  -- Mais limité par le max global
                 );
+                
+                -- Si on a plus de billets que de participants, certains participants achètent plusieurs billets
+                v_billets_restants := v_quantite_vendue;
+                v_compteur_billets := 0;
+                
+                -- Étape 1 : Créer les participants uniques (1 billet chacun)
+                FOR k IN 1..v_nb_participants_categorie LOOP
+                    IF v_billets_restants <= 0 THEN
+                        EXIT;
+                    END IF;
+                    
+                    -- Sélectionner un utilisateur aléatoire qui n'est pas déjà participant
+                    SELECT id INTO v_id_utilisateur 
+                    FROM aiolia.utilisateurs 
+                    WHERE role = 'user'
+                        AND NOT (id = ANY(v_utilisateurs_ayant_achete))
+                    ORDER BY RANDOM() 
+                    LIMIT 1;
+                    
+                    -- Si on ne trouve pas d'utilisateur disponible, utiliser un participant existant
+                    IF v_id_utilisateur IS NULL THEN
+                        -- Utiliser un participant existant (il achètera un billet supplémentaire)
+                        IF array_length(v_utilisateurs_ayant_achete, 1) > 0 THEN
+                            v_index_participant := 1 + floor(random() * array_length(v_utilisateurs_ayant_achete, 1))::INTEGER;
+                            v_id_utilisateur := v_utilisateurs_ayant_achete[v_index_participant];
+                        ELSE
+                            -- Aucun participant disponible, arrêter
+                            EXIT;
+                        END IF;
+                    ELSE
+                        -- Ajouter le nouvel utilisateur à la liste des participants
+                        v_participants_actuels := COALESCE(array_length(v_utilisateurs_ayant_achete, 1), 0);
+                        IF v_participants_actuels < v_participants_max THEN
+                            v_utilisateurs_ayant_achete := array_append(v_utilisateurs_ayant_achete, v_id_utilisateur);
+                        END IF;
+                    END IF;
+                    
+                    -- Créer le billet pour ce participant (code réutilisé de la boucle originale)
+                    v_compteur_billets := v_compteur_billets + 1;
+                    v_billets_restants := v_billets_restants - 1;
+                    
+                    -- Statut du billet - Toujours avoir des billets annulés
+                    IF v_billets_annules_total < 21 AND random() < 0.05 THEN
+                        v_statut_billet := 'cancelled';
+                        v_billets_annules_total := v_billets_annules_total + 1;
+                    ELSIF v_event_statut = 'archived' OR (v_event_statut = 'published' AND v_date_debut < NOW()) THEN
+                        v_statut_billet := 'used';
+                    ELSE
+                        v_statut_billet := 'valid';
+                    END IF;
+
+                    -- Calculer une date aléatoire dans la période de vente
+                    DECLARE
+                        v_date_achat TIMESTAMPTZ;
+                        v_duree_vente INTERVAL;
+                    BEGIN
+                        v_duree_vente := v_date_fin_vente - v_date_debut_vente;
+                        v_date_achat := v_date_debut_vente + (v_duree_vente * random());
+                        
+                        -- Créer panier, commande, billet, facture et paiement (code réutilisé)
+                        INSERT INTO aiolia.paniers (id_utilisateur, statut, devise, montant_total, expire_le, cree_le)
+                        VALUES (v_id_utilisateur, 'converted'::cart_status_enum, 'MGA', 0, v_date_fin_vente, v_date_achat)
+                        RETURNING id INTO v_id_panier;
+
+                        INSERT INTO aiolia.commandes (id_utilisateur, id_panier, statut, montant_total, devise, cree_le)
+                        VALUES (v_id_utilisateur, v_id_panier, (CASE WHEN v_statut_billet = 'cancelled' THEN 'cancelled' ELSE 'paid' END)::order_status_enum, v_prix, 'MGA', v_date_achat)
+                        RETURNING id INTO v_id_commande;
+
+                        INSERT INTO aiolia.elements_commandes (id_commande, id_type_billet, quantite, prix_unitaire, frais_service, montant_tva, montant_total)
+                        VALUES (v_id_commande, v_id_type_billet, 1, v_prix, v_prix * 0.1, v_prix * 0.2, v_prix * 1.3)
+                        RETURNING id INTO v_id_element_commande;
+
+                        INSERT INTO aiolia.billets (id_element_commande, id_type_billet, id_utilisateur_proprietaire, statut, code_qr, checksum_qr, emis_le)
+                        VALUES (v_id_element_commande, v_id_type_billet, v_id_utilisateur, v_statut_billet::ticket_status_enum, 'QR-' || v_id_event || '-' || j || '-' || v_compteur_billets || '-' || EXTRACT(EPOCH FROM NOW())::TEXT, md5('QR-' || v_id_event || '-' || j || '-' || v_compteur_billets || '-' || EXTRACT(EPOCH FROM NOW())::TEXT), v_date_achat);
+
+                        IF v_statut_billet != 'cancelled' THEN
+                            INSERT INTO aiolia.factures_billets (id_commande, id_client, devise, montant_sous_total, montant_tva, montant_total, montant_ht, montant_tva_detail, montant_ttc, methode_paiement, statut, emise_le, payee_le)
+                            VALUES (v_id_commande, v_id_utilisateur, 'MGA', v_prix, v_prix * 0.2, v_prix * 1.3, v_prix, v_prix * 0.2, v_prix * 1.3, (ARRAY['mvola', 'orange', 'airtel', 'visa'])[1 + (v_compteur_billets % 4)], 'paid', v_date_achat, v_date_achat + INTERVAL '2 hours')
+                            RETURNING id INTO v_id_facture;
+
+                            INSERT INTO aiolia.paiements_billets (id_facture, fournisseur, reference_fournisseur, statut, montant, devise, paye_le)
+                            VALUES (v_id_facture, (ARRAY['mvola', 'orange', 'airtel', 'visa'])[1 + (v_compteur_billets % 4)], 'REF-' || v_id_event || '-' || j || '-' || v_compteur_billets || '-' || EXTRACT(EPOCH FROM NOW())::TEXT, 'paid', v_prix * 1.3, 'MGA', v_date_achat + INTERVAL '2 hours');
+                        END IF;
+                    END;
+                END LOOP;
+                
+                -- Étape 2 : Distribuer les billets restants parmi les participants existants
+                -- (certains participants achètent plusieurs billets)
+                WHILE v_billets_restants > 0 AND array_length(v_utilisateurs_ayant_achete, 1) > 0 LOOP
+                    -- Sélectionner un participant aléatoire existant
+                    v_index_participant := 1 + floor(random() * array_length(v_utilisateurs_ayant_achete, 1))::INTEGER;
+                    v_id_utilisateur := v_utilisateurs_ayant_achete[v_index_participant];
+                    
+                    -- Créer un billet supplémentaire pour ce participant
+                    v_compteur_billets := v_compteur_billets + 1;
+                    v_billets_restants := v_billets_restants - 1;
+                    
+                    -- Statut du billet - Toujours avoir des billets annulés
+                    IF v_billets_annules_total < 21 AND random() < 0.05 THEN
+                        v_statut_billet := 'cancelled';
+                        v_billets_annules_total := v_billets_annules_total + 1;
+                    ELSIF v_event_statut = 'archived' OR (v_event_statut = 'published' AND v_date_debut < NOW()) THEN
+                        v_statut_billet := 'used';
+                    ELSE
+                        v_statut_billet := 'valid';
+                    END IF;
+
+                    -- Calculer une date aléatoire dans la période de vente
+                    DECLARE
+                        v_date_achat_supp TIMESTAMPTZ;
+                        v_duree_vente_supp INTERVAL;
+                    BEGIN
+                        v_duree_vente_supp := v_date_fin_vente - v_date_debut_vente;
+                        v_date_achat_supp := v_date_debut_vente + (v_duree_vente_supp * random());
+                        
+                        -- Créer panier, commande, billet, facture et paiement
+                        INSERT INTO aiolia.paniers (id_utilisateur, statut, devise, montant_total, expire_le, cree_le)
+                        VALUES (v_id_utilisateur, 'converted'::cart_status_enum, 'MGA', 0, v_date_fin_vente, v_date_achat_supp)
+                        RETURNING id INTO v_id_panier;
+
+                        INSERT INTO aiolia.commandes (id_utilisateur, id_panier, statut, montant_total, devise, cree_le)
+                        VALUES (v_id_utilisateur, v_id_panier, (CASE WHEN v_statut_billet = 'cancelled' THEN 'cancelled' ELSE 'paid' END)::order_status_enum, v_prix, 'MGA', v_date_achat_supp)
+                        RETURNING id INTO v_id_commande;
+
+                        INSERT INTO aiolia.elements_commandes (id_commande, id_type_billet, quantite, prix_unitaire, frais_service, montant_tva, montant_total)
+                        VALUES (v_id_commande, v_id_type_billet, 1, v_prix, v_prix * 0.1, v_prix * 0.2, v_prix * 1.3)
+                        RETURNING id INTO v_id_element_commande;
+
+                        INSERT INTO aiolia.billets (id_element_commande, id_type_billet, id_utilisateur_proprietaire, statut, code_qr, checksum_qr, emis_le)
+                        VALUES (v_id_element_commande, v_id_type_billet, v_id_utilisateur, v_statut_billet::ticket_status_enum, 'QR-' || v_id_event || '-' || j || '-' || v_compteur_billets || '-' || EXTRACT(EPOCH FROM NOW())::TEXT, md5('QR-' || v_id_event || '-' || j || '-' || v_compteur_billets || '-' || EXTRACT(EPOCH FROM NOW())::TEXT), v_date_achat_supp);
+
+                        IF v_statut_billet != 'cancelled' THEN
+                            INSERT INTO aiolia.factures_billets (id_commande, id_client, devise, montant_sous_total, montant_tva, montant_total, montant_ht, montant_tva_detail, montant_ttc, methode_paiement, statut, emise_le, payee_le)
+                            VALUES (v_id_commande, v_id_utilisateur, 'MGA', v_prix, v_prix * 0.2, v_prix * 1.3, v_prix, v_prix * 0.2, v_prix * 1.3, (ARRAY['mvola', 'orange', 'airtel', 'visa'])[1 + (v_compteur_billets % 4)], 'paid', v_date_achat_supp, v_date_achat_supp + INTERVAL '2 hours')
+                            RETURNING id INTO v_id_facture;
+
+                            INSERT INTO aiolia.paiements_billets (id_facture, fournisseur, reference_fournisseur, statut, montant, devise, paye_le)
+                            VALUES (v_id_facture, (ARRAY['mvola', 'orange', 'airtel', 'visa'])[1 + (v_compteur_billets % 4)], 'REF-' || v_id_event || '-' || j || '-' || v_compteur_billets || '-' || EXTRACT(EPOCH FROM NOW())::TEXT, 'paid', v_prix * 1.3, 'MGA', v_date_achat_supp + INTERVAL '2 hours');
+                        END IF;
+                    END;
+                END LOOP;
+            END;
+            
+            -- ============================================================
+            -- CRÉER DES BILLETS 'VALID' NON UTILISÉS POUR ÉVÉNEMENTS PASSÉS ET ARCHIVÉS
+            -- Pour les événements en cours et à venir : les billets restants restent disponibles (non vendus)
+            -- IMPORTANT : Respecter la limite de participants maximum
+            -- ============================================================
+            IF v_quantite_vendue < v_billets_par_categorie THEN
+                -- Vérifier le nombre actuel de participants
+                v_participants_actuels := COALESCE(array_length(v_utilisateurs_ayant_achete, 1), 0);
+                
+                -- Calculer le nombre de billets 'valid' à créer selon le type d'événement
+                IF v_event_statut = 'archived' OR (v_event_statut = 'published' AND v_date_debut < NOW()) THEN
+                    -- Événements passés et archivés : créer 5-20% des billets restants comme 'valid' (non utilisés)
+                    -- Cela représente des billets achetés mais jamais utilisés
+                    v_billets_valid_a_creer := LEAST(
+                        floor((v_billets_par_categorie - v_quantite_vendue) * (0.05 + random() * 0.15))::INTEGER,  -- 5-20% des billets restants
+                        v_billets_par_categorie - v_quantite_vendue,
+                        v_participants_max - v_participants_actuels  -- Respecter la limite de participants
+                    );
+                ELSE
+                    -- Événements en cours et à venir : NE PAS créer de billets 'valid' supplémentaires
+                    -- Les billets restants restent disponibles (non vendus, donc non rattachés à un utilisateur)
+                    v_billets_valid_a_creer := 0;
+                END IF;
+                
+                -- Créer les billets 'valid' seulement si nécessaire
+                IF v_billets_valid_a_creer > 0 THEN
+                    FOR k IN 1..v_billets_valid_a_creer LOOP
+                        -- Sélectionner un utilisateur aléatoire
+                        SELECT id INTO v_id_utilisateur 
+                        FROM aiolia.utilisateurs 
+                        WHERE role = 'user'
+                        ORDER BY RANDOM() 
+                        LIMIT 1;
+                        
+                        IF v_id_utilisateur IS NOT NULL THEN
+                            -- Ajouter à la liste des acheteurs si pas déjà présent et si on n'a pas atteint le maximum
+                            v_participants_actuels := COALESCE(array_length(v_utilisateurs_ayant_achete, 1), 0);
+                            IF NOT (v_id_utilisateur = ANY(v_utilisateurs_ayant_achete)) AND v_participants_actuels < v_participants_max THEN
+                                v_utilisateurs_ayant_achete := array_append(v_utilisateurs_ayant_achete, v_id_utilisateur);
+                            END IF;
+                            -- Calculer une date aléatoire dans la période de vente
+                            DECLARE
+                                v_date_achat_valid_final TIMESTAMPTZ;
+                                v_duree_vente_valid_final INTERVAL;
+                            BEGIN
+                                v_duree_vente_valid_final := v_date_fin_vente - v_date_debut_vente;
+                                v_date_achat_valid_final := v_date_debut_vente + (v_duree_vente_valid_final * random());
+                                
+                                -- Créer panier
+                                INSERT INTO aiolia.paniers (
+                                    id_utilisateur, statut, devise, montant_total, expire_le, cree_le
+                                ) VALUES (
+                                    v_id_utilisateur,
+                                    'converted'::cart_status_enum,
+                                    'MGA',
+                                    0,
+                                    v_date_fin_vente,
+                                    v_date_achat_valid_final
+                                ) RETURNING id INTO v_id_panier;
+
+                                -- Créer commande
+                                INSERT INTO aiolia.commandes (
+                                    id_utilisateur, id_panier, statut, montant_total, devise, cree_le
+                                ) VALUES (
+                                    v_id_utilisateur,
+                                    v_id_panier,
+                                    'paid'::order_status_enum,
+                                    v_prix,
+                                    'MGA',
+                                    v_date_achat_valid_final
+                                ) RETURNING id INTO v_id_commande;
+
+                                -- Créer élément de commande
+                                INSERT INTO aiolia.elements_commandes (
+                                    id_commande, id_type_billet, quantite,
+                                    prix_unitaire, frais_service, montant_tva, montant_total
+                                ) VALUES (
+                                    v_id_commande,
+                                    v_id_type_billet,
+                                    1,
+                                    v_prix,
+                                    v_prix * 0.1,
+                                    v_prix * 0.2,
+                                    v_prix * 1.3
+                                ) RETURNING id INTO v_id_element_commande;
+
+                                -- Créer billet avec statut 'valid' (non utilisé)
+                                -- Pour les événements passés : billets achetés mais jamais utilisés
+                                INSERT INTO aiolia.billets (
+                                    id_element_commande, id_type_billet,
+                                    id_utilisateur_proprietaire, statut,
+                                    code_qr, checksum_qr, emis_le
+                                ) VALUES (
+                                    v_id_element_commande,
+                                    v_id_type_billet,
+                                    v_id_utilisateur,
+                                    'valid'::ticket_status_enum,  -- Toujours 'valid' même pour événements passés (non utilisés)
+                                    'QR-' || v_id_event || '-' || j || '-V' || k || '-' || EXTRACT(EPOCH FROM NOW())::TEXT,
+                                    md5('QR-' || v_id_event || '-' || j || '-V' || k || '-' || EXTRACT(EPOCH FROM NOW())::TEXT),
+                                    v_date_achat_valid_final
+                                );
+
+                                -- Créer facture et paiement
+                                INSERT INTO aiolia.factures_billets (
+                                    id_commande, id_client, devise,
+                                    montant_sous_total, montant_tva, montant_total,
+                                    montant_ht, montant_tva_detail, montant_ttc,
+                                    methode_paiement, statut, emise_le, payee_le
+                                ) VALUES (
+                                    v_id_commande,
+                                    v_id_utilisateur,
+                                    'MGA',
+                                    v_prix,
+                                    v_prix * 0.2,
+                                    v_prix * 1.3,
+                                    v_prix,
+                                    v_prix * 0.2,
+                                    v_prix * 1.3,
+                                    (ARRAY['mvola', 'orange', 'airtel', 'visa'])[1 + (k % 4)],
+                                    'paid',
+                                    v_date_achat_valid_final,
+                                    v_date_achat_valid_final + INTERVAL '2 hours'
+                                ) RETURNING id INTO v_id_facture;
+
+                                INSERT INTO aiolia.paiements_billets (
+                                    id_facture, fournisseur, reference_fournisseur,
+                                    statut, montant, devise, paye_le
+                                ) VALUES (
+                                    v_id_facture,
+                                    (ARRAY['mvola', 'orange', 'airtel', 'visa'])[1 + (k % 4)],
+                                    'REF-' || v_id_event || '-' || j || '-V' || k || '-' || EXTRACT(EPOCH FROM NOW())::TEXT,
+                                    'paid',
+                                    v_prix * 1.3,
+                                    'MGA',
+                                    v_date_achat_valid_final + INTERVAL '2 hours'
+                                );
+                            END;
+                            
+                            -- Mettre à jour la quantité vendue dans l'inventaire
+                            UPDATE aiolia.inventaire_billets
+                            SET quantite_vendue = quantite_vendue + 1
+                            WHERE id_type_billet = v_id_type_billet;
+                        END IF;
+                    END LOOP;
+                END IF;
             END IF;
         END LOOP;
 
         -- ============================================================
-        -- CRÉER 45-50 BILLETS PAR ÉVÉNEMENT
+        -- AJOUTER DES VUES (TOUJOURS > participants, 2-4x le nombre de participants, max = nb users)
         -- ============================================================
-        v_total_participants := 45 + floor(random() * 6)::INTEGER;
+        v_nb_participants := array_length(v_utilisateurs_ayant_achete, 1);
+        IF v_nb_participants IS NULL THEN v_nb_participants := 0; END IF;
         
-        FOR j IN 1..v_total_participants LOOP
-            -- Statut des billets (15 annulés au total pour tous les événements)
-            IF v_billets_annules_total < 15 AND random() < 0.05 THEN
-                v_statut_billet := 'cancelled';
-                v_billets_annules_total := v_billets_annules_total + 1;
-            ELSIF i <= 9 THEN
-                v_statut_billet := 'used';
+        -- Calculer le nombre de vues (TOUJOURS supérieur aux participants)
+        -- RÈGLE ABSOLUE : v_nb_vues > v_nb_participants
+        IF v_nb_participants > 0 THEN
+            -- Si il y a des participants, générer 2-4x plus de vues
+            v_multiplicateur := 2 + floor(random() * 3)::INTEGER;  -- 2, 3 ou 4
+            v_vues_calculees := v_nb_participants * v_multiplicateur;
+            
+            -- Calculer les vues en tenant compte de la limite d'utilisateurs
+            -- MAIS on s'assure d'abord qu'on a assez d'utilisateurs pour avoir plus de vues que de participants
+            IF v_nb_participants >= v_nb_utilisateurs_user THEN
+                -- Cas limite : tous les utilisateurs (ou presque) sont participants
+                -- On utilise tous les utilisateurs disponibles comme vues
+                v_nb_vues := v_nb_utilisateurs_user;
             ELSE
-                v_statut_billet := 'valid';
+                -- Cas normal : on calcule les vues normalement
+                v_nb_vues := LEAST(v_nb_utilisateurs_user, v_vues_calculees);
             END IF;
-
-            -- Sélectionner un utilisateur aléatoire
-            SELECT id INTO v_id_utilisateur 
-            FROM aiolia.utilisateurs 
-            WHERE role = 'user' AND email LIKE 'utilisateur%@yopmail.com'
-            ORDER BY RANDOM() 
-            LIMIT 1;
-
-            -- Sélectionner un type de billet pour cet événement
-            SELECT id INTO v_id_type_billet 
-            FROM aiolia.types_billets 
-            WHERE id_evenement = v_id_event
-            ORDER BY RANDOM() 
-            LIMIT 1;
-
-            -- Créer un panier
-            INSERT INTO aiolia.paniers (
-                id_utilisateur, statut, devise, montant_total, expire_le, cree_le
-            ) VALUES (
-                v_id_utilisateur,
-                'converted'::cart_status_enum,
-                'MGA',
-                0,
-                GREATEST('2025-07-01'::TIMESTAMPTZ, v_date_debut - INTERVAL '5 days'),
-                GREATEST('2025-07-01'::TIMESTAMPTZ, v_date_debut - INTERVAL '10 days')
-            ) RETURNING id INTO v_id_panier;
-
-            -- Créer la commande
-            INSERT INTO aiolia.commandes (
-                id_utilisateur, id_panier, statut, montant_total, devise, cree_le
-            ) VALUES (
-                v_id_utilisateur,
-                v_id_panier,
-                (CASE WHEN v_statut_billet = 'cancelled' THEN 'cancelled' ELSE 'paid' END)::order_status_enum,
-                (SELECT prix_de_base FROM aiolia.types_billets WHERE id = v_id_type_billet),
-                'MGA',
-                GREATEST('2025-07-01'::TIMESTAMPTZ, v_date_debut - INTERVAL '8 days')
-            ) RETURNING id INTO v_id_commande;
-
-            -- Créer l'élément de commande
-            INSERT INTO aiolia.elements_commandes (
-                id_commande, id_type_billet, quantite,
-                prix_unitaire, frais_service, montant_tva, montant_total
-            ) VALUES (
-                v_id_commande,
-                v_id_type_billet,
-                1,
-                (SELECT prix_de_base FROM aiolia.types_billets WHERE id = v_id_type_billet),
-                (SELECT frais_service FROM aiolia.types_billets WHERE id = v_id_type_billet),
-                (SELECT prix_de_base * 0.2 FROM aiolia.types_billets WHERE id = v_id_type_billet),
-                (SELECT prix_de_base * 1.3 FROM aiolia.types_billets WHERE id = v_id_type_billet)
-            ) RETURNING id INTO v_id_element_commande;
-
-            -- Créer le billet
-            INSERT INTO aiolia.billets (
-                id_element_commande, id_type_billet,
-                id_utilisateur_proprietaire, statut,
-                code_qr, checksum_qr, emis_le
-            ) VALUES (
-                v_id_element_commande,
-                v_id_type_billet,
-                v_id_utilisateur,
-                v_statut_billet::ticket_status_enum,
-                'QR-' || v_id_event || '-' || j || '-' || EXTRACT(EPOCH FROM NOW())::TEXT,
-                md5('QR-' || v_id_event || '-' || j || '-' || EXTRACT(EPOCH FROM NOW())::TEXT),
-                GREATEST('2025-07-01'::TIMESTAMPTZ, v_date_debut - INTERVAL '8 days')
+            
+            -- VÉRIFICATION CRITIQUE : s'assurer que v_nb_vues est TOUJOURS > v_nb_participants
+            -- Cette vérification est absolue et doit toujours être respectée
+            IF v_nb_vues <= v_nb_participants THEN
+                -- Si on a moins d'utilisateurs que de participants (ne devrait pas arriver),
+                -- on utilise tous les utilisateurs disponibles
+                IF v_nb_participants >= v_nb_utilisateurs_user THEN
+                    v_nb_vues := v_nb_utilisateurs_user;
+                ELSE
+                    -- On force au minimum participants + 1
+                    v_nb_vues := v_nb_participants + 1;
+                END IF;
+            END IF;
+        ELSE
+            -- Pour les événements sans participants, générer un minimum de vues (10-30)
+            v_nb_vues := LEAST(
+                v_nb_utilisateurs_user,
+                10 + floor(random() * 21)::INTEGER  -- 10 à 30 vues minimum
             );
-
-            -- Créer facture et paiement pour les billets payés
-            IF v_statut_billet != 'cancelled' THEN
-                INSERT INTO aiolia.factures_billets (
-                    id_commande, id_client, devise,
-                    montant_sous_total, montant_tva, montant_total,
-                    montant_ht, montant_tva_detail, montant_ttc,
-                    methode_paiement, statut, emise_le, payee_le
+        END IF;
+        
+        -- Vérification finale de sécurité : s'assurer que v_nb_vues n'est pas NULL et est au moins 1
+        IF v_nb_vues IS NULL OR v_nb_vues < 1 THEN
+            v_nb_vues := LEAST(1, v_nb_utilisateurs_user);
+        END IF;
+        
+        -- DERNIÈRE VÉRIFICATION ABSOLUE : v_nb_vues DOIT être > v_nb_participants
+        -- Cette vérification finale garantit que même si quelque chose a mal tourné, on corrige
+        -- On utilise RAISE pour détecter les cas où c'est impossible (pour debug)
+        IF v_nb_participants > 0 AND v_nb_vues <= v_nb_participants THEN
+            -- Forcer au minimum participants + 1
+            IF v_nb_participants < v_nb_utilisateurs_user THEN
+                v_nb_vues := v_nb_participants + 1;
+            ELSE
+                -- Cas exceptionnel : tous les utilisateurs sont participants
+                -- On utilise tous les utilisateurs comme vues (mais cela viole la règle)
+                -- Dans ce cas, on génère un avertissement mais on continue
+                v_nb_vues := v_nb_utilisateurs_user;
+                RAISE WARNING 'Événement % : Impossible d''avoir plus de vues que de participants (participants: %, users: %)', 
+                    v_id_event, v_nb_participants, v_nb_utilisateurs_user;
+            END IF;
+        END IF;
+        
+        -- Générer les vues en s'assurant qu'on en génère au moins v_nb_participants + 1
+        -- RÈGLE ABSOLUE : v_vues_generees > v_nb_participants
+        v_vues_generees := 0;
+        v_tentatives_vues := 0;
+        
+        -- Calculer le nombre minimum de vues à générer (toujours > participants)
+        IF v_nb_participants > 0 THEN
+            -- On doit générer au moins participants + 1 vues
+            v_vues_minimum := v_nb_participants + 1;
+            -- Mais on prend le maximum entre v_nb_vues calculé et v_vues_minimum
+            v_nb_vues := GREATEST(v_nb_vues, v_vues_minimum);
+        END IF;
+        
+        -- On fait une boucle jusqu'à ce qu'on ait généré suffisamment de vues
+        -- On limite le nombre de tentatives pour éviter une boucle infinie
+        WHILE v_vues_generees < v_nb_vues AND v_tentatives_vues < (v_nb_utilisateurs_user * 3) LOOP
+            v_tentatives_vues := v_tentatives_vues + 1;
+            
+            SELECT id INTO v_random_user 
+            FROM aiolia.utilisateurs 
+            WHERE role = 'user'
+            ORDER BY RANDOM() 
+            LIMIT 1;
+            
+            -- Éviter les doublons
+            IF NOT (v_random_user = ANY(v_utilisateurs_ayant_vu)) THEN
+                v_utilisateurs_ayant_vu := array_append(v_utilisateurs_ayant_vu, v_random_user);
+                v_vues_generees := v_vues_generees + 1;
+                
+                INSERT INTO aiolia.vues_evenements (
+                    id_evenement,
+                    id_utilisateur,
+                    adresse_ip,
+                    user_agent,
+                    referer,
+                    type_vue,
+                    duree_vue_secondes,
+                    cree_le
                 ) VALUES (
-                    v_id_commande,
-                    v_id_utilisateur,
-                    'MGA',
-                    (SELECT prix_de_base FROM aiolia.types_billets WHERE id = v_id_type_billet),
-                    (SELECT prix_de_base * 0.2 FROM aiolia.types_billets WHERE id = v_id_type_billet),
-                    (SELECT prix_de_base * 1.3 FROM aiolia.types_billets WHERE id = v_id_type_billet),
-                    (SELECT prix_de_base FROM aiolia.types_billets WHERE id = v_id_type_billet),
-                    (SELECT prix_de_base * 0.2 FROM aiolia.types_billets WHERE id = v_id_type_billet),
-                    (SELECT prix_de_base * 1.3 FROM aiolia.types_billets WHERE id = v_id_type_billet),
-                    (ARRAY['mvola', 'orange', 'airtel', 'visa'])[1 + (j % 4)],
-                    'paid',
-                    GREATEST('2025-07-01'::TIMESTAMPTZ, v_date_debut - INTERVAL '8 days'),
-                    GREATEST('2025-07-01'::TIMESTAMPTZ, v_date_debut - INTERVAL '8 days') + INTERVAL '2 hours'
-                ) RETURNING id INTO v_id_facture;
-
-                INSERT INTO aiolia.paiements_billets (
-                    id_facture, fournisseur, reference_fournisseur,
-                    statut, montant, devise, paye_le
-                ) VALUES (
-                    v_id_facture,
-                    (ARRAY['mvola', 'orange', 'airtel', 'visa'])[1 + (j % 4)],
-                    'REF-' || v_id_event || '-' || j || '-' || EXTRACT(EPOCH FROM NOW())::TEXT,
-                    'paid',
-                    (SELECT prix_de_base * 1.3 FROM aiolia.types_billets WHERE id = v_id_type_billet),
-                    'MGA',
-                    GREATEST('2025-07-01'::TIMESTAMPTZ, v_date_debut - INTERVAL '8 days') + INTERVAL '2 hours'
+                    v_id_event,
+                    CASE WHEN random() < 0.7 THEN v_random_user ELSE NULL END,
+                    ('192.168.' || floor(random() * 255)::INTEGER || '.' || floor(random() * 255)::INTEGER)::INET,
+                    (ARRAY['Mozilla/5.0', 'Chrome/120.0', 'Safari/17.0', 'Firefox/121.0'])[1 + floor(random() * 4)::INTEGER],
+                    CASE 
+                        WHEN random() < 0.4 THEN 'https://aiolia.mg/events'
+                        WHEN random() < 0.7 THEN 'https://aiolia.mg/search'
+                        ELSE NULL
+                    END,
+                    (ARRAY['page', 'listing', 'search', 'share']::VARCHAR[])[1 + floor(random() * 4)::INTEGER],
+                    CASE 
+                        WHEN random() < 0.2 THEN NULL
+                        ELSE 30 + floor(random() * 300)::INTEGER
+                    END,
+                    v_date_creation + (INTERVAL '1 day' * floor(random() * 30)::INTEGER)
                 );
             END IF;
         END LOOP;
+        
+        -- VÉRIFICATION FINALE ABSOLUE : s'assurer qu'on a généré au moins participants + 1 vues
+        -- Cette vérification est critique et doit toujours être respectée
+        IF v_nb_participants > 0 THEN
+            WHILE v_vues_generees <= v_nb_participants AND v_tentatives_vues < (v_nb_utilisateurs_user * 5) LOOP
+                v_tentatives_vues := v_tentatives_vues + 1;
+                
+                SELECT id INTO v_random_user 
+                FROM aiolia.utilisateurs 
+                WHERE role = 'user'
+                ORDER BY RANDOM() 
+                LIMIT 1;
+                
+                IF NOT (v_random_user = ANY(v_utilisateurs_ayant_vu)) THEN
+                    v_utilisateurs_ayant_vu := array_append(v_utilisateurs_ayant_vu, v_random_user);
+                    v_vues_generees := v_vues_generees + 1;
+                    
+                    INSERT INTO aiolia.vues_evenements (
+                        id_evenement,
+                        id_utilisateur,
+                        adresse_ip,
+                        user_agent,
+                        referer,
+                        type_vue,
+                        duree_vue_secondes,
+                        cree_le
+                    ) VALUES (
+                        v_id_event,
+                        CASE WHEN random() < 0.7 THEN v_random_user ELSE NULL END,
+                        ('192.168.' || floor(random() * 255)::INTEGER || '.' || floor(random() * 255)::INTEGER)::INET,
+                        (ARRAY['Mozilla/5.0', 'Chrome/120.0', 'Safari/17.0', 'Firefox/121.0'])[1 + floor(random() * 4)::INTEGER],
+                        CASE 
+                            WHEN random() < 0.4 THEN 'https://aiolia.mg/events'
+                            WHEN random() < 0.7 THEN 'https://aiolia.mg/search'
+                            ELSE NULL
+                        END,
+                        (ARRAY['page', 'listing', 'search', 'share']::VARCHAR[])[1 + floor(random() * 4)::INTEGER],
+                        CASE 
+                            WHEN random() < 0.2 THEN NULL
+                            ELSE 30 + floor(random() * 300)::INTEGER
+                        END,
+                        v_date_creation + (INTERVAL '1 day' * floor(random() * 30)::INTEGER)
+                    );
+                END IF;
+            END LOOP;
+        END IF;
+        
+        -- Mettre à jour v_nb_vues avec le nombre réellement généré
+        v_nb_vues := v_vues_generees;
 
-        -- Ajouter 50+ vues pour l'événement dans la table vues_evenements
-        v_total_vues := 50 + floor(random() * 30)::INTEGER;
-        FOR j IN 1..v_total_vues LOOP
-            SELECT id INTO v_id_utilisateur 
-            FROM aiolia.utilisateurs 
-            WHERE role = 'user' 
-            ORDER BY RANDOM() 
-            LIMIT 1;
-
-            INSERT INTO aiolia.vues_evenements (
-                id_evenement,
-                id_utilisateur,
-                adresse_ip,
-                user_agent,
-                referer,
-                type_vue,
-                duree_vue_secondes,
-                cree_le
-            ) VALUES (
-                v_id_event,
-                CASE WHEN random() < 0.3 THEN NULL ELSE v_id_utilisateur END,
-                ('192.168.' || floor(random() * 255)::INTEGER || '.' || floor(random() * 255)::INTEGER)::INET,
-                (ARRAY['Mozilla/5.0', 'Chrome/120.0', 'Safari/17.0', 'Firefox/121.0'])[1 + floor(random() * 4)::INTEGER],
-                CASE 
-                    WHEN random() < 0.4 THEN 'https://aiolia.mg/events'
-                    WHEN random() < 0.7 THEN 'https://aiolia.mg/search'
-                    ELSE NULL
-                END,
-                (ARRAY['page', 'listing', 'search', 'share']::VARCHAR[])[1 + floor(random() * 4)::INTEGER],
-                CASE 
-                    WHEN random() < 0.2 THEN NULL
-                    ELSE 30 + floor(random() * 300)::INTEGER
-                END,
-                GREATEST('2025-07-01'::TIMESTAMPTZ, v_date_debut - (INTERVAL '1 day' * floor(random() * 20)::INTEGER))
-            );
+        -- ============================================================
+        -- AJOUTER DES FAVORIS (10-30% des vues)
+        -- ============================================================
+        v_nb_favoris := LEAST(
+            COALESCE(array_length(v_utilisateurs_ayant_vu, 1), 0),
+            floor(COALESCE(array_length(v_utilisateurs_ayant_vu, 1), 0) * (0.1 + random() * 0.2))::INTEGER
+        );
+        
+        -- S'assurer que v_nb_favoris n'est pas NULL
+        IF v_nb_favoris IS NULL THEN
+            v_nb_favoris := 0;
+        END IF;
+        
+        FOR j IN 1..v_nb_favoris LOOP
+            -- Sélectionner parmi ceux qui ont vu l'événement
+            IF array_length(v_utilisateurs_ayant_vu, 1) > 0 THEN
+                v_random_user := v_utilisateurs_ayant_vu[1 + floor(random() * array_length(v_utilisateurs_ayant_vu, 1))::INTEGER];
+                
+                IF NOT (v_random_user = ANY(v_utilisateurs_favoris)) THEN
+                    v_utilisateurs_favoris := array_append(v_utilisateurs_favoris, v_random_user);
+                    
+                    -- Créer ou récupérer la liste de souhaits
+                    SELECT id INTO v_id_liste_souhaits
+                    FROM aiolia.listes_souhaits
+                    WHERE id_utilisateur = v_random_user AND est_par_defaut = TRUE;
+                    
+                    IF v_id_liste_souhaits IS NULL THEN
+                        INSERT INTO aiolia.listes_souhaits (id_utilisateur, titre, est_par_defaut)
+                        VALUES (v_random_user, 'Mes Favoris', TRUE)
+                        RETURNING id INTO v_id_liste_souhaits;
+                    END IF;
+                    
+                    INSERT INTO aiolia.elements_listes_souhaits (id_liste_souhaits, id_evenement, ajoute_le)
+                    VALUES (
+                        v_id_liste_souhaits,
+                        v_id_event,
+                        v_date_creation + (INTERVAL '1 day' * floor(random() * 30)::INTEGER)
+                    )
+                    ON CONFLICT DO NOTHING;
+                END IF;
+            END IF;
         END LOOP;
+
+        RAISE NOTICE 'Événement % créé - Participants: %, Vues: %, Favoris: %', 
+            i, 
+            v_nb_participants, 
+            COALESCE(array_length(v_utilisateurs_ayant_vu, 1), 0), 
+            COALESCE(array_length(v_utilisateurs_favoris, 1), 0);
     END LOOP;
 
     -- ============================================================
-    -- CRÉER 27 CODES PROMOTIONNELS (30+ utilisateurs par promo)
+    -- CRÉER 21 CODES PROMOTIONNELS
     -- ============================================================
-    FOR i IN 1..27 LOOP
+    FOR i IN 1..21 LOOP
         INSERT INTO aiolia.codes_promotionnels (
             id_profil_organisateur, code,
             type_promotion, valeur,
@@ -592,26 +1011,20 @@ BEGIN
             END,
             50 + floor(random() * 51)::INTEGER,
             2 + floor(random() * 3)::INTEGER,
-            '2025-07-01'::TIMESTAMPTZ - INTERVAL '30 days',
+            '2025-07-01'::TIMESTAMPTZ,
             CASE 
-                WHEN i <= 7 THEN '2025-07-15'::TIMESTAMPTZ
+                WHEN i <= 9 THEN '2025-09-30'::TIMESTAMPTZ
                 WHEN i <= 20 THEN '2025-12-31'::TIMESTAMPTZ
                 ELSE '2026-06-30'::TIMESTAMPTZ
             END
         ) RETURNING id INTO v_id_code_promo;
 
-        -- Ajouter 30-40 utilisations par code promo
+        -- Lier 30-40 utilisations aux commandes existantes
         FOR j IN 1..(30 + floor(random() * 11)::INTEGER) LOOP
-            SELECT id INTO v_id_utilisateur 
-            FROM aiolia.utilisateurs 
-            WHERE role = 'user'
-            ORDER BY RANDOM() 
-            LIMIT 1;
-
-            SELECT id INTO v_id_commande 
-            FROM aiolia.commandes 
-            WHERE id_utilisateur = v_id_utilisateur 
-            ORDER BY RANDOM() 
+            SELECT c.id, c.id_utilisateur, c.montant_total INTO v_id_commande, v_id_utilisateur, v_prix
+            FROM aiolia.commandes c
+            WHERE c.statut = 'paid'
+            ORDER BY RANDOM()
             LIMIT 1;
 
             IF v_id_commande IS NOT NULL THEN
@@ -622,7 +1035,7 @@ BEGIN
                     v_id_commande,
                     v_id_utilisateur,
                     CASE 
-                        WHEN i % 2 = 0 THEN (SELECT montant_total * 0.1 FROM aiolia.commandes WHERE id = v_id_commande)
+                        WHEN i % 2 = 0 THEN v_prix * 0.1
                         ELSE 5000
                     END,
                     '2025-07-01'::TIMESTAMPTZ + (INTERVAL '1 day' * floor(random() * 180)::INTEGER)
@@ -632,50 +1045,19 @@ BEGIN
         END LOOP;
     END LOOP;
 
-    -- ============================================================
-    -- AJOUTER 37 UTILISATEURS EN LISTE D'ATTENTE POUR NOVEMBRE ET DÉCEMBRE
-    -- ============================================================
-    FOR i IN 1..37 LOOP
-        -- Sélectionner un événement de novembre ou décembre
-        SELECT id INTO v_id_event 
-        FROM aiolia.evenements 
-        WHERE id_profil_organisateur = v_id_profil_org 
-            AND EXTRACT(MONTH FROM commence_le) IN (11, 12)
-            AND EXTRACT(YEAR FROM commence_le) = EXTRACT(YEAR FROM NOW())
-        ORDER BY RANDOM() 
-        LIMIT 1;
-
-        -- Sélectionner un utilisateur aléatoire
-        SELECT id INTO v_id_utilisateur 
-        FROM aiolia.utilisateurs 
-        WHERE role = 'user' AND email LIKE 'utilisateur%@yopmail.com'
-        ORDER BY RANDOM() 
-        LIMIT 1;
-
-        IF v_id_utilisateur IS NOT NULL AND v_id_event IS NOT NULL THEN
-            -- Créer la liste de souhaits si elle n'existe pas
-            INSERT INTO aiolia.listes_souhaits (id_utilisateur, titre, est_par_defaut)
-            VALUES (v_id_utilisateur, 'Mes Favoris', TRUE)
-            ON CONFLICT DO NOTHING;
-
-            -- Ajouter l'événement à la liste d'attente
-            INSERT INTO aiolia.elements_listes_souhaits (id_liste_souhaits, id_evenement, ajoute_le)
-            SELECT ls.id, v_id_event, '2025-07-01'::TIMESTAMPTZ + (INTERVAL '1 day' * floor(random() * 180)::INTEGER)
-            FROM aiolia.listes_souhaits ls
-            WHERE ls.id_utilisateur = v_id_utilisateur AND ls.est_par_defaut = TRUE
-            ON CONFLICT DO NOTHING;
-        END IF;
-    END LOOP;
-
     RAISE NOTICE '✅ Données de test créées avec succès pour organisateur11@yopmail.com';
-    RAISE NOTICE '   - 27 événements créés (date_creation <= date_debut)';
+    RAISE NOTICE '   - 21 événements créés (5 passés, 4 archivés, 5 en cours, 7 à venir)';
     RAISE NOTICE '   - 5 lieux différents';
-    RAISE NOTICE '   - 3-5 types d''accessibilité par événement';
-    RAISE NOTICE '   - 45-50 participants par événement';
-    RAISE NOTICE '   - 50-80 vues par événement (enregistrées dans vues_evenements)';
-    RAISE NOTICE '   - 15 billets annulés au total';
-    RAISE NOTICE '   - 27 codes promo avec 30+ utilisations chacun';
-    RAISE NOTICE '   - 0-4 historiques de prix par type de billet';
-    RAISE NOTICE '   - 37 utilisateurs en liste d''attente pour événements de novembre et décembre';
+    RAISE NOTICE '   - 20-30 billets par catégorie de billet';
+    RAISE NOTICE '   - Pas de survente (quantité vendue ≤ quantité totale)';
+    RAISE NOTICE '   - Événements passés: billets vendus (60-85%%)';
+    RAISE NOTICE '   - Événements archivés: billets vendus (70-90%%)';
+    RAISE NOTICE '   - Événements en cours: billets vendus (30-60%%) - reste disponible';
+    RAISE NOTICE '   - Événements à venir: billets vendus (10-30%%) - reste disponible';
+    RAISE NOTICE '   - Vues: 2-4x le nombre de participants (limité au nb total users)';
+    RAISE NOTICE '   - Favoris: 10-30%% des vues';
+    RAISE NOTICE '   - Tous les utilisateurs existent réellement dans la BD';
+    RAISE NOTICE '   - Billets annulés présents dans tous les événements';
+    RAISE NOTICE '   - 21 codes promo avec 30-40 utilisations chacun';
 
 END $$;

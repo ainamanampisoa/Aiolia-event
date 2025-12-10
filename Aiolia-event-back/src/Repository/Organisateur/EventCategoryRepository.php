@@ -6,9 +6,7 @@ use App\Entity\EventCategory;
 use Doctrine\Bundle\DoctrineBundle\Repository\ServiceEntityRepository;
 use Doctrine\Persistence\ManagerRegistry;
 
-/**
- * @extends ServiceEntityRepository<EventCategory>
- */
+
 class EventCategoryRepository extends ServiceEntityRepository
 {
     public function __construct(ManagerRegistry $registry)
@@ -16,9 +14,7 @@ class EventCategoryRepository extends ServiceEntityRepository
         parent::__construct($registry, EventCategory::class);
     }
 
-    /**
-     * Récupère toutes les catégories actives triées par ordre d'affichage
-     */
+    
     public function findActiveCategories(): array
     {
         return $this->createQueryBuilder('c')
@@ -29,9 +25,7 @@ class EventCategoryRepository extends ServiceEntityRepository
             ->getResult();
     }
 
-    /**
-     * Recherche une catégorie par slug
-     */
+    
     public function findBySlug(string $slug): ?EventCategory
     {
         return $this->createQueryBuilder('c')

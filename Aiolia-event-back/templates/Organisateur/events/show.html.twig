@@ -34,26 +34,47 @@
                 <div class="card-content">
                     {% set accessLinks = event.liensAccessibilites ?? [] %}
                     {% if accessLinks|length > 0 %}
-                        <ul style="list-style: none; padding: 0; margin: 0; display: flex; flex-direction: column; gap: 8px;">
+                        <div class="accessibility-grid">
                             {% for lien in accessLinks %}
-                                <li style="display: flex; align-items: flex-start; gap: 8px;">
-                                    <i class="fas fa-check-circle" style="color: var(--success); margin-top: 2px;"></i>
-                                    <div>
-                                        <strong>{{ lien.typeAccessibilite.libelle }}</strong>
+                                {% set typeCode = lien.typeAccessibilite.code|lower %}
+                                {% set typeLibelle = lien.typeAccessibilite.libelle|lower %}
+                                {% set iconPath = 'images/acces1.svg' %}
+                                {% if 'fauteuil' in typeCode or 'roulant' in typeCode or 'wheelchair' in typeCode or 'fauteuil' in typeLibelle or 'roulant' in typeLibelle %}
+                                    {% set iconPath = 'images/acces1.svg' %}
+                                {% elseif 'malentendant' in typeCode or 'sourd' in typeCode or 'hearing' in typeCode or 'malentendant' in typeLibelle or 'sourd' in typeLibelle %}
+                                    {% set iconPath = 'images/acces2.svg' %}
+                                {% elseif 'malvoyant' in typeCode or 'aveugle' in typeCode or 'visuel' in typeCode or 'visual' in typeCode or 'malvoyant' in typeLibelle or 'aveugle' in typeLibelle or 'visuel' in typeLibelle %}
+                                    {% set iconPath = 'images/acces3.svg' %}
+                                {% elseif 'mobilite' in typeCode or 'mobility' in typeCode or 'mobilite' in typeLibelle %}
+                                    {% set iconPath = 'images/acces4.svg' %}
+                                {% elseif 'cognitif' in typeCode or 'cognitive' in typeCode or 'cognitif' in typeLibelle %}
+                                    {% set iconPath = 'images/acces5.svg' %}
+                                {% else %}
+                                    {% set iconPath = 'images/acces6.svg' %}
+                                {% endif %}
+                                <div class="accessibility-item">
+                                    <div class="accessibility-icon-wrapper">
+                                        <img src="{{ asset(iconPath) }}" alt="{{ lien.typeAccessibilite.libelle }}" class="accessibility-icon">
+                                        <div class="accessibility-check">
+                                            <i class="fas fa-check-circle"></i>
+                                        </div>
+                                    </div>
+                                    <div class="accessibility-content">
+                                        <h4 class="accessibility-title">{{ lien.typeAccessibilite.libelle }}</h4>
                                         {% if lien.description %}
-                                            <div style="font-size: 0.85rem; color: var(--gray-700);">
-                                                {{ lien.description }}
-                                            </div>
+                                            <p class="accessibility-description">{{ lien.description }}</p>
                                         {% endif %}
                                     </div>
-                                </li>
+                                </div>
                             {% endfor %}
-                        </ul>
+                        </div>
                     {% else %}
-                        <p style="font-size: 0.9rem; color: var(--gray-600);">
-                        Aucune information d'accessibilité spécifique n'a encore été ajoutée pour cet événement.
-                        </p>
+                        <div class="accessibility-empty">
+                            <i class="fas fa-info-circle"></i>
+                            <p>Aucune information d'accessibilité spécifique n'a encore été ajoutée pour cet événement.</p>
+                        </div>
                     {% endif %}
+                </div>
             </div>
         </div>
     </div>
@@ -61,3 +82,4 @@
 
 {% include 'Organisateur/events/_styles.html.twig' %}
 {% endblock %}
+

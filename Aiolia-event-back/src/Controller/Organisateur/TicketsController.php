@@ -18,13 +18,11 @@ class TicketsController extends AbstractController
     ) {
     }
 
-    /**
-     * Page principale de gestion des billets
-     */
+    
     #[Route('', name: 'organisateur_tickets_index', methods: ['GET'])]
     public function index(Request $request): Response
     {
-        /** @var \App\Entity\User $user */
+        
         $user = $this->getUser();
 
         $page = max(1, (int) $request->query->get('page', 1));

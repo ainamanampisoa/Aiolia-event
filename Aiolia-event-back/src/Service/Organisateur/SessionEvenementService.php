@@ -14,25 +14,19 @@ class SessionEvenementService
     ) {
     }
 
-    /**
-     * Récupère toutes les sessions d'événements
-     */
+    
     public function getAll(): array
     {
         return $this->repository->getAll();
     }
 
-    /**
-     * Récupère une session d'événement par son ID
-     */
+    
     public function getById(string $id): ?SessionEvenement
     {
         return $this->repository->getById($id);
     }
 
-    /**
-     * Crée une nouvelle session d'événement
-     */
+    
     public function create(array $data, Event $evenement): SessionEvenement
     {
         $session = new SessionEvenement();
@@ -73,9 +67,7 @@ class SessionEvenementService
         return $this->repository->create($session);
     }
 
-    /**
-     * Met à jour une session d'événement
-     */
+    
     public function update(SessionEvenement $session, array $data): SessionEvenement
     {
         if (isset($data['espaceLieu']) && $data['espaceLieu'] instanceof EspaceLieu) {
@@ -113,9 +105,7 @@ class SessionEvenementService
         return $this->repository->update($session);
     }
 
-    /**
-     * Supprime une session d'événement
-     */
+    
     public function delete(SessionEvenement $session): void
     {
         $this->repository->delete($session);

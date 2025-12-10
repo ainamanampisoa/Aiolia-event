@@ -35,3 +35,7 @@ services:
     App\Service\QrCodeService:
         arguments:
             $publicPath: '%kernel.project_dir%/public'
+
+    App\Service\Organisateur\EventPdfExportService:
+        arguments:
+            $projectDir: '%kernel.project_dir%'

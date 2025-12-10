@@ -17,9 +17,7 @@ class MediaService
     ) {
     }
 
-    /**
-     * Upload un fichier média pour un événement
-     */
+    
     public function uploadEventMedia(
         Event $event,
         UploadedFile $file,
@@ -27,14 +25,14 @@ class MediaService
         User $uploadedBy,
         bool $isPrimary = false
     ): EventMedia {
-        // Déterminer le dossier Cloudinary basé sur le type
+        
         $folder = match($type) {
             'image' => 'aiolia-event/events/' . $event->getId() . '/images',
             'video' => 'aiolia-event/events/' . $event->getId() . '/videos',
             default => 'aiolia-event/events/' . $event->getId() . '/documents',
         };
 
-        // Upload sur Cloudinary selon le type
+        
         $uploadResult = match($type) {
             'image' => $this->cloudinaryService->uploadImage($file, $folder),
             'video' => $this->cloudinaryService->uploadVideo($file, $folder),
@@ -45,7 +43,7 @@ class MediaService
             throw new \Exception('Erreur lors de l\'upload sur Cloudinary: ' . $uploadResult['error']);
         }
 
-        // Créer l'entité EventMedia
+        
         $media = new EventMedia();
         $media->setEvent($event);
         $media->setMediaType($type);
@@ -56,7 +54,7 @@ class MediaService
         $media->setIsPrimary($isPrimary);
         $media->setUploadedBy($uploadedBy);
 
-        // Si c'est l'image principale, désactiver les autres
+        
         if ($isPrimary) {
             $this->setPrimaryImage($event, $media);
         }
@@ -67,23 +65,21 @@ class MediaService
         return $media;
     }
 
-    /**
-     * Supprime un média
-     */
+    
     public function deleteMedia(EventMedia $media): void
     {
-        // Extraire le public_id de l'URL Cloudinary
+        
         $publicId = $this->extractPublicIdFromUrl($media->getFileUrl());
         
         if ($publicId) {
-            // Déterminer le type de ressource
+            
             $resourceType = match($media->getMediaType()) {
                 'video' => 'video',
                 'document' => 'raw',
                 default => 'image',
             };
             
-            // Supprimer de Cloudinary
+            
             $this->cloudinaryService->deleteFile($publicId, $resourceType);
         }
 
@@ -91,24 +87,20 @@ class MediaService
         $this->entityManager->flush();
     }
 
-    /**
-     * Extrait le public_id depuis une URL Cloudinary
-     */
+    
     private function extractPublicIdFromUrl(string $url): ?string
     {
-        // Format URL Cloudinary: https://res.cloudinary.com/{cloud_name}/{resource_type}/upload/{version}/{public_id}.{format}
+        
         if (preg_match('#/upload/(?:v\d+/)?(.+)\.\w+$#', $url, $matches)) {
             return $matches[1];
         }
         return null;
     }
 
-    /**
-     * Définit une image comme principale
-     */
+    
     public function setPrimaryImage(Event $event, EventMedia $primaryMedia): void
     {
-        // Désactiver toutes les autres images principales
+        
         $mediaRepository = $this->entityManager->getRepository(EventMedia::class);
         $existingPrimary = $mediaRepository->findBy([
             'event' => $event,
@@ -125,9 +117,7 @@ class MediaService
         $this->entityManager->flush();
     }
 
-    /**
-     * Génère une URL optimisée depuis Cloudinary
-     */
+    
     public function getOptimizedImageUrl(EventMedia $media, int $width = 0, int $height = 0): string
     {
         $publicId = $this->extractPublicIdFromUrl($media->getFileUrl());
@@ -139,9 +129,7 @@ class MediaService
         return $media->getFileUrl();
     }
 
-    /**
-     * Génère une URL de thumbnail
-     */
+    
     public function getThumbnailUrl(EventMedia $media, int $size = 200): string
     {
         $publicId = $this->extractPublicIdFromUrl($media->getFileUrl());
@@ -153,9 +141,7 @@ class MediaService
         return $media->getFileUrl();
     }
 
-    /**
-     * Récupère tous les médias d'un événement
-     */
+    
     public function getEventMedias(Event $event, string $type = ''): array
     {
         $mediaRepository = $this->entityManager->getRepository(EventMedia::class);
@@ -173,9 +159,7 @@ class MediaService
         );
     }
 
-    /**
-     * Récupère l'image principale d'un événement
-     */
+    
     public function getPrimaryImage(Event $event): ?EventMedia
     {
         $mediaRepository = $this->entityManager->getRepository(EventMedia::class);

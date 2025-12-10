@@ -7,9 +7,7 @@ use App\Entity\User;
 use Doctrine\Bundle\DoctrineBundle\Repository\ServiceEntityRepository;
 use Doctrine\Persistence\ManagerRegistry;
 
-/**
- * @extends ServiceEntityRepository<Panier>
- */
+
 class PanierRepository extends ServiceEntityRepository
 {
     public function __construct(ManagerRegistry $registry)
@@ -17,9 +15,7 @@ class PanierRepository extends ServiceEntityRepository
         parent::__construct($registry, Panier::class);
     }
 
-    /**
-     * Récupère tous les paniers
-     */
+    
     public function getAll(): array
     {
         return $this->createQueryBuilder('p')
@@ -28,17 +24,13 @@ class PanierRepository extends ServiceEntityRepository
             ->getResult();
     }
 
-    /**
-     * Récupère un panier par son ID
-     */
+    
     public function getById(string $id): ?Panier
     {
         return $this->find($id);
     }
 
-    /**
-     * Récupère le panier actif d'un utilisateur
-     */
+    
     public function findActiveByUser(User $user): ?Panier
     {
         return $this->createQueryBuilder('p')
@@ -50,9 +42,7 @@ class PanierRepository extends ServiceEntityRepository
             ->getOneOrNullResult();
     }
 
-    /**
-     * Récupère un panier par jeton de session
-     */
+    
     public function findByJetonSession(string $jetonSession): ?Panier
     {
         return $this->createQueryBuilder('p')
@@ -62,9 +52,7 @@ class PanierRepository extends ServiceEntityRepository
             ->getOneOrNullResult();
     }
 
-    /**
-     * Crée un nouveau panier
-     */
+    
     public function create(Panier $panier): Panier
     {
         $this->getEntityManager()->persist($panier);
@@ -73,9 +61,7 @@ class PanierRepository extends ServiceEntityRepository
         return $panier;
     }
 
-    /**
-     * Met à jour un panier
-     */
+    
     public function update(Panier $panier): Panier
     {
         $this->getEntityManager()->flush();
@@ -83,9 +69,7 @@ class PanierRepository extends ServiceEntityRepository
         return $panier;
     }
 
-    /**
-     * Supprime un panier
-     */
+    
     public function delete(Panier $panier): void
     {
         $this->getEntityManager()->remove($panier);

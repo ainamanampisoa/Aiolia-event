@@ -9,9 +9,7 @@ use Doctrine\Bundle\DoctrineBundle\Repository\ServiceEntityRepository;
 use Doctrine\ORM\Tools\Pagination\Paginator;
 use Doctrine\Persistence\ManagerRegistry;
 
-/**
- * @extends ServiceEntityRepository<HistoriquePrixBillet>
- */
+
 class HistoriquePrixBilletRepository extends ServiceEntityRepository
 {
     public function __construct(ManagerRegistry $registry)
@@ -19,9 +17,7 @@ class HistoriquePrixBilletRepository extends ServiceEntityRepository
         parent::__construct($registry, HistoriquePrixBillet::class);
     }
 
-    /**
-     * Récupère tous les historiques de prix
-     */
+    
     public function getAll(): array
     {
         return $this->createQueryBuilder('h')
@@ -30,17 +26,13 @@ class HistoriquePrixBilletRepository extends ServiceEntityRepository
             ->getResult();
     }
 
-    /**
-     * Récupère un historique par son ID
-     */
+    
     public function getById(string $id): ?HistoriquePrixBillet
     {
         return $this->find($id);
     }
 
-    /**
-     * Récupère l'historique des prix pour un type de billet
-     */
+    
     public function findByTypeBillet(TypeBillet $typeBillet): array
     {
         return $this->createQueryBuilder('h')
@@ -51,9 +43,7 @@ class HistoriquePrixBilletRepository extends ServiceEntityRepository
             ->getResult();
     }
 
-    /**
-     * Récupère l'historique des prix pour un événement
-     */
+    
     public function findByEvenement(int $evenementId): array
     {
         return $this->createQueryBuilder('h')
@@ -65,9 +55,7 @@ class HistoriquePrixBilletRepository extends ServiceEntityRepository
             ->getResult();
     }
 
-    /**
-     * Crée un nouvel historique de prix
-     */
+    
     public function create(HistoriquePrixBillet $historique): HistoriquePrixBillet
     {
         $this->getEntityManager()->persist($historique);
@@ -76,23 +64,14 @@ class HistoriquePrixBilletRepository extends ServiceEntityRepository
         return $historique;
     }
 
-    /**
-     * Supprime un historique
-     */
+    
     public function delete(HistoriquePrixBillet $historique): void
     {
         $this->getEntityManager()->remove($historique);
         $this->getEntityManager()->flush();
     }
 
-    /**
-     * Récupère l'historique des prix paginé pour un type de billet
-     *
-     * @param TypeBillet $typeBillet
-     * @param int $page Numéro de page (commence à 1)
-     * @param int $limit Nombre d'éléments par page
-     * @return Paginator
-     */
+    
     public function findByTypeBilletPaginated(TypeBillet $typeBillet, int $page = 1, int $limit = 5): Paginator
     {
         $query = $this->createQueryBuilder('h')
@@ -106,16 +85,7 @@ class HistoriquePrixBilletRepository extends ServiceEntityRepository
         return new Paginator($query, true);
     }
 
-    /**
-     * Récupère l'historique des prix paginé pour un organisateur
-     *
-     * @param User $organizer
-     * @param int $page Numéro de page (commence à 1)
-     * @param int $limit Nombre d'éléments par page
-     * @param string|null $categorieFilter Filtre par nom de catégorie (ex: 'vip')
-     * @param string|null $segmentFilter Filtre par nom de segment (ex: 'enfant')
-     * @return Paginator
-     */
+    
     public function findByOrganizerPaginated(User $organizer, int $page = 1, int $limit = 5, ?string $categorieFilter = null, ?string $segmentFilter = null): Paginator
     {
         $qb = $this->createQueryBuilder('h')

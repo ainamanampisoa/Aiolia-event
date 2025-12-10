@@ -6,9 +6,7 @@ use App\Entity\ConfigurationCategorieBillet;
 use Doctrine\Bundle\DoctrineBundle\Repository\ServiceEntityRepository;
 use Doctrine\Persistence\ManagerRegistry;
 
-/**
- * @extends ServiceEntityRepository<ConfigurationCategorieBillet>
- */
+
 class ConfigurationCategorieBilletRepository extends ServiceEntityRepository
 {
     private const NOT_DELETED_CONDITION = 'c.supprimeLe IS NULL';
@@ -18,9 +16,7 @@ class ConfigurationCategorieBilletRepository extends ServiceEntityRepository
         parent::__construct($registry, ConfigurationCategorieBillet::class);
     }
 
-    /**
-     * Récupère toutes les catégories de billets (non supprimées)
-     */
+    
     public function getAll(): array
     {
         return $this->createQueryBuilder('c')
@@ -30,9 +26,7 @@ class ConfigurationCategorieBilletRepository extends ServiceEntityRepository
             ->getResult();
     }
 
-    /**
-     * Récupère toutes les catégories de billets actives (non supprimées)
-     */
+    
     public function getAllActive(): array
     {
         return $this->createQueryBuilder('c')
@@ -44,9 +38,7 @@ class ConfigurationCategorieBilletRepository extends ServiceEntityRepository
             ->getResult();
     }
 
-    /**
-     * Récupère une catégorie de billet par son ID
-     */
+    
     public function getById(string $id): ?ConfigurationCategorieBillet
     {
         return $this->createQueryBuilder('c')
@@ -57,9 +49,7 @@ class ConfigurationCategorieBilletRepository extends ServiceEntityRepository
             ->getOneOrNullResult();
     }
 
-    /**
-     * Récupère une catégorie de billet par son nom
-     */
+    
     public function findByNom(string $nom): ?ConfigurationCategorieBillet
     {
         return $this->createQueryBuilder('c')
@@ -70,9 +60,7 @@ class ConfigurationCategorieBilletRepository extends ServiceEntityRepository
             ->getOneOrNullResult();
     }
 
-    /**
-     * Crée une nouvelle catégorie de billet
-     */
+    
     public function create(ConfigurationCategorieBillet $categorie): ConfigurationCategorieBillet
     {
         $this->getEntityManager()->persist($categorie);
@@ -81,9 +69,7 @@ class ConfigurationCategorieBilletRepository extends ServiceEntityRepository
         return $categorie;
     }
 
-    /**
-     * Met à jour une catégorie de billet
-     */
+    
     public function update(ConfigurationCategorieBillet $categorie): ConfigurationCategorieBillet
     {
         $this->getEntityManager()->flush();
@@ -91,27 +77,21 @@ class ConfigurationCategorieBilletRepository extends ServiceEntityRepository
         return $categorie;
     }
 
-    /**
-     * Supprime définitivement une catégorie de billet
-     */
+    
     public function delete(ConfigurationCategorieBillet $categorie): void
     {
         $this->getEntityManager()->remove($categorie);
         $this->getEntityManager()->flush();
     }
 
-    /**
-     * Suppression logique (soft delete) d'une catégorie de billet
-     */
+    
     public function softDelete(ConfigurationCategorieBillet $categorie): void
     {
         $categorie->softDelete();
         $this->getEntityManager()->flush();
     }
 
-    /**
-     * Restaure une catégorie de billet supprimée logiquement
-     */
+    
     public function restore(ConfigurationCategorieBillet $categorie): void
     {
         $categorie->restore();

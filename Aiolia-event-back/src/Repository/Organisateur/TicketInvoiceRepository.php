@@ -6,9 +6,7 @@ use App\Entity\TicketInvoice;
 use Doctrine\Bundle\DoctrineBundle\Repository\ServiceEntityRepository;
 use Doctrine\Persistence\ManagerRegistry;
 
-/**
- * @extends ServiceEntityRepository<TicketInvoice>
- */
+
 class TicketInvoiceRepository extends ServiceEntityRepository
 {
     public function __construct(ManagerRegistry $registry)
@@ -16,9 +14,7 @@ class TicketInvoiceRepository extends ServiceEntityRepository
         parent::__construct($registry, TicketInvoice::class);
     }
 
-    /**
-     * Trouve toutes les factures avec filtres optionnels
-     */
+    
     public function findAllWithFilters(?string $status = null, ?string $search = null, ?\DateTime $dateFrom = null, ?\DateTime $dateTo = null, int $limit = 50, int $offset = 0): array
     {
         $qb = $this->createQueryBuilder('ti')
@@ -55,9 +51,7 @@ class TicketInvoiceRepository extends ServiceEntityRepository
             ->getResult();
     }
 
-    /**
-     * Compte le total de factures avec filtres
-     */
+    
     public function countWithFilters(?string $status = null, ?string $search = null, ?\DateTime $dateFrom = null, ?\DateTime $dateTo = null): int
     {
         $qb = $this->createQueryBuilder('ti')
@@ -90,9 +84,7 @@ class TicketInvoiceRepository extends ServiceEntityRepository
         return (int) $qb->getQuery()->getSingleScalarResult();
     }
 
-    /**
-     * Trouve une facture par numéro
-     */
+    
     public function findByInvoiceNumber(string $invoiceNumber): ?TicketInvoice
     {
         return $this->createQueryBuilder('ti')
@@ -102,37 +94,32 @@ class TicketInvoiceRepository extends ServiceEntityRepository
             ->getOneOrNullResult();
     }
 
-    /**
-     * Applique un filtre de recherche intelligent selon le type de valeur
-     * - Si uniquement des chiffres : recherche dans invoiceNumber
-     * - Si contient @ : recherche dans email
-     * - Sinon : recherche dans prenom, nom et nom complet (prenom + nom)
-     */
+    
     private function applySearchFilter($qb, string $search, string $invoiceAlias, string $customerAlias): void
     {
         $searchTrimmed = trim($search);
         $searchPattern = '%' . $searchTrimmed . '%';
 
-        // Vérifier si c'est uniquement des chiffres (numéro de facture)
+        
         if (preg_match('/^\d+$/', $searchTrimmed)) {
             $qb->andWhere($qb->expr()->like($invoiceAlias . '.invoiceNumber', ':search'))
                 ->setParameter('search', $searchPattern);
             return;
         }
 
-        // Vérifier si c'est un email (contient @)
+        
         if (strpos($searchTrimmed, '@') !== false) {
             $qb->andWhere($qb->expr()->like($customerAlias . '.email', ':search'))
                 ->setParameter('search', $searchPattern);
             return;
         }
 
-        // Sinon, rechercher dans prenom, nom et nom complet
-        // Si la recherche contient un espace, diviser en mots et chercher dans prenom ET nom
+        
+        
         $words = preg_split('/\s+/', $searchTrimmed);
         
         if (count($words) > 1) {
-            // Recherche multi-mots : chercher le premier mot dans prenom et le dernier dans nom
+            
             $firstWord = '%' . $words[0] . '%';
             $lastWord = '%' . end($words) . '%';
             
@@ -145,7 +132,7 @@ class TicketInvoiceRepository extends ServiceEntityRepository
                 ->setParameter('firstWord', $firstWord)
                 ->setParameter('lastWord', $lastWord);
         } else {
-            // Recherche simple : chercher dans prenom OU nom
+            
             $qb->andWhere(
                 $qb->expr()->orX(
                     $qb->expr()->like($customerAlias . '.prenom', ':search'),

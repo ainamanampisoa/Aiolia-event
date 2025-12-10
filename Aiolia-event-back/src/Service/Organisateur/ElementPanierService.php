@@ -14,33 +14,25 @@ class ElementPanierService
     ) {
     }
 
-    /**
-     * Récupère tous les éléments de paniers
-     */
+    
     public function getAll(): array
     {
         return $this->repository->getAll();
     }
 
-    /**
-     * Récupère un élément de panier par son ID
-     */
+    
     public function getById(string $id): ?ElementPanier
     {
         return $this->repository->getById($id);
     }
 
-    /**
-     * Récupère tous les éléments d'un panier
-     */
+    
     public function getByPanier(Panier $panier): array
     {
         return $this->repository->findByPanier($panier);
     }
 
-    /**
-     * Crée un nouvel élément de panier
-     */
+    
     public function create(array $data, Panier $panier, TypeBillet $typeBillet): ElementPanier
     {
         $element = new ElementPanier();
@@ -62,9 +54,7 @@ class ElementPanierService
         return $this->repository->create($element);
     }
 
-    /**
-     * Met à jour un élément de panier
-     */
+    
     public function update(ElementPanier $element, array $data): ElementPanier
     {
         if (isset($data['quantite'])) {
@@ -82,9 +72,7 @@ class ElementPanierService
         return $this->repository->update($element);
     }
 
-    /**
-     * Supprime un élément de panier
-     */
+    
     public function delete(ElementPanier $element): void
     {
         $this->repository->delete($element);

@@ -30,17 +30,17 @@ class PromotionController extends AbstractController
             throw $this->createAccessDeniedException('Vous devez être connecté pour accéder à cette page.');
         }
 
-        // Récupérer le profil organisateur
+        
         $organizerProfile = $organizerProfileRepository->findOneBy(['utilisateur' => $user]);
         if (!$organizerProfile) {
             throw $this->createAccessDeniedException('Profil organisateur non trouvé.');
         }
 
-        // Récupérer le numéro de page depuis la requête (par défaut page 1)
+        
         $page = max(1, (int) $request->query->get('page', 1));
         $perPage = 4;
 
-        // Récupérer les filtres de date (peuvent être null)
+        
         $dateDebut = null;
         $dateFin = null;
         
@@ -48,7 +48,7 @@ class PromotionController extends AbstractController
             try {
                 $dateDebut = new \DateTimeImmutable($request->query->get('date_debut'));
             } catch (\Exception $e) {
-                // Si la date est invalide, on ignore le filtre
+                
                 $dateDebut = null;
             }
         }
@@ -56,15 +56,15 @@ class PromotionController extends AbstractController
         if ($request->query->has('date_fin') && $request->query->get('date_fin')) {
             try {
                 $dateFin = new \DateTimeImmutable($request->query->get('date_fin'));
-                // Ajouter 23h59:59 pour inclure toute la journée
+                
                 $dateFin = $dateFin->setTime(23, 59, 59);
             } catch (\Exception $e) {
-                // Si la date est invalide, on ignore le filtre
+                
                 $dateFin = null;
             }
         }
 
-        // Récupérer les promotions paginées avec filtres
+        
         $paginationData = $codePromotionnelService->getByOrganisateurPaginated(
             $organizerProfile,
             $page,
@@ -74,12 +74,12 @@ class PromotionController extends AbstractController
         );
         $promotions = $paginationData['items'];
         
-        // Récupérer les statistiques globales (toutes les promotions, pas seulement la page courante)
+        
         $allPromotions = $codePromotionnelService->getByOrganisateur($organizerProfile);
         $promotionsActives = $codePromotionnelService->getActiveByOrganisateur($organizerProfile);
         $promotionsExpirantBientot = $codePromotionnelService->getExpiringSoon($organizerProfile, 7);
 
-        // Calculer les statistiques globales
+        
         $totalUtilisations = 0;
         $totalRemises = 0;
         foreach ($allPromotions as $promotion) {
@@ -87,7 +87,7 @@ class PromotionController extends AbstractController
             $totalRemises += $codePromotionnelService->getTotalRemise($promotion);
         }
 
-        // Calculer les statistiques pour les promotions de la page courante
+        
         $promotionsAvecStats = [];
         foreach ($promotions as $promotion) {
             $utilisations = $codePromotionnelService->countUtilisations($promotion);
@@ -133,7 +133,7 @@ class PromotionController extends AbstractController
             throw $this->createAccessDeniedException('Vous devez être connecté pour accéder à cette page.');
         }
 
-        // Récupérer le profil organisateur
+        
         $organizerProfile = $organizerProfileRepository->findOneBy(['utilisateur' => $user]);
         if (!$organizerProfile) {
             throw $this->createAccessDeniedException('Profil organisateur non trouvé.');
@@ -142,7 +142,7 @@ class PromotionController extends AbstractController
         if ($request->isMethod('POST')) {
             $data = $request->request->all();
             
-            // Convertir les dates (format: Y-m-d H:i ou Y-m-d\TH:i)
+            
             if (!empty($data['start_date'])) {
                 $dateStr = str_replace(' ', 'T', $data['start_date']);
                 $data['commenceLe'] = new \DateTime($dateStr);
@@ -152,11 +152,11 @@ class PromotionController extends AbstractController
                 $data['seTermineLe'] = new \DateTime($dateStr);
             }
 
-            // Convertir le type de promotion
+            
             $data['typePromotion'] = $data['discount_type'] === 'percentage' ? 'percent' : 'amount';
             $data['valeur'] = $data['discount_value'] ?? 0;
 
-            // Gérer les métadonnées
+            
             $metadonnees = [];
             if (isset($data['description'])) {
                 $metadonnees['description'] = $data['description'];
@@ -181,7 +181,7 @@ class PromotionController extends AbstractController
             }
             $data['metadonnees'] = $metadonnees;
 
-            // Gérer les utilisations maximales
+            
             if (!empty($data['max_uses'])) {
                 $data['utilisationMaximaleTotale'] = (int) $data['max_uses'];
             }
@@ -198,19 +198,19 @@ class PromotionController extends AbstractController
             }
         }
 
-        // Récupérer les événements en cours ou à venir de l'organisateur
+        
         $now = new \DateTime();
         $events = $eventService->searchMultiCriteria([
             'idOrganisateur' => $organizerProfile->getId(),
-            'dateFin' => null, // Pas de filtre sur la date de fin dans la recherche
+            'dateFin' => null, 
             'limit' => 1000,
         ]);
         
-        // Filtrer pour garder uniquement les événements en cours ou à venir
+        
         $upcomingEvents = array_filter($events, function($event) use ($now) {
-            // Un événement est en cours ou à venir si sa date de fin est dans le futur ou nulle
+            
             if ($event->getSeTermineLe() === null) {
-                // Si pas de date de fin, vérifier la date de début
+                
                 return $event->getCommenceLe() === null || $event->getCommenceLe() >= $now;
             }
             return $event->getSeTermineLe() >= $now;
@@ -234,19 +234,19 @@ class PromotionController extends AbstractController
             throw $this->createAccessDeniedException('Vous devez être connecté pour accéder à cette page.');
         }
 
-        // Récupérer le profil organisateur
+        
         $organizerProfile = $organizerProfileRepository->findOneBy(['utilisateur' => $user]);
         if (!$organizerProfile) {
             throw $this->createAccessDeniedException('Profil organisateur non trouvé.');
         }
 
-        // Récupérer la promotion
+        
         $promotion = $codePromotionnelService->getById($id);
         if (!$promotion) {
             throw $this->createNotFoundException('Promotion non trouvée.');
         }
 
-        // Vérifier que la promotion appartient à l'organisateur
+        
         if ($promotion->getProfilOrganisateur()?->getId() !== $organizerProfile->getId()) {
             throw $this->createAccessDeniedException('Vous n\'avez pas accès à cette promotion.');
         }
@@ -254,7 +254,7 @@ class PromotionController extends AbstractController
         if ($request->isMethod('POST')) {
             $data = $request->request->all();
             
-            // Convertir les dates (format: Y-m-d H:i ou Y-m-d\TH:i)
+            
             if (!empty($data['start_date'])) {
                 $dateStr = str_replace(' ', 'T', $data['start_date']);
                 $data['commenceLe'] = new \DateTime($dateStr);
@@ -266,11 +266,11 @@ class PromotionController extends AbstractController
                 $data['seTermineLe'] = new \DateTime($dateStr);
             }
 
-            // Convertir le type de promotion
+            
             $data['typePromotion'] = $data['discount_type'] === 'percentage' ? 'percent' : 'amount';
             $data['valeur'] = $data['discount_value'] ?? 0;
 
-            // Gérer les métadonnées
+            
             $metadonnees = $promotion->getMetadonnees() ?? [];
             if (isset($data['description'])) {
                 $metadonnees['description'] = $data['description'];
@@ -295,7 +295,7 @@ class PromotionController extends AbstractController
             }
             $data['metadonnees'] = $metadonnees;
 
-            // Gérer les utilisations maximales
+            
             if (!empty($data['max_uses'])) {
                 $data['utilisationMaximaleTotale'] = (int) $data['max_uses'];
             } elseif (isset($data['max_uses']) && $data['max_uses'] === '') {
@@ -314,19 +314,19 @@ class PromotionController extends AbstractController
             }
         }
 
-        // Récupérer les événements en cours ou à venir de l'organisateur
+        
         $now = new \DateTime();
         $events = $eventService->searchMultiCriteria([
             'idOrganisateur' => $organizerProfile->getId(),
-            'dateFin' => null, // Pas de filtre sur la date de fin dans la recherche
+            'dateFin' => null, 
             'limit' => 1000,
         ]);
         
-        // Filtrer pour garder uniquement les événements en cours ou à venir
+        
         $upcomingEvents = array_filter($events, function($event) use ($now) {
-            // Un événement est en cours ou à venir si sa date de fin est dans le futur ou nulle
+            
             if ($event->getSeTermineLe() === null) {
-                // Si pas de date de fin, vérifier la date de début
+                
                 return $event->getCommenceLe() === null || $event->getCommenceLe() >= $now;
             }
             return $event->getSeTermineLe() >= $now;
@@ -350,24 +350,24 @@ class PromotionController extends AbstractController
             throw $this->createAccessDeniedException('Vous devez être connecté pour accéder à cette page.');
         }
 
-        // Récupérer le profil organisateur
+        
         $organizerProfile = $organizerProfileRepository->findOneBy(['utilisateur' => $user]);
         if (!$organizerProfile) {
             throw $this->createAccessDeniedException('Profil organisateur non trouvé.');
         }
 
-        // Récupérer la promotion
+        
         $promotion = $codePromotionnelService->getById($id);
         if (!$promotion) {
             throw $this->createNotFoundException('Promotion non trouvée.');
         }
 
-        // Vérifier que la promotion appartient à l'organisateur
+        
         if ($promotion->getProfilOrganisateur()?->getId() !== $organizerProfile->getId()) {
             throw $this->createAccessDeniedException('Vous n\'avez pas accès à cette promotion.');
         }
 
-        // Récupérer l'historique des applications
+        
         $applications = $applicationPromotionService->getByPromotion($promotion);
         $totalUtilisations = $codePromotionnelService->countUtilisations($promotion);
         $totalRemise = $codePromotionnelService->getTotalRemise($promotion);
@@ -388,7 +388,7 @@ class PromotionController extends AbstractController
         OrganizerProfileRepository $organizerProfileRepository,
         CsrfTokenManagerInterface $csrfTokenManager
     ): Response {
-        // Vérifier le token CSRF
+        
         $token = $request->request->get('_token');
         if (!$csrfTokenManager->isTokenValid(new CsrfToken('delete_promotion', $token))) {
             throw $this->createAccessDeniedException('Token CSRF invalide.');
@@ -398,19 +398,19 @@ class PromotionController extends AbstractController
             throw $this->createAccessDeniedException('Vous devez être connecté pour accéder à cette page.');
         }
 
-        // Récupérer le profil organisateur
+        
         $organizerProfile = $organizerProfileRepository->findOneBy(['utilisateur' => $user]);
         if (!$organizerProfile) {
             throw $this->createAccessDeniedException('Profil organisateur non trouvé.');
         }
 
-        // Récupérer la promotion
+        
         $promotion = $codePromotionnelService->getById($id);
         if (!$promotion) {
             throw $this->createNotFoundException('Promotion non trouvée.');
         }
 
-        // Vérifier que la promotion appartient à l'organisateur
+        
         if ($promotion->getProfilOrganisateur()?->getId() !== $organizerProfile->getId()) {
             throw $this->createAccessDeniedException('Vous n\'avez pas accès à cette promotion.');
         }

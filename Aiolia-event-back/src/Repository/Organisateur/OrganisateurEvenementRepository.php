@@ -8,9 +8,7 @@ use App\Entity\OrganizerProfile;
 use Doctrine\Bundle\DoctrineBundle\Repository\ServiceEntityRepository;
 use Doctrine\Persistence\ManagerRegistry;
 
-/**
- * @extends ServiceEntityRepository<OrganisateurEvenement>
- */
+
 class OrganisateurEvenementRepository extends ServiceEntityRepository
 {
     public function __construct(ManagerRegistry $registry)
@@ -18,9 +16,7 @@ class OrganisateurEvenementRepository extends ServiceEntityRepository
         parent::__construct($registry, OrganisateurEvenement::class);
     }
 
-    /**
-     * Récupère tous les organisateurs d'un événement
-     */
+    
     public function findByEvent(Event $event): array
     {
         return $this->createQueryBuilder('oe')
@@ -31,9 +27,7 @@ class OrganisateurEvenementRepository extends ServiceEntityRepository
             ->getResult();
     }
 
-    /**
-     * Récupère tous les événements d'un organisateur
-     */
+    
     public function findByOrganizer(OrganizerProfile $organizer): array
     {
         return $this->createQueryBuilder('oe')
@@ -44,9 +38,7 @@ class OrganisateurEvenementRepository extends ServiceEntityRepository
             ->getResult();
     }
 
-    /**
-     * Récupère un lien organisateur-événement spécifique
-     */
+    
     public function findOneByEventAndOrganizer(Event $event, OrganizerProfile $organizer): ?OrganisateurEvenement
     {
         return $this->createQueryBuilder('oe')
@@ -58,9 +50,7 @@ class OrganisateurEvenementRepository extends ServiceEntityRepository
             ->getOneOrNullResult();
     }
 
-    /**
-     * Crée un nouveau lien organisateur-événement
-     */
+    
     public function create(OrganisateurEvenement $organisateurEvenement): OrganisateurEvenement
     {
         $this->getEntityManager()->persist($organisateurEvenement);
@@ -69,9 +59,7 @@ class OrganisateurEvenementRepository extends ServiceEntityRepository
         return $organisateurEvenement;
     }
 
-    /**
-     * Met à jour un lien organisateur-événement
-     */
+    
     public function update(OrganisateurEvenement $organisateurEvenement): OrganisateurEvenement
     {
         $this->getEntityManager()->flush();
@@ -79,9 +67,7 @@ class OrganisateurEvenementRepository extends ServiceEntityRepository
         return $organisateurEvenement;
     }
 
-    /**
-     * Supprime un lien organisateur-événement
-     */
+    
     public function delete(OrganisateurEvenement $organisateurEvenement): void
     {
         $this->getEntityManager()->remove($organisateurEvenement);

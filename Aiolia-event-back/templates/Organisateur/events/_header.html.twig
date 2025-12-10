@@ -9,9 +9,9 @@
         <button class="btn btn-primary" style="background: #3498DB !important; color: white; border: none; padding: 10px 20px; border-radius: 8px; cursor: pointer; font-weight: 600;">
             <i class="fas fa-edit"></i> Modifier
         </button>
-        <button class="btn" style="background: var(--success); color: white; border: none; padding: 10px 20px; border-radius: 8px; cursor: pointer; font-weight: 600;">
+        {# <button class="btn" style="background: var(--success); color: white; border: none; padding: 10px 20px; border-radius: 8px; cursor: pointer; font-weight: 600;">
             <i class="fas fa-share-alt"></i> Partager
-        </button>
+        </button> #}
     </div>
 </div>
 
@@ -36,7 +36,7 @@
             <span>
                 <i class="fas fa-calendar"></i>
                 {% if event.commenceLe %}
-                    {{ event.commenceLe|date('d F Y') }}
+                    {{ event.commenceLe|date('d/m/Y') }}
                 {% else %}
                     Date non définie
                 {% endif %}
@@ -84,7 +84,19 @@
             <i class="fas fa-signal"></i>
         </div>
         <div class="qstat-content">
-            <div class="qstat-value">{{ event.statut|upper }}</div>
+            <div class="qstat-value">
+                {% if event.statut == 'published' %}
+                    Publié
+                {% elseif event.statut == 'draft' %}
+                    Brouillon
+                {% elseif event.statut == 'cancelled' %}
+                    Annulé
+                {% elseif event.statut == 'archived' %}
+                    Archivé
+                {% else %}
+                    {{ event.statut|capitalize }}
+                {% endif %}
+            </div>
             <div class="qstat-label">Statut de l'événement</div>
         </div>
     </div>
@@ -95,7 +107,15 @@
         </div>
         <div class="qstat-content">
             <div class="qstat-value">
-                {{ event.formatEvenement|replace({'_': ' '})|title }}
+                {% if event.formatEvenement == 'in_person' %}
+                    En personne
+                {% elseif event.formatEvenement == 'online' %}
+                    En ligne
+                {% elseif event.formatEvenement == 'hybrid' %}
+                    Hybride
+                {% else %}
+                    {{ event.formatEvenement|replace({'_': ' '})|title }}
+                {% endif %}
             </div>
             <div class="qstat-label">Format</div>
         </div>
@@ -107,7 +127,15 @@
         </div>
         <div class="qstat-content">
             <div class="qstat-value">
-                {{ event.visibilite|capitalize }}
+                {% if event.visibilite == 'public' %}
+                    Public
+                {% elseif event.visibilite == 'private' %}
+                    Privé
+                {% elseif event.visibilite == 'unlisted' %}
+                    Non listé
+                {% else %}
+                    {{ event.visibilite|capitalize }}
+                {% endif %}
             </div>
             <div class="qstat-label">Visibilité</div>
         </div>

@@ -11,9 +11,7 @@ use Symfony\Component\Security\Http\Attribute\IsGranted;
 #[IsGranted('ROLE_ORGANIZER')]
 class ReportsController extends AbstractController
 {
-    /**
-     * Page principale des rapports
-     */
+    
     #[Route('', name: 'organisateur_reports_index', methods: ['GET'])]
     public function index(): Response
     {

@@ -23,9 +23,7 @@ class UserNotificationService
     ) {
     }
 
-    /**
-     * Envoie une notification par email lors d'un changement de statut
-     */
+    
     public function sendStatusChangeNotification(User $user, string $oldStatus, string $newStatus, ?string $comment = null): bool
     {
         $statusLabels = [
@@ -51,9 +49,7 @@ class UserNotificationService
         return $this->sendEmail($email);
     }
 
-    /**
-     * Envoie une notification lors de l'approbation d'une demande de validation
-     */
+    
     public function sendValidationApprovedNotification(User $user, string $newRole, ?string $comment = null): bool
     {
         $roleLabels = [
@@ -77,9 +73,7 @@ class UserNotificationService
         return $this->sendEmail($email);
     }
 
-    /**
-     * Envoie une notification lors du rejet d'une demande de validation
-     */
+    
     public function sendValidationRejectedNotification(User $user, string $requestedRole, ?string $reason = null): bool
     {
         $roleLabels = [
@@ -103,9 +97,7 @@ class UserNotificationService
         return $this->sendEmail($email);
     }
 
-    /**
-     * Envoie une notification lors d'un changement de rôle
-     */
+    
     public function sendRoleChangeNotification(User $user, string $oldRole, string $newRole): bool
     {
         $roleLabels = [

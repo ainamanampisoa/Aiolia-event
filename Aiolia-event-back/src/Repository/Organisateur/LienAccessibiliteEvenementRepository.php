@@ -8,9 +8,7 @@ use App\Entity\TypeAccessibilite;
 use Doctrine\Bundle\DoctrineBundle\Repository\ServiceEntityRepository;
 use Doctrine\Persistence\ManagerRegistry;
 
-/**
- * @extends ServiceEntityRepository<LienAccessibiliteEvenement>
- */
+
 class LienAccessibiliteEvenementRepository extends ServiceEntityRepository
 {
     public function __construct(ManagerRegistry $registry)
@@ -18,9 +16,7 @@ class LienAccessibiliteEvenementRepository extends ServiceEntityRepository
         parent::__construct($registry, LienAccessibiliteEvenement::class);
     }
 
-    /**
-     * Récupère tous les liens accessibilité-événements
-     */
+    
     public function getAll(): array
     {
         return $this->createQueryBuilder('l')
@@ -29,9 +25,7 @@ class LienAccessibiliteEvenementRepository extends ServiceEntityRepository
             ->getResult();
     }
 
-    /**
-     * Récupère un lien accessibilité-événement par son ID (composite)
-     */
+    
     public function getById(Event $evenement, TypeAccessibilite $typeAccessibilite): ?LienAccessibiliteEvenement
     {
         return $this->createQueryBuilder('l')
@@ -43,9 +37,7 @@ class LienAccessibiliteEvenementRepository extends ServiceEntityRepository
             ->getOneOrNullResult();
     }
 
-    /**
-     * Récupère tous les liens d'un événement
-     */
+    
     public function findByEvenement(Event $evenement): array
     {
         return $this->createQueryBuilder('l')
@@ -56,9 +48,7 @@ class LienAccessibiliteEvenementRepository extends ServiceEntityRepository
             ->getResult();
     }
 
-    /**
-     * Crée un nouveau lien accessibilité-événement
-     */
+    
     public function create(LienAccessibiliteEvenement $lien): LienAccessibiliteEvenement
     {
         $this->getEntityManager()->persist($lien);
@@ -67,9 +57,7 @@ class LienAccessibiliteEvenementRepository extends ServiceEntityRepository
         return $lien;
     }
 
-    /**
-     * Met à jour un lien accessibilité-événement
-     */
+    
     public function update(LienAccessibiliteEvenement $lien): LienAccessibiliteEvenement
     {
         $this->getEntityManager()->flush();
@@ -77,9 +65,7 @@ class LienAccessibiliteEvenementRepository extends ServiceEntityRepository
         return $lien;
     }
 
-    /**
-     * Supprime un lien accessibilité-événement
-     */
+    
     public function delete(LienAccessibiliteEvenement $lien): void
     {
         $this->getEntityManager()->remove($lien);

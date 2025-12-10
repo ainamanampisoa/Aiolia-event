@@ -18,33 +18,25 @@ class TypeBilletService
     ) {
     }
 
-    /**
-     * Récupère tous les types de billets
-     */
+    
     public function getAll(): array
     {
         return $this->repository->getAll();
     }
 
-    /**
-     * Récupère un type de billet par son ID
-     */
+    
     public function getById(string $id): ?TypeBillet
     {
         return $this->repository->getById($id);
     }
 
-    /**
-     * Récupère tous les types de billets d'un événement
-     */
+    
     public function getByEvenement(Event $evenement): array
     {
         return $this->repository->findByEvenement($evenement);
     }
 
-    /**
-     * Crée un nouveau type de billet
-     */
+    
     public function create(array $data, Event $evenement): TypeBillet
     {
         $typeBillet = new TypeBillet();
@@ -109,9 +101,7 @@ class TypeBilletService
         return $this->repository->create($typeBillet);
     }
 
-    /**
-     * Met à jour un type de billet
-     */
+    
     public function update(TypeBillet $typeBillet, array $data): TypeBillet
     {
         if (isset($data['session']) && $data['session'] instanceof SessionEvenement) {
@@ -173,25 +163,19 @@ class TypeBilletService
         return $this->repository->update($typeBillet);
     }
 
-    /**
-     * Supprime un type de billet
-     */
+    
     public function delete(TypeBillet $typeBillet): void
     {
         $this->repository->delete($typeBillet);
     }
 
-    /**
-     * Récupère tous les types de billets pour un organisateur
-     */
+    
     public function getByOrganizer(User $organizer): array
     {
         return $this->repository->findByOrganizer($organizer);
     }
 
-    /**
-     * Récupère tous les types de billets pour un organisateur avec pagination
-     */
+    
     public function getByOrganizerPaginated(User $organizer, int $page = 1, int $limit = 6, ?string $categorieFilter = null, ?string $segmentFilter = null): Paginator
     {
         return $this->repository->findByOrganizerPaginated($organizer, $page, $limit, $categorieFilter, $segmentFilter);

@@ -11,9 +11,7 @@ use Doctrine\Bundle\DoctrineBundle\Repository\ServiceEntityRepository;
 use Doctrine\ORM\Tools\Pagination\Paginator;
 use Doctrine\Persistence\ManagerRegistry;
 
-/**
- * @extends ServiceEntityRepository<Billet>
- */
+
 class BilletRepository extends ServiceEntityRepository
 {
     public function __construct(ManagerRegistry $registry)
@@ -21,9 +19,7 @@ class BilletRepository extends ServiceEntityRepository
         parent::__construct($registry, Billet::class);
     }
 
-    /**
-     * Récupère tous les billets
-     */
+    
     public function getAll(): array
     {
         return $this->createQueryBuilder('b')
@@ -32,17 +28,13 @@ class BilletRepository extends ServiceEntityRepository
             ->getResult();
     }
 
-    /**
-     * Récupère un billet par son ID
-     */
+    
     public function getById(string $id): ?Billet
     {
         return $this->find($id);
     }
 
-    /**
-     * Récupère un billet par son code QR
-     */
+    
     public function findByCodeQr(string $codeQr): ?Billet
     {
         return $this->createQueryBuilder('b')
@@ -52,9 +44,7 @@ class BilletRepository extends ServiceEntityRepository
             ->getOneOrNullResult();
     }
 
-    /**
-     * Récupère tous les billets d'un utilisateur
-     */
+    
     public function findByUser(User $user): array
     {
         return $this->createQueryBuilder('b')
@@ -65,9 +55,7 @@ class BilletRepository extends ServiceEntityRepository
             ->getResult();
     }
 
-    /**
-     * Récupère tous les billets d'un type de billet
-     */
+    
     public function findByTypeBillet(TypeBillet $typeBillet): array
     {
         return $this->createQueryBuilder('b')
@@ -78,9 +66,7 @@ class BilletRepository extends ServiceEntityRepository
             ->getResult();
     }
 
-    /**
-     * Récupère tous les billets d'un élément de commande
-     */
+    
     public function findByElementCommande(ElementCommande $elementCommande): array
     {
         return $this->createQueryBuilder('b')
@@ -91,9 +77,7 @@ class BilletRepository extends ServiceEntityRepository
             ->getResult();
     }
 
-    /**
-     * Crée un nouveau billet
-     */
+    
     public function create(Billet $billet): Billet
     {
         $this->getEntityManager()->persist($billet);
@@ -102,9 +86,7 @@ class BilletRepository extends ServiceEntityRepository
         return $billet;
     }
 
-    /**
-     * Met à jour un billet
-     */
+    
     public function update(Billet $billet): Billet
     {
         $this->getEntityManager()->flush();
@@ -112,18 +94,14 @@ class BilletRepository extends ServiceEntityRepository
         return $billet;
     }
 
-    /**
-     * Supprime un billet
-     */
+    
     public function delete(Billet $billet): void
     {
         $this->getEntityManager()->remove($billet);
         $this->getEntityManager()->flush();
     }
 
-    /**
-     * Récupère tous les billets pour un organisateur (via ses événements)
-     */
+    
     public function findByOrganizer(User $organizer): array
     {
         return $this->createQueryBuilder('b')
@@ -139,14 +117,7 @@ class BilletRepository extends ServiceEntityRepository
             ->getResult();
     }
 
-    /**
-     * Récupère les billets paginés pour un organisateur
-     *
-     * @param User $organizer
-     * @param int $page Numéro de page (commence à 1)
-     * @param int $limit Nombre d'éléments par page
-     * @return Paginator
-     */
+    
     public function findByOrganizerPaginated(User $organizer, int $page = 1, int $limit = 10): Paginator
     {
         $query = $this->createQueryBuilder('b')
@@ -165,9 +136,7 @@ class BilletRepository extends ServiceEntityRepository
         return new Paginator($query, true);
     }
 
-    /**
-     * Récupère les statistiques des billets pour un organisateur
-     */
+    
     public function getStatsByOrganizer(User $organizer): array
     {
         $baseConditions = function($qb) use ($organizer) {
@@ -202,7 +171,7 @@ class BilletRepository extends ServiceEntityRepository
             ->getQuery()
             ->getSingleScalarResult();
 
-        // Les billets "en attente" sont ceux qui sont valides mais pas encore utilisés
+        
         $enAttente = (int) $baseConditions($this->createQueryBuilder('b'))
             ->select($countSelect)
             ->andWhere($statusCondition)
@@ -226,17 +195,15 @@ class BilletRepository extends ServiceEntityRepository
         ];
     }
 
-    /**
-     * Évolution des ventes (nombre de billets et revenu) par jour pour un événement
-     */
+    
     public function getSalesEvolutionByEvent(Event $event): array
     {
-        // Utilisation d'une requête SQL native car Doctrine ORM ne supporte pas DATE() en DQL
+        
         $conn = $this->getEntityManager()->getConnection();
         
         $statuses = [Billet::STATUT_VALID, Billet::STATUT_USED];
         
-        // Échapper les valeurs pour la clause IN
+        
         $quotedStatuses = array_map(function ($status) use ($conn) {
             return $conn->quote($status);
         }, $statuses);

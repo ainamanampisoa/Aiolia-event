@@ -12,33 +12,25 @@ class LangueService
     ) {
     }
 
-    /**
-     * Récupère toutes les langues
-     */
+    
     public function getAll(): array
     {
         return $this->repository->getAll();
     }
 
-    /**
-     * Récupère une langue par son ID
-     */
+    
     public function getById(string $id): ?Langue
     {
         return $this->repository->getById($id);
     }
 
-    /**
-     * Récupère une langue par son code
-     */
+    
     public function getByCode(string $code): ?Langue
     {
         return $this->repository->findByCode($code);
     }
 
-    /**
-     * Crée une nouvelle langue
-     */
+    
     public function create(array $data): Langue
     {
         $langue = new Langue();
@@ -58,9 +50,7 @@ class LangueService
         return $this->repository->create($langue);
     }
 
-    /**
-     * Met à jour une langue
-     */
+    
     public function update(Langue $langue, array $data): Langue
     {
         if (isset($data['code'])) {
@@ -78,9 +68,7 @@ class LangueService
         return $this->repository->update($langue);
     }
 
-    /**
-     * Supprime une langue
-     */
+    
     public function delete(Langue $langue): void
     {
         $this->repository->delete($langue);

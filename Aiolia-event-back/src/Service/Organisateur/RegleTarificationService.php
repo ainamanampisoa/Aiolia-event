@@ -13,49 +13,37 @@ class RegleTarificationService
     ) {
     }
 
-    /**
-     * Récupère toutes les règles de tarification
-     */
+    
     public function getAll(): array
     {
         return $this->repository->getAll();
     }
 
-    /**
-     * Récupère une règle de tarification par son ID
-     */
+    
     public function getById(string $id): ?RegleTarification
     {
         return $this->repository->getById($id);
     }
 
-    /**
-     * Récupère toutes les règles de tarification d'un type de billet
-     */
+    
     public function getByTypeBillet(TypeBillet $typeBillet): array
     {
         return $this->repository->findByTypeBillet($typeBillet);
     }
 
-    /**
-     * Récupère toutes les règles de tarification actives d'un type de billet
-     */
+    
     public function getActiveByTypeBillet(TypeBillet $typeBillet): array
     {
         return $this->repository->findActiveByTypeBillet($typeBillet);
     }
 
-    /**
-     * Récupère toutes les règles de tarification actives
-     */
+    
     public function getActive(): array
     {
         return $this->repository->findActive();
     }
 
-    /**
-     * Crée une nouvelle règle de tarification
-     */
+    
     public function create(array $data, TypeBillet $typeBillet): RegleTarification
     {
         $regle = new RegleTarification();
@@ -88,9 +76,7 @@ class RegleTarificationService
         return $this->repository->create($regle);
     }
 
-    /**
-     * Met à jour une règle de tarification
-     */
+    
     public function update(RegleTarification $regle, array $data): RegleTarification
     {
         if (isset($data['typeRegle'])) {
@@ -120,9 +106,7 @@ class RegleTarificationService
         return $this->repository->update($regle);
     }
 
-    /**
-     * Supprime une règle de tarification
-     */
+    
     public function delete(RegleTarification $regle): void
     {
         $this->repository->delete($regle);

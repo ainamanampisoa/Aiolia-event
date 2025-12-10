@@ -7,9 +7,7 @@ use App\Entity\User;
 use Doctrine\Bundle\DoctrineBundle\Repository\ServiceEntityRepository;
 use Doctrine\Persistence\ManagerRegistry;
 
-/**
- * @extends ServiceEntityRepository<Commande>
- */
+
 class CommandeRepository extends ServiceEntityRepository
 {
     public function __construct(ManagerRegistry $registry)
@@ -17,9 +15,7 @@ class CommandeRepository extends ServiceEntityRepository
         parent::__construct($registry, Commande::class);
     }
 
-    /**
-     * Récupère toutes les commandes
-     */
+    
     public function getAll(): array
     {
         return $this->createQueryBuilder('c')
@@ -28,17 +24,13 @@ class CommandeRepository extends ServiceEntityRepository
             ->getResult();
     }
 
-    /**
-     * Récupère une commande par son ID
-     */
+    
     public function getById(string $id): ?Commande
     {
         return $this->find($id);
     }
 
-    /**
-     * Récupère toutes les commandes d'un utilisateur
-     */
+    
     public function findByUser(User $user): array
     {
         return $this->createQueryBuilder('c')
@@ -49,9 +41,7 @@ class CommandeRepository extends ServiceEntityRepository
             ->getResult();
     }
 
-    /**
-     * Crée une nouvelle commande
-     */
+    
     public function create(Commande $commande): Commande
     {
         $this->getEntityManager()->persist($commande);
@@ -60,9 +50,7 @@ class CommandeRepository extends ServiceEntityRepository
         return $commande;
     }
 
-    /**
-     * Met à jour une commande
-     */
+    
     public function update(Commande $commande): Commande
     {
         $this->getEntityManager()->flush();
@@ -70,9 +58,7 @@ class CommandeRepository extends ServiceEntityRepository
         return $commande;
     }
 
-    /**
-     * Supprime une commande
-     */
+    
     public function delete(Commande $commande): void
     {
         $this->getEntityManager()->remove($commande);

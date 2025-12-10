@@ -29,25 +29,19 @@ class EventService
     ) {
     }
 
-    /**
-     * Récupère tous les événements
-     */
+    
     public function getAll(): array
     {
         return $this->eventRepository->getAll();
     }
 
-    /**
-     * Récupère un événement par son ID
-     */
+    
     public function getById(string $id): ?Event
     {
         return $this->eventRepository->getById($id);
     }
 
-    /**
-     * Crée un nouvel événement
-     */
+    
     public function create(array $data, ?OrganizerProfile $organizerProfile = null): Event
     {
         $event = new Event();
@@ -61,9 +55,7 @@ class EventService
         return $this->eventRepository->create($event);
     }
 
-    /**
-     * Met à jour un événement
-     */
+    
     public function update(Event $event, array $data): Event
     {
         $this->updateEventFromData($event, $data);
@@ -71,44 +63,34 @@ class EventService
         return $this->eventRepository->update($event);
     }
 
-    /**
-     * Supprime un événement
-     */
+    
     public function delete(Event $event): void
     {
         $this->eventRepository->delete($event);
     }
 
-    /**
-     * Publie un événement
-     */
+    
     public function publishEvent(Event $event): Event
     {
         $event->setStatut(Event::STATUS_PUBLISHED);
         return $this->eventRepository->update($event);
     }
 
-    /**
-     * Annule un événement
-     */
+    
     public function cancelEvent(Event $event): Event
     {
         $event->setStatut(Event::STATUS_CANCELLED);
         return $this->eventRepository->update($event);
     }
 
-    /**
-     * Archive un événement
-     */
+    
     public function archiveEvent(Event $event): Event
     {
         $event->setStatut(Event::STATUS_ARCHIVED);
         return $this->eventRepository->update($event);
     }
 
-    /**
-     * Duplique un événement
-     */
+    
     public function duplicateEvent(Event $originalEvent, ?OrganizerProfile $organizerProfile = null): Event
     {
         $newEvent = new Event();
@@ -135,47 +117,25 @@ class EventService
         return $this->eventRepository->create($newEvent);
     }
 
-    /**
-     * Récupère les événements à venir
-     */
+    
     public function getUpcomingEvents(int $limit = 0): array
     {
         return $this->eventRepository->findUpcomingEvents($limit);
     }
 
-    /**
-     * Récupère les événements en vedette
-     */
+    
     public function getFeaturedEvents(int $limit = 6): array
     {
         return $this->eventRepository->findFeaturedEvents($limit);
     }
 
-    /**
-     * Recherche des événements
-     */
+    
     public function searchEvents(string $query, array $filters = []): array
     {
         return $this->eventRepository->searchEvents($query, $filters);
     }
 
-    /**
-     * Recherche multicritères d'événements
-     *
-     * @param array $criteria Critères de recherche :
-     *   - 'idOrganisateur' (string) : ID du profil organisateur (obligatoire)
-     *   - 'nomLieu' (string|null) : Nom du lieu
-     *   - 'dateDebut' (\DateTimeInterface|null) : Date de début
-     *   - 'dateFin' (\DateTimeInterface|null) : Date de fin
-     *   - 'typeEvenementId' (string|null) : ID du type d'événement
-     *   - 'prixMin' (float|null) : Prix minimum
-     *   - 'prixMax' (float|null) : Prix maximum
-     *   - 'triPrix' (string|null) : 'asc' pour croissant, 'desc' pour décroissant
-     *   - 'limit' (int|null) : Limite de résultats
-     *   - 'offset' (int|null) : Offset pour la pagination
-     * @return array Tableau d'événements
-     * @throws \InvalidArgumentException Si idOrganisateur n'est pas fourni
-     */
+    
     public function searchMultiCriteria(array $criteria): array
     {
         $idOrganisateur = $criteria['idOrganisateur'] ?? null;
@@ -183,7 +143,7 @@ class EventService
             throw new \InvalidArgumentException('Le paramètre idOrganisateur est obligatoire');
         }
 
-        $nomLieu = $criteria['nomLieu'] ?? null;
+        $lieuId = $criteria['lieuId'] ?? $criteria['nomLieu'] ?? null; 
         $dateDebut = $criteria['dateDebut'] ?? null;
         $dateFin = $criteria['dateFin'] ?? null;
         $typeEvenementId = $criteria['typeEvenementId'] ?? null;
@@ -194,7 +154,7 @@ class EventService
         $limit = $criteria['limit'] ?? null;
         $offset = $criteria['offset'] ?? null;
 
-        // Normaliser les valeurs null/0 pour les prix
+        
         if ($prixMin !== null && ($prixMin === 0 || $prixMin === '0')) {
             $prixMin = null;
         }
@@ -202,17 +162,17 @@ class EventService
             $prixMax = null;
         }
 
-        // Normaliser le type d'événement
+        
         if ($typeEvenementId !== null && ($typeEvenementId === '0' || $typeEvenementId === '')) {
             $typeEvenementId = null;
         }
 
-        // Normaliser le statut
+        
         if ($statut !== null && $statut === '') {
             $statut = null;
         }
 
-        // Convertir les dates si elles sont des strings
+        
         if ($dateDebut !== null && is_string($dateDebut)) {
             try {
                 $dateDebut = new \DateTime($dateDebut);
@@ -231,7 +191,7 @@ class EventService
 
         return $this->eventRepository->searchMultiCriteria(
             $idOrganisateur,
-            $nomLieu,
+            $lieuId,
             $dateDebut,
             $dateFin,
             $typeEvenementId,
@@ -244,13 +204,7 @@ class EventService
         );
     }
 
-    /**
-     * Compte les résultats d'une recherche multicritères
-     *
-     * @param array $criteria Critères de recherche (même format que searchMultiCriteria)
-     * @return int Nombre de résultats
-     * @throws \InvalidArgumentException Si idOrganisateur n'est pas fourni
-     */
+    
     public function countSearchMultiCriteria(array $criteria): int
     {
         $idOrganisateur = $criteria['idOrganisateur'] ?? null;
@@ -258,7 +212,7 @@ class EventService
             throw new \InvalidArgumentException('Le paramètre idOrganisateur est obligatoire');
         }
 
-        $nomLieu = $criteria['nomLieu'] ?? null;
+        $lieuId = $criteria['lieuId'] ?? $criteria['nomLieu'] ?? null; 
         $dateDebut = $criteria['dateDebut'] ?? null;
         $dateFin = $criteria['dateFin'] ?? null;
         $typeEvenementId = $criteria['typeEvenementId'] ?? null;
@@ -266,7 +220,7 @@ class EventService
         $prixMin = $criteria['prixMin'] ?? null;
         $prixMax = $criteria['prixMax'] ?? null;
 
-        // Normaliser les valeurs null/0 pour les prix
+        
         if ($prixMin !== null && ($prixMin === 0 || $prixMin === '0')) {
             $prixMin = null;
         }
@@ -274,17 +228,17 @@ class EventService
             $prixMax = null;
         }
 
-        // Normaliser le type d'événement
+        
         if ($typeEvenementId !== null && ($typeEvenementId === '0' || $typeEvenementId === '')) {
             $typeEvenementId = null;
         }
 
-        // Normaliser le statut
+        
         if ($statut !== null && $statut === '') {
             $statut = null;
         }
 
-        // Convertir les dates si elles sont des strings
+        
         if ($dateDebut !== null && is_string($dateDebut)) {
             try {
                 $dateDebut = new \DateTime($dateDebut);
@@ -303,7 +257,7 @@ class EventService
 
         return $this->eventRepository->countSearchMultiCriteria(
             $idOrganisateur,
-            $nomLieu,
+            $lieuId,
             $dateDebut,
             $dateFin,
             $typeEvenementId,
@@ -313,23 +267,7 @@ class EventService
         );
     }
 
-    /**
-     * Recherche multicritères avec pagination complète
-     *
-     * @param array $criteria Critères de recherche :
-     *   - 'idOrganisateur' (string) : ID du profil organisateur (obligatoire)
-     *   - 'nomLieu' (string|null) : Nom du lieu
-     *   - 'dateDebut' (\DateTimeInterface|null) : Date de début
-     *   - 'dateFin' (\DateTimeInterface|null) : Date de fin
-     *   - 'typeEvenementId' (string|null) : ID du type d'événement
-     *   - 'prixMin' (float|null) : Prix minimum
-     *   - 'prixMax' (float|null) : Prix maximum
-     *   - 'triPrix' (string|null) : 'asc' pour croissant, 'desc' pour décroissant
-     *   - 'page' (int) : Numéro de page (commence à 1, défaut: 1)
-     *   - 'limit' (int) : Nombre d'éléments par page (défaut: 20)
-     * @return array ['items' => Event[], 'pagination' => array]
-     * @throws \InvalidArgumentException Si idOrganisateur n'est pas fourni
-     */
+    
     public function searchMultiCriteriaWithPagination(array $criteria): array
     {
         $idOrganisateur = $criteria['idOrganisateur'] ?? null;
@@ -337,7 +275,7 @@ class EventService
             throw new \InvalidArgumentException('Le paramètre idOrganisateur est obligatoire');
         }
 
-        $nomLieu = $criteria['nomLieu'] ?? null;
+        $lieuId = $criteria['lieuId'] ?? $criteria['nomLieu'] ?? null; 
         $dateDebut = $criteria['dateDebut'] ?? null;
         $dateFin = $criteria['dateFin'] ?? null;
         $typeEvenementId = $criteria['typeEvenementId'] ?? null;
@@ -348,7 +286,7 @@ class EventService
         $page = max(1, (int) ($criteria['page'] ?? 1));
         $limit = max(1, (int) ($criteria['limit'] ?? 20));
 
-        // Normaliser les valeurs null/0 pour les prix
+        
         if ($prixMin !== null && ($prixMin === 0 || $prixMin === '0')) {
             $prixMin = null;
         }
@@ -356,17 +294,17 @@ class EventService
             $prixMax = null;
         }
 
-        // Normaliser le type d'événement
+        
         if ($typeEvenementId !== null && ($typeEvenementId === '0' || $typeEvenementId === '')) {
             $typeEvenementId = null;
         }
 
-        // Normaliser le statut
+        
         if ($statut !== null && $statut === '') {
             $statut = null;
         }
 
-        // Convertir les dates si elles sont des strings
+        
         if ($dateDebut !== null && is_string($dateDebut)) {
             try {
                 $dateDebut = new \DateTime($dateDebut);
@@ -385,7 +323,7 @@ class EventService
 
         return $this->eventRepository->searchMultiCriteriaWithPagination(
             $idOrganisateur,
-            $nomLieu,
+            $lieuId,
             $dateDebut,
             $dateFin,
             $typeEvenementId,
@@ -398,9 +336,7 @@ class EventService
         );
     }
 
-    /**
-     * Récupère les statistiques d'un événement
-     */
+    
     public function getEventStatistics(Event $event): array
     {
         $baseStats = $this->eventRepository->getEventStatistics($event);
@@ -411,29 +347,26 @@ class EventService
         ]);
     }
 
-    /**
-     * Vérifie si un utilisateur peut modifier un événement
-     * Vérifie si l'utilisateur est l'organisateur principal, un co-organisateur, ou un admin
-     */
+    
     public function canEdit(Event $event, User $user): bool
     {
-        // Les admins peuvent toujours modifier
+        
         if (in_array('ROLE_ADMIN', $user->getRoles())) {
             return true;
         }
 
-        // Vérifier si l'utilisateur est l'organisateur principal
+        
         $organizerProfile = $event->getProfilOrganisateur();
         if ($organizerProfile !== null && $organizerProfile->getUtilisateur() === $user) {
             return true;
         }
 
-        // Vérifier si l'utilisateur est un co-organisateur avec les permissions appropriées
+        
         foreach ($event->getOrganisateursEvenements() as $organisateurEvenement) {
             $profil = $organisateurEvenement->getProfilOrganisateur();
             if ($profil && $profil->getUtilisateur() === $user) {
                 $role = $organisateurEvenement->getRole();
-                // Les créateurs et co-organisateurs peuvent modifier
+                
                 if (in_array($role, [
                     OrganisateurEvenement::ROLE_CREATEUR,
                     OrganisateurEvenement::ROLE_CO_ORGANISATEUR
@@ -446,18 +379,15 @@ class EventService
         return false;
     }
 
-    /**
-     * Vérifie si un utilisateur peut supprimer un événement
-     * Seuls l'organisateur principal (créateur) ou un admin peuvent supprimer
-     */
+    
     public function canDelete(Event $event, User $user): bool
     {
-        // Les admins peuvent toujours supprimer
+        
         if (in_array('ROLE_ADMIN', $user->getRoles())) {
             return true;
         }
 
-        // Seul l'organisateur principal peut supprimer
+        
         $organizerProfile = $event->getProfilOrganisateur();
         if ($organizerProfile !== null && $organizerProfile->getUtilisateur() === $user) {
             return true;
@@ -466,9 +396,7 @@ class EventService
         return false;
     }
 
-    /**
-     * Ajoute un organisateur à un événement
-     */
+    
     public function addOrganisateurToEvent(
         Event $event,
         OrganizerProfile $organisateur,
@@ -479,18 +407,14 @@ class EventService
         return $this->eventRepository->update($event);
     }
 
-    /**
-     * Retire un organisateur d'un événement
-     */
+    
     public function removeOrganisateurFromEvent(Event $event, OrganizerProfile $organisateur): Event
     {
         $event->removeOrganisateur($organisateur);
         return $this->eventRepository->update($event);
     }
 
-    /**
-     * Met à jour le rôle d'un organisateur dans un événement
-     */
+    
     public function updateOrganisateurRole(
         Event $event,
         OrganizerProfile $organisateur,
@@ -505,9 +429,7 @@ class EventService
         return $this->eventRepository->update($event);
     }
 
-    /**
-     * Met à jour un événement depuis un tableau de données
-     */
+    
     private function updateEventFromData(Event $event, array $data): void
     {
         if (isset($data['titre'])) {
@@ -520,7 +442,7 @@ class EventService
         if (isset($data['profilOrganisateur']) && $data['profilOrganisateur'] instanceof OrganizerProfile) {
             $event->setProfilOrganisateur($data['profilOrganisateur']);
         } elseif (isset($data['profilOrganisateurId'])) {
-            // Si on passe juste l'ID, on doit charger l'entité
+            
             $organizerProfile = $this->entityManager->getRepository(OrganizerProfile::class)->find($data['profilOrganisateurId']);
             if ($organizerProfile) {
                 $event->setProfilOrganisateur($organizerProfile);
@@ -672,16 +594,14 @@ class EventService
         }
     }
 
-    /**
-     * Génère un slug unique
-     */
+    
     private function generateUniqueSlug(string $title): string
     {
         $slug = $this->slugger->slug($title)->lower();
         $originalSlug = $slug;
         $counter = 1;
 
-        // Vérifier si le slug existe déjà
+        
         while ($this->eventRepository->findOneBy(['slug' => $slug])) {
             $slug = $originalSlug . '-' . $counter;
             $counter++;

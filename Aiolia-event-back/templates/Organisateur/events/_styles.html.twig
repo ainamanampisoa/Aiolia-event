@@ -646,6 +646,10 @@
     box-sizing: border-box;
 }
 
+.action-btn span {
+    flex: 1;
+}
+
 /* S'assurer que les liens et boutons ont exactement le même style */
 button.action-btn,
 a.action-btn,
@@ -668,8 +672,12 @@ a.action-btn,
 
 .action-btn i {
     width: 20px;
+    min-width: 20px;
     color: var(--accent);
     font-weight: normal;
+    display: inline-block;
+    text-align: center;
+    font-size: 1rem;
 }
 
 .action-btn:hover i {
@@ -741,6 +749,180 @@ a.action-btn,
 @media (max-width: 480px) {
     .quick-stats {
         grid-template-columns: 1fr;
+    }
+}
+
+/* Styles pour la section Accessibilité */
+.accessibility-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+    gap: 20px;
+    margin-top: 8px;
+}
+
+.accessibility-item {
+    display: flex;
+    align-items: flex-start;
+    gap: 16px;
+    padding: 20px;
+    background: var(--bg-secondary);
+    border-radius: var(--border-radius-lg);
+    border: 2px solid var(--border-color);
+    transition: all 0.3s ease;
+    position: relative;
+    overflow: hidden;
+}
+
+.accessibility-item::before {
+    content: '';
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 4px;
+    height: 100%;
+    background: linear-gradient(180deg, var(--accent), var(--success));
+    opacity: 0;
+    transition: opacity 0.3s ease;
+}
+
+.accessibility-item:hover {
+    transform: translateY(-2px);
+    box-shadow: var(--shadow-md);
+    border-color: var(--accent);
+    background: var(--bg-card);
+}
+
+.accessibility-item:hover::before {
+    opacity: 1;
+}
+
+.accessibility-icon-wrapper {
+    position: relative;
+    flex-shrink: 0;
+    width: 56px;
+    height: 56px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    background: linear-gradient(135deg, rgba(67, 97, 238, 0.1) 0%, rgba(67, 97, 238, 0.05) 100%);
+    border-radius: 12px;
+    border: 2px solid rgba(67, 97, 238, 0.2);
+    transition: all 0.3s ease;
+}
+
+.accessibility-item:hover .accessibility-icon-wrapper {
+    background: linear-gradient(135deg, rgba(67, 97, 238, 0.15) 0%, rgba(67, 97, 238, 0.08) 100%);
+    border-color: var(--accent);
+    transform: scale(1.05);
+}
+
+.accessibility-icon {
+    width: 32px;
+    height: 32px;
+    object-fit: contain;
+    filter: brightness(0) saturate(100%) invert(27%) sepia(91%) saturate(2878%) hue-rotate(228deg) brightness(98%) contrast(92%);
+    transition: all 0.3s ease;
+}
+
+.accessibility-item:hover .accessibility-icon {
+    filter: brightness(0) saturate(100%) invert(27%) sepia(91%) saturate(2878%) hue-rotate(228deg) brightness(98%) contrast(92%);
+    transform: scale(1.1);
+}
+
+.accessibility-check {
+    position: absolute;
+    bottom: -4px;
+    right: -4px;
+    width: 20px;
+    height: 20px;
+    background: var(--success);
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    border: 2px solid var(--bg-card);
+    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+}
+
+.accessibility-check i {
+    color: white;
+    font-size: 0.7rem;
+}
+
+.accessibility-content {
+    flex: 1;
+    min-width: 0;
+}
+
+.accessibility-title {
+    font-size: 1rem;
+    font-weight: 700;
+    color: var(--text-primary);
+    margin: 0 0 6px 0;
+    line-height: 1.4;
+}
+
+.accessibility-description {
+    font-size: 0.875rem;
+    color: var(--text-secondary);
+    margin: 0;
+    line-height: 1.5;
+}
+
+.accessibility-empty {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    padding: 40px 20px;
+    text-align: center;
+    color: var(--text-secondary);
+}
+
+.accessibility-empty i {
+    font-size: 2.5rem;
+    color: var(--gray-400);
+    margin-bottom: 16px;
+}
+
+.accessibility-empty p {
+    font-size: 0.9rem;
+    color: var(--gray-600);
+    margin: 0;
+    max-width: 400px;
+}
+
+/* Responsive pour accessibilité */
+@media (max-width: 768px) {
+    .accessibility-grid {
+        grid-template-columns: 1fr;
+        gap: 16px;
+    }
+    
+    .accessibility-item {
+        padding: 16px;
+    }
+    
+    .accessibility-icon-wrapper {
+        width: 48px;
+        height: 48px;
+    }
+    
+    .accessibility-icon {
+        width: 28px;
+        height: 28px;
+    }
+}
+
+@media (max-width: 480px) {
+    .accessibility-item {
+        flex-direction: column;
+        align-items: center;
+        text-align: center;
+    }
+    
+    .accessibility-icon-wrapper {
+        margin-bottom: 8px;
     }
 }
 </style>

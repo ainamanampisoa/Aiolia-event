@@ -14,33 +14,25 @@ class CommandeService
     ) {
     }
 
-    /**
-     * Récupère toutes les commandes
-     */
+    
     public function getAll(): array
     {
         return $this->repository->getAll();
     }
 
-    /**
-     * Récupère une commande par son ID
-     */
+    
     public function getById(string $id): ?Commande
     {
         return $this->repository->getById($id);
     }
 
-    /**
-     * Récupère toutes les commandes d'un utilisateur
-     */
+    
     public function getByUser(User $user): array
     {
         return $this->repository->findByUser($user);
     }
 
-    /**
-     * Crée une nouvelle commande
-     */
+    
     public function create(array $data, User $utilisateur, ?Panier $panier = null): Commande
     {
         $commande = new Commande();
@@ -81,9 +73,7 @@ class CommandeService
         return $this->repository->create($commande);
     }
 
-    /**
-     * Met à jour une commande
-     */
+    
     public function update(Commande $commande, array $data): Commande
     {
         if (isset($data['statut'])) {
@@ -117,9 +107,7 @@ class CommandeService
         return $this->repository->update($commande);
     }
 
-    /**
-     * Supprime une commande
-     */
+    
     public function delete(Commande $commande): void
     {
         $this->repository->delete($commande);

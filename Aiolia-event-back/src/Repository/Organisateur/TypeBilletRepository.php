@@ -9,9 +9,7 @@ use Doctrine\Bundle\DoctrineBundle\Repository\ServiceEntityRepository;
 use Doctrine\ORM\Tools\Pagination\Paginator;
 use Doctrine\Persistence\ManagerRegistry;
 
-/**
- * @extends ServiceEntityRepository<TypeBillet>
- */
+
 class TypeBilletRepository extends ServiceEntityRepository
 {
     public function __construct(ManagerRegistry $registry)
@@ -19,9 +17,7 @@ class TypeBilletRepository extends ServiceEntityRepository
         parent::__construct($registry, TypeBillet::class);
     }
 
-    /**
-     * Récupère tous les types de billets
-     */
+    
     public function getAll(): array
     {
         return $this->createQueryBuilder('t')
@@ -30,17 +26,13 @@ class TypeBilletRepository extends ServiceEntityRepository
             ->getResult();
     }
 
-    /**
-     * Récupère un type de billet par son ID
-     */
+    
     public function getById(string $id): ?TypeBillet
     {
         return $this->find($id);
     }
 
-    /**
-     * Récupère tous les types de billets d'un événement
-     */
+    
     public function findByEvenement(Event $evenement): array
     {
         return $this->createQueryBuilder('t')
@@ -51,9 +43,7 @@ class TypeBilletRepository extends ServiceEntityRepository
             ->getResult();
     }
 
-    /**
-     * Crée un nouveau type de billet
-     */
+    
     public function create(TypeBillet $typeBillet): TypeBillet
     {
         $this->getEntityManager()->persist($typeBillet);
@@ -62,9 +52,7 @@ class TypeBilletRepository extends ServiceEntityRepository
         return $typeBillet;
     }
 
-    /**
-     * Met à jour un type de billet
-     */
+    
     public function update(TypeBillet $typeBillet): TypeBillet
     {
         $this->getEntityManager()->flush();
@@ -72,18 +60,14 @@ class TypeBilletRepository extends ServiceEntityRepository
         return $typeBillet;
     }
 
-    /**
-     * Supprime un type de billet
-     */
+    
     public function delete(TypeBillet $typeBillet): void
     {
         $this->getEntityManager()->remove($typeBillet);
         $this->getEntityManager()->flush();
     }
 
-    /**
-     * Récupère tous les types de billets pour un organisateur (via ses événements)
-     */
+    
     public function findByOrganizer(User $organizer): array
     {
         return $this->createQueryBuilder('t')
@@ -98,16 +82,7 @@ class TypeBilletRepository extends ServiceEntityRepository
             ->getResult();
     }
 
-    /**
-     * Récupère tous les types de billets pour un organisateur avec pagination
-     *
-     * @param User $organizer
-     * @param int $page Numéro de page (commence à 1)
-     * @param int $limit Nombre d'éléments par page
-     * @param string|null $categorieFilter ID de la catégorie pour filtrer (optionnel)
-     * @param string|null $segmentFilter ID du segment pour filtrer (optionnel)
-     * @return Paginator
-     */
+    
     public function findByOrganizerPaginated(User $organizer, int $page = 1, int $limit = 6, ?string $categorieFilter = null, ?string $segmentFilter = null): Paginator
     {
         $qb = $this->createQueryBuilder('t')
