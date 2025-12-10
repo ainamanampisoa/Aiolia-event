@@ -81,7 +81,7 @@ class WalletService
             );
         }
 
-        // Créer la transaction
+        // Créer la transaction avec statut 'pending' (simulation du processus de paiement)
         $transactionId = $this->transactionRepository->createTransaction([
             'wallet_id' => $walletId,
             'transaction_type' => 'credit',
@@ -92,13 +92,39 @@ class WalletService
             'related_entity' => 'recharge',
         ]);
 
-        // Ici, normalement, on appellerait l'API de paiement (Mobile Money)
-        // Pour l'instant, on simule un succès immédiat
-        // TODO: Intégrer l'API de paiement réelle
-
-        // Mettre à jour le solde
-        $this->walletRepository->updateBalance($walletId, $newBalance);
-        $this->transactionRepository->updateTransactionStatus($transactionId, 'completed');
+        // SIMULATION MODE : Simuler un paiement réussi après un court délai
+        // En production, on appellerait ici l'API de paiement réelle (Mobile Money, Mvola, etc.)
+        // et on attendrait le callback pour confirmer le paiement
+        
+        // Pour la simulation, on simule un délai de traitement (comme un vrai paiement)
+        // En réalité, on pourrait utiliser un job queue ou un processus asynchrone
+        // Pour l'instant, on simule un succès immédiat avec un petit délai
+        
+        // Simuler le traitement du paiement (délai de 500ms pour simuler l'appel API)
+        usleep(500000); // 0.5 seconde
+        
+        // Simuler un succès (en production, ce serait basé sur la réponse de l'API)
+        $paymentSuccess = true; // En simulation, toujours réussi
+        
+        if ($paymentSuccess) {
+            // Mettre à jour le solde
+            $this->walletRepository->updateBalance($walletId, $newBalance);
+            
+            // Marquer la transaction comme complétée
+            $this->transactionRepository->updateTransactionStatus($transactionId, 'completed');
+            
+            // Log pour debug
+            error_log(sprintf(
+                '[Wallet] Recharge simulée réussie - User: %d, Montant: %s MGA, Nouveau solde: %s MGA',
+                $userId,
+                number_format($amount, 0, ',', ' '),
+                number_format($newBalance, 0, ',', ' ')
+            ));
+        } else {
+            // En cas d'échec (ne devrait pas arriver en simulation)
+            $this->transactionRepository->updateTransactionStatus($transactionId, 'failed');
+            throw new \RuntimeException('Le paiement a échoué');
+        }
 
         return $transactionId;
     }
@@ -263,6 +289,14 @@ class WalletService
         }
 
         return $total;
+    }
+
+    /**
+     * Récupère le total des recharges du mois en cours (méthode publique).
+     */
+    public function getMonthlyRechargeTotal(int $userId): float
+    {
+        return $this->getMonthlyRecharge($userId);
     }
 }
 

@@ -1,0 +1,215 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <meta charset="UTF-8">
+    <title>Historique Financier - Aiolia Event</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+        body {
+            font-family: 'DejaVu Sans', Arial, sans-serif;
+            font-size: 12px;
+            color: #333;
+            padding: 20px;
+            line-height: 1.6;
+        }
+        .header {
+            border-bottom: 3px solid #1F2D3D;
+            padding-bottom: 15px;
+            margin-bottom: 20px;
+        }
+        .header h1 {
+            color: #1F2D3D;
+            font-size: 24px;
+            margin-bottom: 5px;
+        }
+        .header-info {
+            display: flex;
+            justify-content: space-between;
+            margin-top: 10px;
+            font-size: 11px;
+            color: #666;
+        }
+        .summary-section {
+            margin-bottom: 25px;
+        }
+        .summary-grid {
+            display: grid;
+            grid-template-columns: repeat(2, 1fr);
+            gap: 15px;
+            margin-bottom: 20px;
+        }
+        .summary-card {
+            border: 1px solid #ddd;
+            border-radius: 8px;
+            padding: 15px;
+            background: #f9f9f9;
+        }
+        .summary-card h3 {
+            font-size: 11px;
+            color: #666;
+            text-transform: uppercase;
+            margin-bottom: 8px;
+        }
+        .summary-card .value {
+            font-size: 20px;
+            font-weight: bold;
+            color: #1F2D3D;
+        }
+        .chart-section {
+            margin-bottom: 25px;
+            page-break-inside: avoid;
+        }
+        .chart-section h2 {
+            font-size: 16px;
+            color: #1F2D3D;
+            margin-bottom: 15px;
+            border-bottom: 2px solid #4A90E2;
+            padding-bottom: 5px;
+        }
+        .monthly-table {
+            width: 100%;
+            border-collapse: collapse;
+            margin-top: 10px;
+        }
+        .monthly-table th,
+        .monthly-table td {
+            border: 1px solid #ddd;
+            padding: 10px;
+            text-align: left;
+        }
+        .monthly-table th {
+            background-color: #1F2D3D;
+            color: white;
+            font-weight: bold;
+        }
+        .monthly-table tr:nth-child(even) {
+            background-color: #f9f9f9;
+        }
+        .payment-methods {
+            margin-top: 15px;
+        }
+        .payment-methods ul {
+            list-style: none;
+            padding: 0;
+        }
+        .payment-methods li {
+            padding: 8px;
+            border-bottom: 1px solid #eee;
+            display: flex;
+            justify-content: space-between;
+        }
+        .footer {
+            margin-top: 30px;
+            padding-top: 15px;
+            border-top: 1px solid #ddd;
+            text-align: center;
+            font-size: 10px;
+            color: #666;
+        }
+        .no-data {
+            text-align: center;
+            color: #999;
+            padding: 20px;
+            font-style: italic;
+        }
+    </style>
+</head>
+<body>
+    <div class="header">
+        <h1>Historique Financier Détaillé</h1>
+        <div class="header-info">
+            <div>
+                <strong>Utilisateur:</strong> {{ user.first_name|default('') }} {{ user.last_name|default('') }}<br>
+                <strong>Email:</strong> {{ user.email|default('') }}
+            </div>
+            <div>
+                <strong>Période:</strong> 
+                {% if currentPeriod == 'year' %}
+                    Année {{ currentYear }}
+                {% elseif currentPeriod == 'month' and currentMonth > 0 %}
+                    {% set months = {
+                        1: 'Janvier', 2: 'Février', 3: 'Mars', 4: 'Avril',
+                        5: 'Mai', 6: 'Juin', 7: 'Juillet', 8: 'Août',
+                        9: 'Septembre', 10: 'Octobre', 11: 'Novembre', 12: 'Décembre'
+                    } %}
+                    {{ months[currentMonth] }} {{ currentYear }}
+                {% else %}
+                    Toutes périodes
+                {% endif %}<br>
+                <strong>Généré le:</strong> {{ generatedAt|date('d/m/Y à H:i') }}
+            </div>
+        </div>
+    </div>
+
+    <div class="summary-section">
+        <div class="summary-grid">
+            <div class="summary-card">
+                <h3>Total Dépenses</h3>
+                <div class="value">{{ financialData.total_spent|default('0 MGA') }}</div>
+            </div>
+            <div class="summary-card">
+                <h3>Dépenses ce Mois</h3>
+                <div class="value">{{ financialData.monthly_spent|default('0 MGA') }}</div>
+            </div>
+            <div class="summary-card">
+                <h3>Nombre de Commandes</h3>
+                <div class="value">{{ financialData.total_orders|default(0) }}</div>
+            </div>
+            <div class="summary-card">
+                <h3>Remboursements</h3>
+                <div class="value">{{ financialData.total_refunded|default('0 MGA') }}</div>
+            </div>
+        </div>
+    </div>
+
+    <div class="chart-section">
+        <h2>Répartition Mensuelle</h2>
+        {% if monthly|length > 0 %}
+            <table class="monthly-table">
+                <thead>
+                    <tr>
+                        <th>Mois</th>
+                        <th>Montant</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for item in monthly %}
+                        <tr>
+                            <td>{{ item.month }}</td>
+                            <td><strong>{{ item.total }}</strong></td>
+                        </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        {% else %}
+            <div class="no-data">Aucune donnée disponible pour cette période</div>
+        {% endif %}
+    </div>
+
+    {% if paymentMethods.methods is defined and paymentMethods.methods|length > 0 %}
+    <div class="chart-section">
+        <h2>Sources de Paiement</h2>
+        <div class="payment-methods">
+            <ul>
+                {% for method in paymentMethods.methods %}
+                    <li>
+                        <span>{{ method.label }}</span>
+                        <strong>{{ method.percentage }}%</strong>
+                    </li>
+                {% endfor %}
+            </ul>
+        </div>
+    </div>
+    {% endif %}
+
+    <div class="footer">
+        <p>Document généré automatiquement par Aiolia Event - {{ generatedAt|date('d/m/Y H:i') }}</p>
+        <p>Ce document est confidentiel et destiné uniquement à l'usage personnel.</p>
+    </div>
+</body>
+</html>
+

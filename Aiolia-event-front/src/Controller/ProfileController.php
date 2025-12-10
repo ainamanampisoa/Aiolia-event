@@ -411,9 +411,9 @@ class ProfileController extends AbstractController
             ];
         }, $transactions);
 
-        // Calculer la limite mensuelle de recharge (exemple : 1M MGA)
-        $monthlyLimit = 1_000_000.0;
-        $monthlyRecharge = 0.0; // TODO: Calculer le total des recharges du mois
+        // Calculer la limite mensuelle de recharge et le total rechargé ce mois
+        $monthlyLimit = 1_000_000.0; // 1 million MGA par mois
+        $monthlyRecharge = $this->walletService->getMonthlyRechargeTotal($userId);
         $monthlyProgress = $monthlyRecharge > 0 ? min(($monthlyRecharge / $monthlyLimit) * 100, 100) : 0;
 
         return $this->render('profile/wallet.html.twig', [
@@ -447,7 +447,7 @@ class ProfileController extends AbstractController
 
         try {
             $amount = (float) ($data['amount'] ?? 0);
-            $paymentMethod = (string) ($data['payment_method'] ?? 'mobile_money');
+            $paymentMethod = (string) ($data['payment_method'] ?? 'mvola');
             $reference = $data['reference'] ?? null;
 
             if ($amount <= 0) {
@@ -497,11 +497,24 @@ class ProfileController extends AbstractController
         $data = json_decode($request->getContent(), true);
 
         try {
-            $toUserId = (int) ($data['to_user_id'] ?? 0);
+            $toUserId = isset($data['to_user_id']) ? (int) $data['to_user_id'] : null;
+            $toEmail = $data['to_email'] ?? null;
             $amount = (float) ($data['amount'] ?? 0);
             $description = (string) ($data['description'] ?? 'Transfert');
 
-            if ($toUserId <= 0) {
+            // Si pas d'ID utilisateur, chercher par email
+            if (!$toUserId && $toEmail) {
+                $toUser = $this->userRepository->findByEmail($toEmail);
+                if (!$toUser) {
+                    return new JsonResponse([
+                        'status' => 'error',
+                        'message' => 'Utilisateur introuvable avec cet email'
+                    ], 404);
+                }
+                $toUserId = $toUser->getId();
+            }
+
+            if (!$toUserId || $toUserId <= 0) {
                 return new JsonResponse([
                     'status' => 'error',
                     'message' => 'Utilisateur destinataire invalide'
@@ -1046,19 +1059,106 @@ class ProfileController extends AbstractController
 
         $userId = (int) $sessionUser['id'];
         
-        // Récupérer l'historique financier
-        $financialData = $this->orderRepository->findFinancialHistory($userId);
+        // Récupérer les paramètres de filtrage
+        $year = $request->query->getInt('year', (int) date('Y'));
+        $month = $request->query->getInt('month', 0); // 0 = tous les mois
+        $period = $request->query->get('period', 'year'); // year, month, all
+        $monthlyRange = $request->query->get('monthly_range', 'last_6'); // last_6, first_6
         
-        // Récupérer les dépenses mensuelles
-        $monthly = $this->orderRepository->findMonthlyFinancialData($userId);
+        // Récupérer l'historique financier avec filtres
+        $financialData = $this->orderRepository->findFinancialHistory($userId, $year, $month, $period);
         
-        // Récupérer la répartition des méthodes de paiement
-        $paymentMethods = $this->userStatsRepository->findPaymentMethodDistribution($userId);
+        // Récupérer les dépenses mensuelles avec filtres
+        $monthly = $this->orderRepository->findMonthlyFinancialData($userId, $year, $month, $period, $monthlyRange);
+        
+        // Debug: logger les données récupérées
+        error_log(sprintf(
+            '[Financial] User: %d, Year: %d, Period: %s, MonthlyRange: %s, Monthly data count: %d',
+            $userId,
+            $year,
+            $period,
+            $monthlyRange,
+            count($monthly)
+        ));
+        if (!empty($monthly)) {
+            error_log('[Financial] Monthly data: ' . json_encode($monthly, JSON_UNESCAPED_UNICODE));
+        }
+        
+        // Récupérer la répartition des méthodes de paiement avec filtres
+        $paymentMethods = $this->userStatsRepository->findPaymentMethodDistribution($userId, $year, $month);
 
         return $this->render('profile/financial.html.twig', [
             'financialData' => $financialData,
             'monthly' => $monthly,
             'paymentMethods' => $paymentMethods,
+            'currentYear' => $year,
+            'currentMonth' => $month,
+            'currentPeriod' => $period,
+            'monthlyRange' => $monthlyRange,
+        ]);
+    }
+
+    #[Route('/profile/financial-history/export-pdf', name: 'profile_financial_export_pdf')]
+    public function exportFinancialHistoryPdf(Request $request): Response
+    {
+        $session = $request->getSession();
+        if (!$session->isStarted()) {
+            $session->start();
+        }
+
+        $sessionUser = $session->get('user');
+        $isAuthenticated = is_array($sessionUser) && isset($sessionUser['id']);
+
+        if (!$isAuthenticated) {
+            return $this->redirectToRoute('login');
+        }
+
+        $userId = (int) $sessionUser['id'];
+        
+        // Récupérer les paramètres de filtrage
+        $year = $request->query->getInt('year', (int) date('Y'));
+        $month = $request->query->getInt('month', 0);
+        $period = $request->query->get('period', 'year');
+        $monthlyRange = $request->query->get('monthly_range', 'last_6');
+        
+        // Récupérer les données
+        $financialData = $this->orderRepository->findFinancialHistory($userId, $year, $month, $period);
+        $monthly = $this->orderRepository->findMonthlyFinancialData($userId, $year, $month, $period, $monthlyRange);
+        $paymentMethods = $this->userStatsRepository->findPaymentMethodDistribution($userId, $year, $month);
+        
+        // Récupérer les informations utilisateur
+        $userInfo = $this->userRepository->findUserInfo($userId);
+        
+        // Générer le HTML pour le PDF
+        $html = $this->renderView('profile/financial_pdf.html.twig', [
+            'financialData' => $financialData,
+            'monthly' => $monthly,
+            'paymentMethods' => $paymentMethods,
+            'currentYear' => $year,
+            'currentMonth' => $month,
+            'currentPeriod' => $period,
+            'monthlyRange' => $monthlyRange,
+            'user' => $userInfo,
+            'generatedAt' => new \DateTime(),
+        ]);
+
+        // Configuration de Dompdf
+        $options = new Options();
+        $options->set('defaultFont', 'DejaVu Sans');
+        $options->set('isRemoteEnabled', true);
+        $options->set('isHtml5ParserEnabled', true);
+        
+        $dompdf = new Dompdf($options);
+        $dompdf->loadHtml($html);
+        $dompdf->setPaper('A4', 'portrait');
+        $dompdf->render();
+
+        $filename = 'Historique_Financier_' . date('Y-m-d') . '.pdf';
+
+        // Retourner le PDF en téléchargement
+        return new Response($dompdf->output(), 200, [
+            'Content-Type' => 'application/pdf',
+            'Content-Disposition' => 'attachment; filename="' . $filename . '"',
         ]);
     }
 

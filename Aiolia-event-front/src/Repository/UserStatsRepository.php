@@ -585,21 +585,42 @@ class UserStatsRepository
     /**
      * Récupère la répartition des méthodes de paiement.
      */
-    public function findPaymentMethodDistribution(int $userId): array
+    public function findPaymentMethodDistribution(int $userId, int $year = null, int $month = 0): array
     {
+        if ($year === null) {
+            $year = (int) date('Y');
+        }
+
+        $whereConditions = [
+            'o.user_id = :user_id',
+            "o.status = 'paid'",
+            'o.notes IS NOT NULL'
+        ];
+        $params = ['user_id' => $userId];
+
+        if ($year > 0) {
+            $whereConditions[] = 'EXTRACT(YEAR FROM o.created_at) = :year';
+            $params['year'] = $year;
+            
+            if ($month > 0) {
+                $whereConditions[] = 'EXTRACT(MONTH FROM o.created_at) = :month';
+                $params['month'] = $month;
+            }
+        }
+
+        $whereClause = implode(' AND ', $whereConditions);
+
         $sql = <<<SQL
             SELECT 
                 o.notes,
                 o.total_amount,
                 COUNT(*) as order_count
             FROM aiolia.orders o
-            WHERE o.user_id = :user_id
-              AND o.status = 'paid'
-              AND o.notes IS NOT NULL
+            WHERE {$whereClause}
             GROUP BY o.notes, o.total_amount
         SQL;
 
-        $rows = $this->connection->executeQuery($sql, ['user_id' => $userId])->fetchAllAssociative();
+        $rows = $this->connection->executeQuery($sql, $params)->fetchAllAssociative();
 
         $providerLabels = [
             'mvola' => 'M-Vola',

@@ -362,18 +362,91 @@ class OrderRepository
     /**
      * Récupère l'historique financier détaillé.
      */
-    public function findFinancialHistory(int $userId): array
+    public function findFinancialHistory(int $userId, int $year = null, int $month = 0, string $period = 'year'): array
     {
-        // Récupérer le total des dépenses de l'année en cours
+        if ($year === null) {
+            $year = (int) date('Y');
+        }
+
+        // Construire les conditions WHERE selon la période
+        // Inclure 'paid' ET 'pending' (car en sandbox Mvola, les paiements réussis retournent 'pending')
+        $whereConditions = ['o.user_id = :user_id', "(o.status = 'paid' OR o.status = 'pending')"];
+        $params = ['user_id' => $userId];
+
+        if ($period === 'year') {
+            $whereConditions[] = 'EXTRACT(YEAR FROM o.created_at) = :year';
+            $params['year'] = $year;
+        } elseif ($period === 'month') {
+            $whereConditions[] = 'EXTRACT(YEAR FROM o.created_at) = :year';
+            $params['year'] = $year;
+            if ($month > 0) {
+                $whereConditions[] = 'EXTRACT(MONTH FROM o.created_at) = :month';
+                $params['month'] = $month;
+            }
+        }
+        // Pour 'all', pas de filtre de date
+
+        $whereClause = implode(' AND ', $whereConditions);
+
+        // Récupérer le total des dépenses selon les filtres
         $sql = <<<SQL
             SELECT 
-                SUM(CASE WHEN o.status = 'paid' THEN o.total_amount ELSE 0 END) as total_spent
+                SUM(o.total_amount) as total_spent,
+                COUNT(*) as total_orders,
+                SUM(CASE WHEN EXTRACT(MONTH FROM o.created_at) = EXTRACT(MONTH FROM NOW()) 
+                    AND EXTRACT(YEAR FROM o.created_at) = EXTRACT(YEAR FROM NOW())
+                    THEN o.total_amount ELSE 0 END) as monthly_spent
             FROM aiolia.orders o
-            WHERE o.user_id = :user_id
-              AND EXTRACT(YEAR FROM o.created_at) = EXTRACT(YEAR FROM NOW())
+            WHERE {$whereClause}
         SQL;
 
-        $row = $this->connection->executeQuery($sql, ['user_id' => $userId])->fetchAssociative();
+        $row = $this->connection->executeQuery($sql, $params)->fetchAssociative();
+
+        // Récupérer les remboursements (commandes annulées ou tickets remboursés via order_items)
+        $refundWhereConditions = ['o.user_id = :user_id', "o.status = 'cancelled'"];
+        $refundParams = ['user_id' => $userId];
+
+        if ($period === 'year') {
+            $refundWhereConditions[] = 'EXTRACT(YEAR FROM o.created_at) = :refund_year';
+            $refundParams['refund_year'] = $year;
+        } elseif ($period === 'month') {
+            $refundWhereConditions[] = 'EXTRACT(YEAR FROM o.created_at) = :refund_year';
+            $refundParams['refund_year'] = $year;
+            if ($month > 0) {
+                $refundWhereConditions[] = 'EXTRACT(MONTH FROM o.created_at) = :refund_month';
+                $refundParams['refund_month'] = $month;
+            }
+        }
+
+        $refundWhereClause = implode(' AND ', $refundWhereConditions);
+
+        $refundSql = <<<SQL
+            SELECT 
+                COALESCE(SUM(o.total_amount), 0) as total_refunded,
+                COUNT(DISTINCT o.id) as refund_count
+            FROM aiolia.orders o
+            WHERE {$refundWhereClause}
+        SQL;
+
+        $refundRow = $this->connection->executeQuery($refundSql, $refundParams)->fetchAssociative();
+        
+        // Si pas de commandes annulées, chercher via les tickets remboursés
+        if ((float) ($refundRow['total_refunded'] ?? 0) == 0) {
+            $ticketRefundSql = <<<SQL
+                SELECT 
+                    COALESCE(SUM(oi.total_amount), 0) as total_refunded,
+                    COUNT(DISTINCT t.ticket_type_id) as refund_count
+                FROM aiolia.tickets t
+                INNER JOIN aiolia.order_items oi ON t.order_item_id = oi.id
+                WHERE t.owner_user_id = :user_id
+                  AND t.status = 'refunded'
+            SQL;
+            
+            $ticketRefundRow = $this->connection->executeQuery($ticketRefundSql, ['user_id' => $userId])->fetchAssociative();
+            if ((float) ($ticketRefundRow['total_refunded'] ?? 0) > 0) {
+                $refundRow = $ticketRefundRow;
+            }
+        }
 
         // Récupérer le solde du wallet
         $walletSql = <<<SQL
@@ -385,38 +458,126 @@ class OrderRepository
 
         $walletRow = $this->connection->executeQuery($walletSql, ['user_id' => $userId])->fetchAssociative();
 
+        // Calculer la moyenne par commande
+        $totalOrders = (int) ($row['total_orders'] ?? 0);
+        $totalSpent = (float) ($row['total_spent'] ?? 0);
+        $averageOrder = $totalOrders > 0 ? $totalSpent / $totalOrders : 0;
+
+        // Récupérer les dépenses de l'année précédente pour comparaison (seulement si période = année)
+        $previousYearSpent = 0;
+        $yearOverYearChange = 0;
+        
+        if ($period === 'year') {
+            $previousYearSql = <<<SQL
+                SELECT 
+                    SUM(CASE WHEN o.status = 'paid' THEN o.total_amount ELSE 0 END) as total_spent_previous
+                FROM aiolia.orders o
+                WHERE o.user_id = :user_id
+                  AND EXTRACT(YEAR FROM o.created_at) = :previous_year
+            SQL;
+
+            $previousRow = $this->connection->executeQuery($previousYearSql, [
+                'user_id' => $userId,
+                'previous_year' => $year - 1
+            ])->fetchAssociative();
+            $previousYearSpent = (float) ($previousRow['total_spent_previous'] ?? 0);
+            $yearOverYearChange = $previousYearSpent > 0 
+                ? (($totalSpent - $previousYearSpent) / $previousYearSpent) * 100 
+                : ($totalSpent > 0 ? 100 : 0);
+        }
+
         return [
-            'total_spent' => number_format((float) ($row['total_spent'] ?? 0), 0, ',', ' ') . ' MGA',
+            'total_spent' => number_format($totalSpent, 0, ',', ' ') . ' MGA',
+            'total_refunded' => number_format((float) ($refundRow['total_refunded'] ?? 0), 0, ',', ' ') . ' MGA',
+            'refund_count' => (int) ($refundRow['refund_count'] ?? 0),
             'wallet_balance' => number_format((float) ($walletRow['balance'] ?? 0), 0, ',', ' ') . ' MGA',
             'wallet_points' => (int) ($walletRow['points_balance'] ?? 0),
+            'total_orders' => $totalOrders,
+            'average_order' => number_format($averageOrder, 0, ',', ' ') . ' MGA',
+            'monthly_spent' => number_format((float) ($row['monthly_spent'] ?? 0), 0, ',', ' ') . ' MGA',
+            'year_over_year_change' => round($yearOverYearChange, 1),
         ];
     }
 
     /**
      * Récupère les données financières mensuelles.
      */
-    public function findMonthlyFinancialData(int $userId): array
+    public function findMonthlyFinancialData(int $userId, int $year = null, int $month = 0, string $period = 'year', string $monthlyRange = 'last_6'): array
     {
+        if ($year === null) {
+            $year = (int) date('Y');
+        }
+
+        // Inclure 'paid' ET 'pending' (car en sandbox Mvola, les paiements réussis retournent 'pending')
+        $whereConditions = ['o.user_id = :user_id', "(o.status = 'paid' OR o.status = 'pending')"];
+        $params = ['user_id' => $userId];
+
+        if ($period === 'year') {
+            $whereConditions[] = 'EXTRACT(YEAR FROM o.created_at) = :year';
+            $params['year'] = $year;
+        } elseif ($period === 'month' && $month > 0) {
+            $whereConditions[] = 'EXTRACT(YEAR FROM o.created_at) = :year';
+            $whereConditions[] = 'EXTRACT(MONTH FROM o.created_at) = :month';
+            $params['year'] = $year;
+            $params['month'] = $month;
+        } else {
+            // Pour 'all' ou mois = 0, on prend les 12 derniers mois
+            $whereConditions[] = "o.created_at >= NOW() - INTERVAL '12 months'";
+        }
+
+        // Déterminer l'ordre et la limite selon monthlyRange
+        $orderBy = 'month_key DESC';
+        $limit = 12;
+        
+        if ($monthlyRange === 'first_6' && $period === 'year') {
+            // Pour les 6 premiers mois de l'année, on limite à janvier-juin
+            $whereConditions[] = 'EXTRACT(MONTH FROM o.created_at) BETWEEN 1 AND 6';
+        } elseif ($monthlyRange === 'last_6' && $period === 'year') {
+            // Pour les 6 derniers mois de l'année, on limite à juillet-décembre
+            $whereConditions[] = 'EXTRACT(MONTH FROM o.created_at) BETWEEN 7 AND 12';
+        }
+        
+        // Limiter à 6 mois si un filtre monthlyRange est appliqué
+        if ($monthlyRange === 'first_6' || $monthlyRange === 'last_6') {
+            $limit = 6;
+            if ($monthlyRange === 'first_6') {
+                $orderBy = 'month_key ASC';
+            } else {
+                $orderBy = 'month_key DESC';
+            }
+        }
+
+        $whereClause = implode(' AND ', $whereConditions);
+
+        // Ne pas limiter le nombre de résultats - on veut toutes les données disponibles
+        // Le template affichera tous les mois de la période même sans données
         $sql = <<<SQL
             SELECT 
-                TO_CHAR(o.created_at, 'Month') as month_name,
+                EXTRACT(MONTH FROM o.created_at) as month_number,
                 TO_CHAR(o.created_at, 'YYYY-MM') as month_key,
                 SUM(o.total_amount) as total
             FROM aiolia.orders o
-            WHERE o.user_id = :user_id 
-              AND o.status = 'paid'
-              AND o.created_at >= NOW() - INTERVAL '6 months'
-            GROUP BY TO_CHAR(o.created_at, 'Month'), TO_CHAR(o.created_at, 'YYYY-MM')
-            ORDER BY month_key DESC
-            LIMIT 6
+            WHERE {$whereClause}
+            GROUP BY EXTRACT(MONTH FROM o.created_at), TO_CHAR(o.created_at, 'YYYY-MM')
+            ORDER BY {$orderBy}
         SQL;
 
-        $rows = $this->connection->executeQuery($sql, ['user_id' => $userId])->fetchAllAssociative();
+        $rows = $this->connection->executeQuery($sql, $params)->fetchAllAssociative();
+        
+        $monthNames = [
+            1 => 'Janvier', 2 => 'Février', 3 => 'Mars', 4 => 'Avril',
+            5 => 'Mai', 6 => 'Juin', 7 => 'Juillet', 8 => 'Août',
+            9 => 'Septembre', 10 => 'Octobre', 11 => 'Novembre', 12 => 'Décembre'
+        ];
 
-        return array_map(function (array $row): array {
+        return array_map(function (array $row) use ($monthNames): array {
+            $monthNum = (int) $row['month_number'];
+            $totalAmount = (float) $row['total'];
             return [
-                'month' => trim($row['month_name']),
-                'total' => number_format((float) $row['total'], 0, ',', ' ') . ' MGA',
+                'month' => $monthNames[$monthNum] ?? 'Mois ' . $monthNum,
+                'month_number' => $monthNum,
+                'total' => number_format($totalAmount, 0, ',', ' ') . ' MGA',
+                'total_raw' => $totalAmount, // Ajouter la valeur brute pour faciliter les calculs
             ];
         }, $rows);
     }

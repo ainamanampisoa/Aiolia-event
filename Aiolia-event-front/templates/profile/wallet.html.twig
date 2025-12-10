@@ -14,172 +14,31 @@
 {% block hero %}{% endblock %}
 
 {% block body %}
-    {% set balance = balance|default('0 MGA') %}
-    {% set points = points|default('0 pts') %}
-    {% set transactions = transactions|default([]) %}
-    {% set monthly_limit = monthly_limit|default('1 000 000 MGA') %}
-    {% set monthly_progress = monthly_progress|default(0) %}
-    {% set loyalty_tier = loyalty_tier|default('Bronze') %}
-
     <main class="profile-wallet-wrapper">
         <div class="container">
             <header class="wallet-header wow fadeIn" data-wow-delay="100ms">
                 <div>
-                    <h1>Portefeuille numérique</h1>
-                    <p>Gérez votre solde, vos points de fidélité et vos transactions</p>
-                </div>
-                <div class="wallet-actions">
-                    <button class="btn-outline"><i class="fas fa-plus"></i> Recharger</button>
-                    <button class="btn-solid"><i class="fas fa-paper-plane"></i> Transférer</button>
+                    <h1>Fonctionnalité suspendue</h1>
+                    <p>Le portefeuille numérique et les points de fidélité sont temporairement désactivés.</p>
                 </div>
             </header>
 
-            <section class="wallet-balance wow fadeInUp" data-wow-delay="150ms">
-                <div class="balance-card">
-                    <div class="balance-header">
-                        <span>Solde disponible</span>
-                        <button class="link-btn"><i class="fas fa-history"></i> Historique</button>
-                    </div>
-                    <strong>{{ balance }}</strong>
-                    <small>Dernière mise à jour : {{ 'now'|date('d M Y à H:i') }}</small>
-                    <div class="balance-progress">
-                        <div class="progress-fill" style="width: {{ monthly_progress }}%"></div>
-                    </div>
-                    <div class="balance-meta">
-                        <span>Limite mensuelle : <strong>{{ monthly_limit }}</strong></span>
-                        <span>Points de fidélité : <strong>{{ points }}</strong></span>
-                        {% if loyalty_tier %}
-                        <span>Niveau de fidélité : <strong>{{ loyalty_tier }}</strong></span>
-                        {% endif %}
-                    </div>
-                </div>
-                <div class="balance-card methods">
-                    <h2>Méthodes de paiement</h2>
-                    <ul>
-                        <li><i class="fas fa-mobile-alt"></i> Mobile Money (principal) <button class="link-btn">Modifier</button></li>
-                        <li><i class="fas fa-credit-card"></i> Carte Visa •••• 1234 <button class="link-btn">Supprimer</button></li>
-                        <li><i class="fas fa-wallet"></i> Ajouter une carte <button class="btn-outline">Ajouter</button></li>
-                    </ul>
-                </div>
-            </section>
-
             <section class="wallet-transactions wow fadeInUp" data-wow-delay="200ms">
-                <header>
-                    <h2>Mouvements</h2>
-                    <div class="wallet-filters">
-                        <button class="tag active">Tous</button>
-                        <button class="tag">Débits</button>
-                        <button class="tag">Crédits</button>
-                    </div>
-                </header>
                 <div class="transactions-table">
-                    <table>
-                        <thead>
-                            <tr>
-                                <th>Date</th>
-                                <th>Libellé</th>
-                                <th>Type</th>
-                                <th>Montant</th>
-                                <th>Statut</th>
-                                <th>Détails</th>
-                            </tr>
-                        </thead>
-                        <tbody>
-                            {% if transactions is empty %}
-                                <tr>
-                                    <td colspan="6" style="text-align: center; padding: 40px; color: #999;">
-                                        <i class="fas fa-wallet" style="font-size: 48px; margin-bottom: 16px; display: block; opacity: 0.3;"></i>
-                                        <p>Aucune transaction pour le moment</p>
-                                    </td>
-                                </tr>
-                            {% else %}
-                                {% for transaction in transactions %}
-                                    <tr class="transaction-row {{ transaction.type|lower }}">
-                                        <td>{{ transaction.date }}</td>
-                                        <td><strong>{{ transaction.label }}</strong></td>
-                                        <td>{{ transaction.type }}</td>
-                                        <td class="{{ transaction.amount starts with '+' ? 'text-success' : 'text-danger' }}">{{ transaction.amount }}</td>
-                                        <td><span class="status status-{{ transaction.status|lower|replace({' ': '-'}) }}">{{ transaction.status }}</span></td>
-                                        <td>{{ transaction.details }}</td>
-                                    </tr>
-                                {% endfor %}
-                            {% endif %}
-                        </tbody>
-                    </table>
+                    <div style="text-align: center; padding: 48px; color: #555; border: 1px solid #eee; border-radius: 12px; background: #fafafa;">
+                        <i class="fas fa-pause-circle" style="font-size: 48px; margin-bottom: 16px; display: block; opacity: 0.4;"></i>
+                        <p style="font-size: 16px;">Nous travaillons sur de nouvelles priorités. Revenez bientôt.</p>
+                    </div>
                 </div>
             </section>
         </div>
     </main>
 
-    {# Modal de recharge #}
-    <div id="rechargeModal" class="modal" style="display: none;">
-        <div class="modal-content">
-            <span class="close">&times;</span>
-            <h2>Recharger mon wallet</h2>
-            <form id="rechargeForm">
-                <div class="form-group">
-                    <label>Montant (MGA)</label>
-                    <input type="number" name="amount" min="1000" step="1000" required>
-                </div>
-                <div class="form-group">
-                    <label>Méthode de paiement</label>
-                    <select name="payment_method" required>
-                        <option value="mobile_money">Mobile Money</option>
-                        <option value="orange_money">Orange Money</option>
-                        <option value="airtel_money">Airtel Money</option>
-                        <option value="mvola">Mvola</option>
-                    </select>
-                </div>
-                <button type="submit" class="btn-solid">Recharger</button>
-            </form>
-        </div>
-    </div>
+    <style>
+        /* Aucune personnalisation supplémentaire pour le moment */
+    </style>
 
     <script>
-        // Recharge du wallet
-        document.querySelector('.btn-outline')?.addEventListener('click', function() {
-            document.getElementById('rechargeModal').style.display = 'block';
-        });
-
-        document.querySelector('.close')?.addEventListener('click', function() {
-            document.getElementById('rechargeModal').style.display = 'none';
-        });
-
-        document.getElementById('rechargeForm')?.addEventListener('submit', async function(e) {
-            e.preventDefault();
-            const formData = new FormData(this);
-            const data = {
-                amount: parseFloat(formData.get('amount')),
-                payment_method: formData.get('payment_method')
-            };
-
-            try {
-                const response = await fetch('{{ path('api_wallet_recharge') }}', {
-                    method: 'POST',
-                    headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify(data)
-                });
-
-                const result = await response.json();
-                
-                if (result.status === 'success') {
-                    alert('Wallet rechargé avec succès !');
-                    location.reload();
-                } else {
-                    alert('Erreur: ' + result.message);
-                }
-            } catch (error) {
-                alert('Erreur lors de la recharge: ' + error.message);
-            }
-        });
-
-        // Filtres de transactions
-        document.querySelectorAll('.wallet-filters .tag').forEach(btn => {
-            btn.addEventListener('click', function() {
-                document.querySelectorAll('.wallet-filters .tag').forEach(b => b.classList.remove('active'));
-                this.classList.add('active');
-                // TODO: Filtrer les transactions par type
-            });
-        });
+        // Portefeuille désactivé : aucun comportement dynamique
     </script>
 {% endblock %}

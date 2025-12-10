@@ -20,38 +20,142 @@
         total_refunded: '0 MGA',
         refund_count: 0,
         wallet_balance: '0 MGA',
-        wallet_points: 0
+        wallet_points: 0,
+        total_orders: 0,
+        average_order: '0 MGA',
+        monthly_spent: '0 MGA',
+        year_over_year_change: 0
     }) %}
     {% set paymentMethods = paymentMethods|default([]) %}
+    {% set currentYear = currentYear|default("now"|date("Y")) %}
+    {% set currentMonth = currentMonth|default(0) %}
+    {% set currentPeriod = currentPeriod|default('year') %}
 
     <main class="profile-financial-wrapper">
         <div class="container">
             <header class="financial-header wow fadeIn" data-wow-delay="100ms">
                 <div>
-                    <h1>Historique financier détaillé</h1>
-                    <p>Analysez vos dépenses, vos remboursements et vos soldes mois par mois.</p>
+                    <h1 style="background: linear-gradient(135deg, #1F2D3D 0%, #4A90E2 100%); -webkit-background-clip: text; -webkit-text-fill-color: transparent; background-clip: text;">Historique financier détaillé</h1>
+                    <p>Analysez vos dépenses et vos remboursements mois par mois.</p>
                 </div>
                 <div class="financial-actions">
-                    <button class="btn-outline"><i class="fas fa-file-export"></i> Exporter CSV</button>
-                    <button class="btn-solid"><i class="fas fa-file-pdf"></i> Rapport PDF</button>
+                    <a href="{{ path('profile_financial_export_pdf', {
+                        'year': currentYear,
+                        'month': currentMonth,
+                        'period': currentPeriod,
+                        'monthly_range': monthlyRange|default('last_6')
+                    }) }}" class="btn-solid btn-pdf" target="_blank">
+                        <i class="fas fa-file-pdf"></i> Rapport PDF
+                    </a>
                 </div>
             </header>
 
+            {# Filtres de statistiques #}
+            <section class="financial-filters wow fadeIn" data-wow-delay="120ms">
+                <form method="GET" action="{{ path('profile_financial') }}" class="filter-form">
+                    <div class="filter-group">
+                        <label for="period"><i class="fas fa-calendar"></i> Période</label>
+                        <select name="period" id="period" onchange="this.form.submit()">
+                            <option value="year" {{ currentPeriod == 'year' ? 'selected' : '' }}>Année</option>
+                            <option value="month" {{ currentPeriod == 'month' ? 'selected' : '' }}>Mois</option>
+                            <option value="all" {{ currentPeriod == 'all' ? 'selected' : '' }}>Tout</option>
+                        </select>
+                    </div>
+                    <div class="filter-group">
+                        <label for="year"><i class="fas fa-calendar-alt"></i> Année</label>
+                        <select name="year" id="year" onchange="this.form.submit()">
+                            {% for y in range("now"|date("Y"), "now"|date("Y") - 5) %}
+                                <option value="{{ y }}" {{ currentYear == y ? 'selected' : '' }}>{{ y }}</option>
+                            {% endfor %}
+                        </select>
+                    </div>
+                    {% if currentPeriod == 'month' %}
+                    <div class="filter-group">
+                        <label for="month"><i class="fas fa-calendar-week"></i> Mois</label>
+                        <select name="month" id="month" onchange="this.form.submit()">
+                            <option value="0" {{ currentMonth == 0 ? 'selected' : '' }}>Tous les mois</option>
+                            {% set months = {
+                                1: 'Janvier', 2: 'Février', 3: 'Mars', 4: 'Avril',
+                                5: 'Mai', 6: 'Juin', 7: 'Juillet', 8: 'Août',
+                                9: 'Septembre', 10: 'Octobre', 11: 'Novembre', 12: 'Décembre'
+                            } %}
+                            {% for monthNum, monthName in months %}
+                                <option value="{{ monthNum }}" {{ currentMonth == monthNum ? 'selected' : '' }}>{{ monthName }}</option>
+                            {% endfor %}
+                        </select>
+                    </div>
+                    {% endif %}
+                    <div class="filter-actions">
+                        <button type="submit" class="btn-filter"><i class="fas fa-filter"></i> Filtrer</button>
+                        <a href="{{ path('profile_financial') }}" class="btn-reset"><i class="fas fa-redo"></i> Réinitialiser</a>
+                    </div>
+                </form>
+            </section>
+
             <section class="financial-summary wow fadeInUp" data-wow-delay="150ms">
-                <div class="financial-card">
-                    <span>Total dépenses {{ "now"|date("Y") }}</span>
-                    <strong>{{ financialData.total_spent }}</strong>
-                    <small><i class="fas fa-arrow-up"></i> {% if financialData.total_spent != '0 MGA' %}+8 % vs année précédente{% else %}Aucune dépense{% endif %}</small>
+                <div class="financial-card primary">
+                    <div class="card-icon">
+                        <i class="fas fa-chart-line"></i>
+                    </div>
+                    <div class="card-content">
+                        <span>Total dépenses 
+                            {% if currentPeriod == 'year' %}
+                                {{ currentYear }}
+                            {% elseif currentPeriod == 'month' and currentMonth > 0 %}
+                                {% set months = {
+                                    1: 'Janvier', 2: 'Février', 3: 'Mars', 4: 'Avril',
+                                    5: 'Mai', 6: 'Juin', 7: 'Juillet', 8: 'Août',
+                                    9: 'Septembre', 10: 'Octobre', 11: 'Novembre', 12: 'Décembre'
+                                } %}
+                                {{ months[currentMonth] }} {{ currentYear }}
+                            {% else %}
+                                Toutes périodes
+                            {% endif %}
+                        </span>
+                        <strong>{{ financialData.total_spent }}</strong>
+                        <small>
+                            {% if currentPeriod == 'year' and financialData.total_spent != '0 MGA' %}
+                                <i class="fas fa-arrow-{{ financialData.year_over_year_change >= 0 ? 'up' : 'down' }}"></i>
+                                {{ financialData.year_over_year_change >= 0 ? '+' : '' }}{{ financialData.year_over_year_change }}% vs année précédente
+                            {% elseif financialData.total_spent != '0 MGA' %}
+                                <i class="fas fa-chart-line"></i>
+                                Période sélectionnée
+                            {% else %}
+                                <i class="fas fa-info-circle"></i>
+                                Aucune dépense
+                            {% endif %}
+                        </small>
+                    </div>
                 </div>
-                <div class="financial-card">
-                    <span>Remboursements reçus</span>
-                    <strong>{{ financialData.total_refunded }}</strong>
-                    <small><i class="fas fa-undo"></i> {{ financialData.refund_count }} évènement(s)</small>
+                <div class="financial-card card-blue">
+                    <div class="card-icon" style="background: linear-gradient(135deg, #4A90E2 0%, #357ABD 100%); color: #ffffff;">
+                        <i class="fas fa-calendar-alt"></i>
+                    </div>
+                    <div class="card-content">
+                        <span>Dépenses ce mois</span>
+                        <strong>{{ financialData.monthly_spent }}</strong>
+                        <small><i class="fas fa-calendar"></i> {{ "now"|date("F Y") }}</small>
+                    </div>
                 </div>
-                <div class="financial-card">
-                    <span>Solde Wallet actuel</span>
-                    <strong>{{ financialData.wallet_balance }}</strong>
-                    <small><i class="fas fa-wallet"></i> {{ financialData.wallet_points }} points fidélité</small>
+                <div class="financial-card card-green">
+                    <div class="card-icon" style="background: linear-gradient(135deg, #50C878 0%, #3FAF6B 100%); color: #ffffff;">
+                        <i class="fas fa-shopping-cart"></i>
+                    </div>
+                    <div class="card-content">
+                        <span>Nombre de commandes</span>
+                        <strong>{{ financialData.total_orders }}</strong>
+                        <small><i class="fas fa-receipt"></i> Moyenne: {{ financialData.average_order }}</small>
+                    </div>
+                </div>
+                <div class="financial-card card-orange">
+                    <div class="card-icon" style="background: linear-gradient(135deg, #FFA500 0%, #E6940A 100%); color: #ffffff;">
+                        <i class="fas fa-undo"></i>
+                    </div>
+                    <div class="card-content">
+                        <span>Remboursements reçus</span>
+                        <strong>{{ financialData.total_refunded }}</strong>
+                        <small><i class="fas fa-ticket-alt"></i> {{ financialData.refund_count }} évènement(s)</small>
+                    </div>
                 </div>
             </section>
 
@@ -59,35 +163,118 @@
                 <div class="financial-chart wow fadeInUp" data-wow-delay="180ms">
                     <header>
                         <h2>Répartition mensuelle</h2>
-                        <span>Mai - Novembre 2025</span>
+                        <div class="monthly-filter">
+                            <span class="filter-label">Période :</span>
+                            <select name="monthly_range" id="monthly_range" onchange="updateMonthlyChart(this.value)" class="monthly-range-select">
+                                <option value="last_6" {{ monthlyRange|default('last_6') == 'last_6' ? 'selected' : '' }}>6 derniers mois</option>
+                                <option value="first_6" {{ monthlyRange|default('last_6') == 'first_6' ? 'selected' : '' }}>6 premiers mois</option>
+                            </select>
+                        </div>
                     </header>
                     <div class="financial-bars">
-                        {% if monthly|length > 0 %}
-                            {% set maxValue = 0 %}
-                            {% for item in monthly %}
-                                {% set value = item.total|replace({' MGA': '', ' ': ''})|number_format(0, '', '')|number_format(0, '', '') %}
-                                {% if value > maxValue %}
-                                    {% set maxValue = value %}
-                                {% endif %}
-                            {% endfor %}
-                            {% for item in monthly %}
-                                {% set value = item.total|replace({' MGA': '', ' ': ''})|number_format(0, '', '')|number_format(0, '', '') %}
-                                {% set height = maxValue > 0 ? ((value / maxValue) * 200 + 60)|round : 60 %}
-                                <div class="bar-item">
-                                    <div class="bar" style="height: {{ height }}px"></div>
-                                    <span class="bar-month">{{ item.month }}</span>
-                                    <span class="bar-value">{{ item.total }}</span>
-                                </div>
-                            {% endfor %}
+                        {% set monthlyRange = monthlyRange|default('last_6') %}
+                        {% set currentYear = currentYear|default("now"|date("Y")) %}
+                        {% set currentPeriod = currentPeriod|default('year') %}
+                        
+                        {# Générer tous les mois de la période selon le filtre #}
+                        {% if monthlyRange == 'first_6' %}
+                            {% set monthNumbers = [1, 2, 3, 4, 5, 6] %}
                         {% else %}
-                            {% for i in 1..5 %}
-                                <div class="bar-item">
-                                    <div class="bar" style="height: 60px"></div>
-                                    <span class="bar-month">Mois {{ i }}</span>
-                                    <span class="bar-value">0 MGA</span>
+                            {% set monthNumbers = [7, 8, 9, 10, 11, 12] %}
+                        {% endif %}
+                        
+                        {% set monthNames = {
+                            1: 'Janvier', 2: 'Février', 3: 'Mars', 4: 'Avril',
+                            5: 'Mai', 6: 'Juin', 7: 'Juillet', 8: 'Août',
+                            9: 'Septembre', 10: 'Octobre', 11: 'Novembre', 12: 'Décembre'
+                        } %}
+                        
+                        {# Créer un tableau associatif des données existantes par numéro de mois #}
+                        {% set monthlyData = {} %}
+                        {% set monthlyRawData = {} %}
+                        {% for item in monthly %}
+                            {% set monthNum = item.month_number|default(null) %}
+                            {% if monthNum %}
+                                {% set monthlyData = monthlyData|merge({(monthNum): item.total}) %}
+                                {# Utiliser total_raw si disponible, sinon extraire de total #}
+                                {% set rawValue = item.total_raw|default(null) %}
+                                {% if rawValue is null %}
+                                    {% set valueStr = item.total|replace({' MGA': '', ' ': '', ',': ''})|trim %}
+                                    {% set rawValue = valueStr|number_format(0, '', '')|number_format(0, '', '') %}
+                                {% endif %}
+                                {% set monthlyRawData = monthlyRawData|merge({(monthNum): rawValue}) %}
+                            {% endif %}
+                        {% endfor %}
+                        
+                        {# Calculer le maximum parmi les données disponibles #}
+                        {% set maxValue = 0 %}
+                        {% for monthNum, rawValue in monthlyRawData %}
+                            {% if rawValue > maxValue %}
+                                {% set maxValue = rawValue %}
+                            {% endif %}
+                        {% endfor %}
+                        
+                        {# Si aucune donnée, maxValue reste à 0 #}
+                        {% if maxValue == 0 %}
+                            {% set maxValue = 1 %}
+                        {% endif %}
+                        
+                        {# Couleurs pour chaque barre (flat design) #}
+                        {% set barColors = [
+                            '#4A90E2', '#5BA3F5', '#6CB6FF', '#7DC9FF', '#8EDCFF', '#9FEDFF'
+                        ] %}
+                        
+                        {# Afficher tous les mois de la période #}
+                        <div class="bars-container">
+                            {% for monthNum in monthNumbers %}
+                                {% set monthName = monthNames[monthNum] %}
+                                {% set monthData = monthlyData[monthNum]|default(null) %}
+                                {% set hasData = monthData is not null %}
+                                
+                                {# Calculer la valeur numérique correctement #}
+                                {% if hasData %}
+                                    {# Utiliser la valeur brute si disponible #}
+                                    {% set value = monthlyRawData[monthNum]|default(0) %}
+                                    {% if value == 0 %}
+                                        {# Fallback: extraire de monthData #}
+                                        {% set valueStr = monthData|replace({' MGA': '', ' ': '', ',': ''})|trim %}
+                                        {% set value = valueStr|number_format(0, '', '')|number_format(0, '', '') %}
+                                    {% endif %}
+                                {% else %}
+                                    {% set value = 0 %}
+                                {% endif %}
+                                
+                                {# Calculer la hauteur proportionnelle #}
+                                {% if hasData and maxValue > 0 and value > 0 %}
+                                    {% set height = ((value / maxValue) * 200)|round %}
+                                    {# S'assurer que la hauteur minimale est de 8px pour les barres avec données #}
+                                    {% if height < 8 %}
+                                        {% set height = 8 %}
+                                    {% endif %}
+                                    {% set percentage = ((value / maxValue) * 100)|round(1) %}
+                                {% else %}
+                                    {% set height = 8 %}
+                                    {% set percentage = 0 %}
+                                {% endif %}
+                                
+                                {% set colorIndex = (loop.index0 % barColors|length) %}
+                                
+                                <div class="bar-item-modern {% if not hasData %}bar-empty{% endif %}" data-value="{{ value }}" data-has-data="{{ hasData ? '1' : '0' }}">
+                                    {% if hasData %}
+                                    <div class="bar-value-display">
+                                        <span class="bar-amount">{{ monthData }}</span>
+                                    </div>
+                                    {% endif %}
+                                    <div class="bar-container">
+                                        <div class="bar-modern {% if not hasData %}bar-empty-bar{% endif %}" style="height: {{ height }}px; {% if hasData %}background-color: {{ barColors[colorIndex] }};{% endif %}" {% if hasData %}title="{{ monthData }} ({{ percentage }}%)"{% else %}title="Aucune donnée"{% endif %}>
+                                        </div>
+                                    </div>
+                                    <div class="bar-label {% if not hasData %}bar-label-empty{% endif %}" style="{% if hasData %}background-color: {{ barColors[colorIndex] }};{% endif %}">
+                                        {{ monthName }}
+                                    </div>
                                 </div>
                             {% endfor %}
-                        {% endif %}
+                        </div>
                     </div>
                 </div>
                 <div class="financial-breakdown wow fadeInUp" data-wow-delay="210ms">
@@ -95,20 +282,28 @@
                         <h2>Sources de paiement</h2>
                     </header>
                     <ul>
-                        {% if paymentMethods|length > 0 %}
+                        {% if paymentMethods.methods is defined and paymentMethods.methods|length > 0 %}
                             {% set colors = ['dot-1', 'dot-2', 'dot-3', 'dot-4'] %}
-                            {% for i, method in paymentMethods|slice(0, 4) %}
-                                <li><span class="dot {{ colors[i % colors|length] }}"></span> {{ method.label }} <strong>{{ method.percentage }} %</strong></li>
+                            {% for method in paymentMethods.methods|slice(0, 4) %}
+                                <li><span class="dot {{ colors[loop.index0 % colors|length] }}"></span> {{ method.label }} <strong>{{ method.percentage }} %</strong></li>
                             {% endfor %}
                         {% else %}
                             <li><span class="dot dot-1"></span> Aucune donnée disponible</li>
                         {% endif %}
                     </ul>
                     <div class="financial-note">
-                        Astuce : rechargez votre wallet pour bénéficier des réductions fidélité automatiques.
+                        Astuce : consultez vos méthodes de paiement préférées pour optimiser vos dépenses.
                     </div>
                 </div>
             </section>
         </div>
     </main>
+
+    <script>
+        function updateMonthlyChart(range) {
+            const url = new URL(window.location.href);
+            url.searchParams.set('monthly_range', range);
+            window.location.href = url.toString();
+        }
+    </script>
 {% endblock %}
