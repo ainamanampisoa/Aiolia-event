@@ -122,6 +122,186 @@ class EventsController extends AbstractController
     }
 
     
+    #[Route('/{id}/edit', name: 'organisateur_events_edit', requirements: ['id' => '\d+'], methods: ['GET', 'POST'])]
+    public function edit(
+        Event $event,
+        Request $request,
+        EventService $eventService,
+        OrganizerProfileRepository $organizerProfileRepository,
+        VenueService $venueService,
+        ConfigurationCategorieBilletService $categorieBilletService,
+        ConfigurationSegmentBilletService $segmentBilletService,
+        EventCategoryRepository $eventCategoryRepository,
+        EventTypeService $eventTypeService,
+        ModePaiementService $modePaiementService,
+        TypeAccessibiliteService $typeAccessibiliteService,
+        LienAccessibiliteEvenementService $lienAccessibiliteService,
+        MediaService $mediaService,
+        TypeBilletService $typeBilletService
+    ): Response {
+        $user = $this->getUser();
+        if (!$user) {
+            throw $this->createAccessDeniedException('Vous devez être connecté pour accéder à cette page.');
+        }
+
+        // Vérifier que l'utilisateur est le propriétaire de l'événement
+        $organizerProfile = $organizerProfileRepository->findOneBy(['utilisateur' => $user]);
+        if (!$organizerProfile || $event->getProfilOrganisateur()->getId() !== $organizerProfile->getId()) {
+            throw $this->createAccessDeniedException('Vous n\'avez pas accès à cet événement.');
+        }
+
+        // Vérifier que l'événement est en cours ou à venir
+        $now = new \DateTime();
+        $isOngoing = $event->getStatut() === Event::STATUS_PUBLISHED
+            && $event->getCommenceLe()
+            && $event->getCommenceLe() <= $now
+            && ($event->getSeTermineLe() === null || $event->getSeTermineLe() >= $now);
+        $isUpcoming = $event->getStatut() === Event::STATUS_PUBLISHED
+            && $event->getCommenceLe()
+            && $event->getCommenceLe() > $now;
+
+        if (!$isOngoing && !$isUpcoming) {
+            $this->addFlash('error', 'Seuls les événements en cours ou à venir peuvent être modifiés.');
+            return $this->redirectToRoute('organisateur_events_index');
+        }
+
+        $form = $this->createForm(EventType::class, $event);
+        $form->handleRequest($request);
+
+        if ($form->isSubmitted() && $form->isValid()) {
+            // Gérer les dates de vente si elles sont fournies
+            $salesStartDate = $request->request->get('ticket_sales_start_date');
+            $salesStartTime = $request->request->get('ticket_sales_start_time');
+            $salesEndDate = $request->request->get('ticket_sales_end_date');
+            $salesEndTime = $request->request->get('ticket_sales_end_time');
+            
+            if ($salesStartDate && $salesStartTime) {
+                $salesStart = $eventService->parseDateTime($salesStartDate, $salesStartTime);
+                if ($salesStart) {
+                    $event->setVentesCommencentLe($salesStart);
+                }
+            }
+            
+            if ($salesEndDate && $salesEndTime) {
+                $salesEnd = $eventService->parseDateTime($salesEndDate, $salesEndTime);
+                if ($salesEnd) {
+                    $event->setVentesSeTerminentLe($salesEnd);
+                }
+            }
+
+            $eventService->saveFromForm($event);
+
+            // Gérer l'accessibilité
+            $accessibilityTypes = $request->request->all('accessibility') ?? [];
+            // Supprimer les anciens liens d'accessibilité
+            $lienAccessibiliteService->deleteAllForEvent($event);
+            // Créer les nouveaux liens
+            if (!empty($accessibilityTypes)) {
+                foreach ($accessibilityTypes as $accessibilityCode) {
+                    $typeAccessibilite = $typeAccessibiliteService->getByCode($accessibilityCode);
+                    if ($typeAccessibilite) {
+                        $lienAccessibiliteService->create([], $event, $typeAccessibilite);
+                    }
+                }
+            }
+
+            // Gérer l'upload de l'image principale (si nouvelle image fournie)
+            $mainImage = $request->files->get('image');
+            if ($mainImage) {
+                try {
+                    $mediaService->uploadEventMedia(
+                        $event,
+                        $mainImage,
+                        'image',
+                        true,
+                        0
+                    );
+                } catch (\Exception $e) {
+                    $this->addFlash('error', 'Erreur lors de l\'upload de l\'image principale: ' . $e->getMessage());
+                }
+            }
+
+            // Gérer l'upload des images supplémentaires
+            $galleryImages = $request->files->get('gallery', []);
+            if (!empty($galleryImages)) {
+                $displayOrder = 1;
+                foreach ($galleryImages as $galleryImage) {
+                    if ($galleryImage && $displayOrder <= 5) {
+                        try {
+                            $mediaService->uploadEventMedia(
+                                $event,
+                                $galleryImage,
+                                'image',
+                                false,
+                                $displayOrder
+                            );
+                            $displayOrder++;
+                        } catch (\Exception $e) {
+                            $this->addFlash('error', 'Erreur lors de l\'upload d\'une image supplémentaire: ' . $e->getMessage());
+                        }
+                    }
+                }
+            }
+
+            // Gérer les billets (mise à jour ou création)
+            $ticketsData = [
+                'ticket_id' => $request->request->all('ticket_id') ?? [],
+                'ticket_categorie' => $request->request->all('ticket_categorie') ?? [],
+                'ticket_segment' => $request->request->all('ticket_segment') ?? [],
+                'ticket_price' => $request->request->all('ticket_price') ?? [],
+                'ticket_quantity' => $request->request->all('ticket_quantity') ?? [],
+                'ticket_sales_start_date' => $request->request->get('ticket_sales_start_date'),
+                'ticket_sales_start_time' => $request->request->get('ticket_sales_start_time'),
+                'ticket_sales_end_date' => $request->request->get('ticket_sales_end_date'),
+                'ticket_sales_end_time' => $request->request->get('ticket_sales_end_time'),
+                'ticket_min_per_order' => $request->request->get('ticket_min_per_order'),
+                'ticket_max_per_order' => $request->request->get('ticket_max_per_order'),
+            ];
+
+            if (!empty($ticketsData['ticket_categorie']) && !empty($ticketsData['ticket_segment'])) {
+                try {
+                    $eventService->updateTicketsForEvent($event, $ticketsData);
+                } catch (\InvalidArgumentException $e) {
+                    $this->addFlash('error', $e->getMessage());
+                    // Recharger la page pour afficher l'erreur
+                    return $this->render('Organisateur/events/new.html.twig', [
+                        'event' => $event,
+                        'form' => $form,
+                        'venues' => $venueService->getAllActive(),
+                        'categoriesBillets' => $categorieBilletService->getAllActive(),
+                        'segmentsBillets' => $segmentBilletService->getAllActive(),
+                        'eventCategories' => $eventCategoryRepository->findActiveCategories(),
+                        'eventTypes' => $eventTypeService->getAll(),
+                        'modesPaiement' => $modePaiementService->getAllActive(),
+                        'typesAccessibilite' => $typeAccessibiliteService->getAll(),
+                        'existingTicketTypes' => $typeBilletService->getByEvenement($event),
+                        'isEditMode' => true,
+                    ]);
+                }
+            }
+
+            $this->addFlash('success', 'Événement modifié avec succès.');
+            return $this->redirectToRoute('organisateur_events_index');
+        }
+
+        // Récupérer les types de billets existants avec leurs inventaires
+        $existingTicketTypes = $typeBilletService->getByEvenement($event);
+
+        return $this->render('Organisateur/events/new.html.twig', [
+            'event' => $event,
+            'form' => $form,
+            'venues' => $venueService->getAllActive(),
+            'categoriesBillets' => $categorieBilletService->getAllActive(),
+            'segmentsBillets' => $segmentBilletService->getAllActive(),
+            'eventCategories' => $eventCategoryRepository->findActiveCategories(),
+            'eventTypes' => $eventTypeService->getAll(),
+            'modesPaiement' => $modePaiementService->getAllActive(),
+            'typesAccessibilite' => $typeAccessibiliteService->getAll(),
+            'existingTicketTypes' => $existingTicketTypes, // Types de billets existants
+            'isEditMode' => true, // Flag pour indiquer le mode édition
+        ]);
+    }
+
     #[Route('/new', name: 'app_event_new', methods: ['GET', 'POST'])]
     public function new(
         Request $request,
@@ -306,6 +486,8 @@ class EventsController extends AbstractController
             'eventTypes' => $eventTypeService->getAll(),
             'modesPaiement' => $modePaiementService->getAllActive(),
             'typesAccessibilite' => $typeAccessibiliteService->getAll(),
+            'existingTicketTypes' => [],
+            'isEditMode' => false,
         ]);
     }
 

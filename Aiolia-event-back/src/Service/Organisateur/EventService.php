@@ -204,6 +204,133 @@ class EventService
     }
 
     /**
+     * Met à jour les billets existants pour un événement
+     */
+    public function updateTicketsForEvent(Event $event, array $ticketsData): array
+    {
+        $ticketIds = $ticketsData['ticket_id'] ?? [];
+        $categories = $ticketsData['ticket_categorie'] ?? [];
+        $segments = $ticketsData['ticket_segment'] ?? [];
+        $prices = $ticketsData['ticket_price'] ?? [];
+        $quantities = $ticketsData['ticket_quantity'] ?? [];
+        
+        $salesStartDate = $ticketsData['ticket_sales_start_date'] ?? null;
+        $salesStartTime = $ticketsData['ticket_sales_start_time'] ?? null;
+        $salesEndDate = $ticketsData['ticket_sales_end_date'] ?? null;
+        $salesEndTime = $ticketsData['ticket_sales_end_time'] ?? null;
+        $minPerOrder = (int) ($ticketsData['ticket_min_per_order'] ?? 1);
+        $maxPerOrder = $ticketsData['ticket_max_per_order'] ? (int) $ticketsData['ticket_max_per_order'] : null;
+        
+        $salesStart = null;
+        if ($salesStartDate && $salesStartTime) {
+            $salesStart = $this->parseDateTime($salesStartDate, $salesStartTime);
+        }
+        
+        $salesEnd = null;
+        if ($salesEndDate && $salesEndTime) {
+            $salesEnd = $this->parseDateTime($salesEndDate, $salesEndTime);
+        }
+        
+        $updatedTickets = [];
+        $count = count($categories);
+        
+        for ($i = 0; $i < $count; $i++) {
+            $ticketId = $ticketIds[$i] ?? null;
+            $categorieId = $categories[$i] ?? null;
+            $segmentId = $segments[$i] ?? null;
+            $price = $prices[$i] ?? null;
+            $quantity = $quantities[$i] ?? null;
+            
+            if (!$categorieId || !$segmentId || $price === null || $quantity === null) {
+                continue;
+            }
+            
+            // Si c'est un billet existant, le mettre à jour
+            if ($ticketId) {
+                $typeBillet = $this->typeBilletService->getById($ticketId);
+                if ($typeBillet && $typeBillet->getEvenement()->getId() === $event->getId()) {
+                    $inventaire = $typeBillet->getInventaire();
+                    $quantiteVendue = $inventaire ? $inventaire->getQuantiteVendue() : 0;
+                    
+                    // Valider que la nouvelle quantité n'est pas inférieure à la quantité vendue
+                    if ((int) $quantity < $quantiteVendue) {
+                        throw new \InvalidArgumentException(
+                            sprintf(
+                                'La quantité du billet "%s" ne peut pas être inférieure à %d (billets déjà vendus).',
+                                $typeBillet->getNom(),
+                                $quantiteVendue
+                            )
+                        );
+                    }
+                    
+                    // Mettre à jour le billet
+                    $ticketData = [
+                        'prixDeBase' => (float) $price,
+                        'minimumParCommande' => $minPerOrder,
+                        'maximumParCommande' => $maxPerOrder,
+                        'ventesCommencentLe' => $salesStart,
+                        'ventesSeTerminentLe' => $salesEnd,
+                    ];
+                    
+                    $this->typeBilletService->update($typeBillet, $ticketData);
+                    
+                    // Mettre à jour l'inventaire
+                    if ($inventaire) {
+                        $inventaireData = [
+                            'quantiteTotale' => (int) $quantity,
+                        ];
+                        $this->inventaireBilletService->update($inventaire, $inventaireData);
+                    }
+                    
+                    $updatedTickets[] = $typeBillet;
+                    continue;
+                }
+            }
+            
+            // Sinon, créer un nouveau billet (logique existante)
+            $isTousCategorie = ($categorieId === 'tous' || strtolower($categorieId) === 'tous');
+            $isTousSegment = ($segmentId === 'tous' || strtolower($segmentId) === 'tous');
+            
+            $validCategories = $this->entityManager
+                ->getRepository(ConfigurationCategorieBillet::class)
+                ->findBy(['estActif' => true]);
+            $validSegments = $this->entityManager
+                ->getRepository(ConfigurationSegmentBillet::class)
+                ->findBy(['estActif' => true]);
+            
+            if ($isTousCategorie && $isTousSegment) {
+                foreach ($validCategories as $catToUse) {
+                    foreach ($validSegments as $segToUse) {
+                        $this->createTicketType($event, $catToUse, $segToUse, $price, $quantity, $minPerOrder, $maxPerOrder, $salesStart, $salesEnd, $updatedTickets);
+                    }
+                }
+            } elseif ($isTousCategorie) {
+                $segment = $this->entityManager->getRepository(ConfigurationSegmentBillet::class)->find($segmentId);
+                if ($segment) {
+                    foreach ($validCategories as $catToUse) {
+                        $this->createTicketType($event, $catToUse, $segment, $price, $quantity, $minPerOrder, $maxPerOrder, $salesStart, $salesEnd, $updatedTickets);
+                    }
+                }
+            } elseif ($isTousSegment) {
+                $categorie = $this->entityManager->getRepository(ConfigurationCategorieBillet::class)->find($categorieId);
+                if ($categorie) {
+                    foreach ($validSegments as $segToUse) {
+                        $this->createTicketType($event, $categorie, $segToUse, $price, $quantity, $minPerOrder, $maxPerOrder, $salesStart, $salesEnd, $updatedTickets);
+                    }
+                }
+            } else {
+                $categorie = $this->entityManager->getRepository(ConfigurationCategorieBillet::class)->find($categorieId);
+                $segment = $this->entityManager->getRepository(ConfigurationSegmentBillet::class)->find($segmentId);
+                if ($categorie && $segment) {
+                    $this->createTicketType($event, $categorie, $segment, $price, $quantity, $minPerOrder, $maxPerOrder, $salesStart, $salesEnd, $updatedTickets);
+                }
+            }
+        }
+        
+        return $updatedTickets;
+    }
+
+    /**
      * Helper method pour créer un type de billet avec inventaire
      */
     private function createTicketType(

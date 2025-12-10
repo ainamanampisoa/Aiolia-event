@@ -69,5 +69,16 @@ class LienAccessibiliteEvenementService
     {
         $this->repository->delete($lien);
     }
+
+    /**
+     * Supprime tous les liens d'accessibilité pour un événement.
+     */
+    public function deleteAllForEvent(Event $evenement): void
+    {
+        $liens = $this->getByEvenement($evenement);
+        foreach ($liens as $lien) {
+            $this->delete($lien);
+        }
+    }
 }
 

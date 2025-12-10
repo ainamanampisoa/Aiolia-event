@@ -1463,15 +1463,19 @@
                                 >
                                     <i class="fas fa-eye"></i>
                                 </a>
-                                <button
-                                    type="button"
-                                    class="event-action-btn"
-                                    title="Modifier l'événement"
-                                    aria-label="Modifier l'événement"
-                                    data-event-id="{{ event.id }}"
-                                >
-                                    <i class="fas fa-edit"></i>
-                                </button>
+                                {# Afficher le bouton de modification uniquement pour les événements en cours ou à venir #}
+                                {% set isOngoing = event.statut == 'published' and event.commenceLe and event.commenceLe <= date() and (event.seTermineLe is null or event.seTermineLe >= date()) %}
+                                {% set isUpcoming = event.statut == 'published' and event.commenceLe and event.commenceLe > date() %}
+                                {% if isOngoing or isUpcoming %}
+                                    <a
+                                        href="{{ path('organisateur_events_edit', {'id': event.id}) }}"
+                                        class="event-action-btn"
+                                        title="Modifier l'événement"
+                                        aria-label="Modifier l'événement"
+                                    >
+                                        <i class="fas fa-edit"></i>
+                                    </a>
+                                {% endif %}
                                 {% if event.statut == 'draft' %}
                                     <form method="POST" action="{{ path('organisateur_events_delete', {'id': event.id}) }}" style="display: inline;" onsubmit="return confirm('Êtes-vous sûr de vouloir supprimer cet événement ?');">
                                         <input type="hidden" name="_token" value="{{ csrf_token('delete_event_' ~ event.id) }}">
