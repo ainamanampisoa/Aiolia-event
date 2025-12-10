@@ -124,15 +124,15 @@ class BilletService
     }
 
     
-    public function getByOrganizerPaginated(User $organizer, int $page = 1, int $limit = 10): Paginator
+    public function getByOrganizerPaginated(User $organizer, int $page = 1, int $limit = 10, ?\App\Entity\Event $event = null): Paginator
     {
-        return $this->repository->findByOrganizerPaginated($organizer, $page, $limit);
+        return $this->repository->findByOrganizerPaginated($organizer, $page, $limit, $event);
     }
 
     
-    public function getStatsByOrganizer(User $organizer): array
+    public function getStatsByOrganizer(User $organizer, ?\App\Entity\Event $event = null): array
     {
-        return $this->repository->getStatsByOrganizer($organizer);
+        return $this->repository->getStatsByOrganizer($organizer, $event);
     }
 }
 

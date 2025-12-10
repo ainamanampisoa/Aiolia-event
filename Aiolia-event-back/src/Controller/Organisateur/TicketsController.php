@@ -2,6 +2,8 @@
 
 namespace App\Controller\Organisateur;
 
+use App\Entity\Event;
+use App\Repository\Organisateur\EventRepository;
 use App\Service\Organisateur\BilletService;
 use Symfony\Bundle\FrameworkBundle\Controller\AbstractController;
 use Symfony\Component\HttpFoundation\Request;
@@ -14,7 +16,8 @@ use Symfony\Component\Security\Http\Attribute\IsGranted;
 class TicketsController extends AbstractController
 {
     public function __construct(
-        private BilletService $billetService
+        private BilletService $billetService,
+        private EventRepository $eventRepository
     ) {
     }
 
@@ -27,9 +30,22 @@ class TicketsController extends AbstractController
 
         $page = max(1, (int) $request->query->get('page', 1));
         $limit = 10;
+        $eventId = $request->query->get('eventId');
+        
+        $event = null;
+        if ($eventId) {
+            $event = $this->eventRepository->getById($eventId);
+            // Vérifier que l'utilisateur a accès à cet événement
+            if ($event) {
+                $organizerProfile = $event->getProfilOrganisateur();
+                if ($organizerProfile && $organizerProfile->getUtilisateur() !== $user) {
+                    $event = null; // Pas d'accès, ignorer le filtrage
+                }
+            }
+        }
 
-        $paginator = $this->billetService->getByOrganizerPaginated($user, $page, $limit);
-        $stats = $this->billetService->getStatsByOrganizer($user);
+        $paginator = $this->billetService->getByOrganizerPaginated($user, $page, $limit, $event);
+        $stats = $this->billetService->getStatsByOrganizer($user, $event);
 
         $totalItems = $paginator->count();
         $totalPages = (int) ceil($totalItems / $limit);
@@ -41,6 +57,7 @@ class TicketsController extends AbstractController
             'totalPages' => $totalPages,
             'totalItems' => $totalItems,
             'limit' => $limit,
+            'event' => $event,
         ]);
     }
 }

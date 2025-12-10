@@ -1383,11 +1383,9 @@
         <div class="sort-controls">
             <label data-i18n="events.sort.label">Trier par :</label>
             <select name="triPrix" id="sortEvents" class="sort-select" form="eventSearchForm">
-                <option value="" data-i18n="events.sort.creation">Date de création</option>
+                <option value="" {% if criteria.triPrix is empty or criteria.triPrix is null %}selected{% endif %}>Plus de vues</option>
                 <option value="asc" {% if criteria.triPrix == 'asc' %}selected{% endif %} data-i18n="events.sort.price.asc">Prix croissant</option>
                 <option value="desc" {% if criteria.triPrix == 'desc' %}selected{% endif %} data-i18n="events.sort.price.desc">Prix décroissant</option>
-                <option value="date_asc" {% if criteria.triPrix == 'date_asc' %}selected{% endif %} data-i18n="events.sort.date.asc">Date (plus ancien)</option>
-                <option value="date_desc" {% if criteria.triPrix == 'date_desc' %}selected{% endif %} data-i18n="events.sort.date.desc">Date (plus récent)</option>
             </select>
         </div>
         <div class="view-options">
@@ -1462,6 +1460,15 @@
                                     aria-label="Voir les détails de l'événement"
                                 >
                                     <i class="fas fa-eye"></i>
+                                </a>
+                                {# Bouton historique des ventes détaillé #}
+                                <a
+                                    href="{{ path('organisateur_tickets_index', {'eventId': event.id}) }}"
+                                    class="event-action-btn"
+                                    title="Historique des ventes"
+                                    aria-label="Voir l'historique des ventes"
+                                >
+                                    <i class="fas fa-file-invoice-dollar"></i>
                                 </a>
                                 {# Afficher le bouton de modification uniquement pour les événements en cours ou à venir #}
                                 {% set isOngoing = event.statut == 'published' and event.commenceLe and event.commenceLe <= date() and (event.seTermineLe is null or event.seTermineLe >= date()) %}
@@ -1868,33 +1875,23 @@ document.addEventListener('DOMContentLoaded', function() {
         
         cards.sort((a, b) => {
             switch(sortBy) {
-                case 'price_asc':
+                case 'asc':
+                    // Prix croissant
                     const priceA = parseFloat(a.querySelector('.price-value')?.textContent?.replace(/\s/g, '') || 0);
                     const priceB = parseFloat(b.querySelector('.price-value')?.textContent?.replace(/\s/g, '') || 0);
                     return priceA - priceB;
                     
-                case 'price_desc':
+                case 'desc':
+                    // Prix décroissant
                     const priceC = parseFloat(a.querySelector('.price-value')?.textContent?.replace(/\s/g, '') || 0);
                     const priceD = parseFloat(b.querySelector('.price-value')?.textContent?.replace(/\s/g, '') || 0);
                     return priceD - priceC;
                     
-                case 'date_asc':
-                    // Trier par date d'événement (plus proche)
-                    const dateA = new Date(a.querySelector('.meta-item:first-child').textContent.split(' à ')[0].split('/').reverse().join('-'));
-                    const dateB = new Date(b.querySelector('.meta-item:first-child').textContent.split(' à ')[0].split('/').reverse().join('-'));
-                    return dateA - dateB;
-                    
-                case 'date_desc':
-                    const dateC = new Date(a.querySelector('.meta-item:first-child').textContent.split(' à ')[0].split('/').reverse().join('-'));
-                    const dateD = new Date(b.querySelector('.meta-item:first-child').textContent.split(' à ')[0].split('/').reverse().join('-'));
-                    return dateD - dateC;
-                    
-                case 'oldest':
-                    // Par défaut, trier par ID ou date de création
-                    return parseInt(a.dataset.eventId) - parseInt(b.dataset.eventId);
-                    
-                default: // 'newest'
-                    return parseInt(b.dataset.eventId) - parseInt(a.dataset.eventId);
+                default:
+                    // Par défaut, trier par nombre de vues (décroissant)
+                    const viewsA = parseInt(a.querySelector('.meta-item span')?.textContent?.match(/\d+/)?.[0] || 0);
+                    const viewsB = parseInt(b.querySelector('.meta-item span')?.textContent?.match(/\d+/)?.[0] || 0);
+                    return viewsB - viewsA;
             }
         });
         

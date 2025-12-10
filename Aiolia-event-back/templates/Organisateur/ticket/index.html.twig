@@ -2,14 +2,76 @@
 
 {% block title %}Gestion des billets - Aiolia Event{% endblock %}
 
+{% block stylesheets %}
+{{ parent() }}
+<style>
+/* Styles pour le breadcrumb */
+.event-detail-header {
+    margin-bottom: 20px;
+}
+
+.header-breadcrumb {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    margin-bottom: 16px;
+    font-size: 0.9rem;
+}
+
+.header-breadcrumb a {
+    color: var(--accent);
+    text-decoration: none;
+    font-weight: var(--font-weight-medium);
+}
+
+.header-breadcrumb a:hover {
+    text-decoration: underline;
+}
+
+.header-breadcrumb i {
+    font-size: 0.7rem;
+    color: var(--gray-500);
+}
+
+.header-breadcrumb span {
+    color: var(--gray-700);
+    font-weight: var(--font-weight-semibold);
+}
+</style>
+{% endblock %}
+
 {% block body %}
 <div class="dashboard">
+    {% if event is defined and event %}
+    <!-- Breadcrumb -->
+    <div class="event-detail-header" style="margin-bottom: 24px;">
+        <div class="header-breadcrumb">
+            <a href="{{ path('organisateur_events_index') }}">Événements</a>
+            <i class="fas fa-chevron-right"></i>
+            <a href="{{ path('organisateur_events_show', {id: event.id}) }}">Événement #{{ event.id }} - {{ event.titre }}</a>
+            <i class="fas fa-chevron-right"></i>
+            <span>Historique vente</span>
+        </div>
+    </div>
+    {% endif %}
+    
     <div class="dashboard-header">
         <div>
             <h1>🎫 Gestion des billets</h1>
             <p style="color: var(--gray-600); margin-top: 8px; font-size: 1rem;">
-                Vue d'ensemble de tous vos billets vendus
+                {% if event is defined and event %}
+                    Historique des ventes - {{ event.titre }}
+                {% else %}
+                    Vue d'ensemble de tous vos billets vendus
+                {% endif %}
             </p>
+            {% if event is defined and event %}
+                <div style="margin-top: 8px;">
+                    <a href="{{ path('organisateur_tickets_index') }}" style="color: var(--accent); text-decoration: none; font-size: 0.9rem;">
+                        <i class="fas fa-arrow-left"></i> Voir tous les billets
+                    </a>
+                </div>
+            {% endif %}
         </div>
         <div class="header-actions">
             <a href="{{ path('app_ticket_categories') }}" class="btn-header">
@@ -92,7 +154,9 @@
                 <thead>
                     <tr>
                             <th class="col-left">Code billet</th>
-                            <th class="col-left">Événement</th>
+                            {% if event is not defined or not event %}
+                                <th class="col-left">Événement</th>
+                            {% endif %}
                             <th class="col-left">Client</th>
                             <th class="col-center">Catégorie</th>
                             <th class="col-right">Prix</th>
@@ -108,15 +172,17 @@
                                     <td class="col-left">
                                         <span style="color: var(--text-primary); font-size: 0.95rem; font-weight: var(--font-weight-medium);">#TKT-{{ billet.id|slice(-6) }}</span>
                                     </td>
-                                    <td class="col-left">
-                                        {% if billet.typeBillet and billet.typeBillet.evenement %}
-                                            <div style="max-width: 300px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;" title="{{ billet.typeBillet.evenement.titre }}">
-                                                {{ billet.typeBillet.evenement.titre }}
-                                            </div>
-                                        {% else %}
-                                            <span class="text-muted">N/A</span>
-                                        {% endif %}
-                                    </td>
+                                    {% if event is not defined or not event %}
+                                        <td class="col-left">
+                                            {% if billet.typeBillet and billet.typeBillet.evenement %}
+                                                <div style="max-width: 300px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;" title="{{ billet.typeBillet.evenement.titre }}">
+                                                    {{ billet.typeBillet.evenement.titre }}
+                                                </div>
+                                            {% else %}
+                                                <span class="text-muted">N/A</span>
+                                            {% endif %}
+                                        </td>
+                                    {% endif %}
                                     <td class="col-left" style="white-space: normal;">
                                         <div class="user-info">
                                             <div class="user-details">
@@ -183,7 +249,7 @@
                             {% endfor %}
                         {% else %}
                             <tr>
-                                <td colspan="8" class="text-center" style="padding: 40px;">
+                                <td colspan="{{ (event is defined and event) ? '7' : '8' }}" class="text-center" style="padding: 40px;">
                                     <i class="fas fa-ticket-alt" style="font-size: 3rem; color: var(--text-secondary); margin-bottom: 1rem;"></i>
                                     <p style="color: var(--text-secondary);">Aucun billet trouvé</p>
                         </td>
@@ -215,13 +281,13 @@
                             {% if currentPage == 1 %}
                                 <span class="page-link" aria-disabled="true">Précédent</span>
                             {% else %}
-                                <a class="page-link" href="{{ path('organisateur_tickets_index', {page: currentPage - 1}) }}" rel="prev">Précédent</a>
+                                <a class="page-link" href="{{ path('organisateur_tickets_index', {page: currentPage - 1, eventId: event is defined and event ? event.id : null}) }}" rel="prev">Précédent</a>
                             {% endif %}
                         </li>
 
                         {% if startPage > 1 %}
                             <li class="page-item">
-                                <a class="page-link" href="{{ path('organisateur_tickets_index', {page: 1}) }}">1</a>
+                                <a class="page-link" href="{{ path('organisateur_tickets_index', {page: 1, eventId: event is defined and event ? event.id : null}) }}">1</a>
                             </li>
                             {% if startPage > 2 %}
                                 <li class="page-item ellipsis" aria-hidden="true"><span class="page-link">…</span></li>
@@ -233,7 +299,7 @@
                                 {% if page == currentPage %}
                                     <span class="page-link" aria-current="page">{{ page }}</span>
                                 {% else %}
-                                    <a class="page-link" href="{{ path('organisateur_tickets_index', {page: page}) }}">{{ page }}</a>
+                                    <a class="page-link" href="{{ path('organisateur_tickets_index', {page: page, eventId: event is defined and event ? event.id : null}) }}">{{ page }}</a>
                                 {% endif %}
                             </li>
                         {% endfor %}
@@ -243,7 +309,7 @@
                                 <li class="page-item ellipsis" aria-hidden="true"><span class="page-link">…</span></li>
                             {% endif %}
                             <li class="page-item">
-                                <a class="page-link" href="{{ path('organisateur_tickets_index', {page: totalPages}) }}">{{ totalPages }}</a>
+                                <a class="page-link" href="{{ path('organisateur_tickets_index', {page: totalPages, eventId: event is defined and event ? event.id : null}) }}">{{ totalPages }}</a>
                             </li>
                         {% endif %}
 
@@ -251,7 +317,7 @@
                             {% if currentPage == totalPages %}
                                 <span class="page-link" aria-disabled="true">Suivant</span>
                             {% else %}
-                                <a class="page-link" href="{{ path('organisateur_tickets_index', {page: currentPage + 1}) }}" rel="next">Suivant</a>
+                                <a class="page-link" href="{{ path('organisateur_tickets_index', {page: currentPage + 1, eventId: event is defined and event ? event.id : null}) }}" rel="next">Suivant</a>
                             {% endif %}
                         </li>
                     </ul>

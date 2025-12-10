@@ -2,7 +2,6 @@
 {% set isStats = currentRoute == 'organisateur_dashboard_statistiques' %}
 {% set isReports = currentRoute starts with 'organisateur_reports' %}
 {% set isEvents = currentRoute starts with 'organisateur_events' or currentRoute starts with 'app_event' %}
-{% set isTickets = currentRoute starts with 'organisateur_tickets' or currentRoute starts with 'app_ticket' %}
 {% set isPromotions = currentRoute starts with 'organisateur_promotions' %}
 {% set isWaitlist = currentRoute starts with 'organisateur_waitlist' %}
 {% set isBilling = currentRoute starts with 'organisateur_billing' %}
@@ -53,16 +52,6 @@
                     </div>
                     <span class="nav-text" data-i18n="layout.sidebar.organisateur.events">Événement</span>
                     <span class="nav-tooltip" data-i18n="layout.sidebar.organisateur.events">Événement</span>
-                </a>
-            </li>
-            
-            <li class="nav-item {{ isTickets ? 'active' }}">
-                <a href="{{ path('organisateur_tickets_index') }}" class="nav-link {{ isTickets ? 'active' }}" {% if isTickets %}aria-current="page"{% endif %}>
-                    <div class="nav-icon">
-                        <i class="fas fa-ticket-alt"></i>
-                    </div>
-                    <span class="nav-text" data-i18n="layout.sidebar.organisateur.tickets">Billet</span>
-                    <span class="nav-tooltip" data-i18n="layout.sidebar.organisateur.tickets">Billet</span>
                 </a>
             </li>
             

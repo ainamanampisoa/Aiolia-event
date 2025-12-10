@@ -118,7 +118,7 @@ class BilletRepository extends ServiceEntityRepository
     }
 
     
-    public function findByOrganizerPaginated(User $organizer, int $page = 1, int $limit = 10): Paginator
+    public function findByOrganizerPaginated(User $organizer, int $page = 1, int $limit = 10, ?Event $event = null): Paginator
     {
         $query = $this->createQueryBuilder('b')
             ->innerJoin('b.typeBillet', 'tb')
@@ -127,26 +127,38 @@ class BilletRepository extends ServiceEntityRepository
             ->leftJoin('App\Entity\OrganisateurEvenement', 'oe', 'WITH', 'oe.evenement = e')
             ->leftJoin('oe.profilOrganisateur', 'op2')
             ->where('op.utilisateur = :organizer OR op2.utilisateur = :organizer')
-            ->setParameter('organizer', $organizer)
-            ->orderBy('b.emisLe', 'DESC')
+            ->setParameter('organizer', $organizer);
+            
+        if ($event !== null) {
+            $query->andWhere('e.id = :eventId')
+                ->setParameter('eventId', $event->getId());
+        }
+        
+        $query->orderBy('b.emisLe', 'DESC')
             ->setFirstResult(($page - 1) * $limit)
-            ->setMaxResults($limit)
-            ->getQuery();
+            ->setMaxResults($limit);
 
-        return new Paginator($query, true);
+        return new Paginator($query->getQuery(), true);
     }
 
     
-    public function getStatsByOrganizer(User $organizer): array
+    public function getStatsByOrganizer(User $organizer, ?Event $event = null): array
     {
-        $baseConditions = function($qb) use ($organizer) {
-            return $qb->innerJoin('b.typeBillet', 'tb')
+        $baseConditions = function($qb) use ($organizer, $event) {
+            $qb->innerJoin('b.typeBillet', 'tb')
                 ->innerJoin('tb.evenement', 'e')
                 ->leftJoin('e.profilOrganisateur', 'op')
                 ->leftJoin('App\Entity\OrganisateurEvenement', 'oe', 'WITH', 'oe.evenement = e')
                 ->leftJoin('oe.profilOrganisateur', 'op2')
                 ->where('op.utilisateur = :organizer OR op2.utilisateur = :organizer')
                 ->setParameter('organizer', $organizer);
+            
+            if ($event !== null) {
+                $qb->andWhere('e.id = :eventId')
+                    ->setParameter('eventId', $event->getId());
+            }
+            
+            return $qb;
         };
 
         $countSelect = 'COUNT(b.id)';

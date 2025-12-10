@@ -401,6 +401,8 @@ psql
 \i /tmp/data.sql
 \i /tmp/Events.sql
 
+comment est le Gestion quotas billets par catégorie 
+
 
 psql -U aiolia_user -d aiolia_event -h 127.0.0.1 -p 5432
 

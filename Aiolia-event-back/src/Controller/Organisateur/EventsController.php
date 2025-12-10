@@ -85,6 +85,15 @@ class EventsController extends AbstractController
             $displayStats['maxUsers']
         );
 
+        // Trier par nombre de vues si triPrix est vide
+        if (empty($criteria['triPrix'])) {
+            usort($events, function($a, $b) use ($eventsStats) {
+                $viewsA = $eventsStats[$a->getId()]['viewsCount'] ?? 0;
+                $viewsB = $eventsStats[$b->getId()]['viewsCount'] ?? 0;
+                return $viewsB <=> $viewsA; // Décroissant (plus de vues en premier)
+            });
+        }
+
         
         $eventTypes = $eventTypeService->getAll();
 
