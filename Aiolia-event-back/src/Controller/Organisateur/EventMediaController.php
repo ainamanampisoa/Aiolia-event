@@ -15,9 +15,7 @@ use Symfony\Component\Routing\Attribute\Route;
 #[Route('/events/{eventId}/media', requirements: ['eventId' => '\d+'])]
 class EventMediaController extends AbstractController
 {
-    /**
-     * Liste les médias d'un événement
-     */
+    
     #[Route('', name: 'app_event_media_index', methods: ['GET'])]
     public function index(
         int $eventId,
@@ -38,9 +36,7 @@ class EventMediaController extends AbstractController
         ]);
     }
 
-    /**
-     * Upload un nouveau média
-     */
+    
     #[Route('/upload', name: 'app_event_media_upload', methods: ['POST'])]
     public function upload(
         int $eventId,
@@ -56,12 +52,12 @@ class EventMediaController extends AbstractController
             throw $this->createNotFoundException('Événement non trouvé');
         }
 
-        // Vérifier les permissions
+        
         if ($event->getOrganizer() !== $this->getUser() && !$this->isGranted('ROLE_ADMIN')) {
             throw $this->createAccessDeniedException();
         }
 
-        /** @var UploadedFile $file */
+        
         $file = $request->files->get('file');
         $type = $request->request->get('type', 'image');
         $isPrimary = $request->request->getBoolean('isPrimary', false);
@@ -89,9 +85,7 @@ class EventMediaController extends AbstractController
         return $this->redirectToRoute('app_event_media_index', ['eventId' => $eventId]);
     }
 
-    /**
-     * Supprime un média
-     */
+    
     #[Route('/{id}/delete', name: 'app_event_media_delete', methods: ['POST'])]
     public function delete(
         int $eventId,
@@ -108,12 +102,12 @@ class EventMediaController extends AbstractController
 
         $event = $media->getEvent();
 
-        // Vérifier les permissions
+        
         if ($event->getOrganizer() !== $this->getUser() && !$this->isGranted('ROLE_ADMIN')) {
             throw $this->createAccessDeniedException();
         }
 
-        // Vérifier le token CSRF
+        
         if ($this->isCsrfTokenValid('delete'.$media->getId(), $request->request->get('_token'))) {
             $mediaService->deleteMedia($media);
             $this->addFlash('success', 'Média supprimé avec succès');
@@ -122,9 +116,7 @@ class EventMediaController extends AbstractController
         return $this->redirectToRoute('app_event_media_index', ['eventId' => $eventId]);
     }
 
-    /**
-     * Définit un média comme principal
-     */
+    
     #[Route('/{id}/set-primary', name: 'app_event_media_set_primary', methods: ['POST'])]
     public function setPrimary(
         int $eventId,
@@ -141,12 +133,12 @@ class EventMediaController extends AbstractController
 
         $event = $media->getEvent();
 
-        // Vérifier les permissions
+        
         if ($event->getOrganizer() !== $this->getUser() && !$this->isGranted('ROLE_ADMIN')) {
             throw $this->createAccessDeniedException();
         }
 
-        // Vérifier le token CSRF
+        
         if ($this->isCsrfTokenValid('set-primary'.$media->getId(), $request->request->get('_token'))) {
             $mediaService->setPrimaryImage($event, $media);
             $this->addFlash('success', 'Image principale définie avec succès');
@@ -155,9 +147,7 @@ class EventMediaController extends AbstractController
         return $this->redirectToRoute('app_event_media_index', ['eventId' => $eventId]);
     }
 
-    /**
-     * Modifie l'ordre d'affichage des médias
-     */
+    
     #[Route('/reorder', name: 'app_event_media_reorder', methods: ['POST'])]
     public function reorder(
         int $eventId,
@@ -170,7 +160,7 @@ class EventMediaController extends AbstractController
             throw $this->createNotFoundException('Événement non trouvé');
         }
 
-        // Vérifier les permissions
+        
         if ($event->getOrganizer() !== $this->getUser() && !$this->isGranted('ROLE_ADMIN')) {
             throw $this->createAccessDeniedException();
         }

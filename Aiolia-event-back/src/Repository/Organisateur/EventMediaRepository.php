@@ -7,9 +7,7 @@ use App\Entity\Event;
 use Doctrine\Bundle\DoctrineBundle\Repository\ServiceEntityRepository;
 use Doctrine\Persistence\ManagerRegistry;
 
-/**
- * @extends ServiceEntityRepository<EventMedia>
- */
+
 class EventMediaRepository extends ServiceEntityRepository
 {
     public function __construct(ManagerRegistry $registry)
@@ -17,9 +15,7 @@ class EventMediaRepository extends ServiceEntityRepository
         parent::__construct($registry, EventMedia::class);
     }
 
-    /**
-     * Récupère tous les médias d'un événement
-     */
+    
     public function findByEvent(Event $event): array
     {
         return $this->createQueryBuilder('m')
@@ -30,9 +26,7 @@ class EventMediaRepository extends ServiceEntityRepository
             ->getResult();
     }
 
-    /**
-     * Récupère l'image principale d'un événement
-     */
+    
     public function findPrimaryImage(Event $event): ?EventMedia
     {
         return $this->createQueryBuilder('m')
@@ -46,9 +40,7 @@ class EventMediaRepository extends ServiceEntityRepository
             ->getOneOrNullResult();
     }
 
-    /**
-     * Récupère les médias par type
-     */
+    
     public function findByEventAndType(Event $event, string $type): array
     {
         return $this->createQueryBuilder('m')

@@ -13,9 +13,7 @@ class SlugService
     ) {
     }
 
-    /**
-     * Génère un slug unique pour une entité
-     */
+    
     public function generateUniqueSlug(string $text, string $entityClass, int $excludeId = 0): string
     {
         $slug = $this->slugger->slug($text)->lower()->toString();
@@ -24,7 +22,7 @@ class SlugService
 
         $repository = $this->entityManager->getRepository($entityClass);
 
-        // Vérifier si le slug existe déjà
+        
         while ($this->slugExists($repository, $slug, $excludeId)) {
             $slug = $originalSlug . '-' . $counter;
             $counter++;
@@ -33,9 +31,7 @@ class SlugService
         return $slug;
     }
 
-    /**
-     * Vérifie si un slug existe déjà
-     */
+    
     private function slugExists($repository, string $slug, ?int $excludeId): bool
     {
         $qb = $repository->createQueryBuilder('e')
@@ -51,9 +47,7 @@ class SlugService
         return $qb->getQuery()->getSingleScalarResult() > 0;
     }
 
-    /**
-     * Convertit un texte en slug
-     */
+    
     public function slugify(string $text): string
     {
         return $this->slugger->slug($text)->lower()->toString();

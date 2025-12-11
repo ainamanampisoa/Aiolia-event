@@ -1,51 +1,109 @@
 {% extends 'base.html.twig' %}
 
-{% block title %}Gestion des billets - Aiolia Event{% endblock %}
+{% block title %}Historique des ventes - Aiolia Event{% endblock %}
+
+{% block stylesheets %}
+{{ parent() }}
+<style>
+/* Styles pour le breadcrumb */
+.event-detail-header {
+    margin-bottom: 20px;
+}
+
+.header-breadcrumb {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    margin-bottom: 16px;
+    font-size: 0.9rem;
+}
+
+.header-breadcrumb a {
+    color: var(--accent);
+    text-decoration: none;
+    font-weight: var(--font-weight-medium);
+}
+
+.header-breadcrumb a:hover {
+    text-decoration: underline;
+}
+
+.header-breadcrumb i {
+    font-size: 0.7rem;
+    color: var(--gray-500);
+}
+
+.header-breadcrumb span {
+    color: var(--gray-700);
+    font-weight: var(--font-weight-semibold);
+}
+</style>
+{% endblock %}
 
 {% block body %}
 <div class="dashboard">
+    {% if event is defined and event %}
+    <!-- Breadcrumb -->
+    <div class="event-detail-header" style="margin-bottom: 24px;">
+        <div class="header-breadcrumb">
+            <a href="{{ path('organisateur_events_index') }}">Événements</a>
+            <i class="fas fa-chevron-right"></i>
+            <a href="{{ path('organisateur_events_show', {id: event.id}) }}">Événement #{{ event.id }} - {{ event.titre }}</a>
+            <i class="fas fa-chevron-right"></i>
+            <span>Historique vente</span>
+        </div>
+    </div>
+    {% endif %}
+    
     <div class="dashboard-header">
         <div>
             <h1>🎫 Gestion des billets</h1>
             <p style="color: var(--gray-600); margin-top: 8px; font-size: 1rem;">
-                Vue d'ensemble de tous vos billets vendus
+                {% if event is defined and event %}
+                    Historique des ventes - {{ event.titre }}
+                {% else %}
+                    Vue d'ensemble de tous vos billets vendus
+                {% endif %}
             </p>
         </div>
         <div class="header-actions">
-            <a href="{{ path('app_ticket_categories') }}" class="btn-header">
+            <a href="{{ path('app_ticket_categories', event is defined and event ? {eventId: event.id} : {}) }}" class="btn-header">
                 <i class="fas fa-tags"></i>
                 <span>Catégories</span>
             </a>
-            <a href="{{ path('app_ticket_historique_prix') }}" class="btn-header">
-                <i class="fas fa-history"></i>
-                <span>Historique prix</span>
-            </a>
-            <a href="{{ path('app_ticket_qrcodes') }}" class="btn-header">
+            <a href="{{ path('app_ticket_scanning', event is defined and event ? {eventId: event.id} : {}) }}" class="btn-header">
                 <i class="fas fa-qrcode"></i>
-                <span>QR Codes</span>
+                <span>Scanner</span>
             </a>
         </div>
     </div>
 
-    <!-- Tabs de navigation -->
-    <div class="tabs-nav">
-        <a href="{{ path('organisateur_tickets_index') }}" class="tab-link active">
-            <i class="fas fa-ticket-alt"></i> Tous les billets
-        </a>
-        {# <a href="{{ path('app_ticket_scanning') }}" class="tab-link">
-            <i class="fas fa-qrcode"></i> Scanner
-        </a> #}
-        <a href="{{ path('app_ticket_stock_alerts') }}" class="tab-link">
-            <i class="fas fa-exclamation-triangle"></i> Alertes stock
-        </a>
-    </div>
-
     <!-- Stats rapides des billets -->
-    {% set stats = stats ?? {'vendus': 0, 'utilises': 0, 'enAttente': 0, 'annules': 0} %}
+    {% set stats = stats ?? {'total': 0, 'vendus': 0, 'nonUtilises': 0, 'annules': 0} %}
+    {% set filters = filters ?? {'statut': null, 'categorie': null, 'segment': null} %}
+    {% set availableFilters = availableFilters ?? {'statuts': [], 'categories': [], 'segments': []} %}
+    {% set statusLabels = {
+        'dispo': 'Disponible',
+        'valid': 'En attente',
+        'used': 'Utilisé',
+        'cancelled': 'Annulé',
+        'refunded': 'Remboursé',
+        'transferred': 'Transféré'
+    } %}
     <div class="stats-grid stats-grid-compact">
         <div class="stat-card stat-card-compact">
             <div class="stat-icon stat-icon-compact" style="background: linear-gradient(135deg, rgba(52, 152, 219, 0.1), rgba(52, 152, 219, 0.05)); color: var(--accent);">
                 <i class="fas fa-ticket-alt"></i>
+            </div>
+            <div class="stat-content">
+                <h3>{{ stats.total|default(0)|number_format(0, ',', ' ') }}</h3>
+                <p>Total billets</p>
+            </div>
+        </div>
+
+        <div class="stat-card stat-card-compact">
+            <div class="stat-icon stat-icon-compact" style="background: linear-gradient(135deg, rgba(39, 174, 96, 0.1), rgba(39, 174, 96, 0.05)); color: var(--success);">
+                <i class="fas fa-shopping-cart"></i>
             </div>
             <div class="stat-content">
                 <h3>{{ stats.vendus|default(0)|number_format(0, ',', ' ') }}</h3>
@@ -54,22 +112,12 @@
         </div>
 
         <div class="stat-card stat-card-compact">
-            <div class="stat-icon stat-icon-compact" style="background: linear-gradient(135deg, rgba(39, 174, 96, 0.1), rgba(39, 174, 96, 0.05)); color: var(--success);">
-                <i class="fas fa-check-circle"></i>
-            </div>
-            <div class="stat-content">
-                <h3>{{ stats.utilises|default(0)|number_format(0, ',', ' ') }}</h3>
-                <p>Billets utilisés</p>
-            </div>
-        </div>
-
-        <div class="stat-card stat-card-compact">
             <div class="stat-icon stat-icon-compact" style="background: linear-gradient(135deg, rgba(243, 156, 18, 0.1), rgba(243, 156, 18, 0.05)); color: var(--warning);">
-                <i class="fas fa-hourglass-half"></i>
+                <i class="fas fa-clock"></i>
             </div>
             <div class="stat-content">
-                <h3>{{ stats.enAttente|default(0)|number_format(0, ',', ' ') }}</h3>
-                <p>En attente</p>
+                <h3>{{ stats.nonUtilises|default(0)|number_format(0, ',', ' ') }}</h3>
+                <p>Billets disponibles</p>
             </div>
         </div>
 
@@ -79,54 +127,107 @@
             </div>
             <div class="stat-content">
                 <h3>{{ stats.annules|default(0)|number_format(0, ',', ' ') }}</h3>
-                <p>Annulés</p>
+                <p>Billets annulés</p>
             </div>
         </div>
     </div>
 
-    <!-- Liste des billets -->
+    <!-- Filtres -->
+    <div class="card filters-card">
+        <div class="card-body">
+            <form method="get" class="filters-grid">
+                {% if event is defined and event %}
+                    <input type="hidden" name="eventId" value="{{ event.id }}">
+                {% endif %}
+
+                <div class="filter-field">
+                    <label for="statut">Statut du billet</label>
+                    <select id="statut" name="statut" class="form-control">
+                        <option value="">Tous les statuts</option>
+                        {% for statut in availableFilters.statuts %}
+                            <option value="{{ statut }}" {{ filters.statut == statut ? 'selected' }}>
+                                {{ statusLabels[statut]|default(statut|capitalize) }}
+                            </option>
+                        {% endfor %}
+                    </select>
+                </div>
+
+                <div class="filter-field">
+                    <label for="categorie">Catégorie</label>
+                    <select id="categorie" name="categorie" class="form-control">
+                        <option value="">Toutes les catégories</option>
+                        {% for categorie in availableFilters.categories %}
+                            <option value="{{ categorie }}" {{ filters.categorie == categorie ? 'selected' }}>
+                                {{ categorie|replace({'_': ' '})|capitalize }}
+                            </option>
+                        {% endfor %}
+                    </select>
+                </div>
+
+                <div class="filter-field">
+                    <label for="segment">Segment d'âge</label>
+                    <select id="segment" name="segment" class="form-control">
+                        <option value="">Tous les segments</option>
+                        {% for segment in availableFilters.segments %}
+                            <option value="{{ segment }}" {{ filters.segment == segment ? 'selected' }}>
+                                {{ segment|capitalize }}
+                            </option>
+                        {% endfor %}
+                    </select>
+                </div>
+
+                <div class="filter-actions">
+                    <button type="submit" class="btn-modal btn-modal-primary">
+                        <i class="fas fa-filter"></i> Filtrer
+                    </button>
+                    <a class="btn-modal btn-modal-secondary" href="{{ path('organisateur_tickets_index', { eventId: event is defined and event ? event.id : null }) }}">
+                        Réinitialiser
+                    </a>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <!-- Historique des ventes (factures) -->
     <div class="card validation-card">
         <div class="card-body">
             <div class="table-responsive">
                 <table class="table table-hover validation-table tickets-table">
                 <thead>
                     <tr>
-                            <th class="col-left">Code billet</th>
-                            <th class="col-left">Événement</th>
-                            <th class="col-left">Client</th>
-                            <th class="col-center">Catégorie</th>
-                            <th class="col-right">Prix</th>
-                            <th class="col-center">Date achat</th>
-                            <th class="col-center">Statut</th>
-                            <th class="col-center">Actions</th>
+                            <th class="col-left" style="min-width: 120px;">N° Facture</th>
+                            {% if event is not defined or not event %}
+                                <th class="col-left" style="min-width: 180px;">Événement</th>
+                            {% endif %}
+                            <th class="col-left" style="min-width: 160px;">Client</th>
+                            <th class="col-center" style="min-width: 100px;">Type</th>
+                            <th class="col-right" style="min-width: 100px;">Prix normal</th>
+                            <th class="col-right" style="min-width: 100px;">Prix facturé</th>
+                            <th class="col-left" style="min-width: 90px;">Code promo</th>
+                            <th class="col-center" style="min-width: 100px;">Date</th>
+                            <th class="col-center" style="min-width: 90px;">Statut</th>
+                            <th class="col-center" style="min-width: 60px;">Actions</th>
                     </tr>
                 </thead>
                 <tbody>
                         {% if totalItems is defined and totalItems > 0 %}
-                            {% for billet in billets %}
+                            {% for vente in ventes %}
                                 <tr>
                                     <td class="col-left">
-                                        <span style="color: var(--text-primary); font-size: 0.95rem; font-weight: var(--font-weight-medium);">#TKT-{{ billet.id|slice(-6) }}</span>
+                                        <span style="color: var(--text-primary); font-size: 0.85rem; font-weight: var(--font-weight-medium);">#FAC-{{ vente.numero_facture }}</span>
                                     </td>
-                                    <td class="col-left">
-                                        {% if billet.typeBillet and billet.typeBillet.evenement %}
-                                            <div style="max-width: 300px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;" title="{{ billet.typeBillet.evenement.titre }}">
-                                                {{ billet.typeBillet.evenement.titre }}
+                                    {% if event is not defined or not event %}
+                                        <td class="col-left">
+                                            <div style="max-width: 200px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; font-size: 0.85rem;" title="{{ vente.evenement_titre }}">
+                                                {{ vente.evenement_titre|default('N/A') }}
                                             </div>
-                                        {% else %}
-                                            <span class="text-muted">N/A</span>
-                                        {% endif %}
-                                    </td>
+                                        </td>
+                                    {% endif %}
                                     <td class="col-left" style="white-space: normal;">
                                         <div class="user-info">
                                             <div class="user-details">
-                                                {% if billet.utilisateurProprietaire %}
-                                                    <span class="user-name">{{ billet.utilisateurProprietaire.prenom }} {{ billet.utilisateurProprietaire.nom }}</span>
-                                                    <div class="user-meta">
-                                                        <span class="user-email">
-                                                            <i class="fas fa-envelope"></i>{{ billet.utilisateurProprietaire.email }}
-                                                        </span>
-                                                    </div>
+                                                {% if vente.client_email %}
+                                                    <span class="user-name">{{ vente.client_email }}</span>
                                                 {% else %}
                                                     <span class="text-muted">N/A</span>
                                                 {% endif %}
@@ -134,56 +235,63 @@
                                         </div>
                                     </td>
                                     <td class="col-center">
-                                        {% if billet.typeBillet and billet.typeBillet.configurationCategorie %}
-                                            <span class="ticket-cat-badge">{{ billet.typeBillet.configurationCategorie.nom|lower|trim }}</span>
-                                        {% else %}
-                                            <span class="text-muted">N/A</span>
-                                        {% endif %}
+                                        <span class="type-billet-badge" style="font-size: 0.85rem;">{{ vente.type_billet_nom|default('N/A') }}</span>
                                     </td>
                                     <td class="col-right">
-                                        {% if billet.typeBillet %}
-                                            <span style="color: var(--text-primary); font-size: 1rem; font-weight: var(--font-weight-medium);">{{ billet.typeBillet.prixDeBase|number_format(2, ',', ' ') }} {{ billet.typeBillet.devise }}</span>
+                                        <span style="color: var(--text-primary); font-size: 0.85rem; font-weight: var(--font-weight-medium);">{{ vente.prix_normal|default(0)|number_format(0, ',', ' ') }} {{ vente.devise|default('MGA') }}</span>
+                                    </td>
+                                    <td class="col-right">
+                                        <span style="color: var(--text-primary); font-size: 0.85rem; font-weight: var(--font-weight-medium);">{{ vente.montant_facture_total|default(0)|number_format(0, ',', ' ') }} {{ vente.devise|default('MGA') }}</span>
+                                    </td>
+                                    <td class="col-left">
+                                        {% if vente.code_promo %}
+                                            <span class="badge status-badge status-pending">{{ vente.code_promo }}</span>
                                         {% else %}
-                                            <span class="text-muted">N/A</span>
+                                            <span class="text-muted">—</span>
                                         {% endif %}
                                     </td>
                                     <td class="col-center">
-                                        {% if billet.emisLe %}
-                                            <span style="color: var(--text-primary); font-weight: var(--font-weight-medium); font-size: 0.9rem; white-space: nowrap;">{{ billet.emisLe|date('d M Y') }}</span>
+                                        {% if vente.facture_date %}
+                                            <span style="color: var(--text-primary); font-weight: var(--font-weight-medium); font-size: 0.85rem; white-space: nowrap;">{{ vente.facture_date|date('d M Y') }}</span>
                                         {% else %}
-                                            <span class="text-muted">N/A</span>
+                                            <span class="text-muted" style="font-size: 0.85rem;">N/A</span>
                                         {% endif %}
                                     </td>
                                     <td class="col-center">
-                                        {% if billet.statut == 'valid' %}
+                                        {% set statutBillet = vente.billet_statut|default('dispo') %}
+                                        {% set statutLabel = statusLabels[statutBillet]|default(statutBillet|capitalize) %}
+                                        {% if statutBillet == 'dispo' %}
+                                            <span class="badge status-badge status-active">Disponible</span>
+                                        {% elseif statutBillet == 'valid' %}
                                             <span class="badge status-badge status-pending">En attente</span>
-                                        {% elseif billet.statut == 'used' %}
+                                        {% elseif statutBillet == 'used' %}
                                             <span class="badge status-badge status-active">Utilisé</span>
-                                        {% elseif billet.statut == 'cancelled' %}
-                                            <span class="badge status-badge status-inactive">Annulé</span>
-                                        {% elseif billet.statut == 'refunded' %}
+                                        {% elseif statutBillet == 'cancelled' %}
+                                            <span class="badge status-badge status-cancelled">Annulé</span>
+                                        {% elseif statutBillet == 'refunded' %}
                                             <span class="badge status-badge status-refunded">Remboursé</span>
-                                        {% elseif billet.statut == 'transferred' %}
+                                        {% elseif statutBillet == 'transferred' %}
                                             <span class="badge status-badge status-active">Transféré</span>
                                         {% else %}
-                                            <span class="badge status-badge status-inactive">{{ billet.statut }}</span>
+                                            <span class="badge status-badge status-inactive">{{ statutLabel }}</span>
                                         {% endif %}
                                     </td>
                                     <td class="col-center">
                                         <div class="action-buttons">
-                                            <a href="{{ path('app_ticket_show', {id: billet.id}) }}" class="btn-action btn-view" title="Voir les détails">
-                                                <i class="fas fa-eye"></i>
-                                            </a>
-                                            <button type="button" class="btn-action btn-edit" title="Modifier le prix" data-billet-id="{{ billet.id }}" data-edit-price>
-                                                <i class="fas fa-pencil-alt"></i>
-                                            </button>
+                                            {% if vente.billet_id %}
+                                                <a href="{{ path('app_ticket_show', {id: vente.billet_id}) }}" class="btn-action btn-view" title="Voir les détails du billet et de la facture">
+                                                    <i class="fas fa-eye"></i>
+                                                </a>
+                                            {% else %}
+                                                <span class="text-muted">—</span>
+                                            {% endif %}
                                         </div>
                                     </td>
                     </tr>
                             {% endfor %}
                         {% else %}
                             <tr>
-                                <td colspan="8" class="text-center" style="padding: 40px;">
+                                <td colspan="{{ (event is defined and event) ? '9' : '10' }}" class="text-center" style="padding: 40px;">
                                     <i class="fas fa-ticket-alt" style="font-size: 3rem; color: var(--text-secondary); margin-bottom: 1rem;"></i>
                                     <p style="color: var(--text-secondary);">Aucun billet trouvé</p>
                         </td>
@@ -215,13 +323,25 @@
                             {% if currentPage == 1 %}
                                 <span class="page-link" aria-disabled="true">Précédent</span>
                             {% else %}
-                                <a class="page-link" href="{{ path('organisateur_tickets_index', {page: currentPage - 1}) }}" rel="prev">Précédent</a>
+                                <a class="page-link" href="{{ path('organisateur_tickets_index', {
+                                    page: currentPage - 1,
+                                    eventId: event is defined and event ? event.id : null,
+                                    statut: filters.statut,
+                                    categorie: filters.categorie,
+                                    segment: filters.segment
+                                }) }}" rel="prev">Précédent</a>
                             {% endif %}
                         </li>
 
                         {% if startPage > 1 %}
                             <li class="page-item">
-                                <a class="page-link" href="{{ path('organisateur_tickets_index', {page: 1}) }}">1</a>
+                                <a class="page-link" href="{{ path('organisateur_tickets_index', {
+                                    page: 1,
+                                    eventId: event is defined and event ? event.id : null,
+                                    statut: filters.statut,
+                                    categorie: filters.categorie,
+                                    segment: filters.segment
+                                }) }}">1</a>
                             </li>
                             {% if startPage > 2 %}
                                 <li class="page-item ellipsis" aria-hidden="true"><span class="page-link">…</span></li>
@@ -233,7 +353,13 @@
                                 {% if page == currentPage %}
                                     <span class="page-link" aria-current="page">{{ page }}</span>
                                 {% else %}
-                                    <a class="page-link" href="{{ path('organisateur_tickets_index', {page: page}) }}">{{ page }}</a>
+                                    <a class="page-link" href="{{ path('organisateur_tickets_index', {
+                                        page: page,
+                                        eventId: event is defined and event ? event.id : null,
+                                        statut: filters.statut,
+                                        categorie: filters.categorie,
+                                        segment: filters.segment
+                                    }) }}">{{ page }}</a>
                                 {% endif %}
                             </li>
                         {% endfor %}
@@ -243,7 +369,13 @@
                                 <li class="page-item ellipsis" aria-hidden="true"><span class="page-link">…</span></li>
                             {% endif %}
                             <li class="page-item">
-                                <a class="page-link" href="{{ path('organisateur_tickets_index', {page: totalPages}) }}">{{ totalPages }}</a>
+                                <a class="page-link" href="{{ path('organisateur_tickets_index', {
+                                    page: totalPages,
+                                    eventId: event is defined and event ? event.id : null,
+                                    statut: filters.statut,
+                                    categorie: filters.categorie,
+                                    segment: filters.segment
+                                }) }}">{{ totalPages }}</a>
                             </li>
                         {% endif %}
 
@@ -251,18 +383,24 @@
                             {% if currentPage == totalPages %}
                                 <span class="page-link" aria-disabled="true">Suivant</span>
                             {% else %}
-                                <a class="page-link" href="{{ path('organisateur_tickets_index', {page: currentPage + 1}) }}" rel="next">Suivant</a>
+                                <a class="page-link" href="{{ path('organisateur_tickets_index', {
+                                    page: currentPage + 1,
+                                    eventId: event is defined and event ? event.id : null,
+                                    statut: filters.statut,
+                                    categorie: filters.categorie,
+                                    segment: filters.segment
+                                }) }}" rel="next">Suivant</a>
                             {% endif %}
                         </li>
                     </ul>
                 </div>
                 <div class="pagination-summary">
-                    <small>Page {{ currentPage }} sur {{ totalPages }} - Affichage de {{ billets|length }} billet(s) sur {{ totalItems|default(0) }} total</small>
+                    <small>Page {{ currentPage }} sur {{ totalPages }} - Affichage de {{ ventes|length }} vente(s) sur {{ totalItems|default(0) }} total</small>
                 </div>
             {% elseif totalItems is defined and totalItems > 0 %}
                 <div class="pagination-wrapper">
                     <div class="pagination-summary">
-                        <small>Affichage de {{ totalItems }} billet(s)</small>
+                        <small>Affichage de {{ totalItems }} vente(s)</small>
                     </div>
                 </div>
             {% endif %}
@@ -364,11 +502,55 @@
     justify-content: center;
 }
 
+/* Styles pour les types de billets avec couleurs */
+.type-billet-badge {
+    font-weight: var(--font-weight-semibold);
+    padding: 4px 8px;
+    border-radius: 4px;
+    display: inline-block;
+    white-space: nowrap;
+}
+
+.type-billet-badge {
+    color: #3498DB;
+    background: transparent;
+    border: none;
+}
+
 .ticket-cat-badge:hover {
     box-shadow: 0 3px 8px rgba(155, 89, 182, 0.25);
     transform: translateY(-1px);
     background: rgba(155, 89, 182, 0.18);
     border-color: rgba(155, 89, 182, 0.35);
+}
+
+.filters-card {
+    margin-top: 20px;
+    border: 1px solid var(--border-color);
+    border-radius: var(--border-radius-lg);
+    box-shadow: var(--shadow-sm);
+    background: var(--bg-card);
+}
+
+.filters-grid {
+    display: grid;
+    gap: 16px;
+    grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+    align-items: end;
+}
+
+.filter-field label {
+    display: block;
+    margin-bottom: 8px;
+    font-weight: var(--font-weight-medium);
+    color: var(--text-primary);
+    font-size: 0.95rem;
+}
+
+.filter-actions {
+    display: flex;
+    gap: 10px;
+    align-items: center;
 }
 
 /* Styles harmonisés avec la liste des factures */
@@ -385,6 +567,23 @@
     border-collapse: separate;
     border-spacing: 0;
     background: var(--bg-card);
+    table-layout: auto;
+}
+
+.validation-table thead th:first-child {
+    padding-left: 16px;
+}
+
+.validation-table tbody td:first-child {
+    padding-left: 16px;
+}
+
+.validation-table thead th:last-child {
+    padding-right: 16px;
+}
+
+.validation-table tbody td:last-child {
+    padding-right: 16px;
 }
 
 .validation-table thead {
@@ -399,9 +598,9 @@
     border-bottom: 1px solid var(--border-color);
     font-weight: var(--font-weight-medium);
     text-transform: uppercase;
-    font-size: 0.82rem;
+    font-size: 0.75rem;
     letter-spacing: 0.02em;
-    padding: 16px 20px;
+    padding: 10px 8px;
     white-space: nowrap;
     overflow: hidden;
     text-overflow: ellipsis;
@@ -409,10 +608,11 @@
 
 .validation-table tbody td {
     border-bottom: none;
-    padding: 18px 20px;
+    padding: 12px 8px;
     vertical-align: middle;
     background: var(--bg-card);
     white-space: nowrap;
+    font-size: 0.85rem;
 }
 
 .validation-table tbody td:has(.user-info) {
@@ -458,12 +658,14 @@
 
 .tickets-table .user-name {
     color: var(--text-primary);
-    font-size: 1rem;
+    font-size: 0.85rem;
     font-weight: var(--font-weight-medium);
     margin: 0;
     white-space: nowrap;
     overflow: hidden;
     text-overflow: ellipsis;
+    max-width: 180px;
+    display: inline-block;
 }
 
 .tickets-table .user-meta {
@@ -490,13 +692,13 @@
 }
 
 .status-badge {
-    font-size: 0.78rem;
-    padding: 6px 12px;
+    font-size: 0.7rem;
+    padding: 4px 8px;
     border-radius: var(--border-radius-sm);
     font-weight: var(--font-weight-medium);
     display: inline-flex;
     align-items: center;
-    gap: 6px;
+    gap: 4px;
     white-space: nowrap;
     transition: var(--transition-base);
     box-shadow: var(--shadow-xs);
@@ -523,6 +725,13 @@
     background: var(--bg-secondary);
     color: var(--text-muted);
     border: 1px solid var(--border-color);
+}
+
+.status-cancelled {
+    background: var(--bg-secondary);
+    color: #E74C3C;
+    border: 1px solid var(--border-color);
+    font-weight: var(--font-weight-semibold);
 }
 
 .status-refunded {
@@ -609,9 +818,16 @@
 
 /* Amélioration du scroll horizontal */
 .table-responsive {
-    overflow-x: auto;
+    overflow-x: visible;
     -webkit-overflow-scrolling: touch;
     border-radius: var(--border-radius-md);
+    width: 100%;
+}
+
+.validation-table {
+    table-layout: auto;
+    width: 100%;
+    min-width: 100%;
 }
 
 .table-responsive::-webkit-scrollbar {
@@ -689,8 +905,8 @@
 }
 
 .btn-action {
-    width: 36px;
-    height: 36px;
+    width: 32px;
+    height: 32px;
     display: inline-flex;
     align-items: center;
     justify-content: center;
@@ -699,7 +915,7 @@
     cursor: pointer;
     transition: all 0.3s ease;
     text-decoration: none;
-    font-size: 0.9rem;
+    font-size: 0.8rem;
     box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
 }
 

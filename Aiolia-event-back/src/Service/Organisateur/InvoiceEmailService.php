@@ -24,9 +24,7 @@ class InvoiceEmailService
     ) {
     }
 
-    /**
-     * Envoie une facture de billet par email
-     */
+    
     public function sendTicketInvoice(TicketInvoice $invoice): bool
     {
         try {
@@ -42,10 +40,10 @@ class InvoiceEmailService
                     'customer' => $customer,
                 ]);
 
-            // Générer le PDF et l'attacher
-            // TODO: Une fois le PDF généré, l'attacher à l'email
-            // $pdfContent = $this->pdfService->generateTicketInvoicePdf($invoice);
-            // $email->attach($pdfContent, sprintf('facture-%s.pdf', $invoice->getInvoiceNumber()), 'application/pdf');
+            
+            
+            
+            
 
             $this->mailer->send($email);
 
@@ -68,9 +66,7 @@ class InvoiceEmailService
         }
     }
 
-    /**
-     * Envoie une facture d'abonnement par email
-     */
+    
     public function sendSubscriptionInvoice(SubscriptionInvoice $invoice, bool $isOverdueNotification = false): bool
     {
         try {
@@ -91,10 +87,10 @@ class InvoiceEmailService
                     'isOverdueNotification' => $isOverdueNotification,
                 ]);
 
-            // Générer le PDF et l'attacher
-            // TODO: Une fois le PDF généré, l'attacher à l'email
-            // $pdfContent = $this->pdfService->generateSubscriptionInvoicePdf($invoice);
-            // $email->attach($pdfContent, sprintf('facture-abonnement-%s.pdf', $invoice->getInvoiceNumber()), 'application/pdf');
+            
+            
+            
+            
 
             $this->mailer->send($email);
 
@@ -121,9 +117,7 @@ class InvoiceEmailService
         }
     }
 
-    /**
-     * Envoie automatiquement une facture après paiement
-     */
+    
     public function sendInvoiceAfterPayment(TicketInvoice|SubscriptionInvoice $invoice): bool
     {
         if ($invoice instanceof TicketInvoice) {

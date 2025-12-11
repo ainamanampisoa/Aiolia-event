@@ -14,41 +14,31 @@ class CodePromotionnelService
     ) {
     }
 
-    /**
-     * Récupère tous les codes promotionnels
-     */
+    
     public function getAll(): array
     {
         return $this->repository->getAll();
     }
 
-    /**
-     * Récupère un code promotionnel par son ID
-     */
+    
     public function getById(string $id): ?CodePromotionnel
     {
         return $this->repository->getById($id);
     }
 
-    /**
-     * Récupère un code promotionnel par son code
-     */
+    
     public function getByCode(string $code): ?CodePromotionnel
     {
         return $this->repository->findByCode($code);
     }
 
-    /**
-     * Récupère tous les codes promotionnels actifs
-     */
+    
     public function getActive(): array
     {
         return $this->repository->findActive();
     }
 
-    /**
-     * Crée un nouveau code promotionnel
-     */
+    
     public function create(array $data, ?OrganizerProfile $profilOrganisateur = null): CodePromotionnel
     {
         $codePromotionnel = new CodePromotionnel();
@@ -92,9 +82,7 @@ class CodePromotionnelService
         return $this->repository->create($codePromotionnel);
     }
 
-    /**
-     * Met à jour un code promotionnel
-     */
+    
     public function update(CodePromotionnel $codePromotionnel, array $data): CodePromotionnel
     {
         if (isset($data['code'])) {
@@ -132,32 +120,19 @@ class CodePromotionnelService
         return $this->repository->update($codePromotionnel);
     }
 
-    /**
-     * Supprime un code promotionnel
-     */
+    
     public function delete(CodePromotionnel $codePromotionnel): void
     {
         $this->repository->delete($codePromotionnel);
     }
 
-    /**
-     * Récupère tous les codes promotionnels d'un organisateur
-     */
+    
     public function getByOrganisateur(OrganizerProfile $organisateur): array
     {
         return $this->repository->findByOrganisateur($organisateur);
     }
 
-    /**
-     * Récupère les codes promotionnels d'un organisateur avec pagination et filtres de date
-     *
-     * @param OrganizerProfile $organisateur
-     * @param int $page Numéro de la page (commence à 1)
-     * @param int $perPage Nombre d'éléments par page
-     * @param \DateTimeImmutable|null $dateDebut Date de début (peut être null)
-     * @param \DateTimeImmutable|null $dateFin Date de fin (peut être null)
-     * @return array ['items' => array, 'total' => int, 'pages' => int, 'current_page' => int, 'per_page' => int]
-     */
+    
     public function getByOrganisateurPaginated(
         OrganizerProfile $organisateur,
         int $page = 1,
@@ -168,41 +143,31 @@ class CodePromotionnelService
         return $this->repository->findByOrganisateurPaginated($organisateur, $page, $perPage, $dateDebut, $dateFin);
     }
 
-    /**
-     * Récupère les codes promotionnels actifs d'un organisateur
-     */
+    
     public function getActiveByOrganisateur(OrganizerProfile $organisateur): array
     {
         return $this->repository->findActiveByOrganisateur($organisateur);
     }
 
-    /**
-     * Compte le nombre d'utilisations d'un code promotionnel
-     */
+    
     public function countUtilisations(CodePromotionnel $codePromotionnel): int
     {
         return $this->repository->countUtilisations($codePromotionnel);
     }
 
-    /**
-     * Compte le nombre d'utilisations d'un code promotionnel par un utilisateur
-     */
+    
     public function countUtilisationsByUser(CodePromotionnel $codePromotionnel, User $user): int
     {
         return $this->repository->countUtilisationsByUser($codePromotionnel, $user);
     }
 
-    /**
-     * Calcule le montant total des réductions accordées pour un code promotionnel
-     */
+    
     public function getTotalRemise(CodePromotionnel $codePromotionnel): float
     {
         return $this->repository->getTotalRemise($codePromotionnel);
     }
 
-    /**
-     * Récupère les codes promotionnels qui expirent bientôt
-     */
+    
     public function getExpiringSoon(OrganizerProfile $organisateur, int $days = 7): array
     {
         return $this->repository->findExpiringSoon($organisateur, $days);

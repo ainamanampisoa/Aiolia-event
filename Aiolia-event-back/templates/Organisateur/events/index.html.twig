@@ -2,677 +2,9 @@
 
 {% block title %}Événements - Aiolia Event{% endblock %}
 
-{% block body %}
-<div class="dashboard">
-    <!-- En-tête de la page -->
-    <div class="dashboard-header">
-        <div>
-            <h1>📅 Mes événements</h1>
-            <p style="color: var(--text-secondary); margin-top: 8px; font-size: 1rem;">
-                Gérez tous vos événements et collaborations
-            </p>
-            <div class="events-stats">
-                <span class="stat-item">
-                    <strong>{{ events|length }}</strong> événement(s)
-                </span>
-                <span class="stat-item">
-                    <i class="fas fa-calendar-alt"></i>
-                    {{ events|filter(e => e.statut == 'published' and e.commenceLe and e.commenceLe > date())|length }} à venir
-                </span>
-                <span class="stat-item">
-                    <i class="fas fa-broadcast-tower"></i>
-                    {{ events|filter(e => e.statut == 'published' and e.commenceLe and e.commenceLe <= date() and e.seTermineLe >= date())|length }} en cours
-                </span>
-            </div>
-        </div>
-        <div class="header-actions">
-            <button class="btn btn-primary" onclick="window.location.href='{{ path('app_event_new') }}'">
-                <i class="fas fa-plus"></i>
-                Nouvel événement
-            </button>
-            <button class="btn btn-secondary" id="toggleViewBtn">
-                <i class="fas fa-th"></i>
-                Vue grille
-            </button>
-        </div>
-    </div>
-
-    {# Résumé des filtres appliqués #}
-    {% set appliedFilters = [] %}
-    {% if criteria.dateDebut %}
-        {% set appliedFilters = appliedFilters|merge(['Du ' ~ criteria.dateDebut|date('d/m/Y')]) %}
-    {% endif %}
-    {% if criteria.dateFin %}
-        {% set appliedFilters = appliedFilters|merge(['Au ' ~ criteria.dateFin|date('d/m/Y')]) %}
-    {% endif %}
-    {% if criteria.nomLieu %}
-        {% set appliedFilters = appliedFilters|merge(['Lieu : ' ~ criteria.nomLieu]) %}
-    {% endif %}
-    {% if criteria.typeEvenementId %}
-        {% set appliedFilters = appliedFilters|merge(['Type d\'événement sélectionné']) %}
-    {% endif %}
-    {% if criteria.statut %}
-        {% set appliedFilters = appliedFilters|merge(['Statut : ' ~ criteria.statut|capitalize]) %}
-    {% endif %}
-    {% if criteria.prixMin %}
-        {% set appliedFilters = appliedFilters|merge(['Prix min : ' ~ criteria.prixMin ~ ' MGA']) %}
-    {% endif %}
-    {% if criteria.prixMax %}
-        {% set appliedFilters = appliedFilters|merge(['Prix max : ' ~ criteria.prixMax ~ ' MGA']) %}
-    {% endif %}
-    {% if criteria.triPrix %}
-        {% set appliedFilters = appliedFilters|merge(['Tri : ' ~ criteria.triPrix]) %}
-    {% endif %}
-
-    {% if appliedFilters|length > 0 %}
-        <div class="active-filters">
-            <span class="active-filters-label">
-                <i class="fas fa-sliders-h"></i>
-                Filtres appliqués :
-            </span>
-            <div class="active-filters-chips">
-                {% for filterLabel in appliedFilters %}
-                    <span class="filter-chip">
-                        {{ filterLabel }}
-                    </span>
-                {% endfor %}
-            </div>
-        </div>
-    {% endif %}
-
-    <!-- Filtres avancés (structure harmonisée avec la liste des utilisateurs) -->
-    <div class="search-section advanced-filters" id="advancedFilters">
-        <div class="search-header">
-            <h3 style="font-size: 1.1rem; color: var(--text-primary); margin: 0; display: flex; align-items: center; gap: 8px;">
-                <i class="fas fa-filter"></i>
-                Recherche multicritère
-            </h3>
-            <button class="btn-toggle-search" id="toggleAdvancedSearch" type="button">
-                <i class="fas fa-sliders-h"></i>
-                Masquer les filtres
-            </button>
-        </div>
-
-        <div class="search-form" id="eventSearchFormWrapper">
-            <form id="eventSearchForm" method="GET" action="{{ path('organisateur_events_index') }}">
-                <div class="search-grid">
-                    <div class="search-field">
-                        <div class="date-range">
-                            <div class="search-field">
-                                <label>Du</label>
-                                <input type="date" name="dateDebut" class="form-input js-date-picker" placeholder="jj/mm/aaaa" value="{{ criteria.dateDebut ? criteria.dateDebut|date('Y-m-d') : '' }}">
-                            </div>
-                            <div class="search-field">
-                                <label>Au</label>
-                                <input type="date" name="dateFin" class="form-input js-date-picker" placeholder="jj/mm/aaaa" value="{{ criteria.dateFin ? criteria.dateFin|date('Y-m-d') : '' }}">
-                            </div>
-                        </div>
-                    </div>
-
-                    <div class="search-field">
-                        <label>
-                            Lieu
-                        </label>
-                        <input type="text" name="nomLieu" class="form-input" placeholder="Nom du lieu..." value="{{ criteria.nomLieu ?? '' }}">
-                    </div>
-
-                    <div class="search-field">
-                        <label>
-                            Type d'événement
-                        </label>
-                        <select name="typeEvenementId" class="form-input">
-                            <option value="">Tous les types</option>
-                            {% for eventType in eventTypes %}
-                                <option value="{{ eventType.id }}" {% if criteria.typeEvenementId is defined and criteria.typeEvenementId == eventType.id %}selected{% endif %}>
-                                    {{ eventType.label }}
-                                </option>
-                            {% endfor %}
-                        </select>
-                    </div>
-
-                    <div class="search-field">
-                        <label>
-                            Statut
-                        </label>
-                        <select name="statut" class="form-input">
-                            <option value="">Tous les statuts</option>
-                            <option value="published" {% if criteria.statut == 'published' %}selected{% endif %}>Publié</option>
-                            <option value="draft" {% if criteria.statut == 'draft' %}selected{% endif %}>Brouillon</option>
-                            <option value="cancelled" {% if criteria.statut == 'cancelled' %}selected{% endif %}>Annulé</option>
-                        </select>
-                    </div>
-
-                    <div class="search-field">
-                        <label>
-                            Budget min
-                        </label>
-                        <div class="input-with-unit">
-                            <input type="number" name="prixMin" min="0" class="form-input" placeholder="0" value="{{ criteria.prixMin ?? '' }}">
-                            <span>MGA</span>
-                        </div>
-                    </div>
-
-                    <div class="search-field">
-                        <label>
-                            Budget max
-                        </label>
-                        <div class="input-with-unit">
-                            <input type="number" name="prixMax" min="0" class="form-input" placeholder="500,000" value="{{ criteria.prixMax ?? '' }}">
-                            <span>MGA</span>
-                        </div>
-                    </div>
-
-                </div>
-
-                <div class="filter-actions">
-                    <button type="submit" class="btn btn-primary">
-                        <i class="fas fa-search"></i>
-                        Appliquer les filtres
-                    </button>
-                    <button type="reset" class="btn btn-secondary" id="resetFilters">
-                        <i class="fas fa-redo"></i>
-                        Réinitialiser
-                    </button>
-                </div>
-            </form>
-        </div>
-    </div>
-
-    <!-- Contrôles d'affichage -->
-    <div class="view-controls">
-        <div class="sort-controls">
-            <label>Trier par :</label>
-            <select name="triPrix" id="sortEvents" class="sort-select" form="eventSearchForm">
-                <option value="">Date de création</option>
-                <option value="asc" {% if criteria.triPrix == 'asc' %}selected{% endif %}>Prix croissant</option>
-                <option value="desc" {% if criteria.triPrix == 'desc' %}selected{% endif %}>Prix décroissant</option>
-                <option value="date_asc" {% if criteria.triPrix == 'date_asc' %}selected{% endif %}>Date (plus ancien)</option>
-                <option value="date_desc" {% if criteria.triPrix == 'date_desc' %}selected{% endif %}>Date (plus récent)</option>
-            </select>
-        </div>
-        <div class="view-options">
-            <button class="view-option active" data-view="grid">
-                <i class="fas fa-th-large"></i>
-            </button>
-            <button class="view-option" data-view="list">
-                <i class="fas fa-list"></i>
-            </button>
-        </div>
-    </div>
-
-    <!-- Liste des événements -->
-    <div class="events-container" id="eventsContainer">
-        {% if events|length > 0 %}
-            <div class="events-grid" id="eventsGrid">
-                {% for event in events %}
-                    <div class="event-card" data-event-id="{{ event.id }}">
-                        <!-- En-tête de la carte -->
-                        <div class="event-card-header">
-                            <div class="event-badges">
-                                <span class="event-category">
-                                    {% if event.typeEvenement %}
-                                        {{ event.typeEvenement.label }}
-                                    {% else %}
-                                        Événement
-                                    {% endif %}
-                                </span>
-                                <span class="event-status status-{{ event.statut }}">
-                                    {% if event.statut == 'published' and event.commenceLe and event.commenceLe <= date() and event.seTermineLe >= date() %}
-                                        <i class="fas fa-circle"></i> LIVE
-                                    {% elseif event.statut == 'published' and event.commenceLe and event.commenceLe > date() %}
-                                        <i class="fas fa-clock"></i> À VENIR
-                                    {% elseif event.statut == 'cancelled' %}
-                                        <i class="fas fa-times-circle"></i> ANNULÉ
-                                    {% elseif event.statut == 'draft' %}
-                                        <i class="fas fa-edit"></i> BROUILLON
-                                    {% else %}
-                                        {{ event.statut|upper }}
-                                    {% endif %}
-                                </span>
-                            </div>
-                            
-                            <div class="event-actions">
-                                {# Actions visibles en permanence au lieu d'un dropdown #}
-                                <a
-                                    href="{{ path('organisateur_events_show', {'id': event.id}) }}"
-                                    class="event-action-btn"
-                                    title="Voir les détails"
-                                    aria-label="Voir les détails de l'événement"
-                                >
-                                    <i class="fas fa-eye"></i>
-                                </a>
-                                <button
-                                    type="button"
-                                    class="event-action-btn"
-                                    title="Modifier l'événement"
-                                    aria-label="Modifier l'événement"
-                                    data-event-id="{{ event.id }}"
-                                >
-                                    <i class="fas fa-edit"></i>
-                                </button>
-                                <button
-                                    type="button"
-                                    class="event-action-btn event-action-danger"
-                                    title="Supprimer l'événement"
-                                    aria-label="Supprimer l'événement"
-                                    data-event-id="{{ event.id }}"
-                                >
-                                    <i class="fas fa-trash"></i>
-                                </button>
-                            </div>
-                        </div>
-
-                        <!-- Image de l'événement -->
-                        <div class="event-card-image">
-                            <img src="{{ event.urlImageCouverture ?: 'https://images.unsplash.com/photo-1540575467063-178a50c2df87?ixlib=rb-4.0.3&auto=format&fit=crop&w=800&q=80' }}" alt="{{ event.titre }}">
-                            <div class="event-image-overlay">
-                                <button class="btn-quick-view" data-event-id="{{ event.id }}">
-                                    <i class="fas fa-expand"></i>
-                                </button>
-                            </div>
-                        </div>
-
-                        <!-- Corps de la carte -->
-                        <div class="event-card-body">
-                            <h3 class="event-title">{{ event.titre }}</h3>
-                            
-                            <div class="event-meta">
-                                <div class="meta-item">
-                                    <i class="fas fa-calendar-alt"></i>
-                                    {% if event.commenceLe %}
-                                        {{ event.commenceLe|date('d/m/Y') }}
-                                        à {{ event.commenceLe|date('H:i') }}
-                                    {% else %}
-                                        Date non définie
-                                    {% endif %}
-                                </div>
-                                
-                                <div class="meta-item">
-                                    <i class="fas fa-map-marker-alt"></i>
-                                    {% if event.lieu %}
-                                        {{ event.lieu.nom|length > 30 ? event.lieu.nom|slice(0, 30) ~ '…' : event.lieu.nom }}
-                                    {% elseif event.nomLieuTexte %}
-                                        {{ event.nomLieuTexte|length > 30 ? event.nomLieuTexte|slice(0, 30) ~ '…' : event.nomLieuTexte }}
-                                    {% else %}
-                                        Lieu non spécifié
-                                    {% endif %}
-                                </div>
-                            </div>
-
-                            <div class="event-description">
-                                {% set cleanDescription = event.description|striptags %}
-                                {{ cleanDescription|length > 120 ? cleanDescription|slice(0, 120) ~ '…' : cleanDescription }}
-                            </div>
-
-                            <div class="event-stats">
-                                <div class="stat">
-                                    <i class="fas fa-ticket-alt"></i>
-                                    <span>0 / -</span>
-                                </div>
-                                <div class="stat">
-                                    <i class="fas fa-eye"></i>
-                                    <span>0 vues</span>
-                                </div>
-                                <div class="stat">
-                                    <i class="fas fa-users"></i>
-                                    <span>0 participants</span>
-                                </div>
-                            </div>
-
-                            <div class="event-tags">
-                                {% if event.categoriePrincipale %}
-                                    <span class="tag">{{ event.categoriePrincipale.label }}</span>
-                                {% endif %}
-                                {% if event.formatEvenement %}
-                                    <span class="tag">{{ event.formatEvenement|replace({'_': ' '})|title }}</span>
-                                {% endif %}
-                            </div>
-                        </div>
-
-                        <!-- Bloc méta bas (compteur + prix/actions) aligné à droite -->
-                        <div class="event-bottom-meta">
-                            <!-- Indicateur de progression -->
-                            <div class="event-progress">
-                                {% if event.commenceLe %}
-                                    {% set daysLeft = date(event.commenceLe).diff(date()).days %}
-                                    {% if daysLeft > 0 %}
-                                        <div class="progress-info">
-                                            <span>{{ daysLeft }} jours restants</span>
-                                            <span>{{ event.commenceLe|date('d/m/Y') }}</span>
-                                        </div>
-                                        <div class="progress-bar">
-                                            <div class="progress-fill" style="width: {{ min(100, (30 - daysLeft) / 30 * 100) }}%"></div>
-                                        </div>
-                                    {% else %}
-                                        <div class="progress-info">
-                                            <span>Événement en cours</span>
-                                        </div>
-                                        <div class="progress-bar active">
-                                            <div class="progress-fill" style="width: 100%"></div>
-                                        </div>
-                                    {% endif %}
-                                {% endif %}
-                            </div>
-
-                            <!-- Pied de carte -->
-                            <div class="event-card-footer">
-                                <div class="event-price">
-                                    {# TODO: brancher ici la logique de calcul du prix minimum quand les tarifs seront liés à l'événement #}
-                                    <div class="price-label-line">
-                                        <i class="fas fa-money-bill-wave"></i>
-                                        <span class="price-label">Prix non défini</span>
-                                    </div>
-                                </div>
-                                
-                                <div class="event-actions-footer">
-                                    {# Bouton placeholder en attendant la page de détails #}
-                                    <button
-                                        type="button"
-                                        class="btn btn-sm btn-outline"
-                                        data-event-id="{{ event.id }}"
-                                        title="Ouvrir l'événement (vue publique)"
-                                        aria-label="Ouvrir l'événement (vue publique)"
-                                    >
-                                        <i class="fas fa-external-link-alt"></i>
-                                    </button>
-                                    <button
-                                        type="button"
-                                        class="btn btn-sm btn-primary share-event"
-                                        data-event-id="{{ event.id }}"
-                                        title="Partager l'événement"
-                                        aria-label="Partager l'événement"
-                                    >
-                                        <i class="fas fa-share-alt"></i>
-                                    </button>
-                                </div>
-                            </div>
-                        </div>
-                    </div>
-                {% endfor %}
-            </div>
-        {% else %}
-            <div class="empty-state">
-                <div class="empty-state-icon">
-                    <i class="fas fa-calendar-plus"></i>
-                </div>
-                <h3>Aucun événement trouvé</h3>
-                <p>
-                    {% if criteria|length > 0 %}
-                        Aucun événement ne correspond à vos critères de recherche.
-                    {% else %}
-                        Vous n'avez pas encore créé d'événement.
-                    {% endif %}
-                </p>
-                <a href="{{ path('app_event_new') }}" class="btn btn-primary">
-                    <i class="fas fa-plus"></i>
-                    Créer mon premier événement
-                </a>
-            </div>
-        {% endif %}
-    </div>
-
-    <!-- Pagination -->
-    {% if pagination.total > pagination.limit %}
-        {% include 'components/pagination.html.twig' with {
-            'pagination': pagination,
-            'route': 'organisateur_events_index',
-            'criteria': criteria
-        } %}
-    {% endif %}
-</div>
-
-<!-- Modal de partage -->
-<div class="modal" id="shareModal">
-    <div class="modal-content">
-        <div class="modal-header">
-            <h3>Partager l'événement</h3>
-            <button class="modal-close">&times;</button>
-        </div>
-        <div class="modal-body">
-            <div class="share-options">
-                <button class="share-option" data-platform="facebook">
-                    <i class="fab fa-facebook"></i>
-                    Facebook
-                </button>
-                <button class="share-option" data-platform="twitter">
-                    <i class="fab fa-twitter"></i>
-                    Twitter
-                </button>
-                <button class="share-option" data-platform="whatsapp">
-                    <i class="fab fa-whatsapp"></i>
-                    WhatsApp
-                </button>
-                <button class="share-option" data-platform="copy">
-                    <i class="fas fa-link"></i>
-                    Copier le lien
-                </button>
-            </div>
-            <div class="share-link">
-                <input type="text" id="shareUrl" readonly>
-                <button class="btn-copy" id="copyUrl">
-                    <i class="fas fa-copy"></i>
-                </button>
-            </div>
-        </div>
-    </div>
-</div>
-
-<script src="https://cdn.jsdelivr.net/npm/flatpickr"></script>
-<script src="https://cdn.jsdelivr.net/npm/flatpickr/dist/l10n/fr.js"></script>
-
-<script>
-document.addEventListener('DOMContentLoaded', function() {
-    // Toggle des filtres avancés
-    const toggleAdvancedSearch = document.getElementById('toggleAdvancedSearch');
-    const advancedFilters = document.getElementById('advancedFilters');
-    
-    if (toggleAdvancedSearch && advancedFilters) {
-        toggleAdvancedSearch.addEventListener('click', function() {
-            advancedFilters.classList.toggle('is-hidden');
-            this.classList.toggle('active');
-            const icon = this.querySelector('i');
-            if (advancedFilters.classList.contains('is-hidden')) {
-                icon.className = 'fas fa-sliders-h';
-                this.innerHTML = '<i class="fas fa-sliders-h"></i> Afficher les filtres';
-            } else {
-                icon.className = 'fas fa-times';
-                this.innerHTML = '<i class="fas fa-times"></i> Masquer les filtres';
-            }
-        });
-    }
-
-    // Initialiser un calendrier sur les filtres de date (affichage jj/mm/aaaa)
-    if (window.flatpickr) {
-        flatpickr('.js-date-picker', {
-            dateFormat: 'Y-m-d',          // format envoyé au backend
-            altInput: true,               // champ visible séparé
-            altFormat: 'd/m/Y',           // affichage jj/mm/aaaa
-            allowInput: true,
-            locale: window.flatpickr.l10ns.fr
-        });
-    }
-
-    // Changement de tri : soumettre le formulaire de recherche
-    const sortSelect = document.getElementById('sortEvents');
-    if (sortSelect) {
-        sortSelect.addEventListener('change', function() {
-            const form = document.getElementById('eventSearchForm');
-            if (form) {
-                form.submit();
-            }
-        });
-    }
-
-    // Limiter le nombre d'événements visibles à 6
-    function applyEventLimit() {
-        const container = document.getElementById('eventsGrid');
-        if (!container) {
-            return;
-        }
-        const cards = container.querySelectorAll('.event-card');
-        cards.forEach((card, index) => {
-            card.style.display = index < 6 ? '' : 'none';
-        });
-    }
-
-    applyEventLimit();
-
-    // Toggle vue grille/liste
-    const viewOptions = document.querySelectorAll('.view-option');
-    const eventsContainer = document.getElementById('eventsContainer');
-    const toggleViewBtn = document.getElementById('toggleViewBtn');
-    
-    viewOptions.forEach(option => {
-        option.addEventListener('click', function() {
-            viewOptions.forEach(o => o.classList.remove('active'));
-            this.classList.add('active');
-            
-            const view = this.dataset.view;
-            eventsContainer.className = `events-container ${view}-view`;
-            applyEventLimit();
-            
-            if (toggleViewBtn) {
-                toggleViewBtn.innerHTML = view === 'grid' 
-                    ? '<i class="fas fa-th"></i> Vue grille'
-                    : '<i class="fas fa-list"></i> Vue liste';
-            }
-        });
-    });
-
-    // Gestion des dropdowns (menu actions sur chaque carte)
-    document.querySelectorAll('.dropdown-toggle').forEach(toggle => {
-        toggle.addEventListener('click', function(e) {
-            e.stopPropagation();
-
-            const currentDropdown = this.closest('.dropdown');
-            const isActive = currentDropdown.classList.contains('active');
-
-            // Fermer tous les autres menus
-            document.querySelectorAll('.dropdown').forEach(dropdown => {
-                dropdown.classList.remove('active');
-            });
-
-            // Ouvrir / fermer celui qu'on vient de cliquer
-            if (!isActive) {
-                currentDropdown.classList.add('active');
-            }
-        });
-    });
-
-    // Fermer les dropdowns uniquement si on clique en dehors
-    document.addEventListener('click', function(e) {
-        if (e.target.closest('.dropdown')) {
-            return;
-        }
-        document.querySelectorAll('.dropdown').forEach(dropdown => {
-            dropdown.classList.remove('active');
-        });
-    });
-
-    // Partage d'événement
-    document.querySelectorAll('.share-event').forEach(btn => {
-        btn.addEventListener('click', function() {
-            const eventId = this.dataset.eventId;
-            const shareUrl = `${window.location.origin}/event/${eventId}`;
-            openShareModal(shareUrl);
-        });
-    });
-
-    // Modal de partage
-    const shareModal = document.getElementById('shareModal');
-    if (shareModal) {
-        document.querySelector('.modal-close').addEventListener('click', () => {
-            shareModal.classList.remove('active');
-        });
-
-        shareModal.addEventListener('click', (e) => {
-            if (e.target === shareModal) {
-                shareModal.classList.remove('active');
-            }
-        });
-
-        document.getElementById('copyUrl').addEventListener('click', function() {
-            const urlInput = document.getElementById('shareUrl');
-            urlInput.select();
-            document.execCommand('copy');
-            
-            // Feedback visuel
-            const originalText = this.innerHTML;
-            this.innerHTML = '<i class="fas fa-check"></i>';
-            setTimeout(() => {
-                this.innerHTML = originalText;
-            }, 2000);
-        });
-
-        document.querySelectorAll('.share-option').forEach(option => {
-            option.addEventListener('click', function() {
-                const platform = this.dataset.platform;
-                const url = document.getElementById('shareUrl').value;
-                
-                switch(platform) {
-                    case 'facebook':
-                        window.open(`https://www.facebook.com/sharer/sharer.php?u=${encodeURIComponent(url)}`, '_blank');
-                        break;
-                    case 'twitter':
-                        window.open(`https://twitter.com/intent/tweet?url=${encodeURIComponent(url)}`, '_blank');
-                        break;
-                    case 'whatsapp':
-                        window.open(`https://wa.me/?text=${encodeURIComponent(url)}`, '_blank');
-                        break;
-                }
-            });
-        });
-    }
-
-    // Fonctions utilitaires
-    function sortEventCards(sortBy) {
-        const container = document.getElementById('eventsGrid');
-        const cards = Array.from(container.querySelectorAll('.event-card'));
-        
-        cards.sort((a, b) => {
-            switch(sortBy) {
-                case 'price_asc':
-                    const priceA = parseFloat(a.querySelector('.price-value')?.textContent?.replace(/\s/g, '') || 0);
-                    const priceB = parseFloat(b.querySelector('.price-value')?.textContent?.replace(/\s/g, '') || 0);
-                    return priceA - priceB;
-                    
-                case 'price_desc':
-                    const priceC = parseFloat(a.querySelector('.price-value')?.textContent?.replace(/\s/g, '') || 0);
-                    const priceD = parseFloat(b.querySelector('.price-value')?.textContent?.replace(/\s/g, '') || 0);
-                    return priceD - priceC;
-                    
-                case 'date_asc':
-                    // Trier par date d'événement (plus proche)
-                    const dateA = new Date(a.querySelector('.meta-item:first-child').textContent.split(' à ')[0].split('/').reverse().join('-'));
-                    const dateB = new Date(b.querySelector('.meta-item:first-child').textContent.split(' à ')[0].split('/').reverse().join('-'));
-                    return dateA - dateB;
-                    
-                case 'date_desc':
-                    const dateC = new Date(a.querySelector('.meta-item:first-child').textContent.split(' à ')[0].split('/').reverse().join('-'));
-                    const dateD = new Date(b.querySelector('.meta-item:first-child').textContent.split(' à ')[0].split('/').reverse().join('-'));
-                    return dateD - dateC;
-                    
-                case 'oldest':
-                    // Par défaut, trier par ID ou date de création
-                    return parseInt(a.dataset.eventId) - parseInt(b.dataset.eventId);
-                    
-                default: // 'newest'
-                    return parseInt(b.dataset.eventId) - parseInt(a.dataset.eventId);
-            }
-        });
-        
-        cards.forEach(card => container.appendChild(card));
-    }
-
-    function openShareModal(url) {
-        document.getElementById('shareUrl').value = url;
-        shareModal.classList.add('active');
-    }
-});
-</script>
-
+{% block stylesheets %}
+    {{ parent() }}
 <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/flatpickr/dist/flatpickr.min.css">
-
 <style>
 /* Styles généraux - harmonisés avec le tableau de bord */
 .dashboard {
@@ -902,7 +234,7 @@ document.addEventListener('DOMContentLoaded', function() {
     border: 1px solid var(--border-color);
 }
 
-.advanced-filters.is-hidden {
+.advanced-filters .search-form.is-hidden {
     display: none;
 }
 
@@ -1349,24 +681,28 @@ document.addEventListener('DOMContentLoaded', function() {
 /* Pied de carte */
 .event-card-footer {
     display: flex;
-    justify-content: flex-start;
-    align-items: center;
-    padding: 4px 20px 16px;
-    background: transparent;
-    border-top: none;
-    margin-top: 0;
+    justify-content: center;
+    align-items: flex-start;
+    padding: 16px 20px;
+    background: linear-gradient(to bottom, transparent, rgba(67, 97, 238, 0.02));
+    border-top: 1px solid var(--border-color);
+    margin-top: 12px;
 }
 
 .event-price {
     display: flex;
     flex-direction: column;
-    gap: 2px;
+    gap: 0;
+    width: 100%;
+    align-items: center;
 }
 
 .price-label-line {
     display: inline-flex;
     align-items: center;
-    gap: 6px;
+    justify-content: center;
+    gap: 8px;
+    width: 100%;
 }
 
 .price-label-line i {
@@ -1386,11 +722,136 @@ document.addEventListener('DOMContentLoaded', function() {
     color: var(--accent);
 }
 
-.event-actions-footer {
+.price-section {
+    width: 100%;
+    text-align: center;
+}
+
+.price-section-header {
     display: flex;
     align-items: center;
-    gap: 8px;
-    margin-left: 12px; /* léger décalage après le texte du prix */
+    justify-content: center;
+    gap: 6px;
+    margin-bottom: 12px;
+    font-size: 0.8rem;
+    font-weight: 600;
+    color: var(--text-primary);
+    text-transform: uppercase;
+    letter-spacing: 0.8px;
+}
+
+.price-section-header i {
+    font-size: 0.85rem;
+    color: var(--accent);
+}
+
+.price-section-title {
+    font-size: 0.8rem;
+}
+
+.price-badges {
+    display: flex;
+    flex-wrap: nowrap;
+    gap: 6px;
+    align-items: stretch;
+    justify-content: center;
+    width: 100%;
+    overflow-x: auto;
+    padding: 2px 0 4px;
+    scrollbar-width: thin;
+    scrollbar-color: rgba(67, 97, 238, 0.3) transparent;
+    -ms-overflow-style: none;
+}
+
+.price-badges::-webkit-scrollbar {
+    height: 4px;
+}
+
+.price-badges::-webkit-scrollbar-track {
+    background: transparent;
+}
+
+.price-badges::-webkit-scrollbar-thumb {
+    background: rgba(67, 97, 238, 0.3);
+    border-radius: 2px;
+}
+
+.price-badges::-webkit-scrollbar-thumb:hover {
+    background: rgba(67, 97, 238, 0.5);
+}
+
+.price-badge {
+    display: inline-flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    padding: 7px 9px;
+    background: linear-gradient(135deg, rgba(67, 97, 238, 0.08) 0%, rgba(67, 97, 238, 0.03) 100%);
+    border: 2px solid rgba(67, 97, 238, 0.2);
+    border-radius: 10px;
+    min-width: 68px;
+    max-width: 85px;
+    width: auto;
+    flex: 0 0 auto;
+    transition: all 0.3s ease;
+    box-shadow: 0 3px 6px rgba(0, 0, 0, 0.06);
+    position: relative;
+    overflow: hidden;
+}
+
+.price-badge::before {
+    content: '';
+    position: absolute;
+    top: 0;
+    left: 0;
+    right: 0;
+    height: 2px;
+    background: linear-gradient(90deg, var(--accent), rgba(67, 97, 238, 0.3));
+    opacity: 0;
+    transition: opacity 0.3s ease;
+}
+
+.price-badge:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 4px 8px rgba(67, 97, 238, 0.15);
+    border-color: var(--accent);
+    background: linear-gradient(135deg, rgba(67, 97, 238, 0.1) 0%, rgba(67, 97, 238, 0.05) 100%);
+}
+
+.price-badge:hover::before {
+    opacity: 1;
+}
+
+.price-badge-name {
+    font-size: 0.7rem;
+    font-weight: 700;
+    color: var(--text-primary);
+    text-transform: uppercase;
+    letter-spacing: 0.4px;
+    margin-bottom: 3px;
+    line-height: 1.2;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    max-width: 100%;
+}
+
+.price-badge-value {
+    font-size: 0.9rem;
+    font-weight: 800;
+    color: var(--accent);
+    line-height: 1.2;
+    margin-bottom: 1px;
+    white-space: nowrap;
+}
+
+.price-badge-currency {
+    font-size: 0.65rem;
+    color: var(--text-secondary);
+    font-weight: 600;
+    margin-top: 1px;
+    opacity: 0.85;
+    white-space: nowrap;
 }
 
 .btn {
@@ -1410,21 +871,6 @@ document.addEventListener('DOMContentLoaded', function() {
 .btn-sm {
     padding: 6px 12px;
     font-size: 0.8rem;
-}
-
-/* Boutons d'action compacts dans le pied de carte */
-.event-actions-footer .btn {
-    width: 38px;
-    height: 38px;
-    border-radius: 50%;
-    padding: 0;
-    display: inline-flex;
-    align-items: center;
-    justify-content: center;
-}
-
-.event-actions-footer .btn i {
-    font-size: 0.9rem;
 }
 
 .btn-primary {
@@ -1454,7 +900,9 @@ document.addEventListener('DOMContentLoaded', function() {
 }
 
 .btn-secondary:hover {
-    background: var(--bg-card);
+    background: var(--bg-secondary);
+    border-color: var(--accent);
+    color: var(--accent);
 }
 
 /* Bloc méta bas : compteur + prix alignés à droite comme un ticket */
@@ -1706,6 +1154,40 @@ document.addEventListener('DOMContentLoaded', function() {
         width: 100%;
         height: 200px;
     }
+    
+    .event-card-footer {
+        padding: 12px 16px;
+    }
+    
+    .price-badges {
+        gap: 6px;
+        justify-content: flex-start;
+        padding-bottom: 4px;
+    }
+    
+    .price-badge {
+        min-width: 65px;
+        max-width: 80px;
+        padding: 6px 8px;
+    }
+    
+    .price-badge-name {
+        font-size: 0.65rem;
+        margin-bottom: 2px;
+    }
+    
+    .price-badge-value {
+        font-size: 0.85rem;
+    }
+    
+    .price-badge-currency {
+        font-size: 0.6rem;
+    }
+    
+    .price-section-header {
+        font-size: 0.75rem;
+        margin-bottom: 10px;
+    }
 }
 
 @media (max-width: 480px) {
@@ -1728,6 +1210,698 @@ document.addEventListener('DOMContentLoaded', function() {
         flex-direction: column;
         align-items: stretch;
     }
+    
+    .price-badges {
+        gap: 5px;
+    }
+    
+    .price-badge {
+        min-width: 60px;
+        max-width: 75px;
+        padding: 5px 7px;
+    }
+    
+    .price-badge-name {
+        font-size: 0.6rem;
+    }
+    
+    .price-badge-value {
+        font-size: 0.8rem;
+    }
+    
+    .price-badge-currency {
+        font-size: 0.55rem;
+    }
 }
 </style>
+{% endblock %}
+
+{% block body %}
+<div class="dashboard">
+    <!-- En-tête de la page -->
+    <div class="dashboard-header">
+        <div>
+            <h1 data-i18n="events.header.title">📅 Mes événements</h1>
+            <p style="color: var(--text-secondary); margin-top: 8px; font-size: 1rem;" data-i18n="events.header.subtitle">
+                Gérez tous vos événements et collaborations
+            </p>
+            <div class="events-stats">
+                <span class="stat-item">
+                    <strong>{{ globalStats.total ?? events|length }}</strong> <span data-i18n="events.stats.total">événement(s) total</span>
+                </span>
+                <span class="stat-item">
+                    <i class="fas fa-calendar-alt"></i>
+                    <strong>{{ globalStats.upcoming ?? events|filter(e => e.statut == 'published' and e.commenceLe and e.commenceLe > date())|length }}</strong> <span data-i18n="events.stats.upcoming">à venir</span>
+                </span>
+                <span class="stat-item">
+                    <i class="fas fa-broadcast-tower"></i>
+                    <strong>{{ globalStats.ongoing ?? events|filter(e => e.statut == 'published' and e.commenceLe and e.commenceLe|date('U') <= 'now'|date('U') and (e.seTermineLe is null or e.seTermineLe|date('U') >= 'now'|date('U')))|length }}</strong> <span data-i18n="events.stats.live">en cours</span>
+                </span>
+            </div>
+        </div>
+        <div class="header-actions">
+            <button class="btn btn-primary" onclick="window.location.href='{{ path('app_event_new') }}'" data-i18n="events.actions.new">
+                <i class="fas fa-plus"></i>
+                Nouvel événement
+            </button>
+            <a href="{{ path('organisateur_events_calendar') }}" class="btn btn-secondary" data-i18n="events.actions.calendar">
+                <i class="fas fa-calendar-alt"></i>
+                Vue calendrier
+            </a>
+        </div>
+    </div>
+
+    <!-- Filtres avancés (structure harmonisée avec la liste des utilisateurs) -->
+    <div class="search-section advanced-filters" id="advancedFilters">
+        <div class="search-header">
+            <h3 style="font-size: 1.1rem; color: var(--text-primary); margin: 0; display: flex; align-items: center; gap: 8px;">
+                <i class="fas fa-filter"></i>
+                <span data-i18n="events.filters.title">Recherche multicritère</span>
+            </h3>
+            <button class="btn-toggle-search" id="toggleAdvancedSearch" type="button" data-i18n="events.filters.toggle.hide">
+                <i class="fas fa-sliders-h"></i>
+                Masquer les filtres
+            </button>
+        </div>
+
+        <div class="search-form" id="eventSearchFormWrapper">
+            <form id="eventSearchForm" method="GET" action="{{ path('organisateur_events_index') }}">
+                <div class="search-grid">
+                    <div class="search-field">
+                        <div class="date-range">
+                            <div class="search-field">
+                                <label data-i18n="events.filters.date.from">Du</label>
+                                <input type="date" name="dateDebut" class="form-input js-date-picker" placeholder="jj/mm/aaaa" value="{{ criteria.dateDebut ? criteria.dateDebut|date('Y-m-d') : '' }}">
+                            </div>
+                            <div class="search-field">
+                                <label data-i18n="events.filters.date.to">Au</label>
+                                <input type="date" name="dateFin" class="form-input js-date-picker" placeholder="jj/mm/aaaa" value="{{ criteria.dateFin ? criteria.dateFin|date('Y-m-d') : '' }}">
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="search-field">
+                        <label data-i18n="events.filters.venue">
+                            Lieu
+                        </label>
+                        <select name="lieuId" class="form-input">
+                            <option value="">Tous les lieux</option>
+                            {% for venue in venues %}
+                                <option value="{{ venue.id }}" {% if criteria.lieuId is defined and criteria.lieuId == venue.id %}selected{% endif %}>
+                                    {{ venue.nom }}
+                                </option>
+                            {% endfor %}
+                        </select>
+                    </div>
+
+                    <div class="search-field">
+                        <label data-i18n="events.filters.type">
+                            Type d'événement
+                        </label>
+                        <select name="typeEvenementId" class="form-input">
+                            <option value="">Tous les types</option>
+                            {% for eventType in eventTypes %}
+                                <option value="{{ eventType.id }}" {% if criteria.typeEvenementId is defined and criteria.typeEvenementId == eventType.id %}selected{% endif %}>
+                                    {{ eventType.label }}
+                                </option>
+                            {% endfor %}
+                        </select>
+                    </div>
+
+                    <div class="search-field">
+                        <label data-i18n="events.filters.status">
+                            Statut
+                        </label>
+                        <select name="statut" class="form-input">
+                            <option value="">Tous les statuts</option>
+                            {% for statusValue, statusLabel in eventStatuses %}
+                                <option value="{{ statusValue }}" {% if criteria.statut is defined and criteria.statut == statusValue %}selected{% endif %}>
+                                    {{ statusLabel }}
+                                </option>
+                            {% endfor %}
+                        </select>
+                    </div>
+
+                    <div class="search-field">
+                        <label data-i18n="events.filters.budget.min">
+                            Budget min
+                        </label>
+                        <div class="input-with-unit">
+                            <input type="number" name="prixMin" min="0" class="form-input" placeholder="0" value="{{ criteria.prixMin ?? '' }}">
+                            <span>MGA</span>
+                        </div>
+                    </div>
+
+                    <div class="search-field">
+                        <label data-i18n="events.filters.budget.max">
+                            Budget max
+                        </label>
+                        <div class="input-with-unit">
+                            <input type="number" name="prixMax" min="0" class="form-input" placeholder="500,000" value="{{ criteria.prixMax ?? '' }}">
+                            <span>MGA</span>
+                        </div>
+                    </div>
+
+                </div>
+
+                <div class="filter-actions">
+                    <button type="submit" class="btn btn-primary" data-i18n="events.filters.apply">
+                        <i class="fas fa-search"></i>
+                        Appliquer les filtres
+                    </button>
+                    <button type="reset" class="btn btn-secondary" id="resetFilters" data-i18n="events.filters.reset">
+                        <i class="fas fa-redo"></i>
+                        Réinitialiser
+                    </button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <!-- Contrôles d'affichage -->
+    <div class="view-controls">
+        <div class="sort-controls">
+            <label data-i18n="events.sort.label">Trier par :</label>
+            <select name="triPrix" id="sortEvents" class="sort-select" form="eventSearchForm">
+                <option value="" {% if criteria.triPrix is empty or criteria.triPrix is null %}selected{% endif %}>Plus de vues</option>
+                <option value="asc" {% if criteria.triPrix == 'asc' %}selected{% endif %} data-i18n="events.sort.price.asc">Prix croissant</option>
+                <option value="desc" {% if criteria.triPrix == 'desc' %}selected{% endif %} data-i18n="events.sort.price.desc">Prix décroissant</option>
+            </select>
+        </div>
+        <div class="view-options">
+            <button class="view-option active" data-view="grid">
+                <i class="fas fa-th-large"></i>
+            </button>
+            <button class="view-option" data-view="list">
+                <i class="fas fa-list"></i>
+            </button>
+        </div>
+    </div>
+
+    <!-- Liste des événements -->
+    <div class="events-container" id="eventsContainer">
+        {% if events|length > 0 %}
+            <div class="events-grid" id="eventsGrid">
+                {% for event in events %}
+                    <div class="event-card" data-event-id="{{ event.id }}">
+                        <!-- En-tête de la carte -->
+                        <div class="event-card-header">
+                            <div class="event-badges">
+                                <span class="event-category">
+                                    {% if event.typeEvenement %}
+                                        {{ event.typeEvenement.label }}
+                                    {% else %}
+                                        Événement
+                                    {% endif %}
+                                </span>
+                                {% set statusKey = '' %}
+                                {% set statusIcon = '' %}
+                                {% set statusLabel = '' %}
+                                {% if event.statut == 'published' and event.commenceLe and event.commenceLe <= date() and event.seTermineLe >= date() %}
+                                    {% set statusKey = 'events.status.live' %}
+                                    {% set statusIcon = 'fas fa-circle' %}
+                                    {% set statusLabel = 'EN COURS' %}
+                                {% elseif event.statut == 'published' and event.commenceLe and event.commenceLe > date() %}
+                                    {% set statusKey = 'events.status.upcoming' %}
+                                    {% set statusIcon = 'fas fa-clock' %}
+                                    {% set statusLabel = 'À VENIR' %}
+                                {% elseif event.statut == 'cancelled' %}
+                                    {% set statusKey = 'events.status.cancelled' %}
+                                    {% set statusIcon = 'fas fa-times-circle' %}
+                                    {% set statusLabel = 'ANNULÉ' %}
+                                {% elseif event.statut == 'draft' %}
+                                    {% set statusKey = 'events.status.draft' %}
+                                    {% set statusIcon = 'fas fa-edit' %}
+                                    {% set statusLabel = 'BROUILLON' %}
+                                {% elseif event.statut == 'archived' %}
+                                    {% set statusKey = 'events.status.archived' %}
+                                    {% set statusIcon = 'fas fa-archive' %}
+                                    {% set statusLabel = 'ARCHIVÉ' %}
+                                {% elseif event.statut == 'published' %}
+                                    {% set statusKey = 'events.status.published' %}
+                                    {% set statusIcon = 'fas fa-check-circle' %}
+                                    {% set statusLabel = 'PUBLIÉ' %}
+                                {% else %}
+                                    {% set statusKey = 'events.status.other' %}
+                                    {% set statusIcon = 'fas fa-info-circle' %}
+                                    {% set statusLabel = event.statut|upper %}
+                                {% endif %}
+                                <span class="event-status status-{{ event.statut }}" data-i18n="{{ statusKey }}">
+                                    <i class="{{ statusIcon }}"></i> {{ statusLabel }}
+                                </span>
+                            </div>
+                            
+                            <div class="event-actions">
+                                {# Actions visibles en permanence au lieu d'un dropdown #}
+                                <a
+                                    href="{{ path('organisateur_events_show', {'id': event.id}) }}"
+                                    class="event-action-btn"
+                                    title="Voir les détails"
+                                    aria-label="Voir les détails de l'événement"
+                                >
+                                    <i class="fas fa-eye"></i>
+                                </a>
+                                {# Bouton historique des ventes détaillé #}
+                                <a
+                                    href="{{ path('organisateur_tickets_index', {'eventId': event.id}) }}"
+                                    class="event-action-btn"
+                                    title="Historique des ventes"
+                                    aria-label="Voir l'historique des ventes"
+                                >
+                                    <i class="fas fa-file-invoice-dollar"></i>
+                                </a>
+                                {# Afficher le bouton de modification uniquement pour les événements en cours ou à venir #}
+                                {% set isOngoing = event.statut == 'published' and event.commenceLe and event.commenceLe <= date() and (event.seTermineLe is null or event.seTermineLe >= date()) %}
+                                {% set isUpcoming = event.statut == 'published' and event.commenceLe and event.commenceLe > date() %}
+                                {% if isOngoing or isUpcoming %}
+                                    <a
+                                        href="{{ path('organisateur_events_edit', {'id': event.id}) }}"
+                                        class="event-action-btn"
+                                        title="Modifier l'événement"
+                                        aria-label="Modifier l'événement"
+                                    >
+                                        <i class="fas fa-edit"></i>
+                                    </a>
+                                {% endif %}
+                                {% if event.statut == 'draft' %}
+                                    <form method="POST" action="{{ path('organisateur_events_delete', {'id': event.id}) }}" style="display: inline;" onsubmit="return confirm('Êtes-vous sûr de vouloir supprimer cet événement ?');">
+                                        <input type="hidden" name="_token" value="{{ csrf_token('delete_event_' ~ event.id) }}">
+                                        <button
+                                            type="submit"
+                                            class="event-action-btn event-action-danger"
+                                            title="Supprimer l'événement"
+                                            aria-label="Supprimer l'événement"
+                                        >
+                                            <i class="fas fa-trash"></i>
+                                        </button>
+                                    </form>
+                                {% endif %}
+                            </div>
+                        </div>
+
+                        <!-- Image de l'événement -->
+                        <div class="event-card-image">
+                            {% set eventMedias = eventsMedias[event.id] ?? [] %}
+                            {% set primaryImage = eventMedias|filter(m => m.isMainPoster)|first %}
+                            {% set imageUrl = primaryImage ? primaryImage.url : (event.urlImageCouverture ?: 'https://images.unsplash.com/photo-1540575467063-178a50c2df87?ixlib=rb-4.0.3&auto=format&fit=crop&w=800&q=80') %}
+                            <img src="{{ imageUrl }}" alt="{{ event.titre }}">
+                            <div class="event-image-overlay">
+                                <button class="btn-quick-view" data-event-id="{{ event.id }}">
+                                    <i class="fas fa-expand"></i>
+                                </button>
+                            </div>
+                        </div>
+
+                        <!-- Corps de la carte -->
+                        <div class="event-card-body">
+                            <h3 class="event-title">{{ event.titre }}</h3>
+                            
+                            <div class="event-meta">
+                                <div class="meta-item">
+                                    <i class="fas fa-calendar-alt"></i>
+                                    {% if event.commenceLe %}
+                                        {{ event.commenceLe|date('d/m/Y') }}
+                                        à {{ event.commenceLe|date('H:i') }}
+                                    {% else %}
+                                        <span data-i18n="events.card.date.undefined">Date non définie</span>
+                                    {% endif %}
+                                </div>
+                                
+                                <div class="meta-item">
+                                    <i class="fas fa-map-marker-alt"></i>
+                                    {% if event.lieu %}
+                                        {{ event.lieu.nom|length > 30 ? event.lieu.nom|slice(0, 30) ~ '…' : event.lieu.nom }}
+                                    {% elseif event.nomLieuTexte %}
+                                        {{ event.nomLieuTexte|length > 30 ? event.nomLieuTexte|slice(0, 30) ~ '…' : event.nomLieuTexte }}
+                                    {% else %}
+                                        <span data-i18n="events.card.location.undefined">Lieu non spécifié</span>
+                                    {% endif %}
+                                </div>
+                            </div>
+
+                            <div class="event-description">
+                                {% set cleanDescription = event.description|striptags %}
+                                {{ cleanDescription|length > 120 ? cleanDescription|slice(0, 120) ~ '…' : cleanDescription }}
+                            </div>
+
+                            <div class="event-stats">
+                                {% set stats = eventsStats[event.id] ?? {'totalTickets': 0, 'soldTickets': 0, 'participantsCount': 0, 'minPrice': null, 'viewsCount': 0, 'favoritesCount': 0} %}
+                                <div class="stat">
+                                    <i class="fas fa-ticket-alt"></i>
+                                    <span>{{ stats.soldTickets }} / {{ stats.totalTickets }}</span>
+                                </div>
+                                <div class="stat">
+                                    <i class="fas fa-eye"></i>
+                                    <span>{{ stats.viewsCount|default(0) }} <span data-i18n="events.card.views.label">vues</span></span>
+                                </div>
+                                <div class="stat">
+                                    <i class="fas fa-heart"></i>
+                                    <span>{{ stats.favoritesCount|default(0) }} <span data-i18n="events.card.favorites.label">favoris</span></span>
+                                </div>
+                                <div class="stat">
+                                    <i class="fas fa-users"></i>
+                                    <span>{{ stats.participantsCount|default(0) }} <span data-i18n="events.card.participants">participants</span></span>
+                                </div>
+                            </div>
+
+                            <div class="event-tags">
+                                {% if event.categoriePrincipale %}
+                                    <span class="tag">{{ event.categoriePrincipale.label }}</span>
+                                {% endif %}
+                                {% if event.formatEvenement %}
+                                    <span class="tag">{{ event.formatEvenement|replace({'_': ' '})|title }}</span>
+                                {% endif %}
+                            </div>
+                        </div>
+
+                        <!-- Bloc méta bas (compteur + prix/actions) aligné à droite -->
+                        <div class="event-bottom-meta">
+                            <!-- Indicateur de progression - seulement pour les événements futurs -->
+                            {% if event.commenceLe and event.commenceLe > date() %}
+                                <div class="event-progress">
+                                    {% set daysLeft = date(event.commenceLe).diff(date()).days %}
+                                    {% if daysLeft > 0 %}
+                                        <div class="progress-info">
+                                            <span>{{ daysLeft }} jours restants</span>
+                                            <span>{{ event.commenceLe|date('d/m/Y') }}</span>
+                                        </div>
+                                        <div class="progress-bar">
+                                            <div class="progress-fill" style="width: {{ min(100, (30 - daysLeft) / 30 * 100) }}%"></div>
+                                        </div>
+                                    {% endif %}
+                                </div>
+                            {% endif %}
+
+                            <!-- Pied de carte -->
+                            <div class="event-card-footer">
+                                <div class="event-price">
+                                    {% set stats = eventsStats[event.id] ?? {'totalTickets': 0, 'soldTickets': 0, 'minPrice': null, 'adultTicketTypes': []} %}
+                                    {% if stats.adultTicketTypes|length > 0 %}
+                                        <div class="price-section">
+                                            <div class="price-section-header">
+                                                <i class="fas fa-ticket-alt"></i>
+                                                <span class="price-section-title" data-i18n="events.card.tarifs.adult">Tarifs Adulte</span>
+                                            </div>
+                                            <div class="price-badges">
+                                                {% for ticketType in stats.adultTicketTypes %}
+                                                    <div class="price-badge">
+                                                        <span class="price-badge-name">{{ ticketType.nom }}</span>
+                                                        <span class="price-badge-value">{{ ticketType.prix|number_format(0, ',', ' ') }}</span>
+                                                        <span class="price-badge-currency">{{ ticketType.devise }}</span>
+                                                    </div>
+                                                {% endfor %}
+                                            </div>
+                                        </div>
+                                    {% elseif stats.minPrice is not null %}
+                                        <div class="price-label-line">
+                                            <i class="fas fa-money-bill-wave"></i>
+                                            <span class="price-value">{{ stats.minPrice|number_format(0, ',', ' ') }} MGA</span>
+                                        </div>
+                                    {% else %}
+                                        <div class="price-label-line">
+                                            <i class="fas fa-money-bill-wave"></i>
+                                            <span class="price-label" data-i18n="events.card.price.undefined">Prix non défini</span>
+                                        </div>
+                                    {% endif %}
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                {% endfor %}
+            </div>
+        {% else %}
+            <div class="empty-state">
+                <div class="empty-state-icon">
+                    <i class="fas fa-calendar-plus"></i>
+                </div>
+                <h3 data-i18n="events.empty.title">Aucun événement trouvé</h3>
+                <p>
+                    {% if criteria|length > 0 %}
+                        <span data-i18n="events.empty.filtered">Aucun événement ne correspond à vos critères de recherche.</span>
+                    {% else %}
+                        <span data-i18n="events.empty.none">Vous n'avez pas encore créé d'événement.</span>
+                    {% endif %}
+                </p>
+                <a href="{{ path('app_event_new') }}" class="btn btn-primary">
+                    <i class="fas fa-plus"></i>
+                    <span data-i18n="events.empty.cta">Créer mon premier événement</span>
+                </a>
+            </div>
+        {% endif %}
+    </div>
+
+    <!-- Pagination -->
+    {% if pagination.total > pagination.limit %}
+        {% include 'components/pagination.html.twig' with {
+            'pagination': pagination,
+            'route': 'organisateur_events_index',
+            'criteria': criteria
+        } %}
+    {% endif %}
+</div>
+
+<!-- Modal de partage -->
+<div class="modal" id="shareModal">
+    <div class="modal-content">
+        <div class="modal-header">
+            <h3>Partager l'événement</h3>
+            <button class="modal-close">&times;</button>
+        </div>
+        <div class="modal-body">
+            <div class="share-options">
+                <button class="share-option" data-platform="facebook">
+                    <i class="fab fa-facebook"></i>
+                    Facebook
+                </button>
+                <button class="share-option" data-platform="twitter">
+                    <i class="fab fa-twitter"></i>
+                    Twitter
+                </button>
+                <button class="share-option" data-platform="whatsapp">
+                    <i class="fab fa-whatsapp"></i>
+                    WhatsApp
+                </button>
+                <button class="share-option" data-platform="copy">
+                    <i class="fas fa-link"></i>
+                    Copier le lien
+                </button>
+            </div>
+            <div class="share-link">
+                <input type="text" id="shareUrl" readonly>
+                <button class="btn-copy" id="copyUrl">
+                    <i class="fas fa-copy"></i>
+                </button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script src="https://cdn.jsdelivr.net/npm/flatpickr"></script>
+<script src="https://cdn.jsdelivr.net/npm/flatpickr/dist/l10n/fr.js"></script>
+<script src="{{ asset('js/language-manager.js') }}"></script>
+<script src="{{ asset('js/language-orgs.js') }}"></script>
+
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    // Toggle des filtres avancés
+    const toggleAdvancedSearch = document.getElementById('toggleAdvancedSearch');
+    const searchFormWrapper = document.getElementById('eventSearchFormWrapper');
+    
+    if (toggleAdvancedSearch && searchFormWrapper) {
+        toggleAdvancedSearch.addEventListener('click', function() {
+            searchFormWrapper.classList.toggle('is-hidden');
+            this.classList.toggle('active');
+            
+            if (searchFormWrapper.classList.contains('is-hidden')) {
+                this.innerHTML = '<i class="fas fa-sliders-h"></i> Afficher les filtres';
+            } else {
+                this.innerHTML = '<i class="fas fa-times"></i> Masquer les filtres';
+            }
+        });
+    }
+
+    // Initialiser un calendrier sur les filtres de date (affichage jj/mm/aaaa)
+    if (window.flatpickr) {
+        flatpickr('.js-date-picker', {
+            dateFormat: 'Y-m-d',          // format envoyé au backend
+            altInput: true,               // champ visible séparé
+            altFormat: 'd/m/Y',           // affichage jj/mm/aaaa
+            allowInput: true,
+            locale: window.flatpickr.l10ns.fr
+        });
+    }
+
+    // Bouton réinitialiser : rediriger vers la page sans paramètres
+    const resetFiltersBtn = document.getElementById('resetFilters');
+    if (resetFiltersBtn) {
+        resetFiltersBtn.addEventListener('click', function(e) {
+            e.preventDefault();
+            // Rediriger vers la page sans paramètres de requête
+            const url = new URL(window.location.href);
+            url.search = '';
+            window.location.href = url.toString();
+        });
+    }
+
+    // Changement de tri : soumettre le formulaire de recherche
+    const sortSelect = document.getElementById('sortEvents');
+    if (sortSelect) {
+        sortSelect.addEventListener('change', function() {
+            const form = document.getElementById('eventSearchForm');
+            if (form) {
+                form.submit();
+            }
+        });
+    }
+
+    // Limiter le nombre d'événements visibles à 6
+    function applyEventLimit() {
+        const container = document.getElementById('eventsGrid');
+        if (!container) {
+            return;
+        }
+        const cards = container.querySelectorAll('.event-card');
+        cards.forEach((card, index) => {
+            card.style.display = index < 6 ? '' : 'none';
+        });
+    }
+
+    applyEventLimit();
+
+    // Toggle vue grille/liste
+    const viewOptions = document.querySelectorAll('.view-option');
+    const eventsContainer = document.getElementById('eventsContainer');
+    
+    viewOptions.forEach(option => {
+        option.addEventListener('click', function() {
+            viewOptions.forEach(o => o.classList.remove('active'));
+            this.classList.add('active');
+            
+            const view = this.dataset.view;
+            eventsContainer.className = `events-container ${view}-view`;
+            applyEventLimit();
+        });
+    });
+
+    // Gestion des dropdowns (menu actions sur chaque carte)
+    document.querySelectorAll('.dropdown-toggle').forEach(toggle => {
+        toggle.addEventListener('click', function(e) {
+            e.stopPropagation();
+
+            const currentDropdown = this.closest('.dropdown');
+            const isActive = currentDropdown.classList.contains('active');
+
+            // Fermer tous les autres menus
+            document.querySelectorAll('.dropdown').forEach(dropdown => {
+                dropdown.classList.remove('active');
+            });
+
+            // Ouvrir / fermer celui qu'on vient de cliquer
+            if (!isActive) {
+                currentDropdown.classList.add('active');
+            }
+        });
+    });
+
+    // Fermer les dropdowns uniquement si on clique en dehors
+    document.addEventListener('click', function(e) {
+        if (e.target.closest('.dropdown')) {
+            return;
+        }
+        document.querySelectorAll('.dropdown').forEach(dropdown => {
+            dropdown.classList.remove('active');
+        });
+    });
+
+    // Partage d'événement
+    document.querySelectorAll('.share-event').forEach(btn => {
+        btn.addEventListener('click', function() {
+            const eventId = this.dataset.eventId;
+            const shareUrl = `${window.location.origin}/event/${eventId}`;
+            openShareModal(shareUrl);
+        });
+    });
+
+    // Modal de partage
+    const shareModal = document.getElementById('shareModal');
+    if (shareModal) {
+        document.querySelector('.modal-close').addEventListener('click', () => {
+            shareModal.classList.remove('active');
+        });
+
+        shareModal.addEventListener('click', (e) => {
+            if (e.target === shareModal) {
+                shareModal.classList.remove('active');
+            }
+        });
+
+        document.getElementById('copyUrl').addEventListener('click', function() {
+            const urlInput = document.getElementById('shareUrl');
+            urlInput.select();
+            document.execCommand('copy');
+            
+            // Feedback visuel
+            const originalText = this.innerHTML;
+            this.innerHTML = '<i class="fas fa-check"></i>';
+            setTimeout(() => {
+                this.innerHTML = originalText;
+            }, 2000);
+        });
+
+        document.querySelectorAll('.share-option').forEach(option => {
+            option.addEventListener('click', function() {
+                const platform = this.dataset.platform;
+                const url = document.getElementById('shareUrl').value;
+                
+                switch(platform) {
+                    case 'facebook':
+                        window.open(`https://www.facebook.com/sharer/sharer.php?u=${encodeURIComponent(url)}`, '_blank');
+                        break;
+                    case 'twitter':
+                        window.open(`https://twitter.com/intent/tweet?url=${encodeURIComponent(url)}`, '_blank');
+                        break;
+                    case 'whatsapp':
+                        window.open(`https://wa.me/?text=${encodeURIComponent(url)}`, '_blank');
+                        break;
+                }
+            });
+        });
+    }
+
+    // Fonctions utilitaires
+    function sortEventCards(sortBy) {
+        const container = document.getElementById('eventsGrid');
+        const cards = Array.from(container.querySelectorAll('.event-card'));
+        
+        cards.sort((a, b) => {
+            switch(sortBy) {
+                case 'asc':
+                    // Prix croissant
+                    const priceA = parseFloat(a.querySelector('.price-value')?.textContent?.replace(/\s/g, '') || 0);
+                    const priceB = parseFloat(b.querySelector('.price-value')?.textContent?.replace(/\s/g, '') || 0);
+                    return priceA - priceB;
+                    
+                case 'desc':
+                    // Prix décroissant
+                    const priceC = parseFloat(a.querySelector('.price-value')?.textContent?.replace(/\s/g, '') || 0);
+                    const priceD = parseFloat(b.querySelector('.price-value')?.textContent?.replace(/\s/g, '') || 0);
+                    return priceD - priceC;
+                    
+                default:
+                    // Par défaut, trier par nombre de vues (décroissant)
+                    const viewsA = parseInt(a.querySelector('.meta-item span')?.textContent?.match(/\d+/)?.[0] || 0);
+                    const viewsB = parseInt(b.querySelector('.meta-item span')?.textContent?.match(/\d+/)?.[0] || 0);
+                    return viewsB - viewsA;
+            }
+        });
+        
+        cards.forEach(card => container.appendChild(card));
+    }
+
+    function openShareModal(url) {
+        document.getElementById('shareUrl').value = url;
+        shareModal.classList.add('active');
+    }
+});
+</script>
 {% endblock %}

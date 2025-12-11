@@ -8,93 +8,6 @@
 
     <!-- Contenu Statistiques -->
     <div class="event-main-content">
-        <!-- Section Ventes - Tableau récapitulatif -->
-        <div class="content-card">
-            <div class="card-title">
-                <i class="fas fa-table"></i>
-                Récapitulatif des ventes par type de billet
-            </div>
-            <div class="card-content">
-                {% if ticketTypes is defined and ticketTypes|length > 0 %}
-                    <div class="sales-table-container">
-                        <table class="sales-summary-table">
-                            <thead>
-                                <tr>
-                                    <th class="text-left">Type de billet</th>
-                                    <th class="text-right">Prix unitaire</th>
-                                    <th class="text-center">Stock total</th>
-                                    <th class="text-center">Vendus</th>
-                                    <th class="text-center">Disponibles</th>
-                                    <th class="text-right">Revenus</th>
-                                    <th class="text-center">Taux de vente</th>
-                                </tr>
-                            </thead>
-                            <tbody>
-                                {% set totalRevenue = 0 %}
-                                {% set totalSold = 0 %}
-                                {% set totalStock = 0 %}
-                                {% for ticket in ticketTypes %}
-                                    {% set inventaire = ticket.inventaire %}
-                                    {% set total = inventaire ? inventaire.quantiteTotale : 0 %}
-                                    {% set vendus = inventaire ? inventaire.quantiteVendue : 0 %}
-                                    {% set disponibles = total - vendus %}
-                                    {% set revenue = vendus * ticket.prixDeBase %}
-                                    {% set tauxVente = total > 0 ? ((vendus / total) * 100)|round(1) : 0 %}
-                                    {% set totalRevenue = totalRevenue + revenue %}
-                                    {% set totalSold = totalSold + vendus %}
-                                    {% set totalStock = totalStock + total %}
-                                    <tr>
-                                        <td class="text-left">
-                                            <strong>{{ ticket.nom }}</strong>
-                                            {% if ticket.configurationCategorie %}
-                                                <br><span class="ticket-category-badge">{{ ticket.configurationCategorie.nom|capitalize }}</span>
-                                            {% endif %}
-                                        </td>
-                                        <td class="text-right">{{ ticket.prixDeBase|number_format(0, ',', ' ') }} {{ ticket.devise }}</td>
-                                        <td class="text-center">{{ total }}</td>
-                                        <td class="text-center">
-                                            <span class="badge-sold">{{ vendus }}</span>
-                                        </td>
-                                        <td class="text-center">
-                                            <span class="badge-available">{{ disponibles }}</span>
-                                        </td>
-                                        <td class="text-right revenue-cell">{{ revenue|number_format(0, ',', ' ') }} {{ ticket.devise }}</td>
-                                        <td class="text-center">
-                                            <div class="progress-bar-container">
-                                                <div class="progress-bar" style="width: {{ tauxVente }}%; background: {% if tauxVente >= 80 %}var(--success){% elseif tauxVente >= 50 %}var(--warning){% else %}var(--accent){% endif %};"></div>
-                                                <span class="progress-text">{{ tauxVente|number_format(1, ',', ' ') }}%</span>
-                                            </div>
-                                        </td>
-                                    </tr>
-                                {% endfor %}
-                            </tbody>
-                            <tfoot>
-                                <tr class="total-row">
-                                    <td class="text-left"><strong>TOTAL</strong></td>
-                                    <td class="text-right">-</td>
-                                    <td class="text-center"><strong>{{ totalStock }}</strong></td>
-                                    <td class="text-center"><strong>{{ totalSold }}</strong></td>
-                                    <td class="text-center"><strong>{{ totalStock - totalSold }}</strong></td>
-                                    <td class="text-right"><strong class="total-revenue">{{ totalRevenue|number_format(0, ',', ' ') }} {{ ticketTypes[0].devise|default('MGA') }}</strong></td>
-                                    <td class="text-center">
-                                        {% set tauxGlobal = totalStock > 0 ? ((totalSold / totalStock) * 100)|round(1) : 0 %}
-                                        <div class="progress-bar-container">
-                                            <div class="progress-bar" style="width: {{ tauxGlobal }}%; background: {% if tauxGlobal >= 80 %}var(--success){% elseif tauxGlobal >= 50 %}var(--warning){% else %}var(--accent){% endif %};"></div>
-                                            <span class="progress-text"><strong>{{ tauxGlobal|number_format(1, ',', ' ') }}%</strong></span>
-                                        </div>
-                                    </td>
-                                </tr>
-                            </tfoot>
-                        </table>
-                    </div>
-                {% else %}
-                    <p style="font-size: 0.9rem; color: var(--gray-600); text-align: center; padding: 20px;">
-                        Aucun type de billet configuré pour cet événement.
-                    </p>
-                {% endif %}
-            </div>
-        </div>
-
         <!-- Graphiques de ventes -->
         <div class="charts-grid">
             <!-- Graphique d'évolution temporelle -->
@@ -135,14 +48,15 @@
         {% if ticketTypes is defined and ticketTypes|length > 0 %}
             {% set totalSold = 0 %}
             {% set totalStock = 0 %}
-            {% set totalRevenue = 0 %}
+            {% set totalRevenue = statistics.totalRevenue|default(0) %}
             {% for ticket in ticketTypes %}
                 {% set inventaire = ticket.inventaire %}
                 {% set total = inventaire ? inventaire.quantiteTotale : 0 %}
                 {% set vendus = inventaire ? inventaire.quantiteVendue : 0 %}
+                {% set revenuFactures = statistics.revenuesByType[ticket.id]|default(0) %}
                 {% set totalSold = totalSold + vendus %}
                 {% set totalStock = totalStock + total %}
-                {% set totalRevenue = totalRevenue + (vendus * ticket.prixDeBase) %}
+                {% set totalRevenue = totalRevenue + revenuFactures %}
             {% endfor %}
             {% set tauxVente = totalStock > 0 ? ((totalSold / totalStock) * 100)|round(1) : 0 %}
             
@@ -194,9 +108,11 @@ document.addEventListener('DOMContentLoaded', function () {
     const ticketTypes = [
         {% for ticket in ticketTypes|default([]) %}
         {
+            id: {{ ticket.id }},
             nom: {{ ticket.nom|json_encode|raw }},
             prixDeBase: {{ ticket.prixDeBase|default(0) }},
             devise: {{ ticket.devise|default('MGA')|json_encode|raw }},
+            revenuFactures: {{ statistics.revenuesByType[ticket.id]|default(0) }},
             inventaire: {
                 quantiteTotale: {{ ticket.inventaire ? ticket.inventaire.quantiteTotale : 0 }},
                 quantiteVendue: {{ ticket.inventaire ? ticket.inventaire.quantiteVendue : 0 }},
@@ -215,7 +131,7 @@ document.addEventListener('DOMContentLoaded', function () {
             return date.toLocaleDateString('fr-FR', { day: '2-digit', month: '2-digit' });
         });
         const ticketsData = stats.map(point => point.ticketsSold);
-        const revenueData = stats.map(point => point.revenue);
+            const revenueData = stats.map(point => point.revenue);
 
         if (labels.length === 0) {
             salesChartCtx.parentElement.innerHTML = '<p style="font-size: 0.9rem; color: var(--gray-600); text-align: center; padding: 40px;">Pas encore de ventes enregistrées pour cet événement.</p>';
@@ -360,10 +276,7 @@ document.addEventListener('DOMContentLoaded', function () {
             const sold = t.inventaire.quantiteVendue || 0;
             return total - sold;
         });
-        const revenueData = ticketTypes.map(t => {
-            const sold = t.inventaire ? t.inventaire.quantiteVendue : 0;
-            return sold * (t.prixDeBase || 0);
-        });
+        const revenueData = ticketTypes.map(t => t.revenuFactures || 0);
 
         new Chart(barChartCtx, {
             type: 'bar',

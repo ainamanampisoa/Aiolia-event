@@ -13,41 +13,31 @@ class PanierService
     ) {
     }
 
-    /**
-     * Récupère tous les paniers
-     */
+    
     public function getAll(): array
     {
         return $this->repository->getAll();
     }
 
-    /**
-     * Récupère un panier par son ID
-     */
+    
     public function getById(string $id): ?Panier
     {
         return $this->repository->getById($id);
     }
 
-    /**
-     * Récupère le panier actif d'un utilisateur
-     */
+    
     public function getActiveByUser(User $user): ?Panier
     {
         return $this->repository->findActiveByUser($user);
     }
 
-    /**
-     * Récupère un panier par jeton de session
-     */
+    
     public function getByJetonSession(string $jetonSession): ?Panier
     {
         return $this->repository->findByJetonSession($jetonSession);
     }
 
-    /**
-     * Crée un nouveau panier
-     */
+    
     public function create(array $data, ?User $utilisateur = null): Panier
     {
         $panier = new Panier();
@@ -79,9 +69,7 @@ class PanierService
         return $this->repository->create($panier);
     }
 
-    /**
-     * Met à jour un panier
-     */
+    
     public function update(Panier $panier, array $data): Panier
     {
         if (isset($data['statut'])) {
@@ -107,9 +95,7 @@ class PanierService
         return $this->repository->update($panier);
     }
 
-    /**
-     * Supprime un panier
-     */
+    
     public function delete(Panier $panier): void
     {
         $this->repository->delete($panier);

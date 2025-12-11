@@ -2,12 +2,13 @@
 
 namespace App\Entity;
 
+use App\Repository\Organisateur\VenueRepository;
 use Doctrine\Common\Collections\ArrayCollection;
 use Doctrine\Common\Collections\Collection;
 use Doctrine\DBAL\Types\Types;
 use Doctrine\ORM\Mapping as ORM;
 
-#[ORM\Entity]
+#[ORM\Entity(repositoryClass: VenueRepository::class)]
 #[ORM\Table(name: 'lieux', schema: 'aiolia')]
 #[ORM\HasLifecycleCallbacks]
 class Venue

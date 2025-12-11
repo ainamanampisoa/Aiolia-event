@@ -10,10 +10,18 @@ use App\Entity\OrganisateurEvenement;
 use App\Entity\OrganizerProfile;
 use App\Entity\User;
 use App\Entity\Venue;
+use App\Entity\ConfigurationCategorieBillet;
+use App\Entity\ConfigurationSegmentBillet;
 use App\Repository\Organisateur\EventRepository;
 use App\Repository\Organisateur\BilletRepository;
 use App\Service\Organisateur\EventTypeService;
 use App\Service\Organisateur\EspaceLieuService;
+use App\Service\Organisateur\TypeBilletService;
+use App\Service\Organisateur\InventaireBilletService;
+use App\Service\Organisateur\ConfigurationCategorieBilletService;
+use App\Service\Organisateur\ConfigurationSegmentBilletService;
+use App\Service\Organisateur\MediaService;
+use App\Repository\Organisateur\TicketInvoiceRepository;
 use Doctrine\ORM\EntityManagerInterface;
 use Symfony\Component\String\Slugger\SluggerInterface;
 
@@ -25,29 +33,29 @@ class EventService
         private EventTypeService $eventTypeService,
         private EspaceLieuService $espaceLieuService,
         private SluggerInterface $slugger,
-        private BilletRepository $billetRepository
+        private BilletRepository $billetRepository,
+        private TypeBilletService $typeBilletService,
+        private InventaireBilletService $inventaireBilletService,
+        private ConfigurationCategorieBilletService $categorieBilletService,
+        private ConfigurationSegmentBilletService $segmentBilletService,
+        private MediaService $mediaService,
+        private TicketInvoiceRepository $ticketInvoiceRepository
     ) {
     }
 
-    /**
-     * Récupère tous les événements
-     */
+    
     public function getAll(): array
     {
         return $this->eventRepository->getAll();
     }
 
-    /**
-     * Récupère un événement par son ID
-     */
+    
     public function getById(string $id): ?Event
     {
         return $this->eventRepository->getById($id);
     }
 
-    /**
-     * Crée un nouvel événement
-     */
+    
     public function create(array $data, ?OrganizerProfile $organizerProfile = null): Event
     {
         $event = new Event();
@@ -61,9 +69,7 @@ class EventService
         return $this->eventRepository->create($event);
     }
 
-    /**
-     * Met à jour un événement
-     */
+    
     public function update(Event $event, array $data): Event
     {
         $this->updateEventFromData($event, $data);
@@ -72,43 +78,392 @@ class EventService
     }
 
     /**
-     * Supprime un événement
+     * Persiste un événement déjà hydraté (issu d'un formulaire Symfony).
      */
-    public function delete(Event $event): void
+    public function saveFromForm(Event $event): Event
     {
-        $this->eventRepository->delete($event);
+        if ($event->getTitre()) {
+            $event->setSlug($this->generateUniqueSlug($event->getTitre()));
+        }
+
+        return $this->eventRepository->create($event);
     }
 
     /**
-     * Publie un événement
+     * Crée les billets pour un événement à partir des données du formulaire.
+     *
+     * @param Event $event L'événement auquel associer les billets
+     * @param array $ticketsData Données des billets depuis le formulaire :
+     *   - ticket_categorie[] : IDs des catégories
+     *   - ticket_segment[] : IDs des segments
+     *   - ticket_price[] : Prix des billets
+     *   - ticket_quantity[] : Quantités disponibles
+     * @return array Liste des TypeBillet créés
      */
+    public function createTicketsForEvent(Event $event, array $ticketsData): array
+    {
+        $createdTickets = [];
+        
+        $categories = $ticketsData['ticket_categorie'] ?? [];
+        $segments = $ticketsData['ticket_segment'] ?? [];
+        $prices = $ticketsData['ticket_price'] ?? [];
+        $quantities = $ticketsData['ticket_quantity'] ?? [];
+        
+        // Récupérer les paramètres de vente globaux
+        $salesStart = $this->parseDateTime(
+            $ticketsData['ticket_sales_start_date'] ?? null,
+            $ticketsData['ticket_sales_start_time'] ?? null
+        );
+        $salesEnd = $this->parseDateTime(
+            $ticketsData['ticket_sales_end_date'] ?? null,
+            $ticketsData['ticket_sales_end_time'] ?? null
+        );
+        $minPerOrder = isset($ticketsData['ticket_min_per_order']) && $ticketsData['ticket_min_per_order'] !== ''
+            ? (int) $ticketsData['ticket_min_per_order']
+            : 1;
+        $maxPerOrder = isset($ticketsData['ticket_max_per_order']) && $ticketsData['ticket_max_per_order'] !== ''
+            ? (int) $ticketsData['ticket_max_per_order']
+            : null;
+        
+        // Récupérer toutes les catégories et segments actifs (sauf "tous")
+        $allCategories = $this->categorieBilletService->getAllActive();
+        $allSegments = $this->segmentBilletService->getAllActive();
+        
+        // Filtrer pour exclure "tous"
+        $validCategories = array_filter($allCategories, fn($cat) => $cat->getNom() !== 'tous');
+        $validSegments = array_filter($allSegments, fn($seg) => $seg->getNom() !== 'tous');
+        
+        // Vérifier que tous les tableaux ont la même longueur
+        $count = max(
+            count($categories),
+            count($segments),
+            count($prices),
+            count($quantities)
+        );
+        
+        for ($i = 0; $i < $count; $i++) {
+            // Récupérer les entités catégorie et segment
+            $categorieId = $categories[$i] ?? null;
+            $segmentId = $segments[$i] ?? null;
+            $price = $prices[$i] ?? null;
+            $quantity = $quantities[$i] ?? null;
+            
+            // Valider les données - ignorer si vide ou "tous" (qui n'est pas un ID valide)
+            if (!$categorieId || !$segmentId || $price === null || $quantity === null) {
+                continue;
+            }
+            
+            // Vérifier si "tous" est sélectionné (valeur littérale "tous", pas un ID)
+            $isTousCategorie = ($categorieId === 'tous' || strtolower($categorieId) === 'tous');
+            $isTousSegment = ($segmentId === 'tous' || strtolower($segmentId) === 'tous');
+            
+            // Si "tous" est sélectionné, on utilise toutes les catégories/segments valides
+            if ($isTousCategorie && $isTousSegment) {
+                // Créer un billet pour chaque combinaison catégorie x segment
+                foreach ($validCategories as $catToUse) {
+                    foreach ($validSegments as $segToUse) {
+                        $this->createTicketType($event, $catToUse, $segToUse, $price, $quantity, $minPerOrder, $maxPerOrder, $salesStart, $salesEnd, $createdTickets);
+                    }
+                }
+                continue;
+            } elseif ($isTousCategorie) {
+                // Récupérer le segment
+                $segment = $this->entityManager->getRepository(ConfigurationSegmentBillet::class)->find($segmentId);
+                if (!$segment) {
+                    continue;
+                }
+                // Créer un billet pour chaque catégorie avec ce segment
+                foreach ($validCategories as $catToUse) {
+                    $this->createTicketType($event, $catToUse, $segment, $price, $quantity, $minPerOrder, $maxPerOrder, $salesStart, $salesEnd, $createdTickets);
+                }
+                continue;
+            } elseif ($isTousSegment) {
+                // Récupérer la catégorie
+                $categorie = $this->entityManager->getRepository(ConfigurationCategorieBillet::class)->find($categorieId);
+                if (!$categorie) {
+                    continue;
+                }
+                // Créer un billet pour chaque segment avec cette catégorie
+                foreach ($validSegments as $segToUse) {
+                    $this->createTicketType($event, $categorie, $segToUse, $price, $quantity, $minPerOrder, $maxPerOrder, $salesStart, $salesEnd, $createdTickets);
+                }
+                continue;
+            }
+            
+            // Si ni catégorie ni segment n'est "tous", récupérer les entités normalement
+            $categorie = $this->entityManager->getRepository(ConfigurationCategorieBillet::class)->find($categorieId);
+            $segment = $this->entityManager->getRepository(ConfigurationSegmentBillet::class)->find($segmentId);
+            
+            if (!$categorie || !$segment) {
+                continue;
+            }
+            
+            // Créer le billet pour cette catégorie et ce segment spécifiques
+            $this->createTicketType($event, $categorie, $segment, $price, $quantity, $minPerOrder, $maxPerOrder, $salesStart, $salesEnd, $createdTickets);
+        }
+        
+        return $createdTickets;
+    }
+
+    /**
+     * Met à jour les billets existants pour un événement
+     */
+    public function updateTicketsForEvent(Event $event, array $ticketsData): array
+    {
+        $ticketIds = $ticketsData['ticket_id'] ?? [];
+        $categories = $ticketsData['ticket_categorie'] ?? [];
+        $segments = $ticketsData['ticket_segment'] ?? [];
+        $prices = $ticketsData['ticket_price'] ?? [];
+        $quantities = $ticketsData['ticket_quantity'] ?? [];
+        
+        $salesStartDate = $ticketsData['ticket_sales_start_date'] ?? null;
+        $salesStartTime = $ticketsData['ticket_sales_start_time'] ?? null;
+        $salesEndDate = $ticketsData['ticket_sales_end_date'] ?? null;
+        $salesEndTime = $ticketsData['ticket_sales_end_time'] ?? null;
+        $minPerOrder = (int) ($ticketsData['ticket_min_per_order'] ?? 1);
+        $maxPerOrder = $ticketsData['ticket_max_per_order'] ? (int) $ticketsData['ticket_max_per_order'] : null;
+        
+        $salesStart = null;
+        if ($salesStartDate && $salesStartTime) {
+            $salesStart = $this->parseDateTime($salesStartDate, $salesStartTime);
+        }
+        
+        $salesEnd = null;
+        if ($salesEndDate && $salesEndTime) {
+            $salesEnd = $this->parseDateTime($salesEndDate, $salesEndTime);
+        }
+        
+        $updatedTickets = [];
+        $count = count($categories);
+        
+        for ($i = 0; $i < $count; $i++) {
+            $ticketId = $ticketIds[$i] ?? null;
+            $categorieId = $categories[$i] ?? null;
+            $segmentId = $segments[$i] ?? null;
+            $price = $prices[$i] ?? null;
+            $quantity = $quantities[$i] ?? null;
+            
+            if (!$categorieId || !$segmentId || $price === null || $quantity === null) {
+                continue;
+            }
+            
+            // Si c'est un billet existant, le mettre à jour
+            if ($ticketId) {
+                $typeBillet = $this->typeBilletService->getById($ticketId);
+                if ($typeBillet && $typeBillet->getEvenement()->getId() === $event->getId()) {
+                    $inventaire = $typeBillet->getInventaire();
+                    $quantiteVendue = $inventaire ? $inventaire->getQuantiteVendue() : 0;
+                    
+                    // Valider que la nouvelle quantité n'est pas inférieure à la quantité vendue
+                    if ((int) $quantity < $quantiteVendue) {
+                        throw new \InvalidArgumentException(
+                            sprintf(
+                                'La quantité du billet "%s" ne peut pas être inférieure à %d (billets déjà vendus).',
+                                $typeBillet->getNom(),
+                                $quantiteVendue
+                            )
+                        );
+                    }
+                    
+                    // Mettre à jour le billet
+                    $ticketData = [
+                        'prixDeBase' => (float) $price,
+                        'minimumParCommande' => $minPerOrder,
+                        'maximumParCommande' => $maxPerOrder,
+                        'ventesCommencentLe' => $salesStart,
+                        'ventesSeTerminentLe' => $salesEnd,
+                    ];
+                    
+                    $this->typeBilletService->update($typeBillet, $ticketData);
+                    
+                    // Mettre à jour l'inventaire
+                    if ($inventaire) {
+                        $inventaireData = [
+                            'quantiteTotale' => (int) $quantity,
+                        ];
+                        $this->inventaireBilletService->update($inventaire, $inventaireData);
+                    }
+                    
+                    $updatedTickets[] = $typeBillet;
+                    continue;
+                }
+            }
+            
+            // Sinon, créer un nouveau billet (logique existante)
+            $isTousCategorie = ($categorieId === 'tous' || strtolower($categorieId) === 'tous');
+            $isTousSegment = ($segmentId === 'tous' || strtolower($segmentId) === 'tous');
+            
+            $validCategories = $this->entityManager
+                ->getRepository(ConfigurationCategorieBillet::class)
+                ->findBy(['estActif' => true]);
+            $validSegments = $this->entityManager
+                ->getRepository(ConfigurationSegmentBillet::class)
+                ->findBy(['estActif' => true]);
+            
+            if ($isTousCategorie && $isTousSegment) {
+                foreach ($validCategories as $catToUse) {
+                    foreach ($validSegments as $segToUse) {
+                        $this->createTicketType($event, $catToUse, $segToUse, $price, $quantity, $minPerOrder, $maxPerOrder, $salesStart, $salesEnd, $updatedTickets);
+                    }
+                }
+            } elseif ($isTousCategorie) {
+                $segment = $this->entityManager->getRepository(ConfigurationSegmentBillet::class)->find($segmentId);
+                if ($segment) {
+                    foreach ($validCategories as $catToUse) {
+                        $this->createTicketType($event, $catToUse, $segment, $price, $quantity, $minPerOrder, $maxPerOrder, $salesStart, $salesEnd, $updatedTickets);
+                    }
+                }
+            } elseif ($isTousSegment) {
+                $categorie = $this->entityManager->getRepository(ConfigurationCategorieBillet::class)->find($categorieId);
+                if ($categorie) {
+                    foreach ($validSegments as $segToUse) {
+                        $this->createTicketType($event, $categorie, $segToUse, $price, $quantity, $minPerOrder, $maxPerOrder, $salesStart, $salesEnd, $updatedTickets);
+                    }
+                }
+            } else {
+                $categorie = $this->entityManager->getRepository(ConfigurationCategorieBillet::class)->find($categorieId);
+                $segment = $this->entityManager->getRepository(ConfigurationSegmentBillet::class)->find($segmentId);
+                if ($categorie && $segment) {
+                    $this->createTicketType($event, $categorie, $segment, $price, $quantity, $minPerOrder, $maxPerOrder, $salesStart, $salesEnd, $updatedTickets);
+                }
+            }
+        }
+        
+        return $updatedTickets;
+    }
+
+    /**
+     * Helper method pour créer un type de billet avec inventaire
+     */
+    private function createTicketType(
+        Event $event,
+        $categorie,
+        $segment,
+        $price,
+        $quantity,
+        int $minPerOrder,
+        ?int $maxPerOrder,
+        ?\DateTimeInterface $salesStart,
+        ?\DateTimeInterface $salesEnd,
+        array &$createdTickets
+    ): void {
+        // Générer le nom du billet (catégorie + segment)
+        $nom = ucfirst($categorie->getNom()) . ' - ' . ucfirst($segment->getNom());
+        
+        // Créer le TypeBillet avec les paramètres de vente
+        $ticketData = [
+            'configurationCategorie' => $categorie,
+            'configurationSegment' => $segment,
+            'nom' => $nom,
+            'prixDeBase' => (float) $price,
+            'devise' => 'MGA',
+            'fraisService' => 0,
+            'tauxTva' => 0,
+            'minimumParCommande' => $minPerOrder,
+            'maximumParCommande' => $maxPerOrder,
+            'ventesCommencentLe' => $salesStart,
+            'ventesSeTerminentLe' => $salesEnd,
+        ];
+        
+        $typeBillet = $this->typeBilletService->create($ticketData, $event);
+        
+        // Créer l'inventaire avec la quantité
+        $inventaireData = [
+            'quantiteTotale' => (int) $quantity,
+            'quantiteReservee' => 0,
+            'quantiteVendue' => 0,
+        ];
+        
+        $this->inventaireBilletService->create($inventaireData, $typeBillet);
+        
+        $createdTickets[] = $typeBillet;
+    }
+
+    /**
+     * Parse une date et une heure séparées en un objet DateTime.
+     *
+     * @param string|null $date La date au format jj/mm/aaaa
+     * @param string|null $time L'heure au format hh:mm
+     * @return \DateTimeInterface|null
+     */
+    public function parseDateTime(?string $date, ?string $time): ?\DateTimeInterface
+    {
+        if (!$date || !$time) {
+            return null;
+        }
+
+        try {
+            // Parser la date jj/mm/aaaa
+            $dateParts = explode('/', $date);
+            if (count($dateParts) !== 3) {
+                return null;
+            }
+            $day = (int) $dateParts[0];
+            $month = (int) $dateParts[1];
+            $year = (int) $dateParts[2];
+
+            // Parser l'heure hh:mm
+            $timeParts = explode(':', $time);
+            if (count($timeParts) !== 2) {
+                return null;
+            }
+            $hour = (int) $timeParts[0];
+            $minute = (int) $timeParts[1];
+
+            return new \DateTimeImmutable(sprintf(
+                '%04d-%02d-%02d %02d:%02d:00',
+                $year,
+                $month,
+                $day,
+                $hour,
+                $minute
+            ));
+        } catch (\Exception $e) {
+            return null;
+        }
+    }
+
+    
+    public function delete(Event $event): void
+    {
+        // Supprimer tous les types de billets associés à l'événement (et leurs inventaires en cascade)
+        $typeBillets = $this->typeBilletService->getByEvenement($event);
+        foreach ($typeBillets as $typeBillet) {
+            $this->typeBilletService->delete($typeBillet);
+        }
+        
+        // Supprimer tous les médias associés à l'événement avant de supprimer l'événement
+        $eventMedias = $this->mediaService->getEventMedias($event);
+        foreach ($eventMedias as $media) {
+            $this->mediaService->deleteMedia($media);
+        }
+        
+        // Supprimer l'événement
+        $this->eventRepository->delete($event);
+    }
+
+    
     public function publishEvent(Event $event): Event
     {
         $event->setStatut(Event::STATUS_PUBLISHED);
         return $this->eventRepository->update($event);
     }
 
-    /**
-     * Annule un événement
-     */
+    
     public function cancelEvent(Event $event): Event
     {
         $event->setStatut(Event::STATUS_CANCELLED);
         return $this->eventRepository->update($event);
     }
 
-    /**
-     * Archive un événement
-     */
+    
     public function archiveEvent(Event $event): Event
     {
         $event->setStatut(Event::STATUS_ARCHIVED);
         return $this->eventRepository->update($event);
     }
 
-    /**
-     * Duplique un événement
-     */
+    
     public function duplicateEvent(Event $originalEvent, ?OrganizerProfile $organizerProfile = null): Event
     {
         $newEvent = new Event();
@@ -135,47 +490,25 @@ class EventService
         return $this->eventRepository->create($newEvent);
     }
 
-    /**
-     * Récupère les événements à venir
-     */
+    
     public function getUpcomingEvents(int $limit = 0): array
     {
         return $this->eventRepository->findUpcomingEvents($limit);
     }
 
-    /**
-     * Récupère les événements en vedette
-     */
+    
     public function getFeaturedEvents(int $limit = 6): array
     {
         return $this->eventRepository->findFeaturedEvents($limit);
     }
 
-    /**
-     * Recherche des événements
-     */
+    
     public function searchEvents(string $query, array $filters = []): array
     {
         return $this->eventRepository->searchEvents($query, $filters);
     }
 
-    /**
-     * Recherche multicritères d'événements
-     *
-     * @param array $criteria Critères de recherche :
-     *   - 'idOrganisateur' (string) : ID du profil organisateur (obligatoire)
-     *   - 'nomLieu' (string|null) : Nom du lieu
-     *   - 'dateDebut' (\DateTimeInterface|null) : Date de début
-     *   - 'dateFin' (\DateTimeInterface|null) : Date de fin
-     *   - 'typeEvenementId' (string|null) : ID du type d'événement
-     *   - 'prixMin' (float|null) : Prix minimum
-     *   - 'prixMax' (float|null) : Prix maximum
-     *   - 'triPrix' (string|null) : 'asc' pour croissant, 'desc' pour décroissant
-     *   - 'limit' (int|null) : Limite de résultats
-     *   - 'offset' (int|null) : Offset pour la pagination
-     * @return array Tableau d'événements
-     * @throws \InvalidArgumentException Si idOrganisateur n'est pas fourni
-     */
+    
     public function searchMultiCriteria(array $criteria): array
     {
         $idOrganisateur = $criteria['idOrganisateur'] ?? null;
@@ -183,7 +516,7 @@ class EventService
             throw new \InvalidArgumentException('Le paramètre idOrganisateur est obligatoire');
         }
 
-        $nomLieu = $criteria['nomLieu'] ?? null;
+        $lieuId = $criteria['lieuId'] ?? $criteria['nomLieu'] ?? null; 
         $dateDebut = $criteria['dateDebut'] ?? null;
         $dateFin = $criteria['dateFin'] ?? null;
         $typeEvenementId = $criteria['typeEvenementId'] ?? null;
@@ -194,7 +527,7 @@ class EventService
         $limit = $criteria['limit'] ?? null;
         $offset = $criteria['offset'] ?? null;
 
-        // Normaliser les valeurs null/0 pour les prix
+        
         if ($prixMin !== null && ($prixMin === 0 || $prixMin === '0')) {
             $prixMin = null;
         }
@@ -202,17 +535,17 @@ class EventService
             $prixMax = null;
         }
 
-        // Normaliser le type d'événement
+        
         if ($typeEvenementId !== null && ($typeEvenementId === '0' || $typeEvenementId === '')) {
             $typeEvenementId = null;
         }
 
-        // Normaliser le statut
+        
         if ($statut !== null && $statut === '') {
             $statut = null;
         }
 
-        // Convertir les dates si elles sont des strings
+        
         if ($dateDebut !== null && is_string($dateDebut)) {
             try {
                 $dateDebut = new \DateTime($dateDebut);
@@ -231,7 +564,7 @@ class EventService
 
         return $this->eventRepository->searchMultiCriteria(
             $idOrganisateur,
-            $nomLieu,
+            $lieuId,
             $dateDebut,
             $dateFin,
             $typeEvenementId,
@@ -244,13 +577,7 @@ class EventService
         );
     }
 
-    /**
-     * Compte les résultats d'une recherche multicritères
-     *
-     * @param array $criteria Critères de recherche (même format que searchMultiCriteria)
-     * @return int Nombre de résultats
-     * @throws \InvalidArgumentException Si idOrganisateur n'est pas fourni
-     */
+    
     public function countSearchMultiCriteria(array $criteria): int
     {
         $idOrganisateur = $criteria['idOrganisateur'] ?? null;
@@ -258,7 +585,7 @@ class EventService
             throw new \InvalidArgumentException('Le paramètre idOrganisateur est obligatoire');
         }
 
-        $nomLieu = $criteria['nomLieu'] ?? null;
+        $lieuId = $criteria['lieuId'] ?? $criteria['nomLieu'] ?? null; 
         $dateDebut = $criteria['dateDebut'] ?? null;
         $dateFin = $criteria['dateFin'] ?? null;
         $typeEvenementId = $criteria['typeEvenementId'] ?? null;
@@ -266,7 +593,7 @@ class EventService
         $prixMin = $criteria['prixMin'] ?? null;
         $prixMax = $criteria['prixMax'] ?? null;
 
-        // Normaliser les valeurs null/0 pour les prix
+        
         if ($prixMin !== null && ($prixMin === 0 || $prixMin === '0')) {
             $prixMin = null;
         }
@@ -274,17 +601,17 @@ class EventService
             $prixMax = null;
         }
 
-        // Normaliser le type d'événement
+        
         if ($typeEvenementId !== null && ($typeEvenementId === '0' || $typeEvenementId === '')) {
             $typeEvenementId = null;
         }
 
-        // Normaliser le statut
+        
         if ($statut !== null && $statut === '') {
             $statut = null;
         }
 
-        // Convertir les dates si elles sont des strings
+        
         if ($dateDebut !== null && is_string($dateDebut)) {
             try {
                 $dateDebut = new \DateTime($dateDebut);
@@ -303,7 +630,7 @@ class EventService
 
         return $this->eventRepository->countSearchMultiCriteria(
             $idOrganisateur,
-            $nomLieu,
+            $lieuId,
             $dateDebut,
             $dateFin,
             $typeEvenementId,
@@ -313,23 +640,7 @@ class EventService
         );
     }
 
-    /**
-     * Recherche multicritères avec pagination complète
-     *
-     * @param array $criteria Critères de recherche :
-     *   - 'idOrganisateur' (string) : ID du profil organisateur (obligatoire)
-     *   - 'nomLieu' (string|null) : Nom du lieu
-     *   - 'dateDebut' (\DateTimeInterface|null) : Date de début
-     *   - 'dateFin' (\DateTimeInterface|null) : Date de fin
-     *   - 'typeEvenementId' (string|null) : ID du type d'événement
-     *   - 'prixMin' (float|null) : Prix minimum
-     *   - 'prixMax' (float|null) : Prix maximum
-     *   - 'triPrix' (string|null) : 'asc' pour croissant, 'desc' pour décroissant
-     *   - 'page' (int) : Numéro de page (commence à 1, défaut: 1)
-     *   - 'limit' (int) : Nombre d'éléments par page (défaut: 20)
-     * @return array ['items' => Event[], 'pagination' => array]
-     * @throws \InvalidArgumentException Si idOrganisateur n'est pas fourni
-     */
+    
     public function searchMultiCriteriaWithPagination(array $criteria): array
     {
         $idOrganisateur = $criteria['idOrganisateur'] ?? null;
@@ -337,7 +648,7 @@ class EventService
             throw new \InvalidArgumentException('Le paramètre idOrganisateur est obligatoire');
         }
 
-        $nomLieu = $criteria['nomLieu'] ?? null;
+        $lieuId = $criteria['lieuId'] ?? $criteria['nomLieu'] ?? null; 
         $dateDebut = $criteria['dateDebut'] ?? null;
         $dateFin = $criteria['dateFin'] ?? null;
         $typeEvenementId = $criteria['typeEvenementId'] ?? null;
@@ -348,7 +659,7 @@ class EventService
         $page = max(1, (int) ($criteria['page'] ?? 1));
         $limit = max(1, (int) ($criteria['limit'] ?? 20));
 
-        // Normaliser les valeurs null/0 pour les prix
+        
         if ($prixMin !== null && ($prixMin === 0 || $prixMin === '0')) {
             $prixMin = null;
         }
@@ -356,17 +667,17 @@ class EventService
             $prixMax = null;
         }
 
-        // Normaliser le type d'événement
+        
         if ($typeEvenementId !== null && ($typeEvenementId === '0' || $typeEvenementId === '')) {
             $typeEvenementId = null;
         }
 
-        // Normaliser le statut
+        
         if ($statut !== null && $statut === '') {
             $statut = null;
         }
 
-        // Convertir les dates si elles sont des strings
+        
         if ($dateDebut !== null && is_string($dateDebut)) {
             try {
                 $dateDebut = new \DateTime($dateDebut);
@@ -385,7 +696,7 @@ class EventService
 
         return $this->eventRepository->searchMultiCriteriaWithPagination(
             $idOrganisateur,
-            $nomLieu,
+            $lieuId,
             $dateDebut,
             $dateFin,
             $typeEvenementId,
@@ -398,42 +709,41 @@ class EventService
         );
     }
 
-    /**
-     * Récupère les statistiques d'un événement
-     */
+    
     public function getEventStatistics(Event $event): array
     {
         $baseStats = $this->eventRepository->getEventStatistics($event);
         $salesEvolution = $this->billetRepository->getSalesEvolutionByEvent($event);
+        $revenuesByType = $this->ticketInvoiceRepository->getRevenueByEvent($event);
+        $totalRevenue = array_sum($revenuesByType);
 
         return array_merge($baseStats, [
             'salesEvolution' => $salesEvolution,
+            'revenuesByType' => $revenuesByType,
+            'totalRevenue' => $totalRevenue,
         ]);
     }
 
-    /**
-     * Vérifie si un utilisateur peut modifier un événement
-     * Vérifie si l'utilisateur est l'organisateur principal, un co-organisateur, ou un admin
-     */
+    
     public function canEdit(Event $event, User $user): bool
     {
-        // Les admins peuvent toujours modifier
+        
         if (in_array('ROLE_ADMIN', $user->getRoles())) {
             return true;
         }
 
-        // Vérifier si l'utilisateur est l'organisateur principal
+        
         $organizerProfile = $event->getProfilOrganisateur();
         if ($organizerProfile !== null && $organizerProfile->getUtilisateur() === $user) {
             return true;
         }
 
-        // Vérifier si l'utilisateur est un co-organisateur avec les permissions appropriées
+        
         foreach ($event->getOrganisateursEvenements() as $organisateurEvenement) {
             $profil = $organisateurEvenement->getProfilOrganisateur();
             if ($profil && $profil->getUtilisateur() === $user) {
                 $role = $organisateurEvenement->getRole();
-                // Les créateurs et co-organisateurs peuvent modifier
+                
                 if (in_array($role, [
                     OrganisateurEvenement::ROLE_CREATEUR,
                     OrganisateurEvenement::ROLE_CO_ORGANISATEUR
@@ -446,18 +756,15 @@ class EventService
         return false;
     }
 
-    /**
-     * Vérifie si un utilisateur peut supprimer un événement
-     * Seuls l'organisateur principal (créateur) ou un admin peuvent supprimer
-     */
+    
     public function canDelete(Event $event, User $user): bool
     {
-        // Les admins peuvent toujours supprimer
+        
         if (in_array('ROLE_ADMIN', $user->getRoles())) {
             return true;
         }
 
-        // Seul l'organisateur principal peut supprimer
+        
         $organizerProfile = $event->getProfilOrganisateur();
         if ($organizerProfile !== null && $organizerProfile->getUtilisateur() === $user) {
             return true;
@@ -466,9 +773,7 @@ class EventService
         return false;
     }
 
-    /**
-     * Ajoute un organisateur à un événement
-     */
+    
     public function addOrganisateurToEvent(
         Event $event,
         OrganizerProfile $organisateur,
@@ -479,18 +784,14 @@ class EventService
         return $this->eventRepository->update($event);
     }
 
-    /**
-     * Retire un organisateur d'un événement
-     */
+    
     public function removeOrganisateurFromEvent(Event $event, OrganizerProfile $organisateur): Event
     {
         $event->removeOrganisateur($organisateur);
         return $this->eventRepository->update($event);
     }
 
-    /**
-     * Met à jour le rôle d'un organisateur dans un événement
-     */
+    
     public function updateOrganisateurRole(
         Event $event,
         OrganizerProfile $organisateur,
@@ -505,9 +806,7 @@ class EventService
         return $this->eventRepository->update($event);
     }
 
-    /**
-     * Met à jour un événement depuis un tableau de données
-     */
+    
     private function updateEventFromData(Event $event, array $data): void
     {
         if (isset($data['titre'])) {
@@ -520,7 +819,7 @@ class EventService
         if (isset($data['profilOrganisateur']) && $data['profilOrganisateur'] instanceof OrganizerProfile) {
             $event->setProfilOrganisateur($data['profilOrganisateur']);
         } elseif (isset($data['profilOrganisateurId'])) {
-            // Si on passe juste l'ID, on doit charger l'entité
+            
             $organizerProfile = $this->entityManager->getRepository(OrganizerProfile::class)->find($data['profilOrganisateurId']);
             if ($organizerProfile) {
                 $event->setProfilOrganisateur($organizerProfile);
@@ -672,16 +971,14 @@ class EventService
         }
     }
 
-    /**
-     * Génère un slug unique
-     */
+    
     private function generateUniqueSlug(string $title): string
     {
         $slug = $this->slugger->slug($title)->lower();
         $originalSlug = $slug;
         $counter = 1;
 
-        // Vérifier si le slug existe déjà
+        
         while ($this->eventRepository->findOneBy(['slug' => $slug])) {
             $slug = $originalSlug . '-' . $counter;
             $counter++;

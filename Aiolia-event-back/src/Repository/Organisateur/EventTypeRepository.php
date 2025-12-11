@@ -6,9 +6,7 @@ use App\Entity\EventType;
 use Doctrine\Bundle\DoctrineBundle\Repository\ServiceEntityRepository;
 use Doctrine\Persistence\ManagerRegistry;
 
-/**
- * @extends ServiceEntityRepository<EventType>
- */
+
 class EventTypeRepository extends ServiceEntityRepository
 {
     public function __construct(ManagerRegistry $registry)
@@ -16,9 +14,7 @@ class EventTypeRepository extends ServiceEntityRepository
         parent::__construct($registry, EventType::class);
     }
 
-    /**
-     * Récupère tous les types d'événements
-     */
+    
     public function getAll(): array
     {
         return $this->createQueryBuilder('t')
@@ -27,17 +23,13 @@ class EventTypeRepository extends ServiceEntityRepository
             ->getResult();
     }
 
-    /**
-     * Récupère un type d'événement par son ID
-     */
+    
     public function getById(string $id): ?EventType
     {
         return $this->find($id);
     }
 
-    /**
-     * Récupère un type d'événement par son slug
-     */
+    
     public function findBySlug(string $slug): ?EventType
     {
         return $this->createQueryBuilder('t')
@@ -47,9 +39,7 @@ class EventTypeRepository extends ServiceEntityRepository
             ->getOneOrNullResult();
     }
 
-    /**
-     * Crée un nouveau type d'événement
-     */
+    
     public function create(EventType $eventType): EventType
     {
         $this->getEntityManager()->persist($eventType);
@@ -58,9 +48,7 @@ class EventTypeRepository extends ServiceEntityRepository
         return $eventType;
     }
 
-    /**
-     * Met à jour un type d'événement
-     */
+    
     public function update(EventType $eventType): EventType
     {
         $this->getEntityManager()->flush();
@@ -68,9 +56,7 @@ class EventTypeRepository extends ServiceEntityRepository
         return $eventType;
     }
 
-    /**
-     * Supprime un type d'événement
-     */
+    
     public function delete(EventType $eventType): void
     {
         $this->getEntityManager()->remove($eventType);

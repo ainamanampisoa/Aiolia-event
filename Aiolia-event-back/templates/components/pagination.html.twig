@@ -66,17 +66,7 @@
 
         <div class="pagination-info">
             <p>
-                Affichage de
-                <strong>{{ pagination.startItem }}</strong>
-                à
-                <strong>{{ pagination.endItem }}</strong>
-                sur
-                <strong>{{ pagination.total }}</strong>
-                événement(s)
-            </p>
-            <p>
-                Page <strong>{{ pagination.page }}</strong>
-                sur <strong>{{ pagination.totalPages }}</strong>
+                Affichage de <strong>{{ pagination.startItem }}</strong> à <strong>{{ pagination.endItem }}</strong> sur <strong>{{ pagination.total }}</strong> événement(s)
             </p>
         </div>
     </div>
@@ -97,17 +87,18 @@
     display: flex;
     flex-direction: column;
     align-items: center;
+    gap: 16px;
     margin-top: 32px;
-    padding: 20px 24px;
-    background: var(--bg-card, #0f172a);
-    border-radius: var(--border-radius-md, 12px);
-    border: 1px solid var(--border-color, #1f2937);
-    box-shadow: var(--shadow-sm, 0 4px 12px rgba(15, 23, 42, 0.35));
+    padding: 24px;
+    background: var(--bg-card);
+    border-radius: var(--border-radius-lg);
+    border: 1px solid var(--border-color);
+    box-shadow: var(--shadow-md);
 }
 
 .pagination-horizontal {
     display: inline-flex;
-    gap: 6px;
+    gap: 8px;
     align-items: center;
     flex-wrap: wrap;
     justify-content: center;
@@ -124,45 +115,73 @@
     display: flex;
     align-items: center;
     justify-content: center;
-    min-width: 36px;
-    height: 36px;
-    padding: 6px 10px;
-    border-radius: 999px;
-    border: 1px solid var(--border-color, #1f2937);
-    background: var(--bg-card, #0b1220);
-    color: var(--text-secondary, #9ca3af);
-    font-weight: 500;
-    font-size: 0.85rem;
+    min-width: 40px;
+    height: 40px;
+    padding: 0 12px;
+    border-radius: 50%;
+    border: 2px solid var(--border-color);
+    background: var(--bg-secondary);
+    color: var(--text-primary);
+    font-weight: 600;
+    font-size: 0.9rem;
     text-decoration: none;
-    transition: all 0.2s ease;
+    transition: all 0.3s ease;
+    cursor: pointer;
 }
 
 .pagination-horizontal .page-link:hover:not(.disabled) {
-    background: rgba(59, 130, 246, 0.08);
-    border-color: var(--primary, #3b82f6);
-    color: var(--primary, #3b82f6);
-    transform: translateY(-1px);
-    box-shadow: 0 2px 8px rgba(15, 23, 42, 0.35);
+    background: var(--bg-card);
+    border-color: var(--accent);
+    color: var(--accent);
+    transform: translateY(-2px);
+    box-shadow: 0 4px 8px rgba(67, 97, 238, 0.2);
 }
 
 .pagination-horizontal .page-item.active .page-link {
-    background: var(--primary, #3b82f6);
-    border-color: var(--primary, #3b82f6);
+    background: var(--accent);
+    border-color: var(--accent);
     color: #ffffff;
-    box-shadow: 0 3px 10px rgba(59, 130, 246, 0.45);
+    box-shadow: 0 4px 12px rgba(67, 97, 238, 0.4);
+    font-weight: 700;
+}
+
+.pagination-horizontal .page-item.active .page-link:hover {
+    background: var(--accent);
+    color: #ffffff;
+    transform: translateY(-2px) scale(1.05);
+    box-shadow: 0 6px 16px rgba(67, 97, 238, 0.5);
 }
 
 .pagination-horizontal .page-item.disabled .page-link {
-    opacity: 0.4;
+    opacity: 0.5;
     cursor: not-allowed;
     pointer-events: none;
+    background: var(--bg-secondary);
+}
+
+.pagination-horizontal .page-item.disabled .page-link:hover {
+    transform: none;
+    box-shadow: none;
 }
 
 .pagination-info {
-    margin-top: 10px;
-    font-size: 0.8rem;
-    color: var(--text-secondary, #9ca3af);
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 4px;
+    font-size: 0.9rem;
+    color: var(--text-secondary);
     text-align: center;
+}
+
+.pagination-info p {
+    margin: 0;
+    line-height: 1.5;
+}
+
+.pagination-info strong {
+    color: var(--text-primary);
+    font-weight: 700;
 }
 </style>
 

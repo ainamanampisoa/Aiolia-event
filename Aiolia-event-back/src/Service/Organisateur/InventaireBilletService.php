@@ -13,33 +13,25 @@ class InventaireBilletService
     ) {
     }
 
-    /**
-     * Récupère tous les inventaires de billets
-     */
+    
     public function getAll(): array
     {
         return $this->repository->getAll();
     }
 
-    /**
-     * Récupère un inventaire de billet par son ID
-     */
+    
     public function getById(string $id): ?InventaireBillet
     {
         return $this->repository->getById($id);
     }
 
-    /**
-     * Récupère l'inventaire d'un type de billet
-     */
+    
     public function getByTypeBillet(TypeBillet $typeBillet): ?InventaireBillet
     {
         return $this->repository->findByTypeBillet($typeBillet);
     }
 
-    /**
-     * Crée un nouvel inventaire de billet
-     */
+    
     public function create(array $data, TypeBillet $typeBillet): InventaireBillet
     {
         $inventaire = new InventaireBillet();
@@ -60,9 +52,7 @@ class InventaireBilletService
         return $this->repository->create($inventaire);
     }
 
-    /**
-     * Met à jour un inventaire de billet
-     */
+    
     public function update(InventaireBillet $inventaire, array $data): InventaireBillet
     {
         if (isset($data['quantiteTotale'])) {
@@ -80,9 +70,7 @@ class InventaireBilletService
         return $this->repository->update($inventaire);
     }
 
-    /**
-     * Supprime un inventaire de billet
-     */
+    
     public function delete(InventaireBillet $inventaire): void
     {
         $this->repository->delete($inventaire);

@@ -191,11 +191,7 @@
                         <h2>Connexion</h2>
                         <p class="auth-subtitle">Content de vous revoir !</p>
 
-                        <!-- Flash Messages -->
-                        {% for message in app.flashes('success') %}
-                            <div class="alert alert-success">{{ message }}</div>
-                        {% endfor %}
-                        
+                        <!-- Flash Messages (uniquement erreurs à la connexion) -->
                         {% for message in app.flashes('error') %}
                             <div class="alert alert-danger">{{ message }}</div>
                         {% endfor %}

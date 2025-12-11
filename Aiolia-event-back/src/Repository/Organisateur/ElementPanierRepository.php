@@ -7,9 +7,7 @@ use App\Entity\Panier;
 use Doctrine\Bundle\DoctrineBundle\Repository\ServiceEntityRepository;
 use Doctrine\Persistence\ManagerRegistry;
 
-/**
- * @extends ServiceEntityRepository<ElementPanier>
- */
+
 class ElementPanierRepository extends ServiceEntityRepository
 {
     public function __construct(ManagerRegistry $registry)
@@ -17,9 +15,7 @@ class ElementPanierRepository extends ServiceEntityRepository
         parent::__construct($registry, ElementPanier::class);
     }
 
-    /**
-     * Récupère tous les éléments de paniers
-     */
+    
     public function getAll(): array
     {
         return $this->createQueryBuilder('e')
@@ -28,17 +24,13 @@ class ElementPanierRepository extends ServiceEntityRepository
             ->getResult();
     }
 
-    /**
-     * Récupère un élément de panier par son ID
-     */
+    
     public function getById(string $id): ?ElementPanier
     {
         return $this->find($id);
     }
 
-    /**
-     * Récupère tous les éléments d'un panier
-     */
+    
     public function findByPanier(Panier $panier): array
     {
         return $this->createQueryBuilder('e')
@@ -49,9 +41,7 @@ class ElementPanierRepository extends ServiceEntityRepository
             ->getResult();
     }
 
-    /**
-     * Crée un nouvel élément de panier
-     */
+    
     public function create(ElementPanier $element): ElementPanier
     {
         $this->getEntityManager()->persist($element);
@@ -60,9 +50,7 @@ class ElementPanierRepository extends ServiceEntityRepository
         return $element;
     }
 
-    /**
-     * Met à jour un élément de panier
-     */
+    
     public function update(ElementPanier $element): ElementPanier
     {
         $this->getEntityManager()->flush();
@@ -70,9 +58,7 @@ class ElementPanierRepository extends ServiceEntityRepository
         return $element;
     }
 
-    /**
-     * Supprime un élément de panier
-     */
+    
     public function delete(ElementPanier $element): void
     {
         $this->getEntityManager()->remove($element);

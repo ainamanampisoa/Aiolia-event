@@ -34,26 +34,34 @@
                 <div class="card-content">
                     {% set accessLinks = event.liensAccessibilites ?? [] %}
                     {% if accessLinks|length > 0 %}
-                        <ul style="list-style: none; padding: 0; margin: 0; display: flex; flex-direction: column; gap: 8px;">
+                        <div class="accessibility-grid">
                             {% for lien in accessLinks %}
-                                <li style="display: flex; align-items: flex-start; gap: 8px;">
-                                    <i class="fas fa-check-circle" style="color: var(--success); margin-top: 2px;"></i>
-                                    <div>
-                                        <strong>{{ lien.typeAccessibilite.libelle }}</strong>
+                                {% set typeAccessibilite = lien.typeAccessibilite %}
+                                {% set iconUrl = typeAccessibilite.urlImage ?? 'images/acces1.svg' %}
+                                {% set libelle = typeAccessibilite.libelle %}
+                                <div class="accessibility-item">
+                                    <div class="accessibility-icon-wrapper">
+                                        <img src="{{ asset(iconUrl) }}" alt="{{ libelle }}" class="accessibility-icon">
+                                        <div class="accessibility-check">
+                                            <i class="fas fa-check-circle"></i>
+                                        </div>
+                                    </div>
+                                    <div class="accessibility-content">
+                                        <h4 class="accessibility-title">{{ libelle }}</h4>
                                         {% if lien.description %}
-                                            <div style="font-size: 0.85rem; color: var(--gray-700);">
-                                                {{ lien.description }}
-                                            </div>
+                                            <p class="accessibility-description">{{ lien.description }}</p>
                                         {% endif %}
                                     </div>
-                                </li>
+                                </div>
                             {% endfor %}
-                        </ul>
+                        </div>
                     {% else %}
-                        <p style="font-size: 0.9rem; color: var(--gray-600);">
-                        Aucune information d'accessibilité spécifique n'a encore été ajoutée pour cet événement.
-                        </p>
+                        <div class="accessibility-empty">
+                            <i class="fas fa-info-circle"></i>
+                            <p>Aucune information d'accessibilité spécifique n'a encore été ajoutée pour cet événement.</p>
+                        </div>
                     {% endif %}
+                </div>
             </div>
         </div>
     </div>
@@ -61,3 +69,4 @@
 
 {% include 'Organisateur/events/_styles.html.twig' %}
 {% endblock %}
+

@@ -11,9 +11,7 @@ use Symfony\Component\Security\Http\Attribute\IsGranted;
 #[IsGranted('ROLE_ORGANIZER')]
 class WaitlistController extends AbstractController
 {
-    /**
-     * Page principale de gestion de la liste d'attente
-     */
+    
     #[Route('', name: 'organisateur_waitlist_index', methods: ['GET'])]
     public function index(): Response
     {

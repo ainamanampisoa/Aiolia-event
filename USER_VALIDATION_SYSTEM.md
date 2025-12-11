@@ -401,6 +401,8 @@ psql
 \i /tmp/data.sql
 \i /tmp/Events.sql
 
+comment est le Gestion quotas billets par catégorie 
+
 
 psql -U aiolia_user -d aiolia_event -h 127.0.0.1 -p 5432
 
@@ -420,6 +422,8 @@ mail : https://mailtrap.io/home
 Dbdiagrma : https://dbdiagram.io/d/69313c70d6676488ba8af59e
 
 explication : https://chatgpt.com/c/691c09da-a1b0-8328-b7a2-1b815d4289f6
+
+cloud : https://cloudinary.com/users/login
 
 📊 Rapports mensuels (abonnements)
 Synthèse des abonnements et revenus par mois

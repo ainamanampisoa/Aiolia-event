@@ -7,66 +7,54 @@ use App\Entity\ElementCommande;
 use App\Entity\TypeBillet;
 use App\Entity\User;
 use App\Repository\Organisateur\BilletRepository;
+use App\Service\TicketStatusService;
 use Doctrine\ORM\Tools\Pagination\Paginator;
 
 class BilletService
 {
     public function __construct(
-        private BilletRepository $repository
+        private BilletRepository $repository,
+        private TicketStatusService $ticketStatusService
     ) {
     }
 
-    /**
-     * Récupère tous les billets
-     */
+    
     public function getAll(): array
     {
         return $this->repository->getAll();
     }
 
-    /**
-     * Récupère un billet par son ID
-     */
+    
     public function getById(string $id): ?Billet
     {
         return $this->repository->getById($id);
     }
 
-    /**
-     * Récupère un billet par son code QR
-     */
+    
     public function getByCodeQr(string $codeQr): ?Billet
     {
         return $this->repository->findByCodeQr($codeQr);
     }
 
-    /**
-     * Récupère tous les billets d'un utilisateur
-     */
+    
     public function getByUser(User $user): array
     {
         return $this->repository->findByUser($user);
     }
 
-    /**
-     * Récupère tous les billets d'un type de billet
-     */
+    
     public function getByTypeBillet(TypeBillet $typeBillet): array
     {
         return $this->repository->findByTypeBillet($typeBillet);
     }
 
-    /**
-     * Récupère tous les billets d'un élément de commande
-     */
+    
     public function getByElementCommande(ElementCommande $elementCommande): array
     {
         return $this->repository->findByElementCommande($elementCommande);
     }
 
-    /**
-     * Crée un nouveau billet
-     */
+    
     public function create(array $data, TypeBillet $typeBillet, ?ElementCommande $elementCommande = null, ?User $utilisateurProprietaire = null): Billet
     {
         $billet = new Billet();
@@ -99,9 +87,7 @@ class BilletService
         return $this->repository->create($billet);
     }
 
-    /**
-     * Met à jour un billet
-     */
+    
     public function update(Billet $billet, array $data): Billet
     {
         if (isset($data['statut'])) {
@@ -127,36 +113,62 @@ class BilletService
         return $this->repository->update($billet);
     }
 
-    /**
-     * Supprime un billet
-     */
+    
     public function delete(Billet $billet): void
     {
         $this->repository->delete($billet);
     }
 
-    /**
-     * Récupère tous les billets pour un organisateur
-     */
+    
     public function getByOrganizer(User $organizer): array
     {
         return $this->repository->findByOrganizer($organizer);
     }
 
-    /**
-     * Récupère les billets paginés pour un organisateur
-     */
-    public function getByOrganizerPaginated(User $organizer, int $page = 1, int $limit = 10): Paginator
+    
+    public function getByOrganizerPaginated(User $organizer, int $page = 1, int $limit = 10, ?\App\Entity\Event $event = null, array $filters = []): Paginator
     {
-        return $this->repository->findByOrganizerPaginated($organizer, $page, $limit);
+        return $this->repository->findByOrganizerPaginated($organizer, $page, $limit, $event, $filters);
     }
 
-    /**
-     * Récupère les statistiques des billets pour un organisateur
-     */
-    public function getStatsByOrganizer(User $organizer): array
+    
+    public function getStatsByOrganizer(User $organizer, ?\App\Entity\Event $event = null): array
     {
-        return $this->repository->getStatsByOrganizer($organizer);
+        return $this->repository->getStatsByOrganizer($organizer, $event);
+    }
+
+    
+    public function getFilterOptionsByOrganizer(User $organizer, ?\App\Entity\Event $event = null): array
+    {
+        $options = $this->repository->getFilterOptionsByOrganizer($organizer, $event);
+        $options['statuts'] = $this->ticketStatusService->getStatuses();
+
+        return $options;
+    }
+
+    
+    public function getSalesStatsByTypeBillet(TypeBillet $typeBillet): array
+    {
+        $inventaire = $typeBillet->getInventaire();
+        
+        $stockTotal = $inventaire ? $inventaire->getQuantiteTotale() : 0;
+        $vendus = $inventaire ? $inventaire->getQuantiteVendue() : 0;
+        // Calculer les disponibles : stock total - vendus (sans soustraire les réservés)
+        $disponibles = max(0, $stockTotal - $vendus);
+        
+        // Calculer les revenus : prix unitaire × quantité vendue
+        $prixUnitaire = (float) $typeBillet->getPrixDeBase();
+        $revenus = $prixUnitaire * $vendus;
+        
+        $tauxVente = $stockTotal > 0 ? ($vendus / $stockTotal) * 100 : 0;
+        
+        return [
+            'stockTotal' => $stockTotal,
+            'vendus' => $vendus,
+            'disponibles' => $disponibles,
+            'revenus' => $revenus,
+            'tauxVente' => round($tauxVente, 1),
+        ];
     }
 }
 

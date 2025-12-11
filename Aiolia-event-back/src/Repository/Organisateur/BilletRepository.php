@@ -8,22 +8,22 @@ use App\Entity\ElementCommande;
 use App\Entity\TypeBillet;
 use App\Entity\User;
 use Doctrine\Bundle\DoctrineBundle\Repository\ServiceEntityRepository;
+use Doctrine\ORM\QueryBuilder;
 use Doctrine\ORM\Tools\Pagination\Paginator;
 use Doctrine\Persistence\ManagerRegistry;
 
-/**
- * @extends ServiceEntityRepository<Billet>
- */
+
 class BilletRepository extends ServiceEntityRepository
 {
+    private const STATUS_CONDITION = 'b.statut = :status';
+    private const SOLD_TICKET_CONDITION = 'b.elementCommande IS NOT NULL';
+
     public function __construct(ManagerRegistry $registry)
     {
         parent::__construct($registry, Billet::class);
     }
 
-    /**
-     * Récupère tous les billets
-     */
+    
     public function getAll(): array
     {
         return $this->createQueryBuilder('b')
@@ -32,17 +32,13 @@ class BilletRepository extends ServiceEntityRepository
             ->getResult();
     }
 
-    /**
-     * Récupère un billet par son ID
-     */
+    
     public function getById(string $id): ?Billet
     {
         return $this->find($id);
     }
 
-    /**
-     * Récupère un billet par son code QR
-     */
+    
     public function findByCodeQr(string $codeQr): ?Billet
     {
         return $this->createQueryBuilder('b')
@@ -52,9 +48,7 @@ class BilletRepository extends ServiceEntityRepository
             ->getOneOrNullResult();
     }
 
-    /**
-     * Récupère tous les billets d'un utilisateur
-     */
+    
     public function findByUser(User $user): array
     {
         return $this->createQueryBuilder('b')
@@ -65,9 +59,7 @@ class BilletRepository extends ServiceEntityRepository
             ->getResult();
     }
 
-    /**
-     * Récupère tous les billets d'un type de billet
-     */
+    
     public function findByTypeBillet(TypeBillet $typeBillet): array
     {
         return $this->createQueryBuilder('b')
@@ -78,9 +70,7 @@ class BilletRepository extends ServiceEntityRepository
             ->getResult();
     }
 
-    /**
-     * Récupère tous les billets d'un élément de commande
-     */
+    
     public function findByElementCommande(ElementCommande $elementCommande): array
     {
         return $this->createQueryBuilder('b')
@@ -91,9 +81,7 @@ class BilletRepository extends ServiceEntityRepository
             ->getResult();
     }
 
-    /**
-     * Crée un nouveau billet
-     */
+    
     public function create(Billet $billet): Billet
     {
         $this->getEntityManager()->persist($billet);
@@ -102,9 +90,7 @@ class BilletRepository extends ServiceEntityRepository
         return $billet;
     }
 
-    /**
-     * Met à jour un billet
-     */
+    
     public function update(Billet $billet): Billet
     {
         $this->getEntityManager()->flush();
@@ -112,18 +98,14 @@ class BilletRepository extends ServiceEntityRepository
         return $billet;
     }
 
-    /**
-     * Supprime un billet
-     */
+    
     public function delete(Billet $billet): void
     {
         $this->getEntityManager()->remove($billet);
         $this->getEntityManager()->flush();
     }
 
-    /**
-     * Récupère tous les billets pour un organisateur (via ses événements)
-     */
+    
     public function findByOrganizer(User $organizer): array
     {
         return $this->createQueryBuilder('b')
@@ -139,80 +121,79 @@ class BilletRepository extends ServiceEntityRepository
             ->getResult();
     }
 
-    /**
-     * Récupère les billets paginés pour un organisateur
-     *
-     * @param User $organizer
-     * @param int $page Numéro de page (commence à 1)
-     * @param int $limit Nombre d'éléments par page
-     * @return Paginator
-     */
-    public function findByOrganizerPaginated(User $organizer, int $page = 1, int $limit = 10): Paginator
+    
+    public function findByOrganizerPaginated(User $organizer, int $page = 1, int $limit = 10, ?Event $event = null, array $filters = []): Paginator
     {
-        $query = $this->createQueryBuilder('b')
-            ->innerJoin('b.typeBillet', 'tb')
-            ->innerJoin('tb.evenement', 'e')
-            ->leftJoin('e.profilOrganisateur', 'op')
-            ->leftJoin('App\Entity\OrganisateurEvenement', 'oe', 'WITH', 'oe.evenement = e')
-            ->leftJoin('oe.profilOrganisateur', 'op2')
-            ->where('op.utilisateur = :organizer OR op2.utilisateur = :organizer')
-            ->setParameter('organizer', $organizer)
-            ->orderBy('b.emisLe', 'DESC')
-            ->setFirstResult(($page - 1) * $limit)
-            ->setMaxResults($limit)
-            ->getQuery();
+        $query = $this->createQueryBuilder('b');
+        $this->applyOrganizerScope($query, $organizer, $event);
 
-        return new Paginator($query, true);
+        $query
+            ->leftJoin('tb.configurationCategorie', 'cc')
+            ->leftJoin('tb.configurationSegment', 'cs');
+
+        if (!empty($filters['statut'])) {
+            $query->andWhere('b.statut = :statut')
+                ->setParameter('statut', $filters['statut']);
+        }
+
+        if (!empty($filters['categorie'])) {
+            $query->andWhere('cc.nom = :categorie')
+                ->setParameter('categorie', $filters['categorie']);
+        }
+
+        if (!empty($filters['segment'])) {
+            $query->andWhere('cs.nom = :segment')
+                ->setParameter('segment', $filters['segment']);
+        }
+
+        $query->orderBy('b.emisLe', 'DESC')
+            ->setFirstResult(($page - 1) * $limit)
+            ->setMaxResults($limit);
+
+        return new Paginator($query->getQuery(), true);
     }
 
-    /**
-     * Récupère les statistiques des billets pour un organisateur
-     */
-    public function getStatsByOrganizer(User $organizer): array
+    
+    public function getStatsByOrganizer(User $organizer, ?Event $event = null): array
     {
-        $baseConditions = function($qb) use ($organizer) {
-            return $qb->innerJoin('b.typeBillet', 'tb')
-                ->innerJoin('tb.evenement', 'e')
-                ->leftJoin('e.profilOrganisateur', 'op')
-                ->leftJoin('App\Entity\OrganisateurEvenement', 'oe', 'WITH', 'oe.evenement = e')
-                ->leftJoin('oe.profilOrganisateur', 'op2')
-                ->where('op.utilisateur = :organizer OR op2.utilisateur = :organizer')
-                ->setParameter('organizer', $organizer);
-        };
-
         $countSelect = 'COUNT(b.id)';
-        $statusCondition = 'b.statut = :status';
 
-        $total = (int) $baseConditions($this->createQueryBuilder('b'))
+        // Total général : tous les billets (vendus + non vendus)
+        $total = (int) $this->applyOrganizerScope($this->createQueryBuilder('b'), $organizer, $event)
             ->select($countSelect)
             ->getQuery()
             ->getSingleScalarResult();
 
-        $vendus = (int) $baseConditions($this->createQueryBuilder('b'))
+        // Billets non vendus (disponibles à la vente) : sans elementCommande
+        $nonUtilises = (int) $this->applyOrganizerScope($this->createQueryBuilder('b'), $organizer, $event)
+            ->select($countSelect)
+            ->andWhere('b.elementCommande IS NULL')
+            ->getQuery()
+            ->getSingleScalarResult();
+
+        // Billets vendus : avec elementCommande
+        $vendus = (int) $this->applyOrganizerScope($this->createQueryBuilder('b'), $organizer, $event)
             ->select($countSelect)
             ->andWhere('b.statut IN (:statuses)')
+            ->andWhere(self::SOLD_TICKET_CONDITION)
             ->setParameter('statuses', [Billet::STATUT_VALID, Billet::STATUT_USED])
             ->getQuery()
             ->getSingleScalarResult();
 
-        $utilises = (int) $baseConditions($this->createQueryBuilder('b'))
+        // Billets utilisés : vendus et utilisés
+        $utilises = (int) $this->applyOrganizerScope($this->createQueryBuilder('b'), $organizer, $event)
             ->select($countSelect)
-            ->andWhere($statusCondition)
+            ->andWhere(self::STATUS_CONDITION)
+            ->andWhere(self::SOLD_TICKET_CONDITION)
             ->setParameter('status', Billet::STATUT_USED)
             ->getQuery()
             ->getSingleScalarResult();
 
-        // Les billets "en attente" sont ceux qui sont valides mais pas encore utilisés
-        $enAttente = (int) $baseConditions($this->createQueryBuilder('b'))
+        // Billets annulés : vendus puis annulés
+        $annules = (int) $this->applyOrganizerScope($this->createQueryBuilder('b'), $organizer, $event)
             ->select($countSelect)
-            ->andWhere($statusCondition)
-            ->setParameter('status', Billet::STATUT_VALID)
-            ->getQuery()
-            ->getSingleScalarResult();
-
-        $annules = (int) $baseConditions($this->createQueryBuilder('b'))
-            ->select($countSelect)
-            ->andWhere($statusCondition)
+            ->andWhere(self::STATUS_CONDITION)
+            ->andWhere(self::SOLD_TICKET_CONDITION)
             ->setParameter('status', Billet::STATUT_CANCELLED)
             ->getQuery()
             ->getSingleScalarResult();
@@ -220,23 +201,77 @@ class BilletRepository extends ServiceEntityRepository
         return [
             'total' => $total,
             'vendus' => $vendus,
-            'utilises' => $utilises,
-            'enAttente' => $enAttente,
+            'nonUtilises' => $nonUtilises,
             'annules' => $annules,
+            'utilises' => $utilises,
         ];
     }
 
-    /**
-     * Évolution des ventes (nombre de billets et revenu) par jour pour un événement
-     */
+    public function getFilterOptionsByOrganizer(User $organizer, ?Event $event = null): array
+    {
+        // Récupérer TOUTES les catégories depuis la table de configuration
+        $categoriesRows = $this->getEntityManager()
+            ->createQueryBuilder()
+            ->select('cc.nom AS categorie')
+            ->from('App\Entity\ConfigurationCategorieBillet', 'cc')
+            ->where('cc.estActif = :actif')
+            ->andWhere('cc.supprimeLe IS NULL')
+            ->setParameter('actif', true)
+            ->orderBy('cc.nom', 'ASC')
+            ->getQuery()
+            ->getResult();
+
+        $categories = array_values(array_filter(array_column($categoriesRows, 'categorie')));
+
+        // Récupérer TOUS les segments depuis la table de configuration
+        $segmentsRows = $this->getEntityManager()
+            ->createQueryBuilder()
+            ->select('cs.nom AS segment')
+            ->from('App\Entity\ConfigurationSegmentBillet', 'cs')
+            ->where('cs.estActif = :actif')
+            ->andWhere('cs.supprimeLe IS NULL')
+            ->setParameter('actif', true)
+            ->orderBy('cs.nom', 'ASC')
+            ->getQuery()
+            ->getResult();
+
+        $segments = array_values(array_filter(array_column($segmentsRows, 'segment')));
+
+        // Les statuts seront ajoutés par le service via TicketStatusService
+        return [
+            'statuts' => [], // Sera rempli par le service
+            'categories' => $categories,
+            'segments' => $segments,
+        ];
+    }
+
+    private function applyOrganizerScope(QueryBuilder $qb, User $organizer, ?Event $event = null): QueryBuilder
+    {
+        $qb->innerJoin('b.typeBillet', 'tb')
+            ->innerJoin('tb.evenement', 'e')
+            ->leftJoin('e.profilOrganisateur', 'op')
+            ->leftJoin('App\Entity\OrganisateurEvenement', 'oe', 'WITH', 'oe.evenement = e')
+            ->leftJoin('oe.profilOrganisateur', 'op2')
+            ->where('op.utilisateur = :organizer OR op2.utilisateur = :organizer')
+            ->setParameter('organizer', $organizer);
+
+        if ($event !== null) {
+            $qb->andWhere('e.id = :eventId')
+                ->setParameter('eventId', $event->getId());
+        }
+
+        return $qb;
+    }
+
+    
     public function getSalesEvolutionByEvent(Event $event): array
     {
-        // Utilisation d'une requête SQL native car Doctrine ORM ne supporte pas DATE() en DQL
+        
         $conn = $this->getEntityManager()->getConnection();
         
         $statuses = [Billet::STATUT_VALID, Billet::STATUT_USED];
         
-        // Échapper les valeurs pour la clause IN
+        
         $quotedStatuses = array_map(function ($status) use ($conn) {
             return $conn->quote($status);
         }, $statuses);

@@ -18,23 +18,21 @@ class DashboardController extends AbstractController
     ) {
     }
 
-    /**
-     * Page principale des statistiques (première page après connexion)
-     */
+    
     #[Route('/statistiques', name: 'organisateur_dashboard_statistiques', methods: ['GET'])]
     public function statistiques(): Response
     {
         $user = $this->getUser();
         
-        // Récupérer les statistiques de l'organisateur
+        
         $totalEvents = $this->eventRepository->countByOrganizer($user);
         $publishedEvents = $this->eventRepository->countByOrganizer($user, Event::STATUS_PUBLISHED);
         $draftEvents = $this->eventRepository->countByOrganizer($user, Event::STATUS_DRAFT);
         
-        // Récupérer les événements récents
+        
         $recentEvents = $this->eventRepository->findByOrganizer($user, null, 5);
         
-        // TODO: Ajouter d'autres statistiques (ventes, revenus, etc.)
+        
         
         return $this->render('Organisateur/dashboard/statistiques.html.twig', [
             'totalEvents' => $totalEvents,

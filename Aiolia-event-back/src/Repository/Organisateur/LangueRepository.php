@@ -6,9 +6,7 @@ use App\Entity\Langue;
 use Doctrine\Bundle\DoctrineBundle\Repository\ServiceEntityRepository;
 use Doctrine\Persistence\ManagerRegistry;
 
-/**
- * @extends ServiceEntityRepository<Langue>
- */
+
 class LangueRepository extends ServiceEntityRepository
 {
     public function __construct(ManagerRegistry $registry)
@@ -16,9 +14,7 @@ class LangueRepository extends ServiceEntityRepository
         parent::__construct($registry, Langue::class);
     }
 
-    /**
-     * Récupère toutes les langues
-     */
+    
     public function getAll(): array
     {
         return $this->createQueryBuilder('l')
@@ -29,17 +25,13 @@ class LangueRepository extends ServiceEntityRepository
             ->getResult();
     }
 
-    /**
-     * Récupère une langue par son ID
-     */
+    
     public function getById(string $id): ?Langue
     {
         return $this->find($id);
     }
 
-    /**
-     * Récupère une langue par son code
-     */
+    
     public function findByCode(string $code): ?Langue
     {
         return $this->createQueryBuilder('l')
@@ -49,9 +41,7 @@ class LangueRepository extends ServiceEntityRepository
             ->getOneOrNullResult();
     }
 
-    /**
-     * Crée une nouvelle langue
-     */
+    
     public function create(Langue $langue): Langue
     {
         $this->getEntityManager()->persist($langue);
@@ -60,9 +50,7 @@ class LangueRepository extends ServiceEntityRepository
         return $langue;
     }
 
-    /**
-     * Met à jour une langue
-     */
+    
     public function update(Langue $langue): Langue
     {
         $this->getEntityManager()->flush();
@@ -70,9 +58,7 @@ class LangueRepository extends ServiceEntityRepository
         return $langue;
     }
 
-    /**
-     * Supprime une langue
-     */
+    
     public function delete(Langue $langue): void
     {
         $this->getEntityManager()->remove($langue);

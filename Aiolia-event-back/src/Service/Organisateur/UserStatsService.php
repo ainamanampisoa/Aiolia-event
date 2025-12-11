@@ -5,9 +5,7 @@ namespace App\Service\Organisateur;
 use App\Entity\User;
 use Doctrine\ORM\EntityManagerInterface;
 
-/**
- * Service pour calculer les statistiques utilisateur de manière dynamique
- */
+
 class UserStatsService
 {
     public function __construct(
@@ -15,9 +13,7 @@ class UserStatsService
     ) {
     }
 
-    /**
-     * Récupère toutes les statistiques de l'utilisateur
-     */
+    
     public function getUserStatistics(User $user): array
     {
         return [
@@ -45,9 +41,7 @@ class UserStatsService
         ];
     }
 
-    /**
-     * Récupère un résumé pour le dashboard
-     */
+    
     public function getDashboardSummary(User $user): array
     {
         $stats = $this->getUserStatistics($user);
@@ -65,39 +59,31 @@ class UserStatsService
         ];
     }
 
-    /**
-     * Récupère les événements à venir de l'utilisateur
-     */
+    
     public function getUpcomingEvents(User $user): array
     {
-        // TODO: Implémenter la récupération des événements à venir
-        // Pour l'instant, retourne un tableau vide
+        
+        
         return [];
     }
 
-    /**
-     * Récupère l'historique des commandes
-     */
+    
     public function getOrdersHistory(User $user, int $limit = 20): array
     {
-        // TODO: Implémenter la récupération de l'historique des commandes
-        // Pour l'instant, retourne un tableau vide
+        
+        
         return [];
     }
 
-    /**
-     * Calcule les points de fidélité de l'utilisateur
-     */
+    
     public function getLoyaltyPoints(User $user): int
     {
-        // TODO: Implémenter le calcul des points de fidélité
-        // Pour l'instant, retourne 0
+        
+        
         return 0;
     }
 
-    /**
-     * Détermine le niveau de fidélité de l'utilisateur
-     */
+    
     public function getLoyaltyTier(User $user): string
     {
         $points = $this->getLoyaltyPoints($user);
@@ -115,12 +101,10 @@ class UserStatsService
         return 'bronze';
     }
 
-    /**
-     * Récupère les statistiques des événements de l'utilisateur
-     */
+    
     private function getEventsStats(User $user): array
     {
-        // TODO: Implémenter les vraies statistiques depuis la base de données
+        
         return [
             'created_count' => 0,
             'collaborated_count' => 0,
@@ -130,12 +114,10 @@ class UserStatsService
         ];
     }
 
-    /**
-     * Récupère les statistiques des tickets de l'utilisateur
-     */
+    
     private function getTicketsStats(User $user): array
     {
-        // TODO: Implémenter les vraies statistiques depuis la base de données
+        
         return [
             'purchased_count' => 0,
             'used_count' => 0,
@@ -144,12 +126,10 @@ class UserStatsService
         ];
     }
 
-    /**
-     * Récupère les statistiques des commandes de l'utilisateur
-     */
+    
     private function getOrdersStats(User $user): array
     {
-        // TODO: Implémenter les vraies statistiques depuis la base de données
+        
         return [
             'total_count' => 0,
             'completed_count' => 0,

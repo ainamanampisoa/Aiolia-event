@@ -11,9 +11,7 @@ use Symfony\Component\Security\Http\Attribute\IsGranted;
 #[IsGranted('ROLE_ORGANIZER')]
 class BillingController extends AbstractController
 {
-    /**
-     * Page principale de facturation
-     */
+    
     #[Route('', name: 'organisateur_billing_index', methods: ['GET'])]
     public function index(): Response
     {

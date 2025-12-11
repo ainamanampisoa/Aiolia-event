@@ -17,24 +17,24 @@ class MediaService
     ) {
     }
 
-    /**
-     * Upload un fichier média pour un événement
-     */
+    
     public function uploadEventMedia(
         Event $event,
         UploadedFile $file,
-        string $type,
-        User $uploadedBy,
-        bool $isPrimary = false
+        string $type = 'image',
+        bool $isPrimary = false,
+        ?int $displayOrder = null
     ): EventMedia {
-        // Déterminer le dossier Cloudinary basé sur le type
+        
+        // Si l'événement n'a pas encore d'ID, on utilise un dossier temporaire
+        $eventId = $event->getId() ?? 'temp';
         $folder = match($type) {
-            'image' => 'aiolia-event/events/' . $event->getId() . '/images',
-            'video' => 'aiolia-event/events/' . $event->getId() . '/videos',
-            default => 'aiolia-event/events/' . $event->getId() . '/documents',
+            'image' => 'aiolia-event/events/' . $eventId . '/images',
+            'video' => 'aiolia-event/events/' . $eventId . '/videos',
+            default => 'aiolia-event/events/' . $eventId . '/documents',
         };
 
-        // Upload sur Cloudinary selon le type
+        
         $uploadResult = match($type) {
             'image' => $this->cloudinaryService->uploadImage($file, $folder),
             'video' => $this->cloudinaryService->uploadVideo($file, $folder),
@@ -45,18 +45,22 @@ class MediaService
             throw new \Exception('Erreur lors de l\'upload sur Cloudinary: ' . $uploadResult['error']);
         }
 
-        // Créer l'entité EventMedia
+        
         $media = new EventMedia();
         $media->setEvent($event);
         $media->setMediaType($type);
-        $media->setFileUrl($uploadResult['url']);
-        $media->setFileName($file->getClientOriginalName());
-        $media->setFileSize($uploadResult['size']);
-        $media->setMimeType($file->getMimeType());
-        $media->setIsPrimary($isPrimary);
-        $media->setUploadedBy($uploadedBy);
+        $media->setUrl($uploadResult['url']);
+        $media->setIsMainPoster($isPrimary);
+        
+        // Définir le texte alternatif avec le nom du fichier
+        $media->setAltText($file->getClientOriginalName());
+        
+        // Définir l'ordre d'affichage si fourni
+        if ($displayOrder !== null) {
+            $media->setDisplayOrder($displayOrder);
+        }
 
-        // Si c'est l'image principale, désactiver les autres
+        
         if ($isPrimary) {
             $this->setPrimaryImage($event, $media);
         }
@@ -67,23 +71,21 @@ class MediaService
         return $media;
     }
 
-    /**
-     * Supprime un média
-     */
+    
     public function deleteMedia(EventMedia $media): void
     {
-        // Extraire le public_id de l'URL Cloudinary
-        $publicId = $this->extractPublicIdFromUrl($media->getFileUrl());
+        
+        $publicId = $this->extractPublicIdFromUrl($media->getUrl());
         
         if ($publicId) {
-            // Déterminer le type de ressource
+            
             $resourceType = match($media->getMediaType()) {
                 'video' => 'video',
                 'document' => 'raw',
                 default => 'image',
             };
             
-            // Supprimer de Cloudinary
+            
             $this->cloudinaryService->deleteFile($publicId, $resourceType);
         }
 
@@ -91,71 +93,67 @@ class MediaService
         $this->entityManager->flush();
     }
 
-    /**
-     * Extrait le public_id depuis une URL Cloudinary
-     */
+    
     private function extractPublicIdFromUrl(string $url): ?string
     {
-        // Format URL Cloudinary: https://res.cloudinary.com/{cloud_name}/{resource_type}/upload/{version}/{public_id}.{format}
+        
         if (preg_match('#/upload/(?:v\d+/)?(.+)\.\w+$#', $url, $matches)) {
             return $matches[1];
         }
         return null;
     }
 
-    /**
-     * Définit une image comme principale
-     */
+    
     public function setPrimaryImage(Event $event, EventMedia $primaryMedia): void
     {
-        // Désactiver toutes les autres images principales
+        
         $mediaRepository = $this->entityManager->getRepository(EventMedia::class);
         $existingPrimary = $mediaRepository->findBy([
             'event' => $event,
-            'isPrimary' => true,
+            'isMainPoster' => true,
         ]);
 
         foreach ($existingPrimary as $media) {
             if ($media->getId() !== $primaryMedia->getId()) {
-                $media->setIsPrimary(false);
+                $media->setIsMainPoster(false);
             }
         }
 
-        $primaryMedia->setIsPrimary(true);
+        $primaryMedia->setIsMainPoster(true);
         $this->entityManager->flush();
     }
 
-    /**
-     * Génère une URL optimisée depuis Cloudinary
-     */
+    
     public function getOptimizedImageUrl(EventMedia $media, int $width = 0, int $height = 0): string
     {
-        $publicId = $this->extractPublicIdFromUrl($media->getFileUrl());
+        $url = $media->getUrl();
         
-        if ($publicId && $media->getMediaType() === 'image') {
-            return $this->cloudinaryService->getOptimizedUrl($publicId, $width, $height);
+        if ($media->getMediaType() !== 'image') {
+            return $url;
         }
         
-        return $media->getFileUrl();
+        // Si c'est une URL Cloudinary, on peut ajouter des transformations
+        // Pour l'instant, on retourne l'URL de base
+        // Les transformations Cloudinary peuvent être ajoutées directement dans l'URL si nécessaire
+        return $url;
     }
 
-    /**
-     * Génère une URL de thumbnail
-     */
+    
     public function getThumbnailUrl(EventMedia $media, int $size = 200): string
     {
-        $publicId = $this->extractPublicIdFromUrl($media->getFileUrl());
+        $url = $media->getUrl();
         
-        if ($publicId && $media->getMediaType() === 'image') {
-            return $this->cloudinaryService->getThumbnailUrl($publicId, $size);
+        if ($media->getMediaType() !== 'image') {
+            return $url;
         }
         
-        return $media->getFileUrl();
+        // Si c'est une URL Cloudinary, on peut ajouter des transformations de thumbnail
+        // Pour l'instant, on retourne l'URL de base
+        // Les transformations Cloudinary peuvent être ajoutées directement dans l'URL si nécessaire
+        return $url;
     }
 
-    /**
-     * Récupère tous les médias d'un événement
-     */
+    
     public function getEventMedias(Event $event, string $type = ''): array
     {
         $mediaRepository = $this->entityManager->getRepository(EventMedia::class);
@@ -173,16 +171,14 @@ class MediaService
         );
     }
 
-    /**
-     * Récupère l'image principale d'un événement
-     */
+    
     public function getPrimaryImage(Event $event): ?EventMedia
     {
         $mediaRepository = $this->entityManager->getRepository(EventMedia::class);
         return $mediaRepository->findOneBy([
             'event' => $event,
             'mediaType' => 'image',
-            'isPrimary' => true,
+            'isMainPoster' => true,
         ]);
     }
 }

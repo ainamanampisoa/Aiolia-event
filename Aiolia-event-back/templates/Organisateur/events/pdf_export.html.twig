@@ -4,60 +4,175 @@
     <meta charset="UTF-8">
     <title>{{ event.titre }} - Rapport PDF</title>
     <style>
+        @page {
+            margin: 0;
+            padding: 0;
+            size: A4 portrait;
+        }
+        
         * {
             margin: 0;
             padding: 0;
             box-sizing: border-box;
         }
         
+        html {
+            margin: 0;
+            padding: 0;
+        }
+        
         body {
             font-family: 'DejaVu Sans', Arial, sans-serif;
             font-size: 9pt;
             color: #2c3e50;
-            line-height: 1.4;
+            line-height: 1.3;
             background-color: #ffffff;
             margin: 0;
-            padding: 10px;
+            padding: 0;
         }
         
         .header {
-            text-align: center;
+            margin: 0 !important;
+            margin-top: -10px !important;
             margin-bottom: 15px;
-            padding: 15px 20px;
+            padding: 0 !important;
+            padding-top: 0 !important;
+            background: #ffffff;
+            border-bottom: 4px solid #3498DB;
+            position: relative;
+            overflow: visible;
+        }
+        
+        .header-top {
             background: linear-gradient(135deg, #3498DB 0%, #2980b9 100%);
+            padding: 8px 25px;
+            padding-top: 8px !important;
             color: white;
-            border-radius: 6px;
+            position: relative;
+            margin: 0 !important;
+            margin-top: 0 !important;
+            top: 0;
+        }
+        
+        .header-top::after {
+            content: '';
+            position: absolute;
+            bottom: 0;
+            left: 0;
+            right: 0;
+            height: 3px;
+            background: linear-gradient(90deg, rgba(255,255,255,0.3) 0%, rgba(255,255,255,0.1) 100%);
         }
         
         .header h1 {
-            font-size: 22pt;
-            font-weight: bold;
-            margin-bottom: 5px;
+            font-size: 24pt;
+            font-weight: 700;
+            margin: 0 0 6px 0;
             color: white;
+            text-shadow: 0 2px 4px rgba(0,0,0,0.2);
+            letter-spacing: -0.5px;
+            line-height: 1.2;
         }
         
-        .header .subtitle {
-            font-size: 9pt;
+        .header .event-subtitle {
+            font-size: 10pt;
             color: rgba(255, 255, 255, 0.95);
-            font-weight: 500;
+            font-weight: 400;
+            margin: 0;
+            opacity: 0.95;
+        }
+        
+        .header-meta {
+            background: #f8f9fa;
+            padding: 12px 25px;
+            border-top: 1px solid #e0e0e0;
+            display: table;
+            width: 100%;
+        }
+        
+        .header-meta-item {
+            display: table-cell;
+            padding: 0 20px 0 0;
+            vertical-align: middle;
+            font-size: 9pt;
+            color: #2c3e50;
+        }
+        
+        .header-meta-item:last-child {
+            padding-right: 0;
+            text-align: right;
+        }
+        
+        .header-meta-label {
+            font-weight: 600;
+            color: #7f8c8d;
+            font-size: 8pt;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+            margin-bottom: 3px;
+        }
+        
+        .header-meta-value {
+            font-weight: 700;
+            color: #2c3e50;
+            font-size: 10pt;
+        }
+        
+        .export-date {
+            display: inline-block;
+            padding: 6px 12px;
+            background: linear-gradient(135deg, #2ecc71 0%, #27ae60 100%);
+            background-color: #2ecc71;
+            color: #ffffff !important;
+            border-radius: 4px;
+            font-weight: 600;
+            font-size: 9pt;
+        }
+        
+        .header-meta-value .export-date {
+            color: #ffffff !important;
         }
         
         .section {
-            margin-bottom: 20px;
+            margin-bottom: 25px;
             page-break-inside: avoid;
             background-color: #ffffff;
-            padding: 15px;
+            padding: 20px;
             border: 1px solid #e0e0e0;
-            border-radius: 6px;
+            border-radius: 8px;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.05);
+        }
+        
+        .section-first-page {
+            margin-bottom: 12px;
+            page-break-inside: avoid;
+            background-color: #ffffff;
+            padding: 12px 15px;
+            border: 1px solid #e0e0e0;
+            border-radius: 8px;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.05);
         }
         
         .section-title {
-            font-size: 15pt;
-            color: #3498DB;
+            font-size: 14pt;
+            color: #2c3e50;
             margin-bottom: 12px;
             padding-bottom: 8px;
-            border-bottom: 2px solid #3498DB;
-            font-weight: bold;
+            border-bottom: 3px solid #3498DB;
+            font-weight: 700;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+            position: relative;
+        }
+        
+        .section-title::before {
+            content: '';
+            position: absolute;
+            left: 0;
+            bottom: -3px;
+            width: 60px;
+            height: 3px;
+            background: linear-gradient(90deg, #3498DB 0%, #2ecc71 100%);
         }
         
         .info-grid {
@@ -65,24 +180,32 @@
             width: 100%;
             margin-bottom: 10px;
             border: 1px solid #e0e0e0;
-            border-radius: 4px;
+            border-radius: 6px;
             overflow: hidden;
+            box-shadow: 0 1px 3px rgba(0,0,0,0.05);
         }
         
         .info-row {
             display: table-row;
+            transition: background-color 0.2s;
+        }
+        
+        .info-row:hover {
+            background-color: #f8f9fa;
         }
         
         .info-label {
             display: table-cell;
-            font-weight: bold;
+            font-weight: 600;
             padding: 8px 10px;
             width: 30%;
-            background-color: #f8f9fa;
-            border-right: 1px solid #e0e0e0;
+            background: linear-gradient(135deg, #f8f9fa 0%, #e9ecef 100%);
+            border-right: 2px solid #e0e0e0;
             color: #2c3e50;
-            font-size: 8.5pt;
-            vertical-align: top;
+            font-size: 8pt;
+            vertical-align: middle;
+            text-transform: uppercase;
+            letter-spacing: 0.3px;
         }
         
         .info-value {
@@ -91,43 +214,65 @@
             width: 70%;
             background-color: #ffffff;
             font-size: 8.5pt;
-            vertical-align: top;
+            vertical-align: middle;
+            color: #2c3e50;
+            font-weight: 500;
         }
         
         table {
             width: 100%;
-            border-collapse: collapse;
-            margin-bottom: 15px;
-            font-size: 8.5pt;
-            border-radius: 4px;
+            border-collapse: separate;
+            border-spacing: 0;
+            margin-bottom: 20px;
+            font-size: 9pt;
+            border-radius: 6px;
             overflow: hidden;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.08);
+            border: 1px solid #e0e0e0;
         }
         
         table thead {
             background: linear-gradient(135deg, #3498DB 0%, #2980b9 100%);
+            background-color: #3498DB;
             color: white;
+            display: table-header-group;
         }
         
         table th {
-            padding: 8px 10px;
+            padding: 12px 14px;
             text-align: left;
-            font-weight: bold;
+            font-weight: 700;
             border: none;
-            font-size: 8.5pt;
+            font-size: 9pt;
             color: #ffffff !important;
-            background-color: transparent !important;
+            background-color: #3498DB !important;
             text-transform: uppercase;
-            letter-spacing: 0.2px;
+            letter-spacing: 0.5px;
+            border-bottom: 2px solid rgba(255,255,255,0.2);
+            display: table-cell;
+        }
+        
+        table th:first-child {
+            border-top-left-radius: 6px;
+        }
+        
+        table th:last-child {
+            border-top-right-radius: 6px;
         }
         
         table td {
-            padding: 8px 10px;
-            border: 1px solid #e8e8e8;
+            padding: 10px 14px;
+            border-bottom: 1px solid #f0f0f0;
             background-color: #ffffff;
+            font-size: 9pt;
         }
         
         table tbody tr:nth-child(even) {
             background-color: #f8f9fa;
+        }
+        
+        table tbody tr:last-child td {
+            border-bottom: none;
         }
         
         table tbody tr:hover {
@@ -157,56 +302,102 @@
         
         .badge {
             display: inline-block;
-            padding: 3px 8px;
-            border-radius: 10px;
-            font-size: 7.5pt;
-            font-weight: bold;
+            padding: 5px 12px;
+            border-radius: 12px;
+            font-size: 8pt;
+            font-weight: 700;
+            text-transform: uppercase;
+            letter-spacing: 0.3px;
         }
         
         .badge-sold {
-            background-color: #d4edda;
+            background: linear-gradient(135deg, #d4edda 0%, #c3e6cb 100%);
             color: #155724;
             border: 1px solid #c3e6cb;
+            box-shadow: 0 1px 3px rgba(21, 87, 36, 0.2);
         }
         
         .badge-available {
-            background-color: #d1ecf1;
+            background: linear-gradient(135deg, #d1ecf1 0%, #bee5eb 100%);
             color: #0c5460;
             border: 1px solid #bee5eb;
+            box-shadow: 0 1px 3px rgba(12, 84, 96, 0.2);
         }
         
         .stats-summary {
             display: table;
             width: 100%;
-            margin-top: 12px;
-            margin-bottom: 15px;
+            margin-top: 15px;
+            margin-bottom: 20px;
             border-collapse: separate;
-            border-spacing: 10px 0;
+            border-spacing: 12px 0;
         }
         
         .stat-box {
             display: table-cell;
             width: 33.33%;
-            padding: 12px 10px;
+            padding: 18px 15px;
             text-align: center;
             border: 2px solid #3498DB;
             background: linear-gradient(135deg, #ffffff 0%, #f8f9fa 100%);
-            border-radius: 6px;
+            border-radius: 8px;
+            box-shadow: 0 2px 6px rgba(52, 152, 219, 0.15);
+            position: relative;
+            overflow: hidden;
+        }
+        
+        .stat-box::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: 0;
+            right: 0;
+            height: 4px;
+            background: linear-gradient(90deg, #3498DB 0%, #2ecc71 100%);
+        }
+        
+        .stat-box:nth-child(2) {
+            border-color: #2ecc71;
+        }
+        
+        .stat-box:nth-child(2)::before {
+            background: linear-gradient(90deg, #2ecc71 0%, #27ae60 100%);
+        }
+        
+        .stat-box:nth-child(3) {
+            border-color: #f39c12;
+        }
+        
+        .stat-box:nth-child(3)::before {
+            background: linear-gradient(90deg, #f39c12 0%, #e67e22 100%);
         }
         
         .stat-value {
-            font-size: 18pt;
-            font-weight: bold;
+            font-size: 24pt;
+            font-weight: 700;
+            color: #2c3e50;
+            margin-bottom: 8px;
+            line-height: 1.2;
+        }
+        
+        .stat-box:nth-child(1) .stat-value {
             color: #3498DB;
-            margin-bottom: 5px;
+        }
+        
+        .stat-box:nth-child(2) .stat-value {
+            color: #2ecc71;
+        }
+        
+        .stat-box:nth-child(3) .stat-value {
+            color: #f39c12;
         }
         
         .stat-label {
-            font-size: 8pt;
+            font-size: 8.5pt;
             color: #7f8c8d;
             font-weight: 600;
             text-transform: uppercase;
-            letter-spacing: 0.3px;
+            letter-spacing: 0.5px;
         }
         
         .progress-bar {
@@ -267,19 +458,31 @@
         
         .highlight-box {
             background: linear-gradient(135deg, #e8f4f8 0%, #f0f8fc 100%);
-            padding: 12px;
-            border-radius: 6px;
-            border-left: 4px solid #3498DB;
+            padding: 12px 15px;
+            border-radius: 8px;
+            border-left: 5px solid #3498DB;
             margin: 10px 0;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.05);
         }
         
         .footer {
-            margin-top: 30px;
-            padding-top: 15px;
-            border-top: 2px solid #e0e0e0;
+            margin-top: 40px;
+            padding: 20px 0;
+            border-top: 3px solid #3498DB;
             text-align: center;
-            font-size: 7.5pt;
+            font-size: 8pt;
             color: #7f8c8d;
+            background: linear-gradient(135deg, #f8f9fa 0%, #ffffff 100%);
+            border-radius: 6px;
+        }
+        
+        .footer p {
+            margin: 5px 0;
+        }
+        
+        .footer strong {
+            color: #2c3e50;
+            font-weight: 700;
         }
         
         .page-break {
@@ -289,11 +492,13 @@
         h3 {
             margin-top: 12px;
             margin-bottom: 8px;
-            font-size: 11pt;
+            font-size: 10.5pt;
             color: #2c3e50;
-            font-weight: bold;
-            border-left: 3px solid #3498DB;
-            padding-left: 8px;
+            font-weight: 700;
+            border-left: 4px solid #3498DB;
+            padding-left: 10px;
+            text-transform: uppercase;
+            letter-spacing: 0.3px;
         }
         
         .accessibility-list {
@@ -303,8 +508,8 @@
         }
         
         .accessibility-item {
-            margin-bottom: 8px;
-            padding-left: 20px;
+            margin-bottom: 5px;
+            padding-left: 18px;
             position: relative;
         }
         
@@ -343,32 +548,69 @@
         }
     </style>
 </head>
-<body>
-    <!-- En-tête -->
-    <div class="header">
-        <h1>{{ event.titre }}</h1>
-        <div class="subtitle">Rapport d'événement complet - Généré le {{ "now"|date('d/m/Y à H:i') }}</div>
+<body style="margin: 0 !important; padding: 0 !important;">
+    <!-- En-tête professionnel -->
+    <div class="header" style="margin-top: -10px !important; padding-top: 0 !important;">
+        <div class="header-top" style="margin-top: 0 !important; padding-top: 8px !important;">
+            <h1>{{ event.titre }}</h1>
+            {% if event.sousTitre %}
+                <div class="event-subtitle">{{ event.sousTitre }}</div>
+            {% endif %}
+        </div>
+        <div class="header-meta">
+            <div class="header-meta-item" style="width: 40%;">
+                <div class="header-meta-label">Date de l'événement</div>
+                <div class="header-meta-value">
+                    {% if event.commenceLe %}
+                        {{ event.commenceLe|date('d/m/Y') }}
+                        {% if event.commenceLe|date('H:i') != '00:00' %}
+                            à {{ event.commenceLe|date('H:i') }}
+                        {% endif %}
+                    {% else %}
+                        Non définie
+                    {% endif %}
+                </div>
+            </div>
+            <div class="header-meta-item" style="width: 35%;">
+                <div class="header-meta-label">Lieu</div>
+                <div class="header-meta-value">
+                    {% if event.lieu %}
+                        {{ event.lieu.nom }}
+                    {% elseif event.nomLieuTexte %}
+                        {{ event.nomLieuTexte }}
+                    {% else %}
+                        Non renseigné
+                    {% endif %}
+                </div>
+            </div>
+            <div class="header-meta-item" style="width: 25%;">
+                <div class="header-meta-label">Date d'export</div>
+                <div class="header-meta-value">
+                    <span class="export-date">{% if exportDateFormatted is defined %}{{ exportDateFormatted }}{% else %}{{ "now"|date('d/m/Y à H:i') }}{% endif %}</span>
+                </div>
+            </div>
+        </div>
     </div>
 
     <!-- Section 1: Vue d'ensemble (show.html.twig) -->
-    <div class="section">
+    <div class="section-first-page">
         <h2 class="section-title">📄 Vue d'ensemble</h2>
         
         <!-- Description de l'événement -->
         <h3>Description de l'événement</h3>
-        <div class="highlight-box" style="margin-bottom: 10px;">
+        <div class="highlight-box" style="margin-bottom: 8px;">
             {% if event.description %}
-                <div style="line-height: 1.5; color: #2c3e50; text-align: justify; font-size: 8.5pt;">{{ event.description|raw }}</div>
+                <div style="line-height: 1.4; color: #2c3e50; text-align: justify; font-size: 8pt; max-height: 80px; overflow: hidden;">{{ event.description|striptags|slice(0, 300) }}{% if event.description|length > 300 %}...{% endif %}</div>
             {% elseif event.resume %}
-                <div style="line-height: 1.5; color: #2c3e50; text-align: justify; font-size: 8.5pt;">{{ event.resume|raw }}</div>
+                <div style="line-height: 1.4; color: #2c3e50; text-align: justify; font-size: 8pt; max-height: 80px; overflow: hidden;">{{ event.resume|striptags|slice(0, 300) }}{% if event.resume|length > 300 %}...{% endif %}</div>
             {% else %}
-                <p style="color: #7f8c8d; font-style: italic; font-size: 8.5pt;">Aucune description détaillée n'a encore été renseignée pour cet événement.</p>
+                <p style="color: #7f8c8d; font-style: italic; font-size: 8pt; margin: 0;">Aucune description détaillée n'a encore été renseignée pour cet événement.</p>
             {% endif %}
         </div>
 
         <!-- Accessibilité -->
         <h3>Accessibilité</h3>
-        <div class="highlight-box" style="margin-bottom: 10px;">
+        <div class="highlight-box" style="margin-bottom: 0;">
             {% set accessLinks = event.liensAccessibilites ?? [] %}
             {% if accessLinks|length > 0 %}
                 <ul class="accessibility-list">
@@ -376,10 +618,10 @@
                         <li class="accessibility-item">
                             <span class="accessibility-icon">✓</span>
                             <div>
-                                <strong style="color: #2c3e50; font-size: 10pt;">{{ lien.typeAccessibilite.libelle }}</strong>
+                                <strong style="color: #2c3e50; font-size: 9pt;">{{ lien.typeAccessibilite.libelle }}</strong>
                                 {% if lien.description %}
-                                    <div style="font-size: 9pt; color: #7f8c8d; margin-top: 5px; line-height: 1.5;">
-                                        {{ lien.description }}
+                                    <div style="font-size: 8pt; color: #7f8c8d; margin-top: 3px; line-height: 1.4;">
+                                        {{ lien.description|slice(0, 100) }}{% if lien.description|length > 100 %}...{% endif %}
                                     </div>
                                 {% endif %}
                             </div>
@@ -393,13 +635,13 @@
     </div>
 
     <!-- Section 2: Informations détaillées (information.html.twig) -->
-    <div class="section page-break">
+    <div class="section-first-page">
         <h2 class="section-title">📋 Informations détaillées</h2>
         
         <!-- Mise en page compacte à deux colonnes -->
-        <div style="display: table; width: 100%; margin-bottom: 10px;">
-            <div style="display: table-cell; width: 48%; padding-right: 10px; vertical-align: top;">
-                <div class="info-grid" style="margin-bottom: 10px;">
+        <div style="display: table; width: 100%; margin-bottom: 8px;">
+            <div style="display: table-cell; width: 48%; padding-right: 8px; vertical-align: top;">
+                <div class="info-grid" style="margin-bottom: 8px;">
                     <div class="info-row">
                         <div class="info-label">Date de début</div>
                         <div class="info-value">
@@ -415,6 +657,26 @@
                         <div class="info-value">
                             {% if event.seTermineLe %}
                                 {{ event.seTermineLe|date('d/m/Y H:i') }}
+                            {% else %}
+                                Non définie
+                            {% endif %}
+                        </div>
+                    </div>
+                    <div class="info-row">
+                        <div class="info-label">Début des ventes</div>
+                        <div class="info-value">
+                            {% if event.ventesCommencentLe %}
+                                {{ event.ventesCommencentLe|date('d/m/Y H:i') }}
+                            {% else %}
+                                Non définie
+                            {% endif %}
+                        </div>
+                    </div>
+                    <div class="info-row">
+                        <div class="info-label">Fin des ventes</div>
+                        <div class="info-value">
+                            {% if event.ventesSeTerminentLe %}
+                                {{ event.ventesSeTerminentLe|date('d/m/Y H:i') }}
                             {% else %}
                                 Non définie
                             {% endif %}
@@ -458,8 +720,8 @@
                     </div>
                 </div>
             </div>
-            <div style="display: table-cell; width: 48%; padding-left: 10px; vertical-align: top;">
-                <div class="info-grid" style="margin-bottom: 10px;">
+            <div style="display: table-cell; width: 48%; padding-left: 8px; vertical-align: top;">
+                <div class="info-grid" style="margin-bottom: 8px;">
                     <div class="info-row">
                         <div class="info-label">Visibilité</div>
                         <div class="info-value">
@@ -607,16 +869,7 @@
                             </td>
                             <td class="text-right" style="font-weight: bold; color: #27ae60;">{{ revenue|number_format(0, ',', ' ') }} {{ ticket.devise }}</td>
                             <td class="text-center">
-                                <div style="display: table; width: 100%;">
-                                    <div style="display: table-cell; width: 60px; padding-right: 8px; vertical-align: middle; text-align: right;">
-                                        <strong style="font-size: 10pt; color: #2c3e50;">{{ tauxVenteTicket }}%</strong>
-                                    </div>
-                                    <div style="display: table-cell; vertical-align: middle;">
-                                        <div class="progress-bar">
-                                            <div class="progress-fill" style="width: {{ tauxVenteTicket }}%;"></div>
-                                        </div>
-                                    </div>
-                                </div>
+                                <strong style="font-size: 10pt; color: #2c3e50;">{{ tauxVenteTicket }}%</strong>
                             </td>
                         </tr>
                     {% endfor %}
@@ -630,16 +883,7 @@
                         <td class="text-center"><strong>{{ totalStock - totalSold }}</strong></td>
                         <td class="text-right" style="font-size: 11pt;"><strong>{{ totalRevenue|number_format(0, ',', ' ') }} {{ ticketTypes[0].devise|default('MGA') }}</strong></td>
                         <td class="text-center">
-                            <div style="display: table; width: 100%;">
-                                <div style="display: table-cell; width: 60px; padding-right: 8px; vertical-align: middle; text-align: right;">
-                                    <strong style="font-size: 11pt; color: #2c3e50;">{{ tauxVente }}%</strong>
-                                </div>
-                                <div style="display: table-cell; vertical-align: middle;">
-                                    <div class="progress-bar">
-                                        <div class="progress-fill" style="width: {{ tauxVente }}%;"></div>
-                                    </div>
-                                </div>
-                            </div>
+                            <strong style="font-size: 11pt; color: #2c3e50;">{{ tauxVente }}%</strong>
                         </td>
                     </tr>
                 </tfoot>
@@ -939,12 +1183,12 @@
 
                 <!-- Tableau d'évolution -->
                 <h3>Détail de l'évolution des ventes</h3>
-                <table>
-                    <thead>
+                <table style="border-collapse: separate; border-spacing: 0;">
+                    <thead style="background-color: #3498DB !important; display: table-header-group;">
                         <tr>
-                            <th>Date</th>
-                            <th class="text-center">Billets vendus</th>
-                            <th class="text-right">Revenus</th>
+                            <th style="background-color: #3498DB !important; color: #ffffff !important; padding: 12px 14px; font-weight: 700; text-transform: uppercase; border: none;">Date</th>
+                            <th class="text-center" style="background-color: #3498DB !important; color: #ffffff !important; padding: 12px 14px; font-weight: 700; text-transform: uppercase; border: none;">Billets vendus</th>
+                            <th class="text-right" style="background-color: #3498DB !important; color: #ffffff !important; padding: 12px 14px; font-weight: 700; text-transform: uppercase; border: none;">Revenus</th>
                         </tr>
                     </thead>
                     <tbody>
@@ -976,10 +1220,25 @@
         {% endif %}
     </div>
 
-    <!-- Pied de page -->
+    <!-- Pied de page professionnel -->
     <div class="footer">
-        <p><strong>Aiolia Event</strong> - Plateforme de gestion d'événements</p>
-        <p>Généré le {{ "now"|date('d/m/Y à H:i') }} - Document confidentiel - Usage interne uniquement</p>
+        <div style="margin-bottom: 10px;">
+            <strong style="font-size: 10pt; color: #3498DB;">Aiolia Event</strong>
+            <span style="color: #7f8c8d; margin: 0 8px;">•</span>
+            <span>Plateforme de gestion d'événements</span>
+        </div>
+        <div style="font-size: 7.5pt; color: #95a5a6;">
+            <span>Rapport généré le <strong style="color: #2c3e50;">{% if exportDateFormatted is defined %}{{ exportDateFormatted }}{% else %}{{ "now"|date('d/m/Y à H:i') }}{% endif %}</strong></span>
+            <span style="margin: 0 8px;">•</span>
+            <span>Document confidentiel</span>
+            <span style="margin: 0 8px;">•</span>
+            <span>Usage interne uniquement</span>
+        </div>
+        {% if event.id %}
+            <div style="margin-top: 8px; font-size: 7pt; color: #bdc3c7;">
+                ID Événement: {{ event.id }} | Référence: {{ event.slug|default('N/A') }}
+            </div>
+        {% endif %}
     </div>
 </body>
 </html>

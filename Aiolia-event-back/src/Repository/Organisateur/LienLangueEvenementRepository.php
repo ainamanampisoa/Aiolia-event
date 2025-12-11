@@ -8,9 +8,7 @@ use App\Entity\LienLangueEvenement;
 use Doctrine\Bundle\DoctrineBundle\Repository\ServiceEntityRepository;
 use Doctrine\Persistence\ManagerRegistry;
 
-/**
- * @extends ServiceEntityRepository<LienLangueEvenement>
- */
+
 class LienLangueEvenementRepository extends ServiceEntityRepository
 {
     public function __construct(ManagerRegistry $registry)
@@ -18,9 +16,7 @@ class LienLangueEvenementRepository extends ServiceEntityRepository
         parent::__construct($registry, LienLangueEvenement::class);
     }
 
-    /**
-     * Récupère tous les liens langues-événements
-     */
+    
     public function getAll(): array
     {
         return $this->createQueryBuilder('l')
@@ -29,9 +25,7 @@ class LienLangueEvenementRepository extends ServiceEntityRepository
             ->getResult();
     }
 
-    /**
-     * Récupère un lien langue-événement par son ID (composite)
-     */
+    
     public function getById(Event $evenement, Langue $langue): ?LienLangueEvenement
     {
         return $this->createQueryBuilder('l')
@@ -43,9 +37,7 @@ class LienLangueEvenementRepository extends ServiceEntityRepository
             ->getOneOrNullResult();
     }
 
-    /**
-     * Récupère tous les liens d'un événement
-     */
+    
     public function findByEvenement(Event $evenement): array
     {
         return $this->createQueryBuilder('l')
@@ -56,9 +48,7 @@ class LienLangueEvenementRepository extends ServiceEntityRepository
             ->getResult();
     }
 
-    /**
-     * Crée un nouveau lien langue-événement
-     */
+    
     public function create(LienLangueEvenement $lien): LienLangueEvenement
     {
         $this->getEntityManager()->persist($lien);
@@ -67,9 +57,7 @@ class LienLangueEvenementRepository extends ServiceEntityRepository
         return $lien;
     }
 
-    /**
-     * Met à jour un lien langue-événement
-     */
+    
     public function update(LienLangueEvenement $lien): LienLangueEvenement
     {
         $this->getEntityManager()->flush();
@@ -77,9 +65,7 @@ class LienLangueEvenementRepository extends ServiceEntityRepository
         return $lien;
     }
 
-    /**
-     * Supprime un lien langue-événement
-     */
+    
     public function delete(LienLangueEvenement $lien): void
     {
         $this->getEntityManager()->remove($lien);

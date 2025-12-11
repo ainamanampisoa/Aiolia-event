@@ -7,9 +7,7 @@ use App\Entity\OrganizerProfile;
 use Doctrine\Bundle\DoctrineBundle\Repository\ServiceEntityRepository;
 use Doctrine\Persistence\ManagerRegistry;
 
-/**
- * @extends ServiceEntityRepository<CodePromotionnel>
- */
+
 class CodePromotionnelRepository extends ServiceEntityRepository
 {
     public function __construct(ManagerRegistry $registry)
@@ -17,9 +15,7 @@ class CodePromotionnelRepository extends ServiceEntityRepository
         parent::__construct($registry, CodePromotionnel::class);
     }
 
-    /**
-     * Récupère tous les codes promotionnels
-     */
+    
     public function getAll(): array
     {
         return $this->createQueryBuilder('c')
@@ -28,17 +24,13 @@ class CodePromotionnelRepository extends ServiceEntityRepository
             ->getResult();
     }
 
-    /**
-     * Récupère un code promotionnel par son ID
-     */
+    
     public function getById(string $id): ?CodePromotionnel
     {
         return $this->find($id);
     }
 
-    /**
-     * Récupère un code promotionnel par son code
-     */
+    
     public function findByCode(string $code): ?CodePromotionnel
     {
         return $this->createQueryBuilder('c')
@@ -48,9 +40,7 @@ class CodePromotionnelRepository extends ServiceEntityRepository
             ->getOneOrNullResult();
     }
 
-    /**
-     * Récupère tous les codes promotionnels actifs
-     */
+    
     public function findActive(): array
     {
         $now = new \DateTimeImmutable();
@@ -64,9 +54,7 @@ class CodePromotionnelRepository extends ServiceEntityRepository
             ->getResult();
     }
 
-    /**
-     * Crée un nouveau code promotionnel
-     */
+    
     public function create(CodePromotionnel $codePromotionnel): CodePromotionnel
     {
         $this->getEntityManager()->persist($codePromotionnel);
@@ -75,9 +63,7 @@ class CodePromotionnelRepository extends ServiceEntityRepository
         return $codePromotionnel;
     }
 
-    /**
-     * Met à jour un code promotionnel
-     */
+    
     public function update(CodePromotionnel $codePromotionnel): CodePromotionnel
     {
         $this->getEntityManager()->flush();
@@ -85,18 +71,14 @@ class CodePromotionnelRepository extends ServiceEntityRepository
         return $codePromotionnel;
     }
 
-    /**
-     * Supprime un code promotionnel
-     */
+    
     public function delete(CodePromotionnel $codePromotionnel): void
     {
         $this->getEntityManager()->remove($codePromotionnel);
         $this->getEntityManager()->flush();
     }
 
-    /**
-     * Récupère tous les codes promotionnels d'un organisateur
-     */
+    
     public function findByOrganisateur(OrganizerProfile $organisateur): array
     {
         return $this->createQueryBuilder('c')
@@ -107,16 +89,7 @@ class CodePromotionnelRepository extends ServiceEntityRepository
             ->getResult();
     }
 
-    /**
-     * Récupère les codes promotionnels d'un organisateur avec pagination et filtres de date
-     *
-     * @param OrganizerProfile $organisateur
-     * @param int $page Numéro de la page (commence à 1)
-     * @param int $perPage Nombre d'éléments par page
-     * @param \DateTimeImmutable|null $dateDebut Date de début (peut être null)
-     * @param \DateTimeImmutable|null $dateFin Date de fin (peut être null)
-     * @return array ['items' => array, 'total' => int, 'pages' => int]
-     */
+    
     public function findByOrganisateurPaginated(
         OrganizerProfile $organisateur,
         int $page = 1,
@@ -126,41 +99,41 @@ class CodePromotionnelRepository extends ServiceEntityRepository
     ): array {
         $offset = ($page - 1) * $perPage;
         
-        // Construction de la requête de base pour le comptage
+        
         $totalQueryBuilder = $this->createQueryBuilder('c')
             ->select('COUNT(c.id)')
             ->andWhere('c.profilOrganisateur = :organisateur')
             ->setParameter('organisateur', $organisateur);
         
-        // Ajout des filtres de date si fournis
+        
         if ($dateDebut !== null) {
-            // Inclure les promotions qui commencent à partir de la date OU qui n'ont pas de date de début
+            
             $totalQueryBuilder->andWhere('(c.commenceLe >= :dateDebut OR c.commenceLe IS NULL)')
                 ->setParameter('dateDebut', $dateDebut);
         }
         
         if ($dateFin !== null) {
-            // Inclure les promotions qui se terminent avant ou à la date OU qui n'ont pas de date de fin
+            
             $totalQueryBuilder->andWhere('(c.seTermineLe <= :dateFin OR c.seTermineLe IS NULL)')
                 ->setParameter('dateFin', $dateFin);
         }
         
         $total = (int) $totalQueryBuilder->getQuery()->getSingleScalarResult();
         
-        // Construction de la requête pour récupérer les résultats paginés
+        
         $itemsQueryBuilder = $this->createQueryBuilder('c')
             ->andWhere('c.profilOrganisateur = :organisateur')
             ->setParameter('organisateur', $organisateur);
         
-        // Ajout des mêmes filtres de date
+        
         if ($dateDebut !== null) {
-            // Inclure les promotions qui commencent à partir de la date OU qui n'ont pas de date de début
+            
             $itemsQueryBuilder->andWhere('(c.commenceLe >= :dateDebut OR c.commenceLe IS NULL)')
                 ->setParameter('dateDebut', $dateDebut);
         }
         
         if ($dateFin !== null) {
-            // Inclure les promotions qui se terminent avant ou à la date OU qui n'ont pas de date de fin
+            
             $itemsQueryBuilder->andWhere('(c.seTermineLe <= :dateFin OR c.seTermineLe IS NULL)')
                 ->setParameter('dateFin', $dateFin);
         }
@@ -183,9 +156,7 @@ class CodePromotionnelRepository extends ServiceEntityRepository
         ];
     }
 
-    /**
-     * Récupère les codes promotionnels actifs d'un organisateur
-     */
+    
     public function findActiveByOrganisateur(OrganizerProfile $organisateur): array
     {
         $now = new \DateTimeImmutable();
@@ -201,9 +172,7 @@ class CodePromotionnelRepository extends ServiceEntityRepository
             ->getResult();
     }
 
-    /**
-     * Compte le nombre d'utilisations d'un code promotionnel
-     */
+    
     public function countUtilisations(CodePromotionnel $codePromotionnel): int
     {
         $qb = $this->getEntityManager()->createQueryBuilder();
@@ -216,9 +185,7 @@ class CodePromotionnelRepository extends ServiceEntityRepository
             ->getSingleScalarResult();
     }
 
-    /**
-     * Compte le nombre d'utilisations d'un code promotionnel par un utilisateur
-     */
+    
     public function countUtilisationsByUser(CodePromotionnel $codePromotionnel, $userId): int
     {
         $qb = $this->getEntityManager()->createQueryBuilder();
@@ -233,9 +200,7 @@ class CodePromotionnelRepository extends ServiceEntityRepository
             ->getSingleScalarResult();
     }
 
-    /**
-     * Calcule le montant total des réductions accordées pour un code promotionnel
-     */
+    
     public function getTotalRemise(CodePromotionnel $codePromotionnel): float
     {
         $qb = $this->getEntityManager()->createQueryBuilder();
@@ -250,9 +215,7 @@ class CodePromotionnelRepository extends ServiceEntityRepository
         return (float) ($result ?? 0);
     }
 
-    /**
-     * Récupère les codes promotionnels qui expirent bientôt (dans les 7 prochains jours)
-     */
+    
     public function findExpiringSoon(OrganizerProfile $organisateur, int $days = 7): array
     {
         $now = new \DateTimeImmutable();
