@@ -266,6 +266,9 @@
         });
     </script>
     <script src="{{ asset('js/theme-manager.js') }}" defer></script>
+    {% if isAuthenticated %}
+    <script src="{{ asset('js/push-notifications.js') }}" defer></script>
+    {% endif %}
     <style>
         /* Uniform overlay across the full banner width */
         .txt-banner:after { width: 100% !important; }

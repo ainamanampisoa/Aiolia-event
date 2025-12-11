@@ -279,5 +279,32 @@ class TicketRepository extends ServiceEntityRepository
             return null;
         }
     }
+
+    /**
+     * Trouve les utilisateurs qui ont des billets valides pour un événement
+     *
+     * @return array<int, array<string, mixed>>
+     */
+    public function findUsersWithTicketsForEvent(int $eventId): array
+    {
+        $sql = <<<SQL
+            SELECT DISTINCT
+                u.id,
+                u.email,
+                u.first_name,
+                u.last_name
+            FROM aiolia.users u
+            INNER JOIN aiolia.orders o ON o.user_id = u.id
+            INNER JOIN aiolia.order_items oi ON oi.order_id = o.id
+            INNER JOIN aiolia.tickets t ON t.order_item_id = oi.id
+            INNER JOIN aiolia.ticket_types tt ON tt.id = t.ticket_type_id
+            WHERE tt.event_id = :event_id
+              AND o.status = 'paid'
+              AND t.status = 'valid'
+              AND u.is_email_verified = TRUE
+        SQL;
+
+        return $this->connection->executeQuery($sql, ['event_id' => $eventId])->fetchAllAssociative();
+    }
 }
 

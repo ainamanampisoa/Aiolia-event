@@ -135,7 +135,8 @@ class NotificationService
         \DateTimeImmutable $eventDate,
         int $hoursBefore = 24
     ): ?int {
-        $scheduledAt = $eventDate->modify("-{$hoursBefore} hours");
+        // Ne pas programmer la notification, l'envoyer immédiatement
+        // car le service EventReminderService est appelé au bon moment
 
         return $this->createNotification(
             $userId,
@@ -146,10 +147,11 @@ class NotificationService
                 'event_name' => $eventName,
                 'event_date' => $eventDate->format('Y-m-d H:i:s'),
                 'hours_before' => $hoursBefore,
-                'message' => "Rappel : {$eventName} dans {$hoursBefore} heure(s).",
+                'message' => $hoursBefore === 24 
+                    ? "Rappel : {$eventName} demain à " . $eventDate->format('H:i')
+                    : "Rappel : {$eventName} dans {$hoursBefore} heure(s) à " . $eventDate->format('H:i'),
             ],
-            'event_reminder',
-            $scheduledAt
+            'event_reminder'
         );
     }
 

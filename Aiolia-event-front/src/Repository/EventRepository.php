@@ -1164,5 +1164,34 @@ class EventRepository extends ServiceEntityRepository
             return 0;
         }
     }
+
+    /**
+     * Trouve les événements qui commencent dans X heures
+     *
+     * @return array<int, array<string, mixed>>
+     */
+    public function findEventsStartingIn(int $hours): array
+    {
+        $sql = <<<SQL
+            SELECT 
+                e.id,
+                e.title,
+                e.slug,
+                e.starts_at,
+                e.ends_at,
+                e.cover_image_url,
+                COALESCE(v.name, e.location_override->>'venue_name') AS venue_name,
+                COALESCE(v.address_line1, e.location_override->>'address') AS address,
+                COALESCE(v.city, e.location_override->>'city') AS city
+            FROM aiolia.events e
+            LEFT JOIN aiolia.venues v ON v.id = e.venue_id
+            WHERE e.status = 'published'
+              AND e.starts_at >= NOW() + make_interval(hours => :hours)
+              AND e.starts_at < NOW() + make_interval(hours => :hours) + INTERVAL '1 hour'
+            ORDER BY e.starts_at ASC
+        SQL;
+
+        return $this->connection->executeQuery($sql, ['hours' => $hours])->fetchAllAssociative();
+    }
 }
 

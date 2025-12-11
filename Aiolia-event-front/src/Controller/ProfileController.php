@@ -12,6 +12,7 @@ use App\Repository\WalletTransactionRepository;
 use App\Repository\WishlistRepository;
 use App\Service\CloudinaryService;
 use App\Service\LoyaltyPointsService;
+use App\Service\TicketChanceService;
 use App\Service\WalletService;
 use Dompdf\Dompdf;
 use Dompdf\Options;
@@ -36,7 +37,8 @@ class ProfileController extends AbstractController
         private readonly WalletService $walletService,
         private readonly LoyaltyPointsService $loyaltyPointsService,
         private readonly WalletTransactionRepository $walletTransactionRepository,
-        private readonly CloudinaryService $cloudinaryService
+        private readonly CloudinaryService $cloudinaryService,
+        private readonly TicketChanceService $ticketChanceService
     ) {
     }
 
@@ -1163,9 +1165,34 @@ class ProfileController extends AbstractController
     }
 
     #[Route('/profile/ticket-chance', name: 'profile_ticket_chance')]
-    public function ticketChance(): Response
+    public function ticketChance(Request $request): Response
     {
-        return $this->render('profile/ticket_chance.html.twig');
+        $session = $request->getSession();
+        if (!$session->isStarted()) {
+            $session->start();
+        }
+
+        $sessionUser = $session->get('user');
+        $isAuthenticated = is_array($sessionUser) && isset($sessionUser['id']);
+
+        if (!$isAuthenticated) {
+            return $this->redirectToRoute('login');
+        }
+
+        $userId = (int) $sessionUser['id'];
+        
+        // Vérifier si l'utilisateur peut jouer
+        $eligibility = $this->ticketChanceService->canUserPlay($userId);
+        $availablePrizes = $this->ticketChanceService->getAvailablePrizes();
+        
+        // TODO: Récupérer l'historique des gains depuis la base de données
+        $recentWins = []; // À implémenter avec un repository
+
+        return $this->render('profile/ticket_chance.html.twig', [
+            'eligibility' => $eligibility,
+            'recentWins' => $recentWins,
+            'availablePrizes' => $availablePrizes,
+        ]);
     }
 
     #[Route('/profile/upload-avatar', name: 'api_profile_upload_avatar', methods: ['POST'])]

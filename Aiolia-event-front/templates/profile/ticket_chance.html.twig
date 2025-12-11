@@ -14,48 +14,222 @@
 {% block hero %}{% endblock %}
 
 {% block body %}
+    {% set eligibility = eligibility|default({
+        can_play: false,
+        total_spent: 0,
+        threshold: 100000,
+        remaining: 100000,
+        progress: 0
+    }) %}
+    {% set recentWins = recentWins|default([]) %}
+    
     <main class="ticket-chance-wrapper">
         <div class="container">
             <header class="ticket-chance-header wow fadeIn" data-wow-delay="100ms">
                 <div>
-                    <h1>Ticket Chance</h1>
+                    <h1 style="background: linear-gradient(135deg, #1F2D3D 0%, #4A90E2 100%); -webkit-background-clip: text; -webkit-text-fill-color: transparent; background-clip: text;">Ticket Chance</h1>
                     <p>Tentez votre chance et gagnez des réductions ou des billets offerts pour vos prochains évènements.</p>
                 </div>
-                <button class="btn-solid"><i class="fas fa-sync"></i> Lancer un tirage</button>
+                {% if eligibility.can_play %}
+                    <button class="btn-solid btn-play" id="playBtn"><i class="fas fa-play-circle"></i> Lancer un tirage</button>
+                {% else %}
+                    <button class="btn-solid btn-play" disabled style="opacity: 0.6; cursor: not-allowed;"><i class="fas fa-lock"></i> Verrouillé</button>
+                {% endif %}
             </header>
+
+            {# Barre de progression pour atteindre le seuil #}
+            {% if not eligibility.can_play %}
+            <section class="eligibility-progress wow fadeIn" data-wow-delay="120ms">
+                <div class="progress-card">
+                    <div class="progress-header">
+                        <h3><i class="fas fa-trophy"></i> Débloquez le Ticket Chance</h3>
+                        <p>Atteignez <strong>{{ eligibility.threshold|number_format(0, ',', ' ') }} MGA</strong> d'achat pour pouvoir jouer</p>
+                    </div>
+                    <div class="progress-bar-wrapper">
+                        <div class="progress-bar">
+                            <div class="progress-fill" style="width: {{ eligibility.progress }}%; background: linear-gradient(90deg, #4A90E2 0%, #50C878 100%);"></div>
+                        </div>
+                        <div class="progress-info">
+                            <span class="progress-current">{{ eligibility.total_spent|number_format(0, ',', ' ') }} MGA</span>
+                            <span class="progress-remaining">{{ eligibility.remaining|number_format(0, ',', ' ') }} MGA restants</span>
+                            <span class="progress-target">{{ eligibility.threshold|number_format(0, ',', ' ') }} MGA</span>
+                        </div>
+                    </div>
+                    <div class="progress-tip">
+                        <i class="fas fa-lightbulb"></i> Continuez vos achats pour débloquer le Ticket Chance !
+                    </div>
+                </div>
+            </section>
+            {% endif %}
 
             <section class="ticket-chance-grid">
                 <div class="ticket-chance-card wow fadeInUp" data-wow-delay="150ms">
-                    <div class="prize-wheel">
-                        <div class="wheel"></div>
-                        <button class="wheel-btn"><i class="fas fa-play"></i></button>
+                    <div class="prize-wheel-container">
+                        <div class="prize-wheel {% if not eligibility.can_play %}disabled{% endif %}" id="prizeWheel">
+                            {% set prizeCount = availablePrizes|length %}
+                            {% set anglePerPrize = 360 / prizeCount %}
+                            {% set conicGradient = [] %}
+                            {% for prize in availablePrizes %}
+                                {% set startAngle = loop.index0 * anglePerPrize %}
+                                {% set endAngle = loop.index * anglePerPrize %}
+                                {% set conicGradient = conicGradient|merge([prize.color ~ ' ' ~ startAngle ~ 'deg ' ~ endAngle ~ 'deg']) %}
+                            {% endfor %}
+                            <div class="wheel" id="wheel" style="background: conic-gradient({{ conicGradient|join(', ') }});">
+                                {% for prize in availablePrizes %}
+                                    {% set startAngle = loop.index0 * anglePerPrize %}
+                                    {% set rotation = startAngle + (anglePerPrize / 2) %}
+                                    <div class="wheel-segment" 
+                                         data-prize-id="{{ prize.id }}"
+                                         style="--rotation: {{ rotation }}deg;">
+                                        <div class="segment-content">
+                                            <i class="fas {{ prize.icon }}"></i>
+                                            <span class="segment-label">{{ prize.label }}</span>
+                                        </div>
+                                    </div>
+                                {% endfor %}
+                                <div class="wheel-center">
+                                    <i class="fas fa-gift"></i>
+                                </div>
+                            </div>
+                            {% if eligibility.can_play %}
+                                <button class="wheel-btn" id="spinBtn"><i class="fas fa-play"></i></button>
+                            {% else %}
+                                <div class="wheel-lock">
+                                    <i class="fas fa-lock"></i>
+                                    <span>Verrouillé</span>
+                                </div>
+                            {% endif %}
+                            <div class="wheel-pointer"></div>
+                        </div>
                     </div>
                     <div class="ticket-chance-info">
                         <h2>Roulette des récompenses</h2>
-                        <ul>
-                            <li><i class="fas fa-gift"></i> Réduction -20 %</li>
-                            <li><i class="fas fa-ticket-alt"></i> Billet gratuit (tirage mensuel)</li>
-                            <li><i class="fas fa-coins"></i> +150 points fidélité</li>
+                        <ul class="prizes-list">
+                            {% for prize in availablePrizes %}
+                                <li class="prize-item prize-{{ prize.type|replace({'_': '-'}) }}" style="border-left-color: {{ prize.color }};">
+                                    <i class="fas {{ prize.icon }}"></i> 
+                                    <span>{{ prize.label }}</span>
+                                </li>
+                            {% endfor %}
                         </ul>
                     </div>
                 </div>
                 <aside class="ticket-chance-card wow fadeInUp" data-wow-delay="180ms">
-                    <h2>Règles du jeu</h2>
-                    <ol>
-                        <li>1 tirage gratuit par semaine, bonus après chaque achat validé.</li>
-                        <li>Les récompenses sont créditées immédiatement sur votre compte.</li>
-                        <li>Les billets gratuits sont valables sur une sélection d’évènements partenaires.</li>
+                    <h2><i class="fas fa-info-circle"></i> Règles du jeu</h2>
+                    <ol class="rules-list">
+                        <li>
+                            <i class="fas fa-check-circle"></i>
+                            <div>
+                                <strong>Condition d'accès :</strong> Achetez pour au moins <strong>{{ eligibility.threshold|number_format(0, ',', ' ') }} MGA</strong> pour débloquer le Ticket Chance.
+                            </div>
+                        </li>
+                        <li>
+                            <i class="fas fa-check-circle"></i>
+                            <div>
+                                <strong>1 tirage gratuit par semaine</strong>, bonus après chaque achat validé.
+                            </div>
+                        </li>
+                        <li>
+                            <i class="fas fa-check-circle"></i>
+                            <div>
+                                Les récompenses sont créditées <strong>immédiatement</strong> sur votre compte.
+                            </div>
+                        </li>
+                        <li>
+                            <i class="fas fa-check-circle"></i>
+                            <div>
+                                Les billets gratuits sont valables sur une <strong>sélection d'évènements partenaires</strong>.
+                            </div>
+                        </li>
                     </ol>
                     <div class="ticket-chance-history">
-                        <h3>Derniers gains</h3>
-                        <ul>
-                            <li><strong>07/11</strong> · -20 % Afro Jazz Experience</li>
-                            <li><strong>02/11</strong> · +150 points fidélité</li>
-                            <li><strong>28/10</strong> · Billet Offert (Fashion Night)</li>
-                        </ul>
+                        <h3><i class="fas fa-history"></i> Derniers gains</h3>
+                        {% if recentWins|length > 0 %}
+                            <ul>
+                                {% for win in recentWins %}
+                                    <li>
+                                        <strong>{{ win.date|date('d/m') }}</strong> · 
+                                        <span class="prize-badge prize-{{ win.type|lower|replace({' ': '-'}) }}">{{ win.prize }}</span>
+                                    </li>
+                                {% endfor %}
+                            </ul>
+                        {% else %}
+                            <div class="no-history">
+                                <i class="fas fa-inbox"></i>
+                                <p>Aucun gain pour le moment</p>
+                                <small>Tentez votre chance pour gagner des récompenses !</small>
+                            </div>
+                        {% endif %}
                     </div>
                 </aside>
             </section>
         </div>
     </main>
+
+    <script>
+        document.addEventListener('DOMContentLoaded', function() {
+            const spinBtn = document.getElementById('spinBtn');
+            const playBtn = document.getElementById('playBtn');
+            const wheel = document.getElementById('wheel');
+            
+            // Prix disponibles depuis le backend
+            const availablePrizes = {{ availablePrizes|json_encode|raw }};
+            const prizeCount = availablePrizes.length;
+            const anglePerPrize = 360 / prizeCount;
+            
+            {% if eligibility.can_play %}
+            // Animation de la roue
+            if (spinBtn && wheel) {
+                let isSpinning = false;
+                let currentRotation = 0;
+                
+                spinBtn.addEventListener('click', function() {
+                    if (isSpinning) return;
+                    
+                    isSpinning = true;
+                    spinBtn.disabled = true;
+                    spinBtn.innerHTML = '<i class="fas fa-spinner fa-spin"></i>';
+                    
+                    // Sélectionner un prix aléatoire (pour l'instant, on simule)
+                    // TODO: Appeler l'API pour obtenir le prix réel
+                    const selectedPrizeIndex = Math.floor(Math.random() * prizeCount);
+                    const selectedPrize = availablePrizes[selectedPrizeIndex];
+                    
+                    // Calculer l'angle pour que le pointeur pointe vers le centre du segment gagnant
+                    // Le pointeur est en haut (0deg), donc on doit faire tourner la roue pour que
+                    // le segment gagnant soit aligné avec le pointeur
+                    const targetAngle = selectedPrizeIndex * anglePerPrize + (anglePerPrize / 2);
+                    // On inverse car la roue tourne dans le sens horaire
+                    const finalAngle = 360 - targetAngle;
+                    
+                    // Ajouter plusieurs rotations pour l'effet
+                    const rotations = 5 + Math.random() * 3; // 5 à 8 rotations
+                    const totalRotation = currentRotation + (rotations * 360) + finalAngle;
+                    
+                    wheel.style.transition = 'transform 4s cubic-bezier(0.17, 0.67, 0.12, 0.99)';
+                    wheel.style.transform = `rotate(${totalRotation}deg)`;
+                    
+                    // Mettre à jour la rotation actuelle (normalisée à 0-360)
+                    currentRotation = totalRotation % 360;
+                    
+                    // Simuler l'appel API
+                    setTimeout(() => {
+                        // TODO: Appeler l'API pour enregistrer le tirage
+                        alert(`Félicitations ! Vous avez gagné : ${selectedPrize.label}`);
+                        location.reload();
+                    }, 4000);
+                });
+            }
+            {% endif %}
+            
+            // Animation de la barre de progression
+            const progressFill = document.querySelector('.progress-fill');
+            if (progressFill) {
+                const progress = {{ eligibility.progress }};
+                setTimeout(() => {
+                    progressFill.style.width = progress + '%';
+                }, 300);
+            }
+        });
+    </script>
 {% endblock %}

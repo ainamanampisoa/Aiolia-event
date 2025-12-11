@@ -26,7 +26,7 @@ class NotificationRepository
         }
 
         $this->connection->executeStatement(
-            'UPDATE aiolia.notifications SET is_read = TRUE, read_at = NOW() WHERE id = :id',
+            'UPDATE aiolia.notifications SET status = \'read\', read_at = NOW() WHERE id = :id',
             ['id' => $notificationId]
         );
 
@@ -39,7 +39,7 @@ class NotificationRepository
     public function markAllAsRead(int $userId): void
     {
         $this->connection->executeStatement(
-            'UPDATE aiolia.notifications SET is_read = TRUE, read_at = NOW() WHERE user_id = :userId AND is_read = FALSE',
+            'UPDATE aiolia.notifications SET status = \'read\', read_at = NOW() WHERE user_id = :userId AND status != \'read\'',
             ['userId' => $userId]
         );
     }
@@ -72,7 +72,7 @@ class NotificationRepository
     public function countUnreadNotifications(int $userId): int
     {
         return (int) $this->connection->executeQuery(
-            'SELECT COUNT(*) FROM aiolia.notifications WHERE user_id = :userId AND is_read = FALSE',
+            'SELECT COUNT(*) FROM aiolia.notifications WHERE user_id = :userId AND status != \'read\'',
             ['userId' => $userId]
         )->fetchOne();
     }
@@ -86,7 +86,7 @@ class NotificationRepository
             SELECT 
                 n.id,
                 -- Statut de lecture dérivé du statut ou de la date de lecture
-                (n.status = 'read') AS is_read,
+                (n.status = 'read' OR n.read_at IS NOT NULL) AS is_read,
                 n.created_at,
                 n.read_at,
                 -- Le payload JSON contient les données métier de la notif
@@ -113,6 +113,28 @@ class NotificationRepository
                 'offset' => \PDO::PARAM_INT,
             ]
         )->fetchAllAssociative();
+    }
+
+    /**
+     * Vérifie si une notification de rappel existe déjà pour cet utilisateur et cet événement
+     */
+    public function reminderNotificationExists(int $userId, int $eventId, int $hoursBefore): bool
+    {
+        $sql = <<<SQL
+            SELECT COUNT(*) > 0
+            FROM aiolia.notifications n
+            WHERE n.user_id = :user_id
+              AND n.payload->>'event_id' = :event_id
+              AND n.payload->>'hours_before' = :hours_before
+              AND n.payload->>'type' = 'reminder'
+              AND n.created_at > NOW() - INTERVAL '1 day'
+        SQL;
+
+        return (bool) $this->connection->executeQuery($sql, [
+            'user_id' => $userId,
+            'event_id' => (string) $eventId,
+            'hours_before' => (string) $hoursBefore,
+        ])->fetchOne();
     }
 }
 

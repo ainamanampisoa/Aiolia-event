@@ -49,5 +49,52 @@ class UserMailer
             throw $e; // Relancer pour que l'app soit au courant
         }
     }
+
+    /**
+     * Envoie un email de rappel d'événement
+     *
+     * @param array<string, mixed> $user Données de l'utilisateur
+     * @param array<string, mixed> $event Données de l'événement
+     * @param int $hoursBefore Nombre d'heures avant l'événement
+     * @param string $eventUrl URL de l'événement
+     */
+    public function sendEventReminder(
+        array $user,
+        array $event,
+        int $hoursBefore,
+        string $eventUrl
+    ): void {
+        try {
+            $eventDate = new \DateTimeImmutable($event['starts_at']);
+            $userEmail = $user['email'];
+            $userName = trim(($user['first_name'] ?? '') . ' ' . ($user['last_name'] ?? '')) ?: 'Cher utilisateur';
+
+            $subject = $hoursBefore === 24
+                ? "Rappel : {$event['title']} demain"
+                : "Rappel : {$event['title']} dans {$hoursBefore} heure(s)";
+
+            $htmlBody = $this->twig->render('emails/event_reminder.html.twig', [
+                'user_name' => $userName,
+                'event' => $event,
+                'event_date' => $eventDate,
+                'hours_before' => $hoursBefore,
+                'event_url' => $eventUrl,
+            ]);
+
+            $fromName = $this->fromName ?: 'Aiolia Event';
+            $from = new Address($this->fromEmail, $fromName);
+
+            $email = (new Email())
+                ->from($from)
+                ->to($userEmail)
+                ->subject($subject)
+                ->html($htmlBody);
+
+            $this->mailer->send($email);
+        } catch (\Throwable $e) {
+            error_log(sprintf('Erreur envoi email rappel événement: %s', $e->getMessage()));
+            throw $e;
+        }
+    }
 }
 

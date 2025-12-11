@@ -289,10 +289,15 @@ class NotificationController extends AbstractController
 
         $eventName = $payload['event_name'] ?? $payload['event_title'] ?? 'cet événement';
         
+        $hoursBefore = $payload['hours_before'] ?? null;
+        $eventDate = isset($payload['event_date']) ? new \DateTimeImmutable($payload['event_date']) : null;
+        
         return match ($type) {
             'ticket' => "Vos billets pour <span>{$eventName}</span> sont disponibles",
             'offer' => "Nouvelle offre exclusive sur <span>{$eventName}</span>",
-            'reminder' => "Rappel : Validation requise pour <span>{$eventName}</span>",
+            'reminder' => $hoursBefore && $eventDate
+                ? "Rappel : <span>{$eventName}</span> " . ($hoursBefore === 24 ? 'demain' : "dans {$hoursBefore}h") . ($eventDate ? ' à ' . $eventDate->format('H:i') : '')
+                : "Rappel : <span>{$eventName}</span> approche",
             'payment' => "Confirmation : paiement reçu pour <span>{$eventName}</span>",
             default => "Notification concernant <span>{$eventName}</span>",
         };
@@ -307,10 +312,17 @@ class NotificationController extends AbstractController
             return $payload['message'] ?? $payload['description'] ?? '';
         }
 
+        $hoursBefore = $payload['hours_before'] ?? null;
+        $eventDate = isset($payload['event_date']) ? new \DateTimeImmutable($payload['event_date']) : null;
+        
         return match ($type) {
             'ticket' => 'Téléchargez vos billets et partagez-les avec vos invités avant l\'évènement.',
             'offer' => 'Profitez de cette offre spéciale pour réserver vos places.',
-            'reminder' => 'N\'oubliez pas de valider votre réservation.',
+            'reminder' => $hoursBefore && $eventDate
+                ? ($hoursBefore === 24 
+                    ? "L'événement commence demain à " . $eventDate->format('H:i') . ". N'oubliez pas d'apporter vos billets !"
+                    : "L'événement commence dans {$hoursBefore} heure(s) à " . $eventDate->format('H:i') . ". Préparez-vous !")
+                : 'N\'oubliez pas de valider votre réservation.',
             'payment' => 'Votre paiement est confirmé. Nous vous enverrons un rappel le jour de l\'évènement.',
             default => 'Nouvelle notification disponible.',
         };

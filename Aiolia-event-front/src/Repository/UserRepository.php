@@ -174,4 +174,27 @@ class UserRepository extends ServiceEntityRepository
             ]
         );
     }
+
+    /**
+     * Vérifie si l'utilisateur a activé les rappels d'événements
+     */
+    public function hasEventRemindersEnabled(int $userId): bool
+    {
+        $sql = <<<SQL
+            SELECT preference_value
+            FROM aiolia.user_preferences
+            WHERE user_id = :user_id
+              AND preference_key = 'notifications'
+        SQL;
+
+        $preferences = $this->connection->executeQuery($sql, ['user_id' => $userId])->fetchOne();
+        
+        if ($preferences) {
+            $prefs = json_decode($preferences, true);
+            return $prefs['event_reminders'] ?? true; // Par défaut activé
+        }
+
+        // Par défaut, les rappels sont activés
+        return true;
+    }
 }
