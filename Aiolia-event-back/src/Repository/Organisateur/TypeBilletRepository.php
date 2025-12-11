@@ -83,7 +83,7 @@ class TypeBilletRepository extends ServiceEntityRepository
     }
 
     
-    public function findByOrganizerPaginated(User $organizer, int $page = 1, int $limit = 6, ?string $categorieFilter = null, ?string $segmentFilter = null): Paginator
+    public function findByOrganizerPaginated(User $organizer, int $page = 1, int $limit = 6, ?string $categorieFilter = null, ?string $segmentFilter = null, ?Event $event = null): Paginator
     {
         $qb = $this->createQueryBuilder('t')
             ->innerJoin('t.evenement', 'e')
@@ -92,6 +92,11 @@ class TypeBilletRepository extends ServiceEntityRepository
             ->leftJoin('oe.profilOrganisateur', 'op2')
             ->where('op.utilisateur = :organizer OR op2.utilisateur = :organizer')
             ->setParameter('organizer', $organizer);
+
+        if ($event !== null) {
+            $qb->andWhere('e.id = :eventId')
+                ->setParameter('eventId', $event->getId());
+        }
 
         if ($categorieFilter) {
             $qb->andWhere('t.configurationCategorie = :categorie')

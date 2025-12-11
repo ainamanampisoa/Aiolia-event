@@ -2,9 +2,13 @@
 
 namespace App\Controller\Organisateur;
 
+use App\Entity\Event;
 use App\Form\TypeBilletPriceType;
+use App\Repository\Organisateur\EventRepository;
+use App\Repository\Organisateur\TicketInvoiceRepository;
 use App\Service\Organisateur\BilletService;
 use App\Service\Organisateur\HistoriquePrixBilletService;
+use App\Service\Organisateur\InventaireBilletService;
 use App\Service\Organisateur\TypeBilletService;
 use App\Service\QrCodeService;
 use Symfony\Bundle\FrameworkBundle\Controller\AbstractController;
@@ -19,7 +23,10 @@ class TicketController extends AbstractController
         private BilletService $billetService,
         private TypeBilletService $typeBilletService,
         private HistoriquePrixBilletService $historiquePrixBilletService,
-        private QrCodeService $qrCodeService
+        private InventaireBilletService $inventaireBilletService,
+        private QrCodeService $qrCodeService,
+        private EventRepository $eventRepository,
+        private TicketInvoiceRepository $ticketInvoiceRepository
     ) {
     }
 
@@ -45,20 +52,32 @@ class TicketController extends AbstractController
     {
         $this->denyAccessUnlessGranted('IS_AUTHENTICATED_REMEMBERED');
 
-        
         $user = $this->getUser();
-        
+
         $page = max(1, (int) $request->query->get('page', 1));
-        $limit = 6;
+        $limit = 100;
         $categorieFilter = $request->query->get('categorie');
         $segmentFilter = $request->query->get('segment');
-        
-        $paginator = $this->typeBilletService->getByOrganizerPaginated($user, $page, $limit, $categorieFilter, $segmentFilter);
+        $eventId = $request->query->get('eventId');
+
+        $event = null;
+        if ($eventId) {
+            $event = $this->eventRepository->getById($eventId);
+            if ($event) {
+                $organizerProfile = $event->getProfilOrganisateur();
+                if ($organizerProfile && $organizerProfile->getUtilisateur() !== $user) {
+                    $event = null;
+                }
+            }
+        }
+
+        $paginator = $this->typeBilletService->getByOrganizerPaginated($user, $page, $limit, $categorieFilter, $segmentFilter, $event);
         $totalItems = $paginator->count();
         $totalPages = (int) ceil($totalItems / $limit);
-        
-        
-        $allTypesBillets = $this->typeBilletService->getByOrganizer($user);
+
+        $allTypesBillets = $event
+            ? $this->typeBilletService->getByEvenement($event)
+            : $this->typeBilletService->getByOrganizer($user);
         $categories = [];
         $segments = [];
         foreach ($allTypesBillets as $tb) {
@@ -66,15 +85,35 @@ class TicketController extends AbstractController
                 $categories[$tb->getConfigurationCategorie()->getId()] = $tb->getConfigurationCategorie();
             }
             if ($tb->getConfigurationSegment()) {
-                
                 if ($tb->getConfigurationSegment()->getNom() !== 'tous' && !isset($segments[$tb->getConfigurationSegment()->getId()])) {
                     $segments[$tb->getConfigurationSegment()->getId()] = $tb->getConfigurationSegment();
                 }
             }
         }
-        
+
+        $typesBilletsArray = iterator_to_array($paginator);
+        $statsByType = [];
+        $totalStats = ['stockTotal' => 0, 'vendus' => 0, 'disponibles' => 0, 'revenus' => 0];
+
+        /** @var \App\Entity\TypeBillet $typeBillet */
+        foreach ($typesBilletsArray as $typeBillet) {
+            $stats = $this->billetService->getSalesStatsByTypeBillet($typeBillet);
+            $statsByType[(string)$typeBillet->getId()] = $stats;
+
+            $totalStats['stockTotal'] += $stats['stockTotal'];
+            $totalStats['vendus'] += $stats['vendus'];
+            $totalStats['disponibles'] += $stats['disponibles'];
+            $totalStats['revenus'] += $stats['revenus'];
+        }
+
+        $totalStats['tauxVente'] = $totalStats['stockTotal'] > 0
+            ? round(($totalStats['vendus'] / $totalStats['stockTotal']) * 100, 1)
+            : 0;
+
         return $this->render('Organisateur/ticket/categories.html.twig', [
-            'typesBillets' => iterator_to_array($paginator),
+            'typesBillets' => $typesBilletsArray,
+            'statsByType' => $statsByType,
+            'totalStats' => $totalStats,
             'categories' => $categories,
             'segments' => $segments,
             'currentPage' => $page,
@@ -83,6 +122,7 @@ class TicketController extends AbstractController
             'limit' => $limit,
             'categorieFilter' => $categorieFilter,
             'segmentFilter' => $segmentFilter,
+            'event' => $event,
         ]);
     }
 
@@ -120,7 +160,9 @@ class TicketController extends AbstractController
     {
         $this->denyAccessUnlessGranted('IS_AUTHENTICATED_REMEMBERED');
 
-        return $this->render('Organisateur/ticket/scanning.html.twig');
+        return $this->render('Organisateur/ticket/scanning.html.twig', [
+            'scanApiUrl' => $this->generateUrl('organisateur_ticket_api_scan'),
+        ]);
     }
 
     #[Route('/stock-alerts', name: 'app_ticket_stock_alerts')]
@@ -353,9 +395,17 @@ class TicketController extends AbstractController
         
         $qrCodeUrl = $this->qrCodeService->generateQrCodeForBillet($billet->getCodeQr());
 
+        // Récupérer la facture si le billet est lié à une commande
+        $facture = null;
+        if ($billet->getElementCommande() && $billet->getElementCommande()->getCommande()) {
+            $commandeId = $billet->getElementCommande()->getCommande()->getId();
+            $facture = $this->ticketInvoiceRepository->findOneBy(['orderId' => $commandeId]);
+        }
+
         return $this->render('Organisateur/ticket/show.html.twig', [
             'billet' => $billet,
             'qrCodeUrl' => $qrCodeUrl,
+            'facture' => $facture,
         ]);
     }
 
@@ -450,10 +500,122 @@ class TicketController extends AbstractController
             ]);
         }
         
-        return $this->render('Organisateur/ticket/edit_price.html.twig', [
+            return $this->render('Organisateur/ticket/edit_price.html.twig', [
             'form' => $form->createView(),
             'billet' => $billet,
             'typeBillet' => $typeBillet,
+        ]);
+    }
+
+    #[Route('/types/{id}/edit', name: 'app_ticket_type_edit', requirements: ['id' => '\d+'], methods: ['POST'])]
+    public function editTypeBillet(string $id, Request $request): Response
+    {
+        $this->denyAccessUnlessGranted('IS_AUTHENTICATED_REMEMBERED');
+
+        $user = $this->getUser();
+        $typeBillet = $this->typeBilletService->getById($id);
+
+        if (!$typeBillet) {
+            return $this->json([
+                'success' => false,
+                'message' => 'Type de billet non trouvé',
+            ], 404);
+        }
+
+        // Vérifier que l'utilisateur a accès à ce type de billet
+        $organizerTypes = $this->typeBilletService->getByOrganizer($user);
+        $belongsToOrganizer = false;
+        foreach ($organizerTypes as $orgType) {
+            if ((string)$orgType->getId() === (string)$typeBillet->getId()) {
+                $belongsToOrganizer = true;
+                break;
+            }
+        }
+
+        if (!$belongsToOrganizer) {
+            return $this->json([
+                'success' => false,
+                'message' => 'Vous n\'avez pas accès à ce type de billet',
+            ], 403);
+        }
+
+        // Vérifier que l'événement est en cours ou à venir
+        $event = $typeBillet->getEvenement();
+        if (!$event) {
+            return $this->json([
+                'success' => false,
+                'message' => 'Événement non trouvé',
+            ], 404);
+        }
+
+        $now = new \DateTime();
+        $isEventActive = $event->getCommenceLe() && $event->getSeTermineLe()
+            && $now >= $event->getCommenceLe() && $now <= $event->getSeTermineLe();
+        $isEventUpcoming = $event->getCommenceLe() && $now < $event->getCommenceLe();
+
+        if (!$isEventActive && !$isEventUpcoming) {
+            return $this->json([
+                'success' => false,
+                'message' => 'L\'événement est terminé, vous ne pouvez plus modifier ce type de billet',
+            ], 403);
+        }
+
+        $data = json_decode($request->getContent(), true);
+        $errors = [];
+
+        // Validation du prix
+        if (!isset($data['prixDeBase']) || !is_numeric($data['prixDeBase']) || (float)$data['prixDeBase'] < 0) {
+            $errors['prixDeBase'] = 'Le prix doit être un nombre positif';
+        }
+
+        // Validation de la quantité
+        $inventaire = $typeBillet->getInventaire();
+        $quantiteVendue = $inventaire ? $inventaire->getQuantiteVendue() : 0;
+        
+        if (!isset($data['quantiteTotale']) || !is_numeric($data['quantiteTotale'])) {
+            $errors['quantiteTotale'] = 'La quantité doit être un nombre';
+        } elseif ((int)$data['quantiteTotale'] < $quantiteVendue) {
+            $errors['quantiteTotale'] = "La quantité ne peut pas être inférieure à {$quantiteVendue} (quantité déjà vendue)";
+        }
+
+        if (!empty($errors)) {
+            return $this->json([
+                'success' => false,
+                'message' => 'Erreurs de validation',
+                'errors' => $errors,
+            ], 400);
+        }
+
+        // Mettre à jour le prix
+        $nouveauPrix = number_format((float)$data['prixDeBase'], 2, '.', '');
+        $ancienPrix = $typeBillet->getPrixDeBase();
+        
+        $this->typeBilletService->update($typeBillet, [
+            'prixDeBase' => $nouveauPrix,
+        ]);
+
+        // Enregistrer l'historique si le prix a changé
+        if ($ancienPrix !== $nouveauPrix) {
+            $this->historiquePrixBilletService->enregistrerChangement(
+                $typeBillet,
+                $ancienPrix,
+                $nouveauPrix,
+                $user,
+                'Modification via interface catégories',
+                ['action' => 'modification_prix_quantite', 'type_billet_id' => $typeBillet->getId()]
+            );
+        }
+
+        // Mettre à jour la quantité dans l'inventaire
+        if ($inventaire) {
+            $this->inventaireBilletService->update($inventaire, [
+                'quantiteTotale' => (int)$data['quantiteTotale'],
+            ]);
+        }
+
+        return $this->json([
+            'success' => true,
+            'message' => 'Type de billet modifié avec succès',
         ]);
     }
 }

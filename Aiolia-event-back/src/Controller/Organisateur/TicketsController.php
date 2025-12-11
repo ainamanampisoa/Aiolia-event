@@ -5,6 +5,7 @@ namespace App\Controller\Organisateur;
 use App\Entity\Event;
 use App\Repository\Organisateur\EventRepository;
 use App\Service\Organisateur\BilletService;
+use App\Service\Organisateur\SalesHistoryService;
 use Symfony\Bundle\FrameworkBundle\Controller\AbstractController;
 use Symfony\Component\HttpFoundation\Request;
 use Symfony\Component\HttpFoundation\Response;
@@ -17,7 +18,8 @@ class TicketsController extends AbstractController
 {
     public function __construct(
         private BilletService $billetService,
-        private EventRepository $eventRepository
+        private EventRepository $eventRepository,
+        private SalesHistoryService $salesHistoryService
     ) {
     }
 
@@ -31,6 +33,19 @@ class TicketsController extends AbstractController
         $page = max(1, (int) $request->query->get('page', 1));
         $limit = 10;
         $eventId = $request->query->get('eventId');
+        $filters = [
+            'statut' => $request->query->get('statut'),
+            'categorie' => $request->query->get('categorie'),
+            'segment' => $request->query->get('segment'),
+        ];
+
+        $filters = array_map(static function ($value) {
+            if (is_string($value)) {
+                $value = trim($value);
+            }
+
+            return $value === '' ? null : $value;
+        }, $filters);
         
         $event = null;
         if ($eventId) {
@@ -44,20 +59,34 @@ class TicketsController extends AbstractController
             }
         }
 
-        $paginator = $this->billetService->getByOrganizerPaginated($user, $page, $limit, $event);
-        $stats = $this->billetService->getStatsByOrganizer($user, $event);
-
-        $totalItems = $paginator->count();
+        // Historique de ventes via vue v_ticket_sales_history
+        $history = $this->salesHistoryService->getPaginated($user, $page, $limit, $event, $filters);
+        $rows = $history['rows'] ?? [];
+        $totalItems = $history['total'] ?? 0;
         $totalPages = (int) ceil($totalItems / $limit);
 
+        // Stats globales
+        $stats = $this->billetService->getStatsByOrganizer($user, $event);
+
+        // Filtres disponibles depuis la base de données (toutes les valeurs possibles)
+        $availableFilters = $this->billetService->getFilterOptionsByOrganizer($user, $event);
+        
+        // Exclure le statut 'dispo' car les billets dispo ne sont pas achetés et n'ont pas de facture
+        // Cette page affiche l'historique des ventes (factures)
+        $availableFilters['statuts'] = array_filter($availableFilters['statuts'], function($statut) {
+            return $statut !== 'dispo';
+        });
+
         return $this->render('Organisateur/ticket/index.html.twig', [
-            'billets' => $paginator,
+            'ventes' => $rows,
             'stats' => $stats,
             'currentPage' => $page,
             'totalPages' => $totalPages,
             'totalItems' => $totalItems,
             'limit' => $limit,
             'event' => $event,
+            'filters' => $filters,
+            'availableFilters' => $availableFilters,
         ]);
     }
 }

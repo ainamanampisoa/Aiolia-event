@@ -2,213 +2,169 @@
 
 {% block title %}Catégories de billets - Aiolia Event{% endblock %}
 
+{% block stylesheets %}
+{{ parent() }}
+<style>
+/* Styles pour le breadcrumb */
+.event-detail-header {
+    margin-bottom: 20px;
+}
+
+.header-breadcrumb {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    margin-bottom: 16px;
+    font-size: 0.9rem;
+}
+
+.header-breadcrumb a {
+    color: var(--accent);
+    text-decoration: none;
+    font-weight: var(--font-weight-medium);
+}
+
+.header-breadcrumb a:hover {
+    text-decoration: underline;
+}
+
+.header-breadcrumb i {
+    font-size: 0.7rem;
+    color: var(--gray-500);
+}
+
+.header-breadcrumb span {
+    color: var(--gray-700);
+    font-weight: var(--font-weight-semibold);
+}
+</style>
+{% endblock %}
+
 {% block body %}
 <div class="dashboard">
+    {% if event is defined and event %}
+    <!-- Breadcrumb -->
+    <div class="event-detail-header" style="margin-bottom: 24px;">
+        <div class="header-breadcrumb">
+            <a href="{{ path('organisateur_events_index') }}">Événements</a>
+            <i class="fas fa-chevron-right"></i>
+            <a href="{{ path('organisateur_events_show', {id: event.id}) }}">Événement #{{ event.id }} - {{ event.titre }}</a>
+            <i class="fas fa-chevron-right"></i>
+            <a href="{{ path('organisateur_tickets_index', {eventId: event.id}) }}">Historique vente</a>
+            <i class="fas fa-chevron-right"></i>
+            <span>Catégories</span>
+        </div>
+    </div>
+    {% endif %}
+
     <div class="dashboard-header">
         <div>
             <h1>🏷️ Catégories de billets</h1>
             <p style="color: var(--gray-600); margin-top: 8px; font-size: 1rem;">
-                Configurez les catégories et prix de vos billets
+                {% if event is defined and event %}
+                    Statistiques de vente - {{ event.titre }}
+                {% else %}
+                    Configurez les catégories et prix de vos billets
+                {% endif %}
             </p>
         </div>
-        <div class="header-actions">
-            <a href="{{ path('organisateur_tickets_index') }}" class="btn-header">
-                <i class="fas fa-ticket-alt"></i>
-                <span>Billets</span>
-            </a>
-            <a href="{{ path('app_ticket_historique_prix') }}" class="btn-header">
-                <i class="fas fa-history"></i>
-                <span>Historique prix</span>
-            </a>
-        </div>
     </div>
-
-    <!-- Filtres -->
-    <div class="card validation-card" style="margin-bottom: 24px;">
-        <div class="card-header" style="display: flex; align-items: center; gap: 12px;">
-            <div style="width: 40px; height: 40px; display: flex; align-items: center; justify-content: center; background: var(--bg-secondary); border-radius: var(--border-radius-sm); color: var(--accent); font-size: 1.1rem;">
-                <i class="fas fa-filter"></i>
-            </div>
-            <h3 style="margin: 0; font-size: 1.2rem; font-weight: var(--font-weight-medium); color: var(--text-primary);">Filtres</h3>
-        </div>
-        <div class="card-body" style="display: flex; gap: 20px; flex-wrap: wrap;">
-            <div style="flex: 1; min-width: 250px;">
-                <label for="filterCategorie" style="display: block; margin-bottom: 8px; font-size: 0.9rem; font-weight: var(--font-weight-medium); color: var(--text-secondary);">Catégorie</label>
-                <select id="filterCategorie" class="filter-select">
-                    <option value="">Toutes les catégories</option>
-                    {% for categorie in categories %}
-                        <option value="{{ categorie.id }}" {% if categorieFilter == categorie.id|default('') %}selected{% endif %}>
-                            {{ categorie.nom }}
-                        </option>
-                    {% endfor %}
-                </select>
-            </div>
-            <div style="flex: 1; min-width: 250px;">
-                <label for="filterSegment" style="display: block; margin-bottom: 8px; font-size: 0.9rem; font-weight: var(--font-weight-medium); color: var(--text-secondary);">Segment d'âge</label>
-                <select id="filterSegment" class="filter-select">
-                    <option value="">Tous les segments</option>
-                    {% for segment in segments %}
-                        <option value="{{ segment.id }}" {% if segmentFilter == segment.id|default('') %}selected{% endif %}>
-                            {{ segment.nom|capitalize }}
-                        </option>
-                    {% endfor %}
-                </select>
-            </div>
-        </div>
-    </div>
-
-    <!-- Liste des catégories -->
+    <!-- Tableau des statistiques de vente -->
     <div class="card validation-card">
-        <div class="card-header" style="display: flex; justify-content: space-between; align-items: center;">
-            <h3>📋 Liste des catégories</h3>
-            {% if totalItems is defined and totalItems > 0 %}
-                <span style="color: var(--gray-600); font-size: 0.9rem;">
-                    Total : <strong>{{ totalItems }}</strong> catégorie(s)
-                </span>
-            {% endif %}
-        </div>
         <div class="card-body">
-            {% if totalItems is defined and totalItems > 0 %}
-                <div class="categories-grid">
-                    {% for typeBillet in typesBillets %}
-                        {% set inventaire = typeBillet.inventaire %}
-                        {% set vendus = inventaire ? inventaire.quantiteVendue : 0 %}
-                        {% set restants = inventaire ? (inventaire.quantiteTotale - inventaire.quantiteVendue - inventaire.quantiteReservee) : 0 %}
-                        <div class="category-card">
-                            <div class="category-header">
-                                <h3>{{ typeBillet.nom }}</h3>
-                                {% if typeBillet.configurationCategorie %}
-                                    <span class="category-badge">{{ typeBillet.configurationCategorie.nom|lower|trim }}</span>
-                                {% endif %}
-                            </div>
-                            {% if typeBillet.evenement %}
-                                <div class="category-event">
-                                    <i class="fas fa-calendar-alt"></i>
-                                    <span>{{ typeBillet.evenement.titre }}</span>
-                                </div>
-                            {% endif %}
-                            <div class="category-price">{{ typeBillet.prixDeBase|number_format(2, ',', ' ') }} {{ typeBillet.devise }}</div>
-                            <p class="category-description">{{ typeBillet.description ?? 'Pas de description' }}</p>
-                            <div class="category-stats">
-                                <div class="stat-item">
-                                    <span class="stat-label">Vendus</span>
-                                    <span class="stat-value">{{ vendus }}</span>
-                                </div>
-                                <div class="stat-item">
-                                    <span class="stat-label">Restants</span>
-                                    <span class="stat-value">{{ restants }}</span>
-                                </div>
-                            </div>
-                            <div class="category-actions">
-                                <a href="{{ path('app_ticket_historique_prix') }}?type={{ typeBillet.id }}" class="btn-category-action">
-                                    <i class="fas fa-history"></i>
-                                    <span>Historique prix</span>
-                                </a>
-                            </div>
-                        </div>
-                    {% endfor %}
-                </div>
-
-                <!-- Pagination -->
-                {% if totalPages > 1 %}
-                    {% set maxPagesToShow = 5 %}
-                    {% set startPage = currentPage - 2 %}
-                    {% if startPage < 1 %}
-                        {% set startPage = 1 %}
-                    {% endif %}
-                    {% set endPage = startPage + maxPagesToShow - 1 %}
-                    {% if endPage > totalPages %}
-                        {% set endPage = totalPages %}
-                    {% endif %}
-                    {% set startPage = endPage - maxPagesToShow + 1 %}
-                    {% if startPage < 1 %}
-                        {% set startPage = 1 %}
-                    {% endif %}
-
-                    <div class="pagination-wrapper">
-                        <ul class="pagination pagination-rounded">
-                            <li class="page-item {{ currentPage == 1 ? 'disabled' }}">
-                                {% if currentPage == 1 %}
-                                    <span class="page-link" aria-disabled="true">Précédent</span>
-                                {% else %}
-                                    <a class="page-link" href="{{ path('app_ticket_categories', {
-                                        page: currentPage - 1,
-                                        categorie: categorieFilter|default(''),
-                                        segment: segmentFilter|default('')
-                                    }) }}" rel="prev">Précédent</a>
-                                {% endif %}
-                            </li>
-
-                            {% if startPage > 1 %}
-                                <li class="page-item">
-                                    <a class="page-link" href="{{ path('app_ticket_categories', {
-                                        page: 1,
-                                        categorie: categorieFilter|default(''),
-                                        segment: segmentFilter|default('')
-                                    }) }}">1</a>
-                                </li>
-                                {% if startPage > 2 %}
-                                    <li class="page-item ellipsis" aria-hidden="true"><span class="page-link">…</span></li>
-                                {% endif %}
-                            {% endif %}
-
-                            {% for page in startPage..endPage %}
-                                <li class="page-item {{ page == currentPage ? 'active' }}">
-                                    {% if page == currentPage %}
-                                        <span class="page-link" aria-current="page">{{ page }}</span>
-                                    {% else %}
-                                        <a class="page-link" href="{{ path('app_ticket_categories', {
-                                            page: page,
-                                            categorie: categorieFilter|default(''),
-                                            segment: segmentFilter|default('')
-                                        }) }}">{{ page }}</a>
-                                    {% endif %}
-                                </li>
+            <div class="table-responsive">
+                <table class="table table-hover validation-table categories-table">
+                    <thead>
+                        <tr>
+                            <th class="col-left">Type de billet</th>
+                            <th class="col-right">Prix unitaire</th>
+                            <th class="col-center">Stock total</th>
+                            <th class="col-center">Vendus</th>
+                            <th class="col-center">Disponibles</th>
+                            <th class="col-center">Actions</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% if typesBillets is defined and typesBillets|length > 0 %}
+                            {% for typeBillet in typesBillets %}
+                                {% set stats = statsByType[typeBillet.id] ?? {'stockTotal': 0, 'vendus': 0, 'disponibles': 0, 'revenus': 0, 'tauxVente': 0} %}
+                                {% set eventBillet = typeBillet.evenement %}
+                                {% set now = date() %}
+                                {% set isEventActive = eventBillet and eventBillet.commenceLe and eventBillet.seTermineLe and now >= eventBillet.commenceLe and now <= eventBillet.seTermineLe %}
+                                {% set isEventUpcoming = eventBillet and eventBillet.commenceLe and now < eventBillet.commenceLe %}
+                                {% set canEdit = isEventActive or isEventUpcoming %}
+                                <tr>
+                                    <td class="col-left">
+                                        <div style="display: flex; flex-direction: column; gap: 4px;">
+                                            <span style="color: var(--text-primary); font-size: 0.95rem; font-weight: var(--font-weight-medium);">
+                                                {{ typeBillet.nom }}
+                                            </span>
+                                            {% if typeBillet.configurationCategorie %}
+                                                <span class="ticket-cat-badge" style="width: auto; padding: 4px 12px; font-size: 0.75rem;">
+                                                    {{ typeBillet.configurationCategorie.nom|lower|trim }}
+                                                </span>
+                                            {% endif %}
+                                        </div>
+                                    </td>
+                                    <td class="col-right">
+                                        <span style="color: var(--text-primary); font-size: 1rem; font-weight: var(--font-weight-medium);">
+                                            {{ typeBillet.prixDeBase|number_format(0, ',', ' ') }} {{ typeBillet.devise }}
+                                        </span>
+                                    </td>
+                                    <td class="col-center">
+                                        <span style="color: var(--text-primary); font-size: 1rem; font-weight: var(--font-weight-medium);">
+                                            {{ stats.stockTotal|number_format(0, ',', ' ') }}
+                                        </span>
+                                    </td>
+                                    <td class="col-center">
+                                        <span class="badge-sold">{{ stats.vendus|number_format(0, ',', ' ') }}</span>
+                                    </td>
+                                    <td class="col-center">
+                                        <span class="badge-available">{{ stats.disponibles|number_format(0, ',', ' ') }}</span>
+                                    </td>
+                                    <td class="col-center">
+                                        <div class="action-buttons">
+                                            {% if canEdit %}
+                                                <button type="button" class="btn-action btn-edit" title="Modifier le prix et la quantité" onclick="openEditModal({{ typeBillet.id }}, '{{ typeBillet.prixDeBase }}', {{ stats.stockTotal }}, {{ stats.vendus }})">
+                                                    <i class="fas fa-edit"></i>
+                                                </button>
+                                            {% else %}
+                                                <span class="text-muted">—</span>
+                                            {% endif %}
+                                        </div>
+                                    </td>
+                                </tr>
                             {% endfor %}
-
-                            {% if endPage < totalPages %}
-                                {% if endPage < totalPages - 1 %}
-                                    <li class="page-item ellipsis" aria-hidden="true"><span class="page-link">…</span></li>
-                                {% endif %}
-                                <li class="page-item">
-                                    <a class="page-link" href="{{ path('app_ticket_categories', {
-                                        page: totalPages,
-                                        categorie: categorieFilter|default(''),
-                                        segment: segmentFilter|default('')
-                                    }) }}">{{ totalPages }}</a>
-                                </li>
+                            <!-- Ligne total -->
+                            {% if totalStats is defined %}
+                                <tr class="total-row">
+                                    <td class="col-left">
+                                        <strong>TOTAL</strong>
+                                    </td>
+                                    <td class="col-right">-</td>
+                                    <td class="col-center">
+                                        <strong>{{ totalStats.stockTotal|number_format(0, ',', ' ') }}</strong>
+                                    </td>
+                                    <td class="col-center">
+                                        <strong>{{ totalStats.vendus|number_format(0, ',', ' ') }}</strong>
+                                    </td>
+                                    <td class="col-center">
+                                        <strong>{{ totalStats.disponibles|number_format(0, ',', ' ') }}</strong>
+                                    </td>
+                                    <td class="col-center">-</td>
+                                </tr>
                             {% endif %}
-
-                            <li class="page-item {{ currentPage == totalPages ? 'disabled' }}">
-                                {% if currentPage == totalPages %}
-                                    <span class="page-link" aria-disabled="true">Suivant</span>
-                                {% else %}
-                                    <a class="page-link" href="{{ path('app_ticket_categories', {
-                                        page: currentPage + 1,
-                                        categorie: categorieFilter|default(''),
-                                        segment: segmentFilter|default('')
-                                    }) }}" rel="next">Suivant</a>
-                                {% endif %}
-                            </li>
-                        </ul>
-                    </div>
-                    <div class="pagination-summary">
-                        <small>Page {{ currentPage }} sur {{ totalPages }} - Affichage de {{ typesBillets|length }} catégorie(s) sur {{ totalItems }} total</small>
-                    </div>
-                {% elseif totalItems > 0 %}
-                    <div class="pagination-wrapper">
-                        <div class="pagination-summary">
-                            <small>Affichage de {{ totalItems }} catégorie(s)</small>
-                        </div>
-                    </div>
-                {% endif %}
-            {% else %}
-                <div style="text-align: center; padding: 60px;">
-                    <i class="fas fa-tags" style="font-size: 4rem; color: var(--text-secondary); margin-bottom: 1rem; opacity: 0.3;"></i>
-                    <h3 style="margin-bottom: 8px; color: var(--text-secondary);">Aucune catégorie trouvée</h3>
-                    <p style="color: var(--text-secondary);">Aucune catégorie de billet trouvée pour vos événements.</p>
-                </div>
-            {% endif %}
+                        {% else %}
+                            <tr>
+                                <td colspan="6" class="text-center" style="padding: 40px;">
+                                    <i class="fas fa-ticket-alt" style="font-size: 3rem; color: var(--text-secondary); margin-bottom: 1rem;"></i>
+                                    <p style="color: var(--text-secondary);">Aucun type de billet trouvé</p>
+                                </td>
+                            </tr>
+                        {% endif %}
+                    </tbody>
+                </table>
+            </div>
         </div>
     </div>
 </div>
@@ -526,7 +482,342 @@
         font-size: 1.75rem;
     }
 }
+
+/* Styles pour le tableau des catégories */
+.categories-table {
+    width: 100%;
+    border-collapse: separate;
+    border-spacing: 0;
+    background: var(--bg-card);
+}
+
+.categories-table thead th {
+    color: var(--text-primary);
+    border-bottom: 1px solid var(--border-color);
+    font-weight: var(--font-weight-medium);
+    text-transform: uppercase;
+    font-size: 0.82rem;
+    letter-spacing: 0.02em;
+    padding: 16px 20px;
+    white-space: nowrap;
+}
+
+.categories-table tbody td {
+    border-bottom: 1px solid var(--border-color);
+    padding: 18px 20px;
+    vertical-align: middle;
+    background: var(--bg-card);
+}
+
+/* Alignements colonnes */
+.col-left { text-align: left; }
+.col-center { text-align: center; }
+.col-right { text-align: right; }
+
+.categories-table tbody tr.total-row {
+    background: var(--bg-secondary);
+    font-weight: var(--font-weight-semibold);
+}
+
+.categories-table tbody tr.total-row td {
+    border-top: 2px solid var(--border-color);
+    border-bottom: 2px solid var(--border-color);
+}
+
+.badge-sold {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 36px;
+    height: 36px;
+    border-radius: 50%;
+    background: rgba(39, 174, 96, 0.15);
+    color: var(--success);
+    font-weight: var(--font-weight-semibold);
+    font-size: 0.9rem;
+}
+
+.badge-available {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 36px;
+    height: 36px;
+    border-radius: 50%;
+    background: rgba(52, 152, 219, 0.15);
+    color: var(--accent);
+    font-weight: var(--font-weight-semibold);
+    font-size: 0.9rem;
+}
+
+.sales-rate-container {
+    width: 100%;
+    max-width: 150px;
+    height: 24px;
+    background: var(--bg-secondary);
+    border-radius: 12px;
+    overflow: hidden;
+    position: relative;
+    margin: 0 auto;
+}
+
+.sales-rate-bar {
+    height: 100%;
+    border-radius: 12px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    transition: width 0.3s ease;
+    min-width: 40px;
+}
+
+.sales-rate-text {
+    color: white;
+    font-size: 0.75rem;
+    font-weight: var(--font-weight-semibold);
+    white-space: nowrap;
+}
+
+.action-buttons {
+    display: flex;
+    gap: 8px;
+    justify-content: center;
+    align-items: center;
+}
+
+.btn-action {
+    width: 36px;
+    height: 36px;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    border: none;
+    border-radius: var(--border-radius-sm);
+    cursor: pointer;
+    transition: all 0.3s ease;
+    text-decoration: none;
+    font-size: 0.9rem;
+    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+}
+
+.btn-action:hover:not(:disabled) {
+    transform: translateY(-2px);
+    box-shadow: 0 4px 8px rgba(0, 0, 0, 0.15);
+}
+
+.btn-view {
+    background: linear-gradient(135deg, #3498DB 0%, #2980B9 100%);
+    color: white;
+}
+
+.btn-view:hover:not(:disabled) {
+    background: linear-gradient(135deg, #2980B9 0%, #21618C 100%);
+    color: white;
+}
+
+.btn-edit {
+    background: linear-gradient(135deg, #F39C12 0%, #E67E22 100%);
+    color: white;
+}
+
+.btn-edit:hover:not(:disabled) {
+    background: linear-gradient(135deg, #E67E22 0%, #D35400 100%);
+    color: white;
+}
+
+/* Modal styles */
+.modal-overlay {
+    display: none;
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    background: rgba(0, 0, 0, 0.5);
+    z-index: 9999;
+    justify-content: center;
+    align-items: center;
+}
+
+.modal-overlay.active {
+    display: flex;
+}
+
+.modal-content {
+    background: var(--bg-card);
+    border-radius: var(--border-radius-lg);
+    box-shadow: 0 10px 40px rgba(0, 0, 0, 0.2);
+    max-width: 500px;
+    width: 90%;
+    max-height: 90vh;
+    overflow-y: auto;
+    animation: modalFadeIn 0.3s ease;
+}
+
+@keyframes modalFadeIn {
+    from {
+        opacity: 0;
+        transform: translateY(-20px);
+    }
+    to {
+        opacity: 1;
+        transform: translateY(0);
+    }
+}
+
+.modal-header {
+    padding: 24px;
+    border-bottom: 1px solid var(--border-color);
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+}
+
+.modal-header h3 {
+    margin: 0;
+    font-size: 1.3rem;
+    font-weight: var(--font-weight-semibold);
+    color: var(--text-primary);
+    display: flex;
+    align-items: center;
+    gap: 10px;
+}
+
+.modal-close {
+    background: none;
+    border: none;
+    font-size: 1.5rem;
+    color: var(--text-secondary);
+    cursor: pointer;
+    padding: 0;
+    width: 32px;
+    height: 32px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    border-radius: var(--border-radius-sm);
+    transition: all 0.3s ease;
+}
+
+.modal-close:hover {
+    background: var(--bg-secondary);
+    color: var(--text-primary);
+}
+
+.modal-body {
+    padding: 24px;
+}
+
+.form-group {
+    margin-bottom: 20px;
+}
+
+.form-group label {
+    display: block;
+    margin-bottom: 8px;
+    font-weight: var(--font-weight-medium);
+    color: var(--text-primary);
+    font-size: 0.95rem;
+}
+
+.form-group .form-control {
+    width: 100%;
+    padding: 12px;
+    border: 1px solid var(--border-color);
+    border-radius: var(--border-radius-sm);
+    background: var(--bg-secondary);
+    color: var(--text-primary);
+    font-size: 1rem;
+    transition: all 0.3s ease;
+}
+
+.form-group .form-control:focus {
+    outline: none;
+    border-color: var(--accent);
+    box-shadow: 0 0 0 3px rgba(52, 152, 219, 0.1);
+}
+
+.form-group .form-control.error {
+    border-color: var(--danger);
+}
+
+.form-error {
+    color: var(--danger);
+    font-size: 0.85rem;
+    margin-top: 4px;
+}
+
+.modal-footer {
+    padding: 20px 24px;
+    border-top: 1px solid var(--border-color);
+    display: flex;
+    justify-content: flex-end;
+    gap: 12px;
+}
+
+.btn-modal {
+    padding: 10px 20px;
+    border: none;
+    border-radius: var(--border-radius-sm);
+    font-weight: var(--font-weight-medium);
+    cursor: pointer;
+    transition: all 0.3s ease;
+    font-size: 0.95rem;
+}
+
+.btn-modal-secondary {
+    background: var(--bg-secondary);
+    color: var(--text-primary);
+    border: 1px solid var(--border-color);
+}
+
+.btn-modal-secondary:hover {
+    background: var(--gray-100);
+}
+
+.btn-modal-primary {
+    background: linear-gradient(135deg, #5DADE2 0%, #3498DB 100%);
+    color: white;
+}
+
+.btn-modal-primary:hover {
+    background: linear-gradient(135deg, #3498DB 0%, #2980B9 100%);
+    transform: translateY(-2px);
+    box-shadow: 0 4px 8px rgba(0, 0, 0, 0.15);
+}
 </style>
+
+<!-- Modal pour modifier le prix et la quantité -->
+<div id="editModal" class="modal-overlay">
+    <div class="modal-content">
+        <div class="modal-header">
+            <h3><i class="fas fa-edit"></i> Modifier le type de billet</h3>
+            <button type="button" class="modal-close" id="closeModal">&times;</button>
+        </div>
+        <div class="modal-body" id="modalBody">
+            <form id="editForm" method="post">
+                <div class="form-group">
+                    <label for="prixDeBase">Prix unitaire (MGA)</label>
+                    <input type="number" id="prixDeBase" name="prixDeBase" class="form-control" step="0.01" min="0" required>
+                    <div class="form-error" id="prixError"></div>
+                </div>
+                <div class="form-group">
+                    <label for="quantiteTotale">Quantité totale</label>
+                    <input type="number" id="quantiteTotale" name="quantiteTotale" class="form-control" min="1" required>
+                    <div class="form-error" id="quantiteError"></div>
+                    <small style="color: var(--text-secondary); margin-top: 4px; display: block;">
+                        La quantité ne peut pas être inférieure à <span id="minQuantite">0</span> (quantité déjà vendue)
+                    </small>
+                </div>
+                <input type="hidden" id="typeBilletId" name="typeBilletId">
+            </form>
+        </div>
+        <div class="modal-footer">
+            <button type="button" class="btn-modal btn-modal-secondary" id="cancelBtn">Annuler</button>
+            <button type="button" class="btn-modal btn-modal-primary" id="saveBtn">Enregistrer</button>
+        </div>
+    </div>
+</div>
 
 <script>
 document.addEventListener('DOMContentLoaded', function() {
@@ -562,6 +853,143 @@ document.addEventListener('DOMContentLoaded', function() {
     if (filterSegment) {
         filterSegment.addEventListener('change', updateFilters);
     }
+});
+
+// Fonction pour ouvrir le modal de modification
+function openEditModal(typeBilletId, prixDeBase, stockTotal, vendus) {
+    const modal = document.getElementById('editModal');
+    const form = document.getElementById('editForm');
+    const prixInput = document.getElementById('prixDeBase');
+    const quantiteInput = document.getElementById('quantiteTotale');
+    const typeBilletIdInput = document.getElementById('typeBilletId');
+    const minQuantiteSpan = document.getElementById('minQuantite');
+
+    typeBilletIdInput.value = typeBilletId;
+    // Convertir le prix en nombre (supprimer les espaces et formater)
+    const prix = parseFloat(String(prixDeBase).replace(/\s/g, '').replace(',', '.'));
+    prixInput.value = isNaN(prix) ? 0 : prix;
+    quantiteInput.value = stockTotal;
+    quantiteInput.min = vendus;
+    minQuantiteSpan.textContent = vendus;
+    
+    // Réinitialiser les erreurs
+    document.getElementById('prixError').textContent = '';
+    document.getElementById('quantiteError').textContent = '';
+    prixInput.classList.remove('error');
+    quantiteInput.classList.remove('error');
+    
+    modal.classList.add('active');
+}
+
+// Fermer le modal
+document.getElementById('closeModal').addEventListener('click', function() {
+    document.getElementById('editModal').classList.remove('active');
+});
+
+document.getElementById('cancelBtn').addEventListener('click', function() {
+    document.getElementById('editModal').classList.remove('active');
+});
+
+document.getElementById('editModal').addEventListener('click', function(e) {
+    if (e.target === this) {
+        this.classList.remove('active');
+    }
+});
+
+// Fermer avec Escape
+document.addEventListener('keydown', function(e) {
+    if (e.key === 'Escape') {
+        document.getElementById('editModal').classList.remove('active');
+    }
+});
+
+// Soumettre le formulaire
+document.getElementById('saveBtn').addEventListener('click', function() {
+    const form = document.getElementById('editForm');
+    const formData = new FormData(form);
+    const typeBilletId = formData.get('typeBilletId');
+    const prixDeBase = formData.get('prixDeBase');
+    const quantiteTotale = formData.get('quantiteTotale');
+    const vendus = parseInt(document.getElementById('quantiteTotale').min);
+    
+    // Validation
+    let hasError = false;
+    
+    if (!prixDeBase || parseFloat(prixDeBase) < 0) {
+        document.getElementById('prixError').textContent = 'Le prix doit être supérieur ou égal à 0';
+        document.getElementById('prixDeBase').classList.add('error');
+        hasError = true;
+    } else {
+        document.getElementById('prixError').textContent = '';
+        document.getElementById('prixDeBase').classList.remove('error');
+    }
+    
+    if (!quantiteTotale || parseInt(quantiteTotale) < vendus) {
+        document.getElementById('quantiteError').textContent = `La quantité doit être supérieure ou égale à ${vendus}`;
+        document.getElementById('quantiteTotale').classList.add('error');
+        hasError = true;
+    } else {
+        document.getElementById('quantiteError').textContent = '';
+        document.getElementById('quantiteTotale').classList.remove('error');
+    }
+    
+    if (hasError) {
+        return;
+    }
+    
+    // Désactiver le bouton
+    this.disabled = true;
+    this.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Enregistrement...';
+    
+    // Envoyer la requête
+    fetch(`/tickets/types/${typeBilletId}/edit`, {
+        method: 'POST',
+        headers: {
+            'Content-Type': 'application/json',
+            'X-Requested-With': 'XMLHttpRequest',
+        },
+        body: JSON.stringify({
+            prixDeBase: prixDeBase,
+            quantiteTotale: quantiteTotale
+        })
+    })
+    .then(response => response.json())
+    .then(data => {
+        if (data.success) {
+            // Afficher un message de succès
+            const successMessage = document.createElement('div');
+            successMessage.className = 'alert alert-success';
+            successMessage.style.cssText = 'padding: 12px; margin-bottom: 16px; background: var(--success); color: white; border-radius: var(--border-radius-sm);';
+            successMessage.innerHTML = `<i class="fas fa-check-circle"></i> ${data.message}`;
+            document.getElementById('modalBody').insertBefore(successMessage, form);
+            
+            // Fermer le modal après 1.5 secondes et recharger la page
+            setTimeout(() => {
+                document.getElementById('editModal').classList.remove('active');
+                window.location.reload();
+            }, 1500);
+        } else {
+            // Afficher l'erreur
+            if (data.errors) {
+                if (data.errors.prixDeBase) {
+                    document.getElementById('prixError').textContent = data.errors.prixDeBase;
+                    document.getElementById('prixDeBase').classList.add('error');
+                }
+                if (data.errors.quantiteTotale) {
+                    document.getElementById('quantiteError').textContent = data.errors.quantiteTotale;
+                    document.getElementById('quantiteTotale').classList.add('error');
+                }
+            }
+            this.disabled = false;
+            this.innerHTML = 'Enregistrer';
+        }
+    })
+    .catch(error => {
+        console.error('Erreur:', error);
+        document.getElementById('quantiteError').textContent = 'Une erreur est survenue lors de l\'enregistrement';
+        this.disabled = false;
+        this.innerHTML = 'Enregistrer';
+    });
 });
 </script>
 {% endblock %}

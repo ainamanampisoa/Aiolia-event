@@ -3,6 +3,8 @@
 namespace App\Repository\Organisateur;
 
 use App\Entity\TicketInvoice;
+use App\Entity\Event;
+use Doctrine\DBAL\Exception;
 use Doctrine\Bundle\DoctrineBundle\Repository\ServiceEntityRepository;
 use Doctrine\Persistence\ManagerRegistry;
 
@@ -12,6 +14,35 @@ class TicketInvoiceRepository extends ServiceEntityRepository
     public function __construct(ManagerRegistry $registry)
     {
         parent::__construct($registry, TicketInvoice::class);
+    }
+
+    /**
+     * Revenus facturés par type de billet pour un événement (somme montant_total).
+     *
+     * @return array<string,float> [typeBilletId => revenue]
+     */
+    public function getRevenueByEvent(Event $event): array
+    {
+        $sql = "
+            SELECT
+                ec.id_type_billet AS type_id,
+                SUM(fb.montant_total::numeric) AS revenue
+            FROM aiolia.factures_billets fb
+            INNER JOIN aiolia.elements_commandes ec ON ec.id_commande = fb.id_commande
+            INNER JOIN aiolia.types_billets tb ON tb.id = ec.id_type_billet
+            WHERE tb.id_evenement = :eventId
+            GROUP BY ec.id_type_billet
+        ";
+
+        $conn = $this->getEntityManager()->getConnection();
+        $rows = $conn->fetchAllAssociative($sql, ['eventId' => $event->getId()]);
+
+        $revenues = [];
+        foreach ($rows as $row) {
+            $revenues[(string) $row['type_id']] = (float) $row['revenue'];
+        }
+
+        return $revenues;
     }
 
     

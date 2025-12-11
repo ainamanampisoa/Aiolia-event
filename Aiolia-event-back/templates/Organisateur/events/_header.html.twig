@@ -8,6 +8,9 @@
     <div class="header-actions-row">
         {% set isOngoing = event.statut == 'published' and event.commenceLe and event.commenceLe <= date() and (event.seTermineLe is null or event.seTermineLe >= date()) %}
         {% set isUpcoming = event.statut == 'published' and event.commenceLe and event.commenceLe > date() %}
+        <a href="{{ path('organisateur_tickets_index', {'eventId': event.id}) }}" class="btn btn-secondary" style="background: #5DADE2; color: white; border: none; padding: 10px 20px; border-radius: 8px; cursor: pointer; font-weight: 600; text-decoration: none; display: inline-flex; align-items: center; gap: 8px;">
+            <i class="fas fa-ticket-alt"></i> Historique vente
+        </a>
         {% if isOngoing or isUpcoming %}
             <a href="{{ path('organisateur_events_edit', {'id': event.id}) }}" class="btn btn-primary" style="background: #3498DB !important; color: white; border: none; padding: 10px 20px; border-radius: 8px; cursor: pointer; font-weight: 600; text-decoration: none; display: inline-flex; align-items: center; gap: 8px;">
                 <i class="fas fa-edit"></i> Modifier

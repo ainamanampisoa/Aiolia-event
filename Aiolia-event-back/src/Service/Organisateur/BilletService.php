@@ -7,12 +7,14 @@ use App\Entity\ElementCommande;
 use App\Entity\TypeBillet;
 use App\Entity\User;
 use App\Repository\Organisateur\BilletRepository;
+use App\Service\TicketStatusService;
 use Doctrine\ORM\Tools\Pagination\Paginator;
 
 class BilletService
 {
     public function __construct(
-        private BilletRepository $repository
+        private BilletRepository $repository,
+        private TicketStatusService $ticketStatusService
     ) {
     }
 
@@ -124,15 +126,49 @@ class BilletService
     }
 
     
-    public function getByOrganizerPaginated(User $organizer, int $page = 1, int $limit = 10, ?\App\Entity\Event $event = null): Paginator
+    public function getByOrganizerPaginated(User $organizer, int $page = 1, int $limit = 10, ?\App\Entity\Event $event = null, array $filters = []): Paginator
     {
-        return $this->repository->findByOrganizerPaginated($organizer, $page, $limit, $event);
+        return $this->repository->findByOrganizerPaginated($organizer, $page, $limit, $event, $filters);
     }
 
     
     public function getStatsByOrganizer(User $organizer, ?\App\Entity\Event $event = null): array
     {
         return $this->repository->getStatsByOrganizer($organizer, $event);
+    }
+
+    
+    public function getFilterOptionsByOrganizer(User $organizer, ?\App\Entity\Event $event = null): array
+    {
+        $options = $this->repository->getFilterOptionsByOrganizer($organizer, $event);
+        $options['statuts'] = $this->ticketStatusService->getStatuses();
+
+        return $options;
+    }
+
+    
+    public function getSalesStatsByTypeBillet(TypeBillet $typeBillet): array
+    {
+        $inventaire = $typeBillet->getInventaire();
+        
+        $stockTotal = $inventaire ? $inventaire->getQuantiteTotale() : 0;
+        $vendus = $inventaire ? $inventaire->getQuantiteVendue() : 0;
+        // Calculer les disponibles : stock total - vendus (sans soustraire les réservés)
+        $disponibles = max(0, $stockTotal - $vendus);
+        
+        // Calculer les revenus : prix unitaire × quantité vendue
+        $prixUnitaire = (float) $typeBillet->getPrixDeBase();
+        $revenus = $prixUnitaire * $vendus;
+        
+        $tauxVente = $stockTotal > 0 ? ($vendus / $stockTotal) * 100 : 0;
+        
+        return [
+            'stockTotal' => $stockTotal,
+            'vendus' => $vendus,
+            'disponibles' => $disponibles,
+            'revenus' => $revenus,
+            'tauxVente' => round($tauxVente, 1),
+        ];
     }
 }
 

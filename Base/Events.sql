@@ -404,12 +404,7 @@ BEGIN
                 -- Varier les prix selon la catégorie et l'événement (avec variation aléatoire)
                 -- Base: Standard=15000, Early Bird=25000, VIP=60000, Backstage=100000
                 -- Variation: ±20% selon l'événement pour rendre les prix uniques
-                v_prix_base NUMERIC(12,2) := CASE 
-                    WHEN j = 1 THEN 12000 + floor(random() * 6000)::INTEGER::NUMERIC  -- Standard: 12000-18000
-                    WHEN j = 2 THEN 20000 + floor(random() * 10000)::INTEGER::NUMERIC  -- Early Bird: 20000-30000
-                    WHEN j = 3 THEN 50000 + floor(random() * 20000)::INTEGER::NUMERIC  -- VIP: 50000-70000
-                    ELSE 80000 + floor(random() * 40000)::INTEGER::NUMERIC             -- Backstage: 80000-120000
-                END;
+                v_prix_base NUMERIC(12,2);
                 v_nom_categorie TEXT := CASE 
                     WHEN j = 1 THEN 'Standard'
                     WHEN j = 2 THEN 'Early Bird'
@@ -432,6 +427,15 @@ BEGIN
                         v_id_seg_billet BIGINT;
                         v_segment_nom TEXT;
                     BEGIN
+                        -- Calculer le prix de base et l'arrondir à 100
+                        v_prix_base := CASE 
+                            WHEN j = 1 THEN 12000 + floor(random() * 6000)::INTEGER::NUMERIC  -- Standard: 12000-18000
+                            WHEN j = 2 THEN 20000 + floor(random() * 10000)::INTEGER::NUMERIC  -- Early Bird: 20000-30000
+                            WHEN j = 3 THEN 50000 + floor(random() * 20000)::INTEGER::NUMERIC  -- VIP: 50000-70000
+                            ELSE 80000 + floor(random() * 40000)::INTEGER::NUMERIC             -- Backstage: 80000-120000
+                        END;
+                        v_prix_base := round(v_prix_base / 100) * 100;
+
                         -- Définir le segment (1=adulte, 2=enfant)
                         IF segment_idx = 1 THEN
                             v_id_seg_billet := v_id_segment_adulte;
@@ -440,7 +444,8 @@ BEGIN
                         ELSE
                             v_id_seg_billet := v_id_segment_enfant;
                             v_segment_nom := ' Enfant';
-                            v_prix := v_prix_base * 0.5; -- 50% pour enfants
+                            -- 50% pour enfants, arrondi au multiple de 100
+                            v_prix := round((v_prix_base * 0.5) / 100) * 100;
                         END IF;
                         
                         v_billets_par_categorie := v_billets_par_segment;
@@ -486,6 +491,17 @@ BEGIN
                             v_quantite_vendue := floor(v_billets_par_categorie * (0.1 + random() * 0.2))::INTEGER;
                         END IF;
 
+                        -- Forcer 4 à 8 billets disponibles (aléatoire) par catégorie/segment
+                        DECLARE
+                            v_quantite_dispo_cible INTEGER;
+                        BEGIN
+                            v_quantite_dispo_cible := 4 + floor(random() * 5)::INTEGER; -- entre 4 et 8
+                            IF v_quantite_dispo_cible > v_billets_par_categorie THEN
+                                v_quantite_dispo_cible := LEAST(v_billets_par_categorie, 4);
+                            END IF;
+                            v_quantite_vendue := GREATEST(0, v_billets_par_categorie - v_quantite_dispo_cible);
+                        END;
+
                         INSERT INTO inventaire_billets (id_type_billet, quantite_totale, quantite_reservee, quantite_vendue)
                         VALUES (
                             v_id_type_billet,
@@ -499,7 +515,8 @@ BEGIN
                         v_prix_precedent := v_prix;
                         
                         FOR k IN 1..v_nb_historique_prix LOOP
-                            v_prix_precedent := v_prix_precedent * (0.85 + (random() * 0.2));
+                        v_prix_precedent := v_prix_precedent * (0.85 + (random() * 0.2));
+                        v_prix_precedent := round(v_prix_precedent / 100) * 100; -- Arrondir au multiple de 100
                             
                             INSERT INTO historique_prix_billets (
                                 id_type_billet, modifie_par, prix_precedent, nouveau_prix, 
@@ -508,7 +525,7 @@ BEGIN
                                 v_id_type_billet,
                                 v_id_utilisateur_org,
                                 v_prix_precedent,
-                                CASE WHEN k = v_nb_historique_prix THEN v_prix ELSE v_prix_precedent * 1.1 END,
+                                CASE WHEN k = v_nb_historique_prix THEN v_prix ELSE round((v_prix_precedent * 1.1) / 100) * 100 END,
                                 (ARRAY['Ajustement initial', 'Promotion temporaire', 'Ajustement marché', 'Correction tarifaire'])[1 + (k % 4)],
                                 v_date_creation + (INTERVAL '1 day' * k)
                             );
@@ -579,14 +596,25 @@ BEGIN
                                 v_compteur_billets := v_compteur_billets + 1;
                                 v_billets_restants := v_billets_restants - 1;
                                 
-                                -- Statut du billet - Toujours avoir des billets annulés
-                                IF v_billets_annules_total < 21 AND random() < 0.05 THEN
-                                    v_statut_billet := 'cancelled';
-                                    v_billets_annules_total := v_billets_annules_total + 1;
-                                ELSIF v_event_statut = 'archived' OR (v_event_statut = 'published' AND v_date_debut < NOW()) THEN
-                                    v_statut_billet := 'used';
+                                -- Statut du billet selon le type d'événement
+                                -- IMPORTANT : Les billets 'dispo' ne sont PAS achetés (pas d'utilisateur, pas de facture)
+                                IF v_event_statut = 'archived' OR (v_event_statut = 'published' AND v_date_debut < NOW()) THEN
+                                    -- Passé/archivé : ~15% annulés, sinon utilisés (tous achetés)
+                                    IF random() < 0.15 THEN
+                                        v_statut_billet := 'cancelled';
+                                        v_billets_annules_total := v_billets_annules_total + 1;
+                                    ELSE
+                                        v_statut_billet := 'used';
+                                    END IF;
                                 ELSE
-                                    v_statut_billet := 'valid';
+                                    -- En cours / à venir : ~5% annulés, sinon 'valid' (achetés mais pas encore utilisés)
+                                    -- Les billets 'dispo' seront créés séparément sans utilisateur
+                                    IF random() < 0.05 THEN
+                                        v_statut_billet := 'cancelled';
+                                        v_billets_annules_total := v_billets_annules_total + 1;
+                                    ELSE
+                                        v_statut_billet := 'valid';
+                                    END IF;
                                 END IF;
 
                                 -- Calculer une date aléatoire dans la période de vente
@@ -597,7 +625,7 @@ BEGIN
                                     v_duree_vente := v_date_fin_vente - v_date_debut_vente;
                                     v_date_achat := v_date_debut_vente + (v_duree_vente * random());
                                     
-                                    -- Créer panier, commande, billet, facture et paiement
+                                    -- Créer panier, commande, billet, facture et paiement (pour billets achetés uniquement)
                                     INSERT INTO paniers (id_utilisateur, statut, devise, montant_total, expire_le, cree_le)
                                     VALUES (v_id_utilisateur, 'converted'::cart_status_enum, 'MGA', 0, v_date_fin_vente, v_date_achat)
                                     RETURNING id INTO v_id_panier;
@@ -621,11 +649,11 @@ BEGIN
                                             (ARRAY[v_id_mode_paiement_mvola, v_id_mode_paiement_orange, v_id_mode_paiement_airtel, v_id_mode_paiement_visa])[1 + (v_compteur_billets % 4)], 
                                             'MGA', 
                                             v_prix, 
-                                            v_prix * 0.2, 
-                                            v_prix * 1.3, 
+                                            0, 
                                             v_prix, 
-                                            v_prix * 0.2, 
-                                            v_prix * 1.3, 
+                                            v_prix, 
+                                            0, 
+                                            v_prix, 
                                             'paid', 
                                             v_date_achat, 
                                             v_date_achat + INTERVAL '2 hours'
@@ -701,11 +729,11 @@ BEGIN
                                             (ARRAY[v_id_mode_paiement_mvola, v_id_mode_paiement_orange, v_id_mode_paiement_airtel, v_id_mode_paiement_visa])[1 + (v_compteur_billets % 4)], 
                                             'MGA', 
                                             v_prix, 
-                                            v_prix * 0.2, 
-                                            v_prix * 1.3, 
+                                            0, 
                                             v_prix, 
-                                            v_prix * 0.2, 
-                                            v_prix * 1.3, 
+                                            v_prix, 
+                                            0, 
+                                            v_prix, 
                                             'paid', 
                                             v_date_achat_supp, 
                                             v_date_achat_supp + INTERVAL '2 hours'
@@ -730,151 +758,177 @@ BEGIN
                         END;
                         
                         -- ============================================================
-                        -- CRÉER DES BILLETS 'VALID' NON UTILISÉS POUR ÉVÉNEMENTS PASSÉS ET ARCHIVÉS
-                        -- Pour les événements en cours et à venir : les billets restants restent disponibles (non vendus)
-                        -- IMPORTANT : Respecter la limite de participants maximum
+                        -- CRÉER DES BILLETS RESTANTS SELON LE TYPE D'ÉVÉNEMENT
+                        -- IMPORTANT : Les billets 'dispo' ne sont PAS achetés (pas d'utilisateur, pas de facture)
                         -- ============================================================
                         IF v_quantite_vendue < v_billets_par_categorie THEN
-                            -- Vérifier le nombre actuel de participants
-                            v_participants_actuels := COALESCE(array_length(v_utilisateurs_ayant_achete, 1), 0);
-                            
-                            -- Calculer le nombre de billets 'valid' à créer selon le type d'événement
-                            IF v_event_statut = 'archived' OR (v_event_statut = 'published' AND v_date_debut < NOW()) THEN
-                                -- Événements passés et archivés : créer 5-20% des billets restants comme 'valid' (non utilisés)
-                                -- Cela représente des billets achetés mais jamais utilisés
-                                v_billets_valid_a_creer := LEAST(
-                                    floor((v_billets_par_categorie - v_quantite_vendue) * (0.05 + random() * 0.15))::INTEGER,  -- 5-20% des billets restants
-                                    v_billets_par_categorie - v_quantite_vendue,
-                                    v_participants_max - v_participants_actuels  -- Respecter la limite de participants
-                                );
-                            ELSE
-                                -- Événements en cours et à venir : NE PAS créer de billets 'valid' supplémentaires
-                                -- Les billets restants restent disponibles (non vendus, donc non rattachés à un utilisateur)
-                                v_billets_valid_a_creer := 0;
-                            END IF;
-                            
-                            -- Créer les billets 'valid' seulement si nécessaire
-                            IF v_billets_valid_a_creer > 0 THEN
-                                FOR k IN 1..v_billets_valid_a_creer LOOP
-                                    -- Sélectionner un utilisateur aléatoire
-                                    SELECT id INTO v_id_utilisateur 
-                                    FROM utilisateurs 
-                                    WHERE role = 'user'
-                                    ORDER BY RANDOM() 
-                                    LIMIT 1;
-                                    
-                                    IF v_id_utilisateur IS NOT NULL THEN
-                                        -- Ajouter à la liste des acheteurs si pas déjà présent et si on n'a pas atteint le maximum
-                                        v_participants_actuels := COALESCE(array_length(v_utilisateurs_ayant_achete, 1), 0);
-                                        IF NOT (v_id_utilisateur = ANY(v_utilisateurs_ayant_achete)) AND v_participants_actuels < v_participants_max THEN
-                                            v_utilisateurs_ayant_achete := array_append(v_utilisateurs_ayant_achete, v_id_utilisateur);
-                                        END IF;
-                                        -- Calculer une date aléatoire dans la période de vente
-                                        DECLARE
-                                            v_date_achat_valid_final TIMESTAMPTZ;
-                                            v_duree_vente_valid_final INTERVAL;
-                                        BEGIN
-                                            v_duree_vente_valid_final := v_date_fin_vente - v_date_debut_vente;
-                                            v_date_achat_valid_final := v_date_debut_vente + (v_duree_vente_valid_final * random());
-                                            
-                                            -- Créer panier
-                                            INSERT INTO paniers (
-                                                id_utilisateur, statut, devise, montant_total, expire_le, cree_le
-                                            ) VALUES (
-                                                v_id_utilisateur,
-                                                'converted'::cart_status_enum,
-                                                'MGA',
-                                                0,
-                                                v_date_fin_vente,
-                                                v_date_achat_valid_final
-                                            ) RETURNING id INTO v_id_panier;
-
-                                            -- Créer commande
-                                            INSERT INTO commandes (
-                                                id_utilisateur, id_panier, statut, montant_total, devise, cree_le
-                                            ) VALUES (
-                                                v_id_utilisateur,
-                                                v_id_panier,
-                                                'paid'::order_status_enum,
-                                                v_prix,
-                                                'MGA',
-                                                v_date_achat_valid_final
-                                            ) RETURNING id INTO v_id_commande;
-
-                                            -- Créer élément de commande
-                                            INSERT INTO elements_commandes (
-                                                id_commande, id_type_billet, quantite,
-                                                prix_unitaire, frais_service, montant_tva, montant_total
-                                            ) VALUES (
-                                                v_id_commande,
-                                                v_id_type_billet,
-                                                1,
-                                                v_prix,
-                                                v_prix * 0.1,
-                                                v_prix * 0.2,
-                                                v_prix * 1.3
-                                            ) RETURNING id INTO v_id_element_commande;
-
-                                            -- Créer billet avec statut 'valid' (non utilisé)
-                                            -- Pour les événements passés : billets achetés mais jamais utilisés
-                                            INSERT INTO billets (
-                                                id_element_commande, id_type_billet,
-                                                id_utilisateur_proprietaire, statut,
-                                                code_qr, checksum_qr, emis_le
-                                            ) VALUES (
-                                                v_id_element_commande,
-                                                v_id_type_billet,
-                                                v_id_utilisateur,
-                                                'valid'::ticket_status_enum,  -- Toujours 'valid' même pour événements passés (non utilisés)
-                                                'QR-' || v_id_event || '-' || j || '-' || segment_idx || '-V' || k || '-' || EXTRACT(EPOCH FROM NOW())::TEXT,
-                                                md5('QR-' || v_id_event || '-' || j || '-' || segment_idx || '-V' || k || '-' || EXTRACT(EPOCH FROM NOW())::TEXT),
-                                                v_date_achat_valid_final
-                                            );
-
-                                            -- Créer facture et historique de paiement
-                                            INSERT INTO factures_billets (
-                                                id_commande, id_client, id_mode_paiement, devise,
-                                                montant_sous_total, montant_tva, montant_total,
-                                                montant_ht, montant_tva_detail, montant_ttc,
-                                                statut, emise_le, payee_le
-                                            ) VALUES (
-                                                v_id_commande,
-                                                v_id_utilisateur,
-                                                (ARRAY[v_id_mode_paiement_mvola, v_id_mode_paiement_orange, v_id_mode_paiement_airtel, v_id_mode_paiement_visa])[1 + (k % 4)],
-                                                'MGA',
-                                                v_prix,
-                                                v_prix * 0.2,
-                                                v_prix * 1.3,
-                                                v_prix,
-                                                v_prix * 0.2,
-                                                v_prix * 1.3,
-                                                'paid',
-                                                v_date_achat_valid_final,
-                                                v_date_achat_valid_final + INTERVAL '2 hours'
-                                            ) RETURNING id INTO v_id_facture;
-
-                                            INSERT INTO historique_paiements_billets (
-                                                id_facture, statut_de, statut_vers, modifie_le, metadonnees
-                                            ) VALUES (
-                                                v_id_facture,
-                                                NULL,
-                                                'paid'::payment_status_enum,
-                                                v_date_achat_valid_final + INTERVAL '2 hours',
-                                                jsonb_build_object(
-                                                    'reference', 'REF-' || v_id_event || '-' || j || '-' || segment_idx || '-V' || k || '-' || EXTRACT(EPOCH FROM NOW())::TEXT,
-                                                    'montant', v_prix * 1.3,
-                                                    'devise', 'MGA'
-                                                )
-                                            );
-                                        END;
+                            DECLARE
+                                v_billets_restants INTEGER;
+                                v_billets_dispo_a_creer INTEGER;
+                                v_billets_valid_a_creer INTEGER;
+                            BEGIN
+                                v_billets_restants := v_billets_par_categorie - v_quantite_vendue;
+                                
+                                IF v_event_statut = 'archived' OR (v_event_statut = 'published' AND v_date_debut < NOW()) THEN
+                                    -- Événements passés et archivés : 
+                                    -- - 5-20% des billets restants comme 'valid' (achetés mais non utilisés)
+                                    -- - Le reste comme 'dispo' (jamais vendus, restent disponibles)
+                                    v_billets_valid_a_creer := LEAST(
+                                        floor(v_billets_restants * (0.05 + random() * 0.15))::INTEGER,  -- 5-20% des billets restants
+                                        v_billets_restants,
+                                        v_participants_max - COALESCE(array_length(v_utilisateurs_ayant_achete, 1), 0)  -- Respecter la limite de participants
+                                    );
+                                    v_billets_dispo_a_creer := v_billets_restants - v_billets_valid_a_creer; -- Le reste reste disponible (non vendu)
+                                ELSE
+                                    -- Événements en cours et à venir : créer des billets 'dispo' (non achetés, sans utilisateur)
+                                    v_billets_valid_a_creer := 0;
+                                    v_billets_dispo_a_creer := v_billets_restants; -- Tous les billets restants sont disponibles
+                                END IF;
+                                
+                                -- Créer les billets 'valid' (achetés mais non utilisés) pour événements passés
+                                IF v_billets_valid_a_creer > 0 THEN
+                                    FOR k IN 1..v_billets_valid_a_creer LOOP
+                                        -- Sélectionner un utilisateur aléatoire
+                                        SELECT id INTO v_id_utilisateur 
+                                        FROM utilisateurs 
+                                        WHERE role = 'user'
+                                        ORDER BY RANDOM() 
+                                        LIMIT 1;
                                         
-                                        -- Mettre à jour la quantité vendue dans l'inventaire
-                                        UPDATE inventaire_billets
-                                        SET quantite_vendue = quantite_vendue + 1
-                                        WHERE id_type_billet = v_id_type_billet;
-                                    END IF;
-                                END LOOP;
-                            END IF;
+                                        IF v_id_utilisateur IS NOT NULL THEN
+                                            -- Ajouter à la liste des acheteurs si pas déjà présent
+                                            v_participants_actuels := COALESCE(array_length(v_utilisateurs_ayant_achete, 1), 0);
+                                            IF NOT (v_id_utilisateur = ANY(v_utilisateurs_ayant_achete)) AND v_participants_actuels < v_participants_max THEN
+                                                v_utilisateurs_ayant_achete := array_append(v_utilisateurs_ayant_achete, v_id_utilisateur);
+                                            END IF;
+                                            
+                                            -- Calculer une date aléatoire dans la période de vente
+                                            DECLARE
+                                                v_date_achat_valid_final TIMESTAMPTZ;
+                                                v_duree_vente_valid_final INTERVAL;
+                                            BEGIN
+                                                v_duree_vente_valid_final := v_date_fin_vente - v_date_debut_vente;
+                                                v_date_achat_valid_final := v_date_debut_vente + (v_duree_vente_valid_final * random());
+                                                
+                                                -- Créer panier
+                                                INSERT INTO paniers (
+                                                    id_utilisateur, statut, devise, montant_total, expire_le, cree_le
+                                                ) VALUES (
+                                                    v_id_utilisateur,
+                                                    'converted'::cart_status_enum,
+                                                    'MGA',
+                                                    0,
+                                                    v_date_fin_vente,
+                                                    v_date_achat_valid_final
+                                                ) RETURNING id INTO v_id_panier;
+
+                                                -- Créer commande
+                                                INSERT INTO commandes (
+                                                    id_utilisateur, id_panier, statut, montant_total, devise, cree_le
+                                                ) VALUES (
+                                                    v_id_utilisateur,
+                                                    v_id_panier,
+                                                    'paid'::order_status_enum,
+                                                    v_prix,
+                                                    'MGA',
+                                                    v_date_achat_valid_final
+                                                ) RETURNING id INTO v_id_commande;
+
+                                                -- Créer élément de commande
+                                                INSERT INTO elements_commandes (
+                                                    id_commande, id_type_billet, quantite,
+                                                    prix_unitaire, frais_service, montant_tva, montant_total
+                                                ) VALUES (
+                                                    v_id_commande,
+                                                    v_id_type_billet,
+                                                    1,
+                                                    v_prix,
+                                                    v_prix * 0.1,
+                                                    v_prix * 0.2,
+                                                    v_prix * 1.3
+                                                ) RETURNING id INTO v_id_element_commande;
+
+                                                -- Créer billet avec statut 'valid' (acheté mais non utilisé)
+                                                INSERT INTO billets (
+                                                    id_element_commande, id_type_billet,
+                                                    id_utilisateur_proprietaire, statut,
+                                                    code_qr, checksum_qr, emis_le
+                                                ) VALUES (
+                                                    v_id_element_commande,
+                                                    v_id_type_billet,
+                                                    v_id_utilisateur,
+                                                    'valid'::ticket_status_enum,  -- Acheté mais non utilisé
+                                                    'QR-' || v_id_event || '-' || j || '-' || segment_idx || '-V' || k || '-' || EXTRACT(EPOCH FROM NOW())::TEXT,
+                                                    md5('QR-' || v_id_event || '-' || j || '-' || segment_idx || '-V' || k || '-' || EXTRACT(EPOCH FROM NOW())::TEXT),
+                                                    v_date_achat_valid_final
+                                                );
+
+                                                -- Créer facture et historique de paiement
+                                                INSERT INTO factures_billets (
+                                                    id_commande, id_client, id_mode_paiement, devise,
+                                                    montant_sous_total, montant_tva, montant_total,
+                                                    montant_ht, montant_tva_detail, montant_ttc,
+                                                    statut, emise_le, payee_le
+                                                ) VALUES (
+                                                    v_id_commande,
+                                                    v_id_utilisateur,
+                                                    (ARRAY[v_id_mode_paiement_mvola, v_id_mode_paiement_orange, v_id_mode_paiement_airtel, v_id_mode_paiement_visa])[1 + (k % 4)],
+                                                    'MGA',
+                                                    v_prix,
+                                                    0, 
+                                                    v_prix, 
+                                                    v_prix, 
+                                                    0, 
+                                                    v_prix, 
+                                                    'paid',
+                                                    v_date_achat_valid_final,
+                                                    v_date_achat_valid_final + INTERVAL '2 hours'
+                                                ) RETURNING id INTO v_id_facture;
+
+                                                INSERT INTO historique_paiements_billets (
+                                                    id_facture, statut_de, statut_vers, modifie_le, metadonnees
+                                                ) VALUES (
+                                                    v_id_facture,
+                                                    NULL,
+                                                    'paid'::payment_status_enum,
+                                                    v_date_achat_valid_final + INTERVAL '2 hours',
+                                                    jsonb_build_object(
+                                                        'reference', 'REF-' || v_id_event || '-' || j || '-' || segment_idx || '-V' || k || '-' || EXTRACT(EPOCH FROM NOW())::TEXT,
+                                                        'montant', v_prix * 1.3,
+                                                        'devise', 'MGA'
+                                                    )
+                                                );
+                                            END;
+                                            
+                                            -- Mettre à jour la quantité vendue dans l'inventaire
+                                            UPDATE inventaire_billets
+                                            SET quantite_vendue = quantite_vendue + 1
+                                            WHERE id_type_billet = v_id_type_billet;
+                                        END IF;
+                                    END LOOP;
+                                END IF;
+                                
+                                -- Créer les billets 'dispo' (non achetés, sans utilisateur) pour événements en cours/à venir
+                                IF v_billets_dispo_a_creer > 0 THEN
+                                    FOR k IN 1..v_billets_dispo_a_creer LOOP
+                                        -- Créer billet 'dispo' SANS utilisateur, SANS commande, SANS facture
+                                        INSERT INTO billets (
+                                            id_element_commande, id_type_billet,
+                                            id_utilisateur_proprietaire, statut,
+                                            code_qr, checksum_qr, emis_le
+                                        ) VALUES (
+                                            NULL,  -- Pas d'élément de commande
+                                            v_id_type_billet,
+                                            NULL,  -- Pas d'utilisateur propriétaire
+                                            'dispo'::ticket_status_enum,  -- Disponible à la vente
+                                            'QR-' || v_id_event || '-' || j || '-' || segment_idx || '-D' || k || '-' || EXTRACT(EPOCH FROM NOW())::TEXT,
+                                            md5('QR-' || v_id_event || '-' || j || '-' || segment_idx || '-D' || k || '-' || EXTRACT(EPOCH FROM NOW())::TEXT),
+                                            v_date_creation  -- Date de création de l'événement
+                                        );
+                                        -- Note : Pas de mise à jour de quantite_vendue car ces billets ne sont pas vendus
+                                    END LOOP;
+                                END IF;
+                            END;
                         END IF; -- Fin IF v_quantite_vendue < v_billets_par_categorie
                     END; -- Fin du bloc DECLARE pour le segment
                 END LOOP; -- Fin de la boucle segment (adulte/enfant)
@@ -1374,23 +1428,27 @@ BEGIN
 
                 v_codes_promo_ids := array_append(v_codes_promo_ids, v_id_code_promo);
                 
-                -- Distribuer les utilisations : total de 23 utilisations
-                -- Codes expirés (i=1,2,3) : 4 utilisations chacun = 12 utilisations
-                -- Codes bientôt expirés (i=4,5) : 5 utilisations chacun = 10 utilisations
-                -- Codes actifs (i=6,7) : 1 utilisation pour le premier = 1 utilisation (pour avoir exactement 23)
-                IF i <= 3 THEN
-                    v_nb_utilisations_par_code := array_append(v_nb_utilisations_par_code, 4); -- 4x3 = 12
-                ELSIF i <= 5 THEN
-                    v_nb_utilisations_par_code := array_append(v_nb_utilisations_par_code, 5); -- 5x2 = 10
+                -- Distribuer les utilisations : objectif 120 utilisations au total (et 120 utilisateurs distincts si possible)
+                -- Répartition fixée : [25, 20, 20, 20, 15, 10, 10] = 120
+                IF i = 1 THEN
+                    v_nb_utilisations_par_code := array_append(v_nb_utilisations_par_code, 25);
+                ELSIF i = 2 THEN
+                    v_nb_utilisations_par_code := array_append(v_nb_utilisations_par_code, 20);
+                ELSIF i = 3 THEN
+                    v_nb_utilisations_par_code := array_append(v_nb_utilisations_par_code, 20);
+                ELSIF i = 4 THEN
+                    v_nb_utilisations_par_code := array_append(v_nb_utilisations_par_code, 20);
+                ELSIF i = 5 THEN
+                    v_nb_utilisations_par_code := array_append(v_nb_utilisations_par_code, 15);
                 ELSIF i = 6 THEN
-                    v_nb_utilisations_par_code := array_append(v_nb_utilisations_par_code, 1); -- 1 pour arriver à 23 total
+                    v_nb_utilisations_par_code := array_append(v_nb_utilisations_par_code, 10);
                 ELSE
-                    v_nb_utilisations_par_code := array_append(v_nb_utilisations_par_code, 0); -- 0 pour le dernier
+                    v_nb_utilisations_par_code := array_append(v_nb_utilisations_par_code, 10);
                 END IF;
             END;
         END LOOP;
 
-        -- Distribuer les 23 utilisations parmi les 7 codes promo
+        -- Distribuer les 120 utilisations parmi les 7 codes promo
         v_utilisations_totales := 0;
         FOR i IN 1..7 LOOP
             FOR j IN 1..v_nb_utilisations_par_code[i] LOOP
@@ -1424,13 +1482,12 @@ BEGIN
                     END;
 
                     -- Vérifier que l'utilisateur n'a pas déjà utilisé ce code plus que la limite
-                    IF NOT EXISTS (
-                        SELECT 1 
-                        FROM applications_promotions ap
-                        WHERE ap.id_promotion = v_codes_promo_ids[i]
-                            AND ap.id_utilisateur = v_commande_avec_promo.id_utilisateur
-                        HAVING COUNT(*) >= 3
-                    ) THEN
+                        IF NOT EXISTS (
+                            SELECT 1 
+                            FROM applications_promotions ap
+                            WHERE ap.id_promotion = v_codes_promo_ids[i]
+                                AND ap.id_utilisateur = v_commande_avec_promo.id_utilisateur
+                        ) THEN
                         INSERT INTO applications_promotions (
                             id_promotion, id_commande, id_utilisateur, montant_remise, applique_le
                         ) VALUES (
@@ -1452,6 +1509,14 @@ BEGIN
                 END IF;
             END LOOP;
         END LOOP;
+
+        -- Répercuter les remises sur les factures
+        UPDATE factures_billets fb
+        SET montant_sous_total = GREATEST(fb.montant_sous_total - ap.montant_remise, 0),
+            montant_total      = GREATEST(fb.montant_total - ap.montant_remise, 0),
+            montant_ttc        = GREATEST(fb.montant_ttc - ap.montant_remise, 0)
+        FROM applications_promotions ap
+        WHERE ap.id_commande = fb.id_commande;
 
         RAISE NOTICE '✅ Codes promotionnels créés : 7 codes (3 expirés, 2 bientôt expirés, 2 actifs)';
         RAISE NOTICE '   - Utilisations créées : %', v_utilisations_totales;

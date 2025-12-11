@@ -21,6 +21,7 @@ use App\Service\Organisateur\InventaireBilletService;
 use App\Service\Organisateur\ConfigurationCategorieBilletService;
 use App\Service\Organisateur\ConfigurationSegmentBilletService;
 use App\Service\Organisateur\MediaService;
+use App\Repository\Organisateur\TicketInvoiceRepository;
 use Doctrine\ORM\EntityManagerInterface;
 use Symfony\Component\String\Slugger\SluggerInterface;
 
@@ -37,7 +38,8 @@ class EventService
         private InventaireBilletService $inventaireBilletService,
         private ConfigurationCategorieBilletService $categorieBilletService,
         private ConfigurationSegmentBilletService $segmentBilletService,
-        private MediaService $mediaService
+        private MediaService $mediaService,
+        private TicketInvoiceRepository $ticketInvoiceRepository
     ) {
     }
 
@@ -712,9 +714,13 @@ class EventService
     {
         $baseStats = $this->eventRepository->getEventStatistics($event);
         $salesEvolution = $this->billetRepository->getSalesEvolutionByEvent($event);
+        $revenuesByType = $this->ticketInvoiceRepository->getRevenueByEvent($event);
+        $totalRevenue = array_sum($revenuesByType);
 
         return array_merge($baseStats, [
             'salesEvolution' => $salesEvolution,
+            'revenuesByType' => $revenuesByType,
+            'totalRevenue' => $totalRevenue,
         ]);
     }
 

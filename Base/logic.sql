@@ -135,3 +135,45 @@ FOR EACH ROW EXECUTE FUNCTION tickets_record_stats();
 
 COMMENT ON TRIGGER trg_tickets_record_stats ON billets IS
     'Après insertion : met à jour les statistiques utilisateur liées aux billets.';
+
+-- ------------------------------------------------------------
+-- Vue : historique des ventes par facture / type de billet / événement
+-- Facilite l'affichage : numéro facture, prix normal (type billet),
+-- prix facturé après remise, code promo, quantités
+-- ------------------------------------------------------------
+DROP VIEW IF EXISTS aiolia.v_ticket_sales_history;
+CREATE OR REPLACE VIEW aiolia.v_ticket_sales_history AS
+SELECT
+    COALESCE(fb.id, c.id)                    AS facture_id,
+    COALESCE(fb.numero_facture, 'ANN-' || LPAD(c.id::text, 8, '0')) AS numero_facture,
+    COALESCE(fb.emise_le, c.cree_le)         AS facture_date,
+    c.id                                      AS commande_id,
+    c.id_utilisateur                          AS client_id,
+    u.email                                   AS client_email,
+    COALESCE(fb.devise, c.devise)             AS devise,
+    COALESCE(fb.statut, 'cancelled')          AS statut_facture,
+    COALESCE(fb.montant_total::numeric, c.montant_total::numeric) AS montant_facture_total,
+    COALESCE(fb.montant_ttc::numeric, c.montant_total::numeric) AS montant_facture_ttc,
+    COALESCE(fb.montant_ht::numeric, c.montant_total::numeric) AS montant_facture_ht,
+    COALESCE(fb.montant_tva::numeric, 0::numeric) AS montant_facture_tva,
+    COALESCE(ap.montant_remise::numeric, 0::numeric) AS montant_remise,
+    cp.code                                   AS code_promo,
+    ec.id_type_billet                         AS type_billet_id,
+    tb.nom                                    AS type_billet_nom,
+    tb.prix_de_base::numeric                  AS prix_normal,
+    ec.quantite                               AS quantite,
+    ec.montant_total::numeric                 AS montant_ligne_totale,
+    e.id                                      AS evenement_id,
+    e.titre                                   AS evenement_titre
+FROM aiolia.commandes c
+INNER JOIN aiolia.elements_commandes ec ON ec.id_commande = c.id
+INNER JOIN aiolia.types_billets tb ON tb.id = ec.id_type_billet
+INNER JOIN aiolia.evenements e ON e.id = tb.id_evenement
+LEFT JOIN aiolia.factures_billets fb ON fb.id_commande = c.id
+LEFT JOIN aiolia.utilisateurs u ON u.id = c.id_utilisateur
+LEFT JOIN aiolia.applications_promotions ap ON ap.id_commande = c.id
+LEFT JOIN aiolia.codes_promotionnels cp ON cp.id = ap.id_promotion
+WHERE c.statut IN ('paid', 'cancelled');
+
+COMMENT ON VIEW aiolia.v_ticket_sales_history IS
+    'Vue d''historique des ventes (factures, prix normal type billet, prix facturé, code promo) pour affichage rapide.';

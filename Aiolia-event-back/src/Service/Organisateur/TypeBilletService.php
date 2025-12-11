@@ -176,9 +176,9 @@ class TypeBilletService
     }
 
     
-    public function getByOrganizerPaginated(User $organizer, int $page = 1, int $limit = 6, ?string $categorieFilter = null, ?string $segmentFilter = null): Paginator
+    public function getByOrganizerPaginated(User $organizer, int $page = 1, int $limit = 6, ?string $categorieFilter = null, ?string $segmentFilter = null, ?\App\Entity\Event $event = null): Paginator
     {
-        return $this->repository->findByOrganizerPaginated($organizer, $page, $limit, $categorieFilter, $segmentFilter);
+        return $this->repository->findByOrganizerPaginated($organizer, $page, $limit, $categorieFilter, $segmentFilter, $event);
     }
 }
 
