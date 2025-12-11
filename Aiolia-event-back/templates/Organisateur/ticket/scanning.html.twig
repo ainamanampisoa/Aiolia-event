@@ -5,6 +5,39 @@
 {% block stylesheets %}
 {{ parent() }}
 <style>
+/* Styles pour le breadcrumb */
+.event-detail-header {
+    margin-bottom: 20px;
+}
+
+.header-breadcrumb {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    margin-bottom: 16px;
+    font-size: 0.9rem;
+}
+
+.header-breadcrumb a {
+    color: var(--accent);
+    text-decoration: none;
+    font-weight: var(--font-weight-medium);
+}
+
+.header-breadcrumb a:hover {
+    text-decoration: underline;
+}
+
+.header-breadcrumb i {
+    font-size: 0.7rem;
+    color: var(--gray-500);
+}
+
+.header-breadcrumb span {
+    color: var(--gray-700);
+    font-weight: var(--font-weight-semibold);
+}
+
 .dashboard-header {
     margin-bottom: 24px;
 }
@@ -241,9 +274,20 @@
 
 {% block body %}
 <div class="dashboard">
+    <!-- Breadcrumb -->
+    <div class="event-detail-header" style="margin-bottom: 24px;">
+        <div class="header-breadcrumb">
+            <a href="{{ path('organisateur_events_index') }}">Événements</a>
+            <i class="fas fa-chevron-right"></i>
+            <a href="{{ path('app_ticket_index') }}">Billets</a>
+            <i class="fas fa-chevron-right"></i>
+            <span>Scanner</span>
+        </div>
+    </div>
+    
     <div class="dashboard-header">
         <div>
-            <h1>📱 Scanner de billets</h1>
+            <h1><i class="fas fa-qrcode"></i> Scanner de billets</h1>
             <p style="color: var(--gray-600); margin-top: 8px; font-size: 1rem;">
                 Scannez le code QR d'un billet pour voir ses détails et les informations de facture
             </p>
