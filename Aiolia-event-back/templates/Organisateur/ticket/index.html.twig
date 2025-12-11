@@ -71,7 +71,7 @@
                 <i class="fas fa-tags"></i>
                 <span>Catégories</span>
             </a>
-            <a href="{{ path('app_ticket_scanning') }}" class="btn-header">
+            <a href="{{ path('app_ticket_scanning', event is defined and event ? {eventId: event.id} : {}) }}" class="btn-header">
                 <i class="fas fa-qrcode"></i>
                 <span>Scanner</span>
             </a>
@@ -195,18 +195,18 @@
                 <table class="table table-hover validation-table tickets-table">
                 <thead>
                     <tr>
-                            <th class="col-left">Numéro facture</th>
+                            <th class="col-left" style="min-width: 120px;">N° Facture</th>
                             {% if event is not defined or not event %}
-                                <th class="col-left">Événement</th>
+                                <th class="col-left" style="min-width: 180px;">Événement</th>
                             {% endif %}
-                            <th class="col-left">Client</th>
-                            <th class="col-center">Type billet</th>
-                            <th class="col-right">Prix normal</th>
-                            <th class="col-right">Prix facturé</th>
-                            <th class="col-left">Code promo</th>
-                            <th class="col-center">Date facture</th>
-                            <th class="col-center">Statut billet</th>
-                            <th class="col-center">Actions</th>
+                            <th class="col-left" style="min-width: 160px;">Client</th>
+                            <th class="col-center" style="min-width: 100px;">Type</th>
+                            <th class="col-right" style="min-width: 100px;">Prix normal</th>
+                            <th class="col-right" style="min-width: 100px;">Prix facturé</th>
+                            <th class="col-left" style="min-width: 90px;">Code promo</th>
+                            <th class="col-center" style="min-width: 100px;">Date</th>
+                            <th class="col-center" style="min-width: 90px;">Statut</th>
+                            <th class="col-center" style="min-width: 60px;">Actions</th>
                     </tr>
                 </thead>
                 <tbody>
@@ -214,11 +214,11 @@
                             {% for vente in ventes %}
                                 <tr>
                                     <td class="col-left">
-                                        <span style="color: var(--text-primary); font-size: 0.95rem; font-weight: var(--font-weight-medium);">#FAC-{{ vente.numero_facture }}</span>
+                                        <span style="color: var(--text-primary); font-size: 0.85rem; font-weight: var(--font-weight-medium);">#FAC-{{ vente.numero_facture }}</span>
                                     </td>
                                     {% if event is not defined or not event %}
                                         <td class="col-left">
-                                            <div style="max-width: 300px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;" title="{{ vente.evenement_titre }}">
+                                            <div style="max-width: 200px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; font-size: 0.85rem;" title="{{ vente.evenement_titre }}">
                                                 {{ vente.evenement_titre|default('N/A') }}
                                             </div>
                                         </td>
@@ -235,13 +235,13 @@
                                         </div>
                                     </td>
                                     <td class="col-center">
-                                        <span>{{ vente.type_billet_nom|default('N/A') }}</span>
+                                        <span class="type-billet-badge" style="font-size: 0.85rem;">{{ vente.type_billet_nom|default('N/A') }}</span>
                                     </td>
                                     <td class="col-right">
-                                        <span style="color: var(--text-primary); font-size: 1rem; font-weight: var(--font-weight-medium);">{{ vente.prix_normal|default(0)|number_format(0, ',', ' ') }} {{ vente.devise|default('MGA') }}</span>
+                                        <span style="color: var(--text-primary); font-size: 0.85rem; font-weight: var(--font-weight-medium);">{{ vente.prix_normal|default(0)|number_format(0, ',', ' ') }} {{ vente.devise|default('MGA') }}</span>
                                     </td>
                                     <td class="col-right">
-                                        <span style="color: var(--text-primary); font-size: 1rem; font-weight: var(--font-weight-medium);">{{ vente.montant_facture_total|default(0)|number_format(0, ',', ' ') }} {{ vente.devise|default('MGA') }}</span>
+                                        <span style="color: var(--text-primary); font-size: 0.85rem; font-weight: var(--font-weight-medium);">{{ vente.montant_facture_total|default(0)|number_format(0, ',', ' ') }} {{ vente.devise|default('MGA') }}</span>
                                     </td>
                                     <td class="col-left">
                                         {% if vente.code_promo %}
@@ -252,9 +252,9 @@
                                     </td>
                                     <td class="col-center">
                                         {% if vente.facture_date %}
-                                            <span style="color: var(--text-primary); font-weight: var(--font-weight-medium); font-size: 0.9rem; white-space: nowrap;">{{ vente.facture_date|date('d M Y') }}</span>
+                                            <span style="color: var(--text-primary); font-weight: var(--font-weight-medium); font-size: 0.85rem; white-space: nowrap;">{{ vente.facture_date|date('d M Y') }}</span>
                                         {% else %}
-                                            <span class="text-muted">N/A</span>
+                                            <span class="text-muted" style="font-size: 0.85rem;">N/A</span>
                                         {% endif %}
                                     </td>
                                     <td class="col-center">
@@ -267,7 +267,7 @@
                                         {% elseif statutBillet == 'used' %}
                                             <span class="badge status-badge status-active">Utilisé</span>
                                         {% elseif statutBillet == 'cancelled' %}
-                                            <span class="badge status-badge status-inactive">Annulé</span>
+                                            <span class="badge status-badge status-cancelled">Annulé</span>
                                         {% elseif statutBillet == 'refunded' %}
                                             <span class="badge status-badge status-refunded">Remboursé</span>
                                         {% elseif statutBillet == 'transferred' %}
@@ -502,6 +502,21 @@
     justify-content: center;
 }
 
+/* Styles pour les types de billets avec couleurs */
+.type-billet-badge {
+    font-weight: var(--font-weight-semibold);
+    padding: 4px 8px;
+    border-radius: 4px;
+    display: inline-block;
+    white-space: nowrap;
+}
+
+.type-billet-badge {
+    color: #3498DB;
+    background: transparent;
+    border: none;
+}
+
 .ticket-cat-badge:hover {
     box-shadow: 0 3px 8px rgba(155, 89, 182, 0.25);
     transform: translateY(-1px);
@@ -552,6 +567,23 @@
     border-collapse: separate;
     border-spacing: 0;
     background: var(--bg-card);
+    table-layout: auto;
+}
+
+.validation-table thead th:first-child {
+    padding-left: 16px;
+}
+
+.validation-table tbody td:first-child {
+    padding-left: 16px;
+}
+
+.validation-table thead th:last-child {
+    padding-right: 16px;
+}
+
+.validation-table tbody td:last-child {
+    padding-right: 16px;
 }
 
 .validation-table thead {
@@ -566,9 +598,9 @@
     border-bottom: 1px solid var(--border-color);
     font-weight: var(--font-weight-medium);
     text-transform: uppercase;
-    font-size: 0.82rem;
+    font-size: 0.75rem;
     letter-spacing: 0.02em;
-    padding: 16px 20px;
+    padding: 10px 8px;
     white-space: nowrap;
     overflow: hidden;
     text-overflow: ellipsis;
@@ -576,10 +608,11 @@
 
 .validation-table tbody td {
     border-bottom: none;
-    padding: 18px 20px;
+    padding: 12px 8px;
     vertical-align: middle;
     background: var(--bg-card);
     white-space: nowrap;
+    font-size: 0.85rem;
 }
 
 .validation-table tbody td:has(.user-info) {
@@ -625,12 +658,14 @@
 
 .tickets-table .user-name {
     color: var(--text-primary);
-    font-size: 1rem;
+    font-size: 0.85rem;
     font-weight: var(--font-weight-medium);
     margin: 0;
     white-space: nowrap;
     overflow: hidden;
     text-overflow: ellipsis;
+    max-width: 180px;
+    display: inline-block;
 }
 
 .tickets-table .user-meta {
@@ -657,13 +692,13 @@
 }
 
 .status-badge {
-    font-size: 0.78rem;
-    padding: 6px 12px;
+    font-size: 0.7rem;
+    padding: 4px 8px;
     border-radius: var(--border-radius-sm);
     font-weight: var(--font-weight-medium);
     display: inline-flex;
     align-items: center;
-    gap: 6px;
+    gap: 4px;
     white-space: nowrap;
     transition: var(--transition-base);
     box-shadow: var(--shadow-xs);
@@ -690,6 +725,13 @@
     background: var(--bg-secondary);
     color: var(--text-muted);
     border: 1px solid var(--border-color);
+}
+
+.status-cancelled {
+    background: var(--bg-secondary);
+    color: #E74C3C;
+    border: 1px solid var(--border-color);
+    font-weight: var(--font-weight-semibold);
 }
 
 .status-refunded {
@@ -776,9 +818,16 @@
 
 /* Amélioration du scroll horizontal */
 .table-responsive {
-    overflow-x: auto;
+    overflow-x: visible;
     -webkit-overflow-scrolling: touch;
     border-radius: var(--border-radius-md);
+    width: 100%;
+}
+
+.validation-table {
+    table-layout: auto;
+    width: 100%;
+    min-width: 100%;
 }
 
 .table-responsive::-webkit-scrollbar {
@@ -856,8 +905,8 @@
 }
 
 .btn-action {
-    width: 36px;
-    height: 36px;
+    width: 32px;
+    height: 32px;
     display: inline-flex;
     align-items: center;
     justify-content: center;
@@ -866,7 +915,7 @@
     cursor: pointer;
     transition: all 0.3s ease;
     text-decoration: none;
-    font-size: 0.9rem;
+    font-size: 0.8rem;
     box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
 }
 

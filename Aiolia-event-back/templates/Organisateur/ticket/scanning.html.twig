@@ -274,16 +274,31 @@
 
 {% block body %}
 <div class="dashboard">
+    {% if event is defined and event %}
     <!-- Breadcrumb -->
     <div class="event-detail-header" style="margin-bottom: 24px;">
         <div class="header-breadcrumb">
             <a href="{{ path('organisateur_events_index') }}">Événements</a>
             <i class="fas fa-chevron-right"></i>
-            <a href="{{ path('app_ticket_index') }}">Billets</a>
+            <a href="{{ path('organisateur_events_show', {id: event.id}) }}">Événement #{{ event.id }} - {{ event.titre }}</a>
+            <i class="fas fa-chevron-right"></i>
+            <a href="{{ path('organisateur_tickets_index', {eventId: event.id}) }}">Historique vente</a>
             <i class="fas fa-chevron-right"></i>
             <span>Scanner</span>
         </div>
     </div>
+    {% else %}
+    <!-- Breadcrumb -->
+    <div class="event-detail-header" style="margin-bottom: 24px;">
+        <div class="header-breadcrumb">
+            <a href="{{ path('organisateur_events_index') }}">Événements</a>
+            <i class="fas fa-chevron-right"></i>
+            <a href="{{ path('organisateur_tickets_index') }}">Historique vente</a>
+            <i class="fas fa-chevron-right"></i>
+            <span>Scanner</span>
+        </div>
+    </div>
+    {% endif %}
     
     <div class="dashboard-header">
         <div>

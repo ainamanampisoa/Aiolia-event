@@ -156,12 +156,27 @@ class TicketController extends AbstractController
     }
 
     #[Route('/scanning', name: 'app_ticket_scanning')]
-    public function scanning(): Response
+    public function scanning(Request $request): Response
     {
         $this->denyAccessUnlessGranted('IS_AUTHENTICATED_REMEMBERED');
 
+        $user = $this->getUser();
+        $eventId = $request->query->get('eventId');
+        
+        $event = null;
+        if ($eventId) {
+            $event = $this->eventRepository->getById($eventId);
+            if ($event) {
+                $organizerProfile = $event->getProfilOrganisateur();
+                if ($organizerProfile && $organizerProfile->getUtilisateur() !== $user) {
+                    $event = null;
+                }
+            }
+        }
+
         return $this->render('Organisateur/ticket/scanning.html.twig', [
             'scanApiUrl' => $this->generateUrl('organisateur_ticket_api_scan'),
+            'event' => $event,
         ]);
     }
 
