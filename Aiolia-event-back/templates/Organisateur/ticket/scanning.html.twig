@@ -53,8 +53,13 @@
     background: var(--bg-card);
     border: 1px solid var(--border-color);
     border-radius: var(--border-radius-lg);
-    padding: 24px;
-    box-shadow: var(--shadow-sm);
+    padding: 28px;
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.08);
+    transition: all 0.3s ease;
+}
+
+.scanner-section:hover {
+    box-shadow: 0 4px 16px rgba(0, 0, 0, 0.12);
 }
 
 .scanner-section h3 {
@@ -94,6 +99,8 @@
     width: 100%;
     height: 100%;
     z-index: 1;
+    background: linear-gradient(135deg, #1a1a1a 0%, #2d2d2d 100%);
+    transition: all 0.3s ease;
 }
 
 #reader video {
@@ -180,6 +187,26 @@
     }
 }
 
+@keyframes slideIn {
+    from {
+        opacity: 0;
+        transform: translateX(-20px);
+    }
+    to {
+        opacity: 1;
+        transform: translateX(0);
+    }
+}
+
+@keyframes pulse {
+    0%, 100% {
+        opacity: 1;
+    }
+    50% {
+        opacity: 0.6;
+    }
+}
+
 .scan-result.error {
     background: rgba(231, 76, 60, 0.1);
     border: 2px solid var(--danger);
@@ -204,12 +231,20 @@
     display: flex;
     justify-content: space-between;
     align-items: flex-start;
-    padding: 12px 0;
+    padding: 14px 16px;
     border-bottom: 1px solid var(--border-color);
+    transition: background-color 0.2s ease;
+    border-radius: var(--border-radius-sm);
+    margin-bottom: 4px;
+}
+
+.detail-row:hover {
+    background-color: rgba(52, 152, 219, 0.03);
 }
 
 .detail-row:last-child {
     border-bottom: none;
+    margin-bottom: 0;
 }
 
 .detail-label {
@@ -234,6 +269,8 @@
     text-align: right;
     color: var(--text-primary);
     font-size: 0.95rem;
+    font-weight: var(--font-weight-medium);
+    word-break: break-word;
 }
 
 .status-badge {
@@ -274,32 +311,6 @@
 
 {% block body %}
 <div class="dashboard">
-    {% if event is defined and event %}
-    <!-- Breadcrumb -->
-    <div class="event-detail-header" style="margin-bottom: 24px;">
-        <div class="header-breadcrumb">
-            <a href="{{ path('organisateur_events_index') }}">Événements</a>
-            <i class="fas fa-chevron-right"></i>
-            <a href="{{ path('organisateur_events_show', {id: event.id}) }}">Événement #{{ event.id }} - {{ event.titre }}</a>
-            <i class="fas fa-chevron-right"></i>
-            <a href="{{ path('organisateur_tickets_index', {eventId: event.id}) }}">Historique vente</a>
-            <i class="fas fa-chevron-right"></i>
-            <span>Scanner</span>
-        </div>
-    </div>
-    {% else %}
-    <!-- Breadcrumb -->
-    <div class="event-detail-header" style="margin-bottom: 24px;">
-        <div class="header-breadcrumb">
-            <a href="{{ path('organisateur_events_index') }}">Événements</a>
-            <i class="fas fa-chevron-right"></i>
-            <a href="{{ path('organisateur_tickets_index') }}">Historique vente</a>
-            <i class="fas fa-chevron-right"></i>
-            <span>Scanner</span>
-        </div>
-    </div>
-    {% endif %}
-    
     <div class="dashboard-header">
         <div>
             <h1><i class="fas fa-qrcode"></i> Scanner de billets</h1>
@@ -313,7 +324,7 @@
         <!-- Section Scanner -->
         <div class="scanner-section">
             <h3><i class="fas fa-qrcode"></i> Scanner</h3>
-            <div style="background: rgba(52, 152, 219, 0.05); border-left: 3px solid var(--accent); padding: 12px; margin-bottom: 16px; border-radius: var(--border-radius-sm);">
+            <div id="scannerTips" style="background: rgba(52, 152, 219, 0.05); border-left: 3px solid var(--accent); padding: 12px; margin-bottom: 16px; border-radius: var(--border-radius-sm);">
                 <p style="margin: 0; font-size: 0.9rem; color: var(--text-secondary);">
                     <i class="fas fa-info-circle" style="color: var(--accent); margin-right: 8px;"></i>
                     <strong>Conseil :</strong> Pour scanner un QR code sur écran :
@@ -325,11 +336,24 @@
                     <li>Évitez les reflets sur l'écran</li>
                 </ul>
             </div>
+            <div id="scannedQrCodeDisplay" style="display: none; background: linear-gradient(135deg, rgba(39, 174, 96, 0.12), rgba(39, 174, 96, 0.06)); border-left: 4px solid var(--success); padding: 16px; margin-bottom: 20px; border-radius: var(--border-radius-md); box-shadow: 0 2px 8px rgba(39, 174, 96, 0.15); animation: slideIn 0.4s ease;">
+                <p style="margin: 0 0 14px 0; font-size: 0.95rem; color: var(--text-primary); display: flex; align-items: center; gap: 10px; font-weight: var(--font-weight-semibold);">
+                    <i class="fas fa-qrcode" style="color: var(--success); font-size: 1.1rem;"></i>
+                    <span>Code QR scanné :</span>
+                </p>
+                <p id="scannedQrCodeText" style="margin: 0; font-family: 'Courier New', monospace; font-size: 0.9rem; color: var(--text-primary); word-break: break-all; background: var(--bg-card); padding: 14px; border-radius: var(--border-radius-sm); border: 1px solid rgba(39, 174, 96, 0.2); box-shadow: inset 0 1px 3px rgba(0, 0, 0, 0.05); line-height: 1.6;"></p>
+            </div>
             <div id="video-container">
                 <div id="reader" style="width: 100%; min-height: 400px; background: #000; border-radius: var(--border-radius-md); position: relative; overflow: hidden; display: none;"></div>
-                <div id="scanner-placeholder" style="display: flex; flex-direction: column; align-items: center; justify-content: center; min-height: 400px; background: #000; border-radius: var(--border-radius-md); color: #fff; padding: 20px;">
-                    <i class="fas fa-camera" style="font-size: 3rem; margin-bottom: 16px; opacity: 0.5;"></i>
-                    <p style="margin: 0; font-size: 1rem; opacity: 0.7; text-align: center;">Cliquez sur "Démarrer le scan" pour activer la caméra</p>
+                <div id="scanner-placeholder" style="display: flex; flex-direction: column; align-items: center; justify-content: center; min-height: 400px; background: linear-gradient(135deg, #1a1a1a 0%, #2d2d2d 100%); border-radius: var(--border-radius-md); color: #fff; padding: 20px; position: relative; overflow: hidden;">
+                    <div style="position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%); width: 200px; height: 200px; background: radial-gradient(circle, rgba(52, 152, 219, 0.1) 0%, transparent 70%); border-radius: 50%;"></div>
+                    <div style="position: relative; z-index: 1; text-align: center;">
+                        <div style="width: 100px; height: 100px; margin: 0 auto 24px; background: rgba(52, 152, 219, 0.15); border-radius: 50%; display: flex; align-items: center; justify-content: center; border: 2px solid rgba(52, 152, 219, 0.3);">
+                            <i class="fas fa-camera" style="font-size: 2.5rem; color: rgba(52, 152, 219, 0.8);"></i>
+                        </div>
+                        <p style="margin: 0; font-size: 1.05rem; opacity: 0.9; font-weight: var(--font-weight-medium);">Prêt à scanner</p>
+                        <p style="margin: 8px 0 0 0; font-size: 0.9rem; opacity: 0.7;">Cliquez sur "Démarrer le scan" pour activer la caméra</p>
+                    </div>
                 </div>
             </div>
             <div class="scanner-controls">
@@ -357,13 +381,18 @@
             <h3><i class="fas fa-info-circle"></i> Informations du billet</h3>
             <div id="ticketInfo" style="display: none;"></div>
             <div id="factureInfo" style="display: none;"></div>
-            <div id="noInfo" style="text-align: center; padding: 40px; color: var(--text-secondary);">
-                <i class="fas fa-qrcode" style="font-size: 3rem; margin-bottom: 1rem; opacity: 0.3;"></i>
-                <p>Scannez un code QR pour voir les informations</p>
+            <div id="noInfo" style="text-align: center; padding: 60px 40px; color: var(--text-secondary);">
+                <div style="width: 120px; height: 120px; margin: 0 auto 24px; background: linear-gradient(135deg, rgba(52, 152, 219, 0.1), rgba(52, 152, 219, 0.05)); border-radius: 50%; display: flex; align-items: center; justify-content: center;">
+                    <i class="fas fa-qrcode" style="font-size: 3.5rem; color: var(--accent); opacity: 0.4;"></i>
+                </div>
+                <p style="font-size: 1.1rem; font-weight: var(--font-weight-medium); margin-bottom: 8px; color: var(--text-primary);">Aucun scan effectué</p>
+                <p style="font-size: 0.95rem; opacity: 0.8;">Scannez un code QR pour voir les informations du billet</p>
             </div>
-            <div id="loadingInfo" style="display: none; text-align: center; padding: 40px;">
-                <i class="fas fa-spinner fa-spin" style="font-size: 2rem; color: var(--accent);"></i>
-                <p style="margin-top: 16px; color: var(--text-secondary);">Chargement...</p>
+            <div id="loadingInfo" style="display: none; text-align: center; padding: 60px 40px;">
+                <div style="width: 80px; height: 80px; margin: 0 auto 24px; background: linear-gradient(135deg, rgba(52, 152, 219, 0.1), rgba(52, 152, 219, 0.05)); border-radius: 50%; display: flex; align-items: center; justify-content: center; animation: pulse 2s ease-in-out infinite;">
+                    <i class="fas fa-spinner fa-spin" style="font-size: 2.5rem; color: var(--accent);"></i>
+                </div>
+                <p style="margin-top: 16px; color: var(--text-secondary); font-size: 1rem; font-weight: var(--font-weight-medium);">Chargement des informations...</p>
             </div>
         </div>
     </div>
@@ -396,6 +425,9 @@ document.addEventListener('DOMContentLoaded', function() {
     const loadingInfo = document.getElementById('loadingInfo');
     const scanStatsDiv = document.getElementById('scanStats');
     const scanAttemptsCount = document.getElementById('scanAttemptsCount');
+    const scannerTips = document.getElementById('scannerTips');
+    const scannedQrCodeDisplay = document.getElementById('scannedQrCodeDisplay');
+    const scannedQrCodeText = document.getElementById('scannedQrCodeText');
     
     let html5QrCode = null;
     let scanning = false;
@@ -418,6 +450,10 @@ document.addEventListener('DOMContentLoaded', function() {
         scanningIndicator.style.display = 'block';
         scanStatsDiv.style.display = 'block';
         scanAttemptsCount.textContent = '0';
+        
+        // Réafficher les conseils au démarrage d'un nouveau scan
+        scannerTips.style.display = 'block';
+        scannedQrCodeDisplay.style.display = 'none';
         
         // Configuration optimisée pour écrans
         const config = {
@@ -485,6 +521,11 @@ document.addEventListener('DOMContentLoaded', function() {
                 scanResult.innerHTML = '<h4><i class="fas fa-check-circle"></i> Code QR détecté !</h4><p style="margin: 8px 0 0 0;">Chargement des informations...</p>';
                 scanResult.style.display = 'block';
                 
+                // Remplacer les conseils par le code QR scanné dans le panneau Scanner
+                scannerTips.style.display = 'none';
+                scannedQrCodeText.textContent = decodedText;
+                scannedQrCodeDisplay.style.display = 'block';
+                
                 setTimeout(() => {
                     scanningIndicator.style.display = 'none';
                 }, 1500);
@@ -537,6 +578,9 @@ document.addEventListener('DOMContentLoaded', function() {
                 scanningIndicator.style.display = 'none';
                 placeholder.style.display = 'flex';
                 reader.style.display = 'none';
+                // Réafficher les conseils et masquer le code QR
+                scannerTips.style.display = 'block';
+                scannedQrCodeDisplay.style.display = 'none';
             }).catch(err => console.error('Erreur arrêt:', err));
         }
     });

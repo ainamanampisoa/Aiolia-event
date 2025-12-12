@@ -38,7 +38,7 @@ class PromotionController extends AbstractController
 
         
         $page = max(1, (int) $request->query->get('page', 1));
-        $perPage = 4;
+        $perPage = 3;
 
         
         $dateDebut = null;
@@ -102,6 +102,7 @@ class PromotionController extends AbstractController
 
         return $this->render('Organisateur/promotion/index.html.twig', [
             'promotions' => $promotionsAvecStats,
+            'totalPromotions' => count($allPromotions),
             'promotionsActives' => count($promotionsActives),
             'totalUtilisations' => $totalUtilisations,
             'totalRemises' => $totalRemises,
@@ -341,6 +342,7 @@ class PromotionController extends AbstractController
     #[Route('/{id}/history', name: 'organisateur_promotions_history', methods: ['GET'])]
     public function history(
         string $id,
+        Request $request,
         CodePromotionnelService $codePromotionnelService,
         ApplicationPromotionService $applicationPromotionService,
         OrganizerProfileRepository $organizerProfileRepository
@@ -368,7 +370,16 @@ class PromotionController extends AbstractController
         }
 
         
-        $applications = $applicationPromotionService->getByPromotion($promotion);
+        $page = max(1, (int) $request->query->get('page', 1));
+        $perPage = 5;
+        
+        $allApplications = $applicationPromotionService->getByPromotion($promotion);
+        $totalItems = count($allApplications);
+        $totalPages = (int) ceil($totalItems / $perPage);
+        
+        $offset = ($page - 1) * $perPage;
+        $applications = array_slice($allApplications, $offset, $perPage);
+        
         $totalUtilisations = $codePromotionnelService->countUtilisations($promotion);
         $totalRemise = $codePromotionnelService->getTotalRemise($promotion);
 
@@ -377,6 +388,12 @@ class PromotionController extends AbstractController
             'applications' => $applications,
             'totalUtilisations' => $totalUtilisations,
             'totalRemise' => $totalRemise,
+            'pagination' => [
+                'current_page' => $page,
+                'total_pages' => $totalPages,
+                'total_items' => $totalItems,
+                'per_page' => $perPage,
+            ],
         ]);
     }
 

@@ -731,7 +731,8 @@ CREATE TABLE IF NOT EXISTS codes_promotionnels (
     commence_le TIMESTAMPTZ,
     se_termine_le TIMESTAMPTZ,
     metadonnees JSONB,
-    cree_le TIMESTAMPTZ NOT NULL DEFAULT now()
+    cree_le TIMESTAMPTZ NOT NULL DEFAULT now(),
+    date_suppression TIMESTAMPTZ DEFAULT NULL
 );
 
 CREATE TABLE IF NOT EXISTS applications_promotions (

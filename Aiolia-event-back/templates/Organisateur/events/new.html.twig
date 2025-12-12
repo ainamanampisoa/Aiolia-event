@@ -7,7 +7,13 @@
     <!-- En-tête -->
     <div class="dashboard-header">
         <div>
-            <h1>{{ isEditMode|default(false) ? '✏️ Modifier l\'événement' : '✨ Créer un nouvel événement' }}</h1>
+            <h1>
+                {% if isEditMode|default(false) %}
+                    <i class="fa-solid fa-pen"></i> Modifier l'événement
+                {% else %}
+                    <i class="fa-solid fa-circle-plus"></i> Créer un nouvel événement
+                {% endif %}
+            </h1>
             <p style="color: var(--gray-600); margin-top: 8px; font-size: 1rem;">
                 {{ isEditMode|default(false) ? 'Modifiez les informations de votre événement' : 'Remplissez les informations pour créer votre événement' }}
             </p>

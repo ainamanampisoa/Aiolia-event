@@ -1233,6 +1233,119 @@
         font-size: 0.55rem;
     }
 }
+
+/* Modal suppression événement */
+.modal-overlay {
+    position: fixed;
+    inset: 0;
+    background: rgba(0, 0, 0, 0.45);
+    display: none;
+    align-items: center;
+    justify-content: center;
+    z-index: 3000;
+    padding: 16px;
+}
+
+.modal-overlay.active {
+    display: flex;
+}
+
+.modal-content {
+    background: var(--white);
+    border-radius: var(--border-radius-lg);
+    box-shadow: 0 14px 32px rgba(0, 0, 0, 0.2);
+    max-width: 460px;
+    width: 100%;
+    overflow: hidden;
+}
+
+.modal-header {
+    padding: 16px 20px;
+    border-bottom: 1px solid var(--gray-200);
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 12px;
+}
+
+.modal-title {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    font-weight: var(--font-weight-bold);
+    color: var(--gray-900);
+    font-size: 1rem;
+}
+
+.modal-title i {
+    color: var(--warning);
+}
+
+.modal-close {
+    background: transparent;
+    border: none;
+    font-size: 1.4rem;
+    cursor: pointer;
+    color: var(--gray-600);
+}
+
+.modal-body {
+    padding: 18px 20px 6px;
+    color: var(--gray-800);
+    line-height: 1.5;
+}
+
+.modal-warning {
+    color: var(--danger);
+    font-weight: var(--font-weight-semibold);
+    margin-top: 8px;
+}
+
+.modal-footer {
+    padding: 14px 20px 18px;
+    display: flex;
+    gap: 12px;
+    justify-content: flex-end;
+    border-top: 1px solid var(--gray-200);
+}
+
+.btn-filter {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    gap: 8px;
+    padding: 12px 18px;
+    border-radius: var(--border-radius-md);
+    font-weight: var(--font-weight-semibold);
+    font-size: 0.95rem;
+    text-decoration: none;
+    border: none;
+    cursor: pointer;
+    transition: all 0.2s ease;
+    min-height: 44px;
+    box-sizing: border-box;
+}
+
+.btn-filter-primary {
+    background: linear-gradient(135deg, #e74c3c, #c0392b);
+    color: white;
+    box-shadow: 0 2px 8px rgba(231, 76, 60, 0.25);
+}
+
+.btn-filter-primary:hover {
+    background: linear-gradient(135deg, #c0392b, #a93226);
+    box-shadow: 0 4px 12px rgba(231, 76, 60, 0.35);
+}
+
+.btn-filter-secondary {
+    background: var(--gray-100);
+    color: var(--gray-800);
+    border: 1px solid var(--gray-300);
+}
+
+.btn-filter-secondary:hover {
+    background: var(--gray-200);
+}
 </style>
 {% endblock %}
 
@@ -1484,7 +1597,13 @@
                                     </a>
                                 {% endif %}
                                 {% if event.statut == 'draft' %}
-                                    <form method="POST" action="{{ path('organisateur_events_delete', {'id': event.id}) }}" style="display: inline;" onsubmit="return confirm('Êtes-vous sûr de vouloir supprimer cet événement ?');">
+                                    <form
+                                        method="POST"
+                                        action="{{ path('organisateur_events_delete', {'id': event.id}) }}"
+                                        style="display: inline;"
+                                        class="event-delete-form"
+                                        data-event-title="{{ event.titre ?? 'cet événement' }}"
+                                    >
                                         <input type="hidden" name="_token" value="{{ csrf_token('delete_event_' ~ event.id) }}">
                                         <button
                                             type="submit"
@@ -1658,6 +1777,27 @@
             'criteria': criteria
         } %}
     {% endif %}
+</div>
+
+{# Modal de confirmation suppression événement #}
+<div id="deleteEventModal" class="modal-overlay" aria-hidden="true">
+    <div class="modal-content">
+        <div class="modal-header">
+            <div class="modal-title">
+                <i class="fas fa-exclamation-triangle"></i>
+                Confirmer la suppression
+            </div>
+            <button type="button" class="modal-close" aria-label="Fermer">&times;</button>
+        </div>
+        <div class="modal-body">
+            <p id="deleteEventMessage">Voulez-vous supprimer cet événement ?</p>
+            <p class="modal-warning">Cette action est définitive.</p>
+        </div>
+        <div class="modal-footer">
+            <button type="button" class="btn-filter btn-filter-secondary modal-cancel">Annuler</button>
+            <button type="button" class="btn-filter btn-filter-primary modal-confirm">Supprimer</button>
+        </div>
+    </div>
 </div>
 
 <!-- Modal de partage -->
@@ -1869,6 +2009,50 @@ document.addEventListener('DOMContentLoaded', function() {
     }
 
     // Fonctions utilitaires
+    // Modal de suppression événement (remplace confirm natif)
+    const deleteModal = document.getElementById('deleteEventModal');
+    const deleteMessage = document.getElementById('deleteEventMessage');
+    const btnCancel = deleteModal?.querySelector('.modal-cancel');
+    const btnConfirm = deleteModal?.querySelector('.modal-confirm');
+    const btnClose = deleteModal?.querySelector('.modal-close');
+    let formToSubmit = null;
+
+    const openDeleteModal = (form) => {
+        formToSubmit = form;
+        const title = form.dataset.eventTitle || 'cet événement';
+        if (deleteMessage) {
+            deleteMessage.textContent = `Voulez-vous supprimer ${title} ?`;
+        }
+        deleteModal?.classList.add('active');
+        deleteModal?.setAttribute('aria-hidden', 'false');
+    };
+
+    const closeDeleteModal = () => {
+        formToSubmit = null;
+        deleteModal?.classList.remove('active');
+        deleteModal?.setAttribute('aria-hidden', 'true');
+    };
+
+    document.querySelectorAll('.event-delete-form').forEach(form => {
+        form.addEventListener('submit', (e) => {
+            e.preventDefault();
+            openDeleteModal(form);
+        });
+    });
+
+    btnCancel?.addEventListener('click', closeDeleteModal);
+    btnClose?.addEventListener('click', closeDeleteModal);
+    deleteModal?.addEventListener('click', (e) => {
+        if (e.target === deleteModal) closeDeleteModal();
+    });
+
+    btnConfirm?.addEventListener('click', () => {
+        if (formToSubmit) {
+            formToSubmit.submit();
+        }
+        closeDeleteModal();
+    });
+
     function sortEventCards(sortBy) {
         const container = document.getElementById('eventsGrid');
         const cards = Array.from(container.querySelectorAll('.event-card'));

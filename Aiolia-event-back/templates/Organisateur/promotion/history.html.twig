@@ -6,7 +6,7 @@
 <div class="dashboard">
     <div class="dashboard-header">
         <div>
-            <h1>📊 Historique du code promo</h1>
+            <h1><i class="fas fa-history"></i> Historique du code promo</h1>
             <p style="color: var(--gray-600); margin-top: 8px; font-size: 1rem;">
                 Détails des utilisations du code <strong>{{ promotion.code }}</strong>
             </p>
@@ -81,11 +81,13 @@
 
     <!-- Historique des utilisations -->
     <div class="chart-card">
-        <div class="card-header">
+        <div class="card-header" style="display: flex; justify-content: space-between; align-items: center;">
             <h3>📋 Historique des utilisations</h3>
+            {% if pagination.total_items > 0 %}
             <div style="color: var(--gray-600); font-size: 0.9rem;">
-                {{ applications|length }} utilisation{{ applications|length > 1 ? 's' : '' }}
+                Affichage de {{ ((pagination.current_page - 1) * pagination.per_page + 1) }} à {{ min(pagination.current_page * pagination.per_page, pagination.total_items) }} sur {{ pagination.total_items }} utilisation{{ pagination.total_items > 1 ? 's' : '' }}
             </div>
+            {% endif %}
         </div>
         <div class="card-body">
             {% if applications|length > 0 %}
@@ -131,16 +133,86 @@
                         </tr>
                         {% endfor %}
                     </tbody>
-                    <tfoot>
-                        <tr>
-                            <td colspan="3" style="text-align: right; font-weight: bold;">Total :</td>
-                            <td>
-                                <span class="total-amount">-{{ totalRemise|number_format(2, ',', ' ') }}€</span>
-                            </td>
-                        </tr>
-                    </tfoot>
                 </table>
             </div>
+            
+            <!-- Pagination -->
+            {% if pagination.total_pages > 1 %}
+            <div class="pagination-wrapper" style="margin-top: 30px; padding-top: 20px; border-top: 1px solid var(--gray-200);">
+                <nav class="pagination" aria-label="Pagination">
+                    {% set currentPage = pagination.current_page %}
+                    {% set totalPages = pagination.total_pages %}
+                    
+                    <ul class="pagination-list">
+                        {# Bouton Précédent #}
+                        <li class="pagination-item">
+                            {% if currentPage > 1 %}
+                                <a href="{{ path('organisateur_promotions_history', {id: promotion.id, page: currentPage - 1}) }}" class="pagination-link">
+                                    <i class="fas fa-chevron-left"></i>
+                                    Précédent
+                                </a>
+                            {% else %}
+                                <span class="pagination-link disabled">
+                                    <i class="fas fa-chevron-left"></i>
+                                    Précédent
+                                </span>
+                            {% endif %}
+                        </li>
+
+                        {# Numéros de pages #}
+                        {% set startPage = max(1, currentPage - 2) %}
+                        {% set endPage = min(totalPages, currentPage + 2) %}
+                        
+                        {% if startPage > 1 %}
+                            <li class="pagination-item">
+                                <a href="{{ path('organisateur_promotions_history', {id: promotion.id, page: 1}) }}" class="pagination-link">1</a>
+                            </li>
+                            {% if startPage > 2 %}
+                                <li class="pagination-item">
+                                    <span class="pagination-ellipsis">...</span>
+                                </li>
+                            {% endif %}
+                        {% endif %}
+
+                        {% for page in startPage..endPage %}
+                            <li class="pagination-item">
+                                {% if page == currentPage %}
+                                    <span class="pagination-link active">{{ page }}</span>
+                                {% else %}
+                                    <a href="{{ path('organisateur_promotions_history', {id: promotion.id, page: page}) }}" class="pagination-link">{{ page }}</a>
+                                {% endif %}
+                            </li>
+                        {% endfor %}
+
+                        {% if endPage < totalPages %}
+                            {% if endPage < totalPages - 1 %}
+                                <li class="pagination-item">
+                                    <span class="pagination-ellipsis">...</span>
+                                </li>
+                            {% endif %}
+                            <li class="pagination-item">
+                                <a href="{{ path('organisateur_promotions_history', {id: promotion.id, page: totalPages}) }}" class="pagination-link">{{ totalPages }}</a>
+                            </li>
+                        {% endif %}
+
+                        {# Bouton Suivant #}
+                        <li class="pagination-item">
+                            {% if currentPage < totalPages %}
+                                <a href="{{ path('organisateur_promotions_history', {id: promotion.id, page: currentPage + 1}) }}" class="pagination-link">
+                                    Suivant
+                                    <i class="fas fa-chevron-right"></i>
+                                </a>
+                            {% else %}
+                                <span class="pagination-link disabled">
+                                    Suivant
+                                    <i class="fas fa-chevron-right"></i>
+                                </span>
+                            {% endif %}
+                        </li>
+                    </ul>
+                </nav>
+            </div>
+            {% endif %}
             {% else %}
             <div style="text-align: center; padding: 40px; color: var(--gray-600);">
                 <i class="fas fa-history" style="font-size: 3rem; margin-bottom: 16px; opacity: 0.3;"></i>
@@ -246,16 +318,6 @@
     color: var(--gray-700);
 }
 
-.history-table tfoot {
-    background: var(--gray-50);
-    border-top: 2px solid var(--gray-200);
-}
-
-.history-table tfoot td {
-    padding: 16px;
-    font-weight: var(--font-weight-bold);
-}
-
 .date-cell {
     display: flex;
     align-items: center;
@@ -303,10 +365,61 @@
     font-size: 1.1rem;
 }
 
-.total-amount {
-    color: var(--success);
+.pagination-wrapper {
+    display: flex;
+    justify-content: center;
+}
+
+.pagination-list {
+    display: flex;
+    list-style: none;
+    padding: 0;
+    margin: 0;
+    gap: 8px;
+    align-items: center;
+}
+
+.pagination-item {
+    margin: 0;
+}
+
+.pagination-link {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    padding: 10px 16px;
+    background: var(--white);
+    border: 2px solid var(--gray-200);
+    border-radius: var(--border-radius-md);
+    color: var(--gray-700);
+    text-decoration: none;
+    font-weight: var(--font-weight-medium);
+    transition: var(--transition-base);
+    cursor: pointer;
+}
+
+.pagination-link:hover:not(.disabled):not(.active) {
+    background: var(--accent);
+    color: white;
+    border-color: var(--accent);
+}
+
+.pagination-link.active {
+    background: var(--accent);
+    color: white;
+    border-color: var(--accent);
     font-weight: var(--font-weight-bold);
-    font-size: 1.2rem;
+}
+
+.pagination-link.disabled {
+    opacity: 0.5;
+    cursor: not-allowed;
+    background: var(--gray-100);
+}
+
+.pagination-ellipsis {
+    padding: 10px 8px;
+    color: var(--gray-500);
 }
 
 @media (max-width: 768px) {
@@ -321,6 +434,11 @@
     .history-table th,
     .history-table td {
         padding: 12px 8px;
+    }
+    
+    .pagination-list {
+        flex-wrap: wrap;
+        justify-content: center;
     }
 }
 </style>

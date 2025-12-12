@@ -50,6 +50,9 @@ class CodePromotionnel
     #[ORM\Column(name: 'cree_le', type: Types::DATETIMETZ_MUTABLE)]
     private ?\DateTimeInterface $creeLe = null;
 
+    #[ORM\Column(name: 'date_suppression', type: Types::DATETIMETZ_MUTABLE, nullable: true)]
+    private ?\DateTimeInterface $dateSuppression = null;
+
     #[ORM\PrePersist]
     public function initializeTimestamps(): void
     {
@@ -179,6 +182,23 @@ class CodePromotionnel
         $this->creeLe = $creeLe;
 
         return $this;
+    }
+
+    public function getDateSuppression(): ?\DateTimeInterface
+    {
+        return $this->dateSuppression;
+    }
+
+    public function setDateSuppression(?\DateTimeInterface $dateSuppression): static
+    {
+        $this->dateSuppression = $dateSuppression;
+
+        return $this;
+    }
+
+    public function isDeleted(): bool
+    {
+        return $this->dateSuppression !== null;
     }
 
     public function isActive(): bool

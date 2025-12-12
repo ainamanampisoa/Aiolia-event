@@ -5,6 +5,7 @@
 {% set isPromotions = currentRoute starts with 'organisateur_promotions' %}
 {% set isWaitlist = currentRoute starts with 'organisateur_waitlist' %}
 {% set isBilling = currentRoute starts with 'organisateur_billing' %}
+{% set isScanning = currentRoute == 'app_ticket_scanning' %}
 {% set isProfile = currentRoute starts with 'app_profile' %}
 {% set isSettings = currentRoute starts with 'app_settings' %}
 
@@ -52,6 +53,16 @@
                     </div>
                     <span class="nav-text" data-i18n="layout.sidebar.organisateur.events">Événement</span>
                     <span class="nav-tooltip" data-i18n="layout.sidebar.organisateur.events">Événement</span>
+                </a>
+            </li>
+            
+            <li class="nav-item {{ isScanning ? 'active' }}">
+                <a href="{{ path('app_ticket_scanning') }}" class="nav-link {{ isScanning ? 'active' }}" {% if isScanning %}aria-current="page"{% endif %}>
+                    <div class="nav-icon">
+                        <i class="fas fa-qrcode"></i>
+                    </div>
+                    <span class="nav-text" data-i18n="layout.sidebar.organisateur.scanner">Scanner</span>
+                    <span class="nav-tooltip" data-i18n="layout.sidebar.organisateur.scanner">Scanner</span>
                 </a>
             </li>
             
