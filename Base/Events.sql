@@ -1176,21 +1176,27 @@ BEGIN
     );
 
     -- ============================================================
-    -- CRÉER DES LISTES D'ATTENTE POUR 8 ÉVÉNEMENTS
-    -- 4-8 billets manquants par catégorie/segment, plusieurs utilisateurs possibles
+    -- CRÉER DES LISTES D'ATTENTE POUR 3 ÉVÉNEMENTS EN COURS OU À VENIR
+    -- Chaque événement : 2-3 listes d'attente (2-3 utilisateurs différents)
+    -- Chaque utilisateur : peut avoir plusieurs catégories, mais plusieurs segments d'âge possibles par catégorie
+    -- Exemple : user11 : event 12, ticket VIP 3 (2 adultes + 1 enfant) ET Early Bird 2 (1 adulte + 1 enfant)
     -- ============================================================
     DECLARE
         v_id_event_attente BIGINT;
-        v_id_type_billet_attente BIGINT;
-        v_quantite_manquante INTEGER;
-        v_nb_demandes INTEGER;
+        v_id_categorie_attente BIGINT;
         v_id_user_attente BIGINT;
-        v_quantite_user INTEGER;
+        v_quantite_totale_user INTEGER;
+        v_quantite_adulte INTEGER;
+        v_quantite_enfant INTEGER;
+        v_id_type_billet_adulte BIGINT;
+        v_id_type_billet_enfant BIGINT;
         v_position INTEGER;
         v_events_avec_attente BIGINT[];
         v_event_counter INTEGER;
+        v_nb_listes_attente INTEGER;
+        v_users_utilises BIGINT[];
     BEGIN
-        -- Sélectionner 8 événements aléatoires (parmi les événements en cours ou à venir)
+        -- Sélectionner exactement 3 événements en cours ou à venir
         SELECT array_agg(id)
         INTO v_events_avec_attente
         FROM (
@@ -1200,10 +1206,10 @@ BEGIN
                 AND statut = 'published'
                 AND (commence_le >= NOW() OR (commence_le < NOW() AND se_termine_le >= NOW()))
             ORDER BY RANDOM()
-            LIMIT 8
+            LIMIT 3
         ) sub;
 
-        -- Si on a moins de 8 événements, prendre tous ceux disponibles
+        -- Si on a moins de 3 événements, prendre tous ceux disponibles
         IF array_length(v_events_avec_attente, 1) IS NULL OR array_length(v_events_avec_attente, 1) = 0 THEN
             SELECT array_agg(id)
             INTO v_events_avec_attente
@@ -1211,13 +1217,14 @@ BEGIN
                 SELECT id
                 FROM evenements
                 WHERE id_profil_organisateur = v_id_profil_org
+                    AND statut = 'published'
                 ORDER BY RANDOM()
-                LIMIT 8
+                LIMIT 3
             ) sub;
         END IF;
 
-        -- Pour chaque événement sélectionné
-        FOR v_event_counter IN 1..LEAST(COALESCE(array_length(v_events_avec_attente, 1), 0), 8) LOOP
+        -- Pour chaque événement sélectionné (maximum 3)
+        FOR v_event_counter IN 1..LEAST(COALESCE(array_length(v_events_avec_attente, 1), 0), 3) LOOP
             DECLARE
                 v_event_idx INTEGER;
             BEGIN
@@ -1228,144 +1235,218 @@ BEGIN
                     CONTINUE;
                 END IF;
 
-                -- Sélectionner 1-3 types de billets aléatoirement pour cet événement
-                -- Prioriser VIP et Early Bird car ce sont les plus demandés
-                FOR j IN 1..(1 + floor(random() * 3)::INTEGER) LOOP
-                -- Sélectionner un type de billet aléatoire (prioriser VIP enfant et adulte)
-                SELECT tb.id INTO v_id_type_billet_attente
-                FROM types_billets tb
-                WHERE tb.id_evenement = v_id_event_attente
-                    AND tb.id_configuration_categorie IN (v_id_cat_vip, v_id_cat_early_bird, v_id_cat_backstage, v_id_cat_standard)
-                ORDER BY CASE 
-                    WHEN tb.id_configuration_categorie = v_id_cat_vip AND tb.id_configuration_segment = v_id_segment_enfant THEN 1
-                    WHEN tb.id_configuration_categorie = v_id_cat_vip THEN 2
-                    WHEN tb.id_configuration_categorie = v_id_cat_early_bird THEN 3
-                    ELSE 4
-                END, RANDOM()
-                LIMIT 1;
+                -- Réinitialiser la liste des utilisateurs utilisés pour cet événement
+                v_users_utilises := ARRAY[]::BIGINT[];
 
-                -- Si pas de VIP, prendre n'importe quel type de billet
-                IF v_id_type_billet_attente IS NULL THEN
-                    SELECT tb.id INTO v_id_type_billet_attente
-                    FROM types_billets tb
-                    WHERE tb.id_evenement = v_id_event_attente
+                -- Sélectionner 2-3 listes d'attente pour cet événement (2-3 utilisateurs différents)
+                v_nb_listes_attente := 2 + floor(random() * 2)::INTEGER; -- 2 à 3 utilisateurs
+
+                -- Pour chaque liste d'attente (chaque utilisateur)
+                FOR liste_idx IN 1..v_nb_listes_attente LOOP
+                    -- Sélectionner un utilisateur aléatoire qui n'a pas déjà une demande pour cet événement
+                    SELECT u.id INTO v_id_user_attente
+                    FROM utilisateurs u
+                    WHERE u.role = 'user'
+                        AND NOT (u.id = ANY(v_users_utilises))
                     ORDER BY RANDOM()
                     LIMIT 1;
-                END IF;
 
-                IF v_id_type_billet_attente IS NULL THEN
-                    CONTINUE;
-                END IF;
-
-                -- Calculer le nombre de billets manquants (4-8)
-                v_quantite_manquante := 4 + floor(random() * 5)::INTEGER; -- 4 à 8
-
-                -- Récupérer l'inventaire pour vérifier les billets réellement disponibles
-                DECLARE
-                    v_quantite_totale INTEGER;
-                    v_quantite_vendue INTEGER;
-                    v_quantite_disponible INTEGER;
-                BEGIN
-                    SELECT ib.quantite_totale, ib.quantite_vendue
-                    INTO v_quantite_totale, v_quantite_vendue
-                    FROM inventaire_billets ib
-                    WHERE ib.id_type_billet = v_id_type_billet_attente;
-
-                    IF v_quantite_totale IS NULL THEN
-                        CONTINUE;
-                    END IF;
-
-                    v_quantite_disponible := v_quantite_totale - COALESCE(v_quantite_vendue, 0);
-                    
-                    -- Si des billets sont disponibles, simuler qu'ils sont manquants
-                    -- en créant des demandes pour plus que le disponible
-                    IF v_quantite_disponible >= v_quantite_manquante THEN
-                        -- Augmenter les demandes pour simuler une liste d'attente
-                        v_quantite_manquante := v_quantite_disponible + v_quantite_manquante;
-                    END IF;
-
-                    -- Répartir la demande entre 2-5 utilisateurs
-                    v_nb_demandes := 2 + floor(random() * 4)::INTEGER; -- 2 à 5 utilisateurs
-                    v_quantite_manquante := GREATEST(v_quantite_manquante, v_nb_demandes); -- Au moins 1 billet par utilisateur
-                    
-                    v_position := 0;
-
-                    -- Créer les demandes pour chaque utilisateur
-                    FOR k IN 1..v_nb_demandes LOOP
-                        v_position := v_position + 1;
-                        
-                        -- Calculer la quantité demandée par cet utilisateur (1-3 billets)
-                        -- S'assurer qu'on ne dépasse pas la quantité totale manquante
-                        IF v_position < v_nb_demandes THEN
-                            -- Pas le dernier utilisateur, utiliser la quantité calculée (1-3 billets)
-                            -- Mais s'assurer qu'il reste assez pour les autres utilisateurs
-                            v_quantite_user := LEAST(
-                                1 + floor(random() * 3)::INTEGER, -- 1 à 3 billets
-                                GREATEST(1, v_quantite_manquante - (v_nb_demandes - v_position)) -- Laisser au moins 1 pour chaque utilisateur restant
-                            );
-                            v_quantite_manquante := v_quantite_manquante - v_quantite_user;
-                        ELSE
-                            -- Dernier utilisateur, prendre le reste (minimum 1)
-                            v_quantite_user := GREATEST(1, v_quantite_manquante);
-                            v_quantite_manquante := 0; -- Réinitialiser pour éviter les erreurs
-                        END IF;
-                        
-                        -- S'assurer que v_quantite_user est toujours >= 1
-                        IF v_quantite_user < 1 THEN
-                            v_quantite_user := 1;
-                        END IF;
-
-                        -- Sélectionner un utilisateur aléatoire qui n'a pas déjà une demande pour ce type de billet
+                    -- Si on n'en trouve pas, prendre n'importe quel utilisateur non utilisé
+                    IF v_id_user_attente IS NULL THEN
                         SELECT u.id INTO v_id_user_attente
                         FROM utilisateurs u
                         WHERE u.role = 'user'
-                            AND NOT EXISTS (
-                                SELECT 1 FROM listes_attente_billets lab
-                                WHERE lab.id_evenement = v_id_event_attente
-                                    AND lab.id_type_billet = v_id_type_billet_attente
-                                    AND lab.id_utilisateur = u.id
-                            )
+                            AND NOT (u.id = ANY(v_users_utilises))
                         ORDER BY RANDOM()
                         LIMIT 1;
+                    END IF;
 
-                        -- Si on n'en trouve pas, prendre n'importe quel utilisateur
-                        IF v_id_user_attente IS NULL THEN
-                            SELECT u.id INTO v_id_user_attente
-                            FROM utilisateurs u
-                            WHERE u.role = 'user'
-                            ORDER BY RANDOM()
-                            LIMIT 1;
-                        END IF;
+                    IF v_id_user_attente IS NULL THEN
+                        CONTINUE;
+                    END IF;
 
-                        IF v_id_user_attente IS NOT NULL THEN
-                            -- Insérer la demande dans la liste d'attente
-                            INSERT INTO listes_attente_billets (
-                                id_evenement,
-                                id_type_billet,
-                                id_utilisateur,
-                                quantite_demandee,
-                                statut,
-                                position,
-                                cree_le
-                            ) VALUES (
-                                v_id_event_attente,
-                                v_id_type_billet_attente,
-                                v_id_user_attente,
-                                v_quantite_user,
-                                'pending',
-                                v_position,
-                                NOW() - INTERVAL '1 day' * floor(random() * 7)::INTEGER -- Date aléatoire dans les 7 derniers jours
-                            )
-                            ON CONFLICT (id_evenement, id_type_billet, id_utilisateur) DO NOTHING;
+                    -- Ajouter l'utilisateur à la liste des utilisés pour cet événement
+                    v_users_utilises := array_append(v_users_utilises, v_id_user_attente);
+
+                    -- Sélectionner UNE SEULE catégorie de billet pour cet utilisateur (prioriser VIP et Early Bird)
+                    SELECT id_configuration_categorie INTO v_id_categorie_attente
+                    FROM (
+                        SELECT DISTINCT 
+                            tb.id_configuration_categorie,
+                            CASE 
+                                WHEN tb.id_configuration_categorie = v_id_cat_vip THEN 1
+                                WHEN tb.id_configuration_categorie = v_id_cat_early_bird THEN 2
+                                WHEN tb.id_configuration_categorie = v_id_cat_backstage THEN 3
+                                ELSE 4
+                            END as priorite
+                        FROM types_billets tb
+                        WHERE tb.id_evenement = v_id_event_attente
+                            AND tb.id_configuration_categorie IN (v_id_cat_standard, v_id_cat_vip, v_id_cat_early_bird, v_id_cat_backstage)
+                    ) sub
+                    ORDER BY priorite, RANDOM()
+                    LIMIT 1;
+
+                    -- Si aucune catégorie disponible, passer à l'utilisateur suivant
+                    IF v_id_categorie_attente IS NULL THEN
+                        CONTINUE;
+                    END IF;
+
+                        -- Récupérer les types de billets pour cette catégorie (adulte et enfant)
+                        SELECT tb.id INTO v_id_type_billet_adulte
+                        FROM types_billets tb
+                        WHERE tb.id_evenement = v_id_event_attente
+                            AND tb.id_configuration_categorie = v_id_categorie_attente
+                            AND tb.id_configuration_segment = v_id_segment_adulte
+                        LIMIT 1;
+
+                        SELECT tb.id INTO v_id_type_billet_enfant
+                        FROM types_billets tb
+                        WHERE tb.id_evenement = v_id_event_attente
+                            AND tb.id_configuration_categorie = v_id_categorie_attente
+                            AND tb.id_configuration_segment = v_id_segment_enfant
+                        LIMIT 1;
+
+                    -- Si aucun type de billet trouvé pour cette catégorie, passer à l'utilisateur suivant
+                    IF v_id_type_billet_adulte IS NULL AND v_id_type_billet_enfant IS NULL THEN
+                        CONTINUE;
+                    END IF;
+
+                    -- Calculer la quantité totale demandée par cet utilisateur pour cette catégorie (2-5 billets)
+                    v_quantite_totale_user := 2 + floor(random() * 4)::INTEGER; -- 2 à 5 billets
+
+                    -- Répartir la quantité entre adulte et enfant
+                    -- Au moins 1 billet par segment si les deux segments existent
+                    IF v_id_type_billet_adulte IS NOT NULL AND v_id_type_billet_enfant IS NOT NULL THEN
+                        -- Les deux segments existent : répartir la quantité
+                        -- Minimum 1 pour chaque segment
+                        v_quantite_adulte := 1 + floor(random() * (v_quantite_totale_user - 1))::INTEGER;
+                        v_quantite_enfant := v_quantite_totale_user - v_quantite_adulte;
+                        
+                        -- S'assurer qu'on a au moins 1 pour chaque
+                        IF v_quantite_adulte < 1 THEN
+                            v_quantite_adulte := 1;
+                            v_quantite_enfant := v_quantite_totale_user - 1;
                         END IF;
-                    END LOOP;
-                END;
-                END LOOP; -- Fin boucle j (types de billets)
+                        IF v_quantite_enfant < 1 THEN
+                            v_quantite_enfant := 1;
+                            v_quantite_adulte := v_quantite_totale_user - 1;
+                        END IF;
+                    ELSIF v_id_type_billet_adulte IS NOT NULL THEN
+                        -- Seul le segment adulte existe
+                        v_quantite_adulte := v_quantite_totale_user;
+                        v_quantite_enfant := 0;
+                    ELSE
+                        -- Seul le segment enfant existe
+                        v_quantite_adulte := 0;
+                        v_quantite_enfant := v_quantite_totale_user;
+                    END IF;
+
+                    -- Calculer la position dans la liste d'attente (basée sur l'index de la liste d'attente)
+                    v_position := liste_idx;
+
+                    -- Créer l'entrée pour le segment adulte si nécessaire
+                    IF v_id_type_billet_adulte IS NOT NULL AND v_quantite_adulte > 0 THEN
+                        INSERT INTO listes_attente_billets (
+                            id_evenement,
+                            id_type_billet,
+                            id_utilisateur,
+                            quantite_demandee,
+                            statut,
+                            position,
+                            cree_le
+                        ) VALUES (
+                            v_id_event_attente,
+                            v_id_type_billet_adulte,
+                            v_id_user_attente,
+                            v_quantite_adulte,
+                            'pending',
+                            v_position,
+                            NOW() - INTERVAL '1 day' * floor(random() * 7)::INTEGER
+                        )
+                        ON CONFLICT (id_evenement, id_type_billet, id_utilisateur) DO NOTHING;
+                    END IF;
+
+                    -- Créer l'entrée pour le segment enfant si nécessaire
+                    IF v_id_type_billet_enfant IS NOT NULL AND v_quantite_enfant > 0 THEN
+                        INSERT INTO listes_attente_billets (
+                            id_evenement,
+                            id_type_billet,
+                            id_utilisateur,
+                            quantite_demandee,
+                            statut,
+                            position,
+                            cree_le
+                        ) VALUES (
+                            v_id_event_attente,
+                            v_id_type_billet_enfant,
+                            v_id_user_attente,
+                            v_quantite_enfant,
+                            'pending',
+                            v_position,
+                            NOW() - INTERVAL '1 day' * floor(random() * 7)::INTEGER
+                        )
+                        ON CONFLICT (id_evenement, id_type_billet, id_utilisateur) DO NOTHING;
+                    END IF;
+                END LOOP; -- Fin boucle liste_idx
             END; -- Fin bloc DECLARE pour v_event_idx
         END LOOP; -- Fin boucle v_event_counter (événements)
 
-        RAISE NOTICE '✅ Listes d''attente créées pour % événements', 
-            LEAST(COALESCE(array_length(v_events_avec_attente, 1), 0), 8);
+        -- ============================================================
+        -- METTRE À JOUR L'INVENTAIRE POUR LES TYPES DE BILLETS AVEC LISTE D'ATTENTE
+        -- Tous les billets disponibles doivent être marqués comme vendus
+        -- ============================================================
+        DECLARE
+            v_type_billet_attente RECORD;
+            v_quantite_totale_attente INTEGER;
+            v_quantite_vendue_attente INTEGER;
+            v_quantite_disponible_attente INTEGER;
+            v_billets_dispo_a_supprimer INTEGER;
+            v_billet_dispo RECORD;
+        BEGIN
+            -- Pour chaque type de billet qui a une liste d'attente
+            FOR v_type_billet_attente IN 
+                SELECT DISTINCT lab.id_type_billet
+                FROM listes_attente_billets lab
+            LOOP
+                -- Récupérer l'inventaire actuel
+                SELECT ib.quantite_totale, ib.quantite_vendue
+                INTO v_quantite_totale_attente, v_quantite_vendue_attente
+                FROM inventaire_billets ib
+                WHERE ib.id_type_billet = v_type_billet_attente.id_type_billet;
+
+                IF v_quantite_totale_attente IS NULL THEN
+                    CONTINUE;
+                END IF;
+
+                -- Calculer le nombre de billets disponibles (dispo)
+                SELECT COUNT(*) INTO v_billets_dispo_a_supprimer
+                FROM billets b
+                WHERE b.id_type_billet = v_type_billet_attente.id_type_billet
+                    AND b.statut = 'dispo'
+                    AND b.id_utilisateur_proprietaire IS NULL;
+
+                -- Si il y a des billets disponibles, les supprimer (car ils ne doivent plus être disponibles)
+                IF v_billets_dispo_a_supprimer > 0 THEN
+                    -- Supprimer tous les billets 'dispo' pour ce type de billet
+                    DELETE FROM billets
+                    WHERE id_type_billet = v_type_billet_attente.id_type_billet
+                        AND statut = 'dispo'
+                        AND id_utilisateur_proprietaire IS NULL;
+                END IF;
+
+                -- Mettre à jour l'inventaire : quantite_vendue = quantite_totale (plus aucun billet disponible)
+                -- Cela garantit que quantite_disponible = 0
+                UPDATE inventaire_billets
+                SET quantite_vendue = quantite_totale
+                WHERE id_type_billet = v_type_billet_attente.id_type_billet
+                    AND quantite_vendue < quantite_totale;
+            END LOOP;
+
+            RAISE NOTICE '✅ Inventaire mis à jour : tous les billets avec liste d''attente sont maintenant épuisés';
+        END;
+
+        RAISE NOTICE '✅ Listes d''attente créées pour % événements (2-3 listes d''attente par événement, chaque utilisateur a une seule catégorie avec segments différents)', 
+            LEAST(COALESCE(array_length(v_events_avec_attente, 1), 0), 3);
     END;
 
     -- ============================================================

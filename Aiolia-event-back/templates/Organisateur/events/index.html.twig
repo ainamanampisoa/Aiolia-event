@@ -22,6 +22,26 @@
     gap: 16px;
 }
 
+.dashboard-header h1 {
+    font-size: 2rem;
+    font-weight: var(--font-weight-bold);
+    color: var(--text-primary);
+    margin-bottom: 8px;
+    display: flex;
+    align-items: center;
+    gap: 12px;
+}
+
+.dashboard-header h1 i {
+    color: var(--accent);
+}
+
+.dashboard-header p {
+    color: var(--text-secondary);
+    margin-top: 8px;
+    font-size: 1rem;
+}
+
 .events-stats {
     display: flex;
     gap: 24px;
@@ -105,6 +125,16 @@
     display: flex;
     justify-content: space-between;
     align-items: center;
+}
+
+.search-header-title {
+    font-size: 1.1rem;
+    color: var(--text-primary);
+    margin: 0;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    font-weight: var(--font-weight-semibold);
 }
 
 .btn-toggle-search {
@@ -203,7 +233,7 @@
     display: flex;
     align-items: center;
     gap: 6px;
-    font-weight: 600;
+    font-weight: var(--font-weight-semibold);
 }
 
 .active-filters-label i {
@@ -261,7 +291,7 @@
     display: flex;
     align-items: center;
     gap: 8px;
-    font-weight: 600;
+    font-weight: var(--font-weight-semibold);
     color: var(--text-primary);
     font-size: 0.9rem;
 }
@@ -475,7 +505,7 @@
     padding: 4px 10px;
     border-radius: 20px;
     font-size: 0.7rem;
-    font-weight: 600;
+    font-weight: var(--font-weight-semibold);
     display: flex;
     align-items: center;
     gap: 4px;
@@ -612,7 +642,7 @@
 
 .event-title {
     font-size: 1.2rem;
-    font-weight: 700;
+    font-weight: var(--font-weight-bold);
     color: var(--text-primary);
     margin: 0;
     line-height: 1.4;
@@ -718,7 +748,7 @@
 
 .price-value {
     font-size: 1.2rem;
-    font-weight: 700;
+    font-weight: var(--font-weight-bold);
     color: var(--accent);
 }
 
@@ -734,7 +764,7 @@
     gap: 6px;
     margin-bottom: 12px;
     font-size: 0.8rem;
-    font-weight: 600;
+    font-weight: var(--font-weight-semibold);
     color: var(--text-primary);
     text-transform: uppercase;
     letter-spacing: 0.8px;
@@ -824,7 +854,7 @@
 
 .price-badge-name {
     font-size: 0.7rem;
-    font-weight: 700;
+    font-weight: var(--font-weight-bold);
     color: var(--text-primary);
     text-transform: uppercase;
     letter-spacing: 0.4px;
@@ -848,7 +878,7 @@
 .price-badge-currency {
     font-size: 0.65rem;
     color: var(--text-secondary);
-    font-weight: 600;
+    font-weight: var(--font-weight-semibold);
     margin-top: 1px;
     opacity: 0.85;
     white-space: nowrap;
@@ -859,7 +889,7 @@
     border-radius: 8px;
     border: none;
     font-size: 0.9rem;
-    font-weight: 600;
+    font-weight: var(--font-weight-semibold);
     cursor: pointer;
     transition: all 0.3s ease;
     display: flex;
@@ -1354,23 +1384,10 @@
     <!-- En-tête de la page -->
     <div class="dashboard-header">
         <div>
-            <h1 data-i18n="events.header.title">📅 Mes événements</h1>
-            <p style="color: var(--text-secondary); margin-top: 8px; font-size: 1rem;" data-i18n="events.header.subtitle">
+            <h1><i class="fas fa-calendar-alt"></i> Mes événements</h1>
+            <p data-i18n="events.header.subtitle">
                 Gérez tous vos événements et collaborations
             </p>
-            <div class="events-stats">
-                <span class="stat-item">
-                    <strong>{{ globalStats.total ?? events|length }}</strong> <span data-i18n="events.stats.total">événement(s) total</span>
-                </span>
-                <span class="stat-item">
-                    <i class="fas fa-calendar-alt"></i>
-                    <strong>{{ globalStats.upcoming ?? events|filter(e => e.statut == 'published' and e.commenceLe and e.commenceLe > date())|length }}</strong> <span data-i18n="events.stats.upcoming">à venir</span>
-                </span>
-                <span class="stat-item">
-                    <i class="fas fa-broadcast-tower"></i>
-                    <strong>{{ globalStats.ongoing ?? events|filter(e => e.statut == 'published' and e.commenceLe and e.commenceLe|date('U') <= 'now'|date('U') and (e.seTermineLe is null or e.seTermineLe|date('U') >= 'now'|date('U')))|length }}</strong> <span data-i18n="events.stats.live">en cours</span>
-                </span>
-            </div>
         </div>
         <div class="header-actions">
             <button class="btn btn-primary" onclick="window.location.href='{{ path('app_event_new') }}'" data-i18n="events.actions.new">
@@ -1387,7 +1404,7 @@
     <!-- Filtres avancés (structure harmonisée avec la liste des utilisateurs) -->
     <div class="search-section advanced-filters" id="advancedFilters">
         <div class="search-header">
-            <h3 style="font-size: 1.1rem; color: var(--text-primary); margin: 0; display: flex; align-items: center; gap: 8px;">
+            <h3 class="search-header-title">
                 <i class="fas fa-filter"></i>
                 <span data-i18n="events.filters.title">Recherche multicritère</span>
             </h3>
@@ -1693,58 +1710,6 @@
                             </div>
                         </div>
 
-                        <!-- Bloc méta bas (compteur + prix/actions) aligné à droite -->
-                        <div class="event-bottom-meta">
-                            <!-- Indicateur de progression - seulement pour les événements futurs -->
-                            {% if event.commenceLe and event.commenceLe > date() %}
-                                <div class="event-progress">
-                                    {% set daysLeft = date(event.commenceLe).diff(date()).days %}
-                                    {% if daysLeft > 0 %}
-                                        <div class="progress-info">
-                                            <span>{{ daysLeft }} jours restants</span>
-                                            <span>{{ event.commenceLe|date('d/m/Y') }}</span>
-                                        </div>
-                                        <div class="progress-bar">
-                                            <div class="progress-fill" style="width: {{ min(100, (30 - daysLeft) / 30 * 100) }}%"></div>
-                                        </div>
-                                    {% endif %}
-                                </div>
-                            {% endif %}
-
-                            <!-- Pied de carte -->
-                            <div class="event-card-footer">
-                                <div class="event-price">
-                                    {% set stats = eventsStats[event.id] ?? {'totalTickets': 0, 'soldTickets': 0, 'minPrice': null, 'adultTicketTypes': []} %}
-                                    {% if stats.adultTicketTypes|length > 0 %}
-                                        <div class="price-section">
-                                            <div class="price-section-header">
-                                                <i class="fas fa-ticket-alt"></i>
-                                                <span class="price-section-title" data-i18n="events.card.tarifs.adult">Tarifs Adulte</span>
-                                            </div>
-                                            <div class="price-badges">
-                                                {% for ticketType in stats.adultTicketTypes %}
-                                                    <div class="price-badge">
-                                                        <span class="price-badge-name">{{ ticketType.nom }}</span>
-                                                        <span class="price-badge-value">{{ ticketType.prix|number_format(0, ',', ' ') }}</span>
-                                                        <span class="price-badge-currency">{{ ticketType.devise }}</span>
-                                                    </div>
-                                                {% endfor %}
-                                            </div>
-                                        </div>
-                                    {% elseif stats.minPrice is not null %}
-                                        <div class="price-label-line">
-                                            <i class="fas fa-money-bill-wave"></i>
-                                            <span class="price-value">{{ stats.minPrice|number_format(0, ',', ' ') }} MGA</span>
-                                        </div>
-                                    {% else %}
-                                        <div class="price-label-line">
-                                            <i class="fas fa-money-bill-wave"></i>
-                                            <span class="price-label" data-i18n="events.card.price.undefined">Prix non défini</span>
-                                        </div>
-                                    {% endif %}
-                                </div>
-                            </div>
-                        </div>
                     </div>
                 {% endfor %}
             </div>
