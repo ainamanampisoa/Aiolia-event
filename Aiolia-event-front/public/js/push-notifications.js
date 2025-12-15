@@ -124,10 +124,9 @@ document.addEventListener('DOMContentLoaded', () => {
     pushNotificationManager.init().then((success) => {
         if (success) {
             pushNotificationManager.setupMessageListener();
+            // Exposer globalement après initialisation
+            window.pushNotificationManager = pushNotificationManager;
         }
     });
 });
-
-// Exposer globalement pour utilisation dans d'autres scripts
-window.pushNotificationManager = pushNotificationManager;
 

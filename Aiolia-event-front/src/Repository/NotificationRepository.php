@@ -26,8 +26,9 @@ class NotificationRepository
         }
 
         $this->connection->executeStatement(
-            'UPDATE aiolia.notifications SET status = \'read\', read_at = NOW() WHERE id = :id',
-            ['id' => $notificationId]
+            'UPDATE aiolia.notifications SET status = CAST(\'read\' AS notification_status_enum), read_at = NOW() WHERE id = :id',
+            ['id' => $notificationId],
+            ['id' => \PDO::PARAM_INT]
         );
 
         return true;
@@ -38,9 +39,15 @@ class NotificationRepository
      */
     public function markAllAsRead(int $userId): void
     {
+        // Utiliser une requête qui fonctionne avec les types ENUM PostgreSQL
+        // On compare le statut en le convertissant en texte pour éviter les problèmes avec les ENUM
         $this->connection->executeStatement(
-            'UPDATE aiolia.notifications SET status = \'read\', read_at = NOW() WHERE user_id = :userId AND status != \'read\'',
-            ['userId' => $userId]
+            'UPDATE aiolia.notifications 
+             SET status = CAST(\'read\' AS notification_status_enum), read_at = NOW() 
+             WHERE user_id = :userId 
+               AND (CAST(status AS TEXT) != \'read\' OR read_at IS NULL)',
+            ['userId' => $userId],
+            ['userId' => \PDO::PARAM_INT]
         );
     }
 

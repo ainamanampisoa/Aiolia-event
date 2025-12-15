@@ -108,6 +108,9 @@ class EventReminderService
                 $hoursBefore
             );
             $result['push_sent'] = $notificationId !== null;
+            
+            // Marquer la notification comme envoyée (via le repository si nécessaire)
+            // Note: Le statut sera mis à jour automatiquement lors de l'envoi
         } catch (\Exception $e) {
             $this->logger->error("Erreur lors de la création de la notification push", [
                 'user_id' => $user['id'],

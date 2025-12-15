@@ -268,6 +268,7 @@
     <script src="{{ asset('js/theme-manager.js') }}" defer></script>
     {% if isAuthenticated %}
     <script src="{{ asset('js/push-notifications.js') }}" defer></script>
+    <script src="{{ asset('js/notification-push-handler.js') }}" defer></script>
     {% endif %}
     <style>
         /* Uniform overlay across the full banner width */
@@ -718,7 +719,7 @@
                             <div class="user-connected">
                                 <a href="{{ path('notifications') }}" title="{{ 'common.notifications'|trans }}" class="user-connected-link" style="position: relative;">
                                     <span class="icon-notifications"></span>
-                                    <span id="notification-badge" style="display: none; position: absolute; top: -5px; right: -5px; background: rgb(230, 50, 50); color: white; border-radius: 50%; min-width: 18px; height: 18px; padding: 2px 4px; display: flex; align-items: center; justify-content: center; font-size: 11px; font-weight: bold; font-variant-numeric: tabular-nums;">0</span>
+                                    <span id="notification-badge" style="display: none; position: absolute; top: -5px; right: -5px; background: rgb(230, 50, 50); color: white; border-radius: 50%; min-width: 18px; height: 18px; padding: 2px 4px; align-items: center; justify-content: center; font-size: 11px; font-weight: bold; font-variant-numeric: tabular-nums; opacity: 0; transition: opacity 0.15s ease-in-out;"></span>
                                 </a>
                                 <a href="{{ path('profile_index') }}" title="{{ 'common.my_profile'|trans }}" class="user-connected-link profile-link">
                                     <span class="icon-profile"></span>
@@ -1157,11 +1158,38 @@
                 const badge = document.getElementById('notification-badge');
                 if (!badge) return;
                 
+                count = parseInt(count) || 0;
+                
+                // Ne mettre à jour que si le count a changé pour éviter les flashs
+                const currentText = badge.textContent.trim();
+                const isCurrentlyVisible = badge.style.display !== 'none' && badge.offsetParent !== null;
+                
                 if (count > 0) {
-                    badge.textContent = count > 99 ? '99+' : count.toString();
-                    badge.style.display = 'flex';
+                    // Mettre à jour le texte seulement si nécessaire
+                    const formattedCount = count > 99 ? '99+' : count.toString();
+                    if (currentText !== formattedCount) {
+                        badge.textContent = formattedCount;
+                    }
+                    // Forcer l'affichage du badge même s'il était initialement caché
+                    if (!isCurrentlyVisible) {
+                        badge.style.display = 'flex';
+                        badge.style.visibility = 'visible';
+                        badge.style.opacity = '1';
+                    }
                 } else {
-                    badge.style.display = 'none';
+                    // Cacher complètement le badge quand il n'y a pas de notifications
+                    badge.textContent = '';
+                    if (isCurrentlyVisible) {
+                        badge.style.opacity = '0';
+                        setTimeout(() => {
+                            badge.style.display = 'none';
+                            badge.style.visibility = 'hidden';
+                        }, 150);
+                    } else {
+                        // S'assurer que le badge est bien caché même s'il n'était pas visible
+                        badge.style.display = 'none';
+                        badge.style.visibility = 'hidden';
+                    }
                 }
             }
             
@@ -1170,24 +1198,54 @@
                     method: 'GET',
                     headers: {
                         'X-Requested-With': 'XMLHttpRequest',
+                        'Accept': 'application/json',
                     },
+                    credentials: 'same-origin',
                 })
-                .then(response => response.json())
+                .then(response => {
+                    // Vérifier le type de contenu avant de parser
+                    const contentType = response.headers.get('content-type');
+                    if (!contentType || !contentType.includes('application/json')) {
+                        // Si ce n'est pas du JSON, cacher le badge
+                        updateNotificationBadge(0);
+                        return null;
+                    }
+                    
+                    if (!response.ok) {
+                        // En cas d'erreur HTTP, cacher le badge
+                        updateNotificationBadge(0);
+                        return null;
+                    }
+                    
+                    return response.json();
+                })
                 .then(data => {
                     if (data && data.status === 'success') {
-                        updateNotificationBadge(data.count || 0);
+                        const count = parseInt(data.count) || 0;
+                        // Afficher le badge uniquement s'il y a des notifications non lues
+                        updateNotificationBadge(count);
+                    } else {
+                        // En cas d'erreur, cacher le badge
+                        updateNotificationBadge(0);
                     }
                 })
                 .catch(error => {
-                    console.error('Erreur lors du chargement du compteur de notifications:', error);
+                    // En cas d'erreur, cacher le badge silencieusement
+                    updateNotificationBadge(0);
                 });
             }
             
             // Charger le compteur de notifications au chargement de la page
             loadNotificationCount();
             
-            // Recharger le compteur toutes les 30 secondes
-            setInterval(loadNotificationCount, 30000);
+            // Recharger le compteur toutes les 10 secondes pour une mise à jour plus fréquente
+            setInterval(loadNotificationCount, 10000);
+            
+            // Mettre à jour le badge après certaines actions (marquer comme lu, etc.)
+            // Cette fonction sera appelée depuis d'autres scripts
+            window.updateNotificationBadge = function() {
+                loadNotificationCount();
+            };
             
             // Fonction pour charger et afficher le count du panier
             function loadAndDisplayCartCount(force = false) {

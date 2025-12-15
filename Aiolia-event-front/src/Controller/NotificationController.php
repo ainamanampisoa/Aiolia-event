@@ -18,7 +18,20 @@ class NotificationController extends AbstractController
     ) {
     }
 
-    #[Route('/notifications', name: 'notifications')]
+    /**
+     * Retourne une réponse JSON 401 pour les utilisateurs non authentifiés
+     */
+    private function jsonUnauthorized(string $message = 'Vous devez être connecté'): JsonResponse
+    {
+        $response = new JsonResponse([
+            'status' => 'error',
+            'message' => $message
+        ], 401);
+        $response->headers->set('Content-Type', 'application/json');
+        return $response;
+    }
+
+    #[Route('/notifications', name: 'notifications', methods: ['GET'])]
     public function index(Request $request): Response
     {
         $session = $request->getSession();
@@ -58,10 +71,7 @@ class NotificationController extends AbstractController
 
         $sessionUser = $session->get('user');
         if (!is_array($sessionUser) || !isset($sessionUser['id'])) {
-            return new JsonResponse([
-                'status' => 'error',
-                'message' => 'Vous devez être connecté'
-            ], 401);
+            return $this->jsonUnauthorized();
         }
 
         $userId = (int) $sessionUser['id'];
@@ -86,10 +96,12 @@ class NotificationController extends AbstractController
 
         $sessionUser = $session->get('user');
         if (!is_array($sessionUser) || !isset($sessionUser['id'])) {
-            return new JsonResponse([
+            $response = new JsonResponse([
                 'status' => 'error',
                 'message' => 'Vous devez être connecté'
             ], 401);
+            $response->headers->set('Content-Type', 'application/json');
+            return $response;
         }
 
         $userId = (int) $sessionUser['id'];
@@ -120,21 +132,28 @@ class NotificationController extends AbstractController
 
         $sessionUser = $session->get('user');
         if (!is_array($sessionUser) || !isset($sessionUser['id'])) {
-            return new JsonResponse([
-                'status' => 'error',
-                'message' => 'Vous devez être connecté'
-            ], 401);
+            return $this->jsonUnauthorized();
         }
 
         $userId = (int) $sessionUser['id'];
 
-        // Marquer toutes les notifications comme lues
-        $this->notificationRepository->markAllAsRead($userId);
+        try {
+            // Marquer toutes les notifications comme lues
+            $this->notificationRepository->markAllAsRead($userId);
 
-        return new JsonResponse([
-            'status' => 'success',
-            'message' => 'Toutes les notifications ont été marquées comme lues'
-        ]);
+            return new JsonResponse([
+                'status' => 'success',
+                'message' => 'Toutes les notifications ont été marquées comme lues'
+            ]);
+        } catch (\Throwable $e) {
+            // Logger l'erreur pour le débogage
+            error_log('Erreur dans markAllAsRead: ' . $e->getMessage() . ' - ' . $e->getTraceAsString());
+            
+            return new JsonResponse([
+                'status' => 'error',
+                'message' => 'Erreur lors du marquage. Veuillez réessayer.',
+            ], 500);
+        }
     }
 
     #[Route('/api/notifications/{id}/delete', name: 'api_notifications_delete', methods: ['DELETE'])]
@@ -147,10 +166,7 @@ class NotificationController extends AbstractController
 
         $sessionUser = $session->get('user');
         if (!is_array($sessionUser) || !isset($sessionUser['id'])) {
-            return new JsonResponse([
-                'status' => 'error',
-                'message' => 'Vous devez être connecté'
-            ], 401);
+            return $this->jsonUnauthorized();
         }
 
         $userId = (int) $sessionUser['id'];
@@ -181,10 +197,7 @@ class NotificationController extends AbstractController
 
         $sessionUser = $session->get('user');
         if (!is_array($sessionUser) || !isset($sessionUser['id'])) {
-            return new JsonResponse([
-                'status' => 'error',
-                'message' => 'Vous devez être connecté'
-            ], 401);
+            return $this->jsonUnauthorized();
         }
 
         $userId = (int) $sessionUser['id'];
@@ -195,6 +208,71 @@ class NotificationController extends AbstractController
             'status' => 'success',
             'count' => $count,
         ]);
+    }
+
+    #[Route('/api/notifications/{id}/trigger-push', name: 'api_notifications_trigger_push', methods: ['POST'])]
+    public function triggerPushNotification(int $id, Request $request): JsonResponse
+    {
+        $session = $request->getSession();
+        if (!$session->isStarted()) {
+            $session->start();
+        }
+
+        $sessionUser = $session->get('user');
+        if (!is_array($sessionUser) || !isset($sessionUser['id'])) {
+            return $this->jsonUnauthorized();
+        }
+
+        $userId = (int) $sessionUser['id'];
+
+        // Vérifier que la notification appartient à l'utilisateur
+        $notification = $this->connection->executeQuery(
+            'SELECT n.id, n.payload, n.channel, nt.code AS template_code, nt.subject
+             FROM aiolia.notifications n
+             LEFT JOIN aiolia.notification_templates nt ON nt.id = n.template_id
+             WHERE n.id = :id AND n.user_id = :user_id',
+            ['id' => $id, 'user_id' => $userId]
+        )->fetchAssociative();
+
+        if (!$notification) {
+            return new JsonResponse([
+                'status' => 'error',
+                'message' => 'Notification introuvable'
+            ], 404);
+        }
+
+        // Si c'est une notification web_push, retourner les données pour déclencher la notification côté client
+        if ($notification['channel'] === 'web_push') {
+            $payload = json_decode($notification['payload'] ?? '{}', true);
+            $title = $notification['subject'] ?? 'Nouvelle notification';
+            $description = $payload['message'] ?? $payload['description'] ?? '';
+            $eventId = $payload['event_id'] ?? null;
+            
+            $url = $eventId 
+                ? $this->generateUrl('event_details', ['id' => $eventId], \Symfony\Component\Routing\Generator\UrlGeneratorInterface::ABSOLUTE_URL)
+                : $this->generateUrl('notifications', [], \Symfony\Component\Routing\Generator\UrlGeneratorInterface::ABSOLUTE_URL);
+
+            return new JsonResponse([
+                'status' => 'success',
+                'notification' => [
+                    'title' => $title,
+                    'body' => $description,
+                    'icon' => '/images/aiolia-logo-small.svg',
+                    'badge' => '/images/aiolia-logo-small.svg',
+                    'tag' => 'notification-' . $id,
+                    'data' => [
+                        'url' => $url,
+                        'notification_id' => $id,
+                        'event_id' => $eventId,
+                    ],
+                ],
+            ]);
+        }
+
+        return new JsonResponse([
+            'status' => 'error',
+            'message' => 'Cette notification n\'est pas une notification push web'
+        ], 400);
     }
 
     /**
@@ -247,6 +325,8 @@ class NotificationController extends AbstractController
                 'date' => $dateFormatted,
                 'created_at' => $createdAt,
                 'read_at' => $readAt,
+                'event_id' => $payload['event_id'] ?? null,
+                'payload' => $payload,
             ];
         }, $rows);
     }

@@ -64,7 +64,11 @@
                                         {% if not notification.read %}
                                             <button data-action="mark-single" data-id="{{ notification.id }}">{{ 'notifications.btn_mark_single'|trans }}</button>
                                         {% endif %}
-                                        <button data-action="view" data-id="{{ notification.id }}">{{ 'notifications.btn_view'|trans }}</button>
+                                        {% if notification.event_id is defined and notification.event_id %}
+                                            <button data-action="view" data-id="{{ notification.id }}" data-event-id="{{ notification.event_id }}">{{ 'notifications.btn_view'|trans }}</button>
+                                        {% else %}
+                                            <button data-action="view" data-id="{{ notification.id }}">{{ 'notifications.btn_view'|trans }}</button>
+                                        {% endif %}
                                         <button data-action="archive" data-id="{{ notification.id }}">{{ 'notifications.btn_archive'|trans }}</button>
                                     </div>
                                 </div>
@@ -125,9 +129,22 @@
                         headers: {
                             'X-Requested-With': 'XMLHttpRequest',
                             'Content-Type': 'application/json',
+                            'Accept': 'application/json',
                         },
+                        credentials: 'same-origin',
                     })
-                    .then(response => response.json())
+                    .then(response => {
+                        const contentType = response.headers.get('content-type');
+                        if (!contentType || !contentType.includes('application/json')) {
+                            throw new Error('Réponse invalide du serveur');
+                        }
+                        if (!response.ok) {
+                            return response.json().then(data => {
+                                throw new Error(data.message || 'Erreur HTTP ' + response.status);
+                            });
+                        }
+                        return response.json();
+                    })
                     .then(data => {
                         if (data.status === 'success') {
                             item.dataset.state = 'read';
@@ -136,6 +153,11 @@
                             
                             // Mettre à jour les compteurs
                             updateCounters();
+                            
+                            // Mettre à jour le badge dans le header
+                            if (typeof window.updateNotificationBadge === 'function') {
+                                window.updateNotificationBadge();
+                            }
                         } else {
                             alert('{{ 'notifications.error_prefix'|trans }}: ' + (data.message || '{{ 'notifications.error_unknown'|trans }}'));
                         }
@@ -151,14 +173,41 @@
             const markAll = document.querySelector('[data-action="mark-read"]');
             if (markAll) {
                 markAll.addEventListener('click', () => {
+                    // Désactiver le bouton pendant le traitement
+                    markAll.disabled = true;
+                    markAll.textContent = 'Traitement...';
+                    
                     fetch('/api/notifications/read-all', {
                         method: 'POST',
                         headers: {
                             'X-Requested-With': 'XMLHttpRequest',
                             'Content-Type': 'application/json',
+                            'Accept': 'application/json',
                         },
+                        credentials: 'same-origin',
                     })
-                    .then(response => response.json())
+                    .then(response => {
+                        // Vérifier le type de contenu avant de parser
+                        const contentType = response.headers.get('content-type');
+                        const isJson = contentType && contentType.includes('application/json');
+                        
+                        if (!response.ok) {
+                            if (isJson) {
+                                return response.json().then(data => {
+                                    throw new Error(data.message || 'Erreur HTTP ' + response.status);
+                                });
+                            } else {
+                                // Si ce n'est pas du JSON, c'est probablement une page d'erreur HTML
+                                throw new Error('Erreur serveur. Veuillez réessayer.');
+                            }
+                        }
+                        
+                        if (!isJson) {
+                            throw new Error('Réponse invalide du serveur');
+                        }
+                        
+                        return response.json();
+                    })
                     .then(data => {
                         if (data.status === 'success') {
                             items.forEach(item => {
@@ -172,13 +221,23 @@
                             
                             // Mettre à jour les compteurs
                             updateCounters();
+                            
+                            // Mettre à jour le badge dans le header
+                            if (typeof window.updateNotificationBadge === 'function') {
+                                window.updateNotificationBadge();
+                            }
                         } else {
                             alert('{{ 'notifications.error_prefix'|trans }}: ' + (data.message || '{{ 'notifications.error_unknown'|trans }}'));
                         }
                     })
                     .catch(error => {
-                        console.error('Erreur:', error);
-                        alert('{{ 'notifications.error_mark_all'|trans }}');
+                        console.error('Erreur lors du marquage de toutes les notifications:', error);
+                        alert('{{ 'notifications.error_prefix'|trans }}: ' + (error.message || '{{ 'notifications.error_mark_all'|trans }}'));
+                    })
+                    .finally(() => {
+                        // Réactiver le bouton
+                        markAll.disabled = false;
+                        markAll.innerHTML = '<i class="fas fa-check"></i> {{ 'notifications.mark_all_read'|trans }}';
                     });
                 });
             }
@@ -204,9 +263,22 @@
                         headers: {
                             'X-Requested-With': 'XMLHttpRequest',
                             'Content-Type': 'application/json',
+                            'Accept': 'application/json',
                         },
+                        credentials: 'same-origin',
                     })
-                    .then(response => response.json())
+                    .then(response => {
+                        const contentType = response.headers.get('content-type');
+                        if (!contentType || !contentType.includes('application/json')) {
+                            throw new Error('Réponse invalide du serveur');
+                        }
+                        if (!response.ok) {
+                            return response.json().then(data => {
+                                throw new Error(data.message || 'Erreur HTTP ' + response.status);
+                            });
+                        }
+                        return response.json();
+                    })
                     .then(data => {
                         if (data.status === 'success') {
                             setTimeout(() => {
@@ -220,6 +292,11 @@
                                 
                                 // Mettre à jour les compteurs
                                 updateCounters();
+                                
+                                // Mettre à jour le badge dans le header
+                                if (typeof window.updateNotificationBadge === 'function') {
+                                    window.updateNotificationBadge();
+                                }
                             }, 300);
                         } else {
                             // Annuler l'animation en cas d'erreur
@@ -246,16 +323,134 @@
                 });
             }
 
+            // Gérer le bouton "Voir" pour rediriger vers l'événement ou la page de notifications
+            document.querySelectorAll('[data-action="view"]').forEach(button => {
+                button.addEventListener('click', function() {
+                    const notificationId = this.dataset.id;
+                    const eventId = this.dataset.eventId;
+                    const item = this.closest('.notification-item');
+                    
+                    // Marquer comme lu si ce n'est pas déjà fait
+                    if (item && item.classList.contains('is-unread')) {
+                        fetch(`/api/notifications/${notificationId}/read`, {
+                            method: 'POST',
+                            headers: {
+                                'X-Requested-With': 'XMLHttpRequest',
+                                'Content-Type': 'application/json',
+                            },
+                        })
+                        .then(response => response.json())
+                        .then(data => {
+                            if (data.status === 'success') {
+                                item.dataset.state = 'read';
+                                item.classList.remove('is-unread');
+                                const markButton = item.querySelector('[data-action="mark-single"]');
+                                if (markButton) {
+                                    markButton.remove();
+                                }
+                                updateCounters();
+                            }
+                        })
+                        .catch(error => {
+                            console.error('Erreur:', error);
+                        });
+                    }
+                    
+                    // Rediriger vers l'événement ou rester sur la page
+                    if (eventId) {
+                        // Rediriger vers la page de l'événement (utiliser la route Symfony)
+                        window.location.href = `{{ path('event_details', {'id': '__EVENT_ID__'}) }}`.replace('__EVENT_ID__', eventId);
+                    } else {
+                        // Si pas d'événement, juste scroller vers la notification
+                        if (item) {
+                            item.scrollIntoView({ behavior: 'smooth', block: 'center' });
+                        }
+                    }
+                });
+            });
+
             // Fonction pour mettre à jour les compteurs
             function updateCounters() {
-                fetch('/api/notifications/count')
-                    .then(response => response.json())
+                fetch('/api/notifications/count', {
+                    headers: {
+                        'X-Requested-With': 'XMLHttpRequest',
+                        'Accept': 'application/json',
+                    },
+                    credentials: 'same-origin',
+                })
+                    .then(response => {
+                        const contentType = response.headers.get('content-type');
+                        if (!contentType || !contentType.includes('application/json')) {
+                            return null;
+                        }
+                        if (!response.ok) {
+                            return null;
+                        }
+                        return response.json();
+                    })
                     .then(data => {
+                        if (!data) {
+                            return;
+                        }
                         if (data.status === 'success') {
+                            const count = data.count || 0;
+                            
                             // Mettre à jour le compteur dans l'onglet "Non lus"
                             const unreadTab = document.querySelector('[data-filter="unread"] .notifications-counter');
                             if (unreadTab) {
-                                unreadTab.textContent = data.count;
+                                unreadTab.textContent = count;
+                            }
+                            
+                            // Mettre à jour le badge dans le header (si la fonction existe)
+                            if (typeof window.updateNotificationBadge === 'function') {
+                                window.updateNotificationBadge();
+                            } else {
+                                // Mettre à jour directement le badge avec la même logique que le panier
+                                const badge = document.getElementById('notification-badge');
+                                if (badge) {
+                                    const currentText = badge.textContent.trim();
+                                    const isCurrentlyVisible = badge.style.display !== 'none' && badge.offsetParent !== null;
+                                    
+                                    if (count > 0) {
+                                        // Afficher le badge uniquement s'il y a des notifications non lues
+                                        const formattedCount = count > 99 ? '99+' : count.toString();
+                                        if (currentText !== formattedCount) {
+                                            badge.textContent = formattedCount;
+                                        }
+                                        if (!isCurrentlyVisible) {
+                                            badge.style.display = 'flex';
+                                            badge.style.visibility = 'visible';
+                                            badge.style.opacity = '1';
+                                        }
+                                    } else {
+                                        // Cacher complètement le badge quand il n'y a pas de notifications
+                                        badge.textContent = '';
+                                        if (isCurrentlyVisible) {
+                                            badge.style.opacity = '0';
+                                            setTimeout(() => {
+                                                badge.style.display = 'none';
+                                                badge.style.visibility = 'hidden';
+                                            }, 150);
+                                        } else {
+                                            badge.style.display = 'none';
+                                            badge.style.visibility = 'hidden';
+                                        }
+                                    }
+                                }
+                            }
+                            
+                            // Mettre à jour le compteur dans l'onglet "Tous"
+                            const allTab = document.querySelector('[data-filter="all"] .notifications-counter');
+                            if (allTab) {
+                                const allItems = document.querySelectorAll('.notification-item').length;
+                                allTab.textContent = allItems;
+                            }
+                            
+                            // Mettre à jour le compteur dans l'onglet "Lus"
+                            const readTab = document.querySelector('[data-filter="read"] .notifications-counter');
+                            if (readTab) {
+                                const readItems = document.querySelectorAll('.notification-item[data-state="read"]').length;
+                                readTab.textContent = readItems;
                             }
                         }
                     })
@@ -263,6 +458,9 @@
                         console.error('Erreur lors de la mise à jour des compteurs:', error);
                     });
             }
+            
+            // Mettre à jour les compteurs toutes les 5 secondes sur cette page
+            setInterval(updateCounters, 5000);
         });
     </script>
 {% endblock %}

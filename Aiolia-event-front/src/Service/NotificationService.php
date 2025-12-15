@@ -57,6 +57,12 @@ class NotificationService
             ]);
 
             $notificationId = (int) $this->connection->lastInsertId();
+            
+            // Pour les notifications web_push, déclencher immédiatement la notification push
+            if ($channel === 'web_push' && $notificationId) {
+                // La notification push sera déclenchée côté client via notification-push-handler.js
+                // qui vérifie périodiquement les nouvelles notifications
+            }
 
             $this->logger->info('Notification créée', [
                 'notification_id' => $notificationId,
