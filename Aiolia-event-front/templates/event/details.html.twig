@@ -89,8 +89,11 @@
                                                     Horaire à confirmer
                                                 {% endif %}
                                             </div>
-                                            <div class="code-barre">
-                                                <img src="{{ asset('vente-ticket/images/code1.png') }}" alt="Code barre">
+                                            <div class="code-barre qr-code">
+                                                <img
+                                                    src="https://api.qrserver.com/v1/create-qr-code/?size=120x120&data={{ path('event_details', { id: event.id })|url_encode }}"
+                                                    alt="QR Code de l'événement {{ event.title }}"
+                                                >
                                             </div>
                                         </div>
                                         <div class="col2">

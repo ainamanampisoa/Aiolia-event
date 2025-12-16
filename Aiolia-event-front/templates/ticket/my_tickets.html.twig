@@ -84,7 +84,7 @@
                             <div class="inner">
                         <!-- Colonne principale -->
                                 <div class="blc-col1">
-                            <!-- Date et code barre -->
+                            <!-- Date et QR code -->
                                     <div class="col1">
                                 <div class="date-card">
                                     {% if startsAt %}
@@ -103,11 +103,14 @@
                                         Heure à confirmer
                                     {% endif %}
                                         </div>
-                                        <div class="code-barre">
-                                    <img src="{{ asset('vente-ticket/images/code1.png') }}" alt="Code barre">
-                                    <div class="ticket-id">#{{ ticket.id }}</div>
-                                </div>
+                                        <div class="code-barre qr-code">
+                                            <img
+                                                src="https://api.qrserver.com/v1/create-qr-code/?size=120x120&data={{ (ticket.qr_code ?? ticket.id)|url_encode }}"
+                                                alt="QR Code billet #{{ ticket.id }}"
+                                            >
+                                            <div class="ticket-id">#{{ ticket.id }}</div>
                                         </div>
+                                    </div>
 
                             <!-- Détails de l'événement -->
                             <div class="col2">

@@ -143,6 +143,7 @@ class TicketRepository extends ServiceEntityRepository
             SELECT
                 t.id AS ticket_id,
                 t.status AS ticket_status,
+                t.qr_code AS qr_code,
                 e.id AS event_id,
                 e.title AS event_title,
                 COALESCE(e.location_override->>'venue_name', v.name) AS venue_name,
@@ -241,6 +242,7 @@ class TicketRepository extends ServiceEntityRepository
 
             return [
                 'id' => (int) $row['ticket_id'],
+                'qr_code' => $row['qr_code'] ?? null,
                 'status_key' => $statusKey,
                 'status_label' => $statusLabel,
                 'ticket_type' => $row['ticket_type'],
