@@ -11,6 +11,8 @@ use Symfony\Bundle\FrameworkBundle\Controller\AbstractController;
 use Symfony\Component\HttpFoundation\JsonResponse;
 use Symfony\Component\HttpFoundation\Request;
 use Symfony\Component\HttpFoundation\Response;
+use Dompdf\Dompdf;
+use Dompdf\Options;
 use Symfony\Component\Routing\Annotation\Route;
 
 class TicketController extends AbstractController
@@ -722,13 +724,48 @@ class TicketController extends AbstractController
         ]);
     }
 
-    #[Route('/api/tickets/{id}/pdf', name: 'api_tickets_pdf', methods: ['GET'])]
-    public function downloadTicketPdf(int $id): JsonResponse
+    #[Route('/my-tickets/{id}/pdf', name: 'ticket_pdf', methods: ['GET'])]
+    public function downloadTicketPdf(int $id, Request $request): Response
     {
-        // TODO: Télécharger le PDF du billet
-        return new JsonResponse([
-            'message' => "Téléchargement PDF du billet {$id} - À implémenter",
-            'status' => 'success'
+        $session = $request->getSession();
+        if (!$session->isStarted()) {
+            $session->start();
+        }
+
+        $sessionUser = $session->get('user');
+        $isAuthenticated = is_array($sessionUser) && isset($sessionUser['id']);
+
+        if (!$isAuthenticated) {
+            return $this->redirectToRoute('login');
+        }
+
+        $userId = (int) $sessionUser['id'];
+
+        $ticket = $this->ticketRepository->findUserTicketById($userId, $id);
+
+        if (!$ticket) {
+            throw $this->createNotFoundException('Billet introuvable ou non accessible.');
+        }
+
+        $html = $this->renderView('ticket/pdf.html.twig', [
+            'ticket' => $ticket,
+        ]);
+
+        $options = new Options();
+        $options->set('isHtml5ParserEnabled', true);
+        $options->set('isRemoteEnabled', true);
+        $options->set('defaultFont', 'DejaVu Sans');
+
+        $dompdf = new Dompdf($options);
+        $dompdf->loadHtml($html);
+        $dompdf->setPaper('A4', 'landscape');
+        $dompdf->render();
+
+        $filename = sprintf('Billet_%d_%s.pdf', $ticket['id'], date('Y-m-d'));
+
+        return new Response($dompdf->output(), 200, [
+            'Content-Type' => 'application/pdf',
+            'Content-Disposition' => 'attachment; filename="' . $filename . '"',
         ]);
     }
 

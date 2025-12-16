@@ -140,10 +140,12 @@
                                         Détails
                                     </a>
                                     <div class="action-group enhanced compact-mobile">
-                                        <button class="action-btn btn-pdf" data-tooltip="Télécharger PDF" data-ticket-id="{{ ticket.id }}">
+                                        <a href="{{ path('ticket_pdf', {id: ticket.id}) }}"
+                                           class="action-btn btn-pdf"
+                                           data-tooltip="Télécharger PDF">
                                             <i class="fas fa-file-pdf"></i>
                                             <span class="btn-text">PDF</span>
-                                        </button>
+                                        </a>
                                         
                                         <button class="action-btn btn-share" data-tooltip="Partager le billet" data-ticket-id="{{ ticket.id }}">
                                             <i class="fas fa-share-alt"></i>
@@ -220,23 +222,7 @@
     
     <script>
     document.addEventListener('DOMContentLoaded', function() {
-        // Animation pour le bouton PDF
-        document.querySelectorAll('.btn-pdf').forEach(btn => {
-            btn.addEventListener('click', function(e) {
-                e.preventDefault();
-                const ticketId = this.getAttribute('data-ticket-id');
-                
-                // Ajouter l'état de téléchargement
-                this.classList.add('downloading', 'loading');
-                
-                // Simuler le téléchargement (remplacer par votre logique réelle)
-                setTimeout(() => {
-                    this.classList.remove('downloading', 'loading');
-                    // Ici vous ajouteriez la logique de téléchargement réel
-                    console.log('Téléchargement PDF pour le billet:', ticketId);
-                }, 2000);
-            });
-        });
+        // Le bouton PDF est maintenant un lien direct vers le PDF, pas besoin de JS spécifique
 
         // Animation pour le bouton Partage
         document.querySelectorAll('.btn-share').forEach(btn => {
