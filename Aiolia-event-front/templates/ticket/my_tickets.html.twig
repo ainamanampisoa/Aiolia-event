@@ -84,31 +84,29 @@
                             <div class="inner">
                         <!-- Colonne principale -->
                                 <div class="blc-col1">
-                            <!-- Date et QR code -->
+                            <!-- Date, heure et QR code (même style que /events) -->
                                     <div class="col1">
-                                <div class="date-card">
-                                    {% if startsAt %}
-                                    <div class="date-day">{{ startsAt|date('d') }}</div>
-                                    <div class="date-month">{{ startsAt|date('M')|upper }}</div>
-                                    <div class="date-year">{{ startsAt|date('Y') }}</div>
-                                    {% else %}
-                                    <div class="date-unknown">À confirmer</div>
-                                    {% endif %}
+                                        <div class="date">
+                                            {% if startsAt %}
+                                                <span>{{ startsAt|date('l')|capitalize }}</span>
+                                                <strong>{{ startsAt|date('d') }}</strong>
+                                                <span class="text-upper">{{ startsAt|date('M Y')|upper }}</span>
+                                            {% else %}
+                                                <span>À venir</span>
+                                            {% endif %}
                                         </div>
-                                <div class="event-time">
-                                    <i class="far fa-clock"></i>
-                                    {% if startsAt %}
-                                        {{ startsAt|date('H\\hi') }}
-                                    {% else %}
-                                        Heure à confirmer
-                                    {% endif %}
+                                        <div class="hour">
+                                            {% if startsAt %}
+                                                À {{ startsAt|date('H\\hi') }}
+                                            {% else %}
+                                                Heure à confirmer
+                                            {% endif %}
                                         </div>
                                         <div class="code-barre qr-code">
                                             <img
                                                 src="https://api.qrserver.com/v1/create-qr-code/?size=120x120&data={{ (ticket.qr_code ?? ticket.id)|url_encode }}"
-                                                alt="QR Code billet #{{ ticket.id }}"
+                                                alt="QR Code billet"
                                             >
-                                            <div class="ticket-id">#{{ ticket.id }}</div>
                                         </div>
                                     </div>
 
