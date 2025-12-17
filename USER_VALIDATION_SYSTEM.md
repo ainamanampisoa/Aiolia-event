@@ -419,7 +419,8 @@ sudo chown postgres:postgres /tmp/script.sql
 j
 mail : https://mailtrap.io/home
 
-Dbdiagrma : https://dbdiagram.io/d/69313c70d6676488ba8af59e
+Dbdiagrma : user : https://dbdiagram.io/d/69411519137ea0780bded518
+            back : 
 
 explication : https://chatgpt.com/c/691c09da-a1b0-8328-b7a2-1b815d4289f6
 

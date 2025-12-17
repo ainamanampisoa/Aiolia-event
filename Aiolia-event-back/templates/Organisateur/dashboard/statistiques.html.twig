@@ -1,321 +1,551 @@
 {% extends 'base.html.twig' %}
 
-{% block title %}Statistiques - Aiolia Event{% endblock %}
+{% block title %}Tableau de bord - Statistiques{% endblock %}
+
+{% block stylesheets %}
+{{ parent() }}
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/flatpickr/dist/flatpickr.min.css">
+<style>
+    .dashboard-header h1 {
+        display: flex;
+        align-items: center;
+        gap: 12px;
+    }
+
+    .dashboard-header h1 i {
+        font-size: 2rem;
+        color: var(--accent);
+    }
+
+    .stats-grid {
+        display: grid;
+        grid-template-columns: repeat(4, minmax(0, 1fr));
+        gap: 1.5rem;
+        margin-bottom: 24px;
+    }
+
+    .stat-card {
+        background: var(--bg-card);
+        border-radius: var(--border-radius-lg);
+        padding: 1.25rem 1.5rem;
+        box-shadow: var(--shadow-sm);
+        border: 1px solid var(--border-color);
+        display: flex;
+        align-items: center;
+        gap: 1rem;
+    }
+
+    .stat-icon {
+        width: 42px;
+        height: 42px;
+        border-radius: 999px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        color: #fff;
+        font-size: 1.15rem;
+    }
+
+    .bg-primary { background: #2563eb; }
+    .bg-success { background: #16a34a; }
+    .bg-warning { background: #f59e0b; }
+    .bg-info { background: #0ea5e9; }
+
+    .stat-content h3 {
+        font-size: 1.4rem;
+        margin: 0;
+    }
+
+    .stat-content p {
+        margin: 0.1rem 0 0;
+        color: var(--text-secondary);
+        font-size: 0.9rem;
+    }
+
+    .search-section {
+        background: var(--bg-card);
+        border-radius: var(--border-radius-lg);
+        padding: 20px 24px;
+        margin-bottom: 24px;
+        box-shadow: var(--shadow-md);
+        border: 1px solid var(--border-color);
+    }
+
+    .search-grid {
+        display: grid;
+        grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+        gap: 16px;
+        align-items: end;
+    }
+
+    .search-field label {
+        font-size: 0.9rem;
+        font-weight: 600;
+        margin-bottom: 6px;
+        display: block;
+    }
+
+    .form-input {
+        width: 100%;
+        padding: 10px 12px;
+        border-radius: var(--border-radius-md);
+        border: 1px solid var(--border-color);
+        background: var(--bg-secondary);
+        color: var(--text-primary);
+    }
+
+    .search-actions {
+        display: flex;
+        justify-content: flex-end;
+        gap: 10px;
+        margin-top: 14px;
+    }
+
+    .btn {
+        border-radius: var(--border-radius-md);
+        padding: 10px 20px;
+        font-size: 0.9rem;
+        font-weight: 600;
+        border: none;
+        cursor: pointer;
+    }
+
+    .btn-primary {
+        background: #2563eb;
+        color: #fff;
+    }
+
+    .btn-secondary {
+        background: var(--bg-secondary);
+        color: var(--text-secondary);
+        border: 1px solid var(--border-color);
+    }
+
+    .charts-grid {
+        display: grid;
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+        gap: 1.5rem;
+    }
+
+    .chart-card-full-width {
+        grid-column: span 2;
+    }
+
+    .chart-card {
+        background: var(--bg-card);
+        border-radius: 12px;
+        padding: 1.5rem;
+        box-shadow: var(--shadow-sm);
+        border: 1px solid var(--border-color);
+    }
+
+    .chart-card h3 {
+        font-size: 1.1rem;
+        margin-bottom: 0.75rem;
+    }
+
+    .chart-container {
+        position: relative;
+        height: 260px;
+    }
+
+    @media (max-width: 1200px) {
+        .stats-grid {
+            grid-template-columns: repeat(2, minmax(0, 1fr));
+        }
+
+        .charts-grid {
+            grid-template-columns: minmax(0, 1fr);
+        }
+    }
+
+    @media (max-width: 768px) {
+        .stats-grid {
+            grid-template-columns: minmax(0, 1fr);
+        }
+    }
+</style>
+{% endblock %}
 
 {% block body %}
-<div class="dashboard-container">
+<div class="dashboard">
     <div class="dashboard-header">
-        <h1>
-            <i class="fas fa-chart-line"></i>
-            <span data-i18n="organisateur.dashboard.title">Statistiques</span>
-        </h1>
-        <p class="dashboard-subtitle" data-i18n="organisateur.dashboard.subtitle">Vue d'ensemble de vos événements et performances</p>
+        <div>
+            <h1><i class="fas fa-chart-line"></i> Statistiques de vos événements</h1>
+            <p class="dashboard-subtitle">Suivez les performances de vos événements et vos dépenses d’abonnement.</p>
+        </div>
     </div>
 
-    <!-- Cards de statistiques -->
+    <!-- 4 widgets -->
     <div class="stats-grid">
         <div class="stat-card">
-            <div class="stat-icon">
-                <i class="fas fa-calendar-alt"></i>
+            <div class="stat-icon bg-primary">
+                <i class="fas fa-calendar-check"></i>
             </div>
             <div class="stat-content">
-                <h3 class="stat-value">{{ totalEvents }}</h3>
-                <p class="stat-label" data-i18n="organisateur.dashboard.total_events">Total événements</p>
+                <h3>{{ statistics.widgets.published_events ?? 0 }}</h3>
+                <p>Événements publiés</p>
             </div>
         </div>
 
         <div class="stat-card">
-            <div class="stat-icon published">
-                <i class="fas fa-check-circle"></i>
+            <div class="stat-icon bg-success">
+                <i class="fas fa-coins"></i>
             </div>
             <div class="stat-content">
-                <h3 class="stat-value">{{ publishedEvents }}</h3>
-                <p class="stat-label" data-i18n="organisateur.dashboard.published_events">Événements publiés</p>
+                <h3>{{ (statistics.widgets.total_revenue ?? 0)|number_format(0, ',', ' ') }} Ar</h3>
+                <p>Chiffre d'affaires ({{ periodLabel }})</p>
             </div>
         </div>
 
         <div class="stat-card">
-            <div class="stat-icon draft">
-                <i class="fas fa-edit"></i>
+            <div class="stat-icon bg-warning">
+                <i class="fas fa-users"></i>
             </div>
             <div class="stat-content">
-                <h3 class="stat-value">{{ draftEvents }}</h3>
-                <p class="stat-label" data-i18n="organisateur.dashboard.draft_events">Brouillons</p>
+                <h3>{{ statistics.widgets.total_participants ?? 0 }}</h3>
+                <p>Participants totaux</p>
+            </div>
+        </div>
+
+        <div class="stat-card">
+            <div class="stat-icon bg-info">
+                <i class="fas fa-credit-card"></i>
+            </div>
+            <div class="stat-content">
+                <h3>{{ (statistics.widgets.current_month_subscription_expense ?? 0)|number_format(0, ',', ' ') }} Ar</h3>
+                <p>Dépense abonnement (toutes les périodes)</p>
             </div>
         </div>
     </div>
 
-    <!-- Événements récents -->
-    <div class="content-card">
-        <div class="card-header">
-            <h2>
-                <i class="fas fa-clock"></i>
-                <span data-i18n="organisateur.dashboard.recent_events">Événements récents</span>
-            </h2>
+    <!-- Filtres dates -->
+    <div class="search-section">
+        <form method="get" action="{{ path('app_organisateur_dashboard_statistiques') }}">
+            <div class="search-grid">
+                <div class="search-field">
+                    <label for="date_from">Date de début</label>
+                    <input
+                        type="date"
+                        id="date_from"
+                        name="date_from"
+                        class="form-input"
+                        value="{{ dateFrom ? dateFrom|date('Y-m-d') : '' }}"
+                    >
+                </div>
+                <div class="search-field">
+                    <label for="date_to">Date de fin</label>
+                    <input
+                        type="date"
+                        id="date_to"
+                        name="date_to"
+                        class="form-input"
+                        value="{{ dateTo ? dateTo|date('Y-m-d') : '' }}"
+                    >
+                </div>
+            </div>
+            <div class="search-actions">
+                <button type="submit" class="btn btn-primary">
+                    <i class="fas fa-search"></i> Filtrer
+                </button>
+                <a href="{{ path('app_organisateur_dashboard_statistiques') }}" class="btn btn-secondary">
+                    <i class="fas fa-redo"></i> Réinitialiser
+                </a>
+            </div>
+        </form>
+    </div>
+
+    <!-- 4 charts -->
+    <div class="charts-grid">
+        <div class="chart-card">
+            <h3><i class="fas fa-chart-line"></i> Évolution des ventes dans le temps ({{ periodLabel }})</h3>
+            <div class="chart-container">
+                <canvas id="salesEvolutionChart"></canvas>
+            </div>
         </div>
-        <div class="card-body">
-            {% if recentEvents|length > 0 %}
-                <div class="events-list">
-                    {% for event in recentEvents %}
-                        <div class="event-item">
-                            <div class="event-info">
-                                <h3>{{ event.titre }}</h3>
-                                <p class="event-meta">
-                                    <span class="event-status status-{{ event.statut }}">
-                                        {{ event.statut|capitalize }}
-                                    </span>
-                                    <span class="event-date">
-                                        <i class="fas fa-calendar"></i>
-                                        {{ event.creeLe|date('d/m/Y') }}
-                                    </span>
-                                </p>
-                            </div>
-                            <div class="event-actions">
-                                {# TODO: Ajouter une vraie route de détail d'événement pour l'organisateur #}
-                                <button type="button" class="btn btn-sm btn-primary" data-event-id="{{ event.id }}">
-                                    <i class="fas fa-eye"></i>
-                                    <span data-i18n="common.view">Voir</span>
-                                </button>
-                            </div>
-                        </div>
-                    {% endfor %}
-                </div>
-            {% else %}
-                <div class="empty-state">
-                    <i class="fas fa-calendar-times"></i>
-                    <p data-i18n="organisateur.dashboard.no_events">Aucun événement pour le moment</p>
-                    <a href="{{ path('app_event_new') }}" class="btn btn-primary">
-                        <i class="fas fa-plus"></i>
-                        <span data-i18n="organisateur.dashboard.create_event">Créer un événement</span>
-                    </a>
-                </div>
-            {% endif %}
+
+        <div class="chart-card">
+            <h3><i class="fas fa-chart-pie"></i> Répartition des ventes par type ({{ periodLabel }})</h3>
+            <div class="chart-container">
+                <canvas id="salesDistributionChart"></canvas>
+            </div>
+        </div>
+
+        <div class="chart-card">
+            <h3><i class="fas fa-chart-bar"></i> Comparaison des ventes par type de billet ({{ periodLabel }})</h3>
+            <div class="chart-container">
+                <canvas id="salesComparisonChart"></canvas>
+            </div>
+        </div>
+
+        <div class="chart-card">
+            <h3><i class="fas fa-ticket-alt"></i> Taux de remplissage par événement ({{ periodLabel }})</h3>
+            <div class="chart-container">
+                <canvas id="occupancyChart"></canvas>
+            </div>
         </div>
     </div>
 </div>
+{% endblock %}
 
-<style>
-.dashboard-container {
-    padding: 24px;
-    max-width: 1400px;
-    margin: 0 auto;
-}
+{% block javascripts %}
+{{ parent() }}
+<script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
+<script>
+    // Données pour les graphiques
+    const salesEvolution = {{ statistics.charts.sales_evolution|json_encode|raw }};
+    const salesDistribution = {{ statistics.charts.sales_distribution|json_encode|raw }};
+    const salesComparison = {{ statistics.charts.sales_comparison|json_encode|raw }};
+    const ticketOccupancy = {{ statistics.charts.ticket_occupancy|json_encode|raw }};
 
-.dashboard-header {
-    margin-bottom: 32px;
-}
+    // Graphique 1 : Évolution des ventes dans le temps
+    const salesEvolutionCtx = document.getElementById('salesEvolutionChart').getContext('2d');
+    const salesEvolutionLabels = salesEvolution.map(item => {
+        const date = new Date(item.date);
+        return date.toLocaleDateString('fr-FR', { day: '2-digit', month: '2-digit' });
+    });
+    const salesEvolutionCounts = salesEvolution.map(item => item.count);
+    const salesEvolutionRevenues = salesEvolution.map(item => item.revenue);
 
-.dashboard-header h1 {
-    font-size: 2rem;
-    font-weight: 700;
-    color: var(--text-primary);
-    margin-bottom: 8px;
-    display: flex;
-    align-items: center;
-    gap: 12px;
-}
+    new Chart(salesEvolutionCtx, {
+        type: 'line',
+        data: {
+            labels: salesEvolutionLabels,
+            datasets: [
+                {
+                    label: 'Nombre de billets vendus',
+                    data: salesEvolutionCounts,
+                    borderColor: '#2563eb',
+                    backgroundColor: 'rgba(37, 99, 235, 0.1)',
+                    yAxisID: 'y',
+                    tension: 0.4
+                },
+                {
+                    label: 'Chiffre d\'affaires (Ar)',
+                    data: salesEvolutionRevenues,
+                    borderColor: '#16a34a',
+                    backgroundColor: 'rgba(22, 163, 74, 0.1)',
+                    yAxisID: 'y1',
+                    tension: 0.4
+                }
+            ]
+        },
+        options: {
+            responsive: true,
+            maintainAspectRatio: false,
+            interaction: {
+                mode: 'index',
+                intersect: false,
+            },
+            scales: {
+                y: {
+                    type: 'linear',
+                    display: true,
+                    position: 'left',
+                    beginAtZero: true,
+                    title: {
+                        display: true,
+                        text: 'Nombre de billets'
+                    }
+                },
+                y1: {
+                    type: 'linear',
+                    display: true,
+                    position: 'right',
+                    beginAtZero: true,
+                    title: {
+                        display: true,
+                        text: 'CA (Ar)'
+                    },
+                    grid: {
+                        drawOnChartArea: false,
+                    },
+                }
+            }
+        }
+    });
 
-.dashboard-header h1 i {
-    color: var(--accent);
-}
+    // Graphique 2 : Répartition des ventes par type (camembert)
+    const salesDistributionCtx = document.getElementById('salesDistributionChart').getContext('2d');
+    const distributionLabels = salesDistribution.map(item => item.category);
+    const distributionRevenues = salesDistribution.map(item => item.revenue);
 
-.dashboard-subtitle {
-    color: var(--text-secondary);
-    font-size: 1rem;
-}
+    new Chart(salesDistributionCtx, {
+        type: 'pie',
+        data: {
+            labels: distributionLabels,
+            datasets: [{
+                label: 'Chiffre d\'affaires (Ar)',
+                data: distributionRevenues,
+                backgroundColor: [
+                    'rgba(37, 99, 235, 0.8)',
+                    'rgba(22, 163, 74, 0.8)',
+                    'rgba(249, 115, 22, 0.8)',
+                    'rgba(168, 85, 247, 0.8)',
+                    'rgba(236, 72, 153, 0.8)',
+                ],
+                borderWidth: 2
+            }]
+        },
+        options: {
+            responsive: true,
+            maintainAspectRatio: false,
+            plugins: {
+                legend: {
+                    position: 'bottom'
+                },
+                tooltip: {
+                    callbacks: {
+                        label: function(context) {
+                            const label = context.label || '';
+                            const value = context.parsed || 0;
+                            const total = context.dataset.data.reduce((a, b) => a + b, 0);
+                            const percentage = total > 0 ? ((value / total) * 100).toFixed(1) : 0;
+                            return label + ': ' + new Intl.NumberFormat('fr-FR').format(value) + ' Ar (' + percentage + '%)';
+                        }
+                    }
+                }
+            }
+        }
+    });
 
-.stats-grid {
-    display: grid;
-    grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
-    gap: 24px;
-    margin-bottom: 32px;
-}
+    // Graphique 3 : Comparaison des ventes par type de billet
+    const salesComparisonCtx = document.getElementById('salesComparisonChart').getContext('2d');
+    const comparisonLabels = salesComparison.map(item => item.ticket_type);
+    const comparisonCounts = salesComparison.map(item => item.count);
+    const comparisonRevenues = salesComparison.map(item => item.revenue);
 
-.stat-card {
-    background: var(--bg-card);
-    border-radius: var(--border-radius-lg);
-    padding: 24px;
-    display: flex;
-    align-items: center;
-    gap: 20px;
-    box-shadow: var(--shadow-md);
-    border: 1px solid var(--border-color);
-    transition: transform 0.2s ease, box-shadow 0.2s ease;
-}
+    new Chart(salesComparisonCtx, {
+        type: 'bar',
+        data: {
+            labels: comparisonLabels,
+            datasets: [
+                {
+                    label: 'Nombre de billets',
+                    data: comparisonCounts,
+                    backgroundColor: 'rgba(37, 99, 235, 0.8)',
+                    yAxisID: 'y',
+                },
+                {
+                    label: 'Chiffre d\'affaires (Ar)',
+                    data: comparisonRevenues,
+                    backgroundColor: 'rgba(22, 163, 74, 0.8)',
+                    yAxisID: 'y1',
+                }
+            ]
+        },
+        options: {
+            responsive: true,
+            maintainAspectRatio: false,
+            scales: {
+                y: {
+                    type: 'linear',
+                    display: true,
+                    position: 'left',
+                    beginAtZero: true,
+                    title: {
+                        display: true,
+                        text: 'Nombre de billets'
+                    }
+                },
+                y1: {
+                    type: 'linear',
+                    display: true,
+                    position: 'right',
+                    beginAtZero: true,
+                    title: {
+                        display: true,
+                        text: 'CA (Ar)'
+                    },
+                    grid: {
+                        drawOnChartArea: false,
+                    },
+                    ticks: {
+                        callback: function(value) {
+                            return new Intl.NumberFormat('fr-FR', {
+                                notation: 'compact',
+                                maximumFractionDigits: 1
+                            }).format(value) + ' Ar';
+                        }
+                    }
+                }
+            }
+        }
+    });
 
-.stat-card:hover {
-    transform: translateY(-2px);
-    box-shadow: var(--shadow-lg);
-}
+    // Graphique 4 : Taux de remplissage par événement
+    const occupancyCtx = document.getElementById('occupancyChart').getContext('2d');
+    const occupancyLabels = ticketOccupancy.map(item => item.event_title);
+    const occupancyRates = ticketOccupancy.map(item => item.occupation_rate);
+    const soldTickets = ticketOccupancy.map(item => item.sold_tickets);
+    const totalCapacity = ticketOccupancy.map(item => item.total_capacity);
 
-.stat-icon {
-    width: 60px;
-    height: 60px;
-    border-radius: var(--border-radius-md);
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    background: var(--accent-light);
-    color: var(--accent);
-    font-size: 1.5rem;
-}
-
-.stat-icon.published {
-    background: rgba(34, 197, 94, 0.1);
-    color: #22c55e;
-}
-
-.stat-icon.draft {
-    background: rgba(251, 191, 36, 0.1);
-    color: #fbbf24;
-}
-
-.stat-content {
-    flex: 1;
-}
-
-.stat-value {
-    font-size: 2rem;
-    font-weight: 700;
-    color: var(--text-primary);
-    margin: 0 0 4px 0;
-}
-
-.stat-label {
-    font-size: 0.9rem;
-    color: var(--text-secondary);
-    margin: 0;
-}
-
-.content-card {
-    background: var(--bg-card);
-    border-radius: var(--border-radius-lg);
-    box-shadow: var(--shadow-md);
-    border: 1px solid var(--border-color);
-    overflow: hidden;
-}
-
-.card-header {
-    padding: 24px;
-    border-bottom: 1px solid var(--border-color);
-}
-
-.card-header h2 {
-    font-size: 1.25rem;
-    font-weight: 600;
-    color: var(--text-primary);
-    margin: 0;
-    display: flex;
-    align-items: center;
-    gap: 10px;
-}
-
-.card-header h2 i {
-    color: var(--accent);
-}
-
-.card-body {
-    padding: 24px;
-}
-
-.events-list {
-    display: flex;
-    flex-direction: column;
-    gap: 16px;
-}
-
-.event-item {
-    display: flex;
-    justify-content: space-between;
-    align-items: center;
-    padding: 16px;
-    background: var(--bg-secondary);
-    border-radius: var(--border-radius-md);
-    border: 1px solid var(--border-color);
-}
-
-.event-info h3 {
-    font-size: 1rem;
-    font-weight: 600;
-    color: var(--text-primary);
-    margin: 0 0 8px 0;
-}
-
-.event-meta {
-    display: flex;
-    gap: 16px;
-    align-items: center;
-    font-size: 0.875rem;
-    color: var(--text-secondary);
-}
-
-.event-status {
-    padding: 4px 12px;
-    border-radius: var(--border-radius-sm);
-    font-size: 0.75rem;
-    font-weight: 600;
-    text-transform: uppercase;
-}
-
-.status-published {
-    background: rgba(34, 197, 94, 0.1);
-    color: #22c55e;
-}
-
-.status-draft {
-    background: rgba(251, 191, 36, 0.1);
-    color: #fbbf24;
-}
-
-.event-date {
-    display: flex;
-    align-items: center;
-    gap: 6px;
-}
-
-.empty-state {
-    text-align: center;
-    padding: 48px 24px;
-}
-
-.empty-state i {
-    font-size: 3rem;
-    color: var(--text-tertiary);
-    margin-bottom: 16px;
-}
-
-.empty-state p {
-    color: var(--text-secondary);
-    margin-bottom: 24px;
-}
-
-.btn {
-    display: inline-flex;
-    align-items: center;
-    gap: 8px;
-    padding: 10px 20px;
-    border-radius: var(--border-radius-md);
-    font-weight: 500;
-    text-decoration: none;
-    transition: all 0.2s ease;
-    border: none;
-    cursor: pointer;
-}
-
-.btn-primary {
-    background: var(--accent);
-    color: white;
-}
-
-.btn-primary:hover {
-    background: var(--accent-dark);
-    transform: translateY(-1px);
-}
-
-.btn-sm {
-    padding: 6px 12px;
-    font-size: 0.875rem;
-}
-</style>
+    new Chart(occupancyCtx, {
+        type: 'bar',
+        data: {
+            labels: occupancyLabels,
+            datasets: [
+                {
+                    label: 'Taux de remplissage (%)',
+                    data: occupancyRates,
+                    backgroundColor: occupancyRates.map(rate => {
+                        if (rate >= 90) return 'rgba(239, 68, 68, 0.8)'; // Rouge : presque complet
+                        if (rate >= 70) return 'rgba(249, 115, 22, 0.8)'; // Orange : bien rempli
+                        if (rate >= 50) return 'rgba(234, 179, 8, 0.8)'; // Jaune : moyen
+                        return 'rgba(34, 197, 94, 0.8)'; // Vert : encore de la place
+                    }),
+                    borderColor: occupancyRates.map(rate => {
+                        if (rate >= 90) return '#ef4444';
+                        if (rate >= 70) return '#f97316';
+                        if (rate >= 50) return '#eab308';
+                        return '#22c55e';
+                    }),
+                    borderWidth: 1,
+                    borderRadius: 6,
+                }
+            ]
+        },
+        options: {
+            responsive: true,
+            maintainAspectRatio: false,
+            scales: {
+                y: {
+                    beginAtZero: true,
+                    max: 100,
+                    title: {
+                        display: true,
+                        text: 'Taux de remplissage (%)'
+                    },
+                    ticks: {
+                        callback: function(value) {
+                            return value + '%';
+                        }
+                    }
+                }
+            },
+            plugins: {
+                tooltip: {
+                    callbacks: {
+                        afterLabel: function(context) {
+                            const index = context.dataIndex;
+                            const sold = soldTickets[index];
+                            const total = totalCapacity[index];
+                            const remaining = total - sold;
+                            return [
+                                `Billets vendus: ${sold}`,
+                                `Capacité totale: ${total}`,
+                                `Places restantes: ${remaining}`
+                            ];
+                        }
+                    }
+                },
+                legend: {
+                    display: true,
+                    position: 'top'
+                }
+            }
+        }
+    });
+</script>
 {% endblock %}
 

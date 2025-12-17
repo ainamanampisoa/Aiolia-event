@@ -1,5 +1,5 @@
 {% set currentRoute = app.request.attributes.get('_route') %}
-{% set isStats = currentRoute == 'organisateur_dashboard_statistiques' %}
+{% set isStats = currentRoute starts with 'app_organisateur_dashboard_statistiques' %}
 {% set isReports = currentRoute starts with 'organisateur_reports' %}
 {% set isEvents = currentRoute starts with 'organisateur_events' or currentRoute starts with 'app_event' %}
 {% set isPromotions = currentRoute starts with 'organisateur_promotions' %}
@@ -23,7 +23,7 @@
             </li>
             
             <li class="nav-item {{ isStats ? 'active' }}">
-                <a href="{{ path('organisateur_dashboard_statistiques') }}" class="nav-link {{ isStats ? 'active' }}" {% if isStats %}aria-current="page"{% endif %}>
+                <a href="{{ path('app_organisateur_dashboard_statistiques') }}" class="nav-link {{ isStats ? 'active' }}" {% if isStats %}aria-current="page"{% endif %}>
                     <div class="nav-icon">
                         <i class="fas fa-chart-line"></i>
                     </div>

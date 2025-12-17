@@ -34,7 +34,7 @@ class AuthController extends AbstractController
         }
         
         if ($role === UserRoleEnum::ORGANIZER) {
-            return $this->redirectToRoute('organisateur_dashboard_statistiques');
+            return $this->redirectToRoute('app_organisateur_dashboard_statistiques');
         }
         
         // Pour les utilisateurs normaux, rediriger vers la liste des événements

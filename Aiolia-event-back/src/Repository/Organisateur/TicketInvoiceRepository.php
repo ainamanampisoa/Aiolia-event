@@ -45,6 +45,44 @@ class TicketInvoiceRepository extends ServiceEntityRepository
         return $revenues;
     }
 
+    /**
+     * Chiffre d'affaires par type de billet pour un événement,
+     * limité à une période (issuedAt entre $dateFrom et $dateTo)
+     * et aux factures payées / partiellement payées.
+     *
+     * @return array<string,float>
+     */
+    public function getRevenueByEventAndPeriod(Event $event, \DateTimeInterface $dateFrom, \DateTimeInterface $dateTo): array
+    {
+        $sql = "
+            SELECT
+                ec.id_type_billet AS type_id,
+                SUM(fb.montant_total::numeric) AS revenue
+            FROM aiolia.factures_billets fb
+            INNER JOIN aiolia.elements_commandes ec ON ec.id_commande = fb.id_commande
+            INNER JOIN aiolia.types_billets tb ON tb.id = ec.id_type_billet
+            WHERE tb.id_evenement = :eventId
+              AND fb.statut IN ('paid', 'partially_paid')
+              AND fb.emise_le >= :dateFrom
+              AND fb.emise_le <= :dateTo
+            GROUP BY ec.id_type_billet
+        ";
+
+        $conn = $this->getEntityManager()->getConnection();
+        $rows = $conn->fetchAllAssociative($sql, [
+            'eventId' => $event->getId(),
+            'dateFrom' => $dateFrom,
+            'dateTo' => $dateTo,
+        ]);
+
+        $revenues = [];
+        foreach ($rows as $row) {
+            $revenues[(string) $row['type_id']] = (float) $row['revenue'];
+        }
+
+        return $revenues;
+    }
+
     
     public function findAllWithFilters(?string $status = null, ?string $search = null, ?\DateTime $dateFrom = null, ?\DateTime $dateTo = null, int $limit = 50, int $offset = 0): array
     {
