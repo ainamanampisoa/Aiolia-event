@@ -18,6 +18,7 @@ class TicketInvoiceRepository extends ServiceEntityRepository
 
     /**
      * Revenus facturés par type de billet pour un événement (somme montant_total).
+     * Inclut uniquement les factures payées ou partiellement payées.
      *
      * @return array<string,float> [typeBilletId => revenue]
      */
@@ -31,6 +32,7 @@ class TicketInvoiceRepository extends ServiceEntityRepository
             INNER JOIN aiolia.elements_commandes ec ON ec.id_commande = fb.id_commande
             INNER JOIN aiolia.types_billets tb ON tb.id = ec.id_type_billet
             WHERE tb.id_evenement = :eventId
+              AND fb.statut IN ('paid', 'partially_paid')
             GROUP BY ec.id_type_billet
         ";
 

@@ -2,86 +2,973 @@
 
 {% block title %}Rapports - Aiolia Event{% endblock %}
 
+{% block stylesheets %}
+{{ parent() }}
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/flatpickr/dist/flatpickr.min.css">
+<style>
+    .flatpickr-calendar {
+        font-family: inherit;
+        border-radius: var(--border-radius-lg);
+        box-shadow: var(--shadow-md);
+    }
+    
+    .flatpickr-day.selected,
+    .flatpickr-day.startRange,
+    .flatpickr-day.endRange {
+        background: var(--accent);
+        border-color: var(--accent);
+    }
+    
+    .flatpickr-day.selected:hover,
+    .flatpickr-day.startRange:hover,
+    .flatpickr-day.endRange:hover {
+        background: var(--accent);
+        border-color: var(--accent);
+    }
+    
+    /* Style pour l'input alternatif de Flatpickr */
+    .flatpickr-input.flatpickr-mobile {
+        display: none;
+    }
+    
+    /* Cacher l'input original et afficher seulement l'input alternatif */
+    #date_from.flatpickr-input,
+    #date_to.flatpickr-input {
+        position: absolute;
+        opacity: 0;
+        pointer-events: none;
+        width: 0;
+        height: 0;
+        padding: 0;
+        border: 0;
+    }
+    
+    /* Style pour l'input alternatif */
+    .flatpickr-input.form-control {
+        background: var(--bg-secondary);
+        cursor: pointer;
+    }
+</style>
+{% endblock %}
+
 {% block body %}
-<div class="dashboard-container">
+<div class="dashboard">
     <div class="dashboard-header">
-        <h1>
-            <i class="fas fa-chart-bar"></i>
-            Rapports
-        </h1>
-        <p class="dashboard-subtitle">Générez et consultez vos rapports détaillés</p>
+        <div>
+            <h1> <i class="fas fa-calendar-check"></i> Rapports des événements</h1>
+            <p style="color: var(--gray-600); margin-top: 8px; font-size: 1rem;">
+                Consultez les rapports détaillés de tous vos événements
+            </p>
+        </div>
     </div>
 
-    <div class="content-card">
-        <div class="card-body">
-            <div class="empty-state">
-                <i class="fas fa-chart-bar"></i>
-                <p data-i18n="organisateur.reports.coming_soon">Cette fonctionnalité sera bientôt disponible</p>
+    <!-- Stats rapides -->
+    <div class="stats-grid stats-grid-compact">
+        <div class="stat-card stat-card-compact">
+            <div class="stat-icon stat-icon-compact" style="background: linear-gradient(135deg, rgba(52, 152, 219, 0.1), rgba(52, 152, 219, 0.05)); color: var(--accent);">
+                <i class="fas fa-calendar-alt"></i>
             </div>
+            <div class="stat-content">
+                <h3>{{ pagination is defined ? pagination.total|number_format(0, ',', ' ') : (reports|length)|number_format(0, ',', ' ') }}</h3>
+                <p>Total événements</p>
+            </div>
+        </div>
+
+        <div class="stat-card stat-card-compact">
+            <div class="stat-icon stat-icon-compact" style="background: linear-gradient(135deg, rgba(39, 174, 96, 0.1), rgba(39, 174, 96, 0.05)); color: var(--success);">
+                <i class="fas fa-coins"></i>
+            </div>
+            <div class="stat-content">
+                <h3>{{ totals.revenue|number_format(0, ',', ' ') }} Ar</h3>
+                <p>Chiffre d'affaires total</p>
+            </div>
+        </div>
+
+        <div class="stat-card stat-card-compact">
+            <div class="stat-icon stat-icon-compact" style="background: linear-gradient(135deg, rgba(243, 156, 18, 0.1), rgba(243, 156, 18, 0.05)); color: var(--warning);">
+                <i class="fas fa-users"></i>
+            </div>
+            <div class="stat-content">
+                <h3>{{ totals.participants|number_format(0, ',', ' ') }}</h3>
+                <p>Participants totaux</p>
+            </div>
+        </div>
+
+        <div class="stat-card stat-card-compact">
+            <div class="stat-icon stat-icon-compact" style="background: linear-gradient(135deg, rgba(231, 76, 60, 0.1), rgba(231, 76, 60, 0.05)); color: var(--danger);">
+                <i class="fas fa-ticket-alt"></i>
+            </div>
+            <div class="stat-content">
+                <h3>{{ totals.sold_tickets|number_format(0, ',', ' ') }} / {{ totals.total_capacity|number_format(0, ',', ' ') }}</h3>
+                <p>Billets vendus / Capacité</p>
+            </div>
+        </div>
+    </div>
+
+    <!-- Top 3 meilleurs événements -->
+    {% if top3Events is defined and top3Events|length > 0 %}
+    <div class="card validation-card" style="margin-top: 20px;">
+        <div class="card-body">
+            <h2 style="margin-bottom: 20px; font-size: 1.3rem; font-weight: var(--font-weight-semibold); color: var(--text-primary); display: flex; align-items: center; gap: 10px;">
+                <i class="fas fa-trophy" style="color: #FFD700;"></i>
+                Top 3 des événements les plus réussis
+            </h2>
+            <div class="top-events-grid">
+                {% for report in top3Events %}
+                    {% set event = report.event %}
+                    {% set rank = loop.index %}
+                    <div class="top-event-card">
+                        <div class="top-event-rank">
+                            <span class="rank-badge rank-{{ rank }}">#{{ rank }}</span>
+                        </div>
+                        <div class="top-event-content">
+                            <h3 class="top-event-title">{{ event.titre }}</h3>
+                            {% if event.lieu %}
+                                <p class="top-event-location">
+                                    <i class="fas fa-map-marker-alt"></i>
+                                    {{ event.lieu.nom }}{% if event.lieu.ville %} - {{ event.lieu.ville }}{% endif %}
+                                </p>
+                            {% elseif event.nomLieuTexte %}
+                                <p class="top-event-location">
+                                    <i class="fas fa-map-marker-alt"></i>
+                                    {{ event.nomLieuTexte }}
+                                </p>
+                            {% endif %}
+                            <div class="top-event-stats">
+                                <div class="top-event-stat">
+                                    <span class="stat-label">Chiffre d'affaires</span>
+                                    <span class="stat-value revenue-value">{{ report.revenue|number_format(0, ',', ' ') }} Ar</span>
+                                </div>
+                                <div class="top-event-stat">
+                                    <span class="stat-label">Participants</span>
+                                    <span class="stat-value">{{ report.participants|number_format(0, ',', ' ') }}</span>
+                                </div>
+                                <div class="top-event-stat">
+                                    <span class="stat-label">Taux de remplissage</span>
+                                    <span class="stat-value {% if report.occupancy_rate >= 90 %}rate-high{% elseif report.occupancy_rate >= 70 %}rate-medium{% else %}rate-low{% endif %}">
+                                        {{ report.occupancy_rate|number_format(1, ',', ' ') }}%
+                                    </span>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                {% endfor %}
+            </div>
+        </div>
+    </div>
+    {% endif %}
+
+    <!-- Filtres -->
+    <div class="card filters-card" style="margin-top: 20px;">
+        <div class="card-body">
+            <form method="GET" action="{{ path('organisateur_reports_index') }}" class="filters-grid">
+                <div class="filter-field">
+                    <label for="date_from">
+                        <i class="fas fa-calendar-alt"></i>
+                        Date de début
+                    </label>
+                    <input 
+                        type="text" 
+                        id="date_from" 
+                        name="date_from" 
+                        value="{{ dateFrom ? dateFrom|date('Y-m-d') : '' }}"
+                        class="form-control"
+                        placeholder="jj/mm/aaaa"
+                    >
+                </div>
+                <div class="filter-field">
+                    <label for="date_to">
+                        <i class="fas fa-calendar-alt"></i>
+                        Date de fin
+                    </label>
+                    <input 
+                        type="text" 
+                        id="date_to" 
+                        name="date_to" 
+                        value="{{ dateTo ? dateTo|date('Y-m-d') : '' }}"
+                        class="form-control"
+                        placeholder="jj/mm/aaaa"
+                    >
+                </div>
+                <div class="filter-actions">
+                    <button type="submit" class="btn-modal btn-modal-primary">
+                        <i class="fas fa-filter"></i> Filtrer
+                    </button>
+                    <a class="btn-modal btn-modal-secondary" href="{{ path('organisateur_reports_index') }}">
+                        Réinitialiser
+                    </a>
+                </div>
+            </form>
+            {% if dateFrom or dateTo %}
+                <div style="margin-top: 16px; padding: 12px; background: var(--bg-secondary); border-radius: var(--border-radius); color: var(--text-secondary); display: flex; align-items: center; gap: 8px;">
+                    <i class="fas fa-info-circle" style="color: var(--accent);"></i>
+                    Période sélectionnée : <strong>{{ periodLabel }}</strong>
+                </div>
+            {% endif %}
+        </div>
+    </div>
+
+    <!-- Tableau des rapports -->
+    <div class="card validation-card" style="margin-top: 20px;">
+        <div class="card-body">
+            <h2 style="margin-bottom: 20px; font-size: 1.3rem; font-weight: var(--font-weight-semibold); color: var(--text-primary);">
+                Liste des événements
+                {% if pagination is defined %}
+                    ({{ pagination.total|number_format(0, ',', ' ') }})
+                {% else %}
+                    ({{ reports|length }})
+                {% endif %}
+            </h2>
+            <div class="table-responsive">
+                <table class="table table-hover validation-table reports-table">
+                    <thead>
+                        <tr>
+                            <th class="col-left">Événement</th>
+                            <th class="col-left">Date de début</th>
+                            <th class="col-left">Date de fin</th>
+                            <th class="col-right">Chiffre d'affaires</th>
+                            <th class="col-center">Vues</th>
+                            <th class="col-center">Participants</th>
+                            <th class="col-center">Billets vendus</th>
+                            <th class="col-center">Capacité</th>
+                            <th class="col-center">Taux de remplissage</th>
+                            <th class="col-center">Statut</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% if reports|length > 0 %}
+                            {% for report in reports %}
+                                {% set event = report.event %}
+                                <tr>
+                                    <td class="col-left">
+                                        <div class="event-info">
+                                            <strong style="color: var(--text-primary); font-size: 0.95rem;">{{ event.titre }}</strong>
+                                            {% if event.lieu %}
+                                                <span style="font-size: 0.85rem; color: var(--text-secondary); display: flex; align-items: center; gap: 4px; margin-top: 4px;">
+                                                    <i class="fas fa-map-marker-alt" style="font-size: 0.75rem;"></i>
+                                                    {{ event.lieu.nom }}{% if event.lieu.ville %} - {{ event.lieu.ville }}{% endif %}
+                                                </span>
+                                            {% elseif event.nomLieuTexte %}
+                                                <span style="font-size: 0.85rem; color: var(--text-secondary); display: flex; align-items: center; gap: 4px; margin-top: 4px;">
+                                                    <i class="fas fa-map-marker-alt" style="font-size: 0.75rem;"></i>
+                                                    {{ event.nomLieuTexte }}
+                                                </span>
+                                            {% endif %}
+                                        </div>
+                                    </td>
+                                    <td class="col-left">
+                                        {% if event.commenceLe %}
+                                            <span style="font-size: 0.85rem; color: var(--text-primary); white-space: nowrap;">{{ event.commenceLe|date('d M Y H:i') }}</span>
+                                        {% else %}
+                                            <span class="text-muted" style="font-size: 0.85rem;">—</span>
+                                        {% endif %}
+                                    </td>
+                                    <td class="col-left">
+                                        {% if event.seTermineLe %}
+                                            <span style="font-size: 0.85rem; color: var(--text-primary); white-space: nowrap;">{{ event.seTermineLe|date('d M Y H:i') }}</span>
+                                        {% else %}
+                                            <span class="text-muted" style="font-size: 0.85rem;">—</span>
+                                        {% endif %}
+                                    </td>
+                                    <td class="col-right">
+                                        <strong style="color: var(--accent); font-size: 0.95rem;">{{ report.revenue|number_format(0, ',', ' ') }} Ar</strong>
+                                    </td>
+                                    <td class="col-center">
+                                        <span class="badge status-badge status-active" style="font-size: 0.85rem;">
+                                            <i class="fas fa-eye"></i>
+                                            {{ report.views|number_format(0, ',', ' ') }}
+                                        </span>
+                                    </td>
+                                    <td class="col-center">
+                                        <span class="badge status-badge status-active" style="font-size: 0.85rem;">
+                                            <i class="fas fa-users"></i>
+                                            {{ report.participants|number_format(0, ',', ' ') }}
+                                        </span>
+                                    </td>
+                                    <td class="col-center">
+                                        <span class="badge status-badge status-pending" style="font-size: 0.85rem;">
+                                            {{ report.sold_tickets|number_format(0, ',', ' ') }}
+                                        </span>
+                                    </td>
+                                    <td class="col-center">
+                                        <span class="badge status-badge status-inactive" style="font-size: 0.85rem;">
+                                            {{ report.total_capacity|number_format(0, ',', ' ') }}
+                                        </span>
+                                    </td>
+                                    <td class="col-center">
+                                        {% set rate = report.occupancy_rate %}
+                                        {% if rate >= 90 %}
+                                            <span class="badge status-badge status-cancelled" style="font-size: 0.85rem;">
+                                                {{ rate|number_format(1, ',', ' ') }}%
+                                            </span>
+                                        {% elseif rate >= 70 %}
+                                            <span class="badge status-badge status-pending" style="font-size: 0.85rem;">
+                                                {{ rate|number_format(1, ',', ' ') }}%
+                                            </span>
+                                        {% elseif rate >= 50 %}
+                                            <span class="badge status-badge status-active" style="font-size: 0.85rem;">
+                                                {{ rate|number_format(1, ',', ' ') }}%
+                                            </span>
+                                        {% else %}
+                                            <span class="badge status-badge status-inactive" style="font-size: 0.85rem;">
+                                                {{ rate|number_format(1, ',', ' ') }}%
+                                            </span>
+                                        {% endif %}
+                                    </td>
+                                    <td class="col-center">
+                                        {% if event.statut == 'published' %}
+                                            <span class="badge status-badge status-active">Publié</span>
+                                        {% elseif event.statut == 'draft' %}
+                                            <span class="badge status-badge status-inactive">Brouillon</span>
+                                        {% else %}
+                                            <span class="badge status-badge status-pending">{{ event.statut }}</span>
+                                        {% endif %}
+                                    </td>
+                                </tr>
+                            {% endfor %}
+                        {% else %}
+                            <tr>
+                                <td colspan="10" class="text-center" style="padding: 40px;">
+                                    <i class="fas fa-inbox" style="font-size: 3rem; color: var(--text-secondary); margin-bottom: 1rem;"></i>
+                                    <p style="color: var(--text-secondary);">Aucun événement trouvé pour la période sélectionnée.</p>
+                                </td>
+                            </tr>
+                        {% endif %}
+                    </tbody>
+                    {% if reports|length > 0 %}
+                    <tfoot>
+                        <tr style="background: var(--bg-secondary); font-weight: var(--font-weight-semibold);">
+                            <td colspan="3" class="col-left"><strong>Totaux</strong></td>
+                            <td class="col-right">
+                                <strong style="color: var(--accent);">{{ totals.revenue|number_format(0, ',', ' ') }} Ar</strong>
+                            </td>
+                            <td class="col-center">
+                                <strong>{{ totals.views|number_format(0, ',', ' ') }}</strong>
+                            </td>
+                            <td class="col-center">
+                                <strong>{{ totals.participants|number_format(0, ',', ' ') }}</strong>
+                            </td>
+                            <td class="col-center">
+                                <strong>{{ totals.sold_tickets|number_format(0, ',', ' ') }}</strong>
+                            </td>
+                            <td class="col-center">
+                                <strong>{{ totals.total_capacity|number_format(0, ',', ' ') }}</strong>
+                            </td>
+                            <td class="col-center">
+                                <strong>{{ totals.occupancy_rate|number_format(1, ',', ' ') }}%</strong>
+                            </td>
+                            <td></td>
+                        </tr>
+                    </tfoot>
+                    {% endif %}
+                </table>
+            </div>
+
+            <!-- Pagination -->
+            {% if pagination is defined and pagination.pages > 1 %}
+                {% set maxPagesToShow = 5 %}
+                {% set startPage = pagination.current_page - 2 %}
+                {% if startPage < 1 %}
+                    {% set startPage = 1 %}
+                {% endif %}
+                {% set endPage = startPage + maxPagesToShow - 1 %}
+                {% if endPage > pagination.pages %}
+                    {% set endPage = pagination.pages %}
+                {% endif %}
+                {% set startPage = endPage - maxPagesToShow + 1 %}
+                {% if startPage < 1 %}
+                    {% set startPage = 1 %}
+                {% endif %}
+
+                <div class="pagination-wrapper">
+                    <ul class="pagination pagination-rounded">
+                        <li class="page-item {{ pagination.current_page == 1 ? 'disabled' }}">
+                            {% if pagination.current_page == 1 %}
+                                <span class="page-link" aria-disabled="true">Précédent</span>
+                            {% else %}
+                                <a class="page-link" href="{{ path('organisateur_reports_index', {
+                                    page: pagination.current_page - 1,
+                                    date_from: dateFrom ? dateFrom|date('Y-m-d') : '',
+                                    date_to: dateTo ? dateTo|date('Y-m-d') : ''
+                                }) }}" rel="prev">Précédent</a>
+                            {% endif %}
+                        </li>
+
+                        {% if startPage > 1 %}
+                            <li class="page-item">
+                                <a class="page-link" href="{{ path('organisateur_reports_index', {
+                                    page: 1,
+                                    date_from: dateFrom ? dateFrom|date('Y-m-d') : '',
+                                    date_to: dateTo ? dateTo|date('Y-m-d') : ''
+                                }) }}">1</a>
+                            </li>
+                            {% if startPage > 2 %}
+                                <li class="page-item ellipsis" aria-hidden="true"><span class="page-link">…</span></li>
+                            {% endif %}
+                        {% endif %}
+
+                        {% for page in startPage..endPage %}
+                            <li class="page-item {{ page == pagination.current_page ? 'active' }}">
+                                {% if page == pagination.current_page %}
+                                    <span class="page-link" aria-current="page">{{ page }}</span>
+                                {% else %}
+                                    <a class="page-link" href="{{ path('organisateur_reports_index', {
+                                        page: page,
+                                        date_from: dateFrom ? dateFrom|date('Y-m-d') : '',
+                                        date_to: dateTo ? dateTo|date('Y-m-d') : ''
+                                    }) }}">{{ page }}</a>
+                                {% endif %}
+                            </li>
+                        {% endfor %}
+
+                        {% if endPage < pagination.pages %}
+                            {% if endPage < pagination.pages - 1 %}
+                                <li class="page-item ellipsis" aria-hidden="true"><span class="page-link">…</span></li>
+                            {% endif %}
+                            <li class="page-item">
+                                <a class="page-link" href="{{ path('organisateur_reports_index', {
+                                    page: pagination.pages,
+                                    date_from: dateFrom ? dateFrom|date('Y-m-d') : '',
+                                    date_to: dateTo ? dateTo|date('Y-m-d') : ''
+                                }) }}">{{ pagination.pages }}</a>
+                            </li>
+                        {% endif %}
+
+                        <li class="page-item {{ pagination.current_page == pagination.pages ? 'disabled' }}">
+                            {% if pagination.current_page == pagination.pages %}
+                                <span class="page-link" aria-disabled="true">Suivant</span>
+                            {% else %}
+                                <a class="page-link" href="{{ path('organisateur_reports_index', {
+                                    page: pagination.current_page + 1,
+                                    date_from: dateFrom ? dateFrom|date('Y-m-d') : '',
+                                    date_to: dateTo ? dateTo|date('Y-m-d') : ''
+                                }) }}" rel="next">Suivant</a>
+                            {% endif %}
+                        </li>
+                    </ul>
+                </div>
+                <div class="pagination-summary">
+                    <small>Page {{ pagination.current_page }} sur {{ pagination.pages }} - Affichage de {{ reports|length }} événement(s) sur {{ pagination.total|default(0) }} total</small>
+                </div>
+            {% elseif pagination is defined and pagination.total > 0 %}
+                <div class="pagination-wrapper">
+                    <div class="pagination-summary">
+                        <small>Affichage de {{ pagination.total }} événement(s)</small>
+                    </div>
+                </div>
+            {% endif %}
         </div>
     </div>
 </div>
 
 <style>
-.dashboard-container {
-    padding: 24px;
-    max-width: 1400px;
-    margin: 0 auto;
+/* Top events grid */
+.top-events-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+    gap: 20px;
+    margin-top: 16px;
 }
 
-.dashboard-header {
-    margin-bottom: 32px;
-}
-
-.dashboard-header h1 {
-    font-size: 2rem;
-    font-weight: 700;
-    color: var(--text-primary);
-    margin-bottom: 8px;
+.top-event-card {
+    background: var(--bg-card);
+    border: 1px solid var(--border-color);
+    border-radius: var(--border-radius-lg);
+    padding: 20px;
     display: flex;
-    align-items: center;
-    gap: 12px;
+    gap: 16px;
+    transition: all 0.3s ease;
+    box-shadow: var(--shadow-sm);
 }
 
-.dashboard-header h1 i {
-    color: var(--accent);
-    font-size: 2rem;
-    display: inline-block;
-    line-height: 1;
+.top-event-card:hover {
+    transform: translateY(-2px);
+    box-shadow: var(--shadow-md);
+    border-color: var(--accent);
+}
+
+.top-event-rank {
     flex-shrink: 0;
 }
 
-.dashboard-subtitle {
+.rank-badge {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 50px;
+    height: 50px;
+    border-radius: 50%;
+    font-weight: var(--font-weight-bold);
+    font-size: 1.2rem;
+    color: white;
+}
+
+.rank-1 {
+    background: linear-gradient(135deg, #FFD700 0%, #FFA500 100%);
+    box-shadow: 0 4px 12px rgba(255, 215, 0, 0.3);
+}
+
+.rank-2 {
+    background: linear-gradient(135deg, #C0C0C0 0%, #A0A0A0 100%);
+    box-shadow: 0 4px 12px rgba(192, 192, 192, 0.3);
+}
+
+.rank-3 {
+    background: linear-gradient(135deg, #CD7F32 0%, #B87333 100%);
+    box-shadow: 0 4px 12px rgba(205, 127, 50, 0.3);
+}
+
+.top-event-content {
+    flex: 1;
+    min-width: 0;
+}
+
+.top-event-title {
+    font-size: 1.1rem;
+    font-weight: var(--font-weight-semibold);
+    color: var(--text-primary);
+    margin: 0 0 8px 0;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+
+.top-event-location {
+    font-size: 0.85rem;
     color: var(--text-secondary);
+    margin: 0 0 16px 0;
+    display: flex;
+    align-items: center;
+    gap: 6px;
+}
+
+.top-event-location i {
+    font-size: 0.75rem;
+    opacity: 0.7;
+}
+
+.top-event-stats {
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+}
+
+.top-event-stat {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 8px 0;
+    border-bottom: 1px solid var(--border-color);
+}
+
+.top-event-stat:last-child {
+    border-bottom: none;
+}
+
+.stat-label {
+    font-size: 0.85rem;
+    color: var(--text-secondary);
+}
+
+.stat-value {
+    font-size: 0.95rem;
+    font-weight: var(--font-weight-semibold);
+    color: var(--text-primary);
+}
+
+.revenue-value {
+    color: var(--accent);
     font-size: 1rem;
 }
 
-.content-card {
-    background: var(--bg-card);
-    border-radius: var(--border-radius-lg);
-    box-shadow: var(--shadow-md);
+.rate-high {
+    color: #E74C3C;
+}
+
+.rate-medium {
+    color: #F39C12;
+}
+
+.rate-low {
+    color: #27AE60;
+}
+
+/* Styles pour les filtres */
+.filters-card {
     border: 1px solid var(--border-color);
+    border-radius: var(--border-radius-lg);
+    box-shadow: var(--shadow-sm);
+    background: var(--bg-card);
+}
+
+.filters-grid {
+    display: grid;
+    gap: 16px;
+    grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+    align-items: end;
+}
+
+.filter-field label {
+    display: block;
+    margin-bottom: 8px;
+    font-weight: var(--font-weight-medium);
+    color: var(--text-primary);
+    font-size: 0.95rem;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+}
+
+.filter-field label i {
+    color: var(--accent);
+}
+
+.filter-field .form-control {
+    width: 100%;
+    padding: 12px;
+    border: 1px solid var(--border-color);
+    border-radius: var(--border-radius-sm);
+    background: var(--bg-secondary);
+    color: var(--text-primary);
+    font-size: 1rem;
+    transition: all 0.3s ease;
+}
+
+.filter-field .form-control:focus {
+    outline: none;
+    border-color: var(--accent);
+    box-shadow: 0 0 0 3px rgba(52, 152, 219, 0.1);
+}
+
+.filter-actions {
+    display: flex;
+    gap: 10px;
+    align-items: center;
+}
+
+/* Styles harmonisés avec la liste des factures */
+.validation-card {
+    border: 1px solid var(--border-color);
+    border-radius: var(--border-radius-lg);
+    box-shadow: var(--shadow-sm);
     overflow: hidden;
+    background: var(--bg-card);
 }
 
-.card-body {
-    padding: 24px;
+.validation-table {
+    width: 100%;
+    border-collapse: separate;
+    border-spacing: 0;
+    background: var(--bg-card);
+    table-layout: auto;
 }
 
-.empty-state {
+.validation-table thead th:first-child {
+    padding-left: 16px;
+}
+
+.validation-table tbody td:first-child {
+    padding-left: 16px;
+}
+
+.validation-table thead th:last-child {
+    padding-right: 16px;
+}
+
+.validation-table tbody td:last-child {
+    padding-right: 16px;
+}
+
+.validation-table thead {
+    background: var(--bg-secondary);
+    position: sticky;
+    top: 0;
+    z-index: 10;
+}
+
+.validation-table thead th {
+    color: var(--text-primary);
+    border-bottom: 1px solid var(--border-color);
+    font-weight: var(--font-weight-medium);
+    text-transform: uppercase;
+    font-size: 0.75rem;
+    letter-spacing: 0.02em;
+    padding: 10px 8px;
+    white-space: nowrap;
+}
+
+.validation-table tbody td {
+    border-bottom: none;
+    padding: 12px 8px;
+    vertical-align: middle;
+    background: var(--bg-card);
+    white-space: nowrap;
+    font-size: 0.85rem;
+}
+
+.validation-table tbody td:has(.event-info) {
+    white-space: normal;
+}
+
+.validation-table tbody tr {
+    border-bottom: 1px solid var(--border-color);
+    transition: var(--transition-base);
+}
+
+.validation-table tbody tr:last-child {
+    border-bottom: none;
+}
+
+.validation-table tbody tr:hover {
+    background: var(--gray-50);
+}
+
+.validation-table tfoot tr {
+    border-top: 2px solid var(--border-color);
+}
+
+/* Alignements colonnes */
+.col-left { text-align: left; }
+.col-center { text-align: center; }
+.col-right { text-align: right; }
+
+.event-info {
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+}
+
+.status-badge {
+    font-size: 0.7rem;
+    padding: 4px 8px;
+    border-radius: var(--border-radius-sm);
+    font-weight: var(--font-weight-medium);
+    display: inline-flex;
+    align-items: center;
+    gap: 4px;
+    white-space: nowrap;
+    transition: var(--transition-base);
+    box-shadow: var(--shadow-xs);
+}
+
+.status-active {
+    background: var(--bg-secondary);
+    color: var(--success);
+    border: 1px solid var(--border-color);
+}
+
+.status-pending {
+    background: var(--bg-secondary);
+    color: var(--warning);
+    border: 1px solid var(--border-color);
+}
+
+.status-inactive {
+    background: var(--bg-secondary);
+    color: var(--text-muted);
+    border: 1px solid var(--border-color);
+}
+
+.status-cancelled {
+    background: var(--bg-secondary);
+    color: #E74C3C;
+    border: 1px solid var(--border-color);
+    font-weight: var(--font-weight-semibold);
+}
+
+.text-muted {
+    color: var(--text-muted);
+}
+
+.text-center {
     text-align: center;
-    padding: 48px 24px;
 }
 
-.empty-state i {
-    font-size: 3rem;
-    color: var(--text-tertiary);
-    margin-bottom: 16px;
+/* Pagination harmonisée */
+.pagination-wrapper {
+    display: flex;
+    justify-content: center;
+    margin-top: 1rem;
 }
 
-.empty-state p {
+.pagination {
+    list-style: none;
+    padding: 0;
+    margin: 0;
+    display: inline-flex;
+    align-items: center;
+    gap: 0.35rem;
+}
+
+.pagination-rounded .page-link {
+    border-radius: 999px !important;
+}
+
+.pagination .page-item.disabled .page-link {
+    pointer-events: none;
+    opacity: 0.5;
+}
+
+.pagination .page-item.active .page-link {
+    background: var(--accent);
+    border-color: var(--accent);
+    color: var(--text-inverse);
+    font-weight: var(--font-weight-medium);
+}
+
+.pagination .page-link {
+    border-radius: var(--border-radius-sm);
+    border: 1px solid var(--border-color);
+    padding: 6px 14px;
     color: var(--text-secondary);
+    background: var(--bg-secondary);
+    transition: var(--transition-base);
+    text-decoration: none;
+}
+
+.pagination .page-link:hover {
+    color: var(--accent);
+    border-color: var(--accent);
+}
+
+.pagination .ellipsis .page-link {
+    border: none;
+    background: transparent;
+    color: var(--text-secondary);
+}
+
+.pagination-summary {
+    text-align: center;
+    margin-top: 0.75rem;
+    color: var(--text-secondary);
+    font-size: 0.9rem;
+}
+
+.btn-modal {
+    padding: 10px 20px;
+    border: none;
+    border-radius: var(--border-radius-sm);
+    font-weight: var(--font-weight-medium);
+    cursor: pointer;
+    transition: all 0.3s ease;
+    font-size: 0.95rem;
+    text-decoration: none;
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+}
+
+.btn-modal-secondary {
+    background: var(--bg-secondary);
+    color: var(--text-primary);
+    border: 1px solid var(--border-color);
+}
+
+.btn-modal-secondary:hover {
+    background: var(--gray-100);
+}
+
+.btn-modal-primary {
+    background: linear-gradient(135deg, #5DADE2 0%, #3498DB 100%);
+    color: white;
+}
+
+.btn-modal-primary:hover {
+    background: linear-gradient(135deg, #3498DB 0%, #2980B9 100%);
+    transform: translateY(-2px);
+    box-shadow: 0 4px 8px rgba(0, 0, 0, 0.15);
+}
+
+/* Responsive */
+@media (max-width: 768px) {
+    .top-events-grid {
+        grid-template-columns: 1fr;
+    }
+    
+    .filters-grid {
+        grid-template-columns: 1fr;
+    }
+    
+    .validation-table {
+        font-size: 0.85rem;
+    }
+    
+    .validation-table thead th {
+        padding: 12px 10px;
+        font-size: 0.75rem;
+    }
+    
+    .validation-table tbody td {
+        padding: 12px 10px;
+    }
 }
 </style>
 {% endblock %}
 
+{% block javascripts %}
+{{ parent() }}
+<script src="https://cdn.jsdelivr.net/npm/flatpickr"></script>
+<script src="https://cdn.jsdelivr.net/npm/flatpickr/dist/l10n/fr.js"></script>
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    // Configuration Flatpickr en français
+    flatpickr.localize(flatpickr.l10ns.fr);
+    
+    // Initialiser le calendrier pour la date de début
+    const dateFromInput = document.getElementById('date_from');
+    if (dateFromInput) {
+        flatpickr(dateFromInput, {
+            dateFormat: 'Y-m-d', // Format pour la soumission (caché)
+            altInput: true,
+            altFormat: 'd/m/Y', // Format d'affichage jj/mm/aaaa
+            altInputClass: 'form-control',
+            locale: 'fr',
+            allowInput: false,
+            clickOpens: true,
+            onChange: function(selectedDates, dateStr, instance) {
+                // Si une date de fin existe, s'assurer que la date de début n'est pas après
+                const dateToInput = document.getElementById('date_to');
+                if (dateToInput && dateToInput._flatpickr) {
+                    const dateTo = dateToInput._flatpickr.selectedDates[0];
+                    if (dateTo && selectedDates[0] > dateTo) {
+                        dateToInput._flatpickr.setDate(selectedDates[0]);
+                    }
+                    dateToInput._flatpickr.set('minDate', selectedDates[0]);
+                }
+            }
+        });
+    }
+    
+    // Initialiser le calendrier pour la date de fin
+    const dateToInput = document.getElementById('date_to');
+    if (dateToInput) {
+        const dateToPicker = flatpickr(dateToInput, {
+            dateFormat: 'Y-m-d', // Format pour la soumission (caché)
+            altInput: true,
+            altFormat: 'd/m/Y', // Format d'affichage jj/mm/aaaa
+            altInputClass: 'form-control',
+            locale: 'fr',
+            allowInput: false,
+            clickOpens: true,
+            onChange: function(selectedDates, dateStr, instance) {
+                // Si une date de début existe, s'assurer que la date de fin n'est pas avant
+                if (dateFromInput && dateFromInput._flatpickr) {
+                    const dateFrom = dateFromInput._flatpickr.selectedDates[0];
+                    if (dateFrom && selectedDates[0] < dateFrom) {
+                        dateFromInput._flatpickr.setDate(selectedDates[0]);
+                    }
+                }
+            }
+        });
+        
+        // Définir la date minimale basée sur la date de début
+        if (dateFromInput && dateFromInput._flatpickr) {
+            const dateFrom = dateFromInput._flatpickr.selectedDates[0];
+            if (dateFrom) {
+                dateToPicker.set('minDate', dateFrom);
+            }
+        }
+    }
+});
+</script>
+{% endblock %}
