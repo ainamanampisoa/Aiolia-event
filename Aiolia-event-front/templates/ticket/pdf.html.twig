@@ -8,230 +8,236 @@
             size: A4 landscape;
             margin: 0;
         }
-
         body {
             font-family: 'Rubik', DejaVu Sans, Arial, sans-serif;
             margin: 0;
+            padding: 20px;
+            background-color: #ffffff;
+            color: #1F2D3D;
+        }
+        
+        /* Main Container matching the card look */
+        .ticket-container {
+            width: 1000px; /* Fixed width for A4 Landscape */
+            margin: 0 auto;
+            background-color: #EFEFEF;
+            border-radius: 8px; /* May not render perfectly in all dompdf versions but worth try */
+            border: 1px solid #ddd;
+        }
+
+        /* The layout table */
+        table.layout {
+            width: 100%;
+            border-collapse: collapse;
+            border-spacing: 0;
+            height: 334px; /* Fixed height matching original design */
+            table-layout: fixed;
+        }
+
+        td {
+            vertical-align: top;
             padding: 0;
-            background: #EFEFEF; /* même fond que les cartes */
+            margin: 0;
         }
 
-        .sec-event {
-            max-width: 1200px;
-            margin: 40px auto;
-        }
-
-        .lst-event .item {
-            background-color: #EFEFEF; /* var(--beige) */
-            padding: 35px;
-            margin-bottom: 0;
-            page-break-inside: avoid;
-        }
-
-        .lst-event .item .inner {
-            display: flex;
-        }
-
-        .lst-event .item .blc-col1 {
-            display: flex;
-            width: 695px;
-            height: 334px;
-            position: relative;
-        }
-
-        .lst-event .item .blc-col1 .col1 {
+        /* LEFT COLUMN: DATE & QR */
+        td.col-left {
+            width: 220px;
+            background-color: #ffffff;
+            border-right: 1px dashed #ccc; /* Separator simulation */
             text-align: center;
-            width: 188px;
-            padding-top: 64px;
-            padding-bottom: 35px;
+        }
+        
+        .left-content {
+            padding: 25px 20px;
             position: relative;
-            background-color: #ffffff; /* var(--white) */
-            margin-left: 15px;
+            height: 334px;
         }
 
-        /* on enlève les petits fonds décoratifs pour le PDF */
-        .lst-event .item .blc-col1 .col1:before,
-        .lst-event .item .blc-col1 .col2:before,
-        .lst-event .item .blc-col1 .col2:after {
-            content: "";
-            display: none;
+        /* Decorative bg strip on the right of col-left (inside) */
+        .left-bg-decor {
+            position: absolute;
+            right: 0;
+            top: 0;
+            bottom: 0;
+            width: 15px;
+            background-image: url('file://{{ public_dir }}/vente-ticket/images/bg1.png');
+            background-repeat: repeat-y;
+            background-position: center;
         }
 
-        .lst-event .item .blc-col1 .date span {
-            display: block;
-        }
-
-        .lst-event .item .blc-col1 .date span.text-upper {
-            text-transform: uppercase;
-            line-height: normal;
-        }
-
-        .lst-event .item .blc-col1 .date strong {
-            font-size: 67px;
-            line-height: 75px;
-            font-weight: bold;
-            color: #C5C1A4; /* var(--green) */
-        }
-
-        .lst-event .item .blc-col1 .date {
-            margin-top: -12px;
-        }
-
-        .lst-event .item .blc-col1 .hour {
-            font-size: 20px;
-            font-weight: 600;
-            text-transform: uppercase;
-            margin-bottom: 31px;
-            margin-top: 0;
-            line-height: normal;
-        }
-
-        .code-barre.qr-code {
-            margin-top: -18px;
-            margin-bottom: 31px;
-            display: inline-flex;
-            flex-direction: column;
-            align-items: center;
-            justify-content: center;
-            max-width: 72px;
-        }
-
-        .code-barre.qr-code img {
-            display: block;
-            max-width: 72px;
-            height: auto;
-        }
-
-        .lst-event .item .blc-col1 .col2 {
-            padding: 27px 36px;
-            position: relative;
-            background-color: #ffffff; /* var(--white) */
-            margin-right: 15px;
-            margin-left: 19px;
-            width: calc(100% - 34px);
-        }
-
-        .lst-event .item .blc-col1 .col2 .bandeau {
-            background-color: #EFE6DD; /* var(--beige2) */
-            padding: 1px 30px;
-            font-size: 16px;
-            font-weight: 500;
-            margin-bottom: 20px;
+        .date-block { margin-bottom: 20px; }
+        .day-name { font-size: 16px; color: #666; text-transform: capitalize; margin-bottom: 5px; display: block;}
+        .date-number { font-size: 70px; font-weight: bold; color: #C5C1A4; line-height: 1; margin: 10px 0; display: block;}
+        .month-year { font-size: 14px; color: #333; text-transform: uppercase; letter-spacing: 1px; display: block;}
+        
+        .time-block {
+            font-size: 18px; font-weight: 600; color: #1F2D3D;
+            margin: 15px auto; text-align: center;
+            padding: 5px 15px;
+            background: #f5f5f5; border-radius: 4px;
             display: inline-block;
         }
 
-        .lst-event .item .blc-col1 .col2 h3 {
-            font-size: 28px;
-            margin-bottom: 22px;
-            margin-top: 0;
+        .qr-block {
+            margin-top: 20px;
+            text-align: center;
+        }
+        .qr-code-img {
+            width: 100px;
+            height: 100px;
+            padding: 5px;
+            background: #fff;
+            border: 1px solid #eee;
         }
 
-        .lst-event .item .blc-col1 .col2 .adresse {
-            padding-left: 40px;
-            position: relative;
-            margin-bottom: 11px;
+        /* CENTER COLUMN: DETAILS */
+        td.col-center {
+            /* Width calculation: 1000 - 220 - 250 = 530px */
+            width: 530px; 
+            padding: 25px 35px;
+            vertical-align: middle; /* Center vertically like flex justify-center */
+        }
+        
+        .category-badge {
+            background-color: #C5C1A4; color: white;
+            padding: 6px 20px; border-radius: 15px;
+            font-size: 12px; text-transform: uppercase; letter-spacing: 1px; font-weight: 600;
+            display: inline-block; margin-bottom: 15px;
+        }
+        
+        h1.title {
+            font-size: 32px; font-weight: bold; margin: 0 0 15px 0;
+            color: #1F2D3D; line-height: 1.2;
+        }
+        
+        .location {
+            font-size: 16px; color: #666; margin-bottom: 25px;
+            padding-left: 25px; position: relative;
+        }
+        .location:before {
+            content: "📍"; position: absolute; left: 0; top: 0;
+        }
+        
+        .price-info {
+            font-size: 16px; color: #333; margin-bottom: 10px;
+        }
+        .price-amount { font-weight: bold; color: #1F2D3D; font-size: 18px; }
+        
+        .order-info {
+            font-size: 14px; color: #666; margin-top: 20px; padding-top: 15px;
+            border-top: 1px dashed #ccc;
         }
 
-        .lst-event .item .blc-col1 .col2 .adresse:before {
-            content: "📍";
-            position: absolute;
-            left: 0;
-            top: 3px;
-            font-size: 20px;
+        /* RIGHT COLUMN: IMAGE */
+        td.col-right {
+            width: 250px;
+            /* background-color: #ccc; removed to show container bg or white */
+            vertical-align: middle;
+            text-align: center;
+            padding: 10px; /* Add some padding so image isn't edge-to-edge if large */
+        }
+        
+        .event-img {
+            max-width: 100%;
+            max-height: 100%;
+            width: auto;
+            height: auto;
+            object-fit: contain;
+            display: inline-block;
+            border-radius: 4px; /* Optional: adds nice touch */
+        }
+        
+        /* Debug fallback */
+        .img-fallback {
+            width: 250px; height: 334px;
+            background: linear-gradient(135deg, #E8E5D3 0%, #C5C1A4 100%);
+            text-align: center;
+            line-height: 334px;
+            color: #666;
         }
 
-        .lst-event .item .blc-col1 .col2 .tarif {
-            padding-left: 40px;
-            position: relative;
-            margin-bottom: 27px;
-        }
-
-        .lst-event .item .blc-col1 .col2 .tarif:before {
-            content: "💰";
-            position: absolute;
-            left: 0;
-            top: 8px;
-            font-size: 19px;
-        }
-
-        .lst-event .item .inner .blc-col2 {
-            padding-left: 15px;
-        }
-
-        .lst-event .item .inner .blc-col2 .img {
-            width: 235px;
-            height: 334px;
-            display: block;
-        }
-
-        .lst-event .item .inner .blc-col2 .img img {
-            width: 100%;
-            height: 100%;
-            object-fit: cover;
-        }
     </style>
 </head>
 <body>
 {% set startsAt = ticket.event.date %}
-<div class="sec-event">
-    <div class="lst-event">
-        <div class="item">
-            <div class="inner">
-                <div class="blc-col1">
-                    <div class="col1">
-                        <div class="date">
-                            {% if startsAt %}
-                                <span>{{ startsAt|date('l')|capitalize }}</span>
-                                <strong>{{ startsAt|date('d') }}</strong>
-                                <span class="text-upper">{{ startsAt|date('M Y')|upper }}</span>
-                            {% else %}
-                                <span>À venir</span>
-                            {% endif %}
-                        </div>
-                        <div class="hour">
-                            {% if startsAt %}
-                                À {{ startsAt|date('H') }}H{{ startsAt|date('i') }}
-                            {% else %}
-                                Heure à confirmer
-                            {% endif %}
-                        </div>
-                        <div class="code-barre qr-code">
-                            <img
-                                src="https://api.qrserver.com/v1/create-qr-code/?size=100x100&data={{ (ticket.qr_code ?? ticket.id)|url_encode }}"
-                                alt="QR Code du billet"
-                            >
-                        </div>
-                    </div>
-                    <div class="col2">
-                        <span class="bandeau">
-                            {{ ticket.event.category ?? 'Évènement' }}
+
+<div class="ticket-container">
+    <table class="layout">
+        <tr>
+            <!-- COL 1 -->
+            <td class="col-left">
+                <div class="left-content">
+                    <div class="left-bg-decor"></div>
+                    
+                    <div class="date-block">
+                        <span class="day-name">
+                            {% if startsAt %}{{ startsAt|date('l')|capitalize }}{% else %}Beited{% endif %}
                         </span>
-                        <h3>{{ ticket.event.title }}</h3>
-                        <div class="adresse">
-                            {{ ticket.event.location ?? '' }}
-                        </div>
-                        {% if ticket.price %}
-                            <div class="tarif">
-                                <strong>Tarif acheté :</strong>
-                                {{ ticket.price|number_format(0, '.', ' ') }} MGA · {{ ticket.ticket_type }}
-                            </div>
+                        <span class="date-number">
+                            {% if startsAt %}{{ startsAt|date('d') }}{% else %}--{% endif %}
+                        </span>
+                        <span class="month-year">
+                            {% if startsAt %}{{ startsAt|date('M Y')|upper }}{% else %}A VENIR{% endif %}
+                        </span>
+                    </div>
+
+                    <div class="time-block">
+                        {% if startsAt %}
+                            {{ startsAt|date('H') }}H{{ startsAt|date('i') }}
+                        {% else %}
+                            TBD
                         {% endif %}
-                        {% if ticket.order_number %}
-                            <div class="tarif">
-                                Commande {{ ticket.order_number }}
-                            </div>
+                    </div>
+
+                    <div class="qr-block">
+                        {% if qrCodeBase64 %}
+                            <img src="{{ qrCodeBase64 }}" class="qr-code-img" alt="QR">
+                        {% else %}
+                            <div style="width:100px; height:100px; background:#eee; margin:0 auto; padding-top:40px; font-size:10px;">NO QR</div>
                         {% endif %}
                     </div>
                 </div>
-                <div class="blc-col2">
-                    <div class="img">
-                        {% set imagePath = ticket.event.image starts with 'http' ? ticket.event.image : asset(ticket.event.image|trim('/')) %}
-                        <img src="{{ imagePath }}" alt="{{ ticket.event.title }}">
-                    </div>
+            </td>
+
+            <!-- COL 2 -->
+            <td class="col-center">
+                <div class="category-badge">
+                    {{ ticket.event.category ?? 'ÉVÈNEMENT' }}
                 </div>
-            </div>
-        </div>
-    </div>
+                
+                <h1 class="title">{{ ticket.event.title }}</h1>
+                
+                <div class="location">
+                    {{ ticket.event.location ?? 'Lieu non précisé' }}
+                </div>
+                
+                {% if ticket.price %}
+                    <div class="price-info">
+                        Tarif acheté : <br>
+                        <span class="price-amount">{{ ticket.price|number_format(0, '.', ' ') }} MGA</span>
+                        · {{ ticket.ticket_type }}
+                    </div>
+                {% endif %}
+                
+                {% if ticket.order_number %}
+                    <div class="order-info">
+                        Commande n° <strong>{{ ticket.order_number }}</strong>
+                    </div>
+                {% endif %}
+            </td>
+
+            <!-- COL 3 -->
+            <td class="col-right">
+                {% if eventImageBase64 %}
+                    <img src="{{ eventImageBase64 }}" class="event-img" alt="Event">
+                {% else %}
+                    <div class="img-fallback">No Image</div>
+                {% endif %}
+            </td>
+        </tr>
+    </table>
 </div>
+
 </body>
 </html>

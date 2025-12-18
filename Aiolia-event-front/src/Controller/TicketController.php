@@ -37,16 +37,16 @@ class TicketController extends AbstractController
         // Tenter de synchroniser avec la DB si utilisateur connecté
         $user = $session->get('user');
         $userId = $user && is_array($user) ? ($user['id'] ?? null) : null;
-        
+
         // Récupérer le panier depuis la session
         $cartItems = $session->get('cart_items', []);
-        
+
         if ($userId) {
             // Récupérer le panier depuis la DB (source de vérité)
             $dbCart = $this->cartSyncService->getOrCreateCart($userId, null);
             if ($dbCart) {
                 $dbItems = $this->cartSyncService->convertDbItemsToSessionFormat($dbCart['items']);
-                
+
                 // Si la DB a des items, utiliser la DB comme source de vérité
                 if (!empty($dbItems)) {
                     // La DB est la source de vérité
@@ -64,7 +64,7 @@ class TicketController extends AbstractController
                 $cartItems = [];
             }
         }
-        
+
         $items = $this->formatCartItemsForTemplate($cartItems);
 
         return $this->render('ticket/cart.html.twig', [
@@ -85,21 +85,21 @@ class TicketController extends AbstractController
         if (isset($cartItems[$cartKey])) {
             // Récupérer l'eventId avant de supprimer
             $eventId = $cartItems[$cartKey]['eventId'] ?? null;
-            
+
             unset($cartItems[$cartKey]);
             $session->set('cart_items', $cartItems);
-            
+
             // Synchroniser avec la DB
             $user = $session->get('user');
             $userId = $user && is_array($user) ? ($user['id'] ?? null) : null;
             $sessionToken = $session->get('cart_session_token');
-            
+
             if ($userId) {
                 $dbCart = $this->cartSyncService->getOrCreateCart($userId, null);
                 if ($dbCart) {
                     $this->cartSyncService->removeCartItem((int) $dbCart['id'], $cartKey);
                 }
-                
+
                 // Logger l'activité de suppression
                 if ($eventId) {
                     $this->activityService->logCartRemoval($userId, (int) $eventId);
@@ -110,7 +110,7 @@ class TicketController extends AbstractController
                     $this->cartSyncService->removeCartItem((int) $dbCart['id'], $cartKey);
                 }
             }
-            
+
             $this->addFlash('success', 'Élément retiré du panier avec succès.');
         } else {
             $this->addFlash('error', 'Élément introuvable dans le panier.');
@@ -176,12 +176,12 @@ class TicketController extends AbstractController
 
         // Récupérer les types de billets
         $ticketTypes = $this->eventRepository->findTicketTypesByEventId($eventId);
-        
+
         // Calculer les prix adultes et enfants
         $adultPrice = 0;
         $childPrice = 0;
         $currency = 'MGA';
-        
+
         // Si on a les deux types séparés, récupérer les prix de chaque type
         if ($adultTicketTypeId > 0 && $childTicketTypeId > 0) {
             $adultTicketType = null;
@@ -194,7 +194,7 @@ class TicketController extends AbstractController
                     $childTicketType = $ticketType;
                 }
             }
-            
+
             if ($adultTicketType && $adultQuantity > 0) {
                 $adultPrice = $adultTicketType['base_price'];
                 $currency = $adultTicketType['currency'] ?? 'MGA';
@@ -235,20 +235,20 @@ class TicketController extends AbstractController
         // Si on a les deux types (adulte et enfant), utiliser une clé basée uniquement sur l'événement
         // Cela permet de regrouper les billets adultes et enfants du même événement dans une seule entrée
         $hasBothTypes = $adultTicketTypeId > 0 && $childTicketTypeId > 0;
-        
+
         // Vérifier si un événement avec cette clé existe déjà (même si on n'a qu'un seul type maintenant)
         $eventKey = 'event_' . $eventId;
         $hasEventKey = isset($cartItems[$eventKey]);
-        
+
         // Vérifier aussi si un item avec la clé classique existe déjà
         $classicKey = 'event_' . $eventId . '_ticket_' . $ticketTypeId;
         $hasClassicKey = isset($cartItems[$classicKey]);
-        
+
         // Si on a les deux types OU si la clé événement existe déjà, utiliser la clé basée sur l'événement
         if ($hasBothTypes || $hasEventKey) {
             // Clé basée uniquement sur l'événement pour regrouper les deux types
             $cartKey = $eventKey;
-            
+
             // Si un item avec la clé classique existe, le migrer vers la clé événement
             if ($hasClassicKey && !$hasEventKey) {
                 $cartItems[$cartKey] = $cartItems[$classicKey];
@@ -264,13 +264,13 @@ class TicketController extends AbstractController
         } else {
             // Clé classique avec ticket_type_id
             $cartKey = $classicKey;
-            
+
             // Si un item avec la clé événement existe, utiliser cette clé à la place
             if ($hasEventKey) {
                 $cartKey = $eventKey;
             }
         }
-        
+
         if (isset($cartItems[$cartKey])) {
             // Mettre à jour les quantités
             $cartItems[$cartKey]['adultQuantity'] += $adultQuantity;
@@ -304,7 +304,7 @@ class TicketController extends AbstractController
         // Synchroniser avec la DB si utilisateur connecté
         $user = $session->get('user');
         $userId = $user && is_array($user) ? ($user['id'] ?? null) : null;
-        
+
         if ($userId) {
             // Récupérer ou créer le panier DB
             $dbCart = $this->cartSyncService->getOrCreateCart($userId, null);
@@ -319,7 +319,7 @@ class TicketController extends AbstractController
                 $sessionToken = $this->cartSyncService->generateSessionToken();
                 $session->set('cart_session_token', $sessionToken);
             }
-            
+
             // Créer ou récupérer le panier avec session_token
             $dbCart = $this->cartSyncService->getOrCreateCart(null, $sessionToken);
             if ($dbCart) {
@@ -371,7 +371,7 @@ class TicketController extends AbstractController
         // Récupérer le paramètre event (optionnel) - format: "eventId-loopIndex" ou juste "eventId"
         $eventParam = $request->query->get('event');
         $eventIdToFilter = null;
-        
+
         if ($eventParam) {
             // Extraire l'ID de l'événement (avant le tiret si présent)
             $parts = explode('-', $eventParam);
@@ -380,11 +380,11 @@ class TicketController extends AbstractController
 
         // Récupérer le panier depuis la session
         $cartItems = $session->get('cart_items', []);
-        
+
         // Tenter de synchroniser avec la DB si utilisateur connecté
         $user = $session->get('user');
         $userId = $user && is_array($user) ? ($user['id'] ?? null) : null;
-        
+
         if ($userId) {
             // Récupérer le panier depuis la DB
             $dbCart = $this->cartSyncService->getOrCreateCart($userId, null);
@@ -399,14 +399,14 @@ class TicketController extends AbstractController
                 $this->cartSyncService->saveCartItems((int) $dbCart['id'], $cartItems);
             }
         }
-        
+
         // Filtrer les items si un eventId est spécifié
         if ($eventIdToFilter !== null) {
-            $cartItems = array_filter($cartItems, function($item) use ($eventIdToFilter) {
+            $cartItems = array_filter($cartItems, function ($item) use ($eventIdToFilter) {
                 return isset($item['eventId']) && (int) $item['eventId'] === $eventIdToFilter;
             });
         }
-        
+
         $items = $this->formatCartItemsForTemplate($cartItems);
 
         $orderTotal = 0;
@@ -455,12 +455,12 @@ class TicketController extends AbstractController
         // Récupérer le panier depuis la session
         $cartItems = $session->get('cart_items', []);
         error_log('Panier initial: ' . count($cartItems) . ' items');
-        
+
         // Si le panier est vide, essayer de le synchroniser avec la DB
         if (empty($cartItems)) {
             $user = $session->get('user');
             $userId = $user && is_array($user) ? ($user['id'] ?? null) : null;
-            
+
             if ($userId) {
                 $dbCart = $this->cartSyncService->getOrCreateCart($userId, null);
                 if ($dbCart && !empty($dbCart['items'])) {
@@ -471,7 +471,7 @@ class TicketController extends AbstractController
                 }
             }
         }
-        
+
         // Filtrer les items si un eventId est spécifié dans la requête
         $eventParam = $request->query->get('event');
         if ($eventParam) {
@@ -479,7 +479,7 @@ class TicketController extends AbstractController
             $eventIdToFilter = (int) $parts[0];
             error_log('Filtrage par eventId: ' . $eventIdToFilter);
             $cartItemsBeforeFilter = $cartItems;
-            $cartItems = array_filter($cartItems, function($item) use ($eventIdToFilter) {
+            $cartItems = array_filter($cartItems, function ($item) use ($eventIdToFilter) {
                 $itemEventId = isset($item['eventId']) ? (int) $item['eventId'] : 0;
                 error_log('Item eventId: ' . $itemEventId . ' vs filter: ' . $eventIdToFilter);
                 return $itemEventId === $eventIdToFilter;
@@ -509,10 +509,10 @@ class TicketController extends AbstractController
         try {
             error_log('Panier items: ' . count($cartItems));
             error_log('User ID: ' . ($userId ?? 'null'));
-            
+
             // Traiter le paiement
             $result = $this->paymentService->processPayment($userId, $cartItems, $paymentData);
-            
+
             error_log('Résultat paiement: ' . json_encode($result));
 
             if ($result['success']) {
@@ -522,10 +522,10 @@ class TicketController extends AbstractController
                 foreach ($cartKeysToRemove as $cartKey) {
                     unset($remainingCartItems[$cartKey]);
                 }
-                
+
                 // Mettre à jour la session avec les items restants
                 $session->set('cart_items', $remainingCartItems);
-                
+
                 // Si l'utilisateur est connecté, forcer la synchronisation avec la DB
                 if ($userId) {
                     // Récupérer le panier actif depuis la DB
@@ -534,7 +534,7 @@ class TicketController extends AbstractController
                     if ($dbCart) {
                         // Récupérer les items de la DB (source de vérité)
                         $dbItems = $this->cartSyncService->convertDbItemsToSessionFormat($dbCart['items']);
-                        
+
                         // Utiliser la DB comme source de vérité
                         // Si la DB est vide, vider aussi la session
                         // Si la DB a des items, synchroniser la session avec la DB
@@ -552,7 +552,7 @@ class TicketController extends AbstractController
                     $ticketsCount += (int) ($item['adultQuantity'] ?? 0);
                     $ticketsCount += (int) ($item['childQuantity'] ?? 0);
                 }
-                
+
                 // Stocker les informations de la commande dans la session pour la page de confirmation
                 $session->set('last_order', [
                     'order_id' => $result['order_id'],
@@ -565,7 +565,7 @@ class TicketController extends AbstractController
             } else {
                 // Afficher l'erreur détaillée pour le debug
                 $errorMessage = $result['error'] ?? 'Une erreur est survenue lors du traitement du paiement.';
-                
+
                 // Log complet
                 $logOutput = "\n" . str_repeat('=', 80) . "\n";
                 $logOutput .= "=== ERREUR PAIEMENT MVOLA ===\n";
@@ -581,14 +581,14 @@ class TicketController extends AbstractController
                 }
                 $logOutput .= "Résultat complet:\n" . json_encode($result, JSON_PRETTY_PRINT | JSON_UNESCAPED_UNICODE) . "\n";
                 $logOutput .= str_repeat('=', 80) . "\n";
-                
+
                 error_log($logOutput);
                 file_put_contents('php://stderr', $logOutput);
-                
+
                 // Écrire aussi dans un fichier dédié pour faciliter l'accès
                 $logFile = sys_get_temp_dir() . '/mvola_debug.log';
                 @file_put_contents($logFile, date('Y-m-d H:i:s') . "\n" . $logOutput . "\n", FILE_APPEND);
-                
+
                 // En mode dev, afficher plus de détails dans le message
                 if (($_ENV['APP_ENV'] ?? 'dev') === 'dev') {
                     $detailedError = $errorMessage;
@@ -631,7 +631,7 @@ class TicketController extends AbstractController
         }
 
         $lastOrder = $session->get('last_order');
-        
+
         if (!$lastOrder) {
             $this->addFlash('warning', 'Aucune commande récente trouvée. Si vous venez de payer, votre commande a peut-être été traitée. Vérifiez vos billets.');
             return $this->redirectToRoute('my_tickets');
@@ -747,8 +747,81 @@ class TicketController extends AbstractController
             throw $this->createNotFoundException('Billet introuvable ou non accessible.');
         }
 
+        // 1. Générer le QR Code en local (plus fiable)
+        try {
+            $qrData = $ticket['qr_code'] ?? (string) $ticket['id'];
+            $result = (new \Endroid\QrCode\Builder\Builder(
+                writer: new \Endroid\QrCode\Writer\PngWriter(),
+                writerOptions: [],
+                validateResult: false,
+                data: $qrData,
+                encoding: new \Endroid\QrCode\Encoding\Encoding('UTF-8'),
+                errorCorrectionLevel: \Endroid\QrCode\ErrorCorrectionLevel::High,
+                size: 200,
+                margin: 10
+            ))->build();
+            $qrCodeBase64 = $result->getDataUri();
+        } catch (\Exception $e) {
+            error_log('Erreur génération QR Code: ' . $e->getMessage());
+            $qrCodeBase64 = null;
+        }
+
+        // 2. Gestion de l'image de l'événement avec logs de debug
+        $eventImage = $ticket['event']['image'] ?? null;
+        $eventImageBase64 = null;
+
+        error_log("--- DEBUG PDF IMAGE ---");
+        error_log("Event Image Raw: " . ($eventImage ?? 'NULL'));
+
+        if ($eventImage) {
+            if (str_starts_with($eventImage, 'http')) {
+                // Image distante
+                error_log("Type: Distante");
+                $eventImageBase64 = $this->imageToBase64($eventImage);
+            } else {
+                // Image locale
+                $projectDir = $this->getParameter('kernel.project_dir');
+                // Enlever le slash initial si présent pour éviter //
+                $cleanPath = ltrim($eventImage, '/');
+                $localPath = $projectDir . '/public/' . $cleanPath;
+
+                error_log("Type: Locale");
+                error_log("Chemin construit: " . $localPath);
+
+                if (file_exists($localPath)) {
+                    error_log("Fichier existe: OUI");
+                    $eventImageBase64 = $this->imageToBase64($localPath);
+                } else {
+                    error_log("Fichier existe: NON");
+                    // Essayer sans 'public/' si jamais le chemin en BDD inclut déjà 'public' (cas rare mais possible)
+                    $altPath = $projectDir . '/' . $cleanPath;
+                    error_log("Essai chemin alternatif: " . $altPath);
+                    if (file_exists($altPath)) {
+                        error_log("Fichier alternatif existe: OUI");
+                        $eventImageBase64 = $this->imageToBase64($altPath);
+                    }
+                }
+            }
+        }
+
+        if ($eventImageBase64) {
+            error_log("Conversion Base64: SUCCES (longueur: " . strlen($eventImageBase64) . ")");
+        } else {
+            error_log("Conversion Base64: ECHEC ou NULL");
+        }
+
+        // Fallback
+        if (!$eventImageBase64) {
+            $defaultPath = $this->getParameter('kernel.project_dir') . '/public/vente-ticket/images/img1.png';
+            error_log("Utilisation image fallback: " . $defaultPath);
+            $eventImageBase64 = $this->imageToBase64($defaultPath);
+        }
+
         $html = $this->renderView('ticket/pdf.html.twig', [
             'ticket' => $ticket,
+            'public_dir' => $this->getParameter('kernel.project_dir') . '/public',
+            'qrCodeBase64' => $qrCodeBase64,
+            'eventImageBase64' => $eventImageBase64,
         ]);
 
         $options = new Options();
@@ -769,12 +842,50 @@ class TicketController extends AbstractController
         ]);
     }
 
+    /**
+     * Helper pour convertir une image (URL ou chemin local) en Base64
+     */
+    private function imageToBase64(string $pathOrUrl): ?string
+    {
+        try {
+            $data = @file_get_contents($pathOrUrl);
+
+            if ($data === false) {
+                error_log("imageToBase64: file_get_contents a échoué pour " . $pathOrUrl);
+                return null;
+            }
+
+            $ext = pathinfo($pathOrUrl, PATHINFO_EXTENSION);
+            if (empty($ext)) {
+                $finfo = new \finfo(FILEINFO_MIME_TYPE);
+                $mimeType = $finfo->buffer($data);
+            } else {
+                $mimeType = match (strtolower($ext)) {
+                    'jpg', 'jpeg' => 'image/jpeg',
+                    'png' => 'image/png',
+                    'gif' => 'image/gif',
+                    'svg' => 'image/svg+xml',
+                    'webp' => 'image/webp',
+                    default => 'image/png'
+                };
+            }
+
+            error_log("imageToBase64: MIME type détecté: " . $mimeType);
+
+            $base64 = base64_encode($data);
+            return 'data:' . $mimeType . ';base64,' . $base64;
+        } catch (\Exception $e) {
+            error_log('Erreur conversion image Base64 pour PDF: ' . $e->getMessage());
+            return null;
+        }
+    }
+
     #[Route('/api/tickets/{id}/transfer', name: 'api_tickets_transfer', methods: ['POST'])]
     public function transferTicket(int $id, Request $request): JsonResponse
     {
         // TODO: Transférer un billet à un autre utilisateur
         $email = $request->request->get('email', '');
-        
+
         return new JsonResponse([
             'message' => "Transfert du billet {$id} vers {$email} - À implémenter",
             'status' => 'success'
@@ -840,11 +951,11 @@ class TicketController extends AbstractController
 
         // Récupérer le panier depuis la session
         $cartItems = $session->get('cart_items', []);
-        
+
         // Tenter de synchroniser avec la DB si utilisateur connecté
         $user = $session->get('user');
         $userId = $user && is_array($user) ? ($user['id'] ?? null) : null;
-        
+
         if ($userId) {
             // Récupérer le panier depuis la DB
             $dbCart = $this->cartSyncService->getOrCreateCart($userId, null);
@@ -1023,19 +1134,19 @@ class TicketController extends AbstractController
             }
 
             // Récupérer la date d'ajout au panier (ou utiliser maintenant si absente pour compatibilité)
-            $addedAt = isset($cartItem['added_at']) 
+            $addedAt = isset($cartItem['added_at'])
                 ? new \DateTimeImmutable($cartItem['added_at'])
                 : new \DateTimeImmutable();
-            
+
             // Récupérer la date de l'événement
-            $eventDate = $event['starts_at'] instanceof \DateTimeImmutable 
+            $eventDate = $event['starts_at'] instanceof \DateTimeImmutable
                 ? $event['starts_at']
                 : ($event['starts_at'] ? new \DateTimeImmutable($event['starts_at']) : new \DateTimeImmutable());
 
             // Récupérer les prix depuis les ticket_types si absents
             $adultPrice = $cartItem['adultPrice'] ?? null;
             $childPrice = $cartItem['childPrice'] ?? null;
-            
+
             // Si les prix sont absents ou 0, les récupérer depuis les ticket_types
             if (($adultPrice === null || $adultPrice === 0) && isset($cartItem['adultTicketTypeId'])) {
                 $adultPrice = $this->ticketRepository->findTicketTypePrice($cartItem['adultTicketTypeId']);
@@ -1043,7 +1154,7 @@ class TicketController extends AbstractController
             if (($childPrice === null || $childPrice === 0) && isset($cartItem['childTicketTypeId'])) {
                 $childPrice = $this->ticketRepository->findTicketTypePrice($cartItem['childTicketTypeId']);
             }
-            
+
             // Si toujours null, utiliser le prix du ticket_type principal
             if (($adultPrice === null || $adultPrice === 0) && isset($cartItem['ticketTypeId'])) {
                 $adultPrice = $this->ticketRepository->findTicketTypePrice($cartItem['ticketTypeId']);
@@ -1051,7 +1162,7 @@ class TicketController extends AbstractController
             if (($childPrice === null || $childPrice === 0) && isset($cartItem['ticketTypeId'])) {
                 $childPrice = $this->ticketRepository->findTicketTypePrice($cartItem['ticketTypeId']);
             }
-            
+
             $formattedItems[] = [
                 'cart_key' => $cartKey,
                 'event' => [
@@ -1060,7 +1171,7 @@ class TicketController extends AbstractController
                     'title' => $event['title'],
                     'category' => $event['category_label'] ?? 'Événement',
                     'location' => $location,
-                    'date' => $eventDate instanceof \DateTimeImmutable 
+                    'date' => $eventDate instanceof \DateTimeImmutable
                         ? \DateTime::createFromImmutable($eventDate)
                         : ($eventDate ?? new \DateTime()),
                     'starts_at' => $eventDate,
