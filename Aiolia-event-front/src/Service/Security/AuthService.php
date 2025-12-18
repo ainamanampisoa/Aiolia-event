@@ -349,6 +349,7 @@ class AuthService
             'language_code' => $user->getLanguageCode(),
             'timezone' => $user->getTimezone(),
             'is_active' => $user->isActive(),
+            'avatar_url' => $user->getAvatarUrl(),
         ];
     }
 }
