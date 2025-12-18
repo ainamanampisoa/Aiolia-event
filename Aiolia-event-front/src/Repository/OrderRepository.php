@@ -50,7 +50,7 @@ class OrderRepository
     /**
      * Récupère les commandes d'un utilisateur avec filtres.
      */
-    public function findUserOrders(int $userId, string $searchQuery = '', string $statusFilter = 'all', string $paymentMethodFilter = 'all'): array
+    public function findUserOrders(int $userId, string $searchQuery = '', string $statusFilter = 'all', string $paymentMethodFilter = 'all', ?int $limit = null, ?int $offset = null): array
     {
         $sql = <<<SQL
             SELECT 
@@ -104,7 +104,59 @@ class OrderRepository
             ORDER BY o.created_at DESC
         SQL;
 
+        // Ajouter la pagination si nécessaire
+        if ($limit !== null) {
+            $sql .= ' LIMIT :limit';
+            $params['limit'] = $limit;
+        }
+        if ($offset !== null) {
+            $sql .= ' OFFSET :offset';
+            $params['offset'] = $offset;
+        }
+
         return $this->connection->executeQuery($sql, $params)->fetchAllAssociative();
+    }
+
+    /**
+     * Compte le nombre total de commandes d'un utilisateur avec filtres (pour la pagination).
+     */
+    public function countUserOrders(int $userId, string $searchQuery = '', string $statusFilter = 'all', string $paymentMethodFilter = 'all'): int
+    {
+        $sql = <<<SQL
+            SELECT COUNT(DISTINCT o.id) as total
+            FROM aiolia.orders o
+            LEFT JOIN aiolia.order_items oi ON oi.order_id = o.id
+            LEFT JOIN aiolia.ticket_types tt ON tt.id = oi.ticket_type_id
+            LEFT JOIN aiolia.events e ON e.id = tt.event_id
+            WHERE o.user_id = :user_id
+        SQL;
+
+        $params = ['user_id' => $userId];
+
+        // Appliquer le filtre de statut
+        if ($statusFilter !== 'all') {
+            $sql .= ' AND o.status = :status';
+            $params['status'] = $statusFilter;
+        }
+
+        // Appliquer le filtre de mode de paiement
+        if ($paymentMethodFilter !== 'all') {
+            $sql .= " AND o.notes::jsonb->>'payment_method' = :payment_method";
+            $params['payment_method'] = $paymentMethodFilter;
+        }
+
+        // Appliquer la recherche
+        if (!empty($searchQuery)) {
+            $sql .= ' AND (
+                e.title ILIKE :search 
+                OR CAST(o.id AS TEXT) ILIKE :search
+                OR o.notes::text ILIKE :search
+            )';
+            $params['search'] = '%' . $searchQuery . '%';
+        }
+
+        $result = $this->connection->executeQuery($sql, $params)->fetchAssociative();
+        return (int) ($result['total'] ?? 0);
     }
 
     /**

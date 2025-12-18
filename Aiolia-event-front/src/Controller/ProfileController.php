@@ -61,16 +61,16 @@ class ProfileController extends AbstractController
 
         // Récupérer les informations utilisateur
         $userInfo = $this->userRepository->findUserInfo($userId);
-        
+
         // Récupérer les statistiques (inclure le panier en session)
         $sessionCartItems = $session->get('cart_items', []);
         $stats = $this->fetchUserStats($userId, $sessionCartItems);
-        
+
         // Debug temporaire - à retirer après vérification
         error_log('ProfileController - Stats calculées: ' . json_encode($stats));
         error_log('ProfileController - Session cart items count: ' . count($sessionCartItems));
         error_log('ProfileController - Session cart items: ' . json_encode($sessionCartItems));
-        
+
         // Récupérer les activités récentes (inclure le panier en session)
         $recentActivities = $this->activityRepository->findRecentActivities($userId, $sessionCartItems);
 
@@ -147,7 +147,7 @@ class ProfileController extends AbstractController
         $options->set('isHtml5ParserEnabled', true);
         $options->set('isRemoteEnabled', true);
         $options->set('defaultFont', 'DejaVu Sans');
-        
+
         $dompdf = new Dompdf($options);
         $dompdf->loadHtml($html);
         $dompdf->setPaper('A4', 'portrait');
@@ -180,12 +180,12 @@ class ProfileController extends AbstractController
         }
 
         $userId = (int) $sessionUser['id'];
-        
+
         // Récupérer les paramètres de recherche et de filtre (sans pagination pour exporter tout)
         $searchQuery = $request->query->get('search', '');
         $statusFilter = $request->query->get('status', 'all');
         $paymentMethodFilter = $request->query->get('payment_method', 'all');
-        
+
         try {
             // Récupérer toutes les commandes avec les filtres (sans pagination)
             $orders = $this->fetchUserOrders($userId, $searchQuery, $statusFilter, $paymentMethodFilter);
@@ -194,7 +194,7 @@ class ProfileController extends AbstractController
             $csvLines = [];
             // En-tête
             $csvLines[] = "Numéro de commande,Statut,Événement,Date,Heure,Billets,Montant,Méthode de paiement";
-            
+
             if (empty($orders)) {
                 // Si aucune commande, ajouter une ligne pour indiquer qu'il n'y a pas de données
                 $csvLines[] = "Aucune commande trouvée,,,,,,";
@@ -203,14 +203,14 @@ class ProfileController extends AbstractController
                     $code = $order['code'] ?? '';
                     $status = $order['status'] ?? '';
                     $title = $order['title'] ?? '';
-                    
+
                     // Formater la date et l'heure pour le CSV
                     $date = '';
                     $hour = '';
-                    
+
                     if (isset($order['created_at'])) {
                         $dateObj = null;
-                        
+
                         if ($order['created_at'] instanceof \DateTimeImmutable) {
                             $dateObj = $order['created_at'];
                         } elseif (is_string($order['created_at'])) {
@@ -221,25 +221,25 @@ class ProfileController extends AbstractController
                                 // En cas d'erreur de parsing, on laisse date et hour vides
                             }
                         }
-                        
+
                         // Si on a réussi à obtenir un objet DateTime, formater date et heure
                         if ($dateObj instanceof \DateTimeImmutable) {
                             $date = $dateObj->format('Y-m-d');
                             $hour = $dateObj->format('H:i');
                         }
                     }
-                    
+
                     // Si l'heure n'a toujours pas été récupérée mais qu'on a un champ hour séparé
                     if (empty($hour) && isset($order['hour']) && !empty($order['hour'])) {
                         $hour = $order['hour'];
                     }
-                    
+
                     $tickets = $order['tickets'] ?? 0;
                     // Utiliser le montant brut pour le CSV
                     $amountRaw = $order['amount_raw'] ?? 0;
                     $amount = number_format($amountRaw, 0, '.', '');
                     $method = $order['method'] ?? '';
-                    
+
                     // Échapper les guillemets et les virgules
                     $csvLines[] = sprintf(
                         '"%s","%s","%s","%s","%s","%s","%s","%s"',
@@ -248,7 +248,7 @@ class ProfileController extends AbstractController
                         str_replace('"', '""', $title),
                         str_replace('"', '""', $date),
                         str_replace('"', '""', $hour),
-                        str_replace('"', '""', (string)$tickets),
+                        str_replace('"', '""', (string) $tickets),
                         str_replace('"', '""', $amount),
                         str_replace('"', '""', $method)
                     );
@@ -292,34 +292,42 @@ class ProfileController extends AbstractController
         }
 
         $userId = (int) $sessionUser['id'];
-        
+
         // Récupérer les paramètres de recherche et de filtre
         $searchQuery = $request->query->get('search', '');
         $statusFilter = $request->query->get('status', 'all');
         $paymentMethodFilter = $request->query->get('payment_method', 'all');
-        
-        // Récupérer les commandes de l'utilisateur avec filtres (pour l'affichage)
-        $orders = $this->fetchUserOrders($userId, $searchQuery, $statusFilter, $paymentMethodFilter);
-        
-        // Récupérer toutes les commandes pour les statistiques (sans filtres)
-        $allOrders = $this->fetchUserOrders($userId, '', 'all');
-        
-        // Récupérer les statuts disponibles depuis la base de données
-        $availableStatuses = $this->orderRepository->findAvailableStatuses($userId);
-        
-        // Calculer les statistiques avec toutes les commandes
-        $stats = $this->calculatePurchaseStats($userId, $allOrders);
 
         // Paramètres de pagination
         $page = max(1, (int) $request->query->get('page', 1));
-        $perPage = 20; // Nombre d'éléments par page (2 pour tester la pagination)
-        $totalResults = count($orders);
+        $perPage = 10; // Nombre d'éléments par page
+
+        // Compter le nombre total de résultats pour la pagination
+        $totalResults = $this->orderRepository->countUserOrders($userId, $searchQuery, $statusFilter, $paymentMethodFilter);
         $totalPages = max(1, (int) ceil($totalResults / $perPage));
-        $startResult = $totalResults > 0 ? (($page - 1) * $perPage) + 1 : 0;
+
+        // S'assurer que la page demandée n'est pas hors limites
+        if ($page > $totalPages) {
+            $page = $totalPages;
+        }
+
+        $offset = ($page - 1) * $perPage;
+
+        // Récupérer les commandes paginées (pour l'affichage)
+        $paginatedOrders = $this->fetchUserOrders($userId, $searchQuery, $statusFilter, $paymentMethodFilter, $perPage, $offset);
+
+        $startResult = $totalResults > 0 ? $offset + 1 : 0;
         $endResult = min($page * $perPage, $totalResults);
-        
-        // Paginer les résultats
-        $paginatedOrders = array_slice($orders, ($page - 1) * $perPage, $perPage);
+
+        // Récupérer toutes les commandes pour les statistiques (sans filtres)
+        // Note: On pourrait optimiser cela en créant une méthode dédiée dans le repo pour les stats
+        $allOrders = $this->fetchUserOrders($userId, '', 'all');
+
+        // Récupérer les statuts disponibles depuis la base de données
+        $availableStatuses = $this->orderRepository->findAvailableStatuses($userId);
+
+        // Calculer les statistiques avec toutes les commandes
+        $stats = $this->calculatePurchaseStats($userId, $allOrders);
 
         // Récupérer les données pour le graphique (12 mois par défaut)
         $chartPeriod = max(6, min(24, (int) $request->query->get('chart_period', 12)));
@@ -373,8 +381,8 @@ class ProfileController extends AbstractController
         // Formater les transactions pour le template
         $formattedTransactions = array_map(function (array $transaction) {
             $date = $transaction['created_at'] ? $transaction['created_at']->format('d M Y') : '';
-            
-            $typeLabel = match($transaction['type']) {
+
+            $typeLabel = match ($transaction['type']) {
                 'credit' => 'Crédit',
                 'debit' => 'Débit',
                 'points_credit' => 'Points crédités',
@@ -382,7 +390,7 @@ class ProfileController extends AbstractController
                 default => ucfirst($transaction['type']),
             };
 
-            $statusLabel = match($transaction['status']) {
+            $statusLabel = match ($transaction['status']) {
                 'completed' => 'Confirmée',
                 'pending' => 'En attente',
                 'cancelled' => 'Annulée',
@@ -791,37 +799,37 @@ class ProfileController extends AbstractController
         }
 
         $userId = (int) $sessionUser['id'];
-        
+
         // Récupérer la période de filtrage (défaut: toutes les données)
         $period = $request->query->get('period', 'all'); // all, 30, 90, 365
         $dateFrom = null;
-        
+
         if ($period !== 'all') {
             $days = (int) $period;
             $dateFrom = (new \DateTimeImmutable())->modify("-{$days} days");
         }
-        
+
         // Récupérer les statistiques avec filtre de période
         $stats = $this->fetchUserStatistics($userId, $dateFrom);
-        
+
         // Récupérer les dépenses mensuelles avec filtre de période
         $monthlyExpenses = $this->fetchMonthlyExpenses($userId, $dateFrom);
-        
+
         // Calculer la valeur maximale pour le graphique
         $maxExpense = 0;
         if (!empty($monthlyExpenses)) {
             $maxExpense = max(array_column($monthlyExpenses, 'total_raw'));
         }
-        
+
         // Récupérer la répartition par type d'événement avec filtre de période
         $eventTypeDistribution = $this->fetchEventTypeDistribution($userId, $dateFrom);
-        
+
         // Récupérer le Top 5 des événements achetés avec filtre de période
         $topEvents = $this->fetchTopPurchasedEvents($userId, 5, $dateFrom);
-        
+
         // Récupérer les insights dynamiques
         $insights = $this->fetchStatsInsights($userId, $dateFrom);
-        
+
         // Récupérer la comparaison annuelle (seulement si période = all)
         $yearComparison = $period === 'all' ? $this->fetchYearComparison($userId) : [];
 
@@ -836,7 +844,7 @@ class ProfileController extends AbstractController
             'yearComparison' => $yearComparison,
         ]);
     }
-    
+
     #[Route('/profile/stats/export', name: 'profile_stats_export')]
     public function exportStats(Request $request): Response
     {
@@ -853,27 +861,27 @@ class ProfileController extends AbstractController
         }
 
         $userId = (int) $sessionUser['id'];
-        
+
         // Récupérer la période de filtrage
         $period = $request->query->get('period', 'all');
         $dateFrom = null;
-        
+
         if ($period !== 'all') {
             $days = (int) $period;
             $dateFrom = (new \DateTimeImmutable())->modify("-{$days} days");
         }
-        
+
         // Récupérer toutes les données
         $stats = $this->fetchUserStatistics($userId, $dateFrom);
         $eventTypeDistribution = $this->fetchEventTypeDistribution($userId, $dateFrom);
         $topEvents = $this->fetchTopPurchasedEvents($userId, 10, $dateFrom);
         $monthlyExpenses = $this->fetchMonthlyExpenses($userId, $dateFrom);
-        
+
         // Générer le CSV
         $csvLines = [];
         $csvLines[] = "Statistiques personnelles - " . date('d/m/Y H:i');
         $csvLines[] = "";
-        
+
         // Statistiques générales
         $csvLines[] = "Statistiques générales";
         $csvLines[] = "Total billets," . ($stats['total_tickets'] ?? 0);
@@ -882,7 +890,7 @@ class ProfileController extends AbstractController
         $csvLines[] = "Commandes totales," . ($stats['total_orders'] ?? 0);
         $csvLines[] = "Panier moyen," . ($stats['avg_cart'] ?? '0 MGA');
         $csvLines[] = "";
-        
+
         // Répartition par catégorie
         $csvLines[] = "Répartition par catégorie";
         $csvLines[] = "Catégorie,Pourcentage,Commandes";
@@ -895,7 +903,7 @@ class ProfileController extends AbstractController
             );
         }
         $csvLines[] = "";
-        
+
         // Top événements
         $csvLines[] = "Top événements achetés";
         $csvLines[] = "Rang,Titre,Catégorie,Billets,Achats,Montant total";
@@ -911,7 +919,7 @@ class ProfileController extends AbstractController
             );
         }
         $csvLines[] = "";
-        
+
         // Dépenses mensuelles
         $csvLines[] = "Dépenses mensuelles";
         $csvLines[] = "Mois,Montant";
@@ -922,19 +930,19 @@ class ProfileController extends AbstractController
                 str_replace('"', '""', $expense['total'])
             );
         }
-        
+
         $csvContent = implode("\n", $csvLines);
-        
+
         $periodLabel = $period === 'all' ? 'toutes_periodes' : $period . '_jours';
         $filename = 'statistiques_' . $periodLabel . '_' . date('Y-m-d_His') . '.csv';
-        
+
         $response = new Response($csvContent);
         $response->headers->set('Content-Type', 'text/csv; charset=UTF-8');
         $response->headers->set('Content-Disposition', 'attachment; filename="' . $filename . '"');
         $response->headers->set('Cache-Control', 'must-revalidate, post-check=0, pre-check=0');
         $response->headers->set('Pragma', 'public');
         $response->headers->set('Expires', '0');
-        
+
         return $response;
     }
 
@@ -965,7 +973,7 @@ class ProfileController extends AbstractController
 
         // Récupérer les informations utilisateur
         $userInfo = $this->userRepository->findUserInfo($userId);
-        
+
         // Récupérer les préférences utilisateur
         $preferences = $this->userRepository->findUserPreferences($userId);
 
@@ -1060,19 +1068,19 @@ class ProfileController extends AbstractController
         }
 
         $userId = (int) $sessionUser['id'];
-        
+
         // Récupérer les paramètres de filtrage
         $year = $request->query->getInt('year', (int) date('Y'));
         $month = $request->query->getInt('month', 0); // 0 = tous les mois
         $period = $request->query->get('period', 'year'); // year, month, all
         $monthlyRange = $request->query->get('monthly_range', 'last_6'); // last_6, first_6
-        
+
         // Récupérer l'historique financier avec filtres
         $financialData = $this->orderRepository->findFinancialHistory($userId, $year, $month, $period);
-        
+
         // Récupérer les dépenses mensuelles avec filtres
         $monthly = $this->orderRepository->findMonthlyFinancialData($userId, $year, $month, $period, $monthlyRange);
-        
+
         // Debug: logger les données récupérées
         error_log(sprintf(
             '[Financial] User: %d, Year: %d, Period: %s, MonthlyRange: %s, Monthly data count: %d',
@@ -1085,7 +1093,7 @@ class ProfileController extends AbstractController
         if (!empty($monthly)) {
             error_log('[Financial] Monthly data: ' . json_encode($monthly, JSON_UNESCAPED_UNICODE));
         }
-        
+
         // Récupérer la répartition des méthodes de paiement avec filtres
         $paymentMethods = $this->userStatsRepository->findPaymentMethodDistribution($userId, $year, $month);
 
@@ -1116,21 +1124,21 @@ class ProfileController extends AbstractController
         }
 
         $userId = (int) $sessionUser['id'];
-        
+
         // Récupérer les paramètres de filtrage
         $year = $request->query->getInt('year', (int) date('Y'));
         $month = $request->query->getInt('month', 0);
         $period = $request->query->get('period', 'year');
         $monthlyRange = $request->query->get('monthly_range', 'last_6');
-        
+
         // Récupérer les données
         $financialData = $this->orderRepository->findFinancialHistory($userId, $year, $month, $period);
         $monthly = $this->orderRepository->findMonthlyFinancialData($userId, $year, $month, $period, $monthlyRange);
         $paymentMethods = $this->userStatsRepository->findPaymentMethodDistribution($userId, $year, $month);
-        
+
         // Récupérer les informations utilisateur
         $userInfo = $this->userRepository->findUserInfo($userId);
-        
+
         // Générer le HTML pour le PDF
         $html = $this->renderView('profile/financial_pdf.html.twig', [
             'financialData' => $financialData,
@@ -1149,7 +1157,7 @@ class ProfileController extends AbstractController
         $options->set('defaultFont', 'DejaVu Sans');
         $options->set('isRemoteEnabled', true);
         $options->set('isHtml5ParserEnabled', true);
-        
+
         $dompdf = new Dompdf($options);
         $dompdf->loadHtml($html);
         $dompdf->setPaper('A4', 'portrait');
@@ -1180,11 +1188,11 @@ class ProfileController extends AbstractController
         }
 
         $userId = (int) $sessionUser['id'];
-        
+
         // Vérifier si l'utilisateur peut jouer
         $eligibility = $this->ticketChanceService->canUserPlay($userId);
         $availablePrizes = $this->ticketChanceService->getAvailablePrizes();
-        
+
         // TODO: Récupérer l'historique des gains depuis la base de données
         $recentWins = []; // À implémenter avec un repository
 
@@ -1248,15 +1256,18 @@ class ProfileController extends AbstractController
             $cloudName = $_ENV['CLOUDINARY_CLOUD_NAME'] ?? getenv('CLOUDINARY_CLOUD_NAME') ?: null;
             $apiKey = $_ENV['CLOUDINARY_API_KEY'] ?? getenv('CLOUDINARY_API_KEY') ?: null;
             $apiSecret = $_ENV['CLOUDINARY_API_SECRET'] ?? getenv('CLOUDINARY_API_SECRET') ?: null;
-            
+
             error_log('Cloudinary config check: cloud_name=' . ($cloudName ? 'SET' : 'NOT SET') . ', api_key=' . ($apiKey ? 'SET' : 'NOT SET') . ', api_secret=' . ($apiSecret ? 'SET' : 'NOT SET'));
-            
+
             if (!$cloudName || !$apiKey || !$apiSecret) {
                 $missing = [];
-                if (!$cloudName) $missing[] = 'CLOUDINARY_CLOUD_NAME';
-                if (!$apiKey) $missing[] = 'CLOUDINARY_API_KEY';
-                if (!$apiSecret) $missing[] = 'CLOUDINARY_API_SECRET';
-                
+                if (!$cloudName)
+                    $missing[] = 'CLOUDINARY_CLOUD_NAME';
+                if (!$apiKey)
+                    $missing[] = 'CLOUDINARY_API_KEY';
+                if (!$apiSecret)
+                    $missing[] = 'CLOUDINARY_API_SECRET';
+
                 return new JsonResponse([
                     'status' => 'error',
                     'message' => 'Cloudinary n\'est pas configuré. Variables manquantes: ' . implode(', ', $missing),
@@ -1269,7 +1280,7 @@ class ProfileController extends AbstractController
 
             // Upload vers Cloudinary avec un ID unique
             $publicId = 'user_' . $userId . '_' . time();
-            
+
             // Vérifier que le fichier est accessible
             $filePath = $uploadedFile->getPathname();
             if (!file_exists($filePath) || !is_readable($filePath)) {
@@ -1284,7 +1295,7 @@ class ProfileController extends AbstractController
                     ]
                 ], 500);
             }
-            
+
             // Vérifier que le service Cloudinary est bien initialisé
             if (!$this->cloudinaryService->isInitialized()) {
                 return new JsonResponse([
@@ -1301,7 +1312,7 @@ class ProfileController extends AbstractController
                     ]
                 ], 500);
             }
-            
+
             try {
                 $uploadResult = $this->cloudinaryService->uploadUploadedFile(
                     $uploadedFile,
@@ -1378,7 +1389,7 @@ class ProfileController extends AbstractController
         } catch (\Throwable $e) {
             error_log('Erreur upload avatar: ' . $e->getMessage());
             error_log('Stack trace: ' . $e->getTraceAsString());
-            
+
             // Toujours retourner du JSON, même en cas d'erreur
             return new JsonResponse([
                 'status' => 'error',
@@ -1418,7 +1429,7 @@ class ProfileController extends AbstractController
             return '';
         }
     }
-    
+
     /**
      * Récupère les titres de plusieurs événements par leurs ID.
      */
@@ -1427,13 +1438,13 @@ class ProfileController extends AbstractController
         if (empty($eventIds)) {
             return [];
         }
-        
+
         try {
             $placeholders = implode(',', array_fill(0, count($eventIds), '?'));
             $sql = 'SELECT id, title FROM aiolia.events WHERE id IN (' . $placeholders . ')';
             $connection = $this->eventRepository->getEntityManager()->getConnection();
             $results = $connection->executeQuery($sql, $eventIds)->fetchAllAssociative();
-            
+
             $titles = [];
             foreach ($results as $row) {
                 $titles[(int) $row['id']] = (string) $row['title'];
@@ -1448,9 +1459,12 @@ class ProfileController extends AbstractController
     /**
      * Récupère les commandes de l'utilisateur avec leurs détails.
      */
-    private function fetchUserOrders(int $userId, string $searchQuery = '', string $statusFilter = 'all', string $paymentMethodFilter = 'all'): array
+    /**
+     * Récupère les commandes de l'utilisateur avec leurs détails.
+     */
+    private function fetchUserOrders(int $userId, string $searchQuery = '', string $statusFilter = 'all', string $paymentMethodFilter = 'all', ?int $limit = null, ?int $offset = null): array
     {
-        $rows = $this->orderRepository->findUserOrders($userId, $searchQuery, $statusFilter, $paymentMethodFilter);
+        $rows = $this->orderRepository->findUserOrders($userId, $searchQuery, $statusFilter, $paymentMethodFilter, $limit, $offset);
 
         return array_map(function (array $row): array {
             $status = $row['status'];
@@ -1487,30 +1501,30 @@ class ProfileController extends AbstractController
             $eventTitle = $row['event_titles'] ?? '';
             $totalTickets = (int) ($row['total_tickets'] ?? 0);
             $notes = json_decode($row['notes'] ?? '{}', true);
-            
+
             if (empty($eventTitle) || $totalTickets === 0) {
                 if (is_array($notes) && !empty($notes['cart_items_data'])) {
                     // Calculer le total des billets depuis les items sauvegardés
                     $calculatedTickets = 0;
                     $eventIds = [];
-                    
+
                     foreach ($notes['cart_items_data'] as $item) {
                         $calculatedTickets += (int) ($item['adult_quantity'] ?? 0);
                         $calculatedTickets += (int) ($item['child_quantity'] ?? 0);
                         if ($calculatedTickets === 0 && isset($item['quantity'])) {
                             $calculatedTickets += (int) $item['quantity'];
                         }
-                        
+
                         // Collecter les event_id pour récupérer les titres
                         if (isset($item['event_id'])) {
                             $eventIds[] = (int) $item['event_id'];
                         }
                     }
-                    
+
                     if ($totalTickets === 0 && $calculatedTickets > 0) {
                         $totalTickets = $calculatedTickets;
                     }
-                    
+
                     // Récupérer les titres des événements
                     if (empty($eventTitle) && !empty($eventIds)) {
                         $eventTitles = $this->getEventTitlesByIds(array_unique($eventIds));
@@ -1526,7 +1540,7 @@ class ProfileController extends AbstractController
                     }
                 }
             }
-            
+
             return [
                 'id' => (int) $row['id'],
                 'code' => 'CMD-' . str_pad((string) $row['id'], 6, '0', STR_PAD_LEFT),
@@ -1554,14 +1568,14 @@ class ProfileController extends AbstractController
         // Inclure les commandes payées ET les commandes en attente (pending) avec des données
         // Note: L'enum order_status_enum accepte: 'pending', 'paid', 'cancelled', 'failed'
         // Les commandes en attente de paiement ont le statut 'pending', pas 'initiated'
-        $confirmedOrders = array_filter($orders, function($o) {
-            return $o['status_key'] === 'paid' 
+        $confirmedOrders = array_filter($orders, function ($o) {
+            return $o['status_key'] === 'paid'
                 || ($o['status_key'] === 'pending' && $o['tickets'] > 0);
         });
-        
+
         $totalSpent = array_sum(array_column($confirmedOrders, 'amount_raw'));
         $totalTickets = array_sum(array_column($confirmedOrders, 'tickets'));
-        
+
         // Compter les billets VIP (approximation basée sur le montant)
         $vipTickets = 0;
         foreach ($confirmedOrders as $order) {
@@ -1580,7 +1594,7 @@ class ProfileController extends AbstractController
             'total_tickets' => $totalTickets,
             'vip_tickets' => $vipTickets,
             'upcoming_events' => $upcomingEventsCount,
-            'average_cart' => count($confirmedOrders) > 0 
+            'average_cart' => count($confirmedOrders) > 0
                 ? number_format($totalSpent / count($confirmedOrders), 0, ',', ' ') . ' MGA'
                 : '0 MGA',
         ];
@@ -1662,7 +1676,7 @@ class ProfileController extends AbstractController
             'moments' => [],
             'suggestions' => [],
         ];
-        
+
         // Récupérer le mois le plus actif
         $mostActiveMonth = $this->getMostActiveMonth($userId, $dateFrom);
         if ($mostActiveMonth) {
@@ -1671,7 +1685,7 @@ class ProfileController extends AbstractController
                 'text' => "Votre mois le plus actif était <strong>{$mostActiveMonth['month']}</strong> avec {$mostActiveMonth['total']} d'achats"
             ];
         }
-        
+
         // Récupérer le total économisé avec les codes promo
         $totalSaved = $this->getTotalSavedWithPromos($userId, $dateFrom);
         if ($totalSaved > 0) {
@@ -1680,7 +1694,7 @@ class ProfileController extends AbstractController
                 'text' => "Vous avez économisé <strong>" . number_format($totalSaved, 0, ',', ' ') . " MGA</strong> grâce aux codes promo"
             ];
         }
-        
+
         // Récupérer le nombre de types d'événements différents
         $eventTypesCount = $this->getEventTypesCount($userId, $dateFrom);
         if ($eventTypesCount > 0) {
@@ -1689,7 +1703,7 @@ class ProfileController extends AbstractController
                 'text' => "Vous avez exploré <strong>{$eventTypesCount}</strong> type" . ($eventTypesCount > 1 ? 's' : '') . " d'événements différents"
             ];
         }
-        
+
         // Récupérer la catégorie préférée
         $favoriteCategory = $this->getFavoriteCategory($userId, $dateFrom);
         if ($favoriteCategory) {
@@ -1698,11 +1712,11 @@ class ProfileController extends AbstractController
                 'reason' => "Vous avez acheté {$favoriteCategory['count']} billet" . ($favoriteCategory['count'] > 1 ? 's' : '') . " pour des événements " . strtolower($favoriteCategory['category'])
             ];
         }
-        
+
         // Récupérer les événements similaires à recommander
         $recommendedCategories = $this->getRecommendedCategories($userId, $dateFrom);
         $insights['recommended_categories'] = $recommendedCategories;
-        
+
         return $insights;
     }
 
