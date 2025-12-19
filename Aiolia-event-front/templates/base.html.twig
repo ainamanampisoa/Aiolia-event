@@ -96,9 +96,15 @@
         // Fonction pour charger les fichiers CSS du mode sombre
         function loadDarkModeCSS() {
             // Fichiers CSS du mode sombre toujours nécessaires
+            // IMPORTANT: dark-variables.css DOIT être chargé en premier
+            // dark-coherence.css doit être chargé en dernier pour les corrections
+            // dark-visibility-fix.css EN DERNIER pour forcer la visibilité
             const baseDarkCSSFiles = [
+                '{{ asset("vente-ticket/css/dark/dark-variables.css") }}',
                 '{{ asset("vente-ticket/css/dark/main-dark.css") }}',
-                '{{ asset("vente-ticket/css/dark/sidebar-dark.css") }}'
+                '{{ asset("vente-ticket/css/dark/sidebar-dark.css") }}',
+                '{{ asset("vente-ticket/css/dark/dark-coherence.css") }}',
+                '{{ asset("vente-ticket/css/dark/dark-visibility-fix.css") }}'
             ];
             
             // Fichiers CSS du mode sombre spécifiques selon la page
@@ -394,7 +400,7 @@
         }
 
         .guest-quick-settings .lang-link.active {
-            background: #1049A0;
+            background: #1F2D3D;
             color: #ffffff;
         }
 

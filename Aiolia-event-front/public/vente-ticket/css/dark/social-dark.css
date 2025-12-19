@@ -1,31 +1,21 @@
 /* ============================================
-   MODE SOMBRE (DARK MODE) - Social (Invitations)
+   MODE SOMBRE - Social (Invitations)
    ============================================ */
 
-/* Variables pour une maintenance facile */
-:root[data-theme="dark"],
-html.theme-dark,
-body.theme-dark {
-  --bg-primary: #121212;
-  --bg-secondary: #1e1e1e;
-  --bg-card: #1e1e1e;
-  --text-primary: #ffffff;
-  --text-secondary: #e8e8e8;
-  --text-muted: rgba(240, 240, 240, 0.7);
-  --border-color: rgba(255, 255, 255, 0.15);
-  --accent-color: #4a9eff;
-  --success-color: #a0b896;
-}
+/* 
+   IMPORTANT: Ce fichier utilise les variables définies dans dark-variables.css
+   Assurez-vous que dark-variables.css est chargé en premier.
+*/
 
-/* Section principale */
+/* ========== SECTION PRINCIPALE ========== */
 html[data-theme="dark"] .sec-invitations,
 html.theme-dark .sec-invitations,
 body.theme-dark .sec-invitations,
 html[data-theme="dark"] .social-section,
 html.theme-dark .social-section,
 body.theme-dark .social-section {
-  background-color: var(--bg-primary);
-  color: var(--text-secondary);
+  background-color: var(--dark-bg-primary);
+  color: var(--dark-text-secondary);
 }
 
 html[data-theme="dark"] .sec-invitations h2,
@@ -34,54 +24,54 @@ body.theme-dark .sec-invitations h2,
 html[data-theme="dark"] .social-section h2,
 html.theme-dark .social-section h2,
 body.theme-dark .social-section h2 {
-  color: var(--text-primary);
+  color: var(--dark-text-primary);
 }
 
-/* Cartes d'invitation */
+/* ========== CARTES D'INVITATION ========== */
 html[data-theme="dark"] .invitation-card,
 html.theme-dark .invitation-card,
 body.theme-dark .invitation-card {
-  background-color: var(--bg-card);
-  border: 1px solid var(--border-color);
-  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.4);
-  transition: all 0.3s ease;
+  background-color: var(--dark-bg-card);
+  border: 1px solid var(--dark-border-primary);
+  box-shadow: var(--dark-shadow-md);
+  transition: var(--dark-transition-slow);
 }
 
 html[data-theme="dark"] .invitation-card:hover,
 html.theme-dark .invitation-card:hover,
 body.theme-dark .invitation-card:hover {
-  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.5);
+  box-shadow: var(--dark-shadow-lg);
   transform: translateY(-2px);
-  border-color: rgba(255, 255, 255, 0.25);
+  border-color: var(--dark-border-hover);
 }
 
 html[data-theme="dark"] .invitation-card h3,
 html.theme-dark .invitation-card h3,
 body.theme-dark .invitation-card h3 {
-  color: var(--text-primary);
+  color: var(--dark-text-primary);
 }
 
 html[data-theme="dark"] .invitation-card p,
 html.theme-dark .invitation-card p,
 body.theme-dark .invitation-card p {
-  color: var(--text-secondary);
+  color: var(--dark-text-secondary);
 }
 
-/* Boutons */
+/* ========== BOUTONS ========== */
 html[data-theme="dark"] .btn-accept,
 html.theme-dark .btn-accept,
 body.theme-dark .btn-accept {
-  background: linear-gradient(135deg, var(--success-color) 0%, #7a9a6a 100%);
-  color: var(--text-primary);
+  background: var(--dark-gradient-success);
+  color: var(--dark-text-primary);
   border: none;
   font-weight: 600;
-  transition: all 0.3s ease;
+  transition: var(--dark-transition-slow);
 }
 
 html[data-theme="dark"] .btn-accept:hover,
 html.theme-dark .btn-accept:hover,
 body.theme-dark .btn-accept:hover {
-  background: linear-gradient(135deg, #b8d4a8 0%, var(--success-color) 100%);
+  background: linear-gradient(135deg, #b8d4a8 0%, var(--dark-success) 100%);
   transform: translateY(-1px);
 }
 
@@ -90,24 +80,13 @@ html.theme-dark .btn-decline,
 body.theme-dark .btn-decline {
   background-color: rgba(255, 107, 129, 0.15);
   border: 1px solid rgba(255, 107, 129, 0.4);
-  color: var(--danger-color);
-  transition: all 0.3s ease;
+  color: var(--dark-danger);
+  transition: var(--dark-transition-slow);
 }
 
 html[data-theme="dark"] .btn-decline:hover,
 html.theme-dark .btn-decline:hover,
 body.theme-dark .btn-decline:hover {
   background-color: rgba(255, 107, 129, 0.25);
-  border-color: var(--danger-color);
+  border-color: var(--dark-danger);
 }
-
-/* Transitions */
-html[data-theme="dark"] .sec-invitations *,
-html.theme-dark .sec-invitations *,
-body.theme-dark .sec-invitations *,
-html[data-theme="dark"] .social-section *,
-html.theme-dark .social-section *,
-body.theme-dark .social-section * {
-  transition: background-color 0.2s ease, border-color 0.2s ease, color 0.2s ease;
-}
-

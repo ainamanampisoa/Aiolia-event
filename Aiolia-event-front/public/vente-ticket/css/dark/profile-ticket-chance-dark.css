@@ -1,91 +1,72 @@
 /* ============================================
-   MODE SOMBRE (DARK MODE) - Profile Ticket Chance
+   MODE SOMBRE - Profile Ticket Chance
    ============================================ */
 
-/* Variables pour une maintenance facile */
-:root[data-theme="dark"],
-html.theme-dark,
-body.theme-dark {
-  --bg-primary: #121212;
-  --bg-secondary: #1e1e1e;
-  --bg-card: #1e1e1e;
-  --text-primary: #ffffff;
-  --text-secondary: #e8e8e8;
-  --text-muted: rgba(240, 240, 240, 0.7);
-  --border-color: rgba(255, 255, 255, 0.15);
-  --accent-color: #4a9eff;
-  --success-color: #a0b896;
-  --danger-color: #ff6b81;
-}
+/* 
+   IMPORTANT: Ce fichier utilise les variables définies dans dark-variables.css
+   Assurez-vous que dark-variables.css est chargé en premier.
+*/
 
-/* Section ticket chance */
+/* ========== SECTION TICKET CHANCE ========== */
 html[data-theme="dark"] .profile-ticket-chance,
 html.theme-dark .profile-ticket-chance,
 body.theme-dark .profile-ticket-chance {
-  background-color: var(--bg-primary);
-  color: var(--text-secondary);
+  background-color: var(--dark-bg-primary);
+  color: var(--dark-text-secondary);
 }
 
 html[data-theme="dark"] .profile-ticket-chance h2,
 html.theme-dark .profile-ticket-chance h2,
 body.theme-dark .profile-ticket-chance h2 {
-  color: var(--text-primary);
+  color: var(--dark-text-primary);
 }
 
-/* Cartes de tickets chance */
+/* ========== CARTES DE TICKETS CHANCE ========== */
 html[data-theme="dark"] .ticket-chance-card,
 html.theme-dark .ticket-chance-card,
 body.theme-dark .ticket-chance-card {
-  background-color: var(--bg-card);
-  border: 1px solid var(--border-color);
-  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.4);
-  transition: all 0.3s ease;
+  background-color: var(--dark-bg-card);
+  border: 1px solid var(--dark-border-primary);
+  box-shadow: var(--dark-shadow-md);
+  transition: var(--dark-transition-slow);
 }
 
 html[data-theme="dark"] .ticket-chance-card:hover,
 html.theme-dark .ticket-chance-card:hover,
 body.theme-dark .ticket-chance-card:hover {
-  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.5);
+  box-shadow: var(--dark-shadow-lg);
   transform: translateY(-2px);
-  border-color: rgba(255, 255, 255, 0.25);
+  border-color: var(--dark-border-hover);
 }
 
 html[data-theme="dark"] .ticket-chance-card h3,
 html.theme-dark .ticket-chance-card h3,
 body.theme-dark .ticket-chance-card h3 {
-  color: var(--text-primary);
+  color: var(--dark-text-primary);
 }
 
 html[data-theme="dark"] .ticket-chance-card p,
 html.theme-dark .ticket-chance-card p,
 body.theme-dark .ticket-chance-card p {
-  color: var(--text-secondary);
+  color: var(--dark-text-secondary);
 }
 
-/* Boutons */
+/* ========== BOUTONS ========== */
 html[data-theme="dark"] .btn-play-chance,
 html.theme-dark .btn-play-chance,
 body.theme-dark .btn-play-chance {
-  background: linear-gradient(135deg, var(--accent-color) 0%, #2a5fa0 100%);
-  color: var(--text-primary);
+  background: var(--dark-gradient-primary);
+  color: var(--dark-text-primary);
   border: none;
   font-weight: 600;
-  box-shadow: 0 4px 12px rgba(74, 158, 255, 0.3);
-  transition: all 0.3s ease;
+  box-shadow: var(--dark-shadow-accent);
+  transition: var(--dark-transition-slow);
 }
 
 html[data-theme="dark"] .btn-play-chance:hover,
 html.theme-dark .btn-play-chance:hover,
 body.theme-dark .btn-play-chance:hover {
-  background: linear-gradient(135deg, #5bb0ff 0%, var(--accent-color) 100%);
-  box-shadow: 0 6px 16px rgba(74, 158, 255, 0.4);
+  background: var(--dark-gradient-primary-hover);
+  box-shadow: var(--dark-shadow-accent-hover);
   transform: translateY(-1px);
 }
-
-/* Transitions */
-html[data-theme="dark"] .profile-ticket-chance *,
-html.theme-dark .profile-ticket-chance *,
-body.theme-dark .profile-ticket-chance * {
-  transition: background-color 0.2s ease, border-color 0.2s ease, color 0.2s ease;
-}
-

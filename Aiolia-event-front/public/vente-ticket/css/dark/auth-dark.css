@@ -1,69 +1,58 @@
 /* ============================================
-   MODE SOMBRE (DARK MODE) - Authentification
+   MODE SOMBRE - Authentification
    ============================================ */
 
-/* Variables pour une maintenance facile */
-:root[data-theme="dark"],
-html.theme-dark,
-body.theme-dark {
-  --bg-primary: #121212;
-  --bg-secondary: #1e1e1e;
-  --bg-card: #1e1e1e;
-  --text-primary: #ffffff;
-  --text-secondary: #e8e8e8;
-  --text-muted: rgba(240, 240, 240, 0.7);
-  --border-color: rgba(255, 255, 255, 0.15);
-  --accent-color: #4a9eff;
-  --success-color: #a0b896;
-  --danger-color: #ff6b81;
-}
+/* 
+   IMPORTANT: Ce fichier utilise les variables définies dans dark-variables.css
+   Assurez-vous que dark-variables.css est chargé en premier.
+*/
 
-/* Section login/register */
+/* ========== SECTION LOGIN/REGISTER ========== */
 html[data-theme="dark"] .sec-login,
 html.theme-dark .sec-login,
 body.theme-dark .sec-login {
-  background-color: var(--bg-primary);
-  color: var(--text-secondary);
+  background-color: var(--dark-bg-primary);
+  color: var(--dark-text-secondary);
 }
 
 html[data-theme="dark"] .sec-login h2,
 html.theme-dark .sec-login h2,
 body.theme-dark .sec-login h2 {
-  color: var(--text-primary);
+  color: var(--dark-text-primary);
 }
 
-/* Bloc de formulaire */
+/* ========== BLOC DE FORMULAIRE ========== */
 html[data-theme="dark"] .blc-login,
 html.theme-dark .blc-login,
 body.theme-dark .blc-login {
-  background-color: var(--bg-card);
-  border: 1px solid var(--border-color);
-  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.4);
+  background-color: var(--dark-bg-card);
+  border: 1px solid var(--dark-border-primary);
+  box-shadow: var(--dark-shadow-md);
 }
 
-/* Labels */
+/* ========== LABELS ========== */
 html[data-theme="dark"] .blc-login label,
 html.theme-dark .blc-login label,
 body.theme-dark .blc-login label {
-  color: var(--text-primary);
+  color: var(--dark-text-primary);
   font-weight: 600;
 }
 
-/* Champs de formulaire */
+/* ========== CHAMPS DE FORMULAIRE ========== */
 html[data-theme="dark"] .blc-login .form-control,
 html.theme-dark .blc-login .form-control,
 body.theme-dark .blc-login .form-control {
-  background-color: rgba(255, 255, 255, 0.08);
-  border: 1px solid var(--border-color);
-  color: var(--text-primary);
-  transition: all 0.2s ease;
+  background-color: var(--dark-input-bg);
+  border: 1px solid var(--dark-input-border);
+  color: var(--dark-text-primary);
+  transition: var(--dark-transition-normal);
 }
 
 html[data-theme="dark"] .blc-login .form-control:focus,
 html.theme-dark .blc-login .form-control:focus,
 body.theme-dark .blc-login .form-control:focus {
-  border-color: var(--accent-color);
-  background-color: rgba(255, 255, 255, 0.12);
+  border-color: var(--dark-input-border-focus);
+  background-color: var(--dark-input-bg-focus);
   box-shadow: 0 0 0 3px rgba(74, 158, 255, 0.2);
   outline: none;
 }
@@ -71,10 +60,10 @@ body.theme-dark .blc-login .form-control:focus {
 html[data-theme="dark"] .blc-login .form-control::placeholder,
 html.theme-dark .blc-login .form-control::placeholder,
 body.theme-dark .blc-login .form-control::placeholder {
-  color: var(--text-muted);
+  color: var(--dark-input-placeholder);
 }
 
-/* Bloc mot de passe */
+/* ========== BLOC MOT DE PASSE ========== */
 html[data-theme="dark"] .blc-password,
 html.theme-dark .blc-password,
 body.theme-dark .blc-password {
@@ -84,87 +73,78 @@ body.theme-dark .blc-password {
 html[data-theme="dark"] .blc-password .toggle-password,
 html.theme-dark .blc-password .toggle-password,
 body.theme-dark .blc-password .toggle-password {
-  color: var(--text-secondary);
+  color: var(--dark-text-secondary);
   cursor: pointer;
-  transition: color 0.2s ease;
+  transition: var(--dark-transition-normal);
 }
 
 html[data-theme="dark"] .blc-password .toggle-password:hover,
 html.theme-dark .blc-password .toggle-password:hover,
 body.theme-dark .blc-password .toggle-password:hover {
-  color: var(--accent-color);
+  color: var(--dark-accent-primary);
 }
 
-/* Checkbox et labels */
+/* ========== CHECKBOX ========== */
 html[data-theme="dark"] .blc-check label,
 html.theme-dark .blc-check label,
 body.theme-dark .blc-check label {
-  color: var(--text-secondary);
+  color: var(--dark-text-secondary);
 }
 
 html[data-theme="dark"] .blc-check input[type="checkbox"],
 html.theme-dark .blc-check input[type="checkbox"],
 body.theme-dark .blc-check input[type="checkbox"] {
-  accent-color: var(--accent-color);
+  accent-color: var(--dark-accent-primary);
 }
 
-/* Lien mot de passe oublié */
+/* ========== LIENS ========== */
 html[data-theme="dark"] .pass-forgot,
 html.theme-dark .pass-forgot,
-body.theme-dark .pass-forgot {
-  color: var(--accent-color);
+body.theme-dark .pass-forgot,
+html[data-theme="dark"] .link-form,
+html.theme-dark .link-form,
+body.theme-dark .link-form {
+  color: var(--dark-accent-primary);
   text-decoration: none;
-  transition: color 0.2s ease;
+  transition: var(--dark-transition-normal);
 }
 
 html[data-theme="dark"] .pass-forgot:hover,
 html.theme-dark .pass-forgot:hover,
-body.theme-dark .pass-forgot:hover {
-  color: #6bb0ff;
+body.theme-dark .pass-forgot:hover,
+html[data-theme="dark"] .link-form:hover,
+html.theme-dark .link-form:hover,
+body.theme-dark .link-form:hover {
+  color: var(--dark-accent-primary-hover);
 }
 
-/* Bouton de soumission */
+/* ========== BOUTON DE SOUMISSION ========== */
 html[data-theme="dark"] .btn-submit,
 html.theme-dark .btn-submit,
 body.theme-dark .btn-submit {
-  background: linear-gradient(135deg, var(--accent-color) 0%, #2a5fa0 100%);
-  color: var(--text-primary);
+  background: var(--dark-gradient-primary);
+  color: var(--dark-text-primary);
   border: none;
   font-weight: 600;
-  box-shadow: 0 4px 12px rgba(74, 158, 255, 0.3);
-  transition: all 0.3s ease;
+  box-shadow: var(--dark-shadow-accent);
+  transition: var(--dark-transition-slow);
 }
 
 html[data-theme="dark"] .btn-submit:hover,
 html.theme-dark .btn-submit:hover,
 body.theme-dark .btn-submit:hover {
-  background: linear-gradient(135deg, #5bb0ff 0%, var(--accent-color) 100%);
-  box-shadow: 0 6px 16px rgba(74, 158, 255, 0.4);
+  background: var(--dark-gradient-primary-hover);
+  box-shadow: var(--dark-shadow-accent-hover);
   transform: translateY(-1px);
 }
 
-/* Lien formulaire */
-html[data-theme="dark"] .link-form,
-html.theme-dark .link-form,
-body.theme-dark .link-form {
-  color: var(--accent-color);
-  text-decoration: none;
-  transition: color 0.2s ease;
-}
-
-html[data-theme="dark"] .link-form:hover,
-html.theme-dark .link-form:hover,
-body.theme-dark .link-form:hover {
-  color: #6bb0ff;
-}
-
-/* Messages d'erreur et de succès */
+/* ========== MESSAGES ========== */
 html[data-theme="dark"] .msg-error,
 html.theme-dark .msg-error,
 body.theme-dark .msg-error {
   background-color: rgba(255, 107, 129, 0.15);
   border: 1px solid rgba(255, 107, 129, 0.4);
-  color: #ff8a8a;
+  color: var(--dark-danger);
 }
 
 html[data-theme="dark"] .msg-success,
@@ -172,26 +152,18 @@ html.theme-dark .msg-success,
 body.theme-dark .msg-success {
   background-color: rgba(160, 184, 150, 0.15);
   border: 1px solid rgba(160, 184, 150, 0.4);
-  color: var(--success-color);
+  color: var(--dark-success);
 }
 
-/* Icônes */
+/* ========== ICÔNES ========== */
 html[data-theme="dark"] .material-symbols-rounded,
 html.theme-dark .material-symbols-rounded,
 body.theme-dark .material-symbols-rounded {
-  color: var(--text-secondary);
+  color: var(--dark-text-secondary);
 }
 
 html[data-theme="dark"] .material-symbols-rounded:hover,
 html.theme-dark .material-symbols-rounded:hover,
 body.theme-dark .material-symbols-rounded:hover {
-  color: var(--accent-color);
+  color: var(--dark-accent-primary);
 }
-
-/* Transitions */
-html[data-theme="dark"] .blc-login *,
-html.theme-dark .blc-login *,
-body.theme-dark .blc-login * {
-  transition: background-color 0.2s ease, border-color 0.2s ease, color 0.2s ease;
-}
-

@@ -1,0 +1,92 @@
+/* ============================================
+   MODE SOMBRE - Mes billets
+   ============================================ */
+
+/* 
+   IMPORTANT: Ce fichier utilise les variables définies dans dark-variables.css
+   Assurez-vous que dark-variables.css est chargé en premier.
+*/
+
+/* ========== PAGE MES BILLETS ========== */
+html[data-theme="dark"] .my-tickets-page,
+html.theme-dark .my-tickets-page,
+body.theme-dark .my-tickets-page {
+    background-color: var(--dark-bg-primary);
+    color: var(--dark-text-secondary);
+}
+
+html[data-theme="dark"] .my-tickets-page h1,
+html.theme-dark .my-tickets-page h1,
+body.theme-dark .my-tickets-page h1,
+html[data-theme="dark"] .my-tickets-page h2,
+html.theme-dark .my-tickets-page h2,
+body.theme-dark .my-tickets-page h2 {
+    color: var(--dark-text-primary);
+}
+
+/* ========== CARTES DE BILLETS ========== */
+html[data-theme="dark"] .ticket-card,
+html.theme-dark .ticket-card,
+body.theme-dark .ticket-card {
+    background-color: var(--dark-bg-card);
+    border: 1px solid var(--dark-border-primary);
+    box-shadow: var(--dark-shadow-md);
+}
+
+html[data-theme="dark"] .ticket-card h3,
+html.theme-dark .ticket-card h3,
+body.theme-dark .ticket-card h3 {
+    color: var(--dark-text-primary);
+}
+
+html[data-theme="dark"] .ticket-card p,
+html.theme-dark .ticket-card p,
+body.theme-dark .ticket-card p {
+    color: var(--dark-text-secondary);
+}
+
+/* ========== FILTRES ========== */
+html[data-theme="dark"] .ticket-filters,
+html.theme-dark .ticket-filters,
+body.theme-dark .ticket-filters {
+    background-color: var(--dark-bg-secondary);
+    border: 1px solid var(--dark-border-primary);
+}
+
+html[data-theme="dark"] .filter-btn,
+html.theme-dark .filter-btn,
+body.theme-dark .filter-btn {
+    background-color: var(--dark-bg-tertiary);
+    color: var(--dark-text-secondary);
+    border: 1px solid var(--dark-border-primary);
+}
+
+html[data-theme="dark"] .filter-btn.active,
+html.theme-dark .filter-btn.active,
+body.theme-dark .filter-btn.active {
+    background-color: var(--dark-accent-primary);
+    color: var(--dark-text-primary);
+}
+
+/* ========== BADGES DE STATUT ========== */
+html[data-theme="dark"] .ticket-status,
+html.theme-dark .ticket-status,
+body.theme-dark .ticket-status {
+    background-color: rgba(97, 175, 239, 0.2);
+    color: var(--dark-accent-primary);
+    border: 1px solid var(--dark-border-accent);
+}
+
+html[data-theme="dark"] .ticket-status.used,
+html.theme-dark .ticket-status.used,
+body.theme-dark .ticket-status.used {
+    background-color: rgba(152, 195, 121, 0.2);
+    color: var(--dark-success);
+}
+
+html[data-theme="dark"] .ticket-status.expired,
+html.theme-dark .ticket-status.expired,
+body.theme-dark .ticket-status.expired {
+    background-color: rgba(224, 108, 117, 0.2);
+    color: var(--dark-danger);
+}

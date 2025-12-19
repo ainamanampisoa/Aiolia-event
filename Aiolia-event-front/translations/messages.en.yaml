@@ -384,3 +384,5 @@ notifications:
   error_mark_read: "Error while marking as read. Please try again."
   error_mark_all: "Error while marking. Please try again."
   error_delete: "Error while deleting. Please try again."
+  error_auth: "Your session has expired. Please log in again."
+  success_mark_all: "All notifications have been marked as read!"

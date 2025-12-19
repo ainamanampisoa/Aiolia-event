@@ -1,0 +1,57 @@
+/* ============================================
+   MODE SOMBRE - Historique de recherche
+   ============================================ */
+
+/* 
+   IMPORTANT: Ce fichier utilise les variables définies dans dark-variables.css
+   Assurez-vous que dark-variables.css est chargé en premier.
+*/
+
+/* ========== PAGE HISTORIQUE DE RECHERCHE ========== */
+html[data-theme="dark"] .profile-search-history,
+html.theme-dark .profile-search-history,
+body.theme-dark .profile-search-history {
+    background-color: var(--dark-bg-primary);
+    color: var(--dark-text-secondary);
+}
+
+html[data-theme="dark"] .profile-search-history h2,
+html.theme-dark .profile-search-history h2,
+body.theme-dark .profile-search-history h2 {
+    color: var(--dark-text-primary);
+}
+
+/* ========== ÉLÉMENTS DE RECHERCHE ========== */
+html[data-theme="dark"] .search-item,
+html.theme-dark .search-item,
+body.theme-dark .search-item {
+    background-color: var(--dark-bg-card);
+    border: 1px solid var(--dark-border-primary);
+}
+
+html[data-theme="dark"] .search-item:hover,
+html.theme-dark .search-item:hover,
+body.theme-dark .search-item:hover {
+    background-color: var(--dark-bg-hover);
+}
+
+html[data-theme="dark"] .search-query,
+html.theme-dark .search-query,
+body.theme-dark .search-query {
+    color: var(--dark-text-primary);
+}
+
+html[data-theme="dark"] .search-date,
+html.theme-dark .search-date,
+body.theme-dark .search-date {
+    color: var(--dark-text-muted);
+}
+
+/* ========== BOUTON SUPPRIMER ========== */
+html[data-theme="dark"] .clear-search,
+html.theme-dark .clear-search,
+body.theme-dark .clear-search {
+    background-color: rgba(224, 108, 117, 0.15);
+    color: var(--dark-danger);
+    border: 1px solid var(--dark-danger);
+}

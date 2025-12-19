@@ -1,128 +1,106 @@
 /* ============================================
-   MODE SOMBRE (DARK MODE) - Profile Wallet
+   MODE SOMBRE - Portefeuille de profil
    ============================================ */
 
-/* Variables pour une maintenance facile */
-:root[data-theme="dark"],
-html.theme-dark,
-body.theme-dark {
-  --bg-primary: #121212;
-  --bg-secondary: #1e1e1e;
-  --bg-card: #1e1e1e;
-  --text-primary: #ffffff;
-  --text-secondary: #e8e8e8;
-  --text-muted: rgba(240, 240, 240, 0.7);
-  --border-color: rgba(255, 255, 255, 0.15);
-  --accent-color: #4a9eff;
-  --success-color: #a0b896;
-  --danger-color: #ff6b81;
-}
+/* 
+   IMPORTANT: Ce fichier utilise les variables définies dans dark-variables.css
+   Assurez-vous que dark-variables.css est chargé en premier.
+*/
 
-/* Section wallet */
+/* ========== SECTION WALLET ========== */
 html[data-theme="dark"] .profile-wallet,
 html.theme-dark .profile-wallet,
 body.theme-dark .profile-wallet {
-  background-color: var(--bg-primary);
-  color: var(--text-secondary);
+  background-color: var(--dark-bg-primary);
+  color: var(--dark-text-secondary);
 }
 
 html[data-theme="dark"] .profile-wallet h2,
 html.theme-dark .profile-wallet h2,
 body.theme-dark .profile-wallet h2 {
-  color: var(--text-primary);
+  color: var(--dark-text-primary);
 }
 
-/* Carte solde */
+/* ========== CARTE SOLDE ========== */
 html[data-theme="dark"] .wallet-balance-card,
 html.theme-dark .wallet-balance-card,
 body.theme-dark .wallet-balance-card {
-  background: linear-gradient(135deg, var(--accent-color) 0%, #2a5fa0 100%);
-  color: var(--text-primary);
-  box-shadow: 0 4px 12px rgba(74, 158, 255, 0.3);
+  background: var(--dark-gradient-primary);
+  color: var(--dark-text-primary);
+  box-shadow: var(--dark-shadow-accent);
 }
 
 html[data-theme="dark"] .wallet-balance-card h3,
 html.theme-dark .wallet-balance-card h3,
-body.theme-dark .wallet-balance-card h3 {
-  color: var(--text-primary);
-}
-
+body.theme-dark .wallet-balance-card h3,
 html[data-theme="dark"] .wallet-balance-card .balance-amount,
 html.theme-dark .wallet-balance-card .balance-amount,
 body.theme-dark .wallet-balance-card .balance-amount {
-  color: var(--text-primary);
+  color: var(--dark-text-primary);
   font-weight: 700;
 }
 
-/* Historique des transactions */
+/* ========== HISTORIQUE DES TRANSACTIONS ========== */
 html[data-theme="dark"] .wallet-transactions,
 html.theme-dark .wallet-transactions,
 body.theme-dark .wallet-transactions {
-  background-color: var(--bg-card);
-  border: 1px solid var(--border-color);
+  background-color: var(--dark-bg-card);
+  border: 1px solid var(--dark-border-primary);
 }
 
 html[data-theme="dark"] .wallet-transaction-item,
 html.theme-dark .wallet-transaction-item,
 body.theme-dark .wallet-transaction-item {
-  border-bottom: 1px solid var(--border-color);
-  color: var(--text-secondary);
+  border-bottom: 1px solid var(--dark-border-primary);
+  color: var(--dark-text-secondary);
 }
 
 html[data-theme="dark"] .wallet-transaction-item:hover,
 html.theme-dark .wallet-transaction-item:hover,
 body.theme-dark .wallet-transaction-item:hover {
-  background-color: rgba(255, 255, 255, 0.05);
+  background-color: var(--dark-bg-hover);
 }
 
 html[data-theme="dark"] .wallet-transaction-item .transaction-type,
 html.theme-dark .wallet-transaction-item .transaction-type,
 body.theme-dark .wallet-transaction-item .transaction-type {
-  color: var(--text-primary);
+  color: var(--dark-text-primary);
 }
 
 html[data-theme="dark"] .wallet-transaction-item .transaction-amount.credit,
 html.theme-dark .wallet-transaction-item .transaction-amount.credit,
 body.theme-dark .wallet-transaction-item .transaction-amount.credit {
-  color: var(--success-color);
+  color: var(--dark-success);
 }
 
 html[data-theme="dark"] .wallet-transaction-item .transaction-amount.debit,
 html.theme-dark .wallet-transaction-item .transaction-amount.debit,
 body.theme-dark .wallet-transaction-item .transaction-amount.debit {
-  color: var(--danger-color);
+  color: var(--dark-danger);
 }
 
 html[data-theme="dark"] .wallet-transaction-item .transaction-date,
 html.theme-dark .wallet-transaction-item .transaction-date,
 body.theme-dark .wallet-transaction-item .transaction-date {
-  color: var(--text-muted);
+  color: var(--dark-text-muted);
 }
 
-/* Boutons */
+/* ========== BOUTONS ========== */
 html[data-theme="dark"] .btn-recharge,
 html.theme-dark .btn-recharge,
 body.theme-dark .btn-recharge {
-  background: linear-gradient(135deg, var(--accent-color) 0%, #2a5fa0 100%);
-  color: var(--text-primary);
+  background: var(--dark-gradient-primary);
+  color: var(--dark-text-primary);
   border: none;
   font-weight: 600;
-  box-shadow: 0 4px 12px rgba(74, 158, 255, 0.3);
-  transition: all 0.3s ease;
+  box-shadow: var(--dark-shadow-accent);
+  transition: var(--dark-transition-slow);
 }
 
 html[data-theme="dark"] .btn-recharge:hover,
 html.theme-dark .btn-recharge:hover,
 body.theme-dark .btn-recharge:hover {
-  background: linear-gradient(135deg, #5bb0ff 0%, var(--accent-color) 100%);
-  box-shadow: 0 6px 16px rgba(74, 158, 255, 0.4);
+  background: var(--dark-gradient-primary-hover);
+  box-shadow: var(--dark-shadow-accent-hover);
   transform: translateY(-1px);
 }
-
-/* Transitions */
-html[data-theme="dark"] .profile-wallet *,
-html.theme-dark .profile-wallet *,
-body.theme-dark .profile-wallet * {
-  transition: background-color 0.2s ease, border-color 0.2s ease, color 0.2s ease;
-}
-

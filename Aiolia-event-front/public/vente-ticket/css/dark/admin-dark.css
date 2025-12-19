@@ -1,32 +1,21 @@
 /* ============================================
-   MODE SOMBRE (DARK MODE) - Admin
+   MODE SOMBRE - Admin
    ============================================ */
 
-/* Variables pour une maintenance facile */
-:root[data-theme="dark"],
-html.theme-dark,
-body.theme-dark {
-  --bg-primary: #121212;
-  --bg-secondary: #1e1e1e;
-  --bg-card: #1e1e1e;
-  --text-primary: #ffffff;
-  --text-secondary: #e8e8e8;
-  --text-muted: rgba(240, 240, 240, 0.7);
-  --border-color: rgba(255, 255, 255, 0.15);
-  --accent-color: #4a9eff;
-  --success-color: #a0b896;
-  --danger-color: #ff6b81;
-}
+/* 
+   IMPORTANT: Ce fichier utilise les variables définies dans dark-variables.css
+   Assurez-vous que dark-variables.css est chargé en premier.
+*/
 
-/* Section admin */
+/* ========== SECTION ADMIN ========== */
 html[data-theme="dark"] .sec-admin,
 html.theme-dark .sec-admin,
 body.theme-dark .sec-admin,
 html[data-theme="dark"] .admin-section,
 html.theme-dark .admin-section,
 body.theme-dark .admin-section {
-  background-color: var(--bg-primary);
-  color: var(--text-secondary);
+  background-color: var(--dark-bg-primary);
+  color: var(--dark-text-secondary);
 }
 
 html[data-theme="dark"] .sec-admin h2,
@@ -35,97 +24,86 @@ body.theme-dark .sec-admin h2,
 html[data-theme="dark"] .admin-section h2,
 html.theme-dark .admin-section h2,
 body.theme-dark .admin-section h2 {
-  color: var(--text-primary);
+  color: var(--dark-text-primary);
 }
 
-/* Tableaux */
+/* ========== TABLEAUX ========== */
 html[data-theme="dark"] .admin-table,
 html.theme-dark .admin-table,
 body.theme-dark .admin-table {
-  background-color: var(--bg-card);
-  border: 1px solid var(--border-color);
+  background-color: var(--dark-bg-card);
+  border: 1px solid var(--dark-border-primary);
 }
 
 html[data-theme="dark"] .admin-table th,
 html.theme-dark .admin-table th,
 body.theme-dark .admin-table th {
-  background-color: var(--bg-secondary);
-  color: var(--text-primary);
-  border-bottom: 2px solid var(--border-color);
+  background-color: var(--dark-bg-secondary);
+  color: var(--dark-text-primary);
+  border-bottom: 2px solid var(--dark-border-primary);
 }
 
 html[data-theme="dark"] .admin-table td,
 html.theme-dark .admin-table td,
 body.theme-dark .admin-table td {
-  border-bottom: 1px solid var(--border-color);
-  color: var(--text-secondary);
+  border-bottom: 1px solid var(--dark-border-primary);
+  color: var(--dark-text-secondary);
 }
 
 html[data-theme="dark"] .admin-table tr:hover,
 html.theme-dark .admin-table tr:hover,
 body.theme-dark .admin-table tr:hover {
-  background-color: rgba(255, 255, 255, 0.05);
+  background-color: var(--dark-bg-hover);
 }
 
-/* Cartes admin */
+/* ========== CARTES ADMIN ========== */
 html[data-theme="dark"] .admin-card,
 html.theme-dark .admin-card,
 body.theme-dark .admin-card {
-  background-color: var(--bg-card);
-  border: 1px solid var(--border-color);
-  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.4);
+  background-color: var(--dark-bg-card);
+  border: 1px solid var(--dark-border-primary);
+  box-shadow: var(--dark-shadow-md);
 }
 
 html[data-theme="dark"] .admin-card h3,
 html.theme-dark .admin-card h3,
 body.theme-dark .admin-card h3 {
-  color: var(--text-primary);
+  color: var(--dark-text-primary);
 }
 
 html[data-theme="dark"] .admin-card p,
 html.theme-dark .admin-card p,
 body.theme-dark .admin-card p {
-  color: var(--text-secondary);
+  color: var(--dark-text-secondary);
 }
 
-/* Boutons admin */
+/* ========== BOUTONS ADMIN ========== */
 html[data-theme="dark"] .btn-edit,
 html.theme-dark .btn-edit,
 body.theme-dark .btn-edit {
-  background-color: rgba(74, 158, 255, 0.15);
-  border: 1px solid var(--accent-color);
-  color: var(--accent-color);
-  transition: all 0.2s ease;
+  background-color: rgba(97, 175, 239, 0.15);
+  border: 1px solid var(--dark-accent-primary);
+  color: var(--dark-accent-primary);
+  transition: var(--dark-transition-normal);
 }
 
 html[data-theme="dark"] .btn-edit:hover,
 html.theme-dark .btn-edit:hover,
 body.theme-dark .btn-edit:hover {
-  background-color: rgba(74, 158, 255, 0.25);
+  background-color: rgba(97, 175, 239, 0.25);
 }
 
 html[data-theme="dark"] .btn-delete,
 html.theme-dark .btn-delete,
 body.theme-dark .btn-delete {
-  background-color: rgba(255, 107, 129, 0.15);
-  border: 1px solid var(--danger-color);
-  color: var(--danger-color);
-  transition: all 0.2s ease;
+  background-color: rgba(224, 108, 117, 0.15);
+  border: 1px solid var(--dark-danger);
+  color: var(--dark-danger);
+  transition: var(--dark-transition-normal);
 }
 
 html[data-theme="dark"] .btn-delete:hover,
 html.theme-dark .btn-delete:hover,
 body.theme-dark .btn-delete:hover {
-  background-color: rgba(255, 107, 129, 0.25);
+  background-color: rgba(224, 108, 117, 0.25);
 }
-
-/* Transitions */
-html[data-theme="dark"] .sec-admin *,
-html.theme-dark .sec-admin *,
-body.theme-dark .sec-admin *,
-html[data-theme="dark"] .admin-section *,
-html.theme-dark .admin-section *,
-body.theme-dark .admin-section * {
-  transition: background-color 0.2s ease, border-color 0.2s ease, color 0.2s ease;
-}
-

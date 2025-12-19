@@ -1,0 +1,73 @@
+/* ============================================
+   MODE SOMBRE - Finances de profil
+   ============================================ */
+
+/* 
+   IMPORTANT: Ce fichier utilise les variables définies dans dark-variables.css
+   Assurez-vous que dark-variables.css est chargé en premier.
+*/
+
+/* ========== PAGE FINANCES ========== */
+html[data-theme="dark"] .profile-financial,
+html.theme-dark .profile-financial,
+body.theme-dark .profile-financial {
+    background-color: var(--dark-bg-primary);
+    color: var(--dark-text-secondary);
+}
+
+html[data-theme="dark"] .profile-financial h2,
+html.theme-dark .profile-financial h2,
+body.theme-dark .profile-financial h2 {
+    color: var(--dark-text-primary);
+}
+
+/* ========== CARTES FINANCIÈRES ========== */
+html[data-theme="dark"] .financial-card,
+html.theme-dark .financial-card,
+body.theme-dark .financial-card {
+    background-color: var(--dark-bg-card);
+    border: 1px solid var(--dark-border-primary);
+    box-shadow: var(--dark-shadow-md);
+}
+
+html[data-theme="dark"] .financial-card h3,
+html.theme-dark .financial-card h3,
+body.theme-dark .financial-card h3 {
+    color: var(--dark-text-primary);
+}
+
+/* ========== TRANSACTIONS ========== */
+html[data-theme="dark"] .transaction-item,
+html.theme-dark .transaction-item,
+body.theme-dark .transaction-item {
+    background-color: var(--dark-bg-secondary);
+    border-bottom: 1px solid var(--dark-border-primary);
+}
+
+html[data-theme="dark"] .transaction-amount.positive,
+html.theme-dark .transaction-amount.positive,
+body.theme-dark .transaction-amount.positive {
+    color: var(--dark-success);
+}
+
+html[data-theme="dark"] .transaction-amount.negative,
+html.theme-dark .transaction-amount.negative,
+body.theme-dark .transaction-amount.negative {
+    color: var(--dark-danger);
+}
+
+/* ========== SOLDE ========== */
+html[data-theme="dark"] .balance-card,
+html.theme-dark .balance-card,
+body.theme-dark .balance-card {
+    background: var(--dark-gradient-primary);
+    color: var(--dark-text-primary);
+    box-shadow: var(--dark-shadow-accent);
+}
+
+html[data-theme="dark"] .balance-amount,
+html.theme-dark .balance-amount,
+body.theme-dark .balance-amount {
+    color: var(--dark-text-primary);
+    font-weight: 700;
+}

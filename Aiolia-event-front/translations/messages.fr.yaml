@@ -384,3 +384,5 @@ notifications:
   error_mark_read: "Erreur lors du marquage comme lu. Veuillez réessayer."
   error_mark_all: "Erreur lors du marquage. Veuillez réessayer."
   error_delete: "Erreur lors de la suppression. Veuillez réessayer."
+  error_auth: "Votre session a expiré. Veuillez vous reconnecter."
+  success_mark_all: "Toutes les notifications ont été marquées comme lues !"

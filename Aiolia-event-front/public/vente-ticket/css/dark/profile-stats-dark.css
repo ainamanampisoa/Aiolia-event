@@ -1,0 +1,75 @@
+/* ============================================
+   MODE SOMBRE - Statistiques de profil
+   ============================================ */
+
+/* 
+   IMPORTANT: Ce fichier utilise les variables définies dans dark-variables.css
+   Assurez-vous que dark-variables.css est chargé en premier.
+*/
+
+/* ========== PAGE STATISTIQUES ========== */
+html[data-theme="dark"] .profile-stats,
+html.theme-dark .profile-stats,
+body.theme-dark .profile-stats {
+    background-color: var(--dark-bg-primary);
+    color: var(--dark-text-secondary);
+}
+
+html[data-theme="dark"] .profile-stats h2,
+html.theme-dark .profile-stats h2,
+body.theme-dark .profile-stats h2 {
+    color: var(--dark-text-primary);
+}
+
+/* ========== CARTES DE STATISTIQUES ========== */
+html[data-theme="dark"] .stat-card,
+html.theme-dark .stat-card,
+body.theme-dark .stat-card {
+    background-color: var(--dark-bg-card);
+    border: 1px solid var(--dark-border-primary);
+    box-shadow: var(--dark-shadow-md);
+}
+
+html[data-theme="dark"] .stat-card h3,
+html.theme-dark .stat-card h3,
+body.theme-dark .stat-card h3 {
+    color: var(--dark-text-primary);
+}
+
+html[data-theme="dark"] .stat-value,
+html.theme-dark .stat-value,
+body.theme-dark .stat-value {
+    color: var(--dark-accent-primary);
+    font-weight: 700;
+    font-size: 2rem;
+}
+
+html[data-theme="dark"] .stat-label,
+html.theme-dark .stat-label,
+body.theme-dark .stat-label {
+    color: var(--dark-text-secondary);
+}
+
+/* ========== GRAPHIQUES ========== */
+html[data-theme="dark"] .chart-container,
+html.theme-dark .chart-container,
+body.theme-dark .chart-container {
+    background-color: var(--dark-bg-card);
+    border: 1px solid var(--dark-border-primary);
+}
+
+/* ========== BADGES DE PROGRESSION ========== */
+html[data-theme="dark"] .progress-badge,
+html.theme-dark .progress-badge,
+body.theme-dark .progress-badge {
+    background-color: rgba(97, 175, 239, 0.2);
+    color: var(--dark-accent-primary);
+    border: 1px solid var(--dark-border-accent);
+}
+
+html[data-theme="dark"] .progress-badge.success,
+html.theme-dark .progress-badge.success,
+body.theme-dark .progress-badge.success {
+    background-color: rgba(152, 195, 121, 0.2);
+    color: var(--dark-success);
+}

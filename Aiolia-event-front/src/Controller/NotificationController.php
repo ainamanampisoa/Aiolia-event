@@ -50,7 +50,7 @@ class NotificationController extends AbstractController
 
         // Récupérer les notifications
         $notifications = $this->fetchUserNotifications($userId);
-        
+
         // Compter les notifications non lues
         $unreadCount = count(array_filter($notifications, fn($n) => !$n['read']));
 
@@ -147,8 +147,8 @@ class NotificationController extends AbstractController
             ]);
         } catch (\Throwable $e) {
             // Logger l'erreur pour le débogage
-            error_log('Erreur dans markAllAsRead: ' . $e->getMessage() . ' - ' . $e->getTraceAsString());
-            
+            error_log('Erreur dans markAllAsRead: ' . $e->getMessage());
+
             return new JsonResponse([
                 'status' => 'error',
                 'message' => 'Erreur lors du marquage. Veuillez réessayer.',
@@ -247,8 +247,8 @@ class NotificationController extends AbstractController
             $title = $notification['subject'] ?? 'Nouvelle notification';
             $description = $payload['message'] ?? $payload['description'] ?? '';
             $eventId = $payload['event_id'] ?? null;
-            
-            $url = $eventId 
+
+            $url = $eventId
                 ? $this->generateUrl('event_details', ['id' => $eventId], \Symfony\Component\Routing\Generator\UrlGeneratorInterface::ABSOLUTE_URL)
                 : $this->generateUrl('notifications', [], \Symfony\Component\Routing\Generator\UrlGeneratorInterface::ABSOLUTE_URL);
 
@@ -284,7 +284,7 @@ class NotificationController extends AbstractController
     {
         // Récupérer les notifications depuis le repository
         $rows = $this->notificationRepository->findUserNotifications($userId, 100, 0);
-        
+
         // Appliquer le filtre
         if ($filter === 'unread') {
             $rows = array_filter($rows, fn($row) => !$row['is_read']);
@@ -306,7 +306,7 @@ class NotificationController extends AbstractController
 
             // Déterminer le type de notification basé sur le code du template ou le payload
             $type = $this->determineNotificationType($row['template_code'] ?? '', $payload);
-            
+
             // Générer le titre et la description
             $title = $this->generateNotificationTitle($type, $payload, $row['subject'] ?? '');
             $description = $this->generateNotificationDescription($type, $payload);
@@ -368,16 +368,16 @@ class NotificationController extends AbstractController
         }
 
         $eventName = $payload['event_name'] ?? $payload['event_title'] ?? 'cet événement';
-        
+
         $hoursBefore = $payload['hours_before'] ?? null;
         $eventDate = isset($payload['event_date']) ? new \DateTimeImmutable($payload['event_date']) : null;
-        
+
         return match ($type) {
             'ticket' => "Vos billets pour <span>{$eventName}</span> sont disponibles",
             'offer' => "Nouvelle offre exclusive sur <span>{$eventName}</span>",
             'reminder' => $hoursBefore && $eventDate
-                ? "Rappel : <span>{$eventName}</span> " . ($hoursBefore === 24 ? 'demain' : "dans {$hoursBefore}h") . ($eventDate ? ' à ' . $eventDate->format('H:i') : '')
-                : "Rappel : <span>{$eventName}</span> approche",
+            ? "Rappel : <span>{$eventName}</span> " . ($hoursBefore === 24 ? 'demain' : "dans {$hoursBefore}h") . ($eventDate ? ' à ' . $eventDate->format('H:i') : '')
+            : "Rappel : <span>{$eventName}</span> approche",
             'payment' => "Confirmation : paiement reçu pour <span>{$eventName}</span>",
             default => "Notification concernant <span>{$eventName}</span>",
         };
@@ -394,15 +394,15 @@ class NotificationController extends AbstractController
 
         $hoursBefore = $payload['hours_before'] ?? null;
         $eventDate = isset($payload['event_date']) ? new \DateTimeImmutable($payload['event_date']) : null;
-        
+
         return match ($type) {
             'ticket' => 'Téléchargez vos billets et partagez-les avec vos invités avant l\'évènement.',
             'offer' => 'Profitez de cette offre spéciale pour réserver vos places.',
             'reminder' => $hoursBefore && $eventDate
-                ? ($hoursBefore === 24 
-                    ? "L'événement commence demain à " . $eventDate->format('H:i') . ". N'oubliez pas d'apporter vos billets !"
-                    : "L'événement commence dans {$hoursBefore} heure(s) à " . $eventDate->format('H:i') . ". Préparez-vous !")
-                : 'N\'oubliez pas de valider votre réservation.',
+            ? ($hoursBefore === 24
+                ? "L'événement commence demain à " . $eventDate->format('H:i') . ". N'oubliez pas d'apporter vos billets !"
+                : "L'événement commence dans {$hoursBefore} heure(s) à " . $eventDate->format('H:i') . ". Préparez-vous !")
+            : 'N\'oubliez pas de valider votre réservation.',
             'payment' => 'Votre paiement est confirmé. Nous vous enverrons un rappel le jour de l\'évènement.',
             default => 'Nouvelle notification disponible.',
         };

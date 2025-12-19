@@ -191,6 +191,16 @@
                         const contentType = response.headers.get('content-type');
                         const isJson = contentType && contentType.includes('application/json');
                         
+                        // Gérer spécifiquement l'erreur 401 (non authentifié)
+                        if (response.status === 401) {
+                            alert('{{ 'notifications.error_auth'|trans|default('Votre session a expiré. Veuillez vous reconnecter.') }}');
+                            // Rediriger vers la page de connexion après 2 secondes
+                            setTimeout(() => {
+                                window.location.href = '{{ path("login") }}';
+                            }, 2000);
+                            throw new Error('Session expirée');
+                        }
+                        
                         if (!response.ok) {
                             if (isJson) {
                                 return response.json().then(data => {
@@ -226,13 +236,19 @@
                             if (typeof window.updateNotificationBadge === 'function') {
                                 window.updateNotificationBadge();
                             }
+                            
+                            // Afficher un message de succès
+                            alert('{{ 'notifications.success_mark_all'|trans|default('Toutes les notifications ont été marquées comme lues !') }}');
                         } else {
                             alert('{{ 'notifications.error_prefix'|trans }}: ' + (data.message || '{{ 'notifications.error_unknown'|trans }}'));
                         }
                     })
                     .catch(error => {
                         console.error('Erreur lors du marquage de toutes les notifications:', error);
-                        alert('{{ 'notifications.error_prefix'|trans }}: ' + (error.message || '{{ 'notifications.error_mark_all'|trans }}'));
+                        // Ne pas afficher d'alerte si c'est une erreur de session (déjà gérée)
+                        if (error.message !== 'Session expirée') {
+                            alert('{{ 'notifications.error_prefix'|trans }}: ' + (error.message || '{{ 'notifications.error_mark_all'|trans }}'));
+                        }
                     })
                     .finally(() => {
                         // Réactiver le bouton

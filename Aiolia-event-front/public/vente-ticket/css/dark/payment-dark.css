@@ -1,0 +1,73 @@
+/* ============================================
+   MODE SOMBRE - Paiement
+   ============================================ */
+
+/* 
+   IMPORTANT: Ce fichier utilise les variables définies dans dark-variables.css
+   Assurez-vous que dark-variables.css est chargé en premier.
+*/
+
+/* ========== PAGE PAIEMENT ========== */
+html[data-theme="dark"] .payment-page,
+html.theme-dark .payment-page,
+body.theme-dark .payment-page {
+    background-color: var(--dark-bg-primary);
+    color: var(--dark-text-secondary);
+}
+
+/* ========== FORMULAIRE DE PAIEMENT ========== */
+html[data-theme="dark"] .payment-form,
+html.theme-dark .payment-form,
+body.theme-dark .payment-form {
+    background-color: var(--dark-bg-card);
+    border: 1px solid var(--dark-border-primary);
+}
+
+html[data-theme="dark"] .payment-form h2,
+html.theme-dark .payment-form h2,
+body.theme-dark .payment-form h2 {
+    color: var(--dark-text-primary);
+}
+
+/* ========== MÉTHODES DE PAIEMENT ========== */
+html[data-theme="dark"] .payment-method,
+html.theme-dark .payment-method,
+body.theme-dark .payment-method {
+    background-color: var(--dark-bg-secondary);
+    border: 2px solid var(--dark-border-primary);
+}
+
+html[data-theme="dark"] .payment-method:hover,
+html.theme-dark .payment-method:hover,
+body.theme-dark .payment-method:hover {
+    border-color: var(--dark-accent-primary);
+}
+
+html[data-theme="dark"] .payment-method.selected,
+html.theme-dark .payment-method.selected,
+body.theme-dark .payment-method.selected {
+    background-color: rgba(97, 175, 239, 0.15);
+    border-color: var(--dark-accent-primary);
+}
+
+/* ========== RÉSUMÉ DE COMMANDE ========== */
+html[data-theme="dark"] .order-summary,
+html.theme-dark .order-summary,
+body.theme-dark .order-summary {
+    background-color: var(--dark-bg-card);
+    border: 1px solid var(--dark-border-primary);
+}
+
+html[data-theme="dark"] .order-summary h3,
+html.theme-dark .order-summary h3,
+body.theme-dark .order-summary h3 {
+    color: var(--dark-text-primary);
+}
+
+html[data-theme="dark"] .order-total,
+html.theme-dark .order-total,
+body.theme-dark .order-total {
+    color: var(--dark-text-primary);
+    font-weight: 700;
+    border-top: 2px solid var(--dark-border-primary);
+}

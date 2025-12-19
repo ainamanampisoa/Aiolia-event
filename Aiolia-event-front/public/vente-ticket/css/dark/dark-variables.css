@@ -1,0 +1,206 @@
+/* ============================================
+   VARIABLES CENTRALISÉES - MODE SOMBRE
+   Aiolia-event Dark Mode Theme
+   ============================================ */
+
+/* 
+   Ce fichier contient toutes les variables CSS pour le mode sombre.
+   Il doit être chargé en PREMIER avant tous les autres fichiers dark mode.
+*/
+
+:root[data-theme="dark"],
+html.theme-dark,
+body.theme-dark {
+    /* ========== COULEURS DE FOND - CONFORTABLES ========== */
+    /* Utilisation de tons gris chauds au lieu du noir pur pour plus de confort */
+    --dark-bg-primary: #1a1d23;
+    /* Fond principal - gris ardoise chaud */
+    --dark-bg-secondary: #21252b;
+    /* Fond secondaire (header, footer, cards) */
+    --dark-bg-tertiary: #282c34;
+    /* Fond tertiaire (éléments imbriqués) */
+    --dark-bg-card: #21252b;
+    /* Fond des cartes */
+    --dark-bg-elevated: #282c34;
+    /* Fond des éléments surélevés */
+    --dark-bg-input: rgba(255, 255, 255, 0.08);
+    /* Fond des champs de formulaire */
+    --dark-bg-hover: rgba(255, 255, 255, 0.12);
+    /* Fond au survol */
+
+    /* ========== COULEURS DE TEXTE ========== */
+    --dark-text-primary: #e6e8eb;
+    /* Texte principal - légèrement adouci pour le confort */
+    --dark-text-secondary: #abb2bf;
+    /* Texte secondaire */
+    --dark-text-muted: rgba(171, 178, 191, 0.7);
+    /* Texte atténué (hints, placeholders) */
+    --dark-text-disabled: rgba(171, 178, 191, 0.4);
+    /* Texte désactivé */
+
+    /* ========== COULEURS D'ACCENTUATION - NEUTRES ========== */
+    --dark-accent-primary: #61afef;
+    /* Couleur principale - bleu doux et neutre */
+    --dark-accent-primary-hover: #84c0f4;
+    /* Hover - bleu plus clair */
+    --dark-accent-primary-dark: #4a90d9;
+    /* Version foncée */
+
+    --dark-success: #98c379;
+    /* Couleur de succès - vert doux */
+    --dark-success-hover: #b1d48c;
+    /* Hover du succès */
+    --dark-success-dark: #7fa35f;
+    /* Version foncée du succès */
+
+    --dark-danger: #e06c75;
+    /* Couleur de danger - rouge doux */
+    --dark-danger-hover: #eb8a92;
+    /* Hover du danger */
+    --dark-danger-dark: #c5545d;
+    /* Version foncée du danger */
+
+    --dark-warning: #e5c07b;
+    /* Couleur d'avertissement - orange/jaune doux */
+    --dark-warning-hover: #efd095;
+    /* Hover de l'avertissement */
+    --dark-warning-dark: #d19a4e;
+    /* Version foncée de l'avertissement */
+
+    --dark-info: #61afef;
+    /* Couleur d'information - bleu neutre */
+    --dark-info-hover: #84c0f4;
+    /* Hover de l'information */
+
+    /* ========== BORDURES ========== */
+    --dark-border-primary: rgba(255, 255, 255, 0.1);
+    /* Bordure principale */
+    --dark-border-secondary: rgba(255, 255, 255, 0.08);
+    /* Bordure secondaire */
+    --dark-border-accent: rgba(97, 175, 239, 0.4);
+    /* Bordure accentuée */
+    --dark-border-hover: rgba(255, 255, 255, 0.2);
+    /* Bordure au survol */
+
+    /* ========== OMBRES ========== */
+    --dark-shadow-sm: 0 2px 6px rgba(0, 0, 0, 0.3);
+    --dark-shadow-md: 0 4px 12px rgba(0, 0, 0, 0.4);
+    --dark-shadow-lg: 0 8px 24px rgba(0, 0, 0, 0.5);
+    --dark-shadow-xl: 0 12px 32px rgba(0, 0, 0, 0.6);
+
+    /* Ombres colorées */
+    --dark-shadow-accent: 0 4px 12px rgba(74, 158, 255, 0.3);
+    --dark-shadow-accent-hover: 0 6px 16px rgba(74, 158, 255, 0.4);
+    --dark-shadow-success: 0 4px 12px rgba(160, 184, 150, 0.3);
+    --dark-shadow-danger: 0 4px 12px rgba(255, 138, 138, 0.3);
+
+    /* ========== TRANSITIONS ========== */
+    --dark-transition-fast: 0.15s ease;
+    --dark-transition-normal: 0.2s ease;
+    --dark-transition-slow: 0.3s ease;
+    --dark-transition-all: background-color 0.2s ease, border-color 0.2s ease, color 0.2s ease, transform 0.2s ease;
+
+    /* ========== OPACITÉS ========== */
+    --dark-opacity-disabled: 0.4;
+    --dark-opacity-muted: 0.7;
+    --dark-opacity-hover: 0.85;
+
+    /* ========== GRADIENTS ========== */
+    --dark-gradient-primary: linear-gradient(135deg, var(--dark-accent-primary) 0%, var(--dark-accent-primary-dark) 100%);
+    --dark-gradient-primary-hover: linear-gradient(135deg, var(--dark-accent-primary-hover) 0%, var(--dark-accent-primary) 100%);
+
+    --dark-gradient-success: linear-gradient(135deg, var(--dark-success) 0%, var(--dark-success-dark) 100%);
+    --dark-gradient-success-hover: linear-gradient(135deg, var(--dark-success-hover) 0%, var(--dark-success) 100%);
+
+    --dark-gradient-danger: linear-gradient(135deg, var(--dark-danger-dark) 0%, #c0392b 100%);
+    --dark-gradient-danger-hover: linear-gradient(135deg, var(--dark-danger) 0%, var(--dark-danger-dark) 100%);
+
+    --dark-gradient-card: linear-gradient(145deg, var(--dark-bg-tertiary) 0%, var(--dark-bg-secondary) 100%);
+
+    /* ========== BACKGROUNDS AVEC TRANSPARENCE ========== */
+    --dark-bg-overlay: rgba(0, 0, 0, 0.7);
+    --dark-bg-modal: rgba(0, 0, 0, 0.85);
+    --dark-bg-tooltip: rgba(30, 30, 30, 0.95);
+
+    /* ========== COULEURS SPÉCIFIQUES AUX COMPOSANTS ========== */
+    /* Beige adapté pour le dark mode */
+    --dark-beige: #333333;
+    --dark-beige-light: #3a3a3a;
+
+    /* Couleurs pour les badges et tags */
+    --dark-badge-bg: rgba(255, 255, 255, 0.15);
+    --dark-badge-border: var(--dark-border-primary);
+
+    /* Couleurs pour les inputs */
+    --dark-input-bg: rgba(255, 255, 255, 0.08);
+    --dark-input-bg-focus: rgba(255, 255, 255, 0.12);
+    --dark-input-border: rgba(255, 255, 255, 0.3);
+    --dark-input-border-focus: var(--dark-accent-primary);
+    --dark-input-placeholder: rgba(240, 240, 240, 0.6);
+
+    /* ========== Z-INDEX ========== */
+    --dark-z-dropdown: 1000;
+    --dark-z-sticky: 1020;
+    --dark-z-fixed: 1030;
+    --dark-z-modal-backdrop: 1040;
+    --dark-z-modal: 1050;
+    --dark-z-popover: 1060;
+    --dark-z-tooltip: 1070;
+}
+
+/* ========== TRANSITIONS GLOBALES ========== */
+html,
+body {
+    transition: background-color var(--dark-transition-slow), color var(--dark-transition-slow);
+}
+
+html[data-theme="dark"] *,
+html.theme-dark *,
+body.theme-dark * {
+    transition: var(--dark-transition-all);
+}
+
+/* ========== SCROLLBAR PERSONNALISÉE ========== */
+html[data-theme="dark"] ::-webkit-scrollbar,
+html.theme-dark ::-webkit-scrollbar,
+body.theme-dark ::-webkit-scrollbar {
+    width: 12px;
+    height: 12px;
+}
+
+html[data-theme="dark"] ::-webkit-scrollbar-track,
+html.theme-dark ::-webkit-scrollbar-track,
+body.theme-dark ::-webkit-scrollbar-track {
+    background: var(--dark-bg-secondary);
+    border-radius: 10px;
+}
+
+html[data-theme="dark"] ::-webkit-scrollbar-thumb,
+html.theme-dark ::-webkit-scrollbar-thumb,
+body.theme-dark ::-webkit-scrollbar-thumb {
+    background: var(--dark-gradient-primary);
+    border-radius: 10px;
+    border: 2px solid var(--dark-bg-secondary);
+}
+
+html[data-theme="dark"] ::-webkit-scrollbar-thumb:hover,
+html.theme-dark ::-webkit-scrollbar-thumb:hover,
+body.theme-dark ::-webkit-scrollbar-thumb:hover {
+    background: var(--dark-gradient-primary-hover);
+    box-shadow: 0 0 10px rgba(74, 158, 255, 0.6);
+}
+
+/* ========== SÉLECTION DE TEXTE ========== */
+html[data-theme="dark"] ::selection,
+html.theme-dark ::selection,
+body.theme-dark ::selection {
+    background: var(--dark-accent-primary);
+    color: var(--dark-text-primary);
+}
+
+html[data-theme="dark"] ::-moz-selection,
+html.theme-dark ::-moz-selection,
+body.theme-dark ::-moz-selection {
+    background: var(--dark-accent-primary);
+    color: var(--dark-text-primary);
+}

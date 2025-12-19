@@ -1,0 +1,177 @@
+/* ============================================
+   FORCE ABSOLUE - VISIBILITÉ MAXIMALE
+   Tous les textes et icônes DOIVENT être blancs
+   ============================================ */
+
+/* RÈGLE ULTIME - Tout en blanc par défaut */
+html[data-theme="dark"],
+html[data-theme="dark"] *,
+html.theme-dark,
+html.theme-dark *,
+body.theme-dark,
+body.theme-dark * {
+    color: #ffffff !important;
+}
+
+/* Exceptions pour les éléments qui doivent rester invisibles */
+html[data-theme="dark"] [hidden],
+html.theme-dark [hidden],
+body.theme-dark [hidden] {
+    display: none !important;
+}
+
+/* ICÔNES - Toujours blanches */
+html[data-theme="dark"] i,
+html[data-theme="dark"] .material-symbols-rounded,
+html[data-theme="dark"] .icon,
+html[data-theme="dark"] svg,
+html.theme-dark i,
+html.theme-dark .material-symbols-rounded,
+html.theme-dark .icon,
+html.theme-dark svg,
+body.theme-dark i,
+body.theme-dark .material-symbols-rounded,
+body.theme-dark .icon,
+body.theme-dark svg {
+    color: #ffffff !important;
+    fill: #ffffff !important;
+    opacity: 1 !important;
+    filter: none !important;
+}
+
+/* LIENS - Bleu clair */
+html[data-theme="dark"] a,
+html.theme-dark a,
+body.theme-dark a {
+    color: #84c0f4 !important;
+}
+
+html[data-theme="dark"] a:hover,
+html.theme-dark a:hover,
+body.theme-dark a:hover {
+    color: #a8d4f7 !important;
+}
+
+/* BOUTONS - Texte blanc, sans brillance */
+html[data-theme="dark"] button,
+html[data-theme="dark"] .btn,
+html[data-theme="dark"] input[type="button"],
+html[data-theme="dark"] input[type="submit"],
+html.theme-dark button,
+html.theme-dark .btn,
+html.theme-dark input[type="button"],
+html.theme-dark input[type="submit"],
+body.theme-dark button,
+body.theme-dark .btn,
+body.theme-dark input[type="button"],
+body.theme-dark input[type="submit"] {
+    color: #ffffff !important;
+    background-image: none !important;
+    box-shadow: none !important;
+}
+
+/* FORMULAIRES */
+html[data-theme="dark"] input,
+html[data-theme="dark"] textarea,
+html[data-theme="dark"] select,
+html.theme-dark input,
+html.theme-dark textarea,
+html.theme-dark select,
+body.theme-dark input,
+body.theme-dark textarea,
+body.theme-dark select {
+    color: #ffffff !important;
+    background: rgba(255, 255, 255, 0.08) !important;
+}
+
+html[data-theme="dark"] input::placeholder,
+html[data-theme="dark"] textarea::placeholder,
+html.theme-dark input::placeholder,
+html.theme-dark textarea::placeholder,
+body.theme-dark input::placeholder,
+body.theme-dark textarea::placeholder {
+    color: rgba(255, 255, 255, 0.6) !important;
+}
+
+/* Override TOUS les styles inline possibles */
+html[data-theme="dark"] [style*="color: #000"],
+html[data-theme="dark"] [style*="color: #333"],
+html[data-theme="dark"] [style*="color: #666"],
+html[data-theme="dark"] [style*="color: #999"],
+html[data-theme="dark"] [style*="color: rgb(0"],
+html[data-theme="dark"] [style*="color: rgb(51"],
+html[data-theme="dark"] [style*="color: rgb(102"],
+html.theme-dark [style*="color: #000"],
+html.theme-dark [style*="color: #333"],
+html.theme-dark [style*="color: #666"],
+html.theme-dark [style*="color: #999"],
+html.theme-dark [style*="color: rgb(0"],
+html.theme-dark [style*="color: rgb(51"],
+html.theme-dark [style*="color: rgb(102"],
+body.theme-dark [style*="color: #000"],
+body.theme-dark [style*="color: #333"],
+body.theme-dark [style*="color: #666"],
+body.theme-dark [style*="color: #999"],
+body.theme-dark [style*="color: rgb(0"],
+body.theme-dark [style*="color: rgb(51"],
+body.theme-dark [style*="color: rgb(102"] {
+    color: #ffffff !important;
+}
+
+/* Classes communes qui peuvent avoir des couleurs sombres */
+html[data-theme="dark"] .text-muted,
+html[data-theme="dark"] .text-secondary,
+html[data-theme="dark"] .text-dark,
+html[data-theme="dark"] .text-black,
+html.theme-dark .text-muted,
+html.theme-dark .text-secondary,
+html.theme-dark .text-dark,
+html.theme-dark .text-black,
+body.theme-dark .text-muted,
+body.theme-dark .text-secondary,
+body.theme-dark .text-dark,
+body.theme-dark .text-black {
+    color: #ffffff !important;
+}
+
+/* Sidebar - Force absolue */
+html[data-theme="dark"] .sidebar,
+html[data-theme="dark"] .sidebar *,
+html.theme-dark .sidebar,
+html.theme-dark .sidebar *,
+body.theme-dark .sidebar,
+body.theme-dark .sidebar * {
+    color: #ffffff !important;
+}
+
+/* Navigation */
+html[data-theme="dark"] nav,
+html[data-theme="dark"] nav *,
+html[data-theme="dark"] .menu,
+html[data-theme="dark"] .menu *,
+html.theme-dark nav,
+html.theme-dark nav *,
+html.theme-dark .menu,
+html.theme-dark .menu *,
+body.theme-dark nav,
+body.theme-dark nav *,
+body.theme-dark .menu,
+body.theme-dark .menu * {
+    color: #ffffff !important;
+}
+
+/* Header et Footer */
+html[data-theme="dark"] header,
+html[data-theme="dark"] header *,
+html[data-theme="dark"] footer,
+html[data-theme="dark"] footer *,
+html.theme-dark header,
+html.theme-dark header *,
+html.theme-dark footer,
+html.theme-dark footer *,
+body.theme-dark header,
+body.theme-dark header *,
+body.theme-dark footer,
+body.theme-dark footer * {
+    color: #ffffff !important;
+}

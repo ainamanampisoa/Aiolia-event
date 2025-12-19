@@ -1,0 +1,66 @@
+/* ============================================
+   MODE SOMBRE - Favoris de profil
+   ============================================ */
+
+/* 
+   IMPORTANT: Ce fichier utilise les variables définies dans dark-variables.css
+   Assurez-vous que dark-variables.css est chargé en premier.
+*/
+
+/* ========== PAGE FAVORIS ========== */
+html[data-theme="dark"] .profile-favorites,
+html.theme-dark .profile-favorites,
+body.theme-dark .profile-favorites {
+    background-color: var(--dark-bg-primary);
+    color: var(--dark-text-secondary);
+}
+
+html[data-theme="dark"] .profile-favorites h2,
+html.theme-dark .profile-favorites h2,
+body.theme-dark .profile-favorites h2 {
+    color: var(--dark-text-primary);
+}
+
+/* ========== CARTES D'ÉVÉNEMENTS FAVORIS ========== */
+html[data-theme="dark"] .favorite-card,
+html.theme-dark .favorite-card,
+body.theme-dark .favorite-card {
+    background-color: var(--dark-bg-card);
+    border: 1px solid var(--dark-border-primary);
+    box-shadow: var(--dark-shadow-md);
+}
+
+html[data-theme="dark"] .favorite-card h3,
+html.theme-dark .favorite-card h3,
+body.theme-dark .favorite-card h3 {
+    color: var(--dark-text-primary);
+}
+
+html[data-theme="dark"] .favorite-card p,
+html.theme-dark .favorite-card p,
+body.theme-dark .favorite-card p {
+    color: var(--dark-text-secondary);
+}
+
+/* ========== BOUTON SUPPRIMER DES FAVORIS ========== */
+html[data-theme="dark"] .remove-favorite,
+html.theme-dark .remove-favorite,
+body.theme-dark .remove-favorite {
+    background-color: rgba(224, 108, 117, 0.15);
+    color: var(--dark-danger);
+    border: 1px solid var(--dark-danger);
+}
+
+html[data-theme="dark"] .remove-favorite:hover,
+html.theme-dark .remove-favorite:hover,
+body.theme-dark .remove-favorite:hover {
+    background-color: var(--dark-danger);
+    color: var(--dark-text-primary);
+}
+
+/* ========== ÉTAT VIDE ========== */
+html[data-theme="dark"] .favorites-empty,
+html.theme-dark .favorites-empty,
+body.theme-dark .favorites-empty {
+    color: var(--dark-text-muted);
+}

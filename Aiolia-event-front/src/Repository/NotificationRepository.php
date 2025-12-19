@@ -26,7 +26,7 @@ class NotificationRepository
         }
 
         $this->connection->executeStatement(
-            'UPDATE aiolia.notifications SET status = CAST(\'read\' AS notification_status_enum), read_at = NOW() WHERE id = :id',
+            'UPDATE aiolia.notifications SET status = CAST(\'read\' AS aiolia.notification_status_enum), read_at = NOW() WHERE id = :id',
             ['id' => $notificationId],
             ['id' => \PDO::PARAM_INT]
         );
@@ -43,7 +43,7 @@ class NotificationRepository
         // On compare le statut en le convertissant en texte pour éviter les problèmes avec les ENUM
         $this->connection->executeStatement(
             'UPDATE aiolia.notifications 
-             SET status = CAST(\'read\' AS notification_status_enum), read_at = NOW() 
+             SET status = CAST(\'read\' AS aiolia.notification_status_enum), read_at = NOW() 
              WHERE user_id = :userId 
                AND (CAST(status AS TEXT) != \'read\' OR read_at IS NULL)',
             ['userId' => $userId],

@@ -1,0 +1,57 @@
+/* ============================================
+   MODE SOMBRE - Historique de profil
+   ============================================ */
+
+/* 
+   IMPORTANT: Ce fichier utilise les variables définies dans dark-variables.css
+   Assurez-vous que dark-variables.css est chargé en premier.
+*/
+
+/* ========== PAGE HISTORIQUE ========== */
+html[data-theme="dark"] .profile-history,
+html.theme-dark .profile-history,
+body.theme-dark .profile-history {
+    background-color: var(--dark-bg-primary);
+    color: var(--dark-text-secondary);
+}
+
+html[data-theme="dark"] .profile-history h2,
+html.theme-dark .profile-history h2,
+body.theme-dark .profile-history h2 {
+    color: var(--dark-text-primary);
+}
+
+/* ========== ÉLÉMENTS D'HISTORIQUE ========== */
+html[data-theme="dark"] .history-item,
+html.theme-dark .history-item,
+body.theme-dark .history-item {
+    background-color: var(--dark-bg-card);
+    border: 1px solid var(--dark-border-primary);
+    border-left: 3px solid var(--dark-accent-primary);
+}
+
+html[data-theme="dark"] .history-item h4,
+html.theme-dark .history-item h4,
+body.theme-dark .history-item h4 {
+    color: var(--dark-text-primary);
+}
+
+html[data-theme="dark"] .history-item p,
+html.theme-dark .history-item p,
+body.theme-dark .history-item p {
+    color: var(--dark-text-secondary);
+}
+
+html[data-theme="dark"] .history-date,
+html.theme-dark .history-date,
+body.theme-dark .history-date {
+    color: var(--dark-text-muted);
+}
+
+/* ========== FILTRES D'HISTORIQUE ========== */
+html[data-theme="dark"] .history-filters,
+html.theme-dark .history-filters,
+body.theme-dark .history-filters {
+    background-color: var(--dark-bg-secondary);
+    border: 1px solid var(--dark-border-primary);
+}
