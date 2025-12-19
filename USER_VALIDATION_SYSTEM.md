@@ -479,3 +479,32 @@ redonne moi le @data.sql avec ces critere
 => 23 organisateurs actifs ,0 organisateur en pausse ,total 3 organisateur non valider 
 => 0 organisateurs paye mensuelle,0 organisateurs paye trimestre , 7 prepraid
 => offre populaire (le plus utiliser): entreprise trimestre
+
+Header:
+Authorization: Bearer mon_token
+Version: 1.0
+X-CorrelationID: mvola-12345678
+UserLanguage: mg
+UserAccountIdentifier: msisdn;0382795455
+partnerName: AioliaEvent
+Content-Type: application/json
+Cache-Control: no-cache
+X-Callback-URL: http://localhost:8000/api/mvola/callback
+Body:
+{
+  "amount": "1000",
+  "currency": "Ar",
+  "descriptionText": "Test-paiement",
+  "requestingOrganisationTransactionReference": "TEST-001",
+  "requestDate": "2025-12-08T18:00:00.000Z",
+  "originalTransactionReference": "",
+  "debitParty": [
+    { "key": "msisdn", "value": "0343500003" }
+  ],
+  "creditParty": [
+    { "key": "msisdn", "value": "0382795455" }
+  ],
+  "metadata": [
+    { "key": "partnerName", "value": "AioliaEvent" }
+  ]
+}

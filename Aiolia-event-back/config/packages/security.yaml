@@ -50,8 +50,13 @@ security:
     access_control:
         - { path: ^/api/auth/login$, roles: PUBLIC_ACCESS }
         - { path: ^/api/auth/refresh$, roles: PUBLIC_ACCESS }
+        # Route de test de connexion MVola accessible sans authentification
+        - { path: ^/api/mvola/test/connection$, roles: PUBLIC_ACCESS }
+        - { path: ^/api/mvola/test/env$, roles: PUBLIC_ACCESS }
+        - { path: ^/api/mvola/test/payment, roles: PUBLIC_ACCESS }
         - { path: ^/api/auth/logout$, roles: IS_AUTHENTICATED_FULLY }
         - { path: ^/api/, roles: IS_AUTHENTICATED_FULLY }
+
         # - { path: ^/admin, roles: ROLE_ADMIN }
         # - { path: ^/profile, roles: ROLE_USER }
 

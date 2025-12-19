@@ -1,0 +1,706 @@
+{% extends 'base.html.twig' %}
+
+{% block title %}Paiement Abonnement - Aiolia Event{% endblock %}
+
+{% block body %}
+<div class="dashboard">
+    <div class="dashboard-header">
+        <div>
+            <h1> <i class="fas fa-credit-card"></i> Paiement Abonnement</h1>
+            <p style="color: var(--gray-600); margin-top: 8px; font-size: 1rem;">
+                Choisissez votre niveau d'abonnement, la durée et votre mode de paiement
+            </p>
+        </div>
+    </div>
+
+    <!-- Sélection du niveau d'abonnement -->
+    <div class="card">
+        <div class="card-body">
+            <h2 class="section-title">
+                <i class="fas fa-layer-group"></i>
+                Choisissez votre niveau d'abonnement
+            </h2>
+            
+            <div class="level-options">
+                {% for niveau in niveaux %}
+                    <div class="level-option" data-niveau="{{ niveau }}">
+                        <input type="radio" name="niveau" id="niveau_{{ niveau }}" value="{{ niveau }}" class="level-radio" {% if loop.first %}checked{% endif %}>
+                        <label for="niveau_{{ niveau }}" class="level-label">
+                            <div class="level-header">
+                                <span class="level-name">{{ niveau|capitalize }}</span>
+                                {% if niveau == 'basic' %}
+                                    <span class="level-badge basic">Essentiel</span>
+                                {% elseif niveau == 'pro' %}
+                                    <span class="level-badge pro">Professionnel</span>
+                                {% elseif niveau == 'enterprise' %}
+                                    <span class="level-badge enterprise">Entreprise</span>
+                                {% endif %}
+                            </div>
+                        </label>
+                    </div>
+                {% endfor %}
+            </div>
+        </div>
+    </div>
+
+    <!-- Sélection de la période d'abonnement -->
+    <div class="card" id="period-section" style="display: none; margin-top: 20px;">
+        <div class="card-body">
+            <h2 class="section-title">
+                <i class="fas fa-calendar-alt"></i>
+                Choisissez la durée de votre abonnement
+            </h2>
+            
+            <div class="period-options" id="period-options">
+                <!-- Les options seront générées dynamiquement via JavaScript -->
+            </div>
+        </div>
+    </div>
+
+    <!-- Résumé de la sélection -->
+    <div class="card" id="selection-summary" style="margin-top: 20px;">
+        <div class="card-body">
+            <h2 class="section-title">
+                <i class="fas fa-info-circle"></i>
+                Récapitulatif
+            </h2>
+            <div class="summary-card">
+                <div class="summary-item">
+                    <span class="summary-label">Niveau :</span>
+                    <span class="summary-value" id="summary-niveau">-</span>
+                </div>
+                <div class="summary-item">
+                    <span class="summary-label">Durée :</span>
+                    <span class="summary-value" id="summary-duree">-</span>
+                </div>
+                <div class="summary-item">
+                    <span class="summary-label">Prix :</span>
+                    <span class="summary-value summary-price" id="summary-prix">-</span>
+                </div>
+                {% if plansGroupedByNiveau is defined %}
+                    <div class="summary-discount" id="summary-discount" style="display: none;">
+                        <i class="fas fa-tag"></i>
+                        <span id="discount-text"></span>
+                    </div>
+                {% endif %}
+            </div>
+        </div>
+    </div>
+
+    <!-- Sélection du mode de paiement -->
+    <div class="card" id="payment-section" style="display: none; margin-top: 20px;">
+        <div class="card-body">
+            <h2 class="section-title">
+                <i class="fas fa-money-bill-wave"></i>
+                Choisissez votre mode de paiement
+            </h2>
+            
+            <div class="payment-methods">
+                <div class="payment-method-option">
+                    <input type="radio" name="mode_paiement" id="mvola" value="mvola" class="payment-radio" checked>
+                    <label for="mvola" class="payment-label">
+                        <div class="payment-icon">
+                            <img src="{{ asset('images/m-vola1.png') }}" alt="MVola" class="payment-logo">
+                        </div>
+                        <span class="payment-name">MVola</span>
+                    </label>
+                </div>
+
+                <div class="payment-method-option">
+                    <input type="radio" name="mode_paiement" id="airtel" value="airtel" class="payment-radio">
+                    <label for="airtel" class="payment-label">
+                        <div class="payment-icon">
+                            <img src="{{ asset('images/airtel.png') }}" alt="Airtel Money" class="payment-logo">
+                        </div>
+                        <span class="payment-name">Airtel Money</span>
+                    </label>
+                </div>
+
+                <div class="payment-method-option">
+                    <input type="radio" name="mode_paiement" id="orange" value="orange" class="payment-radio">
+                    <label for="orange" class="payment-label">
+                        <div class="payment-icon">
+                            <img src="{{ asset('images/Orange.png') }}" alt="Orange Money" class="payment-logo">
+                        </div>
+                        <span class="payment-name">Orange Money</span>
+                    </label>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Bouton de paiement -->
+    <div class="payment-button-section" id="payment-button-section" style="margin-top: 20px; text-align: center;">
+        <button type="button" class="btn-payment" id="btn-payment" disabled>
+            <i class="fas fa-lock"></i>
+            <span>Procéder au paiement</span>
+        </button>
+    </div>
+</div>
+
+<script>
+// Données des plans depuis le backend
+const plansData = {{ plansGroupedByNiveau|json_encode|raw }};
+
+// Prix de base par niveau (mensuel)
+const basePrices = {
+    'basic': 50000,
+    'pro': 150000,
+    'enterprise': 300000
+};
+
+// Prix avec réductions
+const prices = {
+    'basic': {
+        'monthly': 50000,
+        'quarterly': 135000,
+        'yearly': 480000
+    },
+    'pro': {
+        'monthly': 150000,
+        'quarterly': 405000,
+        'yearly': 1440000
+    },
+    'enterprise': {
+        'monthly': 300000,
+        'quarterly': 810000,
+        'yearly': 2880000
+    }
+};
+
+// Réductions
+const discounts = {
+    'quarterly': { percent: 10, label: '10% de réduction' },
+    'yearly': { percent: 20, label: '20% de réduction' }
+};
+
+// Initialisation avec les valeurs par défaut
+let selectedNiveau = null;
+let selectedPeriod = 'monthly'; // Par défaut : 1 mois
+let selectedPaymentMethod = 'mvola'; // Par défaut : MVola
+
+// Initialisation au chargement de la page
+document.addEventListener('DOMContentLoaded', function() {
+    // Sélectionner le premier niveau par défaut
+    const firstLevelRadio = document.querySelector('input[name="niveau"]:checked');
+    if (firstLevelRadio) {
+        selectedNiveau = firstLevelRadio.value;
+        showPeriodOptions();
+    }
+
+    // Sélectionner MVola par défaut
+    const mvolaRadio = document.getElementById('mvola');
+    if (mvolaRadio) {
+        mvolaRadio.checked = true;
+        selectedPaymentMethod = 'mvola';
+    }
+    
+    // Mettre à jour le bouton et le résumé
+    updatePaymentButton();
+    if (selectedNiveau && selectedPeriod) {
+        updateSummary();
+    }
+});
+
+// Gestion de la sélection du niveau
+document.querySelectorAll('input[name="niveau"]').forEach(radio => {
+    radio.addEventListener('change', function() {
+        if (this.checked) {
+            selectedNiveau = this.value;
+            selectedPeriod = 'monthly'; // Réinitialiser à monthly lors du changement de niveau
+            showPeriodOptions();
+        }
+    });
+});
+
+// Fonction pour afficher les options de période
+function showPeriodOptions() {
+    if (!selectedNiveau) return;
+
+    const periodSection = document.getElementById('period-section');
+    const periodOptions = document.getElementById('period-options');
+    
+    periodSection.style.display = 'block';
+    periodOptions.innerHTML = '';
+
+    const periods = [
+        { key: 'monthly', label: '1 mois', months: 1 },
+        { key: 'quarterly', label: '3 mois', months: 3 },
+        { key: 'yearly', label: '12 mois', months: 12 }
+    ];
+
+    periods.forEach(period => {
+        const price = prices[selectedNiveau][period.key];
+        const basePrice = basePrices[selectedNiveau] * period.months;
+        const hasDiscount = period.key !== 'monthly';
+        const discountAmount = hasDiscount ? basePrice - price : 0;
+        const discountPercent = hasDiscount ? discounts[period.key].percent : 0;
+
+        const periodOption = document.createElement('div');
+        periodOption.className = 'period-option';
+        periodOption.innerHTML = `
+            <input type="radio" name="periode" id="periode_${period.key}" value="${period.key}" class="period-radio">
+            <label for="periode_${period.key}" class="period-label">
+                <div class="period-header">
+                    <span class="period-name">${period.label}</span>
+                    ${hasDiscount ? `<span class="period-badge">${discountPercent}% de réduction</span>` : ''}
+                </div>
+                <div class="period-price-info">
+                    <span class="period-price">${formatPrice(price)} MGA</span>
+                    ${hasDiscount ? `<span class="period-old-price">${formatPrice(basePrice)} MGA</span>` : ''}
+                </div>
+                ${hasDiscount ? `<div class="period-savings">Vous économisez ${formatPrice(discountAmount)} MGA</div>` : ''}
+            </label>
+        `;
+        periodOptions.appendChild(periodOption);
+
+        // Ajouter l'événement de changement
+        const periodRadio = periodOption.querySelector('.period-radio');
+        periodRadio.addEventListener('change', function() {
+            if (this.checked) {
+                selectedPeriod = period.key;
+                showPaymentSection();
+                updateSummary();
+            }
+        });
+
+        // Sélectionner monthly par défaut
+        if (period.key === 'monthly') {
+            periodRadio.checked = true;
+            selectedPeriod = 'monthly';
+        }
+    });
+
+    // Mettre à jour après avoir créé toutes les options
+    showPaymentSection();
+    updateSummary();
+    updatePaymentButton();
+}
+
+// Fonction pour afficher la section de paiement
+function showPaymentSection() {
+    if (selectedNiveau && selectedPeriod) {
+        document.getElementById('payment-section').style.display = 'block';
+        document.getElementById('payment-button-section').style.display = 'block';
+    }
+}
+
+// Gestion de la sélection du mode de paiement
+document.querySelectorAll('input[name="mode_paiement"]').forEach(radio => {
+    radio.addEventListener('change', function() {
+        if (this.checked) {
+            selectedPaymentMethod = this.value;
+            updatePaymentButton();
+        }
+    });
+});
+
+// Fonction pour mettre à jour le bouton de paiement
+function updatePaymentButton() {
+    const btnPayment = document.getElementById('btn-payment');
+    if (selectedNiveau && selectedPeriod && selectedPaymentMethod) {
+        btnPayment.disabled = false;
+        btnPayment.classList.add('enabled');
+    } else {
+        btnPayment.disabled = true;
+        btnPayment.classList.remove('enabled');
+    }
+}
+
+
+// Fonction pour mettre à jour le résumé
+function updateSummary() {
+    if (!selectedNiveau) return;
+
+    const summarySection = document.getElementById('selection-summary');
+    const summaryNiveau = document.getElementById('summary-niveau');
+    const summaryDuree = document.getElementById('summary-duree');
+    const summaryPrix = document.getElementById('summary-prix');
+    const summaryDiscount = document.getElementById('summary-discount');
+    const discountText = document.getElementById('discount-text');
+
+    summarySection.style.display = 'block';
+    
+    // Mettre à jour le niveau
+    const niveauLabels = {
+        'basic': 'Basic (Essentiel)',
+        'pro': 'Pro (Professionnel)',
+        'enterprise': 'Enterprise (Entreprise)'
+    };
+    summaryNiveau.textContent = niveauLabels[selectedNiveau] || selectedNiveau;
+
+    // Mettre à jour la durée et le prix
+    if (selectedPeriod) {
+        const periodLabels = {
+            'monthly': '1 mois',
+            'quarterly': '3 mois',
+            'yearly': '12 mois'
+        };
+        summaryDuree.textContent = periodLabels[selectedPeriod] || selectedPeriod;
+        summaryPrix.textContent = formatPrice(prices[selectedNiveau][selectedPeriod]) + ' MGA';
+
+        // Afficher la réduction si applicable
+        if (selectedPeriod !== 'monthly' && discounts[selectedPeriod]) {
+            const basePrice = basePrices[selectedNiveau] * (selectedPeriod === 'quarterly' ? 3 : 12);
+            const discountAmount = basePrice - prices[selectedNiveau][selectedPeriod];
+            summaryDiscount.style.display = 'flex';
+            discountText.textContent = discounts[selectedPeriod].label + ' - Vous économisez ' + formatPrice(discountAmount) + ' MGA';
+        } else {
+            summaryDiscount.style.display = 'none';
+        }
+    } else {
+        summaryDuree.textContent = '-';
+        summaryPrix.textContent = '-';
+        summaryDiscount.style.display = 'none';
+    }
+
+    updatePaymentButton();
+}
+
+// Fonction pour formater le prix
+function formatPrice(price) {
+    return new Intl.NumberFormat('fr-FR').format(price);
+}
+
+// Gestion du clic sur le bouton de paiement
+document.getElementById('btn-payment').addEventListener('click', function() {
+    if (this.disabled) return;
+    
+    // Ici, on pourrait ajouter la logique de paiement
+    // Pour l'instant, juste un message (affichage uniquement)
+    alert('Fonctionnalité de paiement à implémenter\n\n' +
+          'Niveau: ' + selectedNiveau + '\n' +
+          'Période: ' + selectedPeriod + '\n' +
+          'Prix: ' + formatPrice(prices[selectedNiveau][selectedPeriod]) + ' MGA\n' +
+          'Mode de paiement: ' + selectedPaymentMethod);
+});
+</script>
+
+<style>
+.card {
+    border: 1px solid var(--border-color);
+    border-radius: var(--border-radius-lg);
+    box-shadow: var(--shadow-sm);
+    overflow: hidden;
+    background: var(--bg-card);
+}
+
+.card-body {
+    padding: 24px;
+}
+
+.section-title {
+    font-size: 1.5rem;
+    font-weight: 600;
+    color: var(--text-primary);
+    margin-bottom: 24px;
+    display: flex;
+    align-items: center;
+    gap: 12px;
+}
+
+.section-title i {
+    color: var(--accent);
+}
+
+.subscription-level-section,
+.subscription-period-section {
+    margin-bottom: 48px;
+}
+
+.level-options,
+.period-options {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+    gap: 20px;
+}
+
+.level-option,
+.period-option {
+    position: relative;
+}
+
+.level-radio,
+.period-radio {
+    position: absolute;
+    opacity: 0;
+    pointer-events: none;
+}
+
+.level-label,
+.period-label {
+    display: block;
+    padding: 24px;
+    border: 2px solid var(--border-color);
+    border-radius: var(--border-radius-md);
+    background: var(--bg-card);
+    cursor: pointer;
+    transition: all 0.3s ease;
+}
+
+.level-label:hover,
+.period-label:hover {
+    border-color: var(--accent);
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+    transform: translateY(-2px);
+}
+
+.level-radio:checked + .level-label,
+.period-radio:checked + .period-label {
+    border-color: var(--accent);
+    background: rgba(var(--accent-rgb), 0.05);
+    box-shadow: 0 4px 16px rgba(var(--accent-rgb), 0.2);
+}
+
+.level-header,
+.period-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 12px;
+}
+
+.level-name,
+.period-name {
+    font-size: 1.25rem;
+    font-weight: 600;
+    color: var(--text-primary);
+    text-transform: capitalize;
+}
+
+.level-badge,
+.period-badge {
+    padding: 6px 12px;
+    border-radius: 20px;
+    font-size: 0.875rem;
+    font-weight: 500;
+}
+
+.level-badge.basic {
+    background: #e3f2fd;
+    color: #1976d2;
+}
+
+.level-badge.pro {
+    background: #f3e5f5;
+    color: #7b1fa2;
+}
+
+.level-badge.enterprise {
+    background: #fff3e0;
+    color: #e65100;
+}
+
+.period-badge {
+    background: #e8f5e9;
+    color: #2e7d32;
+}
+
+.period-price-info {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    margin-bottom: 8px;
+}
+
+.period-price {
+    font-weight: 700;
+    color: var(--accent);
+    font-size: 1.5rem;
+}
+
+.period-old-price {
+    font-size: 1rem;
+    color: var(--text-tertiary);
+    text-decoration: line-through;
+}
+
+.period-savings {
+    font-size: 0.875rem;
+    color: #2e7d32;
+    font-weight: 500;
+}
+
+.selection-summary {
+    margin-bottom: 48px;
+}
+
+.summary-card {
+    padding: 24px;
+    background: var(--bg-secondary);
+    border-radius: var(--border-radius-md);
+    border: 2px solid var(--accent);
+}
+
+.summary-item {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 12px 0;
+    border-bottom: 1px solid var(--border-color);
+}
+
+.summary-item:last-child {
+    border-bottom: none;
+}
+
+.summary-label {
+    font-weight: 500;
+    color: var(--text-secondary);
+}
+
+.summary-value {
+    font-weight: 600;
+    color: var(--text-primary);
+}
+
+.summary-price {
+    font-size: 1.5rem;
+    color: var(--accent);
+}
+
+.summary-discount {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    margin-top: 16px;
+    padding: 12px;
+    background: #e8f5e9;
+    border-radius: var(--border-radius-sm);
+    color: #2e7d32;
+    font-weight: 500;
+}
+
+.summary-discount i {
+    color: #2e7d32;
+}
+
+.payment-method-section {
+    margin-top: 32px;
+    margin-bottom: 32px;
+}
+
+.payment-methods {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+    gap: 20px;
+}
+
+.payment-method-option {
+    position: relative;
+}
+
+.payment-radio {
+    position: absolute;
+    opacity: 0;
+    pointer-events: none;
+}
+
+.payment-label {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    padding: 24px;
+    border: 2px solid var(--border-color);
+    border-radius: var(--border-radius-md);
+    background: var(--bg-card);
+    cursor: pointer;
+    transition: all 0.3s ease;
+    gap: 12px;
+    min-height: 150px;
+}
+
+.payment-label:hover {
+    border-color: var(--accent);
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+    transform: translateY(-2px);
+}
+
+.payment-radio:checked + .payment-label {
+    border-color: var(--accent);
+    background: rgba(var(--accent-rgb), 0.05);
+    box-shadow: 0 4px 16px rgba(var(--accent-rgb), 0.2);
+}
+
+.payment-icon {
+    width: 100px;
+    height: 60px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    background: var(--bg-secondary);
+    border-radius: var(--border-radius-sm);
+    padding: 8px;
+}
+
+.payment-logo {
+    max-width: 100%;
+    max-height: 100%;
+    object-fit: contain;
+}
+
+.payment-name {
+    font-size: 1rem;
+    font-weight: 500;
+    color: var(--text-primary);
+}
+
+.payment-button-section {
+    margin-top: 32px;
+    text-align: center;
+}
+
+.btn-payment {
+    padding: 16px 48px;
+    font-size: 1.125rem;
+    font-weight: 600;
+    color: white;
+    background: var(--accent);
+    border: none;
+    border-radius: var(--border-radius-md);
+    cursor: pointer;
+    transition: all 0.3s ease;
+    display: inline-flex;
+    align-items: center;
+    gap: 12px;
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+}
+
+.btn-payment:hover:not(:disabled) {
+    transform: translateY(-2px);
+    box-shadow: 0 6px 16px rgba(0, 0, 0, 0.2);
+}
+
+.btn-payment:disabled {
+    opacity: 0.5;
+    cursor: not-allowed;
+    background: var(--text-tertiary);
+}
+
+.btn-payment.enabled {
+    background: var(--accent);
+    opacity: 1;
+}
+
+.btn-payment i {
+    font-size: 1rem;
+}
+
+@media (max-width: 768px) {
+    .level-options,
+    .period-options {
+        grid-template-columns: 1fr;
+    }
+    
+    .payment-methods {
+        grid-template-columns: 1fr;
+    }
+
+    .btn-payment {
+        width: 100%;
+        justify-content: center;
+    }
+}
+</style>
+{% endblock %}

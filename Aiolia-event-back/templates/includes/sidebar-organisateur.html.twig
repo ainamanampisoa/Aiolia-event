@@ -4,7 +4,7 @@
 {% set isEvents = currentRoute starts with 'organisateur_events' or currentRoute starts with 'app_event' %}
 {% set isPromotions = currentRoute starts with 'organisateur_promotions' %}
 {% set isWaitlist = currentRoute starts with 'organisateur_waitlist' %}
-{% set isBilling = currentRoute starts with 'organisateur_billing' %}
+{% set isPaiementAbonnement = currentRoute starts with 'organisateur_paiement_abonnement' %}
 {% set isScanning = currentRoute == 'app_ticket_scanning' %}
 {% set isProfile = currentRoute starts with 'app_profile' %}
 {% set isSettings = currentRoute starts with 'app_settings' %}
@@ -86,13 +86,13 @@
                 </a>
             </li>
             
-            <li class="nav-item {{ isBilling ? 'active' }}">
-                <a href="{{ path('organisateur_billing_index') }}" class="nav-link {{ isBilling ? 'active' }}" {% if isBilling %}aria-current="page"{% endif %}>
+            <li class="nav-item {{ isPaiementAbonnement ? 'active' }}">
+                <a href="{{ path('organisateur_paiement_abonnement_index') }}" class="nav-link {{ isPaiementAbonnement ? 'active' }}" {% if isPaiementAbonnement %}aria-current="page"{% endif %}>
                     <div class="nav-icon">
-                        <i class="fas fa-file-invoice-dollar"></i>
+                        <i class="fas fa-credit-card"></i>
                     </div>
-                    <span class="nav-text" data-i18n="layout.sidebar.organisateur.billing">Facturation</span>
-                    <span class="nav-tooltip" data-i18n="layout.sidebar.organisateur.billing">Facturation</span>
+                    <span class="nav-text">Paiement Abonnement</span>
+                    <span class="nav-tooltip">Paiement Abonnement</span>
                 </a>
             </li>
             
