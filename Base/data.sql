@@ -2,6 +2,9 @@
 SET search_path TO aiolia;
 
 TRUNCATE TABLE
+    notifications_operateurs,
+    historique_statuts_transactions,
+    transactions_paiement_mobile,
     historique_paiements_abonnements,
     elements_factures_abonnements,
     factures_abonnements,
@@ -16,6 +19,7 @@ TRUNCATE TABLE
 /* ========================================================================== */
 /* 1. UTILISATEURS & PROFILS                                                  */
 /* ========================================================================== */
+-- IMPORTANT: Utiliser le format +261 pour le domaine phone_e164
 INSERT INTO utilisateurs (
     id,
     email,
@@ -24,19 +28,21 @@ INSERT INTO utilisateurs (
     hash_mot_de_passe,
     prenom,
     nom,
+    telephone,
     role,
     statut,
     cree_le,
     modifie_le
 ) VALUES
-    (1, TRIM('admin1@yopmail.com'), 'admin1', 'password', '$2y$10$ylqnSxPyu8h9h/J/xLMf7OXbSvojM.ajqezk2Mq0qmN64e1KnCPAS', 'Admin', 'One', 'admin', 1, '2025-01-10', '2025-01-10'),
-    (2, TRIM('admin2@yopmail.com'), 'admin2', 'password', '$2y$10$ylqnSxPyu8h9h/J/xLMf7OXbSvojM.ajqezk2Mq0qmN64e1KnCPAS', 'Admin', 'Two', 'admin', 1, '2025-01-11', '2025-01-11');
+    (1, TRIM('admin1@yopmail.com'), 'admin1', 'password', '$2y$10$ylqnSxPyu8h9h/J/xLMf7OXbSvojM.ajqezk2Mq0qmN64e1KnCPAS', 'Admin', 'One', '+261343500003', 'admin', 1, '2025-01-10', '2025-01-10'),
+    (2, TRIM('admin2@yopmail.com'), 'admin2', 'password', '$2y$10$ylqnSxPyu8h9h/J/xLMf7OXbSvojM.ajqezk2Mq0qmN64e1KnCPAS', 'Admin', 'Two', '+261343500004', 'admin', 1, '2025-01-11', '2025-01-11');
 
 INSERT INTO profils_admin (id, id_utilisateur, nom_affichage, nom_legal, cree_le, modifie_le)
 VALUES
     (1, 1, 'Admin One', 'Aiolia HQ', '2025-01-10', '2025-01-10'),
     (2, 2, 'Admin Two', 'Aiolia Ops', '2025-01-11', '2025-01-11');
 
+-- INSERTION DES ORGANISATEURS AVEC NUMÉROS ALTERNÉS
 INSERT INTO utilisateurs (
     id,
     email,
@@ -45,6 +51,7 @@ INSERT INTO utilisateurs (
     hash_mot_de_passe,
     prenom,
     nom,
+    telephone,
     role,
     statut,
     cree_le,
@@ -52,46 +59,50 @@ INSERT INTO utilisateurs (
 )
 SELECT
     profile_id + 2,
-    -- On décale de +10 pour commencer à organisateur11@yopmail.com
     regexp_replace(format('organisateur%02s@yopmail.com', profile_id + 10), '\s+', '', 'g'),
     format('organisateur%02s', profile_id + 10),
     'password',
     'hash-organizer',
     'Org',
     format('Test %02s', profile_id),
+    CASE 
+        WHEN profile_id % 2 = 1 THEN '+261343500003'  -- IDs impairs
+        ELSE '+261343500004'                          -- IDs pairs
+    END,
     'organizer',
     1,
     created_on,
     created_on
 FROM (VALUES
-        (1,  DATE '2025-06-05', 'verified'),
-        (2,  DATE '2025-06-05', 'verified'),
-        (3,  DATE '2025-06-05', 'verified'),
-        (4,  DATE '2025-06-05', 'verified'),
-        (5,  DATE '2025-06-05', 'verified'),
-        (6,  DATE '2025-06-05', 'verified'),
-        (7,  DATE '2025-06-05', 'verified'),
-        (8,  DATE '2025-06-05', 'verified'),
-        (9,  DATE '2025-06-05', 'verified'),
-        (10, DATE '2025-06-05', 'verified'),
-        (11, DATE '2025-07-04', 'verified'),
-        (12, DATE '2025-07-18', 'verified'),
-        (13, DATE '2025-08-06', 'verified'),
-        (14, DATE '2025-08-14', 'verified'),
-        (15, DATE '2025-08-22', 'verified'),
-        (16, DATE '2025-08-30', 'verified'),
-        (17, DATE '2025-09-03', 'verified'),
-        (18, DATE '2025-09-11', 'verified'),
-        (19, DATE '2025-07-05', 'verified'),
-        (20, DATE '2025-07-12', 'verified'),
-        (21, DATE '2025-07-18', 'verified'),
-        (22, DATE '2025-07-24', 'verified'),
-        (23, DATE '2025-09-10', 'pending'),
-        (24, DATE '2025-09-12', 'pending'),
-        (25, DATE '2025-09-15', 'pending'),
-        (26, DATE '2025-09-18', 'verified')
-) AS organizer_seed(profile_id, created_on, verification_status);
+        (1,  DATE '2025-06-05'),
+        (2,  DATE '2025-06-05'),
+        (3,  DATE '2025-06-05'),
+        (4,  DATE '2025-06-05'),
+        (5,  DATE '2025-06-05'),
+        (6,  DATE '2025-06-05'),
+        (7,  DATE '2025-06-05'),
+        (8,  DATE '2025-06-05'),
+        (9,  DATE '2025-06-05'),
+        (10, DATE '2025-06-05'),
+        (11, DATE '2025-07-04'),
+        (12, DATE '2025-07-18'),
+        (13, DATE '2025-08-06'),
+        (14, DATE '2025-08-14'),
+        (15, DATE '2025-08-22'),
+        (16, DATE '2025-08-30'),
+        (17, DATE '2025-09-03'),
+        (18, DATE '2025-09-11'),
+        (19, DATE '2025-09-19'),
+        (20, DATE '2025-09-27'),
+        (21, DATE '2025-10-08'),
+        (22, DATE '2025-10-16'),
+        (23, DATE '2025-10-24'),
+        (24, DATE '2025-11-05'),
+        (25, DATE '2025-11-13'),
+        (26, DATE '2025-11-21')
+) AS organizer_seed(profile_id, created_on);
 
+-- PROFILS ORGANISATEURS
 INSERT INTO profils_organisateurs (
     id,
     id_utilisateur,
@@ -108,38 +119,42 @@ SELECT
     format('Organisateur %02s', profile_id),
     format('Organisateur %02s SARL', profile_id),
     'company',
-    verification_status,
+    CASE 
+        WHEN profile_id <= 22 THEN 'verified'
+        ELSE 'pending'
+    END,
     created_on,
     created_on
 FROM (VALUES
-        (1,  DATE '2025-06-05', 'verified'),
-        (2,  DATE '2025-06-05', 'verified'),
-        (3,  DATE '2025-06-05', 'verified'),
-        (4,  DATE '2025-06-05', 'verified'),
-        (5,  DATE '2025-06-05', 'verified'),
-        (6,  DATE '2025-06-05', 'verified'),
-        (7,  DATE '2025-06-05', 'verified'),
-        (8,  DATE '2025-06-05', 'verified'),
-        (9,  DATE '2025-06-05', 'verified'),
-        (10, DATE '2025-06-05', 'verified'),
-        (11, DATE '2025-07-04', 'verified'),
-        (12, DATE '2025-07-18', 'verified'),
-        (13, DATE '2025-08-06', 'verified'),
-        (14, DATE '2025-08-14', 'verified'),
-        (15, DATE '2025-08-22', 'verified'),
-        (16, DATE '2025-08-30', 'verified'),
-        (17, DATE '2025-09-03', 'verified'),
-        (18, DATE '2025-09-11', 'verified'),
-        (19, DATE '2025-09-19', 'verified'),
-        (20, DATE '2025-09-27', 'verified'),
-        (21, DATE '2025-10-08', 'verified'),
-        (22, DATE '2025-10-16', 'verified'),
-        (23, DATE '2025-10-24', 'pending'),
-        (24, DATE '2025-11-05', 'pending'),
-        (25, DATE '2025-11-13', 'pending'),
-        (26, DATE '2025-11-21', 'verified')
-) AS organizer_seed(profile_id, created_on, verification_status);
+        (1,  DATE '2025-06-05'),
+        (2,  DATE '2025-06-05'),
+        (3,  DATE '2025-06-05'),
+        (4,  DATE '2025-06-05'),
+        (5,  DATE '2025-06-05'),
+        (6,  DATE '2025-06-05'),
+        (7,  DATE '2025-06-05'),
+        (8,  DATE '2025-06-05'),
+        (9,  DATE '2025-06-05'),
+        (10, DATE '2025-06-05'),
+        (11, DATE '2025-07-04'),
+        (12, DATE '2025-07-18'),
+        (13, DATE '2025-08-06'),
+        (14, DATE '2025-08-14'),
+        (15, DATE '2025-08-22'),
+        (16, DATE '2025-08-30'),
+        (17, DATE '2025-09-03'),
+        (18, DATE '2025-09-11'),
+        (19, DATE '2025-09-19'),
+        (20, DATE '2025-09-27'),
+        (21, DATE '2025-10-08'),
+        (22, DATE '2025-10-16'),
+        (23, DATE '2025-10-24'),
+        (24, DATE '2025-11-05'),
+        (25, DATE '2025-11-13'),
+        (26, DATE '2025-11-21')
+) AS organizer_seed(profile_id, created_on);
 
+-- UTILISATEURS NORMAUX
 INSERT INTO utilisateurs (
     id,
     email,
@@ -148,6 +163,7 @@ INSERT INTO utilisateurs (
     hash_mot_de_passe,
     prenom,
     nom,
+    telephone,
     role,
     statut,
     cree_le,
@@ -161,6 +177,7 @@ SELECT
     'hash-user',
     format('User%02s', gs),
     'Test',
+    CASE WHEN gs % 2 = 0 THEN '+261343500003' ELSE '+261343500004' END,
     'user',
     1,
     DATE '2025-05-01' + (gs || ' days')::interval,
@@ -170,7 +187,6 @@ FROM generate_series(10, 50) AS gs;
 SELECT setval(pg_get_serial_sequence('utilisateurs', 'id'), 100, true);
 SELECT setval(pg_get_serial_sequence('profils_organisateurs', 'id'), 26, true);
 SELECT setval(pg_get_serial_sequence('profils_admin', 'id'), 2, true);
-
 
 /* ========================================================================== */
 /* 2. PLANS D'ABONNEMENT                                                      */
@@ -200,339 +216,195 @@ INSERT INTO plans_abonnements (
 SELECT setval(pg_get_serial_sequence('plans_abonnements', 'id'), 7, true);
 
 /* ========================================================================== */
-/* 3. ABONNEMENTS MENSUELS (JUIN → DÉCEMBRE 2025)                             */
+/* 3. SIMPLES ABONNEMENTS DE TEST (SANS CTE COMPLEXE)                         */
 /* ========================================================================== */
-WITH month_assignments AS (
-    SELECT DATE '2025-06-01' AS period_start, jsonb_build_array(
-        jsonb_build_object('organizer', 1, 'plan', 'BASIC_MENSUEL'),
-        jsonb_build_object('organizer', 2, 'plan', 'BASIC_MENSUEL'),
-        jsonb_build_object('organizer', 3, 'plan', 'BASIC_MENSUEL'),
-        jsonb_build_object('organizer', 4, 'plan', 'BASIC_MENSUEL'),
-        jsonb_build_object('organizer', 5, 'plan', 'BASIC_MENSUEL'),
-        jsonb_build_object('organizer', 6, 'plan', 'PRO_MENSUEL'),
-        jsonb_build_object('organizer', 7, 'plan', 'PRO_MENSUEL'),
-        jsonb_build_object('organizer', 8, 'plan', 'ENTREPRISE_MENSUEL'),
-        jsonb_build_object('organizer', 9, 'plan', 'ENTREPRISE_MENSUEL'),
-        jsonb_build_object('organizer', 10, 'plan', 'ENTREPRISE_MENSUEL')
-    ) AS assignments
-    UNION ALL
-    SELECT DATE '2025-07-01', jsonb_build_array(
-        jsonb_build_object('organizer', 1, 'plan', 'BASIC_MENSUEL'),
-        jsonb_build_object('organizer', 2, 'plan', 'BASIC_MENSUEL'),
-        jsonb_build_object('organizer', 3, 'plan', 'BASIC_MENSUEL'),
-        jsonb_build_object('organizer', 4, 'plan', 'BASIC_MENSUEL'),
-        jsonb_build_object('organizer', 5, 'plan', 'PRO_MENSUEL'),
-        jsonb_build_object('organizer', 6, 'plan', 'PRO_MENSUEL'),
-        jsonb_build_object('organizer', 7, 'plan', 'PRO_MENSUEL'),
-        jsonb_build_object('organizer', 8, 'plan', 'PRO_MENSUEL'),
-        jsonb_build_object('organizer', 9, 'plan', 'PRO_MENSUEL'),
-        jsonb_build_object('organizer', 10, 'plan', 'PRO_MENSUEL'),
-        jsonb_build_object('organizer', 11, 'plan', 'ENTREPRISE_MENSUEL'),
-        jsonb_build_object('organizer', 12, 'plan', 'ENTREPRISE_MENSUEL')
-    )
-    UNION ALL
-    SELECT DATE '2025-08-01', jsonb_build_array(
-        jsonb_build_object('organizer', 1, 'plan', 'BASIC_MENSUEL'),
-        jsonb_build_object('organizer', 2, 'plan', 'BASIC_MENSUEL'),
-        jsonb_build_object('organizer', 3, 'plan', 'BASIC_MENSUEL'),
-        jsonb_build_object('organizer', 4, 'plan', 'BASIC_MENSUEL'),
-        jsonb_build_object('organizer', 5, 'plan', 'PRO_MENSUEL'),
-        jsonb_build_object('organizer', 6, 'plan', 'PRO_MENSUEL'),
-        jsonb_build_object('organizer', 7, 'plan', 'PRO_MENSUEL'),
-        jsonb_build_object('organizer', 8, 'plan', 'PRO_MENSUEL'),
-        jsonb_build_object('organizer', 9, 'plan', 'PRO_MENSUEL'),
-        jsonb_build_object('organizer', 10, 'plan', 'ENTREPRISE_MENSUEL'),
-        jsonb_build_object('organizer', 11, 'plan', 'ENTREPRISE_MENSUEL'),
-        jsonb_build_object('organizer', 12, 'plan', 'ENTREPRISE_MENSUEL'),
-        jsonb_build_object('organizer', 13, 'plan', 'ENTREPRISE_MENSUEL'),
-        jsonb_build_object('organizer', 14, 'plan', 'ENTREPRISE_MENSUEL'),
-        jsonb_build_object('organizer', 15, 'plan', 'ENTREPRISE_MENSUEL'),
-        jsonb_build_object('organizer', 16, 'plan', 'ENTREPRISE_MENSUEL')
-    )
-    UNION ALL
-    SELECT DATE '2025-09-01', jsonb_build_array(
-        jsonb_build_object('organizer', 1, 'plan', 'BASIC_MENSUEL'),
-        jsonb_build_object('organizer', 2, 'plan', 'BASIC_MENSUEL'),
-        jsonb_build_object('organizer', 3, 'plan', 'PRO_MENSUEL'),
-        jsonb_build_object('organizer', 4, 'plan', 'PRO_MENSUEL'),
-        jsonb_build_object('organizer', 5, 'plan', 'PRO_MENSUEL'),
-        jsonb_build_object('organizer', 6, 'plan', 'ENTREPRISE_MENSUEL'),
-        jsonb_build_object('organizer', 7, 'plan', 'ENTREPRISE_MENSUEL'),
-        jsonb_build_object('organizer', 8, 'plan', 'ENTREPRISE_MENSUEL'),
-        jsonb_build_object('organizer', 9, 'plan', 'ENTREPRISE_MENSUEL'),
-        jsonb_build_object('organizer', 10, 'plan', 'BASIC_TRIMESTRE'),
-        jsonb_build_object('organizer', 11, 'plan', 'BASIC_TRIMESTRE'),
-        jsonb_build_object('organizer', 12, 'plan', 'BASIC_TRIMESTRE'),
-        jsonb_build_object('organizer', 13, 'plan', 'PRO_TRIMESTRE'),
-        jsonb_build_object('organizer', 14, 'plan', 'PRO_TRIMESTRE'),
-        jsonb_build_object('organizer', 15, 'plan', 'PRO_TRIMESTRE'),
-        jsonb_build_object('organizer', 16, 'plan', 'PRO_TRIMESTRE'),
-        jsonb_build_object('organizer', 17, 'plan', 'ENTREPRISE_TRIMESTRE'),
-        jsonb_build_object('organizer', 18, 'plan', 'ENTREPRISE_TRIMESTRE')
-    )
-    UNION ALL
-    SELECT DATE '2025-10-01', jsonb_build_array(
-        jsonb_build_object('organizer', 1, 'plan', 'BASIC_MENSUEL'),
-        jsonb_build_object('organizer', 2, 'plan', 'BASIC_MENSUEL'),
-        jsonb_build_object('organizer', 3, 'plan', 'PRO_MENSUEL'),
-        jsonb_build_object('organizer', 4, 'plan', 'PRO_MENSUEL'),
-        jsonb_build_object('organizer', 5, 'plan', 'ENTREPRISE_MENSUEL'),
-        jsonb_build_object('organizer', 6, 'plan', 'ENTREPRISE_MENSUEL'),
-        jsonb_build_object('organizer', 7, 'plan', 'BASIC_TRIMESTRE'),
-        jsonb_build_object('organizer', 8, 'plan', 'PRO_TRIMESTRE'),
-        jsonb_build_object('organizer', 9, 'plan', 'PRO_TRIMESTRE'),
-        jsonb_build_object('organizer', 10, 'plan', 'ENTREPRISE_TRIMESTRE'),
-        jsonb_build_object('organizer', 11, 'plan', 'ENTREPRISE_TRIMESTRE'),
-        jsonb_build_object('organizer', 12, 'plan', 'ENTREPRISE_TRIMESTRE'),
-        jsonb_build_object('organizer', 13, 'plan', 'ENTREPRISE_TRIMESTRE'),
-        jsonb_build_object('organizer', 14, 'plan', 'ENTREPRISE_ANNUEL'),
-        jsonb_build_object('organizer', 15, 'plan', 'ENTREPRISE_ANNUEL'),
-        jsonb_build_object('organizer', 16, 'plan', 'ENTREPRISE_ANNUEL'),
-        jsonb_build_object('organizer', 17, 'plan', 'ENTREPRISE_ANNUEL'),
-        jsonb_build_object('organizer', 18, 'plan', 'ENTREPRISE_ANNUEL'),
-        jsonb_build_object('organizer', 19, 'plan', 'ENTREPRISE_ANNUEL'),
-        jsonb_build_object('organizer', 20, 'plan', 'ENTREPRISE_ANNUEL'),
-        jsonb_build_object('organizer', 21, 'plan', 'ENTREPRISE_ANNUEL'),
-        jsonb_build_object('organizer', 22, 'plan', 'ENTREPRISE_ANNUEL')
-    )
-    UNION ALL
-    SELECT DATE '2025-11-01', jsonb_build_array(
-        jsonb_build_object('organizer', 1, 'plan', 'PRO_MENSUEL'),
-        jsonb_build_object('organizer', 2, 'plan', 'PRO_MENSUEL'),
-        jsonb_build_object('organizer', 3, 'plan', 'ENTREPRISE_MENSUEL'),
-        jsonb_build_object('organizer', 4, 'plan', 'BASIC_TRIMESTRE'),
-        jsonb_build_object('organizer', 5, 'plan', 'PRO_TRIMESTRE'),
-        jsonb_build_object('organizer', 6, 'plan', 'ENTREPRISE_ANNUEL'),
-        jsonb_build_object('organizer', 7, 'plan', 'ENTREPRISE_ANNUEL'),
-        jsonb_build_object('organizer', 8, 'plan', 'ENTREPRISE_ANNUEL'),
-        jsonb_build_object('organizer', 9, 'plan', 'ENTREPRISE_ANNUEL'),
-        jsonb_build_object('organizer', 10, 'plan', 'ENTREPRISE_ANNUEL'),
-        jsonb_build_object('organizer', 11, 'plan', 'ENTREPRISE_ANNUEL'),
-        jsonb_build_object('organizer', 12, 'plan', 'ENTREPRISE_ANNUEL'),
-        jsonb_build_object('organizer', 13, 'plan', 'ENTREPRISE_ANNUEL'),
-        jsonb_build_object('organizer', 14, 'plan', 'ENTREPRISE_ANNUEL'),
-        jsonb_build_object('organizer', 15, 'plan', 'ENTREPRISE_ANNUEL'),
-        jsonb_build_object('organizer', 16, 'plan', 'ENTREPRISE_ANNUEL'),
-        jsonb_build_object('organizer', 17, 'plan', 'ENTREPRISE_ANNUEL'),
-        jsonb_build_object('organizer', 18, 'plan', 'ENTREPRISE_ANNUEL'),
-        jsonb_build_object('organizer', 19, 'plan', 'ENTREPRISE_ANNUEL')
-    )
-    UNION ALL
-    SELECT DATE '2025-12-01', jsonb_build_array(
-        jsonb_build_object('organizer', 1, 'plan', 'ENTREPRISE_ANNUEL'),
-        jsonb_build_object('organizer', 2, 'plan', 'ENTREPRISE_ANNUEL'),
-        jsonb_build_object('organizer', 3, 'plan', 'ENTREPRISE_ANNUEL'),
-        jsonb_build_object('organizer', 4, 'plan', 'ENTREPRISE_ANNUEL'),
-        jsonb_build_object('organizer', 5, 'plan', 'ENTREPRISE_ANNUEL'),
-        jsonb_build_object('organizer', 6, 'plan', 'ENTREPRISE_ANNUEL'),
-        jsonb_build_object('organizer', 7, 'plan', 'ENTREPRISE_ANNUEL'),
-        jsonb_build_object('organizer', 8, 'plan', 'ENTREPRISE_TRIMESTRE'),
-        jsonb_build_object('organizer', 9, 'plan', 'ENTREPRISE_TRIMESTRE'),
-        jsonb_build_object('organizer', 10, 'plan', 'ENTREPRISE_TRIMESTRE'),
-        jsonb_build_object('organizer', 11, 'plan', 'ENTREPRISE_TRIMESTRE'),
-        jsonb_build_object('organizer', 12, 'plan', 'ENTREPRISE_TRIMESTRE'),
-        jsonb_build_object('organizer', 13, 'plan', 'ENTREPRISE_TRIMESTRE'),
-        jsonb_build_object('organizer', 14, 'plan', 'ENTREPRISE_TRIMESTRE'),
-        jsonb_build_object('organizer', 15, 'plan', 'ENTREPRISE_TRIMESTRE'),
-        jsonb_build_object('organizer', 16, 'plan', 'ENTREPRISE_TRIMESTRE'),
-        jsonb_build_object('organizer', 17, 'plan', 'ENTREPRISE_TRIMESTRE'),
-        jsonb_build_object('organizer', 18, 'plan', 'ENTREPRISE_TRIMESTRE'),
-        jsonb_build_object('organizer', 19, 'plan', 'ENTREPRISE_TRIMESTRE'),
-        jsonb_build_object('organizer', 20, 'plan', 'ENTREPRISE_TRIMESTRE'),
-        jsonb_build_object('organizer', 21, 'plan', 'ENTREPRISE_TRIMESTRE'),
-        jsonb_build_object('organizer', 22, 'plan', 'ENTREPRISE_TRIMESTRE'),
-        jsonb_build_object('organizer', 23, 'plan', 'ENTREPRISE_TRIMESTRE')
-    )
-),
-expanded AS (
-    SELECT
-        period_start,
-        (assignment ->> 'organizer')::INTEGER AS organizer_id,
-        assignment ->> 'plan' AS plan_code
-    FROM month_assignments
-    CROSS JOIN LATERAL jsonb_array_elements(assignments) AS assignment
-),
-inserted_subscriptions AS (
-    INSERT INTO abonnements_organisateurs (
-        id_profil_organisateur,
-        id_plan,
-        statut,
-        mois_prepayes_restants,
-        commence_le,
-        debut_periode_courante,
-        fin_periode_courante,
-        renouvellement_le
-    )
-    SELECT
-        po.id,
-        plan.id,
-        'active',
-        CASE WHEN plan.code = 'ENTREPRISE_ANNUEL' THEN 6 ELSE 0 END,
-        period_start,
-        period_start,
-        CASE
-            WHEN plan.periode_facturation = 'monthly' THEN (period_start + INTERVAL '1 month' - INTERVAL '1 day')
-            WHEN plan.periode_facturation = 'quarterly' THEN (period_start + INTERVAL '3 month' - INTERVAL '1 day')
-            ELSE (period_start + INTERVAL '12 month' - INTERVAL '1 day')
-        END,
-        CASE
-            WHEN plan.periode_facturation = 'monthly' THEN period_start + INTERVAL '1 month'
-            WHEN plan.periode_facturation = 'quarterly' THEN period_start + INTERVAL '3 month'
-            ELSE period_start + INTERVAL '12 month'
-        END
-    FROM expanded
-    INNER JOIN plans_abonnements AS plan ON plan.code = expanded.plan_code
-    INNER JOIN profils_organisateurs AS po ON po.id = expanded.organizer_id
-    ORDER BY period_start, organizer_id
-    RETURNING id, id_profil_organisateur, id_plan, commence_le
-),
-paused_periods AS (
-    SELECT * FROM (VALUES
-        (21, 'BASIC_MENSUEL', DATE '2025-08-01'),
-        (22, 'PRO_MENSUEL', DATE '2025-08-01'),
-        (21, 'BASIC_MENSUEL', DATE '2025-09-01'),
-        (22, 'PRO_MENSUEL', DATE '2025-09-01'),
-        (23, 'BASIC_MENSUEL', DATE '2025-10-01'),
-        (24, 'PRO_MENSUEL', DATE '2025-10-01'),
-        (25, 'BASIC_TRIMESTRE', DATE '2025-10-01'),
-        (26, 'PRO_TRIMESTRE', DATE '2025-10-01'),
-        (23, 'BASIC_MENSUEL', DATE '2025-11-01'),
-        (24, 'PRO_MENSUEL', DATE '2025-11-01'),
-        (25, 'BASIC_TRIMESTRE', DATE '2025-11-01'),
-        (26, 'PRO_TRIMESTRE', DATE '2025-11-01')
-    ) AS p(organizer_id, plan_code, period_start)
-),
-paused_subscriptions AS (
-    INSERT INTO abonnements_organisateurs (
-        id_profil_organisateur,
-        id_plan,
-        statut,
-        mois_prepayes_restants,
-        commence_le,
-        debut_periode_courante,
-        fin_periode_courante,
-        renouvellement_le
-    )
-    SELECT
-        po.id,
-        plan.id,
-        'paused',
-        0,
-        paused_periods.period_start,
-        paused_periods.period_start,
-        CASE
-            WHEN plan.periode_facturation = 'monthly' THEN (paused_periods.period_start + INTERVAL '1 month' - INTERVAL '1 day')
-            WHEN plan.periode_facturation = 'quarterly' THEN (paused_periods.period_start + INTERVAL '3 month' - INTERVAL '1 day')
-            ELSE (paused_periods.period_start + INTERVAL '12 month' - INTERVAL '1 day')
-        END,
-        CASE
-            WHEN plan.periode_facturation = 'monthly' THEN paused_periods.period_start + INTERVAL '1 month'
-            WHEN plan.periode_facturation = 'quarterly' THEN paused_periods.period_start + INTERVAL '3 month'
-            ELSE paused_periods.period_start + INTERVAL '12 month'
-        END
-    FROM paused_periods
-    INNER JOIN plans_abonnements AS plan ON plan.code = paused_periods.plan_code
-    INNER JOIN profils_organisateurs AS po ON po.id = paused_periods.organizer_id
-    ORDER BY paused_periods.period_start, paused_periods.organizer_id
-    RETURNING id, id_profil_organisateur, id_plan, commence_le
-),
-factures_actives AS (
-    INSERT INTO factures_abonnements (
-        id_abonnement,
-        id_client,
-        devise,
-        montant_sous_total,
-        montant_tva,
-        montant_total,
-        montant_ht,
-        montant_tva_detail,
-        montant_ttc,
-        mois_facturation,
-        est_mois_pause,
-        est_prepayee,
-        id_mode_paiement,
-        statut,
-        emise_le,
-        echeance_le,
-        payee_le
-    )
-    SELECT
-        sub.id,
-        po.id_utilisateur,
-        plan.devise,
-        plan.prix,
-        ROUND(plan.prix * plan.taux_tva / 100, 2),
-        plan.prix + ROUND(plan.prix * plan.taux_tva / 100, 2),
-        plan.prix,
-        ROUND(plan.prix * plan.taux_tva / 100, 2),
-        plan.prix + ROUND(plan.prix * plan.taux_tva / 100, 2),
-        sub.commence_le::DATE,
-        FALSE,
-        plan.code = 'ENTREPRISE_ANNUEL',
-        (SELECT id FROM modes_paiement WHERE code = CASE
-            WHEN plan.code = 'ENTREPRISE_ANNUEL' THEN 'carte_bancaire'
-            WHEN plan.periode_facturation = 'quarterly' THEN 'orange'
-            ELSE 'mvola'
-        END LIMIT 1),
-        CASE
-            WHEN plan.code = 'ENTREPRISE_ANNUEL' THEN 'partially_paid'
-            ELSE 'paid'
-        END,
-        sub.commence_le,
-        sub.commence_le + INTERVAL '15 days',
-        sub.commence_le + INTERVAL '5 days'
-    FROM inserted_subscriptions AS sub
-    INNER JOIN plans_abonnements AS plan ON plan.id = sub.id_plan
-    INNER JOIN profils_organisateurs AS po ON po.id = sub.id_profil_organisateur
-    RETURNING id
-),
-factures_pauses AS (
-    INSERT INTO factures_abonnements (
-        id_abonnement,
-        id_client,
-        devise,
-        montant_sous_total,
-        montant_tva,
-        montant_total,
-        montant_ht,
-        montant_tva_detail,
-        montant_ttc,
-        mois_facturation,
-        est_mois_pause,
-        est_prepayee,
-        id_mode_paiement,
-        statut,
-        emise_le,
-        echeance_le,
-        payee_le
-    )
-    SELECT
-        sub.id,
-        po.id_utilisateur,
-        plan.devise,
-        0,
-        0,
-        0,
-        0,
-        0,
-        0,
-        sub.commence_le::DATE,
-        TRUE,
-        FALSE,
-        NULL,
-        'void',
-        sub.commence_le,
-        sub.commence_le + INTERVAL '15 days',
-        NULL
-    FROM paused_subscriptions AS sub
-    INNER JOIN plans_abonnements AS plan ON plan.id = sub.id_plan
-    INNER JOIN profils_organisateurs AS po ON po.id = sub.id_profil_organisateur
-    RETURNING id
+-- INSÉRER QUELQUES ABONNEMENTS DIRECTEMENT
+INSERT INTO abonnements_organisateurs (
+    id_profil_organisateur,
+    id_plan,
+    statut,
+    mois_prepayes_restants,
+    commence_le,
+    debut_periode_courante,
+    fin_periode_courante
 )
 SELECT
-    (SELECT COUNT(*) FROM factures_actives) +
-    (SELECT COUNT(*) FROM factures_pauses) AS factures_generees;
+    po.id,
+    p.id,
+    'active',
+    0,
+    '2025-11-01',
+    '2025-11-01',
+    '2025-11-30'
+FROM profils_organisateurs po
+CROSS JOIN plans_abonnements p
+WHERE po.id <= 5
+LIMIT 10;
 
-SELECT setval(pg_get_serial_sequence('abonnements_organisateurs', 'id'), (SELECT COALESCE(MAX(id), 1) FROM abonnements_organisateurs), true);
-SELECT setval(pg_get_serial_sequence('factures_abonnements', 'id'), (SELECT COALESCE(MAX(id), 1) FROM factures_abonnements), true);
+-- FACTURES POUR CES ABONNEMENTS
+INSERT INTO factures_abonnements (
+    id_abonnement,
+    id_client,
+    devise,
+    montant_sous_total,
+    montant_tva,
+    montant_total,
+    montant_ht,
+    montant_tva_detail,
+    montant_ttc,
+    mois_facturation,
+    est_mois_pause,
+    est_prepayee,
+    statut,
+    emise_le,
+    echeance_le,
+    payee_le
+)
+SELECT
+    ao.id,
+    u.id,
+    'MGA',
+    p.prix,
+    ROUND(p.prix * p.taux_tva / 100, 2),
+    p.prix + ROUND(p.prix * p.taux_tva / 100, 2),
+    p.prix,
+    ROUND(p.prix * p.taux_tva / 100, 2),
+    p.prix + ROUND(p.prix * p.taux_tva / 100, 2),
+    '2025-11-01',
+    FALSE,
+    FALSE,
+    'paid',
+    '2025-11-01',
+    '2025-11-15',
+    '2025-11-05'
+FROM abonnements_organisateurs ao
+JOIN plans_abonnements p ON ao.id_plan = p.id
+JOIN profils_organisateurs po ON ao.id_profil_organisateur = po.id
+JOIN utilisateurs u ON po.id_utilisateur = u.id
+LIMIT 10;
 
+/* ========================================================================== */
+/* 4. MODES DE PAIEMENT                                                       */
+/* ========================================================================== */
+INSERT INTO modes_paiement (code, libelle, est_actif, ordre_affichage)
+VALUES 
+    ('mvola', 'MVola', TRUE, 1),
+    ('orange', 'Orange Money', TRUE, 2),
+    ('airtel', 'Airtel Money', TRUE, 3),
+    ('espace', 'Espace', TRUE, 4),
+    ('carte_bancaire', 'Carte bancaire', TRUE, 5)
+ON CONFLICT (code) DO NOTHING;
+
+/* ========================================================================== */
+/* 5. TRANSACTIONS DE PAIEMENT MOBILE SIMPLES                                */
+/* ========================================================================== */
+INSERT INTO transactions_paiement_mobile (
+    reference_transaction,
+    id_facture,
+    id_utilisateur,
+    id_profil_organisateur,
+    operateur_mobile,
+    type_paiement,
+    numero_telephone,
+    numero_transaction_operateur,
+    montant,
+    statut_paiement,
+    initie_le,
+    confirme_le,
+    expire_le
+)
+SELECT
+    'SUB-' || TO_CHAR(fa.emise_le, 'YYYYMMDD') || '-' || LPAD(fa.id::TEXT, 6, '0'),
+    fa.id,
+    fa.id_client,
+    ao.id_profil_organisateur,
+    CASE 
+        WHEN u.telephone = '+261343500003' THEN 'mvola'
+        ELSE 'orange'
+    END,
+    CASE 
+        WHEN fa.id % 3 = 0 THEN 'abonnement'
+        WHEN fa.id % 3 = 1 THEN 'renouvellement'
+        ELSE 'mise_a_niveau'
+    END,
+    u.telephone,
+    'OP-' || TO_CHAR(fa.emise_le, 'YYYYMMDD') || '-' || LPAD((fa.id * 1000)::TEXT, 6, '0'),
+    fa.montant_total,
+    'paid'::payment_status_enum,  -- CAST vers le bon type
+    fa.emise_le + INTERVAL '2 hours',
+    fa.emise_le + INTERVAL '3 hours',
+    fa.emise_le + INTERVAL '26 hours'
+FROM factures_abonnements fa
+JOIN utilisateurs u ON fa.id_client = u.id
+JOIN abonnements_organisateurs ao ON fa.id_abonnement = ao.id
+LIMIT 10;
+
+/* ========================================================================== */
+/* 6. HISTORIQUE DES TRANSACTIONS (CORRIGÉ POUR LES TYPES)                   */
+/* ========================================================================== */
+INSERT INTO historique_statuts_transactions (
+    id_transaction,
+    statut_de,
+    statut_vers,
+    raison,
+    cree_le
+)
+SELECT
+    tp.id,
+    NULL::payment_status_enum,  -- CAST pour le type NULL
+    'initiated'::payment_status_enum,
+    'Transaction initiée',
+    tp.initie_le - INTERVAL '30 minutes'
+FROM transactions_paiement_mobile tp
+
+UNION ALL
+
+SELECT
+    tp.id,
+    'initiated'::payment_status_enum,
+    'processing'::payment_status_enum,
+    'En attente de confirmation opérateur',
+    tp.initie_le
+FROM transactions_paiement_mobile tp
+
+UNION ALL
+
+SELECT
+    tp.id,
+    'processing'::payment_status_enum,
+    tp.statut_paiement,  -- Déjà du bon type payment_status_enum
+    'Paiement confirmé par l''opérateur',
+    tp.confirme_le
+FROM transactions_paiement_mobile tp;
+
+/* ========================================================================== */
+/* 7. VÉRIFICATION                                                           */
+/* ========================================================================== */
+SELECT '=== DONNÉES CRÉÉES AVEC SUCCÈS ===' as message;
+
+SELECT 'Utilisateurs totaux:' as type, COUNT(*) as count FROM utilisateurs
+UNION ALL
+SELECT 'Organisateurs:', COUNT(*) FROM profils_organisateurs
+UNION ALL
+SELECT 'Abonnements:', COUNT(*) FROM abonnements_organisateurs
+UNION ALL
+SELECT 'Factures:', COUNT(*) FROM factures_abonnements
+UNION ALL
+SELECT 'Transactions mobile:', COUNT(*) FROM transactions_paiement_mobile;
+
+-- Vérifier que l'utilisateur organisateur11 existe
+SELECT '=== VÉRIFICATION organisateur11 ===' as check_message;
+SELECT id, email, telephone, role FROM utilisateurs WHERE email = 'organisateur11@yopmail.com';
+
+-- Vérifier quelques transactions
+SELECT '=== 5 DERNIÈRES TRANSACTIONS ===' as check_message;
+SELECT 
+    reference_transaction,
+    operateur_mobile,
+    numero_telephone,
+    montant,
+    statut_paiement,
+    TO_CHAR(initie_le, 'YYYY-MM-DD HH24:MI') as date_initiation
+FROM transactions_paiement_mobile
+ORDER BY initie_le DESC
+LIMIT 5;

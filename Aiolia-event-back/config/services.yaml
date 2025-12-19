@@ -54,20 +54,17 @@ services:
         arguments:
             $projectDir: '%kernel.project_dir%'
     
-    App\Service\Organisateur\MvolaService:
+    App\Service\Organisateur\MvolaPaymentClientService:
         arguments:
-            $httpClient: '@http_client'
-            $logger: '@logger'
-            $environment: '%env(MVOLA_ENVIRONMENT)%'
+            $apiBaseUrl: '%env(MVOLA_API_BASE_URL)%'
             $consumerKey: '%env(MVOLA_CONSUMER_KEY)%'
             $consumerSecret: '%env(MVOLA_CONSUMER_SECRET)%'
-            $apiBaseUrl: '%env(MVOLA_API_BASE_URL)%'
-            $tokenUrl: '%env(MVOLA_TOKEN_URL)%'
             $merchantMsisdn: '%env(MVOLA_MERCHANT_MSISDN)%'
             $merchantName: '%env(MVOLA_MERCHANT_NAME)%'
-            $merchantAccountId: '%env(MVOLA_MERCHANT_ACCOUNT_ID)%'
             $callbackUrl: '%env(MVOLA_CALLBACK_URL)%'
-            $notificationUrl: '%env(MVOLA_NOTIFICATION_URL)%'
-            $requestTimeout: '%env(int:MVOLA_REQUEST_TIMEOUT)%'
-            $connectionTimeout: '%env(int:MVOLA_CONNECTION_TIMEOUT)%'
-
+            $httpClient: '@http_client'
+            $logger: '@logger'
+    
+    App\Service\Organisateur\PaiementAbonnementService:
+        arguments:
+            $paiementAbonnementRepository: '@App\Repository\Organisateur\PaiementAbonnementRepository'
