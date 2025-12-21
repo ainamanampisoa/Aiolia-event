@@ -61,14 +61,14 @@ class AuthController extends AbstractController
                     'profile' => $result['user'],
                     'tokens' => $result['tokens'],
                 ]);
-                
+
                 // Marquer que l'utilisateur vient de se connecter pour synchroniser le panier
                 $session->set('just_logged_in', true);
-                
-                  $this->logger->debug('AuthController register: session populated', [
-                      'session_keys' => array_keys($session->all()),
-                      'session_user' => $session->get('user'),
-                  ]);
+
+                $this->logger->debug('AuthController register: session populated', [
+                    'session_keys' => array_keys($session->all()),
+                    'session_user' => $session->get('user'),
+                ]);
 
                 return $this->redirectToRoute('home');
             } catch (\Throwable $exception) {
@@ -99,7 +99,12 @@ class AuthController extends AbstractController
             $formData['first_name'] = trim((string) $request->request->get('first_name'));
             $formData['last_name'] = trim((string) $request->request->get('last_name'));
             $formData['email'] = trim((string) $request->request->get('email'));
-            $formData['phone'] = trim((string) $request->request->get('phone'));
+            $phoneRaw = trim((string) $request->request->get('phone'));
+            if ('' !== $phoneRaw && !str_starts_with($phoneRaw, '+')) {
+                $formData['phone'] = '+261' . ltrim($phoneRaw, '0');
+            } else {
+                $formData['phone'] = $phoneRaw;
+            }
             $password = (string) $request->request->get('password');
             $passwordConfirmation = (string) $request->request->get('password_confirmation');
 

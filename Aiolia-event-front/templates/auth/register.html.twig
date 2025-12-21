@@ -38,8 +38,14 @@
                                 <input type="email" name="email" class="form-control" value="{{ form_data.email|default('') }}" required>
                             </div>
                             <div class="blc-chp">
-                                <label>Numéro de téléphone (optionnel)</label>
-                                <input type="text" name="phone" class="form-control" value="{{ form_data.phone|default('') }}">
+                                <label>Numéro de téléphone (Madagascar)</label>
+                                <div class="blc-phone-prefix">
+                                    <span class="prefix">
+                                        <img src="{{ asset('vente-ticket/images/mdg.png') }}" alt="Flag Madagascar" class="flag-icon">
+                                        +261
+                                    </span>
+                                    <input type="text" name="phone" class="form-control" value="{{ form_data.phone|default('') }}" placeholder="320000000">
+                                </div>
                             </div>
                             <div class="blc-chp">
                                 <label>Mot de passe</label>
