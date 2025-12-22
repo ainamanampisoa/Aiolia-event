@@ -655,8 +655,11 @@ body {
 .lst-event .item .blc-col1 .col1 {
     text-align: center;
     width: 188px;
-    padding-top: 64px;
-    padding-bottom: 35px;
+    padding: 20px 0;
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+    align-items: center;
     position: relative;
     background-color: var(--white);
     margin-left: 15px
@@ -691,18 +694,15 @@ body {
 }
 
 .lst-event .item .blc-col1 .date {
-    margin-top: -12px;
-    /* remonte davantage le bloc jour/date */
+    margin-top: 0;
 }
 
 .lst-event .item .blc-col1 .hour {
     font-size: 20px;
     font-weight: 600;
     text-transform: uppercase;
-    margin-bottom: 31px;
-    /* position souhaitée pour l'espace avec le QR code */
-    margin-top: 0px;
-    /* laisse l'heure à sa place de référence */
+    margin-bottom: 0;
+    margin-top: 0;
     line-height: normal;
 }
 
