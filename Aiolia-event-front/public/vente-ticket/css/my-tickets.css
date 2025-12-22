@@ -10,8 +10,8 @@
     --text-light: #666666;
     --bg-light: #f8f9fa;
     --border-light: #e0e0e0;
-    --shadow-soft: 0 4px 12px rgba(0,0,0,0.08);
-    --shadow-hover: 0 8px 24px rgba(0,0,0,0.12);
+    --shadow-soft: 0 4px 12px rgba(0, 0, 0, 0.08);
+    --shadow-hover: 0 8px 24px rgba(0, 0, 0, 0.12);
     --gradient-green: linear-gradient(135deg, #3e404b 0%, #0b0e38 100%);
     --gradient-blue: linear-gradient(135deg, #2196F3 0%, #1976D2 100%);
     --gradient-purple: linear-gradient(135deg, #9C27B0 0%, #7B1FA2 100%);
@@ -48,7 +48,8 @@
     cursor: pointer;
     text-decoration: none;
     box-shadow: var(--shadow-soft);
-    -webkit-tap-highlight-color: transparent; /* supprime le flash bleu sur mobile */
+    -webkit-tap-highlight-color: transparent;
+    /* supprime le flash bleu sur mobile */
 }
 
 .action-btn::before {
@@ -99,12 +100,14 @@
 /* Désactivation des effets de hover "animés" pour les boutons PDF et Partager */
 .btn-pdf::before,
 .btn-share::before {
-    display: none; /* supprime le voile dégradé qui glisse */
+    display: none;
+    /* supprime le voile dégradé qui glisse */
 }
 
 .btn-pdf,
 .btn-share {
-    transition: none; /* plus d’animation de transition de fond/couleur */
+    transition: none;
+    /* plus d’animation de transition de fond/couleur */
 }
 
 .btn-pdf:hover,
@@ -113,7 +116,8 @@
 .btn-share:hover,
 .btn-share:active,
 .btn-share:focus {
-    background: linear-gradient(135deg, #fff 0%, #f9f9f9 100%) !important; /* garde le même fond clair */
+    background: linear-gradient(135deg, #fff 0%, #f9f9f9 100%) !important;
+    /* garde le même fond clair */
     border-color: var(--border-light) !important;
     color: var(--text-dark) !important;
     transform: none !important;
@@ -125,20 +129,19 @@
 .btn-pdf:hover .btn-text,
 .btn-share:hover i,
 .btn-share:hover .btn-text {
-    color: var(--text-dark) !important; /* évite le passage forcé en blanc/bleu */
+    color: var(--text-dark) !important;
+    /* évite le passage forcé en blanc/bleu */
 }
 
 /* Couleurs spécifiques pour chaque action */
-.btn-pdf {
-    color: var(--text-dark) !important;             /* texte PDF reste neutre */
-    border-color: var(--border-light) !important; /* bordure neutre par défaut */
-    background: linear-gradient(135deg, #fff 0%, #f9f9f9 100%) !important;
-}
-
-/* Icône et texte PDF complètement statiques (aucune animation) */
-.btn-pdf i,
-.btn-pdf .btn-text {
-    transition: none !important;
+.btn-pdf,
+.btn-share {
+    border: 2px solid var(--border-light) !important;
+    border-radius: var(--radius-md) !important;
+    height: 48px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
 }
 
 .btn-pdf:hover i,
@@ -157,8 +160,7 @@
 }
 
 .btn-share {
-    color: var(--text-dark) !important;              /* plus de bleu par défaut */
-    border-color: var(--border-light) !important;
+    color: var(--text-dark) !important;
     background: linear-gradient(135deg, #fff 0%, #f9f9f9 100%) !important;
 }
 
@@ -166,8 +168,10 @@
 .btn-share:hover,
 .btn-share:active,
 .btn-share:focus {
-    background: linear-gradient(135deg, #fff 0%, #f9f9f9 100%) !important; /* fond reste neutre */
-    border-color: var(--secondary-blue) !important;  /* bordure bleue animée */
+    background: linear-gradient(135deg, #fff 0%, #f9f9f9 100%) !important;
+    /* fond reste neutre */
+    border-color: var(--secondary-blue) !important;
+    /* bordure bleue animée */
     box-shadow: var(--shadow-hover) !important;
     color: var(--text-dark) !important;
 }
@@ -176,8 +180,10 @@
 .btn-pdf:hover,
 .btn-pdf:active,
 .btn-pdf:focus {
-    background: linear-gradient(135deg, #fff 0%, #f9f9f9 100%) !important; /* fond reste neutre */
-    border-color: #e74c3c !important;              /* bordure rouge animée */
+    background: linear-gradient(135deg, #fff 0%, #f9f9f9 100%) !important;
+    /* fond reste neutre */
+    border-color: var(--secondary-blue) !important;
+    /* bordure bleue animée (match Partager) */
     box-shadow: var(--shadow-hover) !important;
     color: var(--text-dark) !important;
 }
@@ -264,12 +270,18 @@
 }
 
 @keyframes shareBounce {
-    0%, 20%, 60%, 100% {
+
+    0%,
+    20%,
+    60%,
+    100% {
         transform: scale(1);
     }
+
     40% {
         transform: scale(1.3);
     }
+
     80% {
         transform: scale(0.9);
     }
@@ -284,9 +296,11 @@
     0% {
         transform: rotate(0deg);
     }
+
     50% {
         transform: rotate(180deg);
     }
+
     100% {
         transform: rotate(360deg);
     }
@@ -306,6 +320,7 @@
     0% {
         transform: rotate(0deg);
     }
+
     100% {
         transform: rotate(360deg);
     }
@@ -318,7 +333,7 @@
         width: 100%;
         gap: 8px;
     }
-    
+
     .action-btn {
         flex: 1;
         justify-content: center;
@@ -326,11 +341,11 @@
         padding: 10px 14px;
         min-height: 44px;
     }
-    
+
     .action-btn .btn-text {
         font-size: 13px;
     }
-    
+
     .action-btn i {
         font-size: 15px;
     }
@@ -341,23 +356,23 @@
         flex-direction: column;
         gap: 6px;
     }
-    
+
     .action-btn {
         width: 100%;
         justify-content: flex-start;
         padding: 12px 16px;
     }
-    
+
     /* Mode compact pour mobile */
     .action-group.compact-mobile .action-btn {
         padding: 10px 12px;
         min-height: 42px;
     }
-    
+
     .action-group.compact-mobile .action-btn .btn-text {
         font-size: 12px;
     }
-    
+
     /* Cacher les tooltips sur mobile très petit */
     .action-btn[data-tooltip]::after {
         display: none;
@@ -391,14 +406,14 @@
     padding: 20px;
     display: flex;
     gap: 20px;
-    align-items: flex-start;
+    align-items: center;
 }
 
 .col1 {
     display: flex;
     flex-direction: column;
     align-items: center;
-    gap: 12px;
+    gap: 24px;
     min-width: 100px;
 }
 
@@ -453,12 +468,14 @@
 
 /* ===== BOUTON DÉTAILS AMÉLIORÉ ===== */
 .btn-details {
-    padding: 10px 18px; /* fond plus petit autour du texte */
+    padding: 10px 18px;
+    /* fond plus petit autour du texte */
     border-radius: var(--radius-md);
     font-weight: 700;
     font-size: 15px;
     transition: var(--transition);
-    display: inline-flex; /* se dimensionne sur le contenu */
+    display: inline-flex;
+    /* se dimensionne sur le contenu */
     align-items: center;
     gap: 8px;
     position: relative;
@@ -466,7 +483,8 @@
     border: 2px solid var(--primary-green);
     background: var(--gradient-green);
     color: white;
-    min-height: auto; /* ne force plus une grande hauteur */
+    min-height: auto;
+    /* ne force plus une grande hauteur */
     cursor: pointer;
     text-decoration: none;
     box-shadow: var(--shadow-soft);
@@ -520,11 +538,13 @@
 /* Style spécifique au bouton détails dans la carte billet
    (le bouton HTML a la classe .btn.details) */
 .ticket-actions .btn.details {
-    padding: 10px 18px;        /* réduit la taille du fond */
+    padding: 10px 18px;
+    /* réduit la taille du fond */
     border-radius: var(--radius-md);
     font-weight: 700;
     font-size: 15px;
-    display: inline-flex;      /* dimensionné sur le texte */
+    display: inline-flex;
+    /* dimensionné sur le texte */
     align-items: center;
     gap: 8px;
     width: auto;
@@ -548,9 +568,12 @@
 .btn-pdf:active,
 .btn-pdf:focus {
     animation: none !important;
-    border-color: #e74c3c !important;          /* bordure rouge au clic / focus */
-    box-shadow: var(--shadow-hover) !important;/* petite ombre comme feedback */
-    transform: translateY(-1px) !important;    /* léger mouvement vers le haut */
+    border-color: #e74c3c !important;
+    /* bordure rouge au clic / focus */
+    box-shadow: var(--shadow-hover) !important;
+    /* petite ombre comme feedback */
+    transform: translateY(-1px) !important;
+    /* léger mouvement vers le haut */
 }
 
 .btn-pdf:active i,
@@ -560,11 +583,13 @@
 }
 
 .btn-pdf.downloading::after {
-    display: none; /* Supprime l'effet shimmer */
+    display: none;
+    /* Supprime l'effet shimmer */
 }
 
 .btn-pdf.downloading i {
-    animation: none !important; /* Supprime l'animation de pulsation */
+    animation: none !important;
+    /* Supprime l'animation de pulsation */
 }
 
 /* Désactivation des animations pour Partager */
@@ -580,7 +605,8 @@
 }
 
 .btn-share.sharing i {
-    animation: none !important; /* Supprime l'animation de bounce */
+    animation: none !important;
+    /* Supprime l'animation de bounce */
 }
 
 /* ===== ÉTATS ACTIFS SIMPLIFIÉS (sauf PDF/Partager) ===== */
@@ -603,11 +629,11 @@
         min-height: 48px;
         font-size: 14px;
     }
-    
+
     .btn-details i {
         font-size: 16px;
     }
-    
+
     .btn-details .btn-text {
         font-size: 14px;
     }
@@ -615,7 +641,8 @@
 
 @media (max-width: 480px) {
     .btn-details {
-        width: auto;              /* garde un fond compact aussi sur mobile */
+        width: auto;
+        /* garde un fond compact aussi sur mobile */
         justify-content: center;
         padding: 12px 18px;
     }
@@ -637,6 +664,7 @@
     animation: none !important;
     transform: none !important;
 }
+
 /* Métadonnées du billet améliorées */
 .ticket-meta {
     display: flex;
@@ -680,9 +708,11 @@
 .blc-col2 {
     width: 200px;
     position: relative;
-    padding: 20px 20px 20px 0;  /* aligne l'image avec le contenu texte */
+    padding: 20px 20px 20px 0;
+    /* aligne l'image avec le contenu texte */
     display: flex;
-    align-items: center;        /* centre verticalement l'affiche */
+    align-items: center;
+    /* centre verticalement l'affiche */
 }
 
 .blc-col2 .img {
@@ -710,7 +740,7 @@
     left: 0;
     width: 100%;
     height: 100%;
-    background: rgba(0,0,0,0.7);
+    background: rgba(0, 0, 0, 0.7);
     display: flex;
     align-items: center;
     justify-content: center;
@@ -763,8 +793,10 @@
 /* ===== PAGINATION AMELIOREE ===== */
 .pagination-wrapper {
     display: flex;
-    justify-content: space-between;
+    flex-direction: column;
+    justify-content: center;
     align-items: center;
+    gap: 15px;
     margin-top: 40px;
     padding: 20px 0;
     border-top: 1px solid var(--border-light);
@@ -782,7 +814,8 @@
     gap: 8px;
 }
 
-.page-nav, .page-number {
+.page-nav,
+.page-number {
     padding: 10px 16px;
     border-radius: var(--radius-md);
     background: white;
@@ -796,7 +829,8 @@
     gap: 6px;
 }
 
-.page-nav:hover, .page-number:hover {
+.page-nav:hover,
+.page-number:hover {
     border-color: var(--primary-green);
     color: var(--primary-green);
     transform: translateY(-2px);
@@ -883,32 +917,32 @@
     .ticket-card .inner {
         flex-direction: column;
     }
-    
+
     .blc-col2 {
         width: 100%;
         height: 200px;
     }
-    
+
     .blc-col1 {
         flex-direction: column;
         gap: 15px;
     }
-    
+
     .col1 {
         flex-direction: row;
         justify-content: space-between;
         width: 100%;
     }
-    
+
     .ticket-filters {
         flex-direction: column;
         align-items: stretch;
     }
-    
+
     .filter-group {
         justify-content: center;
     }
-    
+
     .pagination-wrapper {
         flex-direction: column;
         gap: 20px;
@@ -922,7 +956,11 @@
 }
 
 /* Amélioration des transitions globales */
-.btn, .action-btn, .filter-btn, .page-nav, .page-number {
+.btn,
+.action-btn,
+.filter-btn,
+.page-nav,
+.page-number {
     transition: var(--transition);
 }
 
