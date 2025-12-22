@@ -86,7 +86,7 @@ class TicketInvoiceRepository extends ServiceEntityRepository
     }
 
     
-    public function findAllWithFilters(?string $status = null, ?string $search = null, ?\DateTime $dateFrom = null, ?\DateTime $dateTo = null, int $limit = 50, int $offset = 0): array
+    public function findAllWithFilters(?string $status = null, ?string $search = null, ?int $month = null, ?int $year = null, int $limit = 50, int $offset = 0): array
     {
         $qb = $this->createQueryBuilder('ti')
             ->leftJoin('ti.customer', 'c')
@@ -101,18 +101,31 @@ class TicketInvoiceRepository extends ServiceEntityRepository
             $this->applySearchFilter($qb, $search, 'ti', 'c');
         }
 
-        if ($dateFrom) {
-            $dateFromStart = clone $dateFrom;
-            $dateFromStart->setTime(0, 0, 0);
-            $qb->andWhere('ti.issuedAt >= :dateFrom')
-                ->setParameter('dateFrom', $dateFromStart);
-        }
-
-        if ($dateTo) {
-            $dateToEnd = clone $dateTo;
-            $dateToEnd->setTime(23, 59, 59);
-            $qb->andWhere('ti.issuedAt <= :dateTo')
-                ->setParameter('dateTo', $dateToEnd);
+        // Filtrer par mois/année en utilisant issuedAt pour les factures de tickets
+        if ($month !== null && $month > 0 && $year !== null) {
+            $monthStart = new \DateTime(sprintf('%d-%02d-01', $year, $month));
+            $monthStart->setTime(0, 0, 0);
+            $monthEnd = (clone $monthStart)->modify('+1 month');
+            
+            $qb->andWhere('ti.issuedAt >= :monthStart')
+                ->andWhere('ti.issuedAt < :monthEnd')
+                ->setParameter('monthStart', $monthStart)
+                ->setParameter('monthEnd', $monthEnd);
+        } elseif ($year !== null) {
+            // Si seulement l'année est spécifiée (tous les mois)
+            // Pour 2025, exclure mai car les données commencent en juin 2025
+            if ($year === 2025) {
+                $yearStart = new \DateTime(sprintf('%d-06-01', $year)); // Commencer en juin 2025
+            } else {
+                $yearStart = new \DateTime(sprintf('%d-01-01', $year));
+            }
+            $yearStart->setTime(0, 0, 0);
+            $yearEnd = (clone $yearStart)->modify('+1 year');
+            
+            $qb->andWhere('ti.issuedAt >= :yearStart')
+                ->andWhere('ti.issuedAt < :yearEnd')
+                ->setParameter('yearStart', $yearStart)
+                ->setParameter('yearEnd', $yearEnd);
         }
 
         return $qb->orderBy('ti.createdAt', 'DESC')
@@ -123,7 +136,7 @@ class TicketInvoiceRepository extends ServiceEntityRepository
     }
 
     
-    public function countWithFilters(?string $status = null, ?string $search = null, ?\DateTime $dateFrom = null, ?\DateTime $dateTo = null): int
+    public function countWithFilters(?string $status = null, ?string $search = null, ?int $month = null, ?int $year = null): int
     {
         $qb = $this->createQueryBuilder('ti')
             ->select('COUNT(ti.id)');
@@ -138,18 +151,31 @@ class TicketInvoiceRepository extends ServiceEntityRepository
             $this->applySearchFilter($qb, $search, 'ti', 'c');
         }
 
-        if ($dateFrom) {
-            $dateFromStart = clone $dateFrom;
-            $dateFromStart->setTime(0, 0, 0);
-            $qb->andWhere('ti.issuedAt >= :dateFrom')
-                ->setParameter('dateFrom', $dateFromStart);
-        }
-
-        if ($dateTo) {
-            $dateToEnd = clone $dateTo;
-            $dateToEnd->setTime(23, 59, 59);
-            $qb->andWhere('ti.issuedAt <= :dateTo')
-                ->setParameter('dateTo', $dateToEnd);
+        // Filtrer par mois/année en utilisant issuedAt pour les factures de tickets
+        if ($month !== null && $month > 0 && $year !== null) {
+            $monthStart = new \DateTime(sprintf('%d-%02d-01', $year, $month));
+            $monthStart->setTime(0, 0, 0);
+            $monthEnd = (clone $monthStart)->modify('+1 month');
+            
+            $qb->andWhere('ti.issuedAt >= :monthStart')
+                ->andWhere('ti.issuedAt < :monthEnd')
+                ->setParameter('monthStart', $monthStart)
+                ->setParameter('monthEnd', $monthEnd);
+        } elseif ($year !== null) {
+            // Si seulement l'année est spécifiée (tous les mois)
+            // Pour 2025, exclure mai car les données commencent en juin 2025
+            if ($year === 2025) {
+                $yearStart = new \DateTime(sprintf('%d-06-01', $year)); // Commencer en juin 2025
+            } else {
+                $yearStart = new \DateTime(sprintf('%d-01-01', $year));
+            }
+            $yearStart->setTime(0, 0, 0);
+            $yearEnd = (clone $yearStart)->modify('+1 year');
+            
+            $qb->andWhere('ti.issuedAt >= :yearStart')
+                ->andWhere('ti.issuedAt < :yearEnd')
+                ->setParameter('yearStart', $yearStart)
+                ->setParameter('yearEnd', $yearEnd);
         }
 
         return (int) $qb->getQuery()->getSingleScalarResult();

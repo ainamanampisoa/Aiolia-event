@@ -94,7 +94,7 @@
                                 {{ monthNames[month].fr }} {{ year }}
                             </span>
                         </span>
-                        {% if type == 'subscription' and planInfo is defined and planInfo %}
+                        {% if type == 'subscription' and planInfo is defined and planInfo is not null and planInfo|length > 0 %}
                             {% set planTier = planInfo.niveau ?? null %}
                             {% set billingPeriod = planInfo.periode_facturation ?? null %}
                             {% if planTier %}
@@ -231,7 +231,7 @@
                             <span class="info-value">{{ invoice.customer.telephone|phone_format(invoice.customer.codePays) }}</span>
                         </div>
                     {% endif %}
-                    {% if type == 'subscription' and planInfo is defined and planInfo %}
+                    {% if type == 'subscription' and planInfo is defined and planInfo is not null and planInfo|length > 0 %}
                         {% set tierLabels = {
                             'basic': {'fr': 'Basic', 'en': 'Basic', 'icon': 'tag'},
                             'pro': {'fr': 'Pro', 'en': 'Pro', 'icon': 'star'},
@@ -582,8 +582,8 @@
                 </div>
                 {% if type == 'subscription' %}
                     {# Afficher l'offre - utiliser planTier passé depuis le contrôleur ou planInfo #}
-                    {% set currentPlanTier = planTier ?? (planInfo.niveau ?? null) %}
-                    {% set currentBillingPeriod = planInfo.periode_facturation ?? null %}
+                    {% set currentPlanTier = planTier ?? (planInfo is defined and planInfo is not null ? (planInfo.niveau ?? null) : null) %}
+                    {% set currentBillingPeriod = planInfo is defined and planInfo is not null ? (planInfo.periode_facturation ?? null) : null %}
                     {% if currentPlanTier %}
                         {% set tierLabels = {
                             'basic': {'fr': 'Basic', 'en': 'Basic', 'icon': 'tag'},

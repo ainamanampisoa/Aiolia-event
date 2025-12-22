@@ -4,8 +4,19 @@
 
 {% block stylesheets %}
 {{ parent() }}
-<!-- Flatpickr CSS -->
-<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/flatpickr/dist/flatpickr.min.css">
+<style>
+    .search-field::after {
+        content: '\f078';
+        font-family: 'Font Awesome 6 Free';
+        font-weight: 900;
+        position: absolute;
+        right: 14px;
+        bottom: 14px;
+        color: var(--text-secondary);
+        pointer-events: none;
+        font-size: 0.75rem;
+    }
+</style>
 {% endblock %}
 
 {% block body %}
@@ -68,43 +79,37 @@
                     </div>
 
                     <div class="search-field">
-                        <label for="date-from">
+                        <label for="month">
                             <i class="fas fa-calendar-alt"></i>
-                            <span data-i18n="billing.filters.date_from">Date de début</span>
+                            <span data-i18n="billing.filters.month">Mois</span>
                         </label>
-                        <div class="date-input-wrapper">
-                            <input 
-                                type="text" 
-                                id="date-from"
-                                name="date_from" 
-                                class="form-input date-picker-input" 
-                                value="{{ currentDateFrom|default('') }}"
-                                placeholder="Sélectionner une date"
-                                autocomplete="off"
-                                readonly
-                            >
-                            <i class="fas fa-calendar-alt date-picker-icon"></i>
-                        </div>
+                        <select id="month" name="month" class="form-input">
+                            <option value="0" {{ selectedMonth == 0 ? 'selected' : '' }} data-i18n="billing.filters.month.all">Tous les mois</option>
+                            <option value="1" {{ selectedMonth == 1 ? 'selected' : '' }} data-i18n="billing.filters.month.january">Janvier</option>
+                            <option value="2" {{ selectedMonth == 2 ? 'selected' : '' }} data-i18n="billing.filters.month.february">Février</option>
+                            <option value="3" {{ selectedMonth == 3 ? 'selected' : '' }} data-i18n="billing.filters.month.march">Mars</option>
+                            <option value="4" {{ selectedMonth == 4 ? 'selected' : '' }} data-i18n="billing.filters.month.april">Avril</option>
+                            <option value="5" {{ selectedMonth == 5 ? 'selected' : '' }} data-i18n="billing.filters.month.may">Mai</option>
+                            <option value="6" {{ selectedMonth == 6 ? 'selected' : '' }} data-i18n="billing.filters.month.june">Juin</option>
+                            <option value="7" {{ selectedMonth == 7 ? 'selected' : '' }} data-i18n="billing.filters.month.july">Juillet</option>
+                            <option value="8" {{ selectedMonth == 8 ? 'selected' : '' }} data-i18n="billing.filters.month.august">Août</option>
+                            <option value="9" {{ selectedMonth == 9 ? 'selected' : '' }} data-i18n="billing.filters.month.september">Septembre</option>
+                            <option value="10" {{ selectedMonth == 10 ? 'selected' : '' }} data-i18n="billing.filters.month.october">Octobre</option>
+                            <option value="11" {{ selectedMonth == 11 ? 'selected' : '' }} data-i18n="billing.filters.month.november">Novembre</option>
+                            <option value="12" {{ selectedMonth == 12 ? 'selected' : '' }} data-i18n="billing.filters.month.december">Décembre</option>
+                        </select>
                     </div>
 
                     <div class="search-field">
-                        <label for="date-to">
+                        <label for="year">
                             <i class="fas fa-calendar-alt"></i>
-                            <span data-i18n="billing.filters.date_to">Date de fin</span>
+                            <span data-i18n="billing.filters.year">Année</span>
                         </label>
-                        <div class="date-input-wrapper">
-                            <input 
-                                type="text" 
-                                id="date-to"
-                                name="date_to" 
-                                class="form-input date-picker-input" 
-                                value="{{ currentDateTo|default('') }}"
-                                placeholder="Sélectionner une date"
-                                autocomplete="off"
-                                readonly
-                            >
-                            <i class="fas fa-calendar-alt date-picker-icon"></i>
-                        </div>
+                        <select id="year" name="year" class="form-input">
+                            {% for y in 2024..2026 %}
+                                <option value="{{ y }}" {{ selectedYear == y ? 'selected' : '' }}>{{ y }}</option>
+                            {% endfor %}
+                        </select>
                     </div>
                 </div>
 
@@ -144,9 +149,9 @@
                                 {# Vérifier si c'est une facture d'abonnement en utilisant le tableau invoiceTypes #}
                                 {% set invoiceId = invoice.id ~ '' %}
                                 {% set isSubscription = invoiceTypes[invoiceId]|default('') == 'subscription' %}
-                                {% set planInfo = isSubscription ? (planInfos[invoiceId] ?? null) : null %}
-                                {% set planTier = planInfo ? planInfo.niveau : null %}
-                                {% set billingPeriod = planInfo ? planInfo.periode_facturation : null %}
+                                {% set planInfo = isSubscription and planInfos is defined ? (planInfos[invoiceId] ?? null) : null %}
+                                {% set planTier = planInfo is not null and planInfo.niveau is defined and planInfo.niveau is not empty ? planInfo.niveau : null %}
+                                {% set billingPeriod = planInfo is not null and planInfo.periode_facturation is defined ? planInfo.periode_facturation : null %}
                                 <tr>
                                     <td class="col-left">
                                         <span style="color: var(--text-primary); font-size: 0.95rem; font-weight: var(--font-weight-semibold); letter-spacing: 0.3px;">N° FA-{{ invoice.invoiceNumber }}</span>
@@ -312,8 +317,8 @@
                                     page: currentPage - 1,
                                     status: currentStatus,
                                     search: currentSearch,
-                                    date_from: currentDateFrom,
-                                    date_to: currentDateTo
+                                    month: selectedMonth,
+                                    year: selectedYear
                                 }) }}" rel="prev" data-i18n="pagination.previous">Précédent</a>
                             {% endif %}
                         </li>
@@ -324,8 +329,8 @@
                                     page: 1,
                                     status: currentStatus,
                                     search: currentSearch,
-                                    date_from: currentDateFrom,
-                                    date_to: currentDateTo
+                                    month: selectedMonth,
+                                    year: selectedYear
                                 }) }}">1</a>
                             </li>
                             {% if startPage > 2 %}
@@ -342,8 +347,8 @@
                                         page: page,
                                         status: currentStatus,
                                         search: currentSearch,
-                                        date_from: currentDateFrom,
-                                        date_to: currentDateTo
+                                        month: selectedMonth,
+                                        year: selectedYear
                                     }) }}">{{ page }}</a>
                                 {% endif %}
                             </li>
@@ -358,8 +363,8 @@
                                     page: totalPages,
                                     status: currentStatus,
                                     search: currentSearch,
-                                    date_from: currentDateFrom,
-                                    date_to: currentDateTo
+                                    month: selectedMonth,
+                                    year: selectedYear
                                 }) }}">{{ totalPages }}</a>
                             </li>
                         {% endif %}
@@ -372,8 +377,8 @@
                                     page: currentPage + 1,
                                     status: currentStatus,
                                     search: currentSearch,
-                                    date_from: currentDateFrom,
-                                    date_to: currentDateTo
+                                    month: selectedMonth,
+                                    year: selectedYear
                                 }) }}" rel="next" data-i18n="pagination.next">Suivant</a>
                             {% endif %}
                         </li>
@@ -475,6 +480,7 @@
     display: flex;
     flex-direction: column;
     gap: 8px;
+    position: relative;
 }
 
 .search-field label {
@@ -517,8 +523,12 @@
     color: var(--text-muted);
 }
 
-.form-select {
+.form-select,
+.form-input[type="text"][readonly],
+select.form-input {
     appearance: none;
+    -webkit-appearance: none;
+    -moz-appearance: none;
     background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' viewBox='0 0 12 12'%3E%3Cpath fill='%236C757D' d='M6 9L1 4h10z'/%3E%3C/svg%3E");
     background-repeat: no-repeat;
     background-position: right 14px center;
@@ -1235,260 +1245,104 @@
     }
 }
 
-/* Styles pour les date pickers */
-.date-input-wrapper {
-    position: relative;
-    display: flex;
-    align-items: center;
-}
-
-.date-picker-input {
-    padding-right: 40px !important;
-    cursor: pointer;
-}
-
-.date-picker-input:focus {
-    cursor: text;
-}
-
-.date-picker-icon {
-    position: absolute;
-    right: 14px;
-    color: var(--text-secondary);
-    pointer-events: none;
-    font-size: 0.9rem;
-    z-index: 1;
-}
-
-.date-input-wrapper:hover .date-picker-icon {
-    color: var(--accent);
-}
-
-/* Styles personnalisés pour Flatpickr */
-.flatpickr-calendar {
-    background: var(--bg-card) !important;
-    border: 1px solid var(--border-color) !important;
-    border-radius: var(--border-radius-lg) !important;
-    box-shadow: 0 10px 40px rgba(0, 0, 0, 0.2) !important;
-    font-family: var(--font-family) !important;
-}
-
-.flatpickr-months {
-    background: var(--bg-secondary) !important;
-    border-radius: var(--border-radius-lg) var(--border-radius-lg) 0 0 !important;
-    padding: 12px !important;
-}
-
-.flatpickr-month {
-    color: var(--text-primary) !important;
-    fill: var(--text-primary) !important;
-}
-
-.flatpickr-current-month {
-    color: var(--text-primary) !important;
-    font-weight: var(--font-weight-medium) !important;
-}
-
-.flatpickr-prev-month,
-.flatpickr-next-month {
-    color: var(--text-secondary) !important;
-    fill: var(--text-secondary) !important;
-    padding: 8px !important;
-    border-radius: var(--border-radius-sm) !important;
-    transition: var(--transition-base) !important;
-}
-
-.flatpickr-prev-month:hover,
-.flatpickr-next-month:hover {
-    background: var(--bg-primary) !important;
-    color: var(--accent) !important;
-    fill: var(--accent) !important;
-}
-
-.flatpickr-weekdays {
-    background: var(--bg-secondary) !important;
-    border-bottom: 1px solid var(--border-color) !important;
-}
-
-.flatpickr-weekday {
-    color: var(--text-secondary) !important;
-    font-weight: var(--font-weight-medium) !important;
-    text-transform: uppercase !important;
-    font-size: 0.75rem !important;
-}
-
-.flatpickr-days {
-    padding: 8px !important;
-}
-
-.flatpickr-day {
-    color: var(--text-primary) !important;
-    border-radius: var(--border-radius-sm) !important;
-    border: 1px solid transparent !important;
-    transition: var(--transition-base) !important;
-}
-
-.flatpickr-day:hover {
-    background: var(--bg-secondary) !important;
-    border-color: var(--accent) !important;
-    color: var(--accent) !important;
-}
-
-.flatpickr-day.selected,
-.flatpickr-day.startRange,
-.flatpickr-day.endRange {
-    background: var(--accent) !important;
-    border-color: var(--accent) !important;
-    color: #fff !important;
-    font-weight: var(--font-weight-medium) !important;
-}
-
-.flatpickr-day.selected:hover,
-.flatpickr-day.startRange:hover,
-.flatpickr-day.endRange:hover {
-    background: var(--accent-dark, #2980b9) !important;
-    border-color: var(--accent-dark, #2980b9) !important;
-}
-
-.flatpickr-day.today {
-    border-color: var(--accent) !important;
-    color: var(--accent) !important;
-    font-weight: var(--font-weight-bold) !important;
-}
-
-.flatpickr-day.today:hover {
-    background: var(--bg-secondary) !important;
-}
-
-.flatpickr-day.flatpickr-disabled,
-.flatpickr-day.prevMonthDay,
-.flatpickr-day.nextMonthDay {
-    color: var(--text-muted) !important;
-    opacity: 0.4 !important;
-}
-
-.flatpickr-day.inRange {
-    background: rgba(52, 152, 219, 0.1) !important;
-    border-color: transparent !important;
-    color: var(--text-primary) !important;
-}
-
-.flatpickr-time {
-    border-top: 1px solid var(--border-color) !important;
-    background: var(--bg-secondary) !important;
-}
-
-.flatpickr-time input {
-    color: var(--text-primary) !important;
-    background: transparent !important;
-}
-
-.flatpickr-time input:hover {
-    background: var(--bg-primary) !important;
-}
-
-.flatpickr-am-pm {
-    color: var(--text-primary) !important;
-}
-
-.flatpickr-am-pm:hover {
-    background: var(--bg-primary) !important;
-}
 </style>
 
-<!-- Flatpickr JS -->
-<script src="https://cdn.jsdelivr.net/npm/flatpickr"></script>
-<script src="https://cdn.jsdelivr.net/npm/flatpickr/dist/l10n/fr.js"></script>
-
 <script>
-document.addEventListener('DOMContentLoaded', function() {
-    const dateFromInput = document.getElementById('date-from');
-    const dateToInput = document.getElementById('date-to');
+(function registerAdminBillingTranslations() {
+    function tryRegister() {
+        if (!window.languageManager) {
+            return false;
+        }
+
+        window.languageManager.extendTranslations({
+            fr: {
+                'billing.filters.month': 'Mois',
+                'billing.filters.month.all': 'Tous les mois',
+                'billing.filters.month.january': 'Janvier',
+                'billing.filters.month.february': 'Février',
+                'billing.filters.month.march': 'Mars',
+                'billing.filters.month.april': 'Avril',
+                'billing.filters.month.may': 'Mai',
+                'billing.filters.month.june': 'Juin',
+                'billing.filters.month.july': 'Juillet',
+                'billing.filters.month.august': 'Août',
+                'billing.filters.month.september': 'Septembre',
+                'billing.filters.month.october': 'Octobre',
+                'billing.filters.month.november': 'Novembre',
+                'billing.filters.month.december': 'Décembre',
+                'billing.filters.year': 'Année'
+            },
+            en: {
+                'billing.filters.month': 'Month',
+                'billing.filters.month.all': 'All months',
+                'billing.filters.month.january': 'January',
+                'billing.filters.month.february': 'February',
+                'billing.filters.month.march': 'March',
+                'billing.filters.month.april': 'April',
+                'billing.filters.month.may': 'May',
+                'billing.filters.month.june': 'June',
+                'billing.filters.month.july': 'July',
+                'billing.filters.month.august': 'August',
+                'billing.filters.month.september': 'September',
+                'billing.filters.month.october': 'October',
+                'billing.filters.month.november': 'November',
+                'billing.filters.month.december': 'December',
+                'billing.filters.year': 'Year'
+            }
+        });
+        return true;
+    }
+
+    // Essayer immédiatement
+    if (!tryRegister()) {
+        // Si languageManager n'est pas encore chargé, réessayer après un court délai
+        let attempts = 0;
+        const maxAttempts = 20;
+        const interval = setInterval(function() {
+            attempts++;
+            if (tryRegister() || attempts >= maxAttempts) {
+                clearInterval(interval);
+            }
+        }, 50);
+    }
+})();
+
+// Traduire les options des select après le chargement
+function translateSelectOptions() {
+    if (!window.languageManager) return;
     
-    let dateFromPicker = null;
-    let dateToPicker = null;
-
-    // Configuration pour la date de début
-    if (dateFromInput) {
-        dateFromPicker = flatpickr(dateFromInput, {
-            dateFormat: 'Y-m-d',
-            locale: 'fr',
-            altInput: false,
-            allowInput: false,
-            clickOpens: true,
-            animate: true,
-            monthSelectorType: 'static',
-            onChange: function(selectedDates, dateStr, instance) {
-                // Si une date de fin est sélectionnée et que la date de début est après, réinitialiser la date de fin
-                if (dateToPicker) {
-                    const dateTo = dateToPicker.selectedDates[0];
-                    if (dateTo && selectedDates[0] && selectedDates[0] > dateTo) {
-                        dateToPicker.clear();
-                    }
-                    // Mettre à jour la date minimale pour la date de fin
-                    dateToPicker.set('minDate', selectedDates[0] || null);
+    const monthSelect = document.getElementById('month');
+    if (monthSelect) {
+        Array.from(monthSelect.options).forEach(option => {
+            const i18nKey = option.getAttribute('data-i18n');
+            if (i18nKey) {
+                const translation = window.languageManager.translate(i18nKey);
+                if (translation) {
+                    option.textContent = translation;
                 }
-            },
-            onReady: function(selectedDates, dateStr, instance) {
-                // Ajouter un style personnalisé au calendrier
-                instance.calendarContainer.classList.add('custom-flatpickr');
             }
         });
     }
+}
 
-    // Configuration pour la date de fin
-    if (dateToInput) {
-        const minDate = dateFromPicker && dateFromPicker.selectedDates[0] 
-            ? dateFromPicker.selectedDates[0] 
-            : null;
+// Appliquer les traductions au chargement et lors du changement de langue
+function applyAllTranslations() {
+    // Attendre un peu pour s'assurer que les traductions sont enregistrées
+    setTimeout(function() {
+        translateSelectOptions();
+    }, 100);
+}
 
-        dateToPicker = flatpickr(dateToInput, {
-            dateFormat: 'Y-m-d',
-            locale: 'fr',
-            altInput: false,
-            allowInput: false,
-            clickOpens: true,
-            animate: true,
-            monthSelectorType: 'static',
-            minDate: minDate,
-            onChange: function(selectedDates, dateStr, instance) {
-                // Si une date de début est sélectionnée et que la date de fin est avant, réinitialiser la date de début
-                if (dateFromPicker) {
-                    const dateFrom = dateFromPicker.selectedDates[0];
-                    if (dateFrom && selectedDates[0] && selectedDates[0] < dateFrom) {
-                        dateFromPicker.clear();
-                    }
-                    // Mettre à jour la date maximale pour la date de début
-                    dateFromPicker.set('maxDate', selectedDates[0] || null);
-                }
-            },
-            onReady: function(selectedDates, dateStr, instance) {
-                // Ajouter un style personnalisé au calendrier
-                instance.calendarContainer.classList.add('custom-flatpickr');
-            }
-        });
-    }
-});
-
-// Réinitialiser les date pickers lors du clic sur le bouton réinitialiser
+if (document.readyState === 'loading') {
 document.addEventListener('DOMContentLoaded', function() {
-    const resetBtn = document.querySelector('.btn-reset');
-    if (resetBtn) {
-        resetBtn.addEventListener('click', function(e) {
-            // Ne pas empêcher la navigation, juste réinitialiser les dates
-            setTimeout(function() {
-                const dateFromInput = document.getElementById('date-from');
-                const dateToInput = document.getElementById('date-to');
-                
-                if (dateFromInput && dateFromInput._flatpickr) {
-                    dateFromInput._flatpickr.clear();
-                }
-                if (dateToInput && dateToInput._flatpickr) {
-                    dateToInput._flatpickr.clear();
-                }
-            }, 100);
-        });
-    }
+        setTimeout(applyAllTranslations, 200);
+    });
+} else {
+    applyAllTranslations();
+}
+
+document.addEventListener('aiolia:language-changed', function() {
+    setTimeout(translateSelectOptions, 50);
 });
 </script>
 {% endblock %}

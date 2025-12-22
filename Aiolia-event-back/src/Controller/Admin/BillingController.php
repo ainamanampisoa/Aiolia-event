@@ -30,88 +30,92 @@ class BillingController extends AbstractController
     ) {
     }
 
-    /**
-     * Liste toutes les factures (billets et abonnements)
-     */
     #[Route('/invoices', name: 'admin_billing_invoices')]
     public function invoices(Request $request): Response
     {
         $status = $request->query->get('status');
         $search = $request->query->get('search');
-        $dateFrom = $request->query->get('date_from');
-        $dateTo = $request->query->get('date_to');
+        $month = $request->query->getInt('month', 0);
+        $year = $request->query->getInt('year', (int) date('Y'));
         $page = max(1, (int) $request->query->get('page', 1));
         $perPage = 7;
 
-        // Convertir les dates string en DateTime
-        $dateFromObj = null;
-        $dateToObj = null;
-        
-        if ($dateFrom) {
-            try {
-                $dateFromObj = new \DateTime($dateFrom);
-            } catch (\Exception $e) {
-                $dateFromObj = null;
-            }
-        }
-        
-        if ($dateTo) {
-            try {
-                $dateToObj = new \DateTime($dateTo);
-            } catch (\Exception $e) {
-                $dateToObj = null;
-            }
-        }
+        $month = $this->validateMonth($month);
+        $year = $this->validateYear($year);
 
-        // Récupérer toutes les factures (sans pagination) pour pouvoir les fusionner et trier
-        // Puis appliquer la pagination sur le résultat final
-        $fetchLimit = 100; // Récupérer un nombre suffisant pour la pagination
-        
+        $fetchLimit = 100;
+        $monthFilter = $month > 0 ? $month : null;
+
+        // Récupérer les factures avec filtres
         $ticketInvoices = $this->ticketInvoiceRepository->findAllWithFilters(
             $status,
             $search,
-            $dateFromObj,
-            $dateToObj,
+            $monthFilter,
+            $year,
             $fetchLimit,
             0
         );
-        $ticketTotal = $this->ticketInvoiceRepository->countWithFilters($status, $search, $dateFromObj, $dateToObj);
+        $ticketTotal = $this->ticketInvoiceRepository->countWithFilters($status, $search, $monthFilter, $year);
 
         $subscriptionInvoices = $this->subscriptionInvoiceRepository->findAllWithFilters(
             $status,
             $search,
-            $dateFromObj,
-            $dateToObj,
+            $monthFilter,
+            $year,
             $fetchLimit,
             0
         );
-        $subscriptionTotal = $this->subscriptionInvoiceRepository->countWithFilters($status, $search, $dateFromObj, $dateToObj);
+        $subscriptionTotal = $this->subscriptionInvoiceRepository->countWithFilters($status, $search, $monthFilter, $year);
 
-        // Calculer le total AVANT la pagination (utiliser les totaux des repositories)
         $totalInvoices = $ticketTotal + $subscriptionTotal;
-        
-        // Fusionner et trier par date
+
+        // Fusionner et trier
         $allInvoices = array_merge($ticketInvoices, $subscriptionInvoices);
-        usort($allInvoices, function ($a, $b) {
-            return $b->getCreatedAt() <=> $a->getCreatedAt();
-        });
+        usort($allInvoices, fn($a, $b) => $b->getCreatedAt() <=> $a->getCreatedAt());
         
-        // Appliquer la pagination : limiter à 7 résultats par page
+        // Pagination
         $allInvoices = array_slice($allInvoices, ($page - 1) * $perPage, $perPage);
-        
-        // Récupérer les informations complètes des plans d'abonnement pour les factures d'abonnement
-        // APRÈS la pagination pour ne récupérer que les factures affichées
-        $planInfos = [];
-        $invoiceTypes = []; // Tableau pour identifier le type de chaque facture
-        $subscriptionInvoicesOnly = [];
-        
-        // Récupérer les IDs de toutes les factures pour vérifier via les transactions
-        $allInvoiceIds = array_map(fn($inv) => $inv->getId(), $allInvoices);
-        
-        // Vérifier quelles factures sont des factures d'abonnement via les transactions
+
+        // Identifier les types de factures et récupérer les informations
+        $invoiceInfo = $this->processInvoicesInfo($allInvoices);
+
+        // Statistiques
+        $stats = $this->calculateStats($status, $search, $monthFilter, $year);
+
+        return $this->render('@Admin/billing/invoices.html.twig', [
+            'allInvoices' => $allInvoices,
+            'planInfos' => $invoiceInfo['planInfos'],
+            'invoiceTypes' => $invoiceInfo['types'],
+            'billingDates' => $invoiceInfo['dates'],
+            'stats' => $stats,
+            'currentStatus' => $status,
+            'currentSearch' => $search,
+            'selectedMonth' => $month,
+            'selectedYear' => $year,
+            'currentPage' => $page,
+            'totalPages' => max(1, (int) ceil($totalInvoices / $perPage)),
+            'totalInvoices' => $totalInvoices,
+        ]);
+    }
+
+    private function validateMonth(int $month): int
+    {
+        return ($month >= 1 && $month <= 12) ? $month : 0;
+    }
+
+    private function validateYear(int $year): int
+    {
+        return ($year >= 2020 && $year <= 2100) ? $year : (int) date('Y');
+    }
+
+    private function processInvoicesInfo(array $invoices): array
+    {
+        $invoiceIds = array_map(fn($inv) => $inv->getId(), $invoices);
         $connection = $this->entityManager->getConnection();
-        $subscriptionInvoiceIdsFromTransactions = [];
-        if (!empty($allInvoiceIds)) {
+
+        // Identifier les factures d'abonnement via les transactions
+        $subscriptionInvoiceIds = [];
+        if (!empty($invoiceIds)) {
             $sql = "
                 SELECT DISTINCT id_facture 
                 FROM aiolia.transactions_paiement_mobile 
@@ -119,74 +123,112 @@ class BillingController extends AbstractController
             ";
             $results = $connection->fetchAllAssociative(
                 $sql,
-                ['invoice_ids' => $allInvoiceIds],
+                ['invoice_ids' => $invoiceIds],
                 ['invoice_ids' => \Doctrine\DBAL\ArrayParameterType::INTEGER]
             );
             foreach ($results as $row) {
-                $subscriptionInvoiceIdsFromTransactions[(string) $row['id_facture']] = true;
+                $subscriptionInvoiceIds[(string) $row['id_facture']] = true;
             }
         }
-        
-        $billingDates = []; // Tableau pour stocker les dates de facturation par ID de facture
-        
-        foreach ($allInvoices as $invoice) {
+
+        $types = [];
+        $dates = [];
+        $subscriptionInvoices = [];
+
+        foreach ($invoices as $invoice) {
             $invoiceId = (string) $invoice->getId();
-            // Vérifier si c'est une facture d'abonnement via instanceof OU via les transactions
-            if ($invoice instanceof SubscriptionInvoice || isset($subscriptionInvoiceIdsFromTransactions[$invoiceId])) {
-                $invoiceTypes[$invoiceId] = 'subscription';
-                $subscriptionInvoicesOnly[] = $invoice;
-                // Pour les factures d'abonnement, utiliser directement getBillingMonth()
-                // Le champ mois_facturation contient le mois et l'année de la période facturée
+            
+            // Déterminer le type
+            if ($invoice instanceof SubscriptionInvoice || isset($subscriptionInvoiceIds[$invoiceId])) {
+                $types[$invoiceId] = 'subscription';
                 if ($invoice instanceof SubscriptionInvoice) {
-                    // Utiliser directement le mois de facturation stocké en base
-                    // Ce champ représente le mois et l'année de la période facturée (ex: 2025-06-01 pour juin 2025)
-                    $billingDates[$invoiceId] = $invoice->getBillingMonth();
+                    $subscriptionInvoices[] = $invoice;
+                    // Normaliser la date de facturation pour les factures d'abonnement
+                    $billingMonth = $invoice->getBillingMonth();
+                    if ($billingMonth instanceof \DateTimeInterface) {
+                        $normalizedDate = \DateTimeImmutable::createFromInterface($billingMonth)
+                            ->modify('first day of this month')
+                            ->setTime(0, 0, 0);
+                        $dates[$invoiceId] = $normalizedDate;
+                    } else {
+                        $dates[$invoiceId] = $invoice->getIssuedAt();
+                    }
                 } else {
                     // Si c'est identifié via les transactions mais pas une instance, utiliser issuedAt
-                    $billingDates[$invoiceId] = $invoice->getIssuedAt();
+                    $dates[$invoiceId] = $invoice->getIssuedAt();
                 }
             } else {
-                $invoiceTypes[$invoiceId] = 'ticket';
-                // Pour les factures de tickets, utiliser issuedAt
-                $billingDates[$invoiceId] = $invoice->getIssuedAt();
+                $types[$invoiceId] = 'ticket';
+                $dates[$invoiceId] = $invoice->getIssuedAt();
+            }
+        }
+
+        // Récupérer les informations de plan
+        $planInfos = [];
+        if (!empty($subscriptionInvoices)) {
+            // Récupérer les informations de plan pour toutes les factures d'abonnement
+            $planInfos = $this->subscriptionInvoiceRepository->getPlanInfosForInvoices($subscriptionInvoices);
+            
+            // Compléter avec les informations manquantes pour chaque facture d'abonnement
+            foreach ($subscriptionInvoices as $invoice) {
+                $invoiceId = (string) $invoice->getId();
+                // Vérifier si la facture n'a pas de planInfo ou si le planInfo est vide/invalide
+                if (!isset($planInfos[$invoiceId]) || 
+                    !is_array($planInfos[$invoiceId]) || 
+                    !isset($planInfos[$invoiceId]['niveau']) ||
+                    $planInfos[$invoiceId]['niveau'] === null ||
+                    $planInfos[$invoiceId]['niveau'] === '') {
+                    // Essayer de récupérer individuellement
+                    $planInfo = $this->subscriptionInvoiceRepository->getPlanInfoForInvoice($invoice);
+                    if ($planInfo && is_array($planInfo) && isset($planInfo['niveau']) && 
+                        $planInfo['niveau'] !== null && $planInfo['niveau'] !== '') {
+                        $planInfos[$invoiceId] = $planInfo;
+                    }
+                }
             }
         }
         
-        if (!empty($subscriptionInvoicesOnly)) {
-            $planInfos = $this->subscriptionInvoiceRepository->getPlanInfosForInvoices($subscriptionInvoicesOnly);
-        }
+        // Debug temporaire - à supprimer après résolution
+        // Compter les factures par type pour comprendre le problème
+        $debugSubscriptionCount = count($subscriptionInvoices);
+        $debugTotalCount = count($invoices);
+        $debugPlanInfosCount = count($planInfos);
+        // Logger ou utiliser dd() pour débugger
+        // $this->logger->info('BillingController Debug', [
+        //     'total_invoices' => $debugTotalCount,
+        //     'subscription_invoices' => $debugSubscriptionCount,
+        //     'plan_infos_found' => $debugPlanInfosCount,
+        //     'types' => $types,
+        // ]);
 
-        // Statistiques basées sur les filtres appliqués
-        $stats = [
-            'total' => $ticketTotal + $subscriptionTotal,
-            'paid' => $this->countByStatus('paid', $search, $dateFromObj, $dateToObj),
-            'pending' => $this->countByStatus('issued', $search, $dateFromObj, $dateToObj)
-                + $this->countByStatus('draft', $search, $dateFromObj, $dateToObj)
-                + $this->countByStatus('overdue', $search, $dateFromObj, $dateToObj),
-            'cancelled' => $this->countByStatus('void', $search, $dateFromObj, $dateToObj) + $this->countByStatus('refunded', $search, $dateFromObj, $dateToObj),
+        return [
+            'types' => $types,
+            'dates' => $dates,
+            'planInfos' => $planInfos
         ];
-
-        return $this->render('@Admin/billing/invoices.html.twig', [
-            'ticketInvoices' => $ticketInvoices,
-            'subscriptionInvoices' => $subscriptionInvoices,
-            'allInvoices' => $allInvoices,
-            'planInfos' => $planInfos,
-            'invoiceTypes' => $invoiceTypes,
-            'billingDates' => $billingDates,
-            'stats' => $stats,
-            'currentStatus' => $status,
-            'currentSearch' => $search,
-            'currentDateFrom' => $dateFrom,
-            'currentDateTo' => $dateTo,
-            'currentPage' => $page,
-            'totalPages' => max(1, (int) ceil($totalInvoices / $perPage)),
-            'totalInvoices' => $totalInvoices,
-        ]);
     }
 
-    /**
-     * Détails d'une facture de billet
-     */
+    private function calculateStats(?string $status, ?string $search, ?int $month, ?int $year): array
+    {
+        return [
+            'total' => $this->countByStatus(null, $search, $month, $year),
+            'paid' => $this->countByStatus('paid', $search, $month, $year),
+            'pending' => $this->countByStatus('issued', $search, $month, $year)
+                + $this->countByStatus('draft', $search, $month, $year)
+                + $this->countByStatus('overdue', $search, $month, $year),
+            'cancelled' => $this->countByStatus('void', $search, $month, $year) 
+                + $this->countByStatus('refunded', $search, $month, $year),
+        ];
+    }
+
+    private function countByStatus(?string $status, ?string $search, ?int $month, ?int $year): int
+    {
+        $count = 0;
+        $count += $this->ticketInvoiceRepository->countWithFilters($status, $search, $month, $year);
+        $count += $this->subscriptionInvoiceRepository->countWithFilters($status, $search, $month, $year);
+        return $count;
+    }
+
     #[Route('/ticket-invoice/{id}', name: 'admin_billing_ticket_invoice_show', requirements: ['id' => '\d+'])]
     public function showTicketInvoice(string $id): Response
     {
@@ -204,9 +246,6 @@ class BillingController extends AbstractController
         ]);
     }
 
-    /**
-     * Détails d'une facture d'abonnement
-     */
     #[Route('/subscription-invoice/{id}', name: 'admin_billing_subscription_invoice_show', requirements: ['id' => '\d+'])]
     public function showSubscriptionInvoice(string $id): Response
     {
@@ -217,59 +256,24 @@ class BillingController extends AbstractController
             return $this->redirectToRoute('admin_billing_invoices');
         }
 
-        // Récupérer les informations complètes du plan d'abonnement
+        // Récupérer les informations de plan
         $planInfo = $this->invoiceDetailService->getPlanInfo($invoice);
-        // Si planInfo est null, essayer de récupérer via le repository directement
-        if (!$planInfo) {
+        // Si planInfo est null ou vide, essayer de récupérer via le repository directement
+        if (!$planInfo || (is_array($planInfo) && empty($planInfo))) {
             $planInfo = $this->subscriptionInvoiceRepository->getPlanInfoForInvoice($invoice);
         }
-        // S'assurer que planInfo est toujours un tableau (même vide) pour éviter les erreurs dans le template
-        if (!$planInfo) {
-            $planInfo = [];
+        // S'assurer que planInfo est null si vide (pas un tableau vide) pour que le template puisse vérifier correctement
+        if (is_array($planInfo) && empty($planInfo)) {
+            $planInfo = null;
         }
-        $planTier = $planInfo['niveau'] ?? null;
+        $planTier = $planInfo && isset($planInfo['niveau']) ? $planInfo['niveau'] : null;
 
-        // Récupérer l'organisateur (via le customer qui est l'organisateur)
+        // Organisateur et historique
         $organizer = $invoice->getCustomer();
-        
-        // Récupérer les factures précédentes pour l'historique
-        $previousInvoices = $this->subscriptionInvoiceRepository->createQueryBuilder('si')
-            ->where('si.customer = :customer')
-            ->andWhere('si.id != :currentId')
-            ->andWhere('si.createdAt < :currentDate')
-            ->setParameter('customer', $organizer)
-            ->setParameter('currentId', $invoice->getId())
-            ->setParameter('currentDate', $invoice->getCreatedAt())
-            ->orderBy('si.createdAt', 'DESC')
-            ->setMaxResults(10)
-            ->getQuery()
-            ->getResult();
+        $previousInvoices = $this->getPreviousInvoices($invoice, $organizer);
+        $previousInvoicesWithPlan = $this->enrichInvoicesWithPlanInfo($previousInvoices);
 
-        // Préparer les informations de plan pour chaque facture précédente
-        $previousInvoicesWithPlan = [];
-        foreach ($previousInvoices as $prevInvoice) {
-            $prevPlanInfo = $this->subscriptionInvoiceRepository->getPlanInfoForInvoice($prevInvoice);
-            $previousInvoicesWithPlan[] = [
-                'invoice' => $prevInvoice,
-                'planInfo' => $prevPlanInfo,
-                'planTier' => $prevPlanInfo['niveau'] ?? null,
-            ];
-        }
-
-        // Vérifier s'il y a eu un changement de plan (comparer avec la facture précédente)
-        $planChanged = false;
-        if (!empty($previousInvoicesWithPlan) && $planInfo) {
-            $previousPlanInfo = $previousInvoicesWithPlan[0]['planInfo'];
-            $previousPlanTier = $previousPlanInfo['niveau'] ?? null;
-            $planChanged = ($previousPlanTier !== $planTier) ||
-                          ($planInfo['periode_facturation'] ?? null) !== ($previousPlanInfo['periode_facturation'] ?? null);
-        }
-
-        $invoiceItems = $this->invoiceDetailService->getInvoiceItems($invoice);
-        $paymentMethod = $this->invoiceDetailService->getPaymentMethod($invoice);
-        
-        // Récupérer la date de facturation pour l'affichage
-        $billingDate = $invoice->getBillingMonth();
+        $planChanged = $this->checkPlanChange($planInfo, $previousInvoicesWithPlan);
 
         return $this->render('@Admin/billing/invoice_show.html.twig', [
             'invoice' => $invoice,
@@ -279,15 +283,56 @@ class BillingController extends AbstractController
             'organizer' => $organizer,
             'previousInvoices' => $previousInvoicesWithPlan,
             'planChanged' => $planChanged,
-            'invoiceItems' => $invoiceItems,
-            'paymentMethod' => $paymentMethod,
-            'billingDate' => $billingDate,
+            'invoiceItems' => $this->invoiceDetailService->getInvoiceItems($invoice),
+            'paymentMethod' => $this->invoiceDetailService->getPaymentMethod($invoice),
+            'billingDate' => $invoice->getBillingMonth(),
         ]);
     }
 
-    /**
-     * Télécharger le PDF d'une facture de billet
-     */
+    private function getPreviousInvoices(SubscriptionInvoice $currentInvoice, $organizer): array
+    {
+        return $this->subscriptionInvoiceRepository->createQueryBuilder('si')
+            ->where('si.customer = :customer')
+            ->andWhere('si.id != :currentId')
+            ->andWhere('si.createdAt < :currentDate')
+            ->setParameter('customer', $organizer)
+            ->setParameter('currentId', $currentInvoice->getId())
+            ->setParameter('currentDate', $currentInvoice->getCreatedAt())
+            ->orderBy('si.createdAt', 'DESC')
+            ->setMaxResults(10)
+            ->getQuery()
+            ->getResult();
+    }
+
+    private function enrichInvoicesWithPlanInfo(array $invoices): array
+    {
+        $result = [];
+        foreach ($invoices as $invoice) {
+            $planInfo = $this->subscriptionInvoiceRepository->getPlanInfoForInvoice($invoice);
+            $result[] = [
+                'invoice' => $invoice,
+                'planInfo' => $planInfo,
+                'planTier' => $planInfo['niveau'] ?? null,
+            ];
+        }
+        return $result;
+    }
+
+    private function checkPlanChange(?array $currentPlanInfo, array $previousInvoices): bool
+    {
+        if (empty($previousInvoices) || empty($currentPlanInfo)) {
+            return false;
+        }
+
+        $previousPlanInfo = $previousInvoices[0]['planInfo'] ?? null;
+        if (!$previousPlanInfo) {
+            return false;
+        }
+
+        return ($previousPlanInfo['niveau'] ?? null) !== ($currentPlanInfo['niveau'] ?? null)
+            || ($previousPlanInfo['periode_facturation'] ?? null) !== ($currentPlanInfo['periode_facturation'] ?? null);
+    }
+
     #[Route('/ticket-invoice/{id}/pdf', name: 'admin_billing_ticket_invoice_pdf', requirements: ['id' => '\d+'])]
     public function downloadTicketInvoicePdf(string $id): Response
     {
@@ -301,9 +346,6 @@ class BillingController extends AbstractController
         return $this->pdfService->generateTicketInvoicePdf($invoice);
     }
 
-    /**
-     * Télécharger le PDF d'une facture d'abonnement
-     */
     #[Route('/subscription-invoice/{id}/pdf', name: 'admin_billing_subscription_invoice_pdf', requirements: ['id' => '\d+'])]
     public function downloadSubscriptionInvoicePdf(string $id): Response
     {
@@ -314,18 +356,9 @@ class BillingController extends AbstractController
             return $this->redirectToRoute('admin_billing_invoices');
         }
 
-        // Récupérer l'admin connecté
-        $admin = $this->getUser();
-        if (!$admin instanceof \App\Entity\User) {
-            $admin = null;
-        }
-
-        return $this->pdfService->generateSubscriptionInvoicePdf($invoice, $admin);
+        return $this->pdfService->generateSubscriptionInvoicePdf($invoice, $this->getUser());
     }
 
-    /**
-     * Renvoyer une facture par email
-     */
     #[Route('/ticket-invoice/{id}/resend', name: 'admin_billing_ticket_invoice_resend', methods: ['POST'], requirements: ['id' => '\d+'])]
     public function resendTicketInvoice(string $id): Response
     {
@@ -336,18 +369,11 @@ class BillingController extends AbstractController
             return $this->redirectToRoute('admin_billing_invoices');
         }
 
-        if ($this->emailService->sendTicketInvoice($invoice)) {
-            $this->addFlash('success', sprintf('Facture %s envoyée avec succès', $invoice->getInvoiceNumber()));
-        } else {
-            $this->addFlash('error', 'Erreur lors de l\'envoi de la facture');
-        }
+        $this->sendEmailAndNotify($invoice, 'ticket');
 
         return $this->redirectToRoute('admin_billing_ticket_invoice_show', ['id' => $id]);
     }
 
-    /**
-     * Renvoyer une facture d'abonnement par email
-     */
     #[Route('/subscription-invoice/{id}/resend', name: 'admin_billing_subscription_invoice_resend', methods: ['POST'], requirements: ['id' => '\d+'])]
     public function resendSubscriptionInvoice(string $id): Response
     {
@@ -358,18 +384,11 @@ class BillingController extends AbstractController
             return $this->redirectToRoute('admin_billing_invoices');
         }
 
-        if ($this->emailService->sendSubscriptionInvoice($invoice)) {
-            $this->addFlash('success', sprintf('Facture %s envoyée avec succès', $invoice->getInvoiceNumber()));
-        } else {
-            $this->addFlash('error', 'Erreur lors de l\'envoi de la facture');
-        }
+        $this->sendEmailAndNotify($invoice, 'subscription');
 
         return $this->redirectToRoute('admin_billing_subscription_invoice_show', ['id' => $id]);
     }
 
-    /**
-     * Envoyer un email de notification à l'organisateur pour une facture en retard
-     */
     #[Route('/subscription-invoice/{id}/notify', name: 'admin_billing_subscription_invoice_notify', methods: ['POST'], requirements: ['id' => '\d+'])]
     public function notifyOrganizerAboutOverdueInvoice(string $id): Response
     {
@@ -380,29 +399,36 @@ class BillingController extends AbstractController
             return $this->redirectToRoute('admin_billing_invoices');
         }
 
-        // Envoyer un email de notification spécial pour les factures en retard
-        if ($this->emailService->sendSubscriptionInvoice($invoice, true)) {
-            $daysOverdue = $invoice->getDaysOverdue();
-            $message = $daysOverdue !== null
-                ? sprintf('Signalement de retard envoyé à l\'organisateur pour la facture %s (%d jour(s) de retard)', $invoice->getInvoiceNumber(), $daysOverdue)
-                : sprintf('Signalement de retard envoyé à l\'organisateur pour la facture %s', $invoice->getInvoiceNumber());
-            $this->addFlash('success', $message);
-        } else {
-            $this->addFlash('error', 'Erreur lors de l\'envoi du signalement de retard');
-        }
+        $success = $this->emailService->sendSubscriptionInvoice($invoice, true);
+        $this->handleNotificationResult($success, $invoice);
 
         return $this->redirectToRoute('admin_billing_subscription_invoice_show', ['id' => $id]);
     }
 
-    /**
-     * Compte les factures par statut
-     */
-    private function countByStatus(string $status, ?string $search = null, ?\DateTime $dateFrom = null, ?\DateTime $dateTo = null): int
+    private function sendEmailAndNotify($invoice, string $type): void
     {
-        $count = 0;
-        $count += $this->ticketInvoiceRepository->countWithFilters($status, $search, $dateFrom, $dateTo);
-        $count += $this->subscriptionInvoiceRepository->countWithFilters($status, $search, $dateFrom, $dateTo);
-        return $count;
+        $method = $type === 'ticket' ? 'sendTicketInvoice' : 'sendSubscriptionInvoice';
+        $success = $this->emailService->$method($invoice);
+
+        if ($success) {
+            $this->addFlash('success', sprintf('Facture %s envoyée avec succès', $invoice->getInvoiceNumber()));
+        } else {
+            $this->addFlash('error', 'Erreur lors de l\'envoi de la facture');
+        }
+    }
+
+    private function handleNotificationResult(bool $success, SubscriptionInvoice $invoice): void
+    {
+        if ($success) {
+            $daysOverdue = $invoice->getDaysOverdue();
+            $message = $daysOverdue !== null
+                ? sprintf('Signalement de retard envoyé à l\'organisateur pour la facture %s (%d jour(s) de retard)', 
+                    $invoice->getInvoiceNumber(), $daysOverdue)
+                : sprintf('Signalement de retard envoyé à l\'organisateur pour la facture %s', 
+                    $invoice->getInvoiceNumber());
+            $this->addFlash('success', $message);
+        } else {
+            $this->addFlash('error', 'Erreur lors de l\'envoi du signalement de retard');
+        }
     }
 }
-

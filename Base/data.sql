@@ -31,9 +31,9 @@ INSERT INTO utilisateurs (
     statut,
     cree_le,
     modifie_le
-) VALUESp
-    (1, TRIM('admin1@yopmail.com'), 'admin1', 'password', '$2y$10$ylqnSxPyu8h9h/J/xLMf7OXbSvojM.ajqezk2Mq0qmN64e1KnCPAS', 'Admin', 'One', '+261343500003', 'admin', 1, '2025-01-10', '2025-01-10'),
-    (2, TRIM('admin2@yopmail.com'), 'admin2', 'password', '$2y$10$ylqnSxPyu8h9h/J/xLMf7OXbSvojM.ajqezk2Mq0qmN64e1KnCPAS', 'Admin', 'Two', '+261343500004', 'admin', 1, '2025-01-11', '2025-01-11');
+) VALUES
+    (1, TRIM('admin1@yopmail.com'), 'admin1', 'password', '$2y$13$vS5.Y6Ou8Ipz5B31DNCzFe1XWCBGKBKJ7zBdR6.dLs3lmLBRbpAXy', 'Admin', 'One', '+261343500003', 'admin', 1, '2025-01-10', '2025-01-10'),
+    (2, TRIM('admin2@yopmail.com'), 'admin2', 'password', '$2y$13$vS5.Y6Ou8Ipz5B31DNCzFe1XWCBGKBKJ7zBdR6.dLs3lmLBRbpAXy', 'Admin', 'Two', '+261343500004', 'admin', 1, '2025-01-11', '2025-01-11');
 
 INSERT INTO profils_admin (id, id_utilisateur, nom_affichage, nom_legal, cree_le, modifie_le)
 VALUES
@@ -46,7 +46,7 @@ INSERT INTO utilisateurs (
     email,
     identifiant_connexion,
     methode_connexion,
-    hash_mot_de_passe,
+    hash_mot_de_passe,admin1@yopmail.com
     prenom,
     nom,
     telephone,
@@ -60,7 +60,7 @@ SELECT
     regexp_replace(format('organisateur%02s@yopmail.com', profile_id + 10), '\s+', '', 'g'),
     format('organisateur%02s', profile_id + 10),
     'password',
-    'hash-organizer',
+    '$2y$13$vS5.Y6Ou8Ipz5B31DNCzFe1XWCBGKBKJ7zBdR6.dLs3lmLBRbpAXy',  -- azerty! avec cost 13
     'Org',
     format('Test %02s', profile_id),
     CASE 
@@ -148,7 +148,7 @@ SELECT
     regexp_replace(format('utilisateur%02s@yopmail.com', gs), '\s+', '', 'g'),
     format('user%02s', gs),
     'password',
-    'hash-user',
+    '$2y$13$vS5.Y6Ou8Ipz5B31DNCzFe1XWCBGKBKJ7zBdR6.dLs3lmLBRbpAXy',  -- azerty! avec cost 13
     format('User%02s', gs),
     'Test',
     CASE WHEN gs % 2 = 0 THEN '+261343500003' ELSE '+261343500004' END,
@@ -224,7 +224,8 @@ SELECT
     '2025-06-01',
     '2025-06-30'
 FROM profils_organisateurs po
-WHERE po.id BETWEEN 1 AND 10;
+WHERE po.id BETWEEN 1 AND 10
+  AND po.statut_verification = 'verified';  -- Exclure les non validés
 
 -- Factures pour JUIN 2025
 INSERT INTO factures_abonnements (
@@ -267,7 +268,8 @@ JOIN plans_abonnements p ON ao.id_plan = p.id
 JOIN profils_organisateurs po ON ao.id_profil_organisateur = po.id
 JOIN utilisateurs u ON po.id_utilisateur = u.id
 WHERE ao.debut_periode_courante = '2025-06-01'
-  AND ao.statut = 'active';
+  AND ao.statut = 'active'
+  AND po.statut_verification = 'verified';  -- Exclure les non validés
 
 -- JUILLET 2025 : 12 organisateurs actifs
 -- Les 10 existants + 2 nouveaux (IDs 11,12)
@@ -305,7 +307,8 @@ SELECT
     '2025-07-01',
     '2025-07-31'
 FROM profils_organisateurs po
-WHERE po.id BETWEEN 1 AND 10;
+WHERE po.id BETWEEN 1 AND 10
+  AND po.statut_verification = 'verified';  -- Exclure les non validés
 
 -- Nouveaux organisateurs (11,12) avec plan pro
 INSERT INTO abonnements_organisateurs (
@@ -326,7 +329,8 @@ SELECT
     '2025-07-01',
     '2025-07-31'
 FROM profils_organisateurs po
-WHERE po.id IN (11, 12);
+WHERE po.id IN (11, 12)
+  AND po.statut_verification = 'verified';  -- Exclure les non validés
 
 -- Factures pour JUILLET 2025
 INSERT INTO factures_abonnements (
@@ -369,7 +373,8 @@ JOIN plans_abonnements p ON ao.id_plan = p.id
 JOIN profils_organisateurs po ON ao.id_profil_organisateur = po.id
 JOIN utilisateurs u ON po.id_utilisateur = u.id
 WHERE ao.debut_periode_courante = '2025-07-01'
-  AND ao.statut = 'active';
+  AND ao.statut = 'active'
+  AND po.statut_verification = 'verified';  -- Exclure les non validés
 
 -- AOÛT 2025 : 16 organisateurs actifs
 -- Les 12 existants + 4 nouveaux (IDs 13-16)
@@ -409,7 +414,8 @@ SELECT
     '2025-08-01',
     '2025-08-31'
 FROM profils_organisateurs po
-WHERE po.id BETWEEN 1 AND 12;
+WHERE po.id BETWEEN 1 AND 12
+  AND po.statut_verification = 'verified';  -- Exclure les non validés
 
 -- Nouveaux organisateurs (13-16) avec plan entreprise
 INSERT INTO abonnements_organisateurs (
@@ -430,7 +436,8 @@ SELECT
     '2025-08-01',
     '2025-08-31'
 FROM profils_organisateurs po
-WHERE po.id IN (13, 14, 15, 16);
+WHERE po.id IN (13, 14, 15, 16)
+  AND po.statut_verification = 'verified';  -- Exclure les non validés
 
 -- Factures pour AOÛT 2025
 INSERT INTO factures_abonnements (
@@ -473,7 +480,8 @@ JOIN plans_abonnements p ON ao.id_plan = p.id
 JOIN profils_organisateurs po ON ao.id_profil_organisateur = po.id
 JOIN utilisateurs u ON po.id_utilisateur = u.id
 WHERE ao.debut_periode_courante = '2025-08-01'
-  AND ao.statut = 'active';
+  AND ao.statut = 'active'
+  AND po.statut_verification = 'verified';  -- Exclure les non validés
 
 -- 2 organisateurs en pause en août (qui reviennent en octobre)
 -- IDs 1 et 2 en pause à partir du 15 août
@@ -516,7 +524,8 @@ SELECT
     '2025-09-01',
     '2025-11-30'  -- Fin du trimestre
 FROM profils_organisateurs po
-WHERE po.id IN (17, 18, 19, 20);
+WHERE po.id IN (17, 18, 19, 20)
+  AND po.statut_verification = 'verified';  -- Exclure les non validés
 
 -- Ensuite, créons les abonnements pour les organisateurs existants (sauf en pause)
 -- Certains passent de mensuel à trimestriel
@@ -558,8 +567,8 @@ SELECT
         ELSE TIMESTAMPTZ '2025-09-30'  -- Mensuels
     END
 FROM profils_organisateurs po
-WHERE po.id BETWEEN 3 AND 16
-   OR po.id IN (9, 10, 13, 14, 15, 16);
+WHERE (po.id BETWEEN 3 AND 16 OR po.id IN (9, 10, 13, 14, 15, 16))
+  AND po.statut_verification = 'verified';  -- Exclure les non validés
 
 -- Factures pour SEPTEMBRE 2025 (9 mensuels + 9 trimestriels = 18 factures)
 INSERT INTO factures_abonnements (
@@ -602,7 +611,52 @@ JOIN plans_abonnements p ON ao.id_plan = p.id
 JOIN profils_organisateurs po ON ao.id_profil_organisateur = po.id
 JOIN utilisateurs u ON po.id_utilisateur = u.id
 WHERE ao.debut_periode_courante = '2025-09-01'
-  AND ao.statut = 'active';
+  AND ao.statut = 'active'
+  AND po.statut_verification = 'verified';  -- Exclure les non validés
+
+-- Factures pour SEPTEMBRE 2025 : Factures avec montant 0 pour les organisateurs en pause (IDs 1, 2)
+INSERT INTO factures_abonnements (
+    id_abonnement,
+    id_client,
+    devise,
+    montant_sous_total,
+    montant_tva,
+    montant_total,
+    montant_ht,
+    montant_tva_detail,
+    montant_ttc,
+    mois_facturation,
+    est_mois_pause,
+    est_prepayee,
+    statut,
+    emise_le,
+    echeance_le,
+    payee_le
+)
+SELECT
+    ao.id,
+    u.id,
+    'MGA',
+    0,  -- Montant 0 pour les organisateurs en pause
+    0,
+    0,
+    0,
+    0,
+    0,
+    '2025-09-01',
+    TRUE,  -- est_mois_pause = TRUE
+    FALSE,
+    'paid',
+    '2025-09-01',
+    '2025-09-15',
+    '2025-09-01'
+FROM abonnements_organisateurs ao
+JOIN profils_organisateurs po ON ao.id_profil_organisateur = po.id
+JOIN utilisateurs u ON po.id_utilisateur = u.id
+WHERE ao.statut = 'paused'
+  AND ao.id_profil_organisateur IN (1, 2)
+  AND ao.mis_en_pause_le <= '2025-09-01'
+  AND (ao.repris_le IS NULL OR ao.repris_le > '2025-09-01');
 
 -- OCTOBRE 2025 : 22 organisateurs actifs + 0 en pause
 -- Les 2 en pause (IDs 1,2) reviennent
@@ -632,7 +686,8 @@ SELECT
     '2025-10-31',
     '2025-10-01'
 FROM profils_organisateurs po
-WHERE po.id IN (1, 2);
+WHERE po.id IN (1, 2)
+  AND po.statut_verification = 'verified';  -- Exclure les non validés
 
 -- Ensuite, créons les abonnements mensuels pour octobre
 INSERT INTO abonnements_organisateurs (
@@ -662,7 +717,8 @@ SELECT
     '2025-10-01',
     '2025-10-31'
 FROM profils_organisateurs po
-WHERE po.id IN (9, 10, 13, 14, 17, 18, 21, 22);
+WHERE po.id IN (9, 10, 13, 14, 17, 18, 21, 22)
+  AND po.statut_verification = 'verified';  -- Exclure les non validés (23)
 
 -- Créons les abonnements trimestriels pour octobre
 -- Ce sont les organisateurs qui ont déjà un trimestriel en septembre et qui continuent
@@ -692,7 +748,8 @@ SELECT
     '2025-10-01',
     '2025-12-31'
 FROM profils_organisateurs po
-WHERE po.id IN (3, 4, 6, 7, 8, 11, 12);
+WHERE po.id IN (3, 4, 6, 7, 8, 11, 12)
+  AND po.statut_verification = 'verified';  -- Exclure les non validés
 
 -- Mettons 4 organisateurs en pause (IDs 15, 16, 19, 20) qui reviendront en décembre
 INSERT INTO abonnements_organisateurs (
@@ -723,6 +780,7 @@ FROM profils_organisateurs po
 WHERE po.id IN (15, 16, 19, 20);
 
 -- Créons 9 abonnements prépayés
+-- EXCLURE les organisateurs non validés (23, 25, 26)
 INSERT INTO abonnements_organisateurs (
     id_profil_organisateur,
     id_plan,
@@ -741,7 +799,8 @@ SELECT
     '2025-10-01',
     '2026-09-30'
 FROM profils_organisateurs po
-WHERE po.id IN (5, 23, 24, 25, 26, 1, 2, 9, 10)
+WHERE po.id IN (5, 24, 1, 2, 9, 10, 11, 12, 13)
+  AND po.statut_verification = 'verified'  -- Exclure les non validés
 LIMIT 9;
 
 -- Factures pour OCTOBRE 2025 : 6 mensuels + 7 trimestriels + 9 prépayés
@@ -790,6 +849,7 @@ WHERE ao.debut_periode_courante = '2025-10-01'
   AND p.periode_facturation = 'monthly'
   AND ao.mois_prepayes_restants = 0
   AND ao.id_profil_organisateur IN (1, 2, 9, 10, 17, 18)
+  AND po.statut_verification = 'verified'  -- Exclure les non validés
 LIMIT 6;
 
 -- Factures trimestrielles (7)
@@ -837,6 +897,7 @@ WHERE ao.debut_periode_courante = '2025-10-01'
   AND p.periode_facturation = 'quarterly'
   AND ao.mois_prepayes_restants = 0
   AND ao.id_profil_organisateur IN (3, 4, 6, 7, 8, 11, 12)
+  AND po.statut_verification = 'verified'  -- Exclure les non validés
 LIMIT 7;
 
 -- Factures prépayées (9)
@@ -881,7 +942,52 @@ JOIN utilisateurs u ON po.id_utilisateur = u.id
 WHERE ao.debut_periode_courante = '2025-10-01'
   AND ao.statut = 'active'
   AND ao.mois_prepayes_restants > 0
+  AND po.statut_verification = 'verified'  -- Exclure les non validés
 LIMIT 9;
+
+-- Factures pour OCTOBRE 2025 : Factures avec montant 0 pour les organisateurs en pause (IDs 15, 16, 19, 20)
+INSERT INTO factures_abonnements (
+    id_abonnement,
+    id_client,
+    devise,
+    montant_sous_total,
+    montant_tva,
+    montant_total,
+    montant_ht,
+    montant_tva_detail,
+    montant_ttc,
+    mois_facturation,
+    est_mois_pause,
+    est_prepayee,
+    statut,
+    emise_le,
+    echeance_le,
+    payee_le
+)
+SELECT
+    ao.id,
+    u.id,
+    'MGA',
+    0,  -- Montant 0 pour les organisateurs en pause
+    0,
+    0,
+    0,
+    0,
+    0,
+    '2025-10-01',
+    TRUE,  -- est_mois_pause = TRUE
+    FALSE,
+    'paid',
+    '2025-10-01',
+    '2025-10-15',
+    '2025-10-01'
+FROM abonnements_organisateurs ao
+JOIN profils_organisateurs po ON ao.id_profil_organisateur = po.id
+JOIN utilisateurs u ON po.id_utilisateur = u.id
+WHERE ao.statut = 'paused'
+  AND ao.id_profil_organisateur IN (15, 16, 19, 20)
+  AND ao.mis_en_pause_le <= '2025-10-01'
+  AND (ao.repris_le IS NULL OR ao.repris_le > '2025-10-01');
 
 -- NOVEMBRE 2025 : 19 organisateurs actifs + 4 en pause
 -- Les 4 en pause restent (IDs 15, 16, 19, 20)
@@ -913,7 +1019,8 @@ SELECT
     '2025-11-01',
     '2025-11-30'
 FROM profils_organisateurs po
-WHERE po.id IN (18, 24, 13);
+WHERE po.id IN (18, 24, 13)
+  AND po.statut_verification = 'verified';  -- Exclure les non validés (25, 26)
 
 -- Créons les 2 abonnements trimestriels
 INSERT INTO abonnements_organisateurs (
@@ -937,7 +1044,8 @@ SELECT
     '2025-11-01',
     '2026-01-31'
 FROM profils_organisateurs po
-WHERE po.id IN (3, 4);
+WHERE po.id IN (3, 4)
+  AND po.statut_verification = 'verified';  -- Exclure les non validés
 
 -- Ajoutons 5 nouveaux prépayés (total prépayés = 9 d'octobre + 5 = 14)
 INSERT INTO abonnements_organisateurs (
@@ -959,6 +1067,7 @@ SELECT
     '2026-10-31'
 FROM profils_organisateurs po
 WHERE po.id IN (21, 22, 14, 17, 6)
+  AND po.statut_verification = 'verified'  -- Exclure les non validés (23, 25, 26)
 LIMIT 5;
 
 -- Factures pour NOVEMBRE 2025 : 3 mensuels + 2 trimestriels
@@ -1007,6 +1116,7 @@ WHERE ao.debut_periode_courante = '2025-11-01'
   AND p.periode_facturation = 'monthly'
   AND ao.mois_prepayes_restants = 0
   AND ao.id_profil_organisateur IN (18, 24, 13)
+  AND po.statut_verification = 'verified'  -- Exclure les non validés (25, 26)
 LIMIT 3;
 
 -- Factures trimestrielles (2)
@@ -1054,7 +1164,52 @@ WHERE ao.debut_periode_courante = '2025-11-01'
   AND p.periode_facturation = 'quarterly'
   AND ao.mois_prepayes_restants = 0
   AND ao.id_profil_organisateur IN (3, 4)
+  AND po.statut_verification = 'verified'  -- Exclure les non validés
 LIMIT 2;
+
+-- Factures pour NOVEMBRE 2025 : Factures avec montant 0 pour les organisateurs en pause (IDs 15, 16, 19, 20)
+INSERT INTO factures_abonnements (
+    id_abonnement,
+    id_client,
+    devise,
+    montant_sous_total,
+    montant_tva,
+    montant_total,
+    montant_ht,
+    montant_tva_detail,
+    montant_ttc,
+    mois_facturation,
+    est_mois_pause,
+    est_prepayee,
+    statut,
+    emise_le,
+    echeance_le,
+    payee_le
+)
+SELECT
+    ao.id,
+    u.id,
+    'MGA',
+    0,  -- Montant 0 pour les organisateurs en pause
+    0,
+    0,
+    0,
+    0,
+    0,
+    '2025-11-01',
+    TRUE,  -- est_mois_pause = TRUE
+    FALSE,
+    'paid',
+    '2025-11-01',
+    '2025-11-15',
+    '2025-11-01'
+FROM abonnements_organisateurs ao
+JOIN profils_organisateurs po ON ao.id_profil_organisateur = po.id
+JOIN utilisateurs u ON po.id_utilisateur = u.id
+WHERE ao.statut = 'paused'
+  AND ao.id_profil_organisateur IN (15, 16, 19, 20)
+  AND ao.mis_en_pause_le <= '2025-11-01'
+  AND (ao.repris_le IS NULL OR ao.repris_le > '2025-11-01');
 
 -- NOVEMBRE 2025 : Ajout des abonnements actifs pour atteindre 19 organisateurs actifs
 -- On a déjà : 3 mensuels + 2 trimestriels + 5 nouveaux prépayés = 10
@@ -1119,7 +1274,8 @@ WHERE po.id IN (15, 16, 19, 20);
 -- On a déjà : 4 qui reviennent de pause = 4
 -- Il manque 19 organisateurs actifs → les 14 prépayés de novembre continuent + 5 autres organisateurs actifs
 -- D'abord, les 14 prépayés de novembre continuent en décembre
--- Les 9 prépayés d'octobre (5, 23, 24, 25, 26, 1, 2, 9, 10) + les 5 nouveaux de novembre (21, 22, 14, 17, 6)
+-- Les 9 prépayés d'octobre (5, 24, 1, 2, 9, 10, 11, 12, 13) + les 5 nouveaux de novembre (21, 22, 14, 17, 6)
+-- NOTE: Les organisateurs non validés (23, 25, 26) sont exclus
 INSERT INTO abonnements_organisateurs (
     id_profil_organisateur,
     id_plan,
@@ -1171,6 +1327,7 @@ WHERE ao.debut_periode_courante = '2025-11-01'
   AND ao.mois_prepayes_restants = 0
   AND ao.id_profil_organisateur IN (3, 4, 13, 18, 24)  -- Les 5 organisateurs non prépayés de novembre
   AND ao.id_profil_organisateur NOT IN (15, 16, 19, 20);  -- Exclure ceux déjà ajoutés (pause)
+  -- Note: Les organisateurs non validés (25, 26) sont déjà exclus car ils n'ont pas d'abonnements
 
 -- Ajoutons les organisateurs trimestriels d'octobre qui continuent en décembre
 -- Ce sont les trimestriels qui ont débuté en octobre (6, 7, 8, 11, 12) et qui doivent être comptés pour décembre
@@ -1268,6 +1425,7 @@ JOIN utilisateurs u ON po.id_utilisateur = u.id
 WHERE ao.debut_periode_courante = '2025-12-01'
   AND ao.statut = 'active'
   AND ao.mois_prepayes_restants > 0
+  AND po.statut_verification = 'verified'  -- Exclure les non validés
 LIMIT 7;
 
 /* ========================================================================== */
@@ -1323,7 +1481,9 @@ SELECT
     fa.emise_le + INTERVAL '26 hours'
 FROM factures_abonnements fa
 JOIN utilisateurs u ON fa.id_client = u.id
-JOIN abonnements_organisateurs ao ON fa.id_abonnement = ao.id;
+JOIN abonnements_organisateurs ao ON fa.id_abonnement = ao.id
+JOIN profils_organisateurs po ON ao.id_profil_organisateur = po.id
+WHERE po.statut_verification = 'verified';  -- Exclure les non validés
 
 /* ========================================================================== */
 /* 6. VÉRIFICATION                                                           */
