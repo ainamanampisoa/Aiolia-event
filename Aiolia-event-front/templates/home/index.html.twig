@@ -52,12 +52,7 @@
                                                         Horaire à confirmer
                                                     {% endif %}
                                                 </div>
-                                                <div class="code-barre qr-code">
-                                                    <img
-                                                        src="https://api.qrserver.com/v1/create-qr-code/?size=100x100&data={{ path('event_details', { id: event.id })|url_encode }}"
-                                                        alt="QR Code de l'événement {{ event.title }}"
-                                                    >
-                                                </div>
+
                                     </div>
                                     <div class="col2">
                                                 <span class="bandeau">
