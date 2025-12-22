@@ -760,6 +760,25 @@ function showUserStats() {
 }
 
 // Les actions sont maintenant gérées directement via les liens et formulaires HTML
+
+// Afficher les erreurs d'email dans la console du navigateur
+(function() {
+    {% for message in app.flashes('email_error_details') %}
+    try {
+        const errorDetails = {{ message|raw }};
+        console.group('❌ Erreur d\'envoi d\'email');
+        console.error('Message:', errorDetails.message || 'Erreur inconnue');
+        console.error('Utilisateur:', errorDetails.user || 'N/A');
+        if (errorDetails.details) {
+            console.error('Détails complets:', errorDetails.details);
+        }
+        console.groupEnd();
+    } catch (e) {
+        console.error('Erreur lors de l\'affichage des détails d\'erreur email:', e);
+        console.error('Message brut:', {{ message|json_encode|raw }});
+    }
+    {% endfor %}
+})();
 </script>
 
 <style>

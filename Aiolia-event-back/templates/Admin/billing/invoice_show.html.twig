@@ -78,9 +78,11 @@
                         '11': {'fr': 'Novembre', 'en': 'November'},
                         '12': {'fr': 'Décembre', 'en': 'December'}
                     } %}
-                    {% if type == 'subscription' and invoice.billingMonth is defined and invoice.billingMonth %}
-                        {% set billingDate = invoice.billingMonth %}
+                    {% if type == 'subscription' %}
+                        {# Pour les factures d'abonnement, utiliser billingDate passé depuis le contrôleur #}
+                        {% set billingDate = billingDate ?? invoice.issuedAt %}
                     {% else %}
+                        {# Pour les factures de tickets, utiliser issuedAt #}
                         {% set billingDate = invoice.issuedAt %}
                     {% endif %}
                     {% set month = billingDate|date('n') %}
@@ -92,6 +94,31 @@
                                 {{ monthNames[month].fr }} {{ year }}
                             </span>
                         </span>
+                        {% if type == 'subscription' and planInfo is defined and planInfo %}
+                            {% set planTier = planInfo.niveau ?? null %}
+                            {% set billingPeriod = planInfo.periode_facturation ?? null %}
+                            {% if planTier %}
+                                {% set tierLabels = {
+                                    'basic': {'fr': 'Basic', 'en': 'Basic', 'icon': 'tag'},
+                                    'pro': {'fr': 'Pro', 'en': 'Pro', 'icon': 'star'},
+                                    'enterprise': {'fr': 'Enterprise', 'en': 'Enterprise', 'icon': 'crown'}
+                                } %}
+                                {% set periodLabels = {
+                                    'monthly': {'fr': 'Mensuel', 'en': 'Monthly', 'icon': 'calendar-alt'},
+                                    'quarterly': {'fr': 'Trimestriel', 'en': 'Quarterly', 'icon': 'calendar-week'},
+                                    'yearly': {'fr': 'Annuel', 'en': 'Yearly', 'icon': 'calendar-check'}
+                                } %}
+                                {% set tierLabel = tierLabels[planTier] ?? {'fr': planTier|upper, 'en': planTier|upper, 'icon': 'tag'} %}
+                                {% set periodLabel = billingPeriod ? (periodLabels[billingPeriod] ?? {'fr': billingPeriod|capitalize, 'en': billingPeriod|capitalize, 'icon': 'calendar-alt'}) : null %}
+                                <span class="invoice-meta-separator">•</span>
+                                <span class="invoice-meta-item">
+                                    <i class="fas fa-{{ tierLabel.icon }}"></i>
+                                    <span data-i18n-fr="{{ tierLabel.fr }}{% if periodLabel %} - {{ periodLabel.fr }}{% endif %}" data-i18n-en="{{ tierLabel.en }}{% if periodLabel %} - {{ periodLabel.en }}{% endif %}">
+                                        {{ tierLabel.fr }}{% if periodLabel %} - {{ periodLabel.fr }}{% endif %}
+                                    </span>
+                                </span>
+                            {% endif %}
+                        {% endif %}
                         <span class="invoice-meta-separator">•</span>
                         <span class="invoice-meta-item">
                             <i class="fas fa-clock"></i>
@@ -306,7 +333,7 @@
                             <span class="info-value paid-date-value">{{ invoice.paidAt|date('d/m/Y à H:i') }}</span>
                         </div>
                     {% endif %}
-                    {% if type == 'subscription' and invoice.billingMonth is defined and invoice.billingMonth %}
+                    {% if type == 'subscription' %}
                         {% set monthNames = {
                             '1': {'fr': 'Janvier', 'en': 'January'},
                             '2': {'fr': 'Février', 'en': 'February'},
@@ -321,8 +348,9 @@
                             '11': {'fr': 'Novembre', 'en': 'November'},
                             '12': {'fr': 'Décembre', 'en': 'December'}
                         } %}
-                        {% set month = invoice.billingMonth|date('n') %}
-                        {% set year = invoice.billingMonth|date('Y') %}
+                        {% set billingMonthDate = billingDate ?? invoice.issuedAt %}
+                        {% set month = billingMonthDate|date('n') %}
+                        {% set year = billingMonthDate|date('Y') %}
                         <div class="info-row">
                             <span class="info-label">
                                 <i class="fas fa-calendar"></i>
@@ -485,11 +513,9 @@
                             {% set prevInvoice = prevInvoiceData.invoice %}
                             {% set prevPlanInfo = prevInvoiceData.planInfo %}
                             {% set prevPlanTier = prevInvoiceData.planTier %}
-                            {% if prevInvoice.billingMonth is defined and prevInvoice.billingMonth %}
-                                {% set billingDate = prevInvoice.billingMonth %}
-                            {% else %}
-                                {% set billingDate = prevInvoice.issuedAt %}
-                            {% endif %}
+                            {# Utiliser getBillingMonth() pour les factures d'abonnement précédentes #}
+                            {# Les factures précédentes sont des SubscriptionInvoice, donc getBillingMonth() existe #}
+                            {% set billingDate = prevInvoice.getBillingMonth() %}
                             {% set month = billingDate|date('n') %}
                             {% set year = billingDate|date('Y') %}
                             {% set prevBillingPeriod = prevPlanInfo.periode_facturation ?? null %}
@@ -554,6 +580,92 @@
                     </span>
                     <span class="info-value invoice-ref">N° FA-{{ invoice.invoiceNumber }}</span>
                 </div>
+                {% if type == 'subscription' %}
+                    {# Afficher l'offre - utiliser planTier passé depuis le contrôleur ou planInfo #}
+                    {% set currentPlanTier = planTier ?? (planInfo.niveau ?? null) %}
+                    {% set currentBillingPeriod = planInfo.periode_facturation ?? null %}
+                    {% if currentPlanTier %}
+                        {% set tierLabels = {
+                            'basic': {'fr': 'Basic', 'en': 'Basic', 'icon': 'tag'},
+                            'pro': {'fr': 'Pro', 'en': 'Pro', 'icon': 'star'},
+                            'enterprise': {'fr': 'Enterprise', 'en': 'Enterprise', 'icon': 'crown'}
+                        } %}
+                        {% set periodLabels = {
+                            'monthly': {'fr': 'Mensuel', 'en': 'Monthly', 'icon': 'calendar-alt'},
+                            'quarterly': {'fr': 'Trimestriel', 'en': 'Quarterly', 'icon': 'calendar-week'},
+                            'yearly': {'fr': 'Annuel', 'en': 'Yearly', 'icon': 'calendar-check'}
+                        } %}
+                        {% set tierLabel = tierLabels[currentPlanTier] ?? {'fr': currentPlanTier|upper, 'en': currentPlanTier|upper, 'icon': 'tag'} %}
+                        {% set periodLabel = currentBillingPeriod ? (periodLabels[currentBillingPeriod] ?? {'fr': currentBillingPeriod|capitalize, 'en': currentBillingPeriod|capitalize, 'icon': 'calendar-alt'}) : null %}
+                        <div class="info-row info-row-offer">
+                            <span class="info-label">
+                                <i class="fas fa-{{ tierLabel.icon }}"></i>
+                                <span data-i18n-fr="Offre" data-i18n-en="Plan">Offre</span>
+                            </span>
+                            <div class="plan-display-wrapper-detail plan-display-horizontal-detail">
+                                <span class="plan-tier-badge-modern plan-tier-{{ currentPlanTier }}" data-i18n-fr="{{ tierLabel.fr }}" data-i18n-en="{{ tierLabel.en }}">
+                                    <i class="fas fa-{{ tierLabel.icon }}"></i>
+                                    <span class="tier-name">{{ tierLabel.fr }}</span>
+                                </span>
+                                {% if periodLabel %}
+                                    <span class="billing-period-badge-modern" data-i18n-fr="{{ periodLabel.fr }}" data-i18n-en="{{ periodLabel.en }}">
+                                        <i class="fas fa-{{ periodLabel.icon }}"></i>
+                                        <span class="period-text">{{ periodLabel.fr }}</span>
+                                    </span>
+                                {% endif %}
+                            </div>
+                        </div>
+                    {% endif %}
+                    {# Afficher le mois d'abonnement #}
+                    {% if billingDate is defined and billingDate %}
+                        {% set monthNames = {
+                            '1': {'fr': 'Janvier', 'en': 'January'},
+                            '2': {'fr': 'Février', 'en': 'February'},
+                            '3': {'fr': 'Mars', 'en': 'March'},
+                            '4': {'fr': 'Avril', 'en': 'April'},
+                            '5': {'fr': 'Mai', 'en': 'May'},
+                            '6': {'fr': 'Juin', 'en': 'June'},
+                            '7': {'fr': 'Juillet', 'en': 'July'},
+                            '8': {'fr': 'Août', 'en': 'August'},
+                            '9': {'fr': 'Septembre', 'en': 'September'},
+                            '10': {'fr': 'Octobre', 'en': 'October'},
+                            '11': {'fr': 'Novembre', 'en': 'November'},
+                            '12': {'fr': 'Décembre', 'en': 'December'}
+                        } %}
+                        {% set month = billingDate|date('n') %}
+                        {% set year = billingDate|date('Y') %}
+                        <div class="info-row info-row-billing-month">
+                            <span class="info-label">
+                                <i class="fas fa-calendar-alt"></i>
+                                <span data-i18n-fr="Mois d'abonnement" data-i18n-en="Subscription month">Mois d'abonnement</span>
+                            </span>
+                            <span class="info-value">
+                                <span data-i18n-fr="{{ monthNames[month].fr }} {{ year }}" data-i18n-en="{{ monthNames[month].en }} {{ year }}">
+                                    {{ monthNames[month].fr }} {{ year }}
+                                </span>
+                            </span>
+                        </div>
+                    {% endif %}
+                {% endif %}
+                {# Affichage de la TVA #}
+                {% if invoice.amountTva is defined and invoice.amountTva %}
+                    <div class="info-row info-row-vat">
+                        <span class="info-label">
+                            <i class="fas fa-receipt"></i>
+                            <span data-i18n-fr="TVA (20%)" data-i18n-en="VAT (20%)">TVA (20%)</span>
+                        </span>
+                        <span class="info-value">{{ invoice.amountTva|number_format(0, ',', ' ') }} {{ invoice.currency }}</span>
+                    </div>
+                {% elseif invoice.taxAmount is defined and invoice.taxAmount %}
+                    <div class="info-row info-row-vat">
+                        <span class="info-label">
+                            <i class="fas fa-receipt"></i>
+                            <span data-i18n-fr="TVA" data-i18n-en="VAT">TVA</span>
+                        </span>
+                        <span class="info-value">{{ invoice.taxAmount|number_format(0, ',', ' ') }} {{ invoice.currency }}</span>
+                    </div>
+                {% endif %}
+                {# Affichage du mode de paiement #}
                 {% set paymentMethodFromDb = paymentMethod|default(null) %}
                 {% set paymentMethodLabels = {
                     'espace': 'Espèce',
@@ -1542,9 +1654,27 @@
     color: var(--accent, #3498DB);
 }
 
+.info-row-vat {
+    border-top: 2px solid var(--border-color, #E9ECEF);
+    padding-top: 1rem;
+    margin-top: 0.5rem;
+}
+
 .info-row-payment {
     border-top: 2px solid var(--border-color, #E9ECEF);
     padding-top: 1rem;
+    margin-top: 0.5rem;
+}
+
+.info-row-offer {
+    border-top: 2px solid var(--border-color, #E9ECEF);
+    padding-top: 1rem;
+    margin-top: 0.5rem;
+}
+
+.info-row-billing-month {
+    border-top: 1px solid var(--border-color, #E9ECEF);
+    padding-top: 0.75rem;
     margin-top: 0.5rem;
 }
 

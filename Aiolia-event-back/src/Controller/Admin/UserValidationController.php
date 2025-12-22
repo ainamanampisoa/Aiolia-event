@@ -3,8 +3,10 @@
 namespace App\Controller\Admin;
 
 use App\Entity\User;
+use App\Entity\OrganizerProfile;
 use App\Enum\Role as UserRoleEnum;
 use App\Repository\UserRepository;
+use App\Repository\Organisateur\OrganizerProfileRepository;
 use App\Service\AuditLogService;
 use App\Service\Organisateur\UserNotificationService;
 use Doctrine\ORM\EntityManagerInterface;
@@ -21,6 +23,7 @@ class UserValidationController extends AbstractController
     public function __construct(
         private EntityManagerInterface $entityManager,
         private UserRepository $userRepository,
+        private OrganizerProfileRepository $organizerProfileRepository,
         private AuditLogService $auditLogService,
         private UserNotificationService $notificationService
     ) {
@@ -39,7 +42,18 @@ class UserValidationController extends AbstractController
             return $this->redirectToRoute('admin_users_list');
         }
 
-        if ($user->getStatutCompte() !== 'pending_validation') {
+        // Nouveau système : la "pending validation" peut venir soit du compte,
+        // soit du profil organisateur (statut_verification = pending).
+        $organizerProfile = null;
+        if ($user->getRole() === UserRoleEnum::ORGANIZER) {
+            $organizerProfile = $this->organizerProfileRepository->findByUser($user);
+        }
+
+        $isPendingByAccountStatus = $user->getStatutCompte() === 'pending_validation';
+        $isPendingByProfileStatus = $organizerProfile instanceof OrganizerProfile
+            && $organizerProfile->getStatutVerification() === OrganizerProfile::STATUS_PENDING;
+
+        if (!$isPendingByAccountStatus && !$isPendingByProfileStatus) {
             $this->addFlash('error', 'Ce compte a déjà été traité');
             return $this->redirectToRoute('admin_users_list');
         }
@@ -56,33 +70,56 @@ class UserValidationController extends AbstractController
         // Sauvegarde des anciennes valeurs
         $oldRole   = $user->getRole();
         $oldStatus = $user->getStatutCompte();
+        $oldProfileStatus = $organizerProfile instanceof OrganizerProfile
+            ? $organizerProfile->getStatutVerification()
+            : null;
 
         // ⚠️ Ne pas encore valider en base, seulement mettre en mémoire
         $user->setRole($targetRole);
         $user->setStatutCompte('active');
+        if ($organizerProfile instanceof OrganizerProfile) {
+            $organizerProfile->setStatutVerification(OrganizerProfile::STATUS_VERIFIED);
+        }
 
-        // Envoyer l'email AVANT flush()
-        $emailSent = $this->notificationService->sendValidationApprovedNotification(
-            $user,
-            $user->getRole(),
-            $comment
-        );
+        // Envoyer l'email AVANT flush() - le statut ne change QUE si l'email est envoyé avec succès
+        try {
+            $emailResult = $this->notificationService->sendValidationApprovedNotificationWithDetails(
+                $user,
+                $user->getRole(),
+                $comment
+            );
 
-        if (!$emailSent) {
-
+            // Vérifier explicitement le résultat
+            if (!isset($emailResult['success']) || $emailResult['success'] !== true) {
+                throw new \RuntimeException($emailResult['error'] ?? 'Échec de l\'envoi de l\'email');
+            }
+        } catch (\Throwable $e) {
             // 🔄 Rollback des valeurs non validées
             $user->setRole($oldRole);
             $user->setStatutCompte($oldStatus);
+            if ($organizerProfile instanceof OrganizerProfile && $oldProfileStatus !== null) {
+                $organizerProfile->setStatutVerification($oldProfileStatus);
+            }
+
+            // Stocker les détails de l'erreur pour l'afficher dans la console JavaScript
+            $errorDetails = [
+                'message' => $e->getMessage(),
+                'details' => $e->getTraceAsString(),
+                'user' => $user->getNomComplet(),
+            ];
 
             $this->addFlash('error', sprintf(
                 'Échec de l\'envoi de l\'email pour %s. Aucune modification enregistrée.',
                 $user->getNomComplet()
             ));
 
+            // Stocker les détails de l'erreur dans un flash message spécial pour JavaScript
+            $this->addFlash('email_error_details', json_encode($errorDetails, JSON_UNESCAPED_UNICODE | JSON_PRETTY_PRINT));
+
             return $this->redirectToRoute('admin_users_list');
         }
 
-        // L’email est OK → on valide en base
+        // L'email est OK → on valide en base
         $this->entityManager->flush();
 
         // Log
@@ -124,9 +161,20 @@ class UserValidationController extends AbstractController
             return $this->redirectToRoute('admin_users_list');
         }
 
-        if ($user->getStatus() !== User::STATUS_PENDING) {
-            $this->addFlash('error', 'Ce compte a déjà été traité');
-            return $this->redirectToRoute('admin_users_list');
+        if ($user->getStatutCompte() !== 'pending_validation') {
+            // Nouveau système : vérifier le profil organisateur si le compte n'est pas en pending_validation
+            $organizerProfile = null;
+            if ($user->getRole() === UserRoleEnum::ORGANIZER) {
+                $organizerProfile = $this->organizerProfileRepository->findByUser($user);
+            }
+
+            $isPendingByProfileStatus = $organizerProfile instanceof OrganizerProfile
+                && $organizerProfile->getStatutVerification() === OrganizerProfile::STATUS_PENDING;
+
+            if (!$isPendingByProfileStatus) {
+                $this->addFlash('error', 'Ce compte a déjà été traité');
+                return $this->redirectToRoute('admin_users_list');
+            }
         }
 
         $comment = $request->request->get('comment');
@@ -134,6 +182,14 @@ class UserValidationController extends AbstractController
 
         // Mettre à jour le statut du compte
         $user->setStatutCompte('rejected');
+
+        // Mettre à jour le statut de vérification de l'organisateur (si applicable)
+        if ($user->getRole() === UserRoleEnum::ORGANIZER) {
+            $organizerProfile = $this->organizerProfileRepository->findByUser($user);
+            if ($organizerProfile instanceof OrganizerProfile) {
+                $organizerProfile->setStatutVerification(OrganizerProfile::STATUS_REJECTED);
+            }
+        }
 
         $this->entityManager->flush();
 

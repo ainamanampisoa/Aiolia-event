@@ -312,7 +312,7 @@ class UserManagementController extends AbstractController
 
         // Compter les statistiques de l'utilisateur
         $eventsCount = count($events);
-        $publishedEventsCount = count(array_filter($events, fn($e) => $e->getStatus() === 'published'));
+        $publishedEventsCount = count(array_filter($events, fn($e) => $e->getStatut() === 'published'));
 
         // Récupérer les informations d'abonnement si c'est un organisateur
         $subscriptionInfo = null;
@@ -677,30 +677,89 @@ class UserManagementController extends AbstractController
             return $this->redirectToRoute('admin_users_show', ['id' => $id]);
         }
 
-        // Pagination : 5 événements par page
+        // Paramètres de filtrage et recherche
+        $search = $request->query->get('search', '');
+        $status = $request->query->get('status', '');
+        $sort = $request->query->get('sort', 'date_desc'); // date_desc, date_asc, title_asc, title_desc
+
+        // Pagination : 10 événements par page
         $page = max(1, (int) $request->query->get('page', 1));
-        $perPage = 5;
+        $perPage = 10;
         $offset = ($page - 1) * $perPage;
 
         // Récupérer tous les événements de l'organisateur
         $allEvents = $this->eventRepository->findByOrganizer($user);
-        $totalEvents = count($allEvents);
+
+        // Appliquer les filtres
+        $filteredEvents = $allEvents;
+        
+        if ($search) {
+            $searchLower = mb_strtolower($search);
+            $filteredEvents = array_filter($filteredEvents, function($event) use ($searchLower) {
+                return str_contains(mb_strtolower($event->getTitre()), $searchLower);
+            });
+        }
+
+        if ($status && in_array($status, ['published', 'draft', 'cancelled', 'archived'], true)) {
+            $filteredEvents = array_filter($filteredEvents, fn($e) => $e->getStatut() === $status);
+        }
+
+        // Réindexer le tableau après filtrage
+        $filteredEvents = array_values($filteredEvents);
+
+        // Appliquer le tri
+        usort($filteredEvents, function($a, $b) use ($sort) {
+            switch ($sort) {
+                case 'date_asc':
+                    $dateA = $a->getCommenceLe();
+                    $dateB = $b->getCommenceLe();
+                    if (!$dateA && !$dateB) return 0;
+                    if (!$dateA) return 1;
+                    if (!$dateB) return -1;
+                    return $dateA <=> $dateB;
+                case 'date_desc':
+                    $dateA = $a->getCommenceLe();
+                    $dateB = $b->getCommenceLe();
+                    if (!$dateA && !$dateB) return 0;
+                    if (!$dateA) return 1;
+                    if (!$dateB) return -1;
+                    return $dateB <=> $dateA;
+                case 'title_asc':
+                    return strcasecmp($a->getTitre(), $b->getTitre());
+                case 'title_desc':
+                    return strcasecmp($b->getTitre(), $a->getTitre());
+                default:
+                    return 0;
+            }
+        });
+
+        $totalEvents = count($filteredEvents);
         $totalPages = ceil($totalEvents / $perPage);
 
         // Paginer les événements
-        $events = array_slice($allEvents, $offset, $perPage);
+        $events = array_slice($filteredEvents, $offset, $perPage);
 
         // Statistiques
-        $eventsCount = $totalEvents;
-        $publishedEventsCount = count(array_filter($allEvents, fn($e) => $e->getStatus() === 'published'));
+        $eventsCount = count($allEvents);
+        $publishedEventsCount = count(array_filter($allEvents, fn($e) => $e->getStatut() === 'published'));
+        $draftEventsCount = count(array_filter($allEvents, fn($e) => $e->getStatut() === 'draft'));
+        $cancelledEventsCount = count(array_filter($allEvents, fn($e) => $e->getStatut() === 'cancelled'));
+        $archivedEventsCount = count(array_filter($allEvents, fn($e) => $e->getStatut() === 'archived'));
 
         return $this->render('@Admin/users/events.html.twig', [
             'user' => $user,
             'events' => $events,
             'eventsCount' => $eventsCount,
             'publishedEventsCount' => $publishedEventsCount,
+            'draftEventsCount' => $draftEventsCount,
+            'cancelledEventsCount' => $cancelledEventsCount,
+            'archivedEventsCount' => $archivedEventsCount,
             'currentPage' => $page,
             'totalPages' => $totalPages,
+            'totalEventsFiltered' => $totalEvents,
+            'search' => $search,
+            'status' => $status,
+            'sort' => $sort,
         ]);
     }
 

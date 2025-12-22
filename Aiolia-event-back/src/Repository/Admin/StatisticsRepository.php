@@ -63,8 +63,11 @@ class StatisticsRepository extends ServiceEntityRepository
         $qb = $this->createQueryBuilder('os')
             // On compte les organisateurs uniques, pas le nombre de lignes d'abonnements
             ->select('COUNT(DISTINCT os.organizerProfile)')
+            ->join('os.organizerProfile', 'op')
             ->where('os.statut = :active')
-            ->setParameter('active', SubscriptionStatus::ACTIVE);
+            ->andWhere('op.statutVerification = :verified')
+            ->setParameter('active', SubscriptionStatus::ACTIVE)
+            ->setParameter('verified', OrganizerProfile::STATUS_VERIFIED);
 
         // On filtre par période en utilisant les champs de dates réels de l'entité OrganizerSubscription
         $this->applyPeriodFilter($qb, $start, $end, 'COALESCE(os.debutPeriodeCourante, os.commenceLe)');
@@ -103,11 +106,14 @@ class StatisticsRepository extends ServiceEntityRepository
         $qb = $this->createQueryBuilder('os')
             ->select('p.nom, COUNT(DISTINCT os.organizerProfile) as count')
             ->join('os.plan', 'p')
+            ->join('os.organizerProfile', 'op')
             ->where('os.statut = :active')
+            ->andWhere('op.statutVerification = :verified')
             ->groupBy('p.nom')
             ->orderBy('count', 'DESC')
             ->setMaxResults(1)
-            ->setParameter('active', SubscriptionStatus::ACTIVE);
+            ->setParameter('active', SubscriptionStatus::ACTIVE)
+            ->setParameter('verified', OrganizerProfile::STATUS_VERIFIED);
 
         $this->applyPeriodFilter($qb, $start, $end, 'COALESCE(os.debutPeriodeCourante, os.commenceLe)');
 
@@ -178,9 +184,12 @@ class StatisticsRepository extends ServiceEntityRepository
         $qb = $this->createQueryBuilder('os')
             ->select('p.niveau AS level, COUNT(DISTINCT os.organizerProfile) as count')
             ->join('os.plan', 'p')
+            ->join('os.organizerProfile', 'op')
             ->where('os.statut = :active')
+            ->andWhere('op.statutVerification = :verified')
             ->groupBy('p.niveau')
-            ->setParameter('active', OrganizerSubscription::STATUS_ACTIVE);
+            ->setParameter('active', OrganizerSubscription::STATUS_ACTIVE)
+            ->setParameter('verified', OrganizerProfile::STATUS_VERIFIED);
 
         $this->applyPeriodFilter($qb, $start, $end, 'COALESCE(os.debutPeriodeCourante, os.commenceLe)');
 
@@ -275,10 +284,13 @@ class StatisticsRepository extends ServiceEntityRepository
     private function countActiveOrganizersInPeriod(\DateTimeInterface $start, \DateTimeInterface $end): int
     {
         $qb = $this->createQueryBuilder('os')
-            ->select('COUNT(DISTINCT os.id)')
+            ->select('COUNT(DISTINCT os.organizerProfile)')
+            ->join('os.organizerProfile', 'op')
             ->where('os.statut = :active')
+            ->andWhere('op.statutVerification = :verified')
             ->andWhere('COALESCE(os.debutPeriodeCourante, os.commenceLe) BETWEEN :start AND :end')
             ->setParameter('active', SubscriptionStatus::ACTIVE)
+            ->setParameter('verified', OrganizerProfile::STATUS_VERIFIED)
             ->setParameter('start', $start)
             ->setParameter('end', $end);
 

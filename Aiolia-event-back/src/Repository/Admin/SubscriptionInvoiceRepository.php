@@ -121,10 +121,12 @@ class SubscriptionInvoiceRepository extends ServiceEntityRepository
     }
 
     // Récupérer les infos complètes du plan pour une facture
+    // Utilise aussi les transactions pour récupérer les informations si nécessaire
     public function getPlanInfoForInvoice(SubscriptionInvoice $invoice): ?array
     {
         $connection = $this->getEntityManager()->getConnection();
 
+        // Requête principale via les abonnements
         $sql = "
             SELECT 
                 sp.niveau,
@@ -139,19 +141,127 @@ class SubscriptionInvoiceRepository extends ServiceEntityRepository
 
         $result = $connection->fetchAssociative($sql, ['invoice_id' => $invoice->getId()]);
 
+        // Si pas de résultat, essayer via les transactions
+        if (!$result) {
+            $sql2 = "
+                SELECT DISTINCT
+                    sp.niveau,
+                    sp.periode_facturation,
+                    sp.nom,
+                    sp.code
+                FROM aiolia.factures_abonnements fi
+                INNER JOIN aiolia.transactions_paiement_mobile tpm ON tpm.id_facture = fi.id
+                INNER JOIN aiolia.abonnements_organisateurs os ON os.id = fi.id_abonnement
+                INNER JOIN aiolia.plans_abonnements sp ON sp.id = os.id_plan
+                WHERE fi.id = :invoice_id
+            ";
+
+            $result = $connection->fetchAssociative($sql2, ['invoice_id' => $invoice->getId()]);
+        }
+
         return $result ?: null;
     }
 
-    // Même principe pour plusieurs factures
+    // Même principe pour plusieurs factures (optimisé avec une seule requête)
+    // Utilise aussi les transactions pour identifier les factures d'abonnement
     public function getPlanInfosForInvoices(array $invoices): array
     {
+        if (empty($invoices)) {
+            return [];
+        }
+
+        $invoiceIds = array_map(function($invoice) {
+            return $invoice->getId();
+        }, $invoices);
+
+        $connection = $this->getEntityManager()->getConnection();
+
+        // Requête améliorée qui utilise aussi les transactions pour identifier les factures d'abonnement
+        // et récupère les informations de plan via les abonnements
+        $sql = "
+            SELECT DISTINCT
+                fi.id as invoice_id,
+                sp.niveau,
+                sp.periode_facturation,
+                sp.nom,
+                sp.code
+            FROM aiolia.factures_abonnements fi
+            LEFT JOIN aiolia.abonnements_organisateurs os ON os.id = fi.id_abonnement
+            LEFT JOIN aiolia.plans_abonnements sp ON sp.id = os.id_plan
+            LEFT JOIN aiolia.transactions_paiement_mobile tpm ON tpm.id_facture = fi.id
+            WHERE fi.id IN (:invoice_ids)
+        ";
+
+        $results = $connection->fetchAllAssociative(
+            $sql,
+            ['invoice_ids' => $invoiceIds],
+            ['invoice_ids' => \Doctrine\DBAL\ArrayParameterType::INTEGER]
+        );
+
         $result = [];
-        foreach ($invoices as $invoice) {
-            $info = $this->getPlanInfoForInvoice($invoice);
-            if ($info) {
-                $result[$invoice->getId()] = $info;
+        foreach ($results as $row) {
+            // Normaliser l'ID en chaîne pour correspondre aux IDs Doctrine
+            $invoiceId = (string) $row['invoice_id'];
+            
+            // Si on a des informations de plan, les utiliser
+            if ($row['niveau'] !== null) {
+                $result[$invoiceId] = [
+                    'niveau' => $row['niveau'],
+                    'periode_facturation' => $row['periode_facturation'],
+                    'nom' => $row['nom'],
+                    'code' => $row['code'],
+                ];
+            } else {
+                // Si pas d'info de plan mais qu'on a une transaction, c'est quand même une facture d'abonnement
+                // On peut essayer de récupérer les infos via la transaction
+                $result[$invoiceId] = null;
             }
         }
+
+        // Pour les factures sans plan trouvé, essayer de récupérer via les transactions
+        $missingInvoiceIds = [];
+        foreach ($invoiceIds as $id) {
+            $idStr = (string) $id;
+            if (!isset($result[$idStr]) || $result[$idStr] === null) {
+                $missingInvoiceIds[] = $id;
+            }
+        }
+
+        if (!empty($missingInvoiceIds)) {
+            // Récupérer les infos via les transactions et les abonnements
+            $sql2 = "
+                SELECT DISTINCT
+                    fi.id as invoice_id,
+                    sp.niveau,
+                    sp.periode_facturation,
+                    sp.nom,
+                    sp.code
+                FROM aiolia.factures_abonnements fi
+                INNER JOIN aiolia.transactions_paiement_mobile tpm ON tpm.id_facture = fi.id
+                INNER JOIN aiolia.abonnements_organisateurs os ON os.id = fi.id_abonnement
+                INNER JOIN aiolia.plans_abonnements sp ON sp.id = os.id_plan
+                WHERE fi.id IN (:invoice_ids)
+            ";
+
+            $results2 = $connection->fetchAllAssociative(
+                $sql2,
+                ['invoice_ids' => $missingInvoiceIds],
+                ['invoice_ids' => \Doctrine\DBAL\ArrayParameterType::INTEGER]
+            );
+
+            foreach ($results2 as $row) {
+                $invoiceId = (string) $row['invoice_id'];
+                if ($row['niveau'] !== null) {
+                    $result[$invoiceId] = [
+                        'niveau' => $row['niveau'],
+                        'periode_facturation' => $row['periode_facturation'],
+                        'nom' => $row['nom'],
+                        'code' => $row['code'],
+                    ];
+                }
+            }
+        }
+
         return $result;
     }
 

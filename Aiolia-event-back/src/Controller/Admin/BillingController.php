@@ -9,6 +9,7 @@ use App\Repository\Admin\SubscriptionInvoiceRepository;
 use App\Service\Admin\BillingInvoiceDetailService;
 use App\Service\Organisateur\InvoicePdfService;
 use App\Service\Organisateur\InvoiceEmailService;
+use Doctrine\ORM\EntityManagerInterface;
 use Symfony\Bundle\FrameworkBundle\Controller\AbstractController;
 use Symfony\Component\HttpFoundation\Request;
 use Symfony\Component\HttpFoundation\Response;
@@ -24,7 +25,8 @@ class BillingController extends AbstractController
         private SubscriptionInvoiceRepository $subscriptionInvoiceRepository,
         private InvoicePdfService $pdfService,
         private InvoiceEmailService $emailService,
-        private BillingInvoiceDetailService $invoiceDetailService
+        private BillingInvoiceDetailService $invoiceDetailService,
+        private EntityManagerInterface $entityManager
     ) {
     }
 
@@ -100,7 +102,56 @@ class BillingController extends AbstractController
         // Récupérer les informations complètes des plans d'abonnement pour les factures d'abonnement
         // APRÈS la pagination pour ne récupérer que les factures affichées
         $planInfos = [];
-        $subscriptionInvoicesOnly = array_filter($allInvoices, fn($inv) => $inv instanceof SubscriptionInvoice);
+        $invoiceTypes = []; // Tableau pour identifier le type de chaque facture
+        $subscriptionInvoicesOnly = [];
+        
+        // Récupérer les IDs de toutes les factures pour vérifier via les transactions
+        $allInvoiceIds = array_map(fn($inv) => $inv->getId(), $allInvoices);
+        
+        // Vérifier quelles factures sont des factures d'abonnement via les transactions
+        $connection = $this->entityManager->getConnection();
+        $subscriptionInvoiceIdsFromTransactions = [];
+        if (!empty($allInvoiceIds)) {
+            $sql = "
+                SELECT DISTINCT id_facture 
+                FROM aiolia.transactions_paiement_mobile 
+                WHERE id_facture IN (:invoice_ids)
+            ";
+            $results = $connection->fetchAllAssociative(
+                $sql,
+                ['invoice_ids' => $allInvoiceIds],
+                ['invoice_ids' => \Doctrine\DBAL\ArrayParameterType::INTEGER]
+            );
+            foreach ($results as $row) {
+                $subscriptionInvoiceIdsFromTransactions[(string) $row['id_facture']] = true;
+            }
+        }
+        
+        $billingDates = []; // Tableau pour stocker les dates de facturation par ID de facture
+        
+        foreach ($allInvoices as $invoice) {
+            $invoiceId = (string) $invoice->getId();
+            // Vérifier si c'est une facture d'abonnement via instanceof OU via les transactions
+            if ($invoice instanceof SubscriptionInvoice || isset($subscriptionInvoiceIdsFromTransactions[$invoiceId])) {
+                $invoiceTypes[$invoiceId] = 'subscription';
+                $subscriptionInvoicesOnly[] = $invoice;
+                // Pour les factures d'abonnement, utiliser directement getBillingMonth()
+                // Le champ mois_facturation contient le mois et l'année de la période facturée
+                if ($invoice instanceof SubscriptionInvoice) {
+                    // Utiliser directement le mois de facturation stocké en base
+                    // Ce champ représente le mois et l'année de la période facturée (ex: 2025-06-01 pour juin 2025)
+                    $billingDates[$invoiceId] = $invoice->getBillingMonth();
+                } else {
+                    // Si c'est identifié via les transactions mais pas une instance, utiliser issuedAt
+                    $billingDates[$invoiceId] = $invoice->getIssuedAt();
+                }
+            } else {
+                $invoiceTypes[$invoiceId] = 'ticket';
+                // Pour les factures de tickets, utiliser issuedAt
+                $billingDates[$invoiceId] = $invoice->getIssuedAt();
+            }
+        }
+        
         if (!empty($subscriptionInvoicesOnly)) {
             $planInfos = $this->subscriptionInvoiceRepository->getPlanInfosForInvoices($subscriptionInvoicesOnly);
         }
@@ -120,6 +171,8 @@ class BillingController extends AbstractController
             'subscriptionInvoices' => $subscriptionInvoices,
             'allInvoices' => $allInvoices,
             'planInfos' => $planInfos,
+            'invoiceTypes' => $invoiceTypes,
+            'billingDates' => $billingDates,
             'stats' => $stats,
             'currentStatus' => $status,
             'currentSearch' => $search,
@@ -166,6 +219,14 @@ class BillingController extends AbstractController
 
         // Récupérer les informations complètes du plan d'abonnement
         $planInfo = $this->invoiceDetailService->getPlanInfo($invoice);
+        // Si planInfo est null, essayer de récupérer via le repository directement
+        if (!$planInfo) {
+            $planInfo = $this->subscriptionInvoiceRepository->getPlanInfoForInvoice($invoice);
+        }
+        // S'assurer que planInfo est toujours un tableau (même vide) pour éviter les erreurs dans le template
+        if (!$planInfo) {
+            $planInfo = [];
+        }
         $planTier = $planInfo['niveau'] ?? null;
 
         // Récupérer l'organisateur (via le customer qui est l'organisateur)
@@ -197,7 +258,7 @@ class BillingController extends AbstractController
 
         // Vérifier s'il y a eu un changement de plan (comparer avec la facture précédente)
         $planChanged = false;
-        if (!empty($previousInvoicesWithPlan)) {
+        if (!empty($previousInvoicesWithPlan) && $planInfo) {
             $previousPlanInfo = $previousInvoicesWithPlan[0]['planInfo'];
             $previousPlanTier = $previousPlanInfo['niveau'] ?? null;
             $planChanged = ($previousPlanTier !== $planTier) ||
@@ -206,6 +267,9 @@ class BillingController extends AbstractController
 
         $invoiceItems = $this->invoiceDetailService->getInvoiceItems($invoice);
         $paymentMethod = $this->invoiceDetailService->getPaymentMethod($invoice);
+        
+        // Récupérer la date de facturation pour l'affichage
+        $billingDate = $invoice->getBillingMonth();
 
         return $this->render('@Admin/billing/invoice_show.html.twig', [
             'invoice' => $invoice,
@@ -217,6 +281,7 @@ class BillingController extends AbstractController
             'planChanged' => $planChanged,
             'invoiceItems' => $invoiceItems,
             'paymentMethod' => $paymentMethod,
+            'billingDate' => $billingDate,
         ]);
     }
 

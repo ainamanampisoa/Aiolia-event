@@ -76,7 +76,9 @@ class SubscriptionInvoice
     #[ORM\Column(name: 'payee_le', type: Types::DATETIMETZ_MUTABLE, nullable: true)]
     private ?\DateTimeInterface $paidAt = null;
 
-    #[ORM\Column(name: 'methode_paiement', type: Types::STRING, length: 50, nullable: true)]
+    // Note: La colonne methode_paiement n'existe pas dans la base de données
+    // Elle est stockée dans metadonnees si nécessaire
+    // #[ORM\Column(name: 'methode_paiement', type: Types::STRING, length: 50, nullable: true)]
     private ?string $paymentMethod = null;
 
     #[ORM\Column(name: 'metadonnees', type: Types::JSON, nullable: true)]
