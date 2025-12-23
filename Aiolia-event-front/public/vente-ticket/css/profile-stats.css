@@ -176,16 +176,6 @@
     color: rgba(17, 34, 68, 0.6);
 }
 
-.chart-legend i,
-.chart-legend span:first-child::before {
-    content: '';
-    display: inline-block;
-    width: 12px;
-    height: 12px;
-    border-radius: 50%;
-    background: rgba(31, 45, 61, 0.85);
-    margin-right: 6px;
-}
 
 .chart-placeholder.donut {
     flex-direction: column;
@@ -205,13 +195,6 @@
     transform: rotate(-90deg);
 }
 
-.donut-chart .slice {
-    fill: none;
-    stroke-width: 6;
-}
-
-.slice-1 { stroke: #1F2D3D; stroke-dasharray: 22 78; }
-.slice-2 { stroke: #27ae60; stroke-dasharray: 35 65; }
 
 .donut-hole {
     fill: #ffffff;
@@ -249,11 +232,46 @@
     margin-right: 8px;
 }
 
-.dot-1 { background: #1F2D3D; }
-.dot-2 { background: #27ae60; }
-.dot-3 { background: #f39c12; }
-.dot-4 { background: #8e44ad; }
-.dot-5 { background: #95a5a6; }
+.dot-1 {
+    background: #4A90E2;
+}
+
+/* Bleu */
+.dot-2 {
+    background: #50C878;
+}
+
+/* Vert */
+.dot-3 {
+    background: #FF6B6B;
+}
+
+/* Rouge */
+.dot-4 {
+    background: #FFA500;
+}
+
+/* Orange */
+.dot-5 {
+    background: #9B59B6;
+}
+
+/* Violet */
+
+.chart-legend li {
+    display: flex;
+    align-items: center;
+    padding: 6px 12px;
+    border-radius: 8px;
+    transition: background 0.2s ease, transform 0.2s ease;
+}
+
+.chart-legend li.active {
+    background: rgba(31, 45, 61, 0.05);
+    transform: translateX(4px);
+    color: #1F2D3D;
+    font-weight: 600;
+}
 
 /* Donut chart amélioré */
 .donut-svg {
@@ -261,18 +279,19 @@
 }
 
 .donut-segment {
-    transition: stroke-width 0.3s ease, opacity 0.3s ease;
+    transition: all 0.3s ease;
 }
 
 .donut-segment:hover {
-    stroke-width: 4;
-    opacity: 0.9;
+    stroke-width: 7;
+    filter: brightness(1.1);
     cursor: pointer;
 }
 
 .donut-value {
-    font-size: 18px;
-    font-weight: 700;
+    font-size: 20px;
+    font-weight: 800;
+    transition: all 0.3s ease;
 }
 
 .donut-value span {
@@ -295,15 +314,18 @@
 }
 
 .top-event-item {
-    background: rgba(255, 255, 255, 0.6);
-    border-radius: 12px;
-    padding: 16px;
-    transition: transform 0.2s ease, box-shadow 0.2s ease;
+    background: rgba(255, 255, 255, 0.8);
+    border-radius: 16px;
+    padding: 18px;
+    transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+    box-shadow: 0 4px 15px -10px rgba(31, 45, 61, 0.2);
+    border: 1px solid rgba(31, 45, 61, 0.05);
 }
 
 .top-event-item:hover {
-    transform: translateY(-2px);
-    box-shadow: 0 4px 12px rgba(31, 45, 61, 0.15);
+    transform: translateY(-4px) scale(1.01);
+    box-shadow: 0 12px 25px -15px rgba(31, 45, 61, 0.3);
+    background: #ffffff;
 }
 
 .event-header {
@@ -314,17 +336,18 @@
 }
 
 .event-rank {
-    background: linear-gradient(135deg, #4A90E2, #50C878);
+    background: linear-gradient(135deg, #4A90E2, #1F2D3D);
     color: white;
-    width: 32px;
-    height: 32px;
-    border-radius: 8px;
+    width: 36px;
+    height: 36px;
+    border-radius: 10px;
     display: flex;
     align-items: center;
     justify-content: center;
-    font-weight: 700;
-    font-size: 14px;
+    font-weight: 800;
+    font-size: 15px;
     flex-shrink: 0;
+    box-shadow: 0 4px 10px rgba(74, 144, 226, 0.3);
 }
 
 .event-info {
@@ -431,25 +454,58 @@
 /* Graphique de comparaison annuelle */
 .comparison-chart {
     min-height: 280px;
-    padding: 24px;
+    padding: 24px 24px 24px 55px;
+    /* Added left padding for grid labels */
 }
 
 .comparison-bars {
     display: flex;
     align-items: flex-end;
-    justify-content: space-around;
+    justify-content: space-between;
     gap: 12px;
-    height: 200px;
-    margin-bottom: 20px;
+    height: 220px;
+    margin-bottom: 24px;
+    position: relative;
+    padding: 0 10px;
+}
+
+.comparison-grid {
+    position: absolute;
+    inset: 0;
+    display: flex;
+    flex-direction: column;
+    justify-content: space-between;
+    pointer-events: none;
+    z-index: 0;
+}
+
+.grid-line {
+    width: 100%;
+    height: 1px;
+    background: rgba(31, 45, 61, 0.05);
+    position: relative;
+}
+
+.grid-line::before {
+    content: attr(data-value);
+    position: absolute;
+    left: -45px;
+    top: -8px;
+    font-size: 10px;
+    color: rgba(31, 45, 61, 0.4);
+    min-width: 40px;
+    text-align: right;
 }
 
 .comparison-bar-group {
     display: flex;
     flex-direction: column;
     align-items: center;
-    gap: 8px;
+    gap: 12px;
     flex: 1;
-    max-width: 80px;
+    max-width: 70px;
+    position: relative;
+    z-index: 1;
 }
 
 .bar-wrapper {
@@ -464,24 +520,41 @@
 .bar-current,
 .bar-previous {
     flex: 1;
-    border-radius: 4px 4px 0 0;
+    border-radius: 6px 6px 0 0;
     position: relative;
-    transition: all 0.3s ease;
-    min-height: 20px;
+    transition: all 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+    min-height: 2px;
     display: flex;
     align-items: flex-start;
     justify-content: center;
-    padding-top: 4px;
+    padding-top: 6px;
+    z-index: 1;
 }
 
 .bar-current {
     background: linear-gradient(180deg, #4A90E2 0%, #50C878 100%);
     box-shadow: 0 2px 8px rgba(74, 144, 226, 0.3);
+    animation: growBar 1s cubic-bezier(0.175, 0.885, 0.32, 1.275) forwards;
+    transform-origin: bottom;
 }
 
 .bar-previous {
     background: linear-gradient(180deg, rgba(31, 45, 61, 0.6) 0%, rgba(31, 45, 61, 0.4) 100%);
     box-shadow: 0 2px 8px rgba(31, 45, 61, 0.2);
+    animation: growBar 1.2s cubic-bezier(0.175, 0.885, 0.32, 1.275) forwards;
+    transform-origin: bottom;
+}
+
+@keyframes growBar {
+    from {
+        transform: scaleY(0);
+        opacity: 0;
+    }
+
+    to {
+        transform: scaleY(1);
+        opacity: 1;
+    }
 }
 
 .bar-current:hover,
@@ -546,15 +619,15 @@
     .comparison-bars {
         gap: 6px;
     }
-    
+
     .comparison-bar-group {
         max-width: 50px;
     }
-    
+
     .bar-value {
         font-size: 8px;
     }
-    
+
     .bar-label {
         font-size: 10px;
     }

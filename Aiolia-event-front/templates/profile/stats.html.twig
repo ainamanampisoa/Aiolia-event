@@ -85,7 +85,7 @@
                         {% if eventTypeDistribution|length > 0 %}
                             <div class="donut-chart">
                                 <svg viewBox="0 0 36 36" class="donut-svg" id="donut-chart-svg">
-                                    <circle class="donut-hole" cx="18" cy="18" r="9"></circle>
+                                    <circle class="donut-hole" cx="18" cy="18" r="12"></circle>
                                 </svg>
                                 <div class="donut-value" id="donut-value">
                                     {% set distribution = eventTypeDistribution|slice(0, 5) %}
@@ -104,7 +104,7 @@
                         {% else %}
                             <div class="donut-chart">
                                 <svg viewBox="0 0 36 36" class="donut-svg">
-                                    <circle class="donut-hole" cx="18" cy="18" r="9"></circle>
+                                    <circle class="donut-hole" cx="18" cy="18" r="12"></circle>
                                 </svg>
                                 <div class="donut-value">0 %<span>Aucune donnée</span></div>
                             </div>
@@ -208,11 +208,18 @@
                         <span class="chart-period">Année en cours vs année précédente</span>
                     </header>
                     <div class="chart-placeholder comparison-chart">
+                        {% set maxValue = yearComparison.max_value|default(1) %}
+                        {% if maxValue < 1 %} {% set maxValue = 1 %} {% endif %}
+                        <div class="comparison-grid">
+                            {% set gridLevels = [1, 0.75, 0.5, 0.25, 0] %}
+                            {% for level in gridLevels %}
+                                <div class="grid-line" data-value="{{ (maxValue * level)|number_format(0, ',', ' ') }}"></div>
+                            {% endfor %}
+                        </div>
                         <div class="comparison-bars">
-                            {% set maxValue = yearComparison.max_value|default(1) %}
                             {% for comparison in yearComparison.data %}
-                                {% set currentHeight = maxValue > 0 ? ((comparison.current_year / maxValue) * 100 + 40)|round : 40 %}
-                                {% set previousHeight = maxValue > 0 ? ((comparison.previous_year / maxValue) * 100 + 40)|round : 40 %}
+                                {% set currentHeight = maxValue > 0 ? ((comparison.current_year / maxValue) * 200)|round : 0 %}
+                                {% set previousHeight = maxValue > 0 ? ((comparison.previous_year / maxValue) * 200)|round : 0 %}
                                 <div class="comparison-bar-group">
                                     <div class="bar-wrapper">
                                         <div class="bar-current" style="height: {{ currentHeight }}px;" 
@@ -254,11 +261,13 @@
                     const donutValue = document.getElementById('donut-value');
                     
                     if (svg && categoriesData && categoriesData.length > 0) {
-                        const colors = ['#4A90E2', '#50C878', '#FF6B6B', '#FFA500', '#9B59B6', '#1ABC9C'];
-                        const circumference = 2 * Math.PI * 16; // r = 16
-                        const radius = 16;
+                        const colors = ['#4A90E2', '#50C878', '#FF6B6B', '#FFA500', '#9B59B6'];
+                        const circumference = 2 * Math.PI * 15; // r = 15
+                        const radius = 15;
                         const centerX = 18;
                         const centerY = 18;
+                        
+                        const legendItems = document.querySelectorAll('.chart-legend li');
                         
                         let currentOffset = 0;
                         
@@ -277,7 +286,7 @@
                             circle.setAttribute('r', radius);
                             circle.setAttribute('fill', 'transparent');
                             circle.setAttribute('stroke', color);
-                            circle.setAttribute('stroke-width', '3');
+                            circle.setAttribute('stroke-width', '6');
                             circle.setAttribute('stroke-dasharray', `${arcLength} ${circumference}`);
                             circle.setAttribute('stroke-dashoffset', `-${currentOffset}`);
                             circle.setAttribute('transform', 'rotate(-90 18 18)');
@@ -290,16 +299,24 @@
                             // Ajouter l'événement hover
                             circle.addEventListener('mouseenter', function() {
                                 if (donutValue) {
+                                    donutValue.style.transform = 'scale(1.1)';
                                     donutValue.innerHTML = `${percentage}%<span>${item.category}</span>`;
                                 }
+                                // Highlight legend item
+                                legendItems.forEach((li, i) => {
+                                    if (i === index) li.classList.add('active');
+                                    else li.classList.remove('active');
+                                });
                             });
                         });
                         
                         // Réinitialiser au survol de la zone
                         donutContainer.addEventListener('mouseleave', function() {
                             if (donutValue && categoriesData.length > 0) {
+                                donutValue.style.transform = 'scale(1)';
                                 donutValue.innerHTML = `${categoriesData[0].percentage}%<span>${categoriesData[0].category}</span>`;
                             }
+                            legendItems.forEach(li => li.classList.remove('active'));
                         });
                     }
                 } catch (e) {
