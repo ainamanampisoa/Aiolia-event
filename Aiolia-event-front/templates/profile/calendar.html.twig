@@ -59,7 +59,16 @@
                                     {% set eventTime = event.starts_at|date('H:i') %}
                                     {% set eventDay = event.starts_at|date('d') %}
                                     {% set eventMonth = event.starts_at|date('F Y') %}
-                                    <article class="agenda-item" data-event-date="{{ event.starts_at|date('Y-m-d\\TH:i:sP') }}">
+                                    {% set catClass = '' %}
+                                    {% set catLabel = event.category_label|default('Événement') %}
+                                    {% if catLabel|lower matches '/concert|musique|music/' %}{% set catClass = 'category-concert' %}
+                                    {% elseif catLabel|lower matches '/sport/' %}{% set catClass = 'category-sport' %}
+                                    {% elseif catLabel|lower matches '/théâtre|art|spectacle/' %}{% set catClass = 'category-theater' %}
+                                    {% elseif catLabel|lower matches '/conférence|business|salon/' %}{% set catClass = 'category-business' %}
+                                    {% elseif catLabel|lower matches '/festival/' %}{% set catClass = 'category-festival' %}
+                                    {% endif %}
+
+                                    <article class="agenda-item {{ catClass }}" data-event-date="{{ event.starts_at|date('Y-m-d\\TH:i:sP') }}">
                                         <div class="agenda-date">
                                             <span class="day">{{ eventDay }}</span>
                                             <span class="month">{{ eventMonth }}</span>
@@ -67,9 +76,9 @@
                                         <div class="agenda-content">
                                             <h3><a href="{{ path('event_details', { id: event.id }) }}" style="text-decoration: none; color: inherit;">{{ event.title }}</a></h3>
                                             <div class="agenda-meta">
+                                                <span class="cat-badge"><i class="fas fa-tag"></i> {{ catLabel }}</span>
                                                 <span><i class="fas fa-clock"></i> {{ eventTime }}</span>
                                                 <span><i class="fas fa-map-marker-alt"></i> {{ event.venue_name ?? event.city ?? 'Lieu non spécifié' }}</span>
-                                                <span><i class="fas fa-tag"></i> {{ event.category_label ?? 'Événement' }}</span>
                                                 {% if event.ticket_count|default(0) > 0 %}
                                                     <span><i class="fas fa-ticket-alt"></i> {{ event.ticket_count }} billet{{ event.ticket_count > 1 ? 's' : '' }}</span>
                                                 {% endif %}
@@ -184,6 +193,19 @@
                     // Vérifier si ce jour a des événements
                     if (eventsByDate[dateKey] && eventsByDate[dateKey].length > 0) {
                         dayElement.classList.add('has-event');
+                        
+                        // Ajouter une classe de catégorie basée sur le premier événement
+                        const firstEvent = eventsByDate[dateKey][0];
+                        const catLabel = (firstEvent.category_label || '').toLowerCase();
+                        let catClass = '';
+                        if (catLabel.match(/concert|musique|music/)) catClass = 'category-concert';
+                        else if (catLabel.match(/sport/)) catClass = 'category-sport';
+                        else if (catLabel.match(/théâtre|art|spectacle/)) catClass = 'category-theater';
+                        else if (catLabel.match(/conférence|business|salon/)) catClass = 'category-business';
+                        else if (catLabel.match(/festival/)) catClass = 'category-festival';
+                        
+                        if (catClass) dayElement.classList.add(catClass);
+                        
                         dayElement.title = eventsByDate[dateKey].map(e => e.title).join(', ');
                         
                         // Ajouter une icône
