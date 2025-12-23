@@ -706,13 +706,13 @@
 
 /* Image d'événement améliorée */
 .blc-col2 {
-    width: 200px;
+    width: 250px;
     position: relative;
-    padding: 20px 20px 20px 0;
-    /* aligne l'image avec le contenu texte */
+    padding: 0;
+    /* l'image occupe toute la hauteur pour un meilleur alignement */
     display: flex;
     align-items: center;
-    /* centre verticalement l'affiche */
+    overflow: hidden;
 }
 
 .blc-col2 .img {
@@ -720,7 +720,7 @@
     height: 100%;
     position: relative;
     overflow: hidden;
-    border-radius: var(--radius-md);
+    border-radius: 0;
 }
 
 .blc-col2 img {
@@ -920,7 +920,10 @@
 
     .blc-col2 {
         width: 100%;
-        height: 200px;
+        height: 250px;
+        padding: 0;
+        border-radius: 0 0 var(--radius-lg) var(--radius-lg);
+        overflow: hidden;
     }
 
     .blc-col1 {
