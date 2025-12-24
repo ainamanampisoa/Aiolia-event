@@ -335,6 +335,7 @@ class WaitlistRepository extends ServiceEntityRepository
                         seg.age_min as ageMin,
                         seg.age_max as ageMax,
                         tb.id as typeBilletId,
+                        tb.prix_de_base as prixDeBase,
                         e.id as eventId,
                         e.titre as eventTitre,
                         COALESCE(ib.quantite_totale, 0) as quantiteTotale,
@@ -362,7 +363,7 @@ class WaitlistRepository extends ServiceEntityRepository
                 $params['organizerProfileId'] = $organizerProfileId;
             }
 
-            $sql .= ' GROUP BY cat.nom, seg.nom, seg.age_min, seg.age_max, tb.id, e.id, e.titre, ib.quantite_totale, ib.quantite_vendue, ib.quantite_reservee
+            $sql .= ' GROUP BY cat.nom, seg.nom, seg.age_min, seg.age_max, tb.id, tb.prix_de_base, e.id, e.titre, ib.quantite_totale, ib.quantite_vendue, ib.quantite_reservee
                       ORDER BY cat.nom, seg.nom';
 
             $waitlistData = $conn->executeQuery($sql, $params)->fetchAllAssociative();
@@ -377,6 +378,7 @@ class WaitlistRepository extends ServiceEntityRepository
                     'ageMin' => $wl['agemin'] !== null ? (int)$wl['agemin'] : null,
                     'ageMax' => $wl['agemax'] !== null ? (int)$wl['agemax'] : null,
                     'typeBilletId' => $wl['typebilletid'],
+                    'prixDeBase' => $wl['prixdebase'] !== null ? (float)$wl['prixdebase'] : 0,
                     'quantiteTotale' => (int)($wl['quantitetotale'] ?? 0),
                     'quantiteVendue' => (int)($wl['quantitevendue'] ?? 0),
                     'quantiteReservee' => (int)($wl['quantitereservee'] ?? 0),
@@ -463,6 +465,264 @@ class WaitlistRepository extends ServiceEntityRepository
         ->addOrderBy('u.prenom', 'ASC');
         
         return $qb->getQuery()->getResult();
+    }
+
+    /**
+     * Récupère les événements avec leurs utilisateurs en liste d'attente (paginé)
+     *
+     * @param string|null $organizerProfileId ID du profil organisateur (optionnel)
+     * @param int $page Numéro de page (commence à 1)
+     * @param int $perPage Nombre d'éléments par page
+     * @return array ['items' => [], 'total' => int, 'pages' => int, 'currentPage' => int]
+     */
+    public function findEventsWithWaitlistPaginated(?string $organizerProfileId = null, int $page = 1, int $perPage = 20): array
+    {
+        $now = new \DateTime('now', new \DateTimeZone(self::TIMEZONE));
+        $offset = ($page - 1) * $perPage;
+        $dateFormat = 'Y-m-d H:i:s';
+        $conn = $this->getEntityManager()->getConnection();
+        
+        // Vérifier si la table existe
+        $tableExists = false;
+        try {
+            $checkTable = $conn->executeQuery("SELECT EXISTS (
+                SELECT FROM information_schema.tables
+                WHERE table_schema = 'aiolia'
+                AND table_name = 'listes_attente_billets'
+            )")->fetchOne();
+            $tableExists = (bool) $checkTable;
+        } catch (\Exception $e) {
+            $tableExists = false;
+        }
+        
+        if (!$tableExists) {
+            return [
+                'items' => [],
+                'total' => 0,
+                'pages' => 0,
+                'currentPage' => $page,
+                'perPage' => $perPage,
+            ];
+        }
+        
+        // Compter le total d'événements avec liste d'attente
+        $countSql = 'SELECT COUNT(DISTINCT e.id)
+                     FROM aiolia.listes_attente_billets lab
+                     INNER JOIN aiolia.types_billets tb ON lab.id_type_billet = tb.id
+                     INNER JOIN aiolia.evenements e ON tb.id_evenement = e.id
+                     WHERE e.statut = :statut
+                     AND ((e.commence_le <= :now AND (e.se_termine_le IS NULL OR e.se_termine_le >= :now)) OR e.commence_le > :now)';
+        
+        $countParams = [
+            'statut' => Event::STATUS_PUBLISHED,
+            'now' => $now->format($dateFormat)
+        ];
+        
+        if ($organizerProfileId !== null) {
+            $countSql .= ' AND e.id_profil_organisateur = :organizerProfileId';
+            $countParams['organizerProfileId'] = $organizerProfileId;
+        }
+        
+        $total = 0;
+        try {
+            $total = (int) $conn->executeQuery($countSql, $countParams)->fetchOne();
+        } catch (\Exception $e) {
+            $total = 0;
+        }
+        
+        // Récupérer les événements avec pagination
+        $sql = 'SELECT DISTINCT
+                    e.id as eventId,
+                    e.titre as eventTitre,
+                    e.commence_le as commenceLe,
+                    e.se_termine_le as seTermineLe,
+                    COUNT(DISTINCT lab.id_utilisateur) as nombreUtilisateurs,
+                    SUM(lab.quantite_demandee) as totalQuantiteAttente
+                FROM aiolia.listes_attente_billets lab
+                INNER JOIN aiolia.types_billets tb ON lab.id_type_billet = tb.id
+                INNER JOIN aiolia.evenements e ON tb.id_evenement = e.id
+                WHERE e.statut = :statut
+                AND ((e.commence_le <= :now AND (e.se_termine_le IS NULL OR e.se_termine_le >= :now)) OR e.commence_le > :now)';
+        
+        $params = [
+            'statut' => Event::STATUS_PUBLISHED,
+            'now' => $now->format($dateFormat)
+        ];
+        
+        if ($organizerProfileId !== null) {
+            $sql .= ' AND e.id_profil_organisateur = :organizerProfileId';
+            $params['organizerProfileId'] = $organizerProfileId;
+        }
+        
+        $sql .= ' GROUP BY e.id, e.titre, e.commence_le, e.se_termine_le
+                  ORDER BY e.commence_le ASC, e.titre ASC
+                  LIMIT :limit OFFSET :offset';
+        
+        $params['limit'] = $perPage;
+        $params['offset'] = $offset;
+        
+        try {
+            $events = $conn->executeQuery($sql, $params)->fetchAllAssociative();
+        } catch (\Exception $e) {
+            $events = [];
+        }
+        
+        // Normaliser les clés en camelCase pour chaque événement
+        $normalizedEvents = [];
+        foreach ($events as $event) {
+            $normalizedEvent = [
+                'eventId' => $event['eventid'] ?? null,
+                'eventTitre' => $event['eventtitre'] ?? '',
+                'commenceLe' => $event['commencele'] ?? null,
+                'seTermineLe' => $event['seterminele'] ?? null,
+                'nombreUtilisateurs' => (int)($event['nombreutilisateurs'] ?? 0),
+                'totalQuantiteAttente' => (int)($event['totalquantiteattente'] ?? 0),
+            ];
+            $normalizedEvents[] = $normalizedEvent;
+        }
+        
+        // Enrichir chaque événement avec ses utilisateurs en liste d'attente
+        foreach ($normalizedEvents as &$event) {
+            $eventId = $event['eventId'];
+            
+            // Récupérer les utilisateurs en liste d'attente pour cet événement
+            $usersSql = 'SELECT DISTINCT
+                            u.id as userId,
+                            u.email,
+                            u.prenom,
+                            u.nom,
+                            u.telephone,
+                            u.url_avatar as urlAvatar
+                        FROM aiolia.listes_attente_billets lab
+                        INNER JOIN aiolia.types_billets tb ON lab.id_type_billet = tb.id
+                        INNER JOIN aiolia.evenements e ON tb.id_evenement = e.id
+                        INNER JOIN aiolia.utilisateurs u ON lab.id_utilisateur = u.id
+                        WHERE e.id = :eventId
+                        AND u.role = :role
+                        AND e.statut = :statut
+                        AND ((e.commence_le <= :now AND (e.se_termine_le IS NULL OR e.se_termine_le >= :now)) OR e.commence_le > :now)';
+            
+            $usersParams = [
+                'eventId' => $eventId,
+                'role' => 'user',
+                'statut' => Event::STATUS_PUBLISHED,
+                'now' => $now->format($dateFormat)
+            ];
+            
+            if ($organizerProfileId !== null) {
+                $usersSql .= ' AND e.id_profil_organisateur = :organizerProfileId';
+                $usersParams['organizerProfileId'] = $organizerProfileId;
+            }
+            
+            $usersSql .= ' ORDER BY u.nom ASC, u.prenom ASC';
+            
+            try {
+                $users = $conn->executeQuery($usersSql, $usersParams)->fetchAllAssociative();
+            } catch (\Exception $e) {
+                $users = [];
+            }
+            
+            // Enrichir chaque utilisateur avec ses catégories/segments en liste d'attente
+            foreach ($users as &$user) {
+                $userId = $user['userid'];
+                
+                $categoriesSql = 'SELECT
+                                    cat.nom as categorie,
+                                    seg.nom as segment,
+                                    seg.age_min as ageMin,
+                                    seg.age_max as ageMax,
+                                    tb.id as typeBilletId,
+                                    tb.prix_de_base as prixDeBase,
+                                    COALESCE(ib.quantite_totale, 0) as quantiteTotale,
+                                    COALESCE(ib.quantite_vendue, 0) as quantiteVendue,
+                                    COALESCE(ib.quantite_reservee, 0) as quantiteReservee,
+                                    SUM(lab.quantite_demandee) as quantiteAttente
+                                FROM aiolia.listes_attente_billets lab
+                                INNER JOIN aiolia.types_billets tb ON lab.id_type_billet = tb.id
+                                INNER JOIN aiolia.evenements e ON tb.id_evenement = e.id
+                                LEFT JOIN aiolia.configuration_categories_billets cat ON tb.id_configuration_categorie = cat.id
+                                LEFT JOIN aiolia.configuration_segments_billets seg ON tb.id_configuration_segment = seg.id
+                                LEFT JOIN aiolia.inventaire_billets ib ON tb.id = ib.id_type_billet
+                                WHERE lab.id_utilisateur = :userId
+                                AND e.id = :eventId
+                                AND e.statut = :statut
+                                AND ((e.commence_le <= :now AND (e.se_termine_le IS NULL OR e.se_termine_le >= :now)) OR e.commence_le > :now)';
+                
+                $categoriesParams = [
+                    'userId' => $userId,
+                    'eventId' => $eventId,
+                    'statut' => Event::STATUS_PUBLISHED,
+                    'now' => $now->format('Y-m-d H:i:s')
+                ];
+                
+                if ($organizerProfileId !== null) {
+                    $categoriesSql .= ' AND e.id_profil_organisateur = :organizerProfileId';
+                    $categoriesParams['organizerProfileId'] = $organizerProfileId;
+                }
+                
+                $categoriesSql .= ' GROUP BY cat.nom, seg.nom, seg.age_min, seg.age_max, tb.id, tb.prix_de_base, ib.quantite_totale, ib.quantite_vendue, ib.quantite_reservee
+                                  ORDER BY cat.nom, seg.nom';
+                
+                try {
+                    $categoriesData = $conn->executeQuery($categoriesSql, $categoriesParams)->fetchAllAssociative();
+                } catch (\Exception $e) {
+                    $categoriesData = [];
+                }
+                
+                $categoriesSegments = [];
+                $totalAttente = 0;
+                foreach ($categoriesData as $cat) {
+                    $categoriesSegments[] = [
+                        'categorie' => $cat['categorie'] ?? '',
+                        'segment' => $cat['segment'] ?? '',
+                        'ageMin' => $cat['agemin'] !== null ? (int)$cat['agemin'] : null,
+                        'ageMax' => $cat['agemax'] !== null ? (int)$cat['agemax'] : null,
+                        'typeBilletId' => $cat['typebilletid'],
+                        'prixDeBase' => $cat['prixdebase'] !== null ? (float)$cat['prixdebase'] : 0,
+                        'quantiteTotale' => (int)($cat['quantitetotale'] ?? 0),
+                        'quantiteVendue' => (int)($cat['quantitevendue'] ?? 0),
+                        'quantiteReservee' => (int)($cat['quantitereservee'] ?? 0),
+                        'quantiteAttente' => (int)($cat['quantiteattente'] ?? 0),
+                    ];
+                    $totalAttente += (int)($cat['quantiteattente'] ?? 0);
+                }
+                
+                // Normaliser les clés de l'utilisateur
+                $user['userId'] = $user['userid'] ?? null;
+                $user['urlAvatar'] = $user['urlavatar'] ?? null;
+                $user['categoriesSegments'] = $categoriesSegments;
+                $user['totalAttente'] = $totalAttente;
+            }
+            
+            // Normaliser toutes les clés des utilisateurs
+            $normalizedUsers = [];
+            foreach ($users as $user) {
+                $normalizedUser = [
+                    'userId' => $user['userId'] ?? $user['userid'] ?? null,
+                    'email' => $user['email'] ?? '',
+                    'prenom' => $user['prenom'] ?? '',
+                    'nom' => $user['nom'] ?? '',
+                    'telephone' => $user['telephone'] ?? null,
+                    'urlAvatar' => $user['urlAvatar'] ?? $user['urlavatar'] ?? null,
+                    'categoriesSegments' => $user['categoriesSegments'] ?? [],
+                    'totalAttente' => $user['totalAttente'] ?? 0,
+                ];
+                $normalizedUsers[] = $normalizedUser;
+            }
+            
+            $event['users'] = $normalizedUsers;
+            $event['nombreUtilisateurs'] = count($normalizedUsers);
+        }
+        
+        $pages = (int) ceil($total / $perPage);
+        
+        return [
+            'items' => $normalizedEvents,
+            'total' => $total,
+            'pages' => $pages,
+            'currentPage' => $page,
+            'perPage' => $perPage,
+        ];
     }
 
     /**

@@ -114,5 +114,30 @@ class WaitlistService
             'statistics' => $statistics,
         ];
     }
+
+    /**
+     * Formate les données paginées groupées par événement pour l'affichage dans la vue
+     *
+     * @param string|null $organizerProfileId ID du profil organisateur (optionnel)
+     * @param int $page Numéro de page
+     * @param int $perPage Nombre d'éléments par page
+     * @return array Données formatées avec pagination
+     */
+    public function getFormattedWaitlistDataByEventPaginated(?string $organizerProfileId = null, int $page = 1, int $perPage = 20): array
+    {
+        $paginationData = $this->waitlistRepository->findEventsWithWaitlistPaginated($organizerProfileId, $page, $perPage);
+        $statistics = $this->getWaitlistStatistics($organizerProfileId);
+        
+        return [
+            'events' => $paginationData['items'],
+            'pagination' => [
+                'total' => $paginationData['total'],
+                'pages' => $paginationData['pages'],
+                'currentPage' => $paginationData['currentPage'],
+                'perPage' => $paginationData['perPage'],
+            ],
+            'statistics' => $statistics,
+        ];
+    }
 }
 

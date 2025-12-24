@@ -21,122 +21,178 @@
         </div>
     </div>
 
-    <!-- Liste des utilisateurs -->
+    <!-- Liste des événements avec leurs utilisateurs en liste d'attente -->
     <div class="card validation-card">
         <div class="card-body">
-            <div class="table-responsive">
-                <table class="table table-hover validation-table categories-table">
-                    <thead>
-                        <tr>
-                            <th class="col-left">Utilisateur</th>
-                            <th class="col-left">Email</th>
-                            <th class="col-left">Téléphone</th>
-                            <th class="col-left">Catégorie / Segment</th>
-                            <th class="col-center">Events</th>
-                            <th class="col-center">Liste d'attente</th>
-                            <th class="col-center">Actions</th>
-                        </tr>
-                    </thead>
-                    <tbody>
-                        {% if users is defined and users|length > 0 %}
-                            {% for user in users %}
-                                <tr>
-                                    <td class="col-left">
-                                        <div class="user-info">
-                                            {% if user.urlAvatar %}
-                                                <img src="{{ user.urlAvatar }}" alt="{{ user.prenom }} {{ user.nom }}" class="user-avatar">
-                                            {% else %}
-                                                <div class="user-avatar-placeholder">
-                                                    {{ user.prenom|first|upper }}{{ user.nom|first|upper }}
-                                                </div>
-                                            {% endif %}
-                                            <div>
-                                                <strong class="user-name">
-                                                    {{ user.prenom }} {{ user.nom }}
-                                                </strong>
-                                            </div>
-                                        </div>
-                                    </td>
-                                    <td class="col-left">
-                                        <span class="text-secondary">{{ user.email }}</span>
-                                    </td>
-                                    <td class="col-left">
-                                        <span class="text-secondary">{{ user.telephone|default('N/A') }}</span>
-                                    </td>
-                                    <td class="col-left">
-                                        {% if user.categoriesSegments is defined and user.categoriesSegments|length > 0 %}
-                                            <div class="categories-segments-list">
-                                                {% for detail in user.categoriesSegments %}
-                                                    <div class="category-segment-item">
-                                                        <span class="ticket-cat-badge">
-                                                            {{ detail.categorie|lower|trim }}
-                                                        </span>
-                                                        <span class="segment-info">
-                                                            {{ detail.segment }}
-                                                            {% if detail.ageMin is not null or detail.ageMax is not null %}
-                                                                <span class="age-range">
-                                                                    ({% if detail.ageMin is not null %}{{ detail.ageMin }}{% endif %}{% if detail.ageMin is not null and detail.ageMax is not null %}-{% endif %}{% if detail.ageMax is not null %}{{ detail.ageMax }}{% endif %} ans)
-                                                                </span>
-                                                            {% endif %}
-                                                        </span>
-                                                        {% if detail.quantiteAttente > 0 %}
-                                                            <span class="waitlist-badge-small">{{ detail.quantiteAttente }}</span>
+            {% if events is defined and events|length > 0 %}
+                {% for event in events %}
+                    <div class="event-waitlist-section">
+                        <div class="event-header">
+                            <div class="event-header-content">
+                                <div class="event-icon-wrapper">
+                                    <i class="fas fa-calendar-alt"></i>
+                                </div>
+                                <div class="event-info">
+                                    <h3 class="event-title">
+                                        <a href="{{ path('organisateur_events_show', {id: event.eventId}) }}" class="event-link">
+                                            {{ event.eventTitre }}
+                                        </a>
+                                    </h3>
+                                    <div class="event-meta">
+                                        <span class="event-id">Événement #{{ event.eventId }}</span>
+                                        {% if event.commenceLe %}
+                                            <span class="event-date">
+                                                <i class="fas fa-clock"></i> 
+                                                {{ event.commenceLe|date('d/m/Y H:i') }}
+                                            </span>
+                                        {% endif %}
+                                    </div>
+                                </div>
+                            </div>
+                            <div class="event-stats">
+                                <div class="event-stat-item">
+                                    <span class="stat-label">Utilisateurs</span>
+                                    <span class="stat-value">{{ event.nombreUtilisateurs|number_format(0, ',', ' ') }}</span>
+                                </div>
+                                <div class="event-stat-item">
+                                    <span class="stat-label">Total en attente</span>
+                                    <span class="stat-value waitlist-total">{{ event.totalQuantiteAttente|number_format(0, ',', ' ') }}</span>
+                                </div>
+                            </div>
+                        </div>
+
+                        {% if event.users is defined and event.users|length > 0 %}
+                            <div class="table-responsive">
+                                <table class="table table-hover validation-table categories-table event-users-table">
+                                    <thead>
+                                        <tr>
+                                            <th class="col-left">Utilisateur</th>
+                                            <th class="col-left">Email</th>
+                                            <th class="col-left">Téléphone</th>
+                                            <th class="col-left">Catégorie / Segment</th>
+                                            <th class="col-center">Total en attente</th>
+                                            <th class="col-center">Actions</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody>
+                                        {% for user in event.users %}
+                                            <tr>
+                                                <td class="col-left">
+                                                    <div class="user-info">
+                                                        {% if user.urlAvatar %}
+                                                            <img src="{{ user.urlAvatar }}" alt="{{ user.prenom }} {{ user.nom }}" class="user-avatar">
+                                                        {% else %}
+                                                            <div class="user-avatar-placeholder">
+                                                                {{ user.prenom|first|upper }}{{ user.nom|first|upper }}
+                                                            </div>
+                                                        {% endif %}
+                                                        <div>
+                                                            <strong class="user-name">
+                                                                {{ user.prenom }} {{ user.nom }}
+                                                            </strong>
+                                                        </div>
+                                                    </div>
+                                                </td>
+                                                <td class="col-left">
+                                                    <span class="text-secondary">
+                                                        <i class="fas fa-envelope"></i> {{ user.email }}
+                                                    </span>
+                                                </td>
+                                                <td class="col-left">
+                                                    <span class="text-secondary">
+                                                        <i class="fas fa-phone"></i> {{ user.telephone|default('N/A') }}
+                                                    </span>
+                                                </td>
+                                                <td class="col-left">
+                                                    {% if user.categoriesSegments is defined and user.categoriesSegments|length > 0 %}
+                                                        <div class="categories-segments-list">
+                                                            {% for detail in user.categoriesSegments %}
+                                                                <div class="category-segment-item">
+                                                                    <div class="category-segment-header">
+                                                                        <span class="ticket-cat-badge">
+                                                                            <i class="fas fa-tag"></i> {{ detail.categorie|lower|trim }}
+                                                                        </span>
+                                                                        {% if detail.quantiteAttente > 0 %}
+                                                                            <span class="waitlist-badge-small" title="Quantité en liste d'attente">
+                                                                                <i class="fas fa-clock"></i> {{ detail.quantiteAttente }}
+                                                                            </span>
+                                                                        {% endif %}
+                                                                    </div>
+                                                                    <div class="category-segment-details">
+                                                                        <span class="segment-info">
+                                                                            <i class="fas fa-users"></i> {{ detail.segment }}
+                                                                            {% if detail.ageMin is not null or detail.ageMax is not null %}
+                                                                                <span class="age-range">
+                                                                                    ({% if detail.ageMin is not null %}{{ detail.ageMin }}{% endif %}{% if detail.ageMin is not null and detail.ageMax is not null %}-{% endif %}{% if detail.ageMax is not null %}{{ detail.ageMax }}{% endif %} ans)
+                                                                                </span>
+                                                                            {% endif %}
+                                                                        </span>
+                                                                    </div>
+                                                                    <div class="category-segment-stats">
+                                                                        <span class="stat-item" title="Prix unitaire">
+                                                                            <i class="fas fa-money-bill-wave"></i> {{ detail.prixDeBase|number_format(0, ',', ' ') }} MGA
+                                                                        </span>
+                                                                        <span class="stat-item" title="Stock total">
+                                                                            <i class="fas fa-box"></i> {{ detail.quantiteTotale|number_format(0, ',', ' ') }}
+                                                                        </span>
+                                                                        <span class="stat-item" title="Vendus">
+                                                                            <i class="fas fa-check-circle"></i> {{ detail.quantiteVendue|number_format(0, ',', ' ') }}
+                                                                        </span>
+                                                                        <span class="stat-item available" title="Disponibles">
+                                                                            <i class="fas fa-check"></i> {{ (detail.quantiteTotale - detail.quantiteVendue)|number_format(0, ',', ' ') }}
+                                                                        </span>
+                                                                    </div>
+                                                                </div>
+                                                            {% endfor %}
+                                                        </div>
+                                                    {% else %}
+                                                        <span class="text-muted">—</span>
+                                                    {% endif %}
+                                                </td>
+                                                <td class="col-center">
+                                                    {% if user.totalAttente is defined and user.totalAttente > 0 %}
+                                                        <span class="badge-waitlist">{{ user.totalAttente|number_format(0, ',', ' ') }}</span>
+                                                    {% else %}
+                                                        <span class="text-muted">0</span>
+                                                    {% endif %}
+                                                </td>
+                                                <td class="col-center">
+                                                    <div class="action-buttons">
+                                                        <a href="{{ path('organisateur_events_show', {id: event.eventId}) }}" class="btn-action btn-view" title="Voir l'événement">
+                                                            <i class="fas fa-eye"></i>
+                                                        </a>
+                                                        {% if user.categoriesSegments is defined and user.categoriesSegments|length > 0 %}
+                                                            <button type="button" class="btn-action btn-edit" title="Traiter la liste d'attente" 
+                                                                data-user-id="{{ user.userId }}" 
+                                                                data-event-id="{{ event.eventId }}" 
+                                                                data-user-name="{{ user.prenom }} {{ user.nom }}"
+                                                                data-event-title="{{ event.eventTitre }}"
+                                                                data-categories='{{ user.categoriesSegments|json_encode|e('html_attr') }}'
+                                                                onclick="handleEditClick(this)">
+                                                                <i class="fas fa-edit"></i>
+                                                            </button>
                                                         {% endif %}
                                                     </div>
-                                                {% endfor %}
-                                            </div>
-                                        {% else %}
-                                            <span class="text-muted">—</span>
-                                        {% endif %}
-                                    </td>
-                                    <td class="col-left">
-                                        {% if user.eventTitres is defined and user.eventTitres|length > 0 %}
-                                            <div class="events-list">
-                                                {% for eventTitre in user.eventTitres %}
-                                                    <div class="event-name-item">
-                                                        <span class="event-name">{{ eventTitre }}</span>
-                                                    </div>
-                                                {% endfor %}
-                                            </div>
-                                        {% else %}
-                                            <span class="text-muted">—</span>
-                                        {% endif %}
-                                    </td>
-                                    <td class="col-center">
-                                        {% if user.categoriesSegments is defined and user.categoriesSegments|length > 0 %}
-                                            {% set totalAttente = 0 %}
-                                            {% for detail in user.categoriesSegments %}
-                                                {% set totalAttente = totalAttente + (detail.quantiteAttente|default(0)) %}
-                                            {% endfor %}
-                                            {% if totalAttente > 0 %}
-                                                <span class="badge-waitlist">{{ totalAttente|number_format(0, ',', ' ') }}</span>
-                                            {% else %}
-                                                <span class="text-muted">0</span>
-                                            {% endif %}
-                                        {% else %}
-                                            <span class="text-muted">0</span>
-                                        {% endif %}
-                                    </td>
-                                    <td class="col-center">
-                                        <div class="action-buttons">
-                                            {% if user.eventId %}
-                                                <a href="{{ path('organisateur_events_show', {id: user.eventId}) }}" class="btn-action btn-view" title="Voir l'événement">
-                                                    <i class="fas fa-eye"></i>
-                                                </a>
-                                            {% endif %}
-                                            {% if user.categoriesSegments is defined and user.categoriesSegments|length > 0 %}
-                                                <button type="button" class="btn-action btn-edit" title="Modifier la quantité de billets" onclick="openEditQuantityModal({{ user.userId }}, {{ user.eventId|default('null') }}, {{ user.categoriesSegments|json_encode|e('html_attr') }})">
-                                                    <i class="fas fa-edit"></i>
-                                                </button>
-                                            {% endif %}
-                                        </div>
-                                    </td>
-                                </tr>
-                            {% endfor %}
+                                                </td>
+                                            </tr>
+                                        {% endfor %}
+                                    </tbody>
+                                </table>
+                            </div>
+                        {% else %}
+                            <div class="no-users-message">
+                                <i class="fas fa-info-circle"></i>
+                                <span>Aucun utilisateur en liste d'attente pour cet événement</span>
+                            </div>
                         {% endif %}
-                    </tbody>
-                </table>
-            </div>
+                    </div>
+                {% endfor %}
+            {% else %}
+                <div class="empty-state">
+                    <i class="fas fa-list-alt" style="font-size: 3rem; color: var(--text-secondary); margin-bottom: 1rem;"></i>
+                    <p style="color: var(--text-secondary);">Aucun événement avec liste d'attente trouvé</p>
+                </div>
+            {% endif %}
 
             <!-- Pagination -->
             {% if pagination is defined and pagination.pages > 1 %}
@@ -203,43 +259,167 @@
                 </ul>
             </div>
             <div class="pagination-summary">
-                Affichage de {{ ((pagination.currentPage - 1) * pagination.perPage + 1)|number_format(0, ',', ' ') }} à {{ min(pagination.currentPage * pagination.perPage, pagination.total)|number_format(0, ',', ' ') }} sur {{ pagination.total|number_format(0, ',', ' ') }} utilisateurs
+                Affichage de {{ ((pagination.currentPage - 1) * pagination.perPage + 1)|number_format(0, ',', ' ') }} à {{ min(pagination.currentPage * pagination.perPage, pagination.total)|number_format(0, ',', ' ') }} sur {{ pagination.total|number_format(0, ',', ' ') }} événement(s)
             </div>
             {% endif %}
         </div>
     </div>
 </div>
 
-<!-- Modal pour modifier la quantité de billets -->
+<!-- Modal pour accepter/rejeter la liste d'attente -->
 <div id="editQuantityModal" class="modal-overlay">
     <div class="modal-content">
         <div class="modal-header">
-            <h3><i class="fas fa-edit"></i> Modifier la quantité de billets</h3>
+            <h3><i class="fas fa-list-alt"></i> Traiter la liste d'attente</h3>
             <button type="button" class="modal-close" id="closeQuantityModal">&times;</button>
         </div>
         <div class="modal-body" id="quantityModalBody">
-            <form id="editQuantityForm">
-                <div class="form-group">
-                    <label for="typeBilletSelect">Catégorie / Segment</label>
-                    <select id="typeBilletSelect" name="typeBilletId" class="form-control" required>
-                        <option value="">Sélectionner une catégorie/segment</option>
-                    </select>
-                    <div class="form-error" id="typeBilletError"></div>
+            <!-- Informations de contexte -->
+            <div class="waitlist-info-box">
+                <div class="info-item">
+                    <div class="info-icon-wrapper">
+                        <i class="fas fa-user"></i>
+                    </div>
+                    <div class="info-content">
+                        <span class="info-label-small">Utilisateur</span>
+                        <span class="info-value-large" id="userInfoDisplay">-</span>
+                    </div>
                 </div>
-                <div class="form-group">
-                    <label for="quantiteTotale">Quantité totale</label>
-                    <input type="number" id="quantiteTotale" name="quantiteTotale" class="form-control" min="1" required>
-                    <div class="form-error" id="quantiteError"></div>
-                    <small class="text-secondary" style="margin-top: 4px; display: block;">
-                        La quantité ne peut pas être inférieure à <span id="minQuantite">0</span> (quantité déjà vendue)
-                    </small>
+                <div class="info-item">
+                    <div class="info-icon-wrapper">
+                        <i class="fas fa-calendar-alt"></i>
+                    </div>
+                    <div class="info-content">
+                        <span class="info-label-small">Événement</span>
+                        <span class="info-value-large" id="eventInfoDisplay">-</span>
+                    </div>
                 </div>
-                <input type="hidden" id="userId" name="userId">
-            </form>
+            </div>
+
+            <!-- Layout en deux colonnes -->
+            <div class="modal-two-columns">
+                <!-- Colonne gauche : Accepter -->
+                <div class="modal-column accept-column">
+                    <div class="section-header">
+                        <div class="section-icon accept-icon">
+                            <i class="fas fa-check-circle"></i>
+                        </div>
+                        <div>
+                            <h4>Accepter la demande</h4>
+                            <p class="section-subtitle">Valider et traiter la demande</p>
+                        </div>
+                    </div>
+                    
+                    <form id="editQuantityForm">
+                        <div class="form-group">
+                            <label for="typeBilletSelect">
+                                <i class="fas fa-tag"></i> Catégorie / Segment
+                            </label>
+                            <select id="typeBilletSelect" name="typeBilletId" class="form-control" required>
+                                <option value="">Sélectionner une catégorie/segment</option>
+                            </select>
+                            <div class="form-error" id="typeBilletError"></div>
+                        </div>
+                        
+                        <div class="form-row">
+                            <div class="form-group form-group-half">
+                                <label for="prixDeBase">
+                                    <i class="fas fa-money-bill-wave"></i> Prix unitaire
+                                </label>
+                                <input type="number" id="prixDeBase" name="prixDeBase" class="form-control" step="0.01" min="0" required>
+                                <small class="form-help">MGA</small>
+                                <div class="form-error" id="prixError"></div>
+                            </div>
+                            
+                            <div class="form-group form-group-half">
+                                <label for="quantiteTotale">
+                                    <i class="fas fa-box"></i> Quantité totale
+                                </label>
+                                <input type="number" id="quantiteTotale" name="quantiteTotale" class="form-control" min="1" required>
+                                <div class="form-error" id="quantiteError"></div>
+                            </div>
+                        </div>
+                        
+                        <div class="quantity-info-box">
+                            <div class="info-header">
+                                <i class="fas fa-info-circle"></i>
+                                <span>Informations de stock</span>
+                            </div>
+                            <div class="info-grid">
+                                <div class="info-card">
+                                    <div class="info-card-icon sold">
+                                        <i class="fas fa-check-circle"></i>
+                                    </div>
+                                    <div class="info-card-content">
+                                        <span class="info-card-label">Vendus</span>
+                                        <span class="info-card-value" id="minQuantite">0</span>
+                                    </div>
+                                </div>
+                                <div class="info-card">
+                                    <div class="info-card-icon waitlist">
+                                        <i class="fas fa-clock"></i>
+                                    </div>
+                                    <div class="info-card-content">
+                                        <span class="info-card-label">En attente</span>
+                                        <span class="info-card-value" id="quantiteDemandee">0</span>
+                                    </div>
+                                </div>
+                                <div class="info-card">
+                                    <div class="info-card-icon required">
+                                        <i class="fas fa-calculator"></i>
+                                    </div>
+                                    <div class="info-card-content">
+                                        <span class="info-card-label">Minimum requis</span>
+                                        <span class="info-card-value" id="quantiteMinimale">0</span>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                        
+                        <input type="hidden" id="userId" name="userId">
+                        <input type="hidden" id="eventId" name="eventId">
+                    </form>
+                </div>
+
+                <!-- Colonne droite : Rejeter -->
+                <div class="modal-column reject-column">
+                    <div class="section-header">
+                        <div class="section-icon reject-icon">
+                            <i class="fas fa-times-circle"></i>
+                        </div>
+                        <div>
+                            <h4>Rejeter la demande</h4>
+                            <p class="section-subtitle">Refuser la demande</p>
+                        </div>
+                    </div>
+                    
+                    <div class="reject-content">
+                        <div class="reject-info-box">
+                            <i class="fas fa-info-circle"></i>
+                            <p>En rejetant cette demande, vous supprimez l'utilisateur de la liste d'attente. Un email de notification sera automatiquement envoyé.</p>
+                        </div>
+                        
+                        <div class="reject-warning">
+                            <i class="fas fa-exclamation-triangle"></i>
+                            <div>
+                                <strong>Action irréversible</strong>
+                                <p>Cette action ne peut pas être annulée. L'utilisateur devra faire une nouvelle demande s'il souhaite être remis en liste d'attente.</p>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
         </div>
         <div class="modal-footer">
-            <button type="button" class="btn-modal btn-modal-secondary" id="cancelQuantityBtn">Annuler</button>
-            <button type="button" class="btn-modal btn-modal-primary" id="saveQuantityBtn">Enregistrer</button>
+            <button type="button" class="btn-modal btn-modal-secondary" id="cancelQuantityBtn">
+                <i class="fas fa-times"></i> Annuler
+            </button>
+            <button type="button" class="btn-modal btn-modal-danger" id="rejectBtn" onclick="handleRejectClick(event)">
+                <i class="fas fa-times-circle"></i> Rejeter la demande
+            </button>
+            <button type="button" class="btn-modal btn-modal-primary" id="acceptBtn" onclick="handleAcceptClick(event)">
+                <i class="fas fa-check-circle"></i> Accepter la demande
+            </button>
         </div>
     </div>
 </div>
@@ -313,37 +493,392 @@
     background: var(--bg-card);
 }
 
+/* Styles pour la structure par événement */
+.event-waitlist-section {
+    border-bottom: 2px solid var(--border-color);
+    padding: 24px;
+    background: var(--bg-card);
+}
+
+.event-waitlist-section:last-child {
+    border-bottom: none;
+}
+
+.event-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: flex-start;
+    margin-bottom: 24px;
+    padding-bottom: 20px;
+    border-bottom: 2px solid var(--border-color);
+    gap: 24px;
+}
+
+.event-header-content {
+    display: flex;
+    align-items: flex-start;
+    gap: 16px;
+    flex: 1;
+}
+
+.event-icon-wrapper {
+    width: 48px;
+    height: 48px;
+    border-radius: 12px;
+    background: linear-gradient(135deg, var(--accent) 0%, var(--accent-dark) 100%);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    color: white;
+    font-size: 1.25rem;
+    flex-shrink: 0;
+}
+
+.event-info {
+    flex: 1;
+    min-width: 0;
+}
+
+.event-title {
+    margin: 0 0 8px 0;
+    font-size: 1.5rem;
+    font-weight: 700;
+    color: var(--text-primary);
+}
+
+.event-link {
+    color: var(--text-primary);
+    text-decoration: none;
+    transition: color 0.2s ease;
+}
+
+.event-link:hover {
+    color: var(--accent);
+}
+
+.event-meta {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 16px;
+    align-items: center;
+    font-size: 0.9rem;
+    color: var(--text-secondary);
+}
+
+.event-id {
+    padding: 4px 12px;
+    background: var(--bg-secondary);
+    border-radius: 6px;
+    font-weight: 600;
+    color: var(--text-secondary);
+}
+
+.event-date {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+}
+
+.event-stats {
+    display: flex;
+    gap: 24px;
+    flex-shrink: 0;
+}
+
+.event-stat-item {
+    display: flex;
+    flex-direction: column;
+    align-items: flex-end;
+    gap: 4px;
+}
+
+.stat-label {
+    font-size: 0.75rem;
+    color: var(--text-secondary);
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+    font-weight: 600;
+}
+
+.stat-value {
+    font-size: 1.5rem;
+    font-weight: 700;
+    color: var(--text-primary);
+}
+
+.stat-value.waitlist-total {
+    color: var(--accent);
+}
+
+.event-users-table {
+    margin-top: 16px;
+}
+
+.event-users-table thead th {
+    background: var(--bg-secondary);
+}
+
+.no-users-message {
+    padding: 32px;
+    text-align: center;
+    color: var(--text-secondary);
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 12px;
+}
+
+.no-users-message i {
+    font-size: 2rem;
+    color: var(--text-secondary);
+    opacity: 0.5;
+}
+
+.empty-state {
+    padding: 64px 32px;
+    text-align: center;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 16px;
+}
+
+@media (max-width: 768px) {
+    .event-header {
+        flex-direction: column;
+        gap: 16px;
+    }
+    
+    .event-stats {
+        width: 100%;
+        justify-content: space-around;
+    }
+    
+    .event-stat-item {
+        align-items: center;
+    }
+}
+
+.table-responsive {
+    overflow-x: auto;
+    overflow-y: visible;
+    -webkit-overflow-scrolling: touch;
+    width: 100%;
+}
+
 .categories-table {
     width: 100%;
     border-collapse: separate;
     border-spacing: 0;
     background: var(--bg-card);
+    table-layout: auto;
+    min-width: 100%;
 }
 
 .categories-table thead th {
     color: var(--text-primary);
-    border-bottom: 1px solid var(--border-color);
-    font-weight: var(--font-weight-medium);
+    border-bottom: 2px solid var(--border-color);
+    font-weight: var(--font-weight-semibold);
     text-transform: uppercase;
-    font-size: 0.82rem;
-    letter-spacing: 0.02em;
-    padding: 16px 20px;
+    font-size: 0.8rem;
+    letter-spacing: 0.05em;
+    padding: 18px 16px;
     white-space: nowrap;
+    background: linear-gradient(180deg, var(--bg-secondary) 0%, var(--bg-card) 100%);
+    position: sticky;
+    top: 0;
+    z-index: 10;
+}
+
+/* Largeurs de colonnes optimisées et flexibles */
+.categories-table thead th:nth-child(1) { /* Utilisateur */
+    min-width: 160px;
+    width: auto;
+    max-width: 200px;
+}
+
+.categories-table thead th:nth-child(2) { /* Email */
+    min-width: 180px;
+    width: auto;
+    max-width: 250px;
+}
+
+.categories-table thead th:nth-child(3) { /* Téléphone */
+    min-width: 130px;
+    width: auto;
+    max-width: 180px;
+}
+
+.categories-table thead th:nth-child(4) { /* Catégorie / Segment */
+    min-width: 300px;
+    width: auto;
+    flex-grow: 1;
+}
+
+.categories-table thead th:nth-child(5) { /* Événement(s) */
+    min-width: 180px;
+    width: auto;
+    max-width: 250px;
+}
+
+.categories-table thead th:nth-child(6) { /* Total en attente */
+    min-width: 100px;
+    width: auto;
+    max-width: 140px;
+}
+
+.categories-table thead th:nth-child(7) { /* Actions */
+    min-width: 90px;
+    width: auto;
+    max-width: 120px;
 }
 
 .categories-table tbody td {
     border-bottom: 1px solid var(--border-color);
-    padding: 16px 20px;
+    padding: 16px;
     vertical-align: top;
     background: var(--bg-card);
+    word-wrap: break-word;
+    overflow-wrap: break-word;
+    hyphens: auto;
+}
+
+.categories-table tbody td:nth-child(1) { /* Utilisateur */
+    padding: 16px 12px;
+}
+
+.categories-table tbody td:nth-child(2), /* Email */
+.categories-table tbody td:nth-child(3) { /* Téléphone */
+    padding: 16px 12px;
+    font-size: 0.85rem;
+}
+
+.categories-table tbody td:nth-child(4) { /* Catégorie / Segment */
+    padding: 16px;
+}
+
+.categories-table tbody td:nth-child(5) { /* Événement(s) */
+    padding: 16px 12px;
+}
+
+.categories-table tbody td:nth-child(6) { /* Total en attente */
+    padding: 16px 12px;
+}
+
+.categories-table tbody td:nth-child(7) { /* Actions */
+    padding: 16px 12px;
+}
+
+/* Amélioration de l'alignement vertical */
+.categories-table tbody td {
+    vertical-align: middle;
+}
+
+.categories-table tbody td.col-left {
+    vertical-align: top;
+}
+
+/* Amélioration de la lisibilité sur petits écrans */
+@media (max-width: 1200px) {
+    .categories-table thead th,
+    .categories-table tbody td {
+        padding: 12px 10px;
+        font-size: 0.85rem;
+    }
+    
+    .categories-table thead th:nth-child(2), /* Email */
+    .categories-table thead th:nth-child(3) { /* Téléphone */
+        min-width: 140px;
+    }
+    
+    .categories-table tbody td:nth-child(2),
+    .categories-table tbody td:nth-child(3) {
+        font-size: 0.8rem;
+    }
+}
+
+@media (max-width: 768px) {
+    .categories-table {
+        font-size: 0.9rem;
+    }
+    
+    .categories-table thead th,
+    .categories-table tbody td {
+        padding: 10px 8px;
+    }
+    
+    .user-avatar,
+    .user-avatar-placeholder {
+        width: 40px;
+        height: 40px;
+        font-size: 0.8rem;
+    }
+    
+    .category-segment-item {
+        padding: 10px;
+    }
+    
+    .category-segment-stats {
+        flex-direction: column;
+        gap: 4px;
+    }
+    
+    .stat-item {
+        width: 100%;
+        justify-content: flex-start;
+    }
+    
+    .modal-content {
+        max-width: 100%;
+        width: 100%;
+        max-height: 100vh;
+        border-radius: 0;
+    }
+    
+    .modal-two-columns {
+        grid-template-columns: 1fr;
+        gap: 20px;
+    }
+    
+    .accept-column {
+        border-right: none;
+        border-bottom: 2px solid var(--border-color);
+        padding-right: 0;
+        padding-bottom: 24px;
+    }
+    
+    .reject-column {
+        padding-left: 0;
+        padding-top: 24px;
+    }
+    
+    .form-row {
+        grid-template-columns: 1fr;
+    }
+    
+    .info-grid {
+        grid-template-columns: 1fr;
+    }
+    
+    .waitlist-info-box {
+        flex-direction: column;
+        gap: 16px;
+    }
+    
+    .info-item {
+        min-width: 100%;
+    }
 }
 
 .categories-table tbody tr {
-    transition: background 0.2s;
+    transition: all 0.3s ease;
+    border-left: 3px solid transparent;
 }
 
 .categories-table tbody tr:hover {
-    background: var(--bg-secondary);
+    background: linear-gradient(90deg, var(--bg-secondary) 0%, var(--bg-card) 100%);
+    border-left-color: var(--accent);
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.05);
 }
 
 .col-left { text-align: left; }
@@ -354,37 +889,61 @@
     display: flex;
     align-items: center;
     gap: 12px;
+    min-width: 0;
+    width: 100%;
 }
 
 .user-name {
     color: var(--text-primary);
     font-size: 0.95rem;
-    font-weight: var(--font-weight-medium);
+    font-weight: var(--font-weight-semibold);
+    display: block;
+    margin-bottom: 2px;
+}
+
+.user-info > div {
+    display: flex;
+    flex-direction: column;
 }
 
 .text-secondary {
     color: var(--text-secondary);
-    font-size: 0.9rem;
+    font-size: 0.85rem;
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    word-break: break-word;
+    overflow-wrap: break-word;
+}
+
+.text-secondary i {
+    font-size: 0.75rem;
+    opacity: 0.7;
+    flex-shrink: 0;
 }
 
 .user-avatar {
-    width: 40px;
-    height: 40px;
+    width: 48px;
+    height: 48px;
     border-radius: 50%;
     object-fit: cover;
+    border: 2px solid var(--border-color);
+    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
 }
 
 .user-avatar-placeholder {
-    width: 40px;
-    height: 40px;
+    width: 48px;
+    height: 48px;
     border-radius: 50%;
-    background: var(--accent);
+    background: linear-gradient(135deg, var(--accent), #2980B9);
     color: white;
     display: flex;
     align-items: center;
     justify-content: center;
     font-weight: 600;
-    font-size: 0.875rem;
+    font-size: 0.9rem;
+    border: 2px solid rgba(255, 255, 255, 0.3);
+    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
 }
 
 .badge-sold {
@@ -519,44 +1078,98 @@
 .categories-segments-list {
     display: flex;
     flex-direction: column;
-    gap: 5px;
-    max-width: 450px;
+    gap: 10px;
+    max-width: 100%;
+    width: 100%;
 }
 
 .category-segment-item {
     display: flex;
-    align-items: center;
+    flex-direction: column;
     gap: 8px;
-    padding: 5px 8px;
-    background: var(--bg-secondary);
+    padding: 12px;
+    background: linear-gradient(135deg, var(--bg-secondary) 0%, var(--bg-card) 100%);
     border-radius: var(--border-radius-sm);
     border: 1px solid var(--border-color);
-    transition: all 0.2s;
+    transition: all 0.3s ease;
     font-size: 0.85rem;
+    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.05);
 }
 
 .category-segment-item:hover {
-    background: var(--bg-tertiary);
+    background: linear-gradient(135deg, var(--bg-tertiary) 0%, var(--bg-secondary) 100%);
     border-color: var(--accent);
-    transform: translateX(2px);
+    transform: translateY(-2px);
+    box-shadow: 0 4px 8px rgba(52, 152, 219, 0.15);
+}
+
+.category-segment-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 8px;
+    margin-bottom: 4px;
+}
+
+.category-segment-details {
+    margin: 4px 0;
+}
+
+.category-segment-stats {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 6px;
+    margin-top: 6px;
+    padding-top: 8px;
+    border-top: 1px solid var(--border-color);
+    align-items: center;
+}
+
+.stat-item {
+    display: inline-flex;
+    align-items: center;
+    gap: 4px;
+    padding: 4px 8px;
+    background: rgba(52, 152, 219, 0.1);
+    border-radius: 4px;
+    font-size: 0.75rem;
+    color: var(--text-secondary);
+    font-weight: var(--font-weight-medium);
+}
+
+.stat-item i {
+    font-size: 0.7rem;
+    color: var(--accent);
+}
+
+.stat-item.available {
+    background: rgba(39, 174, 96, 0.1);
+    color: var(--success);
+}
+
+.stat-item.available i {
+    color: var(--success);
 }
 
 .ticket-cat-badge {
     display: inline-flex;
     align-items: center;
     justify-content: center;
-    padding: 3px 8px;
-    background: linear-gradient(135deg, rgba(52, 152, 219, 0.15), rgba(52, 152, 219, 0.1));
+    gap: 4px;
+    padding: 6px 12px;
+    background: linear-gradient(135deg, rgba(52, 152, 219, 0.2), rgba(52, 152, 219, 0.15));
     color: var(--accent);
-    border-radius: 4px;
-    font-size: 0.7rem;
+    border-radius: 6px;
+    font-size: 0.75rem;
     font-weight: var(--font-weight-semibold);
     text-transform: lowercase;
     white-space: nowrap;
-    border: 1px solid rgba(52, 152, 219, 0.2);
-    min-width: 70px;
-    text-align: center;
+    border: 1px solid rgba(52, 152, 219, 0.3);
     letter-spacing: 0.3px;
+}
+
+.ticket-cat-badge i {
+    font-size: 0.7rem;
 }
 
 .segment-info {
@@ -579,16 +1192,21 @@
     display: inline-flex;
     align-items: center;
     justify-content: center;
-    min-width: 22px;
-    height: 22px;
-    padding: 0 6px;
-    border-radius: 11px;
-    background: rgba(243, 156, 18, 0.2);
+    gap: 4px;
+    min-width: 28px;
+    height: 24px;
+    padding: 0 8px;
+    border-radius: 12px;
+    background: linear-gradient(135deg, rgba(243, 156, 18, 0.25), rgba(243, 156, 18, 0.15));
     color: var(--warning);
     font-weight: var(--font-weight-bold);
     font-size: 0.7rem;
-    margin-left: auto;
-    border: 1px solid rgba(243, 156, 18, 0.3);
+    border: 1px solid rgba(243, 156, 18, 0.4);
+    box-shadow: 0 2px 4px rgba(243, 156, 18, 0.2);
+}
+
+.waitlist-badge-small i {
+    font-size: 0.65rem;
 }
 
 .badge-waitlist {
@@ -615,15 +1233,49 @@
     color: white;
 }
 
+.btn-modal-danger {
+    background: linear-gradient(135deg, #E74C3C 0%, #C0392B 100%) !important;
+    color: white !important;
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+    border: none;
+}
+
+.btn-modal-danger:hover:not(:disabled) {
+    background: linear-gradient(135deg, #C0392B 0%, #A93226 100%) !important;
+    transform: translateY(-2px);
+    box-shadow: 0 4px 8px rgba(0, 0, 0, 0.15);
+    color: white !important;
+}
+
+.btn-modal-danger:disabled {
+    opacity: 0.6;
+    cursor: not-allowed;
+}
+
 .events-list {
     display: flex;
     flex-direction: column;
-    gap: 6px;
+    gap: 8px;
+    max-width: 100%;
+    width: 100%;
 }
 
 .event-name-item {
     display: flex;
     align-items: center;
+    padding: 8px 12px;
+    background: linear-gradient(135deg, rgba(52, 152, 219, 0.1), rgba(52, 152, 219, 0.05));
+    border-radius: 6px;
+    border: 1px solid rgba(52, 152, 219, 0.2);
+    transition: all 0.2s ease;
+}
+
+.event-name-item:hover {
+    background: linear-gradient(135deg, rgba(52, 152, 219, 0.15), rgba(52, 152, 219, 0.1));
+    transform: translateX(4px);
+    border-color: var(--accent);
 }
 
 .event-name {
@@ -641,25 +1293,43 @@
     left: 0;
     width: 100%;
     height: 100%;
-    background: rgba(0, 0, 0, 0.5);
+    background: rgba(0, 0, 0, 0.6);
+    backdrop-filter: blur(4px);
     z-index: 9999;
     justify-content: center;
     align-items: center;
+    overflow: hidden;
+    padding: 20px;
+    box-sizing: border-box;
 }
 
 .modal-overlay.active {
-    display: flex;
+    display: flex !important;
+    visibility: visible !important;
+    opacity: 1 !important;
+}
+
+.modal-overlay.active .modal-content {
+    display: block !important;
+    visibility: visible !important;
+    opacity: 1 !important;
 }
 
 .modal-content {
     background: var(--bg-card);
     border-radius: var(--border-radius-lg);
-    box-shadow: 0 10px 40px rgba(0, 0, 0, 0.2);
-    max-width: 500px;
-    width: 90%;
-    max-height: 90vh;
-    overflow-y: auto;
+    box-shadow: 0 20px 60px rgba(0, 0, 0, 0.3);
+    max-width: 1000px;
+    width: 95%;
+    max-height: 95vh;
+    overflow: hidden;
     animation: modalFadeIn 0.3s ease;
+    display: flex !important;
+    flex-direction: column !important;
+    visibility: visible !important;
+    opacity: 1 !important;
+    position: relative;
+    z-index: 10000;
 }
 
 @keyframes modalFadeIn {
@@ -674,11 +1344,13 @@
 }
 
 .modal-header {
-    padding: 24px;
-    border-bottom: 1px solid var(--border-color);
+    padding: 28px 32px;
+    border-bottom: 2px solid var(--border-color);
     display: flex;
     justify-content: space-between;
     align-items: center;
+    background: linear-gradient(135deg, var(--bg-card) 0%, var(--bg-secondary) 100%);
+    flex-shrink: 0;
 }
 
 .modal-header h3 {
@@ -713,19 +1385,42 @@
 }
 
 .modal-body {
-    padding: 24px;
+    padding: 32px;
+    overflow: visible;
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+    min-height: 0;
 }
 
 .form-group {
     margin-bottom: 20px;
 }
 
+.form-row {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 16px;
+    margin-bottom: 20px;
+}
+
+.form-group-half {
+    margin-bottom: 0;
+}
+
 .form-group label {
-    display: block;
-    margin-bottom: 8px;
-    font-weight: var(--font-weight-medium);
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    margin-bottom: 10px;
+    font-weight: var(--font-weight-semibold);
     color: var(--text-primary);
     font-size: 0.95rem;
+}
+
+.form-group label i {
+    color: var(--accent);
+    font-size: 0.9rem;
 }
 
 .form-group .form-control {
@@ -764,14 +1459,342 @@
     color: var(--danger);
     font-size: 0.85rem;
     margin-top: 4px;
+    display: block;
+}
+
+.form-help {
+    display: block;
+    margin-top: 6px;
+    font-size: 0.8rem;
+    color: var(--text-secondary);
+    font-style: italic;
+}
+
+.waitlist-info-box {
+    background: linear-gradient(135deg, rgba(52, 152, 219, 0.08), rgba(52, 152, 219, 0.03));
+    border: 1px solid rgba(52, 152, 219, 0.15);
+    border-radius: 12px;
+    padding: 20px 24px;
+    margin-bottom: 28px;
+    display: flex;
+    gap: 24px;
+    flex-wrap: wrap;
+}
+
+.info-item {
+    display: flex;
+    align-items: center;
+    gap: 16px;
+    flex: 1;
+    min-width: 250px;
+}
+
+.info-icon-wrapper {
+    width: 48px;
+    height: 48px;
+    border-radius: 12px;
+    background: linear-gradient(135deg, rgba(52, 152, 219, 0.15), rgba(52, 152, 219, 0.1));
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    flex-shrink: 0;
+}
+
+.info-icon-wrapper i {
+    color: var(--accent);
+    font-size: 1.2rem;
+}
+
+.info-content {
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+}
+
+.info-label-small {
+    font-size: 0.75rem;
+    color: var(--text-secondary);
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+    font-weight: var(--font-weight-medium);
+}
+
+.info-value-large {
+    font-size: 1rem;
+    color: var(--text-primary);
+    font-weight: var(--font-weight-semibold);
+}
+
+.modal-two-columns {
+    display: grid;
+    grid-template-columns: 1.2fr 1fr;
+    gap: 24px;
+    flex: 1;
+    min-height: 0;
+}
+
+.modal-column {
+    display: flex;
+    flex-direction: column;
+    min-height: 0;
+}
+
+.accept-column {
+    border-right: 2px solid var(--border-color);
+    padding-right: 24px;
+}
+
+.reject-column {
+    padding-left: 24px;
+}
+
+.section-header {
+    display: flex;
+    align-items: flex-start;
+    gap: 16px;
+    margin-bottom: 24px;
+    padding-bottom: 20px;
+    border-bottom: 2px solid var(--border-color);
+}
+
+.section-icon {
+    width: 56px;
+    height: 56px;
+    border-radius: 14px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 1.5rem;
+    flex-shrink: 0;
+}
+
+.section-icon.accept-icon {
+    background: linear-gradient(135deg, rgba(39, 174, 96, 0.15), rgba(39, 174, 96, 0.1));
+    color: var(--success);
+}
+
+.section-icon.reject-icon {
+    background: linear-gradient(135deg, rgba(231, 76, 60, 0.15), rgba(231, 76, 60, 0.1));
+    color: var(--danger);
+}
+
+.section-header h4 {
+    margin: 0 0 4px 0;
+    font-size: 1.25rem;
+    font-weight: var(--font-weight-semibold);
+    color: var(--text-primary);
+}
+
+.section-subtitle {
+    margin: 0;
+    font-size: 0.85rem;
+    color: var(--text-secondary);
+    font-weight: var(--font-weight-normal);
+}
+
+.quantity-info-box {
+    background: linear-gradient(135deg, var(--bg-secondary) 0%, var(--bg-card) 100%);
+    border: 1px solid var(--border-color);
+    border-radius: 12px;
+    padding: 20px;
+    margin-top: 20px;
+}
+
+.info-header {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    margin-bottom: 16px;
+    font-size: 0.9rem;
+    font-weight: var(--font-weight-semibold);
+    color: var(--text-primary);
+}
+
+.info-header i {
+    color: var(--accent);
+}
+
+.info-grid {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 12px;
+}
+
+.info-card {
+    background: var(--bg-card);
+    border: 1px solid var(--border-color);
+    border-radius: 10px;
+    padding: 16px;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    text-align: center;
+    transition: all 0.3s ease;
+}
+
+.info-card:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+    border-color: var(--accent);
+}
+
+.info-card-icon {
+    width: 48px;
+    height: 48px;
+    border-radius: 12px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 1.3rem;
+    margin-bottom: 12px;
+}
+
+.info-card-icon.sold {
+    background: linear-gradient(135deg, rgba(39, 174, 96, 0.15), rgba(39, 174, 96, 0.1));
+    color: var(--success);
+}
+
+.info-card-icon.waitlist {
+    background: linear-gradient(135deg, rgba(243, 156, 18, 0.15), rgba(243, 156, 18, 0.1));
+    color: var(--warning);
+}
+
+.info-card-icon.required {
+    background: linear-gradient(135deg, rgba(52, 152, 219, 0.15), rgba(52, 152, 219, 0.1));
+    color: var(--accent);
+}
+
+.info-card-content {
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+    width: 100%;
+}
+
+.info-card-label {
+    font-size: 0.75rem;
+    color: var(--text-secondary);
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+    font-weight: var(--font-weight-medium);
+}
+
+.info-card-value {
+    font-size: 1.5rem;
+    font-weight: var(--font-weight-bold);
+    color: var(--text-primary);
+}
+
+.reject-content {
+    display: flex;
+    flex-direction: column;
+    gap: 20px;
+    flex: 1;
+}
+
+.reject-info-box {
+    background: linear-gradient(135deg, rgba(52, 152, 219, 0.08), rgba(52, 152, 219, 0.03));
+    border: 1px solid rgba(52, 152, 219, 0.15);
+    border-radius: 12px;
+    padding: 20px;
+    display: flex;
+    gap: 16px;
+    align-items: flex-start;
+}
+
+.reject-info-box i {
+    color: var(--accent);
+    font-size: 1.3rem;
+    margin-top: 2px;
+    flex-shrink: 0;
+}
+
+.reject-info-box p {
+    margin: 0;
+    font-size: 0.9rem;
+    line-height: 1.6;
+    color: var(--text-secondary);
+}
+
+.reject-warning {
+    background: linear-gradient(135deg, rgba(231, 76, 60, 0.1), rgba(231, 76, 60, 0.05));
+    border: 2px solid rgba(231, 76, 60, 0.3);
+    border-left: 4px solid var(--danger);
+    border-radius: 12px;
+    padding: 20px;
+    display: flex;
+    gap: 16px;
+    align-items: flex-start;
+}
+
+.reject-warning i {
+    color: var(--danger);
+    font-size: 1.5rem;
+    margin-top: 2px;
+    flex-shrink: 0;
+}
+
+.reject-warning strong {
+    display: block;
+    color: var(--danger);
+    font-size: 1rem;
+    margin-bottom: 8px;
+    font-weight: var(--font-weight-semibold);
+}
+
+.reject-warning p {
+    margin: 0;
+    font-size: 0.9rem;
+    line-height: 1.6;
+    color: var(--text-secondary);
+}
+
+.alert.alert-success {
+    padding: 16px 20px;
+    margin-bottom: 20px;
+    background: linear-gradient(135deg, var(--success), #27AE60);
+    color: white;
+    border-radius: 12px;
+    box-shadow: 0 4px 12px rgba(39, 174, 96, 0.3);
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    font-weight: var(--font-weight-medium);
+    animation: slideDown 0.3s ease;
+}
+
+.alert.alert-success i {
+    font-size: 1.2rem;
+}
+
+@keyframes slideDown {
+    from {
+        opacity: 0;
+        transform: translateY(-10px);
+    }
+    to {
+        opacity: 1;
+        transform: translateY(0);
+    }
 }
 
 .modal-footer {
-    padding: 20px 24px;
-    border-top: 1px solid var(--border-color);
-    display: flex;
+    padding: 24px 32px;
+    border-top: 2px solid var(--border-color);
+    display: flex !important;
     justify-content: flex-end;
-    gap: 12px;
+    align-items: center;
+    gap: 16px;
+    background: linear-gradient(135deg, var(--bg-card) 0%, var(--bg-secondary) 100%);
+    flex-wrap: wrap;
+    visibility: visible !important;
+    flex-shrink: 0;
+}
+
+.modal-footer button {
+    display: inline-flex !important;
+    visibility: visible !important;
+    opacity: 1 !important;
 }
 
 .btn-modal {
@@ -782,6 +1805,14 @@
     cursor: pointer;
     transition: all 0.3s ease;
     font-size: 0.95rem;
+    min-width: 120px;
+    text-align: center;
+    white-space: nowrap;
+    display: inline-flex !important;
+    align-items: center;
+    justify-content: center;
+    visibility: visible !important;
+    opacity: 1 !important;
 }
 
 .btn-modal-secondary {
@@ -795,14 +1826,24 @@
 }
 
 .btn-modal-primary {
-    background: linear-gradient(135deg, #5DADE2 0%, #3498DB 100%);
-    color: white;
+    background: linear-gradient(135deg, #5DADE2 0%, #3498DB 100%) !important;
+    color: white !important;
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+    border: none;
 }
 
-.btn-modal-primary:hover {
-    background: linear-gradient(135deg, #3498DB 0%, #2980B9 100%);
+.btn-modal-primary:hover:not(:disabled) {
+    background: linear-gradient(135deg, #3498DB 0%, #2980B9 100%) !important;
     transform: translateY(-2px);
     box-shadow: 0 4px 8px rgba(0, 0, 0, 0.15);
+    color: white !important;
+}
+
+.btn-modal-primary:disabled {
+    opacity: 0.6;
+    cursor: not-allowed;
 }
 </style>
 {% endblock %}
@@ -810,23 +1851,59 @@
 {% block javascripts %}
 {{ parent() }}
 <script>
-// Fonction pour ouvrir le modal de modification de quantité
-function openEditQuantityModal(userId, eventId, categoriesSegments) {
-    const modal = document.getElementById('editQuantityModal');
-    const form = document.getElementById('editQuantityForm');
-    const typeBilletSelect = document.getElementById('typeBilletSelect');
-    const quantiteInput = document.getElementById('quantiteTotale');
-    const userIdInput = document.getElementById('userId');
-    const minQuantiteSpan = document.getElementById('minQuantite');
+// Fonction pour ouvrir le modal de traitement de liste d'attente
+function openEditQuantityModal(userId, eventId, categoriesSegments, userName, eventTitle) {
+    try {
+        const modal = document.getElementById('editQuantityModal');
+        if (!modal) {
+            console.error('Modal non trouvé');
+            return;
+        }
+        
+        const form = document.getElementById('editQuantityForm');
+        const typeBilletSelect = document.getElementById('typeBilletSelect');
+        const quantiteInput = document.getElementById('quantiteTotale');
+        const prixInput = document.getElementById('prixDeBase');
+        const userIdInput = document.getElementById('userId');
+        const eventIdInput = document.getElementById('eventId');
+        const minQuantiteSpan = document.getElementById('minQuantite');
+        const quantiteDemandeeSpan = document.getElementById('quantiteDemandee');
+        const userInfoDisplay = document.getElementById('userInfoDisplay');
+        const eventInfoDisplay = document.getElementById('eventInfoDisplay');
 
-    // Réinitialiser le formulaire
-    userIdInput.value = userId;
-    typeBilletSelect.innerHTML = '<option value="">Sélectionner une catégorie/segment</option>';
-    quantiteInput.value = '';
-    quantiteInput.disabled = true;
-    
-    // Remplir le sélecteur avec les catégories/segments
-    const categories = JSON.parse(categoriesSegments);
+        if (!form || !typeBilletSelect || !quantiteInput || !prixInput || !userIdInput || !userInfoDisplay || !eventInfoDisplay) {
+            console.error('Éléments du formulaire non trouvés');
+            return;
+        }
+
+        // Clear previous success messages
+        const oldSuccessMessage = document.querySelector('#quantityModalBody .alert-success');
+        if (oldSuccessMessage) {
+            oldSuccessMessage.remove();
+        }
+
+        // Set context info
+        userInfoDisplay.textContent = userName || `Utilisateur #${userId}`;
+        eventInfoDisplay.textContent = eventTitle || (eventId ? `Événement #${eventId}` : '-');
+
+        // Réinitialiser le formulaire
+        userIdInput.value = userId;
+        eventIdInput.value = eventId || '';
+        typeBilletSelect.innerHTML = '<option value="">Sélectionner une catégorie/segment</option>';
+        quantiteInput.value = '';
+        prixInput.value = '';
+        quantiteInput.disabled = true;
+        prixInput.disabled = true;
+        
+        // Remplir le sélecteur avec les catégories/segments
+        let categories;
+        try {
+            categories = typeof categoriesSegments === 'string' ? JSON.parse(categoriesSegments) : categoriesSegments;
+        } catch (e) {
+            console.error('Erreur lors du parsing JSON:', e);
+            alert('Erreur: Format de données invalide');
+            return;
+        }
     categories.forEach(function(detail) {
         const option = document.createElement('option');
         option.value = detail.typeBilletId;
@@ -837,6 +1914,8 @@ function openEditQuantityModal(userId, eventId, categoriesSegments) {
         option.dataset.quantiteTotale = detail.quantiteTotale || 0;
         option.dataset.quantiteVendue = detail.quantiteVendue || 0;
         option.dataset.quantiteReservee = detail.quantiteReservee || 0;
+        option.dataset.quantiteAttente = detail.quantiteAttente || 0;
+        option.dataset.prixDeBase = detail.prixDeBase || 0;
         typeBilletSelect.appendChild(option);
     });
     
@@ -846,13 +1925,29 @@ function openEditQuantityModal(userId, eventId, categoriesSegments) {
         if (selectedOption.value) {
             const quantiteTotale = parseInt(selectedOption.dataset.quantiteTotale) || 0;
             const quantiteVendue = parseInt(selectedOption.dataset.quantiteVendue) || 0;
+            const quantiteAttente = parseInt(selectedOption.dataset.quantiteAttente) || 0;
+            const prixDeBase = parseFloat(selectedOption.dataset.prixDeBase) || 0;
+            
             quantiteInput.value = quantiteTotale;
-            quantiteInput.min = quantiteVendue;
+            quantiteInput.min = quantiteVendue + quantiteAttente;
             quantiteInput.disabled = false;
             minQuantiteSpan.textContent = quantiteVendue;
+            quantiteDemandeeSpan.textContent = quantiteAttente;
+            
+            // Calculer et afficher la quantité minimale requise
+            const quantiteMinimale = quantiteVendue + quantiteAttente;
+            const quantiteMinimaleSpan = document.getElementById('quantiteMinimale');
+            if (quantiteMinimaleSpan) {
+                quantiteMinimaleSpan.textContent = quantiteMinimale;
+            }
+            
+            prixInput.value = prixDeBase;
+            prixInput.disabled = false;
         } else {
             quantiteInput.value = '';
+            prixInput.value = '';
             quantiteInput.disabled = true;
+            prixInput.disabled = true;
         }
     }
     
@@ -863,11 +1958,29 @@ function openEditQuantityModal(userId, eventId, categoriesSegments) {
     
     // Réinitialiser les erreurs
     document.getElementById('quantiteError').textContent = '';
+    document.getElementById('prixError').textContent = '';
     document.getElementById('typeBilletError').textContent = '';
     quantiteInput.classList.remove('error');
+    prixInput.classList.remove('error');
     typeBilletSelect.classList.remove('error');
     
-    modal.classList.add('active');
+        modal.classList.add('active');
+        
+        // S'assurer que les boutons sont visibles
+        const acceptBtn = document.getElementById('acceptBtn');
+        const rejectBtn = document.getElementById('rejectBtn');
+        if (acceptBtn) {
+            acceptBtn.style.display = 'inline-flex';
+            acceptBtn.style.visibility = 'visible';
+        }
+        if (rejectBtn) {
+            rejectBtn.style.display = 'inline-flex';
+            rejectBtn.style.visibility = 'visible';
+        }
+    } catch (error) {
+        console.error('Erreur dans openEditQuantityModal:', error);
+        alert('Erreur lors de l\'ouverture du modal: ' + error.message);
+    }
 }
 
 // Fermer le modal
@@ -904,16 +2017,17 @@ function closeQuantityModal() {
     document.getElementById('typeBilletSelect').classList.remove('error');
 }
 
-// Soumettre le formulaire
-document.getElementById('saveQuantityBtn').addEventListener('click', function() {
+// Fonction pour valider le formulaire
+function validateForm() {
     const form = document.getElementById('editQuantityForm');
     const formData = new FormData(form);
     const typeBilletId = formData.get('typeBilletId');
     const quantiteTotale = formData.get('quantiteTotale');
+    const prixDeBase = formData.get('prixDeBase');
     const typeBilletSelect = document.getElementById('typeBilletSelect');
     const quantiteInput = document.getElementById('quantiteTotale');
+    const prixInput = document.getElementById('prixDeBase');
     
-    // Validation
     let hasError = false;
     
     if (!typeBilletId) {
@@ -925,11 +2039,22 @@ document.getElementById('saveQuantityBtn').addEventListener('click', function() 
         typeBilletSelect.classList.remove('error');
     }
     
+    if (!prixDeBase || parseFloat(prixDeBase) < 0) {
+        document.getElementById('prixError').textContent = 'Le prix doit être supérieur ou égal à 0';
+        prixInput.classList.add('error');
+        hasError = true;
+    } else {
+        document.getElementById('prixError').textContent = '';
+        prixInput.classList.remove('error');
+    }
+    
     const selectedOption = typeBilletSelect.options[typeBilletSelect.selectedIndex];
     const quantiteVendue = selectedOption ? parseInt(selectedOption.dataset.quantiteVendue) || 0 : 0;
+    const quantiteAttente = selectedOption ? parseInt(selectedOption.dataset.quantiteAttente) || 0 : 0;
+    const quantiteMinimale = quantiteVendue + quantiteAttente;
     
-    if (!quantiteTotale || parseInt(quantiteTotale) < quantiteVendue) {
-        document.getElementById('quantiteError').textContent = `La quantité doit être supérieure ou égale à ${quantiteVendue}`;
+    if (!quantiteTotale || parseInt(quantiteTotale) < quantiteMinimale) {
+        document.getElementById('quantiteError').textContent = `La quantité doit être supérieure ou égale à ${quantiteMinimale} (${quantiteVendue} déjà vendus + ${quantiteAttente} demandés en liste d'attente)`;
         quantiteInput.classList.add('error');
         hasError = true;
     } else {
@@ -937,24 +2062,65 @@ document.getElementById('saveQuantityBtn').addEventListener('click', function() 
         quantiteInput.classList.remove('error');
     }
     
-    if (hasError) {
+    return !hasError;
+}
+
+// Fonction pour envoyer la requête d'acceptation ou de rejet
+function processWaitlistRequest(action) {
+    // Pour l'acceptation, valider le formulaire
+    if (action === 'accept' && !validateForm()) {
         return;
     }
     
-    // Désactiver le bouton
-    this.disabled = true;
-    this.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Enregistrement...';
+    const form = document.getElementById('editQuantityForm');
+    const formData = new FormData(form);
+    const typeBilletId = formData.get('typeBilletId');
+    const quantiteTotale = formData.get('quantiteTotale');
+    const prixDeBase = formData.get('prixDeBase');
+    const userId = formData.get('userId');
+    const eventId = formData.get('eventId');
+    
+    // Pour le rejet, on a besoin au moins du typeBilletId et userId
+    if (action === 'reject' && (!typeBilletId || !userId)) {
+        alert('Veuillez sélectionner une catégorie/segment avant de rejeter.');
+        return;
+    }
+    
+    const acceptBtn = document.getElementById('acceptBtn');
+    const rejectBtn = document.getElementById('rejectBtn');
+    
+    // Désactiver les boutons
+    acceptBtn.disabled = true;
+    rejectBtn.disabled = true;
+    const originalAcceptText = acceptBtn.innerHTML;
+    const originalRejectText = rejectBtn.innerHTML;
+    
+    if (action === 'accept') {
+        acceptBtn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Traitement...';
+    } else {
+        rejectBtn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Traitement...';
+    }
+    
+    // Préparer les données à envoyer
+    const requestData = {
+        action: action,
+        eventId: eventId
+    };
+    
+    // Pour l'acceptation, inclure prix et quantité
+    if (action === 'accept') {
+        requestData.quantiteTotale = quantiteTotale;
+        requestData.prixDeBase = prixDeBase;
+    }
     
     // Envoyer la requête
-    fetch(`/organisateur/waitlist/update-quantity/${typeBilletId}`, {
+    fetch(`/organisateur/waitlist/process/${userId}/${typeBilletId}`, {
         method: 'POST',
         headers: {
             'Content-Type': 'application/json',
             'X-Requested-With': 'XMLHttpRequest',
         },
-        body: JSON.stringify({
-            quantiteTotale: quantiteTotale
-        })
+        body: JSON.stringify(requestData)
     })
     .then(response => response.json())
     .then(data => {
@@ -962,9 +2128,33 @@ document.getElementById('saveQuantityBtn').addEventListener('click', function() 
             // Afficher un message de succès
             const successMessage = document.createElement('div');
             successMessage.className = 'alert alert-success';
-            successMessage.style.cssText = 'padding: 12px; margin-bottom: 16px; background: var(--success); color: white; border-radius: var(--border-radius-sm);';
-            successMessage.innerHTML = `<i class="fas fa-check-circle"></i> ${data.message}`;
-            document.getElementById('quantityModalBody').insertBefore(successMessage, form);
+            successMessage.style.cssText = 'padding: 16px 20px; margin-bottom: 20px; background: linear-gradient(135deg, var(--success), #27AE60); color: white; border-radius: 12px; box-shadow: 0 4px 12px rgba(39, 174, 96, 0.3); display: flex; align-items: center; gap: 12px; font-weight: var(--font-weight-medium);';
+            successMessage.innerHTML = `<i class="fas fa-check-circle" style="font-size: 1.2rem;"></i> <span>${data.message}</span>`;
+            
+            // Insérer le message au début du modal-body de manière sûre
+            const modalBody = document.getElementById('quantityModalBody');
+            if (modalBody) {
+                // Supprimer les anciens messages de succès s'ils existent
+                const existingMessages = modalBody.querySelectorAll('.alert.alert-success');
+                existingMessages.forEach(msg => {
+                    if (msg && msg.parentNode) {
+                        msg.remove();
+                    }
+                });
+                
+                // Utiliser insertAdjacentElement qui est plus sûr et ne nécessite pas que l'élément soit un enfant
+                try {
+                    modalBody.insertAdjacentElement('afterbegin', successMessage);
+                } catch (error) {
+                    console.error('Erreur lors de l\'insertion du message:', error);
+                    // En dernier recours, utiliser prepend ou appendChild
+                    if (typeof modalBody.prepend === 'function') {
+                        modalBody.prepend(successMessage);
+                    } else {
+                        modalBody.appendChild(successMessage);
+                    }
+                }
+            }
             
             // Fermer le modal après 1.5 secondes et recharger la page
             setTimeout(() => {
@@ -976,26 +2166,84 @@ document.getElementById('saveQuantityBtn').addEventListener('click', function() 
             if (data.errors) {
                 if (data.errors.quantiteTotale) {
                     document.getElementById('quantiteError').textContent = data.errors.quantiteTotale;
-                    quantiteInput.classList.add('error');
+                    document.getElementById('quantiteTotale').classList.add('error');
+                }
+                if (data.errors.prixDeBase) {
+                    document.getElementById('prixError').textContent = data.errors.prixDeBase;
+                    document.getElementById('prixDeBase').classList.add('error');
                 }
                 if (data.errors.typeBilletId) {
                     document.getElementById('typeBilletError').textContent = data.errors.typeBilletId;
-                    typeBilletSelect.classList.add('error');
+                    document.getElementById('typeBilletSelect').classList.add('error');
                 }
             } else {
-                document.getElementById('quantiteError').textContent = data.message || 'Une erreur est survenue';
-                quantiteInput.classList.add('error');
+                const errorField = 'quantiteError';
+                document.getElementById(errorField).textContent = data.message || 'Une erreur est survenue';
+                document.getElementById('quantiteTotale').classList.add('error');
             }
-            this.disabled = false;
-            this.innerHTML = 'Enregistrer';
+            acceptBtn.disabled = false;
+            rejectBtn.disabled = false;
+            acceptBtn.innerHTML = originalAcceptText;
+            rejectBtn.innerHTML = originalRejectText;
         }
     })
     .catch(error => {
         console.error('Erreur:', error);
-        document.getElementById('quantiteError').textContent = 'Une erreur est survenue lors de l\'enregistrement';
-        this.disabled = false;
-        this.innerHTML = 'Enregistrer';
+        document.getElementById('quantiteError').textContent = 'Une erreur est survenue lors du traitement';
+        acceptBtn.disabled = false;
+        rejectBtn.disabled = false;
+        acceptBtn.innerHTML = originalAcceptText;
+        rejectBtn.innerHTML = originalRejectText;
     });
-});
+}
+
+// Gestionnaires de clic pour les boutons - Définis globalement
+window.handleAcceptClick = function(event) {
+    if (event) {
+        event.preventDefault();
+        event.stopPropagation();
+    }
+    const btn = document.getElementById('acceptBtn');
+    if (btn && !btn.disabled) {
+        processWaitlistRequest('accept');
+    }
+    return false;
+};
+
+window.handleRejectClick = function(event) {
+    if (event) {
+        event.preventDefault();
+        event.stopPropagation();
+    }
+    const btn = document.getElementById('rejectBtn');
+    if (btn && !btn.disabled) {
+        if (confirm('Êtes-vous sûr de vouloir rejeter cette demande de liste d\'attente ? Un email de rejet sera envoyé à l\'utilisateur.')) {
+            processWaitlistRequest('reject');
+        }
+    }
+    return false;
+};
+
+// Fonction globale pour gérer le clic sur le bouton modifier
+window.handleEditClick = function(button) {
+    try {
+        const userId = button.getAttribute('data-user-id');
+        const eventId = button.getAttribute('data-event-id') || '';
+        const userName = button.getAttribute('data-user-name') || '';
+        const eventTitle = button.getAttribute('data-event-title') || '';
+        const categoriesJson = button.getAttribute('data-categories');
+        
+        if (!userId || !categoriesJson) {
+            console.error('Données manquantes pour ouvrir le modal');
+            alert('Erreur: Données manquantes');
+            return;
+        }
+        
+        openEditQuantityModal(userId, eventId, categoriesJson, userName, eventTitle);
+    } catch (error) {
+        console.error('Erreur lors de l\'ouverture du modal:', error);
+        alert('Erreur lors de l\'ouverture du modal');
+    }
+};
 </script>
 {% endblock %}
