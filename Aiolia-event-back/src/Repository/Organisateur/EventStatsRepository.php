@@ -150,13 +150,23 @@ class EventStatsRepository
         $conditions = ["tb.id_evenement IN ({$placeholders})"];
 
         if ($dateFrom) {
-            $conditions[] = "DATE(fb.emise_le) >= ?";
-            $params[] = $dateFrom->format('Y-m-d');
+            // Convertir en UTC pour la comparaison avec TIMESTAMPTZ
+            $dateFromImmutable = $dateFrom instanceof \DateTimeImmutable 
+                ? $dateFrom 
+                : \DateTimeImmutable::createFromMutable($dateFrom);
+            $utcDateFrom = $dateFromImmutable->setTimezone(new \DateTimeZone('UTC'));
+            $conditions[] = "fb.emise_le >= ?";
+            $params[] = $utcDateFrom->format('Y-m-d H:i:s');
         }
 
         if ($dateTo) {
-            $conditions[] = "DATE(fb.emise_le) <= ?";
-            $params[] = $dateTo->format('Y-m-d');
+            // Convertir en UTC pour la comparaison avec TIMESTAMPTZ
+            $dateToImmutable = $dateTo instanceof \DateTimeImmutable 
+                ? $dateTo 
+                : \DateTimeImmutable::createFromMutable($dateTo);
+            $utcDateTo = $dateToImmutable->setTimezone(new \DateTimeZone('UTC'));
+            $conditions[] = "fb.emise_le <= ?";
+            $params[] = $utcDateTo->format('Y-m-d H:i:s');
         }
 
         $whereClause = implode(' AND ', $conditions);
@@ -209,13 +219,23 @@ class EventStatsRepository
         $conditions = ["tb.id_evenement IN ({$placeholders})"];
 
         if ($dateFrom) {
-            $conditions[] = "DATE(fb.emise_le) >= ?";
-            $params[] = $dateFrom->format('Y-m-d');
+            // Convertir en UTC pour la comparaison avec TIMESTAMPTZ
+            $dateFromImmutable = $dateFrom instanceof \DateTimeImmutable 
+                ? $dateFrom 
+                : \DateTimeImmutable::createFromMutable($dateFrom);
+            $utcDateFrom = $dateFromImmutable->setTimezone(new \DateTimeZone('UTC'));
+            $conditions[] = "fb.emise_le >= ?";
+            $params[] = $utcDateFrom->format('Y-m-d H:i:s');
         }
 
         if ($dateTo) {
-            $conditions[] = "DATE(fb.emise_le) <= ?";
-            $params[] = $dateTo->format('Y-m-d');
+            // Convertir en UTC pour la comparaison avec TIMESTAMPTZ
+            $dateToImmutable = $dateTo instanceof \DateTimeImmutable 
+                ? $dateTo 
+                : \DateTimeImmutable::createFromMutable($dateTo);
+            $utcDateTo = $dateToImmutable->setTimezone(new \DateTimeZone('UTC'));
+            $conditions[] = "fb.emise_le <= ?";
+            $params[] = $utcDateTo->format('Y-m-d H:i:s');
         }
 
         $whereClause = implode(' AND ', $conditions);
@@ -269,13 +289,23 @@ class EventStatsRepository
         $conditions = ["tb.id_evenement IN ({$placeholders})"];
 
         if ($dateFrom) {
-            $conditions[] = "DATE(fb.emise_le) >= ?";
-            $params[] = $dateFrom->format('Y-m-d');
+            // Convertir en UTC pour la comparaison avec TIMESTAMPTZ
+            $dateFromImmutable = $dateFrom instanceof \DateTimeImmutable 
+                ? $dateFrom 
+                : \DateTimeImmutable::createFromMutable($dateFrom);
+            $utcDateFrom = $dateFromImmutable->setTimezone(new \DateTimeZone('UTC'));
+            $conditions[] = "fb.emise_le >= ?";
+            $params[] = $utcDateFrom->format('Y-m-d H:i:s');
         }
 
         if ($dateTo) {
-            $conditions[] = "DATE(fb.emise_le) <= ?";
-            $params[] = $dateTo->format('Y-m-d');
+            // Convertir en UTC pour la comparaison avec TIMESTAMPTZ
+            $dateToImmutable = $dateTo instanceof \DateTimeImmutable 
+                ? $dateTo 
+                : \DateTimeImmutable::createFromMutable($dateTo);
+            $utcDateTo = $dateToImmutable->setTimezone(new \DateTimeZone('UTC'));
+            $conditions[] = "fb.emise_le <= ?";
+            $params[] = $utcDateTo->format('Y-m-d H:i:s');
         }
 
         $whereClause = implode(' AND ', $conditions);

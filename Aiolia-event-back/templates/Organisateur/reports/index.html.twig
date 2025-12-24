@@ -66,11 +66,11 @@
     <div class="stats-grid stats-grid-compact">
         <div class="stat-card stat-card-compact">
             <div class="stat-icon stat-icon-compact" style="background: linear-gradient(135deg, rgba(52, 152, 219, 0.1), rgba(52, 152, 219, 0.05)); color: var(--accent);">
-                <i class="fas fa-calendar-alt"></i>
+                <i class="fas fa-calendar-check"></i>
             </div>
             <div class="stat-content">
-                <h3>{{ pagination is defined ? pagination.total|number_format(0, ',', ' ') : (reports|length)|number_format(0, ',', ' ') }}</h3>
-                <p>Total événements</p>
+                <h3>{{ publishedEventsCount|number_format(0, ',', ' ') }}</h3>
+                <p>Événements publiés</p>
             </div>
         </div>
 
@@ -80,7 +80,7 @@
             </div>
             <div class="stat-content">
                 <h3>{{ totals.revenue|number_format(0, ',', ' ') }} Ar</h3>
-                <p>Chiffre d'affaires total</p>
+                <p>Chiffre d'affaires {% if dateFrom or dateTo %}({{ periodLabel }}){% else %}(Toutes les périodes){% endif %}</p>
             </div>
         </div>
 
@@ -90,17 +90,17 @@
             </div>
             <div class="stat-content">
                 <h3>{{ totals.participants|number_format(0, ',', ' ') }}</h3>
-                <p>Participants totaux</p>
+                <p>Participants totaux {% if dateFrom or dateTo %}({{ periodLabel }}){% endif %}</p>
             </div>
         </div>
 
         <div class="stat-card stat-card-compact">
             <div class="stat-icon stat-icon-compact" style="background: linear-gradient(135deg, rgba(231, 76, 60, 0.1), rgba(231, 76, 60, 0.05)); color: var(--danger);">
-                <i class="fas fa-ticket-alt"></i>
+                <i class="fas fa-credit-card"></i>
             </div>
             <div class="stat-content">
-                <h3>{{ totals.sold_tickets|number_format(0, ',', ' ') }} / {{ totals.total_capacity|number_format(0, ',', ' ') }}</h3>
-                <p>Billets vendus / Capacité</p>
+                <h3>{{ subscriptionExpenses|number_format(0, ',', ' ') }} Ar</h3>
+                <p>Dépense abonnement {% if dateFrom or dateTo %}({{ periodLabel }}){% else %}(toutes les périodes){% endif %}</p>
             </div>
         </div>
     </div>
@@ -111,7 +111,7 @@
         <div class="card-body">
             <h2 style="margin-bottom: 20px; font-size: 1.3rem; font-weight: var(--font-weight-semibold); color: var(--text-primary); display: flex; align-items: center; gap: 10px;">
                 <i class="fas fa-trophy" style="color: #FFD700;"></i>
-                Top 3 des événements les plus réussis
+                Top 3 des événements les plus réussis {% if dateFrom or dateTo %}({{ periodLabel }}){% endif %}
             </h2>
             <div class="top-events-grid">
                 {% for report in top3Events %}

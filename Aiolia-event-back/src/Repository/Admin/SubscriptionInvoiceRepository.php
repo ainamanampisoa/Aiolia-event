@@ -340,4 +340,37 @@ class SubscriptionInvoiceRepository extends ServiceEntityRepository
             ->getQuery()
             ->getOneOrNullResult();
     }
+
+    /**
+     * Calcule le montant total des factures d'abonnement payées par un utilisateur (organisateur)
+     * Inclut uniquement les factures payées ou partiellement payées
+     * Note: Pour l'organisateur, ce sont des dépenses, pas des revenus
+     * 
+     * @param \App\Entity\User $user L'utilisateur (organisateur)
+     * @param \DateTimeInterface|null $dateFrom Date de début (optionnel)
+     * @param \DateTimeInterface|null $dateTo Date de fin (optionnel)
+     * @return float Le montant total des factures d'abonnement payées
+     */
+    public function getSubscriptionRevenueByUser(\App\Entity\User $user, ?\DateTimeInterface $dateFrom = null, ?\DateTimeInterface $dateTo = null): float
+    {
+        $qb = $this->createQueryBuilder('si')
+            ->select('COALESCE(SUM(si.totalAmount), 0)')
+            ->where('si.customer = :user')
+            ->andWhere('si.status IN (:paidStatuses)')
+            ->setParameter('user', $user)
+            ->setParameter('paidStatuses', [SubscriptionInvoice::STATUS_PAID, SubscriptionInvoice::STATUS_PARTIALLY_PAID]);
+
+        if ($dateFrom !== null) {
+            $qb->andWhere('si.billingMonth >= :dateFrom')
+                ->setParameter('dateFrom', $dateFrom);
+        }
+
+        if ($dateTo !== null) {
+            $qb->andWhere('si.billingMonth <= :dateTo')
+                ->setParameter('dateTo', $dateTo);
+        }
+
+        $result = $qb->getQuery()->getSingleScalarResult();
+        return (float) $result;
+    }
 }
