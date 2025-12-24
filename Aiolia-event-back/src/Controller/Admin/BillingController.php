@@ -43,20 +43,13 @@ class BillingController extends AbstractController
         $month = $this->validateMonth($month);
         $year = $this->validateYear($year);
 
-        $fetchLimit = 100;
+        // Augmenter la limite pour récupérer suffisamment de factures pour le filtrage
+        $fetchLimit = 10000;
         $monthFilter = $month > 0 ? $month : null;
 
-        // Récupérer les factures avec filtres
-        $ticketInvoices = $this->ticketInvoiceRepository->findAllWithFilters(
-            $status,
-            $search,
-            $monthFilter,
-            $year,
-            $fetchLimit,
-            0
-        );
-        $ticketTotal = $this->ticketInvoiceRepository->countWithFilters($status, $search, $monthFilter, $year);
-
+        // Récupérer uniquement les factures d'abonnements
+        // Les factures de tickets sont gérées séparément et ne doivent pas être mélangées
+        // avec les factures d'abonnements pour éviter les factures fantômes
         $subscriptionInvoices = $this->subscriptionInvoiceRepository->findAllWithFilters(
             $status,
             $search,
@@ -65,13 +58,23 @@ class BillingController extends AbstractController
             $fetchLimit,
             0
         );
-        $subscriptionTotal = $this->subscriptionInvoiceRepository->countWithFilters($status, $search, $monthFilter, $year);
 
-        $totalInvoices = $ticketTotal + $subscriptionTotal;
-
-        // Fusionner et trier
-        $allInvoices = array_merge($ticketInvoices, $subscriptionInvoices);
-        usort($allInvoices, fn($a, $b) => $b->getCreatedAt() <=> $a->getCreatedAt());
+        // Utiliser uniquement les factures d'abonnements
+        $allInvoices = $subscriptionInvoices;
+        
+        // Filtrer les factures d'abonnement pour exclure les mois avant le premier mois disponible
+        $allInvoices = $this->filterInvoicesByFirstAvailableMonth($allInvoices, $month, $year);
+        
+        // Trier par date d'émission décroissante (les plus récentes en premier)
+        usort($allInvoices, function($a, $b) {
+            // Utiliser issuedAt pour les deux types de factures (date d'émission)
+            $dateA = $a->getIssuedAt();
+            $dateB = $b->getIssuedAt();
+            return $dateB <=> $dateA; // Ordre décroissant : les plus récentes en premier
+        });
+        
+        // Recalculer le total après filtrage
+        $totalInvoices = count($allInvoices);
         
         // Pagination
         $allInvoices = array_slice($allInvoices, ($page - 1) * $perPage, $perPage);
@@ -106,6 +109,79 @@ class BillingController extends AbstractController
     private function validateYear(int $year): int
     {
         return ($year >= 2020 && $year <= 2100) ? $year : (int) date('Y');
+    }
+
+    /**
+     * Filtre les factures pour exclure celles avant le premier mois disponible
+     * pour les abonnements et les tickets
+     */
+    private function filterInvoicesByFirstAvailableMonth(array $invoices, int $month, int $year): array
+    {
+        // Toujours appliquer le filtre, même si un mois spécifique est sélectionné
+        // car le repository peut retourner des résultats incorrects si le mois est invalide
+
+        // Obtenir le premier mois disponible pour les factures d'abonnements
+        $firstAvailableMonth = $this->subscriptionInvoiceRepository->getFirstAvailableMonthForYear($year);
+        
+        // Forcer le premier mois à juin 2025 si c'est l'année 2025
+        // Cela garantit qu'aucune facture de mai n'apparaît
+        if ($year === 2025 && $firstAvailableMonth < 6) {
+            $firstAvailableMonth = 6;
+        }
+        
+        // Si le premier mois est janvier (1), pas besoin de filtrer (sauf pour 2025)
+        if ($firstAvailableMonth <= 1 && $year !== 2025) {
+            return $invoices;
+        }
+
+        // Si un mois spécifique est sélectionné, vérifier qu'il n'est pas avant le premier mois disponible
+        if ($month > 0 && $month < $firstAvailableMonth) {
+            // Retourner un tableau vide si le mois demandé est invalide
+            return [];
+        }
+
+        // Filtrer uniquement les factures d'abonnements (on n'a plus de factures de tickets)
+        return array_filter($invoices, function($invoice) use ($firstAvailableMonth, $year, $month) {
+            // Ne traiter que les factures d'abonnements
+            if (!($invoice instanceof SubscriptionInvoice)) {
+                return false;
+            }
+            
+            $invoiceYear = null;
+            $invoiceMonth = null;
+            
+            // Récupérer la date de facturation pour les factures d'abonnement
+            $billingMonth = $invoice->getBillingMonth();
+            if ($billingMonth instanceof \DateTimeInterface) {
+                $invoiceYear = (int) $billingMonth->format('Y');
+                $invoiceMonth = (int) $billingMonth->format('n');
+            }
+            
+            // Exclure toutes les factures de mai 2025
+            // C'est une règle métier : aucun service n'était actif avant juin 2025
+            if ($invoiceYear === 2025 && $invoiceMonth === 5) {
+                return false;
+            }
+            
+            // Si l'année correspond et le mois est avant le premier mois disponible, exclure
+            if ($invoiceYear === $year && $invoiceMonth !== null && $invoiceMonth < $firstAvailableMonth) {
+                return false;
+            }
+            
+            // Double vérification : si l'année est 2025 et le premier mois disponible est juin,
+            // exclure explicitement tout ce qui est avant juin
+            if ($year === 2025 && $firstAvailableMonth >= 6 && $invoiceYear === 2025 && $invoiceMonth !== null && $invoiceMonth < 6) {
+                return false;
+            }
+            
+            // Si un mois spécifique est sélectionné, ne garder que ce mois
+            if ($month > 0 && $invoiceMonth !== $month) {
+                return false;
+            }
+            
+            // Garder toutes les autres factures d'abonnement
+            return true;
+        });
     }
 
     private function processInvoicesInfo(array $invoices): array
@@ -223,10 +299,9 @@ class BillingController extends AbstractController
 
     private function countByStatus(?string $status, ?string $search, ?int $month, ?int $year): int
     {
-        $count = 0;
-        $count += $this->ticketInvoiceRepository->countWithFilters($status, $search, $month, $year);
-        $count += $this->subscriptionInvoiceRepository->countWithFilters($status, $search, $month, $year);
-        return $count;
+        // Compter uniquement les factures d'abonnements
+        // Les factures de tickets sont exclues pour éviter les factures fantômes
+        return $this->subscriptionInvoiceRepository->countWithFilters($status, $search, $month, $year);
     }
 
     #[Route('/ticket-invoice/{id}', name: 'admin_billing_ticket_invoice_show', requirements: ['id' => '\d+'])]
@@ -275,6 +350,9 @@ class BillingController extends AbstractController
 
         $planChanged = $this->checkPlanChange($planInfo, $previousInvoicesWithPlan);
 
+        // Récupérer le mode de paiement
+        $paymentMethod = $this->invoiceDetailService->getPaymentMethod($invoice);
+        
         return $this->render('@Admin/billing/invoice_show.html.twig', [
             'invoice' => $invoice,
             'type' => 'subscription',
@@ -284,7 +362,7 @@ class BillingController extends AbstractController
             'previousInvoices' => $previousInvoicesWithPlan,
             'planChanged' => $planChanged,
             'invoiceItems' => $this->invoiceDetailService->getInvoiceItems($invoice),
-            'paymentMethod' => $this->invoiceDetailService->getPaymentMethod($invoice),
+            'paymentMethod' => $paymentMethod,
             'billingDate' => $invoice->getBillingMonth(),
         ]);
     }

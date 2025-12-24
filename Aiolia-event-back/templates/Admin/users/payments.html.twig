@@ -35,6 +35,33 @@
     font-size: 0.95rem;
 }
 
+/* Fil d'Ariane */
+.breadcrumb-horizontal {
+    display: flex;
+    align-items: center;
+    gap: 0.75rem;
+    font-size: 1rem;
+    font-weight: var(--font-weight-semibold);
+    color: var(--text-primary);
+    margin-bottom: 1.75rem;
+}
+
+.breadcrumb-horizontal a {
+    color: var(--accent);
+    text-decoration: none;
+    transition: var(--transition-fast);
+}
+
+.breadcrumb-horizontal a:hover {
+    color: var(--accent-light);
+    text-decoration: underline;
+}
+
+.breadcrumb-horizontal .breadcrumb-active {
+    color: var(--text-secondary);
+    font-weight: var(--font-weight-semibold);
+}
+
 /* Carte d'informations d'abonnement */
 .subscription-info-card {
     border: 1px solid var(--border-color);
@@ -146,6 +173,20 @@
     background: linear-gradient(to bottom, var(--bg-secondary), #f8f9fa);
 }
 
+.dashboard-header h1 {
+    display: flex !important;
+    align-items: center;
+    gap: 12px;
+}
+
+.dashboard-header h1 i {
+    font-size: 2rem !important;
+    color: var(--accent) !important;
+    display: inline-block !important;
+    visibility: visible !important;
+    opacity: 1 !important;
+}
+
 .validation-table tbody td {
     border-bottom: 1px solid var(--border-light);
     padding: 16px 20px;
@@ -168,6 +209,31 @@
     border-left-color: var(--accent);
     transform: translateX(2px);
     box-shadow: -2px 0 8px rgba(52, 152, 219, 0.1);
+}
+
+/* Amélioration du scroll horizontal */
+.table-responsive {
+    overflow-x: auto;
+    -webkit-overflow-scrolling: touch;
+    border-radius: var(--border-radius-md);
+}
+
+.table-responsive::-webkit-scrollbar {
+    height: 8px;
+}
+
+.table-responsive::-webkit-scrollbar-track {
+    background: var(--bg-secondary);
+    border-radius: 4px;
+}
+
+.table-responsive::-webkit-scrollbar-thumb {
+    background: var(--border-color);
+    border-radius: 4px;
+}
+
+.table-responsive::-webkit-scrollbar-thumb:hover {
+    background: var(--text-secondary);
 }
 
 /* Alignements colonnes */
@@ -353,11 +419,22 @@
 
 {% block body %}
 <div class="dashboard">
+    <!-- Fil d'Ariane -->
+    <div class="breadcrumb-horizontal" style="margin-bottom: 1.75rem;">
+        <a href="{{ path('admin_users_list') }}" data-i18n-fr="Gestion des utilisateurs" data-i18n-en="User management">Gestion des utilisateurs</a>
+        <span>/</span>
+        <a href="{{ path('admin_users_show', {id: user.id}) }}">{{ user.nomComplet }}</a>
+        <span>/</span>
+        <span class="breadcrumb-active" data-i18n-fr="Historique des paiements" data-i18n-en="Payment history">Historique des paiements</span>
+    </div>
+
     <!-- En-tête -->
     <div class="dashboard-header">
         <div>
-            <h1><i class="fas fa-receipt"></i> Historique des paiements · {{ user.nomComplet }}</h1>
-            <p class="dashboard-subtitle">Gérez l'historique des paiements de cet organisateur</p>
+            <h1><i class="fas fa-receipt"></i> <span data-i18n="users.payments.header.title">Historique des paiements</span> · {{ user.nomComplet }}</h1>
+            <p class="dashboard-subtitle" data-i18n="users.payments.header.subtitle">
+                Gérez l'historique des paiements de cet organisateur
+            </p>
         </div>
     </div>
 
@@ -540,7 +617,7 @@
                                         <code style="background: var(--bg-secondary); padding: 0.25rem 0.5rem; border-radius: var(--border-radius-sm); font-size: 0.85rem; color: var(--text-secondary);">{{ payment.numero_facture ?? '-' }}</code>
                                     </td>
                                     <td class="col-center">
-                                        <a href="{{ path('admin_billing_subscription_invoice_show', {id: payment.id}) }}" class="btn btn-sm btn-primary" target="_blank" rel="noopener noreferrer">
+                                        <a href="{{ path('admin_billing_subscription_invoice_show', {id: payment.id}) }}" class="btn btn-sm btn-primary">
                                             <i class="fas fa-eye"></i> <span data-i18n-fr="Détails" data-i18n-en="Details">Détails</span>
                                         </a>
                                     </td>

@@ -666,25 +666,48 @@
                     </div>
                 {% endif %}
                 {# Affichage du mode de paiement #}
-                {% set paymentMethodFromDb = paymentMethod|default(null) %}
-                {% set paymentMethodLabels = {
-                    'espace': 'Espèce',
-                    'orange': 'Orange Money',
-                    'airtel': 'Airtel Money',
-                    'telma': 'Mvola',
-                    'mvola': 'Mvola',
-                    'bank_transfer': 'Virement bancaire'
-                } %}
-                {% set paymentMethodLabel = paymentMethodFromDb ? (paymentMethodLabels[paymentMethodFromDb] ?? paymentMethodFromDb|capitalize) : 'Mobile Money / Virement' %}
-                <div class="info-row info-row-payment">
-                    <span class="info-label">
-                        <i class="fas fa-credit-card"></i>
-                        <span data-i18n-fr="Mode de paiement" data-i18n-en="Payment method">Mode de paiement</span>
-                    </span>
-                    <span class="info-value payment-method-badge">
-                        <span data-i18n-fr="{{ paymentMethodLabel }}" data-i18n-en="{{ paymentMethodLabel }}">{{ paymentMethodLabel }}</span>
-                    </span>
-                </div>
+                {% if type == 'subscription' %}
+                    {% set paymentMethodFromDb = paymentMethod is defined ? paymentMethod : null %}
+                    {% set paymentMethodLabels = {
+                        'espace': 'Espèce',
+                        'orange': 'Orange Money',
+                        'airtel': 'Airtel Money',
+                        'mvola': 'MVola',
+                        'bank_transfer': 'Virement bancaire'
+                    } %}
+                    {% if paymentMethodFromDb is not null and paymentMethodFromDb is not empty and paymentMethodFromDb != '' %}
+                        {% set paymentMethodLabel = paymentMethodLabels[paymentMethodFromDb] ?? paymentMethodFromDb|capitalize %}
+                        <div class="info-row info-row-payment">
+                            <span class="info-label">
+                                <i class="fas fa-credit-card"></i>
+                                <span data-i18n-fr="Mode de paiement" data-i18n-en="Payment method">Mode de paiement</span>
+                            </span>
+                            <span class="info-value payment-method-badge">
+                                <span data-i18n-fr="{{ paymentMethodLabel }}" data-i18n-en="{{ paymentMethodLabel }}">{{ paymentMethodLabel }}</span>
+                            </span>
+                        </div>
+                    {% endif %}
+                {% else %}
+                    {% set paymentMethodFromDb = paymentMethod|default(null) %}
+                    {% set paymentMethodLabels = {
+                        'espace': 'Espèce',
+                        'orange': 'Orange Money',
+                        'airtel': 'Airtel Money',
+                        'telma': 'Mvola',
+                        'mvola': 'Mvola',
+                        'bank_transfer': 'Virement bancaire'
+                    } %}
+                    {% set paymentMethodLabel = paymentMethodFromDb ? (paymentMethodLabels[paymentMethodFromDb] ?? paymentMethodFromDb|capitalize) : 'Mobile Money / Virement' %}
+                    <div class="info-row info-row-payment">
+                        <span class="info-label">
+                            <i class="fas fa-credit-card"></i>
+                            <span data-i18n-fr="Mode de paiement" data-i18n-en="Payment method">Mode de paiement</span>
+                        </span>
+                        <span class="info-value payment-method-badge">
+                            <span data-i18n-fr="{{ paymentMethodLabel }}" data-i18n-en="{{ paymentMethodLabel }}">{{ paymentMethodLabel }}</span>
+                        </span>
+                    </div>
+                {% endif %}
                 {% if type == 'subscription' and invoice.isPauseMonth is defined and invoice.isPauseMonth %}
                     <div class="info-row info-row-pause">
                         <span class="info-label">

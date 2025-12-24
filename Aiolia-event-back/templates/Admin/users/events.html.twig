@@ -322,16 +322,12 @@
     border-left: 3px solid transparent;
 }
 
-.validation-table tbody tr:nth-child(even) {
-    background-color: #f8f9fa;
-}
-
 .validation-table tbody tr:last-child {
     border-bottom: none;
 }
 
 .validation-table tbody tr:hover {
-    background: linear-gradient(to right, rgba(52, 152, 219, 0.05), #f8f9fa) !important;
+    background: linear-gradient(to right, rgba(52, 152, 219, 0.03), var(--bg-card));
     border-left-color: var(--accent);
     transform: translateX(2px);
     box-shadow: -2px 0 8px rgba(52, 152, 219, 0.1);
@@ -693,8 +689,10 @@
     <!-- En-tête -->
     <div class="dashboard-header">
         <div>
-            <h1><i class="fas fa-calendar-alt"></i> Événements créés · {{ user.nomComplet }}</h1>
-            <p class="dashboard-subtitle">Gérez les événements créés par cet organisateur</p>
+            <h1><i class="fas fa-calendar-alt"></i> <span data-i18n="users.events.header.title">Événements créés</span> · {{ user.nomComplet }}</h1>
+            <p class="dashboard-subtitle" data-i18n="users.events.header.subtitle">
+                Gérez les événements créés par cet organisateur
+            </p>
         </div>
     </div>
 
@@ -764,11 +762,11 @@
                 <div class="search-actions">
                     <button type="submit" class="btn btn-primary btn-search">
                         <i class="fas fa-search"></i>
-                        <span>Rechercher</span>
+                        <span data-i18n="users.actions.search">Rechercher</span>
                     </button>
                     <a href="{{ path('admin_users_events', {id: user.id}) }}" class="btn btn-secondary btn-reset">
                         <i class="fas fa-redo"></i>
-                        <span>Réinitialiser</span>
+                        <span data-i18n="users.actions.reset">Réinitialiser</span>
                     </a>
                 </div>
             </form>
@@ -970,12 +968,12 @@
                     </ul>
                 </div>
                 <div class="pagination-summary">
-                    <small>Page {{ currentPage }} sur {{ totalPages }} - Affichage de {{ events|length }} événement(s) sur {{ totalEventsFiltered }} total</small>
+                    <small data-i18n-target="html" data-i18n-fr="Page {{ currentPage }} sur {{ totalPages }} - Affichage de {{ events|length }} événement(s) sur {{ totalEventsFiltered }} total" data-i18n-en="Page {{ currentPage }} of {{ totalPages }} - Showing {{ events|length }} event(s) of {{ totalEventsFiltered }} total">Page {{ currentPage }} sur {{ totalPages }} - Affichage de {{ events|length }} événement(s) sur {{ totalEventsFiltered }} total</small>
                 </div>
             {% elseif totalEventsFiltered > 0 %}
                 <div class="pagination-wrapper">
                     <div class="pagination-summary">
-                        <small>Affichage de {{ events|length }} événement(s) sur {{ totalEventsFiltered }} total</small>
+                        <small data-i18n-target="html" data-i18n-fr="Affichage de {{ events|length }} événement(s) sur {{ totalEventsFiltered }} total" data-i18n-en="Showing {{ events|length }} event(s) of {{ totalEventsFiltered }} total">Affichage de {{ events|length }} événement(s) sur {{ totalEventsFiltered }} total</small>
                     </div>
                 </div>
             {% endif %}

@@ -191,6 +191,16 @@ class TicketInvoiceRepository extends ServiceEntityRepository
      */
     private function applyMonthYearFilter(QueryBuilder $qb, int $month, int $year): void
     {
+        // Vérifier que le mois demandé n'est pas avant le premier mois disponible
+        $firstMonth = $this->getFirstAvailableMonthForYear($year);
+        
+        // Si le mois demandé est avant le premier mois disponible, ne rien retourner
+        if ($month < $firstMonth) {
+            // Forcer un résultat vide en ajoutant une condition impossible
+            $qb->andWhere('1 = 0');
+            return;
+        }
+        
         $monthStart = (new \DateTime(sprintf('%d-%02d-01', $year, $month)))
             ->setTime(0, 0, 0);
         $monthEnd = (clone $monthStart)->modify('+1 month');
@@ -202,18 +212,70 @@ class TicketInvoiceRepository extends ServiceEntityRepository
     }
 
     /**
+     * Détermine dynamiquement le premier mois disponible dans la base de données pour une année donnée
+     * 
+     * @param int $year L'année à vérifier
+     * @return int Le numéro du mois (1-12), ou 1 si aucune donnée n'est trouvée
+     */
+    private function getFirstAvailableMonthForYear(int $year): int
+    {
+        $yearStart = (new \DateTime(sprintf('%d-01-01', $year)))
+            ->setTime(0, 0, 0);
+        
+        $yearEnd = (new \DateTime(sprintf('%d-12-31', $year)))
+            ->setTime(23, 59, 59);
+
+        try {
+            $result = $this->createQueryBuilder('ti')
+                ->select('MIN(ti.issuedAt) as firstDate')
+                ->where('ti.issuedAt >= :yearStart')
+                ->andWhere('ti.issuedAt <= :yearEnd')
+                ->setParameter('yearStart', $yearStart)
+                ->setParameter('yearEnd', $yearEnd)
+                ->getQuery()
+                ->getOneOrNullResult(\Doctrine\ORM\Query::HYDRATE_ARRAY);
+
+            if ($result && isset($result['firstDate']) && $result['firstDate'] instanceof \DateTimeInterface) {
+                return (int) $result['firstDate']->format('n');
+            }
+        } catch (\Exception $e) {
+            // En cas d'erreur, retourner janvier par défaut
+        }
+
+        // Par défaut, commencer en janvier si aucune donnée n'est trouvée
+        return 1;
+    }
+
+    /**
      * Applique un filtre pour une année spécifique
      */
     private function applyYearFilter(QueryBuilder $qb, int $year): void
     {
-        $yearStart = (new \DateTime(sprintf('%d-01-01', $year)))
+        $firstMonth = $this->getFirstAvailableMonthForYear($year);
+        
+        // Pour 2025, forcer le premier mois à juin si mai est détecté
+        if ($year === 2025 && $firstMonth < 6) {
+            $firstMonth = 6;
+        }
+        
+        $yearStart = (new \DateTime(sprintf('%d-%02d-01', $year, $firstMonth)))
             ->setTime(0, 0, 0);
-        $yearEnd = (clone $yearStart)->modify('+1 year');
+        $yearEnd = (new \DateTime(sprintf('%d-12-31', $year)))
+            ->setTime(23, 59, 59);
 
         $qb->andWhere('ti.issuedAt >= :yearStart')
-            ->andWhere('ti.issuedAt < :yearEnd')
+            ->andWhere('ti.issuedAt <= :yearEnd')
             ->setParameter('yearStart', $yearStart)
             ->setParameter('yearEnd', $yearEnd);
+        
+        // Exclusion explicite de mai 2025 pour éviter les factures de mai
+        if ($year === 2025) {
+            $mayStart = (new \DateTime('2025-05-01'))->setTime(0, 0, 0);
+            $mayEnd = (new \DateTime('2025-05-31'))->setTime(23, 59, 59);
+            $qb->andWhere('ti.issuedAt < :mayStart OR ti.issuedAt > :mayEnd')
+                ->setParameter('mayStart', $mayStart)
+                ->setParameter('mayEnd', $mayEnd);
+        }
     }
 
     /**

@@ -21,7 +21,47 @@ class StatisticsRepository extends ServiceEntityRepository
     }
 
     /**
+     * Détermine dynamiquement le premier mois disponible dans la base de données pour une année donnée
+     * Basé sur les factures d'abonnement
+     * 
+     * @param int $year L'année à vérifier
+     * @return int Le numéro du mois (1-12), ou 1 si aucune donnée n'est trouvée
+     */
+    private function getFirstAvailableMonthForYear(int $year): int
+    {
+        $yearStart = (new \DateTime())
+            ->setDate($year, 1, 1)
+            ->setTime(0, 0, 0);
+        
+        $yearEnd = (new \DateTime())
+            ->setDate($year, 12, 31)
+            ->setTime(23, 59, 59);
+
+        try {
+            $result = $this->getEntityManager()->createQueryBuilder()
+                ->select('MIN(i.billingMonth) as firstMonth')
+                ->from(SubscriptionInvoice::class, 'i')
+                ->where('i.billingMonth >= :yearStart')
+                ->andWhere('i.billingMonth <= :yearEnd')
+                ->setParameter('yearStart', $yearStart)
+                ->setParameter('yearEnd', $yearEnd)
+                ->getQuery()
+                ->getOneOrNullResult(\Doctrine\ORM\Query::HYDRATE_ARRAY);
+
+            if ($result && isset($result['firstMonth']) && $result['firstMonth'] instanceof \DateTimeInterface) {
+                return (int) $result['firstMonth']->format('n');
+            }
+        } catch (\Exception $e) {
+            // En cas d'erreur, retourner janvier par défaut
+        }
+
+        // Par défaut, commencer en janvier si aucune donnée n'est trouvée
+        return 1;
+    }
+
+    /**
      * Résout les bornes temporelles pour une période (mois/année)
+     * Prend en compte le premier mois disponible dans la base de données
      */
     private function resolvePeriod(int $month, int $year): array
     {
@@ -35,7 +75,9 @@ class StatisticsRepository extends ServiceEntityRepository
             $start = sprintf('%04d-%02d-01', $year, $month);
             $end = date('Y-m-t', strtotime($start));
         } else {
-            $start = sprintf('%04d-01-01', $year);
+            // Pour une année complète, commencer au premier mois disponible
+            $firstMonth = $this->getFirstAvailableMonthForYear($year);
+            $start = sprintf('%04d-%02d-01', $year, $firstMonth);
             $end = sprintf('%04d-12-31', $year);
         }
 
@@ -153,6 +195,18 @@ class StatisticsRepository extends ServiceEntityRepository
         $period = $this->resolvePeriod($month, $year);
         $start = $period['start'] ?? date('Y-01-01');
         $end = $period['end'] ?? date('Y-12-31');
+
+        // Si on a une année sans mois spécifique, déterminer le premier mois disponible
+        if ($month === 0 && $year > 0) {
+            $firstMonth = $this->getFirstAvailableMonthForYear($year);
+            $startDate = new \DateTime($start);
+            $currentMonth = (int) $startDate->format('n');
+            
+            // Si le mois de début est avant le premier mois disponible, ajuster
+            if ($currentMonth < $firstMonth) {
+                $start = sprintf('%04d-%02d-01', $year, $firstMonth);
+            }
+        }
 
         // Simulation des mois avec Doctrine (sans generate_series natif)
         $months = $this->generateMonthlyPeriods($start, $end);

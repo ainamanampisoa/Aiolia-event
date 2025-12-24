@@ -91,12 +91,23 @@ class SubscriptionInvoiceRepository extends ServiceEntityRepository
         if ($month !== null && $month > 0) {
             $this->applyMonthYearFilter($qb, $month, $year);
         } else {
+            // Pour une année complète, utiliser le filtre d'année qui exclut les mois avant le premier mois disponible
             $this->applyYearFilter($qb, $year);
         }
     }
 
     private function applyMonthYearFilter($qb, int $month, int $year): void
     {
+        // Vérifier que le mois demandé n'est pas avant le premier mois disponible
+        $firstMonth = $this->getFirstAvailableMonthForYear($year);
+        
+        // Si le mois demandé est avant le premier mois disponible, ne rien retourner
+        if ($month < $firstMonth) {
+            // Forcer un résultat vide en ajoutant une condition impossible
+            $qb->andWhere('1 = 0');
+            return;
+        }
+        
         $monthStart = (new \DateTime())
             ->setDate($year, $month, 1)
             ->setTime(0, 0, 0);
@@ -110,24 +121,55 @@ class SubscriptionInvoiceRepository extends ServiceEntityRepository
             ->setParameter('monthEnd', $monthEnd);
     }
 
+    /**
+     * Détermine dynamiquement le premier mois disponible dans la base de données pour une année donnée
+     * Basé sur les factures d'abonnement (identique à StatisticsRepository)
+     * 
+     * @param int $year L'année à vérifier
+     * @return int Le numéro du mois (1-12), ou 1 si aucune donnée n'est trouvée
+     */
+    public function getFirstAvailableMonthForYear(int $year): int
+    {
+        $connection = $this->getEntityManager()->getConnection();
+        
+        $yearStart = sprintf('%04d-01-01', $year);
+        $yearEnd = sprintf('%04d-12-31', $year);
+
+        try {
+            // Utiliser SQL direct pour être cohérent avec StatisticsRepository
+            $result = $connection->fetchOne(
+                "SELECT MIN(mois_facturation) FROM aiolia.factures_abonnements WHERE mois_facturation >= ? AND mois_facturation <= ?",
+                [$yearStart, $yearEnd]
+            );
+
+            if ($result) {
+                $date = new \DateTime($result);
+                // Normaliser au premier jour du mois
+                $firstMonth = (int) $date->format('n');
+                return $firstMonth;
+            }
+        } catch (\Exception $e) {
+            // En cas d'erreur, retourner janvier par défaut
+        }
+
+        // Par défaut, commencer en janvier si aucune donnée n'est trouvée
+        return 1;
+    }
+
     private function applyYearFilter($qb, int $year): void
     {
-        // Pour 2025, exclure mai car les données commencent en juin 2025
-        if ($year === 2025) {
-            $yearStart = (new \DateTime())
-                ->setDate($year, 6, 1) // Commencer en juin 2025
-                ->setTime(0, 0, 0);
-        } else {
-            $yearStart = (new \DateTime())
-                ->setDate($year, 1, 1)
-                ->setTime(0, 0, 0);
-        }
+        $firstMonth = $this->getFirstAvailableMonthForYear($year);
+        
+        $yearStart = (new \DateTime())
+            ->setDate($year, $firstMonth, 1)
+            ->setTime(0, 0, 0);
         
         $yearEnd = (clone $yearStart)
             ->setDate($year, 12, 31)
             ->setTime(23, 59, 59);
 
-        $qb->andWhere('si.billingMonth BETWEEN :yearStart AND :yearEnd')
+        $qb->andWhere('si.billingMonth >= :yearStart')
+            ->andWhere('si.billingMonth <= :yearEnd')
             ->setParameter('yearStart', $yearStart)
             ->setParameter('yearEnd', $yearEnd);
     }
@@ -273,7 +315,51 @@ class SubscriptionInvoiceRepository extends ServiceEntityRepository
 
     public function getPaymentMethodForInvoice(SubscriptionInvoice $invoice): ?string
     {
-        return $invoice->getPaymentMethod();
+        $connection = $this->getEntityManager()->getConnection();
+        $invoiceId = $invoice->getId();
+
+        // Première tentative : récupérer depuis transactions_paiement_mobile
+        // On privilégie les transactions confirmées (paid), puis les autres
+        $sql = "
+            SELECT operateur_mobile 
+            FROM aiolia.transactions_paiement_mobile 
+            WHERE id_facture = :invoice_id
+            ORDER BY 
+                CASE WHEN statut_paiement = 'paid' THEN 1 ELSE 2 END,
+                confirme_le DESC NULLS LAST,
+                initie_le DESC
+            LIMIT 1
+        ";
+
+        try {
+            $result = $connection->fetchOne($sql, ['invoice_id' => $invoiceId]);
+        } catch (\Exception $e) {
+            // En cas d'erreur, continuer avec la requête suivante
+            $result = false;
+        }
+
+        // Si aucune transaction trouvée, vérifier si la facture a un id_mode_paiement dans factures_abonnements
+        if ($result === false || $result === null || $result === '') {
+            try {
+                $sql = "
+                    SELECT mp.code
+                    FROM aiolia.factures_abonnements fa
+                    LEFT JOIN aiolia.modes_paiement mp ON mp.id = fa.id_mode_paiement
+                    WHERE fa.id = :invoice_id AND mp.code IS NOT NULL AND mp.code != ''
+                ";
+                
+                $result = $connection->fetchOne($sql, ['invoice_id' => $invoiceId]);
+            } catch (\Exception $e) {
+                $result = false;
+            }
+        }
+
+        // Normaliser le résultat : convertir false/empty en null, et s'assurer que c'est une chaîne
+        if ($result === false || $result === null || $result === '') {
+            return null;
+        }
+
+        return (string) $result;
     }
 
     public function findOverdueInvoices(\DateTimeInterface $currentDate): array

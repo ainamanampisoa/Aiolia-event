@@ -1,1564 +1,812 @@
+-- ============================================================
+-- INSERTION DES DONNÉES - AIOLIA EVENTS
+-- ============================================================
+
 \c aiolia_event;
-SET search_path TO aiolia;
+SET search_path TO aiolia, public;
 
-TRUNCATE TABLE
-    transactions_paiement_mobile,
-    historique_paiements_abonnements,
-    elements_factures_abonnements,
-    factures_abonnements,
-    abonnements_organisateurs,
-    plans_abonnements,
-    profils_organisateurs,
-    profils_admin,
-    profils_utilisateurs,
-    utilisateurs
-    RESTART IDENTITY CASCADE;
+-- S'assurer que l'extension pgcrypto est chargée
+CREATE EXTENSION IF NOT EXISTS pgcrypto;
 
-/* ========================================================================== */
-/* 1. UTILISATEURS & PROFILS                                                  */
-/* ========================================================================== */
--- IMPORTANT: Utiliser le format +261 pour le domaine phone_e164
-INSERT INTO utilisateurs (
-    id,
-    email,
-    identifiant_connexion,
-    methode_connexion,
-    hash_mot_de_passe,
-    prenom,
-    nom,
-    telephone,
-    role,
-    statut,
-    cree_le,
-    modifie_le
-) VALUES
-    (1, TRIM('admin1@yopmail.com'), 'admin1', 'password', '$2y$13$vS5.Y6Ou8Ipz5B31DNCzFe1XWCBGKBKJ7zBdR6.dLs3lmLBRbpAXy', 'Admin', 'One', '+261343500003', 'admin', 1, '2025-01-10', '2025-01-10'),
-    (2, TRIM('admin2@yopmail.com'), 'admin2', 'password', '$2y$13$vS5.Y6Ou8Ipz5B31DNCzFe1XWCBGKBKJ7zBdR6.dLs3lmLBRbpAXy', 'Admin', 'Two', '+261343500004', 'admin', 1, '2025-01-11', '2025-01-11');
+-- ============================================================
+-- 1. INSERTION DES TYPES D'ABONNEMENTS (plans_abonnements)
+-- ============================================================
+INSERT INTO plans_abonnements (code, nom, description, niveau, periode_facturation, nombre_periodes, devise, prix, taux_tva, fonctionnalites, ordre_affichage, est_actif) VALUES
+-- Basic - Mensuel
+('basic_monthly', 'Basic Mensuel', 'Abonnement mensuel Basic', 'basic', 'monthly', 1, 'MGA', 50000, 20, '{"events_limit": 5, "tickets_per_event": 100, "basic_support": true}', 1, true),
 
-INSERT INTO profils_admin (id, id_utilisateur, nom_affichage, nom_legal, cree_le, modifie_le)
-VALUES
-    (1, 1, 'Admin One', 'Aiolia HQ', '2025-01-10', '2025-01-10'),
-    (2, 2, 'Admin Two', 'Aiolia Ops', '2025-01-11', '2025-01-11');
+-- Basic - Trimestriel (avec réduction 10%)
+('basic_quarterly', 'Basic Trimestriel', 'Abonnement trimestriel Basic avec réduction', 'basic', 'quarterly', 3, 'MGA', 135000, 20, '{"events_limit": 5, "tickets_per_event": 100, "basic_support": true}', 2, true),
 
--- INSERTION DES 26 ORGANISATEURS
-INSERT INTO utilisateurs (
-    id,
-    email,
-    identifiant_connexion,
-    methode_connexion,
-    hash_mot_de_passe,admin1@yopmail.com
-    prenom,
-    nom,
-    telephone,
-    role,
-    statut,
-    cree_le,
-    modifie_le
-)
-SELECT
-    profile_id + 2,
-    regexp_replace(format('organisateur%02s@yopmail.com', profile_id + 10), '\s+', '', 'g'),
-    format('organisateur%02s', profile_id + 10),
-    'password',
-    '$2y$13$vS5.Y6Ou8Ipz5B31DNCzFe1XWCBGKBKJ7zBdR6.dLs3lmLBRbpAXy',  -- azerty! avec cost 13
-    'Org',
-    format('Test %02s', profile_id),
-    CASE 
-        WHEN profile_id % 2 = 1 THEN '+261343500003'  -- IDs impairs
-        ELSE '+261343500004'                          -- IDs pairs
-    END,
-    'organizer',
-    CASE 
-        WHEN profile_id IN (23, 25, 26) THEN 0  -- Non validés
-        ELSE 1
-    END,
-    created_on,
-    created_on
-FROM (VALUES
-        -- Juin 2025 : 10 organisateurs
-        (1,  DATE '2025-06-01'), (2,  DATE '2025-06-02'), (3,  DATE '2025-06-03'),
-        (4,  DATE '2025-06-04'), (5,  DATE '2025-06-05'), (6,  DATE '2025-06-06'),
-        (7,  DATE '2025-06-07'), (8,  DATE '2025-06-08'), (9,  DATE '2025-06-09'),
-        (10, DATE '2025-06-10'),
-        -- Juillet 2025 : +2 nouveaux
-        (11, DATE '2025-07-04'), (12, DATE '2025-07-18'),
-        -- Août 2025 : +4 nouveaux
-        (13, DATE '2025-08-06'), (14, DATE '2025-08-14'), (15, DATE '2025-08-22'), (16, DATE '2025-08-30'),
-        -- Septembre 2025 : +4 nouveaux
-        (17, DATE '2025-09-03'), (18, DATE '2025-09-11'), (19, DATE '2025-09-19'), (20, DATE '2025-09-27'),
-        -- Octobre 2025 : +3 nouveaux (1 non validé = ID 23)
-        (21, DATE '2025-10-08'), (22, DATE '2025-10-16'), (23, DATE '2025-10-24'),
-        -- Novembre 2025 : +3 nouveaux (2 non validés = IDs 25-26)
-        (24, DATE '2025-11-05'), (25, DATE '2025-11-13'), (26, DATE '2025-11-21')
-) AS organizer_seed(profile_id, created_on);
+-- Basic - Annuel (avec réduction 20%)
+('basic_yearly', 'Basic Annuel', 'Abonnement annuel Basic avec réduction', 'basic', 'yearly', 12, 'MGA', 480000, 20, '{"events_limit": 5, "tickets_per_event": 100, "priority_support": true}', 3, true),
 
--- PROFILS ORGANISATEURS
--- Statut vérification : verified sauf pour IDs 23, 25, 26 (pending)
-INSERT INTO profils_organisateurs (
-    id,
-    id_utilisateur,
-    nom_affichage,
-    nom_legal,
-    type_organisation,
-    statut_verification,
-    cree_le,
-    modifie_le
-)
-SELECT
-    profile_id,
-    profile_id + 2,
-    format('Organisateur %02s', profile_id),
-    format('Organisateur %02s SARL', profile_id),
-    'company',
-    CASE 
-        WHEN profile_id IN (23, 25, 26) THEN 'pending'  -- Non validés
-        ELSE 'verified'
-    END,
-    created_on,
-    created_on
-FROM (VALUES
-        (1,  DATE '2025-06-01'), (2,  DATE '2025-06-02'), (3,  DATE '2025-06-03'),
-        (4,  DATE '2025-06-04'), (5,  DATE '2025-06-05'), (6,  DATE '2025-06-06'),
-        (7,  DATE '2025-06-07'), (8,  DATE '2025-06-08'), (9,  DATE '2025-06-09'),
-        (10, DATE '2025-06-10'),
-        (11, DATE '2025-07-04'), (12, DATE '2025-07-18'),
-        (13, DATE '2025-08-06'), (14, DATE '2025-08-14'), (15, DATE '2025-08-22'), (16, DATE '2025-08-30'),
-        (17, DATE '2025-09-03'), (18, DATE '2025-09-11'), (19, DATE '2025-09-19'), (20, DATE '2025-09-27'),
-        (21, DATE '2025-10-08'), (22, DATE '2025-10-16'), (23, DATE '2025-10-24'),
-        (24, DATE '2025-11-05'), (25, DATE '2025-11-13'), (26, DATE '2025-11-21')
-) AS organizer_seed(profile_id, created_on);
+-- Pro - Mensuel
+('pro_monthly', 'Pro Mensuel', 'Abonnement mensuel Pro', 'pro', 'monthly', 1, 'MGA', 150000, 20, '{"events_limit": 20, "tickets_per_event": 500, "priority_support": true, "custom_branding": true}', 4, true),
 
--- UTILISATEURS NORMAUX (78 utilisateurs)
-INSERT INTO utilisateurs (
-    id,
-    email,
-    identifiant_connexion,
-    methode_connexion,
-    hash_mot_de_passe,
-    prenom,
-    nom,
-    telephone,
-    role,
-    statut,
-    cree_le,
-    modifie_le
-)
-SELECT
-    28 + gs AS id,
-    regexp_replace(format('utilisateur%02s@yopmail.com', gs), '\s+', '', 'g'),
-    format('user%02s', gs),
-    'password',
-    '$2y$13$vS5.Y6Ou8Ipz5B31DNCzFe1XWCBGKBKJ7zBdR6.dLs3lmLBRbpAXy',  -- azerty! avec cost 13
-    format('User%02s', gs),
-    'Test',
-    CASE WHEN gs % 2 = 0 THEN '+261343500003' ELSE '+261343500004' END,
-    'user',
-    1,
-    DATE '2025-05-01' + (gs || ' days')::interval,
-    DATE '2025-05-01' + (gs || ' days')::interval
-FROM generate_series(1, 78) AS gs;
+-- Pro - Trimestriel (avec réduction 10%)
+('pro_quarterly', 'Pro Trimestriel', 'Abonnement trimestriel Pro avec réduction', 'pro', 'quarterly', 3, 'MGA', 405000, 20, '{"events_limit": 20, "tickets_per_event": 500, "priority_support": true, "custom_branding": true}', 5, true),
 
-SELECT setval(pg_get_serial_sequence('utilisateurs', 'id'), 106, true);
-SELECT setval(pg_get_serial_sequence('profils_organisateurs', 'id'), 26, true);
-SELECT setval(pg_get_serial_sequence('profils_admin', 'id'), 2, true);
+-- Pro - Annuel (avec réduction 20%)
+('pro_yearly', 'Pro Annuel', 'Abonnement annuel Pro avec réduction', 'pro', 'yearly', 12, 'MGA', 1440000, 20, '{"events_limit": 20, "tickets_per_event": 500, "priority_support": true, "custom_branding": true, "dedicated_account_manager": true}', 6, true),
 
-/* ========================================================================== */
-/* 2. PLANS D'ABONNEMENT                                                      */
-/* ========================================================================== */
-INSERT INTO plans_abonnements (
-    id,
-    code,
-    nom,
-    niveau,
-    description,
-    periode_facturation,
-    nombre_periodes,
-    devise,
-    prix,
-    taux_tva,
-    fonctionnalites,
-    ordre_affichage
-) VALUES
-    (1, 'BASIC_MENSUEL', 'Basic Mensuel', 'basic', 'Plan basic mensuel', 'monthly', 1, 'MGA', 150000, 20, '{"support":"email"}', 1),
-    (2, 'PRO_MENSUEL', 'Pro Mensuel', 'pro', 'Plan pro mensuel', 'monthly', 1, 'MGA', 280000, 20, '{"support":"prioritaire"}', 2),
-    (3, 'ENTREPRISE_MENSUEL', 'Entreprise Mensuel', 'enterprise', 'Plan entreprise mensuel', 'monthly', 1, 'MGA', 450000, 20, '{"support":"dedie"}', 3),
-    (4, 'BASIC_TRIMESTRE', 'Basic Trimestriel', 'basic', 'Basic trimestriel', 'quarterly', 3, 'MGA', 420000, 20, '{"support":"email"}', 4),
-    (5, 'PRO_TRIMESTRE', 'Pro Trimestriel', 'pro', 'Pro trimestriel', 'quarterly', 3, 'MGA', 720000, 20, '{"support":"prioritaire"}', 5),
-    (6, 'ENTREPRISE_TRIMESTRE', 'Entreprise Trimestriel', 'enterprise', 'Entreprise trimestriel', 'quarterly', 3, 'MGA', 1260000, 20, '{"support":"dedie"}', 6),
-    (7, 'ENTREPRISE_ANNUEL', 'Entreprise Prépayé', 'enterprise', 'Crédit prépayé annuel', 'yearly', 12, 'MGA', 4800000, 20, '{"support":"dedie","paquet":"prepay"}', 7);
+-- Enterprise - Mensuel
+('enterprise_monthly', 'Enterprise Mensuel', 'Abonnement mensuel Enterprise', 'enterprise', 'monthly', 1, 'MGA', 300000, 20, '{"events_limit": 100, "tickets_per_event": 5000, "priority_support": true, "custom_branding": true, "dedicated_account_manager": true, "api_access": true}', 7, true),
 
-SELECT setval(pg_get_serial_sequence('plans_abonnements', 'id'), 7, true);
+-- Enterprise - Trimestriel (avec réduction 10%)
+('enterprise_quarterly', 'Enterprise Trimestriel', 'Abonnement trimestriel Enterprise avec réduction', 'enterprise', 'quarterly', 3, 'MGA', 810000, 20, '{"events_limit": 100, "tickets_per_event": 5000, "priority_support": true, "custom_branding": true, "dedicated_account_manager": true, "api_access": true}', 8, true),
 
-/* ========================================================================== */
-/* 3. ABONNEMENTS ET FACTURES                                                 */
-/* ========================================================================== */
+-- Enterprise - Annuel (avec réduction 20%)
+('enterprise_yearly', 'Enterprise Annuel', 'Abonnement annuel Enterprise avec réduction', 'enterprise', 'yearly', 12, 'MGA', 2880000, 20, '{"events_limit": 100, "tickets_per_event": 5000, "priority_support": true, "custom_branding": true, "dedicated_account_manager": true, "api_access": true, "white_label": true}', 9, true);
 
--- JUIN 2025 : 10 organisateurs actifs
--- 5 basic mensuel (IDs 1,3,5,7,9), 2 pro mensuel (IDs 2,4), 3 entreprise mensuel (IDs 6,8,10)
-INSERT INTO abonnements_organisateurs (
-    id_profil_organisateur,
-    id_plan,
-    statut,
-    mois_prepayes_restants,
-    commence_le,
-    debut_periode_courante,
-    fin_periode_courante
-)
-SELECT
-    po.id,
-    CASE po.id
-        WHEN 1 THEN 1  -- Basic mensuel
-        WHEN 2 THEN 2  -- Pro mensuel
-        WHEN 3 THEN 1  -- Basic mensuel
-        WHEN 4 THEN 2  -- Pro mensuel
-        WHEN 5 THEN 1  -- Basic mensuel
-        WHEN 6 THEN 3  -- Entreprise mensuel
-        WHEN 7 THEN 1  -- Basic mensuel
-        WHEN 8 THEN 3  -- Entreprise mensuel
-        WHEN 9 THEN 1  -- Basic mensuel
-        WHEN 10 THEN 3 -- Entreprise mensuel
-    END,
-    'active',
-    0,
-    '2025-06-01',
-    '2025-06-01',
-    '2025-06-30'
-FROM profils_organisateurs po
-WHERE po.id BETWEEN 1 AND 10
-  AND po.statut_verification = 'verified';  -- Exclure les non validés
+-- ============================================================
+-- 2. INSERTION DES ADMINISTRATEURS (2 admins)
+-- ============================================================
+-- Mot de passe haché: Admin123!
+DO $$
+DECLARE
+    v_salt1 TEXT;
+    v_salt2 TEXT;
+BEGIN
+    SELECT public.gen_salt('bf'::text, 8) INTO v_salt1;
+    SELECT public.gen_salt('bf'::text, 8) INTO v_salt2;
+    INSERT INTO utilisateurs (email, identifiant_connexion, methode_connexion, hash_mot_de_passe, prenom, nom, telephone, code_pays, code_langue, fuseau_horaire, role, statut, fournisseur_auth, email_verifie, telephone_verifie, termes_acceptes_le) VALUES
+    ('admin1@yopmail.com', 'admin1@yopmail.com', 'password', crypt('Admin123!', v_salt1), 'Admin', 'Principal', '+261340000001', 'MG', 'fr-FR', 'Indian/Antananarivo', 'admin', 1, 'password', true, true, '2025-01-01 00:00:00'),
+    ('admin2@yopmail.com', 'admin2@yopmail.com', 'password', crypt('Admin123!', v_salt2), 'Admin', 'Secondaire', '+261340000002', 'MG', 'fr-FR', 'Indian/Antananarivo', 'admin', 1, 'password', true, true, '2025-01-01 00:00:00');
+END $$;
 
--- Factures pour JUIN 2025
-INSERT INTO factures_abonnements (
-    id_abonnement,
-    id_client,
-    devise,
-    montant_sous_total,
-    montant_tva,
-    montant_total,
-    montant_ht,
-    montant_tva_detail,
-    montant_ttc,
-    mois_facturation,
-    est_mois_pause,
-    est_prepayee,
-    statut,
-    emise_le,
-    echeance_le,
-    payee_le
-)
-SELECT
-    ao.id,
-    u.id,
-    'MGA',
-    p.prix,
-    ROUND(p.prix * p.taux_tva / 100, 2),
-    p.prix + ROUND(p.prix * p.taux_tva / 100, 2),
-    p.prix,
-    ROUND(p.prix * p.taux_tva / 100, 2),
-    p.prix + ROUND(p.prix * p.taux_tva / 100, 2),
-    '2025-06-01',
-    FALSE,
-    FALSE,
-    'paid',
-    '2025-06-01',
-    '2025-06-15',
-    '2025-06-05'
+-- Profils admin
+INSERT INTO profils_admin (id_utilisateur, nom_affichage, nom_legal, email_support, telephone_support) VALUES
+((SELECT id FROM utilisateurs WHERE email = 'admin1@yopmail.com'), 'Administrateur Principal', 'Admin Principal SARL', 'support@aiolia.mg', '+261340000001'),
+((SELECT id FROM utilisateurs WHERE email = 'admin2@yopmail.com'), 'Administrateur Secondaire', 'Admin Secondaire SARL', 'support2@aiolia.mg', '+261340000002');
+
+-- ============================================================
+-- 3. INSERTION DES UTILISATEURS (45 utilisateurs)
+-- ============================================================
+DO $$
+DECLARE
+    i INTEGER;
+    v_salt TEXT;
+BEGIN
+    SELECT public.gen_salt('bf'::text, 8) INTO v_salt;
+    FOR i IN 1..45 LOOP
+        INSERT INTO utilisateurs (email, identifiant_connexion, methode_connexion, hash_mot_de_passe, prenom, nom, telephone, code_pays, code_langue, fuseau_horaire, role, statut, fournisseur_auth, email_verifie, telephone_verifie, termes_acceptes_le) VALUES
+        ('user' || i || '@yopmail.com', 'user' || i || '@yopmail.com', 'password', crypt('User123!', v_salt), 
+         'Utilisateur' || i, 
+         CASE WHEN i <= 30 THEN 'Nom' || i ELSE NULL END,
+         '+26134' || LPAD((1000000 + i)::TEXT, 6, '0'), 
+         'MG', 'fr-FR', 'Indian/Antananarivo', 'user', 1, 'password', true, true, '2025-01-01 00:00:00');
+    END LOOP;
+END $$;
+
+-- ============================================================
+-- 4. INSERTION DES ORGANISATEURS (26 organisateurs)
+-- ============================================================
+-- Fonction pour créer un organisateur
+CREATE OR REPLACE FUNCTION creer_organisateur(
+    p_email TEXT,
+    p_nom_affichage TEXT,
+    p_nom_legal TEXT,
+    p_type_organisation organizer_type_enum DEFAULT 'company',
+    p_statut_verification TEXT DEFAULT 'verified'
+) RETURNS BIGINT AS $$
+DECLARE
+    v_user_id BIGINT;
+    v_organisateur_id BIGINT;
+    v_organisateur_num INTEGER;
+    v_salt TEXT;
+BEGIN
+    -- Extraire le numéro de l'email
+    v_organisateur_num := substring(p_email from 'organisateur([0-9]+)@')::INTEGER;
+    
+    -- Générer le salt
+    SELECT public.gen_salt('bf'::text, 8) INTO v_salt;
+    
+    -- Créer l'utilisateur
+    INSERT INTO utilisateurs (email, identifiant_connexion, methode_connexion, hash_mot_de_passe, prenom, nom, telephone, code_pays, code_langue, fuseau_horaire, role, statut, fournisseur_auth, email_verifie, telephone_verifie, termes_acceptes_le) VALUES
+    (p_email, p_email, 'password', crypt('Organisateur123!', v_salt), 
+     'Organisateur', 
+     'Nom' || v_organisateur_num,
+     '+26134' || LPAD((2000000 + v_organisateur_num)::TEXT, 6, '0'), 
+     'MG', 'fr-FR', 'Indian/Antananarivo', 'organizer', 1, 'password', true, true, '2025-01-01 00:00:00')
+    RETURNING id INTO v_user_id;
+    
+    -- Créer le profil organisateur
+    INSERT INTO profils_organisateurs (id_utilisateur, nom_affichage, nom_legal, email_support, telephone_support, type_organisation, statut_verification, onboarding_termine_le) VALUES
+    (v_user_id, p_nom_affichage, p_nom_legal, p_email, '+26134' || LPAD((2000000 + v_organisateur_num)::TEXT, 6, '0'), p_type_organisation, p_statut_verification, '2025-06-01 00:00:00')
+    RETURNING id INTO v_organisateur_id;
+    
+    RETURN v_organisateur_id;
+END;
+$$ LANGUAGE plpgsql;
+
+-- Création des 26 organisateurs (numéros 11 à 36)
+SELECT creer_organisateur('organisateur11@yopmail.com', 'Organisateur 11', 'Organisateur 11 SARL');
+SELECT creer_organisateur('organisateur12@yopmail.com', 'Organisateur 12', 'Organisateur 12 SARL');
+SELECT creer_organisateur('organisateur13@yopmail.com', 'Organisateur 13', 'Organisateur 13 SARL');
+SELECT creer_organisateur('organisateur14@yopmail.com', 'Organisateur 14', 'Organisateur 14 SARL');
+SELECT creer_organisateur('organisateur15@yopmail.com', 'Organisateur 15', 'Organisateur 15 SARL');
+SELECT creer_organisateur('organisateur16@yopmail.com', 'Organisateur 16', 'Organisateur 16 SARL');
+SELECT creer_organisateur('organisateur17@yopmail.com', 'Organisateur 17', 'Organisateur 17 SARL');
+SELECT creer_organisateur('organisateur18@yopmail.com', 'Organisateur 18', 'Organisateur 18 SARL');
+SELECT creer_organisateur('organisateur19@yopmail.com', 'Organisateur 19', 'Organisateur 19 SARL');
+SELECT creer_organisateur('organisateur20@yopmail.com', 'Organisateur 20', 'Organisateur 20 SARL');
+SELECT creer_organisateur('organisateur21@yopmail.com', 'Organisateur 21', 'Organisateur 21 SARL');
+SELECT creer_organisateur('organisateur22@yopmail.com', 'Organisateur 22', 'Organisateur 22 SARL');
+SELECT creer_organisateur('organisateur23@yopmail.com', 'Organisateur 23', 'Organisateur 23 SARL');
+SELECT creer_organisateur('organisateur24@yopmail.com', 'Organisateur 24', 'Organisateur 24 SARL');
+SELECT creer_organisateur('organisateur25@yopmail.com', 'Organisateur 25', 'Organisateur 25 SARL');
+SELECT creer_organisateur('organisateur26@yopmail.com', 'Organisateur 26', 'Organisateur 26 SARL');
+SELECT creer_organisateur('organisateur27@yopmail.com', 'Organisateur 27', 'Organisateur 27 SARL');
+SELECT creer_organisateur('organisateur28@yopmail.com', 'Organisateur 28', 'Organisateur 28 SARL');
+SELECT creer_organisateur('organisateur29@yopmail.com', 'Organisateur 29', 'Organisateur 29 SARL');
+SELECT creer_organisateur('organisateur30@yopmail.com', 'Organisateur 30', 'Organisateur 30 SARL');
+SELECT creer_organisateur('organisateur31@yopmail.com', 'Organisateur 31', 'Organisateur 31 SARL');
+SELECT creer_organisateur('organisateur32@yopmail.com', 'Organisateur 32', 'Organisateur 32 SARL');
+SELECT creer_organisateur('organisateur33@yopmail.com', 'Organisateur 33', 'Organisateur 33 SARL');
+SELECT creer_organisateur('organisateur34@yopmail.com', 'Organisateur 34', 'Organisateur 34 SARL');
+SELECT creer_organisateur('organisateur35@yopmail.com', 'Organisateur 35', 'Organisateur 35 SARL');
+SELECT creer_organisateur('organisateur36@yopmail.com', 'Organisateur 36', 'Organisateur 36 SARL');
+
+-- ============================================================
+-- 5. CREATION DES ABONNEMENTS PAR MOIS
+-- ============================================================
+
+-- Fonction pour créer un abonnement
+CREATE OR REPLACE FUNCTION creer_abonnement(
+    p_organisateur_email TEXT,
+    p_plan_code TEXT,
+    p_date_debut TIMESTAMPTZ,
+    p_statut subscription_status_enum DEFAULT 'active'
+) RETURNS BIGINT AS $$
+DECLARE
+    v_organisateur_id BIGINT;
+    v_plan_id BIGINT;
+    v_abonnement_id BIGINT;
+    v_periode_facturation TEXT;
+    v_fin_periode TIMESTAMPTZ;
+BEGIN
+    -- Récupérer l'ID de l'organisateur
+    SELECT po.id INTO v_organisateur_id
+    FROM profils_organisateurs po
+    JOIN utilisateurs u ON po.id_utilisateur = u.id
+    WHERE u.email = p_organisateur_email;
+    
+    -- Récupérer l'ID du plan
+    SELECT id, periode_facturation INTO v_plan_id, v_periode_facturation
+    FROM plans_abonnements
+    WHERE code = p_plan_code;
+    
+    -- Calculer la fin de période
+    CASE v_periode_facturation
+        WHEN 'monthly' THEN v_fin_periode := p_date_debut + INTERVAL '1 month';
+        WHEN 'quarterly' THEN v_fin_periode := p_date_debut + INTERVAL '3 months';
+        WHEN 'yearly' THEN v_fin_periode := p_date_debut + INTERVAL '1 year';
+        ELSE v_fin_periode := p_date_debut + INTERVAL '1 month';
+    END CASE;
+    
+    -- Créer l'abonnement
+    INSERT INTO abonnements_organisateurs (
+        id_profil_organisateur, id_plan, statut, 
+        commence_le, debut_periode_courante, fin_periode_courante,
+        renouvellement_le
+    ) VALUES (
+        v_organisateur_id, v_plan_id, p_statut,
+        p_date_debut, p_date_debut, v_fin_periode,
+        v_fin_periode
+    )
+    RETURNING id INTO v_abonnement_id;
+    
+    RETURN v_abonnement_id;
+END;
+$$ LANGUAGE plpgsql;
+
+-- Fonction pour créer une facture d'abonnement
+CREATE OR REPLACE FUNCTION creer_facture_abonnement(
+    p_abonnement_id BIGINT,
+    p_mois_facturation DATE,
+    p_statut TEXT DEFAULT 'paid',
+    p_est_prepayee BOOLEAN DEFAULT false,
+    p_date_paiement TIMESTAMPTZ DEFAULT NULL
+) RETURNS BIGINT AS $$
+DECLARE
+    v_facture_id BIGINT;
+    v_user_id BIGINT;
+    v_plan_id BIGINT;
+    v_prix NUMERIC;
+    v_tva NUMERIC;
+    v_total NUMERIC;
+    v_existing_id BIGINT;
+BEGIN
+    -- Vérifier si une facture existe déjà pour cet abonnement et ce mois
+    SELECT id INTO v_existing_id
+    FROM factures_abonnements
+    WHERE id_abonnement = p_abonnement_id
+    AND mois_facturation = p_mois_facturation
+    LIMIT 1;
+    
+    -- Si une facture existe déjà, la retourner
+    IF v_existing_id IS NOT NULL THEN
+        RETURN v_existing_id;
+    END IF;
+    
+    -- Récupérer les informations de l'abonnement
+    SELECT 
+        po.id_utilisateur,
+        ao.id_plan,
+        pa.prix,
+        pa.taux_tva
+    INTO v_user_id, v_plan_id, v_prix, v_tva
+    FROM abonnements_organisateurs ao
+    JOIN profils_organisateurs po ON ao.id_profil_organisateur = po.id
+    JOIN plans_abonnements pa ON ao.id_plan = pa.id
+    WHERE ao.id = p_abonnement_id;
+    
+    -- Calculer les montants
+    v_tva := (v_prix * v_tva) / 100;
+    v_total := v_prix + v_tva;
+    
+    -- Créer la facture
+    INSERT INTO factures_abonnements (
+        id_abonnement, id_client, devise,
+        montant_sous_total, montant_tva, montant_total,
+        montant_ht, montant_tva_detail, montant_ttc,
+        mois_facturation, est_prepayee, statut,
+        emise_le, echeance_le, payee_le
+    ) VALUES (
+        p_abonnement_id, v_user_id, 'MGA',
+        v_prix, v_tva, v_total,
+        v_prix, v_tva, v_total,
+        p_mois_facturation, p_est_prepayee, p_statut,
+        p_mois_facturation::TIMESTAMPTZ,
+        p_mois_facturation::TIMESTAMPTZ + INTERVAL '30 days',
+        COALESCE(p_date_paiement, p_mois_facturation::TIMESTAMPTZ + INTERVAL '1 day')
+    )
+    RETURNING id INTO v_facture_id;
+    
+    -- Ajouter l'élément de facture
+    INSERT INTO elements_factures_abonnements (
+        id_facture, id_plan, description,
+        quantite, prix_unitaire, montant_total
+    ) VALUES (
+        v_facture_id, v_plan_id, 'Abonnement mensuel',
+        1, v_prix, v_prix
+    );
+    
+    RETURN v_facture_id;
+END;
+$$ LANGUAGE plpgsql;
+
+-- ============================================================
+-- 6. ABONNEMENTS JUIN 2025
+-- ============================================================
+-- 10 organisateurs actifs (11-20)
+-- 5 basic, 2 pro, 3 enterprise - tous mensuels
+DO $$
+DECLARE
+    i INTEGER;
+    v_abonnement_id BIGINT;
+BEGIN
+    -- Organisateurs 11-15: Basic
+    FOR i IN 11..15 LOOP
+        SELECT creer_abonnement('organisateur' || i || '@yopmail.com', 'basic_monthly', '2025-06-01 00:00:00') INTO v_abonnement_id;
+    END LOOP;
+    
+    -- Organisateurs 16-17: Pro
+    FOR i IN 16..17 LOOP
+        SELECT creer_abonnement('organisateur' || i || '@yopmail.com', 'pro_monthly', '2025-06-01 00:00:00') INTO v_abonnement_id;
+    END LOOP;
+    
+    -- Organisateurs 18-20: Enterprise
+    FOR i IN 18..20 LOOP
+        SELECT creer_abonnement('organisateur' || i || '@yopmail.com', 'enterprise_monthly', '2025-06-01 00:00:00') INTO v_abonnement_id;
+    END LOOP;
+END $$;
+
+-- Factures Juin 2025
+-- 10 factures: 5 basic, 2 pro, 3 enterprise (organisateurs 11-20)
+DO $$
+DECLARE
+    v_abonnement RECORD;
+    v_facture_id BIGINT;
+    v_count INTEGER := 0;
+BEGIN
+    FOR v_abonnement IN 
+        SELECT ao.id 
+        FROM abonnements_organisateurs ao
+        JOIN profils_organisateurs po ON ao.id_profil_organisateur = po.id
+        JOIN utilisateurs u ON po.id_utilisateur = u.id
+        WHERE u.email LIKE 'organisateur%@yopmail.com'
+        AND ao.commence_le = '2025-06-01 00:00:00'
+        AND ao.statut = 'active'
+        AND u.email BETWEEN 'organisateur11@yopmail.com' AND 'organisateur20@yopmail.com'
+        ORDER BY u.email
+    LOOP
+        SELECT creer_facture_abonnement(v_abonnement.id, '2025-06-01'::DATE) INTO v_facture_id;
+        v_count := v_count + 1;
+    END LOOP;
+    
+    RAISE NOTICE 'Juin 2025: % factures créées', v_count;
+END $$;
+
+-- ============================================================
+-- 7. ABONNEMENTS JUILLET 2025
+-- ============================================================
+-- +2 nouveaux organisateurs (21-22)
+-- Total: 12 organisateurs
+-- 4 basic, 6 pro, 2 enterprise
+DO $$
+DECLARE
+    v_abonnement_id BIGINT;
+BEGIN
+    -- Nouveaux organisateurs 21-22: Pro
+    SELECT creer_abonnement('organisateur21@yopmail.com', 'pro_monthly', '2025-07-01 00:00:00') INTO v_abonnement_id;
+    SELECT creer_abonnement('organisateur22@yopmail.com', 'pro_monthly', '2025-07-01 00:00:00') INTO v_abonnement_id;
+    
+    -- Mettre à jour certains abonnements existants (changement de plan)
+    -- Organisateur 14: Basic -> Pro
+    UPDATE abonnements_organisateurs ao
+    SET id_plan = (SELECT id FROM plans_abonnements WHERE code = 'pro_monthly'),
+        modifie_le = NOW()
+    FROM profils_organisateurs po
+    JOIN utilisateurs u ON po.id_utilisateur = u.id
+    WHERE ao.id_profil_organisateur = po.id
+    AND u.email = 'organisateur14@yopmail.com';
+    
+    -- Organisateur 15: Basic -> Pro
+    UPDATE abonnements_organisateurs ao
+    SET id_plan = (SELECT id FROM plans_abonnements WHERE code = 'pro_monthly'),
+        modifie_le = NOW()
+    FROM profils_organisateurs po
+    JOIN utilisateurs u ON po.id_utilisateur = u.id
+    WHERE ao.id_profil_organisateur = po.id
+    AND u.email = 'organisateur15@yopmail.com';
+END $$;
+
+-- Factures Juillet 2025
+DO $$
+DECLARE
+    v_abonnement RECORD;
+    v_facture_id BIGINT;
+BEGIN
+    FOR v_abonnement IN 
+        SELECT ao.id 
+        FROM abonnements_organisateurs ao
+        JOIN profils_organisateurs po ON ao.id_profil_organisateur = po.id
+        JOIN utilisateurs u ON po.id_utilisateur = u.id
+        WHERE u.email LIKE 'organisateur%@yopmail.com'
+        AND ao.statut = 'active'
+    LOOP
+        SELECT creer_facture_abonnement(v_abonnement.id, '2025-07-01') INTO v_facture_id;
+    END LOOP;
+END $$;
+
+-- ============================================================
+-- 8. ABONNEMENTS AOÛT 2025
+-- ============================================================
+-- +4 nouveaux organisateurs (23-26)
+-- Total: 16 organisateurs
+-- 4 basic, 5 pro, 7 enterprise
+-- 2 organisateurs en pause (reviennent en octobre)
+DO $$
+DECLARE
+    v_abonnement_id BIGINT;
+BEGIN
+    -- Nouveaux organisateurs 23-26: Enterprise
+    SELECT creer_abonnement('organisateur23@yopmail.com', 'enterprise_monthly', '2025-08-01 00:00:00') INTO v_abonnement_id;
+    SELECT creer_abonnement('organisateur24@yopmail.com', 'enterprise_monthly', '2025-08-01 00:00:00') INTO v_abonnement_id;
+    SELECT creer_abonnement('organisateur25@yopmail.com', 'enterprise_monthly', '2025-08-01 00:00:00') INTO v_abonnement_id;
+    SELECT creer_abonnement('organisateur26@yopmail.com', 'enterprise_monthly', '2025-08-01 00:00:00') INTO v_abonnement_id;
+    
+    -- Mettre en pause 2 organisateurs (16 et 17)
+    UPDATE abonnements_organisateurs ao
+    SET statut = 'paused',
+        mis_en_pause_le = '2025-08-15 00:00:00',
+        modifie_le = NOW()
+    FROM profils_organisateurs po
+    JOIN utilisateurs u ON po.id_utilisateur = u.id
+    WHERE ao.id_profil_organisateur = po.id
+    AND u.email IN ('organisateur16@yopmail.com', 'organisateur17@yopmail.com');
+END $$;
+
+-- Factures Août 2025 (14 factures seulement - 2 en pause)
+DO $$
+DECLARE
+    v_abonnement RECORD;
+    v_count INTEGER := 0;
+    v_facture_id BIGINT;
+BEGIN
+    FOR v_abonnement IN 
+        SELECT ao.id 
+        FROM abonnements_organisateurs ao
+        JOIN profils_organisateurs po ON ao.id_profil_organisateur = po.id
+        JOIN utilisateurs u ON po.id_utilisateur = u.id
+        WHERE u.email LIKE 'organisateur%@yopmail.com'
+        AND ao.statut = 'active'
+        AND u.email NOT IN ('organisateur16@yopmail.com', 'organisateur17@yopmail.com')
+    LOOP
+        SELECT creer_facture_abonnement(v_abonnement.id, '2025-08-01') INTO v_facture_id;
+        v_count := v_count + 1;
+    END LOOP;
+    
+    RAISE NOTICE 'Août 2025: % factures créées', v_count;
+END $$;
+
+-- ============================================================
+-- 9. ABONNEMENTS SEPTEMBRE 2025
+-- ============================================================
+-- +4 nouveaux organisateurs (27-30)
+-- Total: 20 organisateurs (18 actifs + 2 en pause)
+-- 9 factures mensuelles, 9 factures trimestrielles
+DO $$
+DECLARE
+    v_abonnement_id BIGINT;
+BEGIN
+    -- Nouveaux organisateurs 27-30
+    SELECT creer_abonnement('organisateur27@yopmail.com', 'basic_quarterly', '2025-09-01 00:00:00') INTO v_abonnement_id;
+    SELECT creer_abonnement('organisateur28@yopmail.com', 'pro_quarterly', '2025-09-01 00:00:00') INTO v_abonnement_id;
+    SELECT creer_abonnement('organisateur29@yopmail.com', 'enterprise_quarterly', '2025-09-01 00:00:00') INTO v_abonnement_id;
+    SELECT creer_abonnement('organisateur30@yopmail.com', 'basic_monthly', '2025-09-01 00:00:00') INTO v_abonnement_id;
+    
+    -- Changer certains abonnements en trimestriel
+    UPDATE abonnements_organisateurs ao
+    SET id_plan = 
+        CASE 
+            WHEN pa.niveau = 'basic' THEN (SELECT id FROM plans_abonnements WHERE code = 'basic_quarterly')
+            WHEN pa.niveau = 'pro' THEN (SELECT id FROM plans_abonnements WHERE code = 'pro_quarterly')
+            WHEN pa.niveau = 'enterprise' THEN (SELECT id FROM plans_abonnements WHERE code = 'enterprise_quarterly')
+        END,
+        modifie_le = NOW()
+    FROM plans_abonnements pa
+    WHERE ao.id_plan = pa.id
+    AND ao.id_profil_organisateur IN (
+        SELECT po.id 
+        FROM profils_organisateurs po
+        JOIN utilisateurs u ON po.id_utilisateur = u.id
+        WHERE u.email IN ('organisateur11@yopmail.com', 'organisateur12@yopmail.com', 'organisateur13@yopmail.com',
+                         'organisateur18@yopmail.com', 'organisateur19@yopmail.com', 'organisateur20@yopmail.com',
+                         'organisateur21@yopmail.com', 'organisateur22@yopmail.com', 'organisateur23@yopmail.com')
+    );
+END $$;
+
+-- Factures Septembre 2025
+DO $$
+DECLARE
+    v_abonnement RECORD;
+    v_mensuel_count INTEGER := 0;
+    v_trimestre_count INTEGER := 0;
+    v_facture_id BIGINT;
+BEGIN
+    FOR v_abonnement IN 
+        SELECT ao.id, pa.periode_facturation
+        FROM abonnements_organisateurs ao
+        JOIN profils_organisateurs po ON ao.id_profil_organisateur = po.id
+        JOIN utilisateurs u ON po.id_utilisateur = u.id
+        JOIN plans_abonnements pa ON ao.id_plan = pa.id
+        WHERE u.email LIKE 'organisateur%@yopmail.com'
+        AND ao.statut = 'active'
+        AND u.email NOT IN ('organisateur16@yopmail.com', 'organisateur17@yopmail.com')
+    LOOP
+        SELECT creer_facture_abonnement(v_abonnement.id, '2025-09-01') INTO v_facture_id;
+        
+        IF v_abonnement.periode_facturation = 'monthly' THEN
+            v_mensuel_count := v_mensuel_count + 1;
+        ELSE
+            v_trimestre_count := v_trimestre_count + 1;
+        END IF;
+    END LOOP;
+    
+    RAISE NOTICE 'Septembre 2025: % mensuels, % trimestriels', v_mensuel_count, v_trimestre_count;
+END $$;
+
+-- ============================================================
+-- 10. ABONNEMENTS OCTOBRE 2025
+-- ============================================================
+-- +3 nouveaux organisateurs (31-33, dont 1 non validé)
+-- Total: 23 organisateurs (22 actifs + 1 non validé)
+-- Réactiver les 2 organisateurs en pause
+-- Mettre 4 organisateurs en pause
+DO $$
+DECLARE
+    v_abonnement_id BIGINT;
+BEGIN
+    -- Nouveaux organisateurs 31-33
+    SELECT creer_abonnement('organisateur31@yopmail.com', 'basic_monthly', '2025-10-01 00:00:00') INTO v_abonnement_id;
+    SELECT creer_abonnement('organisateur32@yopmail.com', 'pro_monthly', '2025-10-01 00:00:00') INTO v_abonnement_id;
+    
+    -- Organisateur 33 non validé
+    SELECT creer_abonnement('organisateur33@yopmail.com', 'enterprise_monthly', '2025-10-01 00:00:00') INTO v_abonnement_id;
+    UPDATE profils_organisateurs 
+    SET statut_verification = 'pending'
+    WHERE id_utilisateur = (SELECT id FROM utilisateurs WHERE email = 'organisateur33@yopmail.com');
+    
+    -- Réactiver les organisateurs en pause (16 et 17)
+    UPDATE abonnements_organisateurs ao
+    SET statut = 'active',
+        repris_le = '2025-10-01 00:00:00',
+        modifie_le = NOW()
+    FROM profils_organisateurs po
+    JOIN utilisateurs u ON po.id_utilisateur = u.id
+    WHERE ao.id_profil_organisateur = po.id
+    AND u.email IN ('organisateur16@yopmail.com', 'organisateur17@yopmail.com');
+    
+    -- Mettre 4 organisateurs en pause (11, 18, 24, 27)
+    UPDATE abonnements_organisateurs ao
+    SET statut = 'paused',
+        mis_en_pause_le = '2025-10-15 00:00:00',
+        modifie_le = NOW()
+    FROM profils_organisateurs po
+    JOIN utilisateurs u ON po.id_utilisateur = u.id
+    WHERE ao.id_profil_organisateur = po.id
+    AND u.email IN ('organisateur11@yopmail.com', 'organisateur18@yopmail.com', 
+                   'organisateur24@yopmail.com', 'organisateur27@yopmail.com');
+END $$;
+
+-- Factures Octobre 2025
+DO $$
+DECLARE
+    v_abonnement RECORD;
+    v_type_plan TEXT;
+    v_mensuel_count INTEGER := 0;
+    v_trimestre_count INTEGER := 0;
+    v_prepaye_count INTEGER := 0;
+    v_facture_id BIGINT;
+BEGIN
+    FOR v_abonnement IN 
+        SELECT ao.id, pa.periode_facturation, pa.niveau
+        FROM abonnements_organisateurs ao
+        JOIN profils_organisateurs po ON ao.id_profil_organisateur = po.id
+        JOIN utilisateurs u ON po.id_utilisateur = u.id
+        JOIN plans_abonnements pa ON ao.id_plan = pa.id
+        WHERE u.email LIKE 'organisateur%@yopmail.com'
+        AND ao.statut = 'active'
+        AND u.email != 'organisateur33@yopmail.com' -- non validé
+        AND u.email NOT IN ('organisateur11@yopmail.com', 'organisateur18@yopmail.com', 
+                           'organisateur24@yopmail.com', 'organisateur27@yopmail.com') -- en pause
+    LOOP
+        -- Déterminer le type de facturation
+        IF v_abonnement.niveau IN ('basic', 'pro', 'enterprise') AND 
+           v_abonnement.periode_facturation = 'monthly' AND
+           v_mensuel_count < 8 THEN
+            -- Factures mensuelles
+            SELECT creer_facture_abonnement(v_abonnement.id, '2025-10-01') INTO v_facture_id;
+            v_mensuel_count := v_mensuel_count + 1;
+            
+        ELSIF v_abonnement.niveau IN ('basic', 'pro', 'enterprise') AND 
+              v_abonnement.periode_facturation = 'quarterly' AND
+              v_trimestre_count < 7 THEN
+            -- Factures trimestrielles
+            SELECT creer_facture_abonnement(v_abonnement.id, '2025-10-01') INTO v_facture_id;
+            v_trimestre_count := v_trimestre_count + 1;
+            
+        ELSE
+            -- Factures prépayées
+            SELECT creer_facture_abonnement(v_abonnement.id, '2025-10-01', 'paid', true) INTO v_facture_id;
+            v_prepaye_count := v_prepaye_count + 1;
+        END IF;
+    END LOOP;
+    
+    RAISE NOTICE 'Octobre 2025: % mensuels, % trimestriels, % prépayés', 
+        v_mensuel_count, v_trimestre_count, v_prepaye_count;
+END $$;
+
+-- ============================================================
+-- 11. ABONNEMENTS NOVEMBRE 2025
+-- ============================================================
+-- +3 nouveaux organisateurs (34-36, dont 2 non validés)
+-- Total: 26 organisateurs (19 actifs + 4 en pause + 3 non validés)
+DO $$
+DECLARE
+    v_abonnement_id BIGINT;
+BEGIN
+    -- Nouveaux organisateurs 34-36
+    SELECT creer_abonnement('organisateur34@yopmail.com', 'pro_monthly', '2025-11-01 00:00:00') INTO v_abonnement_id;
+    SELECT creer_abonnement('organisateur35@yopmail.com', 'enterprise_monthly', '2025-11-01 00:00:00') INTO v_abonnement_id;
+    SELECT creer_abonnement('organisateur36@yopmail.com', 'basic_quarterly', '2025-11-01 00:00:00') INTO v_abonnement_id;
+    
+    -- Organisateurs 35 et 36 non validés
+    UPDATE profils_organisateurs 
+    SET statut_verification = 'pending'
+    WHERE id_utilisateur IN (
+        SELECT id FROM utilisateurs 
+        WHERE email IN ('organisateur35@yopmail.com', 'organisateur36@yopmail.com')
+    );
+END $$;
+
+-- Factures Novembre 2025
+DO $$
+DECLARE
+    v_abonnement RECORD;
+    v_type_plan TEXT;
+    v_mensuel_count INTEGER := 0;
+    v_trimestre_count INTEGER := 0;
+    v_prepaye_count INTEGER := 0;
+    v_facture_id BIGINT;
+BEGIN
+    FOR v_abonnement IN 
+        SELECT ao.id, pa.periode_facturation, pa.niveau
+        FROM abonnements_organisateurs ao
+        JOIN profils_organisateurs po ON ao.id_profil_organisateur = po.id
+        JOIN utilisateurs u ON po.id_utilisateur = u.id
+        JOIN plans_abonnements pa ON ao.id_plan = pa.id
+        WHERE u.email LIKE 'organisateur%@yopmail.com'
+        AND ao.statut = 'active'
+        AND po.statut_verification = 'verified'
+        AND u.email NOT IN ('organisateur33@yopmail.com', 'organisateur35@yopmail.com', 'organisateur36@yopmail.com') -- non validés
+        AND u.email NOT IN ('organisateur11@yopmail.com', 'organisateur18@yopmail.com', 
+                           'organisateur24@yopmail.com', 'organisateur27@yopmail.com') -- en pause
+    LOOP
+        -- Déterminer le type de facturation
+        IF v_abonnement.niveau IN ('basic', 'pro', 'enterprise') AND 
+           v_abonnement.periode_facturation = 'monthly' AND
+           v_mensuel_count < 3 THEN
+            -- Factures mensuelles
+            SELECT creer_facture_abonnement(v_abonnement.id, '2025-11-01') INTO v_facture_id;
+            v_mensuel_count := v_mensuel_count + 1;
+            
+        ELSIF v_abonnement.niveau IN ('basic', 'pro', 'enterprise') AND 
+              v_abonnement.periode_facturation = 'quarterly' AND
+              v_trimestre_count < 2 THEN
+            -- Factures trimestrielles
+            SELECT creer_facture_abonnement(v_abonnement.id, '2025-11-01') INTO v_facture_id;
+            v_trimestre_count := v_trimestre_count + 1;
+            
+        ELSE
+            -- Factures prépayées
+            SELECT creer_facture_abonnement(v_abonnement.id, '2025-11-01', 'paid', true) INTO v_facture_id;
+            v_prepaye_count := v_prepaye_count + 1;
+        END IF;
+    END LOOP;
+    
+    RAISE NOTICE 'Novembre 2025: % mensuels, % trimestriels, % prépayés', 
+        v_mensuel_count, v_trimestre_count, v_prepaye_count;
+END $$;
+
+-- ============================================================
+-- 12. ABONNEMENTS DÉCEMBRE 2025
+-- ============================================================
+-- Réactiver les 4 organisateurs en pause
+-- Total: 23 organisateurs actifs + 3 non validés
+DO $$
+BEGIN
+    -- Réactiver les organisateurs en pause
+    UPDATE abonnements_organisateurs ao
+    SET statut = 'active',
+        repris_le = '2025-12-01 00:00:00',
+        modifie_le = NOW()
+    FROM profils_organisateurs po
+    JOIN utilisateurs u ON po.id_utilisateur = u.id
+    WHERE ao.id_profil_organisateur = po.id
+    AND u.email IN ('organisateur11@yopmail.com', 'organisateur18@yopmail.com', 
+                   'organisateur24@yopmail.com', 'organisateur27@yopmail.com');
+END $$;
+
+-- Factures Décembre 2025
+DO $$
+DECLARE
+    v_abonnement RECORD;
+    v_type_plan TEXT;
+    v_mensuel_count INTEGER := 0;
+    v_trimestre_count INTEGER := 0;
+    v_prepaye_count INTEGER := 0;
+    v_facture_id BIGINT;
+BEGIN
+    FOR v_abonnement IN 
+        SELECT ao.id, pa.periode_facturation, pa.niveau
+        FROM abonnements_organisateurs ao
+        JOIN profils_organisateurs po ON ao.id_profil_organisateur = po.id
+        JOIN utilisateurs u ON po.id_utilisateur = u.id
+        JOIN plans_abonnements pa ON ao.id_plan = pa.id
+        WHERE u.email LIKE 'organisateur%@yopmail.com'
+        AND ao.statut = 'active'
+        AND po.statut_verification = 'verified'
+        AND u.email NOT IN ('organisateur33@yopmail.com', 'organisateur35@yopmail.com', 'organisateur36@yopmail.com') -- non validés
+    LOOP
+        -- Déterminer le type de facturation
+        IF v_abonnement.niveau IN ('basic', 'pro', 'enterprise') AND 
+           v_abonnement.periode_facturation = 'monthly' AND
+           v_mensuel_count < 10 THEN
+            -- Factures mensuelles
+            SELECT creer_facture_abonnement(v_abonnement.id, '2025-12-01') INTO v_facture_id;
+            v_mensuel_count := v_mensuel_count + 1;
+            
+        ELSIF v_abonnement.niveau IN ('basic', 'pro', 'enterprise') AND 
+              v_abonnement.periode_facturation = 'quarterly' AND
+              v_trimestre_count < 6 THEN
+            -- Factures trimestrielles
+            SELECT creer_facture_abonnement(v_abonnement.id, '2025-12-01') INTO v_facture_id;
+            v_trimestre_count := v_trimestre_count + 1;
+            
+        ELSE
+            -- Factures prépayées
+            SELECT creer_facture_abonnement(v_abonnement.id, '2025-12-01', 'paid', true) INTO v_facture_id;
+            v_prepaye_count := v_prepaye_count + 1;
+        END IF;
+    END LOOP;
+    
+    RAISE NOTICE 'Décembre 2025: % mensuels, % trimestriels, % prépayés', 
+        v_mensuel_count, v_trimestre_count, v_prepaye_count;
+END $$;
+
+-- ============================================================
+-- 13. ABONNEMENTS JANVIER 2026
+-- ============================================================
+-- Offre populaire: Enterprise mensuel
+-- Créer des transactions pour certains paiements
+DO $$
+DECLARE
+    v_abonnement RECORD;
+    v_facture_id BIGINT;
+BEGIN
+    -- Factures Janvier 2026
+    FOR v_abonnement IN (
+        SELECT ao.id 
+        FROM abonnements_organisateurs ao
+        JOIN profils_organisateurs po ON ao.id_profil_organisateur = po.id
+        JOIN utilisateurs u ON po.id_utilisateur = u.id
+        JOIN plans_abonnements pa ON ao.id_plan = pa.id
+        WHERE u.email LIKE 'organisateur%@yopmail.com'
+        AND ao.statut = 'active'
+        AND po.statut_verification = 'verified'
+        AND u.email NOT IN ('organisateur33@yopmail.com', 'organisateur35@yopmail.com', 'organisateur36@yopmail.com')
+        AND pa.code = 'enterprise_monthly'
+        LIMIT 5
+    ) LOOP
+        SELECT creer_facture_abonnement(v_abonnement.id, '2026-01-01') INTO v_facture_id;
+    END LOOP;
+END $$;
+
+-- ============================================================
+-- 14. VERIFICATION DES DONNEES
+-- ============================================================
+-- Vérification du nombre d'utilisateurs
+SELECT 'Utilisateurs totaux' as type, COUNT(*) as nombre FROM utilisateurs
+UNION ALL
+SELECT 'Administrateurs', COUNT(*) FROM utilisateurs WHERE role = 'admin'
+UNION ALL
+SELECT 'Organisateurs', COUNT(*) FROM utilisateurs WHERE role = 'organizer'
+UNION ALL
+SELECT 'Utilisateurs normaux', COUNT(*) FROM utilisateurs WHERE role = 'user';
+
+-- Vérification des abonnements par mois
+SELECT 
+    DATE_TRUNC('month', ao.commence_le) as mois,
+    pa.niveau,
+    pa.periode_facturation,
+    COUNT(*) as nombre_abonnements,
+    COUNT(CASE WHEN ao.statut = 'active' THEN 1 END) as actifs,
+    COUNT(CASE WHEN ao.statut = 'paused' THEN 1 END) as en_pause
 FROM abonnements_organisateurs ao
-JOIN plans_abonnements p ON ao.id_plan = p.id
-JOIN profils_organisateurs po ON ao.id_profil_organisateur = po.id
-JOIN utilisateurs u ON po.id_utilisateur = u.id
-WHERE ao.debut_periode_courante = '2025-06-01'
-  AND ao.statut = 'active'
-  AND po.statut_verification = 'verified';  -- Exclure les non validés
+JOIN plans_abonnements pa ON ao.id_plan = pa.id
+GROUP BY DATE_TRUNC('month', ao.commence_le), pa.niveau, pa.periode_facturation
+ORDER BY mois, pa.niveau;
 
--- JUILLET 2025 : 12 organisateurs actifs
--- Les 10 existants + 2 nouveaux (IDs 11,12)
--- 4 basic, 6 pro, 2 entreprise
--- Juin avait : 5 basic, 2 pro, 3 entreprise
--- Juillet : 4 basic, 6 pro, 2 entreprise
--- Changements : 1 basic devient pro, 1 entreprise devient pro, 2 nouveaux = pro
-
-INSERT INTO abonnements_organisateurs (
-    id_profil_organisateur,
-    id_plan,
-    statut,
-    mois_prepayes_restants,
-    commence_le,
-    debut_periode_courante,
-    fin_periode_courante
-)
-SELECT
-    po.id,
-    CASE po.id
-        WHEN 1 THEN 2  -- Basic -> Pro
-        WHEN 2 THEN 2  -- Pro (garde)
-        WHEN 3 THEN 1  -- Basic (garde)
-        WHEN 4 THEN 2  -- Pro (garde)
-        WHEN 5 THEN 1  -- Basic (garde)
-        WHEN 6 THEN 2  -- Entreprise -> Pro
-        WHEN 7 THEN 1  -- Basic (garde)
-        WHEN 8 THEN 3  -- Entreprise (garde)
-        WHEN 9 THEN 1  -- Basic (garde)
-        WHEN 10 THEN 3 -- Entreprise (garde)
-    END,
-    'active',
-    0,
-    '2025-07-01',
-    '2025-07-01',
-    '2025-07-31'
-FROM profils_organisateurs po
-WHERE po.id BETWEEN 1 AND 10
-  AND po.statut_verification = 'verified';  -- Exclure les non validés
-
--- Nouveaux organisateurs (11,12) avec plan pro
-INSERT INTO abonnements_organisateurs (
-    id_profil_organisateur,
-    id_plan,
-    statut,
-    mois_prepayes_restants,
-    commence_le,
-    debut_periode_courante,
-    fin_periode_courante
-)
-SELECT
-    po.id,
-    2,  -- Pro mensuel
-    'active',
-    0,
-    '2025-07-01',
-    '2025-07-01',
-    '2025-07-31'
-FROM profils_organisateurs po
-WHERE po.id IN (11, 12)
-  AND po.statut_verification = 'verified';  -- Exclure les non validés
-
--- Factures pour JUILLET 2025
-INSERT INTO factures_abonnements (
-    id_abonnement,
-    id_client,
-    devise,
-    montant_sous_total,
-    montant_tva,
-    montant_total,
-    montant_ht,
-    montant_tva_detail,
-    montant_ttc,
-    mois_facturation,
-    est_mois_pause,
-    est_prepayee,
-    statut,
-    emise_le,
-    echeance_le,
-    payee_le
-)
-SELECT
-    ao.id,
-    u.id,
-    'MGA',
-    p.prix,
-    ROUND(p.prix * p.taux_tva / 100, 2),
-    p.prix + ROUND(p.prix * p.taux_tva / 100, 2),
-    p.prix,
-    ROUND(p.prix * p.taux_tva / 100, 2),
-    p.prix + ROUND(p.prix * p.taux_tva / 100, 2),
-    '2025-07-01',
-    FALSE,
-    FALSE,
-    'paid',
-    '2025-07-01',
-    '2025-07-15',
-    '2025-07-05'
-FROM abonnements_organisateurs ao
-JOIN plans_abonnements p ON ao.id_plan = p.id
-JOIN profils_organisateurs po ON ao.id_profil_organisateur = po.id
-JOIN utilisateurs u ON po.id_utilisateur = u.id
-WHERE ao.debut_periode_courante = '2025-07-01'
-  AND ao.statut = 'active'
-  AND po.statut_verification = 'verified';  -- Exclure les non validés
-
--- AOÛT 2025 : 16 organisateurs actifs
--- Les 12 existants + 4 nouveaux (IDs 13-16)
--- 4 basic, 5 pro, 7 entreprise
--- Juillet : 4 basic, 6 pro, 2 entreprise
--- Août : 4 basic, 5 pro, 7 entreprise
--- Changements : 1 pro devient entreprise, 4 nouveaux = entreprise
-
-INSERT INTO abonnements_organisateurs (
-    id_profil_organisateur,
-    id_plan,
-    statut,
-    mois_prepayes_restants,
-    commence_le,
-    debut_periode_courante,
-    fin_periode_courante
-)
-SELECT
-    po.id,
-    CASE po.id
-        WHEN 1 THEN 2  -- Pro (garde)
-        WHEN 2 THEN 3  -- Pro -> Entreprise
-        WHEN 3 THEN 1  -- Basic (garde)
-        WHEN 4 THEN 2  -- Pro (garde)
-        WHEN 5 THEN 1  -- Basic (garde)
-        WHEN 6 THEN 2  -- Pro (garde)
-        WHEN 7 THEN 1  -- Basic (garde)
-        WHEN 8 THEN 3  -- Entreprise (garde)
-        WHEN 9 THEN 1  -- Basic (garde)
-        WHEN 10 THEN 3 -- Entreprise (garde)
-        WHEN 11 THEN 2 -- Pro (garde)
-        WHEN 12 THEN 2 -- Pro (garde)
-    END,
-    'active',
-    0,
-    '2025-08-01',
-    '2025-08-01',
-    '2025-08-31'
-FROM profils_organisateurs po
-WHERE po.id BETWEEN 1 AND 12
-  AND po.statut_verification = 'verified';  -- Exclure les non validés
-
--- Nouveaux organisateurs (13-16) avec plan entreprise
-INSERT INTO abonnements_organisateurs (
-    id_profil_organisateur,
-    id_plan,
-    statut,
-    mois_prepayes_restants,
-    commence_le,
-    debut_periode_courante,
-    fin_periode_courante
-)
-SELECT
-    po.id,
-    3,  -- Entreprise mensuel
-    'active',
-    0,
-    '2025-08-01',
-    '2025-08-01',
-    '2025-08-31'
-FROM profils_organisateurs po
-WHERE po.id IN (13, 14, 15, 16)
-  AND po.statut_verification = 'verified';  -- Exclure les non validés
-
--- Factures pour AOÛT 2025
-INSERT INTO factures_abonnements (
-    id_abonnement,
-    id_client,
-    devise,
-    montant_sous_total,
-    montant_tva,
-    montant_total,
-    montant_ht,
-    montant_tva_detail,
-    montant_ttc,
-    mois_facturation,
-    est_mois_pause,
-    est_prepayee,
-    statut,
-    emise_le,
-    echeance_le,
-    payee_le
-)
-SELECT
-    ao.id,
-    u.id,
-    'MGA',
-    p.prix,
-    ROUND(p.prix * p.taux_tva / 100, 2),
-    p.prix + ROUND(p.prix * p.taux_tva / 100, 2),
-    p.prix,
-    ROUND(p.prix * p.taux_tva / 100, 2),
-    p.prix + ROUND(p.prix * p.taux_tva / 100, 2),
-    '2025-08-01',
-    FALSE,
-    FALSE,
-    'paid',
-    '2025-08-01',
-    '2025-08-15',
-    '2025-08-05'
-FROM abonnements_organisateurs ao
-JOIN plans_abonnements p ON ao.id_plan = p.id
-JOIN profils_organisateurs po ON ao.id_profil_organisateur = po.id
-JOIN utilisateurs u ON po.id_utilisateur = u.id
-WHERE ao.debut_periode_courante = '2025-08-01'
-  AND ao.statut = 'active'
-  AND po.statut_verification = 'verified';  -- Exclure les non validés
-
--- 2 organisateurs en pause en août (qui reviennent en octobre)
--- IDs 1 et 2 en pause à partir du 15 août
-UPDATE abonnements_organisateurs
-SET statut = 'paused',
-    mis_en_pause_le = '2025-08-15',
-    debut_periode_courante = '2025-08-15',
-    fin_periode_courante = '2025-09-30'
-WHERE id_profil_organisateur IN (1, 2)
-  AND debut_periode_courante = '2025-08-01';
-
--- SEPTEMBRE 2025 : 18 organisateurs actifs + 2 en pause
--- Les 2 en pause restent en pause
--- 4 nouveaux (IDs 17-20)
--- Mensuels : 2 basic, 3 pro, 4 entreprise (9 total)
--- Trimestriels : 3 basic, 4 pro, 2 entreprise (9 total)
--- Les 4 nouveaux doivent avoir des plans trimestriels
-
--- Premièrement, créons les 4 nouveaux organisateurs avec plans trimestriels
-INSERT INTO abonnements_organisateurs (
-    id_profil_organisateur,
-    id_plan,
-    statut,
-    mois_prepayes_restants,
-    commence_le,
-    debut_periode_courante,
-    fin_periode_courante
-)
-SELECT
-    po.id,
-    CASE po.id
-        WHEN 17 THEN 4  -- Basic trimestriel
-        WHEN 18 THEN 5  -- Pro trimestriel
-        WHEN 19 THEN 4  -- Basic trimestriel
-        WHEN 20 THEN 5  -- Pro trimestriel
-    END,
-    'active',
-    0,
-    '2025-09-01',
-    '2025-09-01',
-    '2025-11-30'  -- Fin du trimestre
-FROM profils_organisateurs po
-WHERE po.id IN (17, 18, 19, 20)
-  AND po.statut_verification = 'verified';  -- Exclure les non validés
-
--- Ensuite, créons les abonnements pour les organisateurs existants (sauf en pause)
--- Certains passent de mensuel à trimestriel
-INSERT INTO abonnements_organisateurs (
-    id_profil_organisateur,
-    id_plan,
-    statut,
-    mois_prepayes_restants,
-    commence_le,
-    debut_periode_courante,
-    fin_periode_courante
-)
-SELECT
-    po.id,
-    CASE po.id
-        -- Trimestriels (9 organisateurs)
-        WHEN 3 THEN 4   -- Basic trimestriel
-        WHEN 4 THEN 5   -- Pro trimestriel
-        WHEN 5 THEN 4   -- Basic trimestriel
-        WHEN 6 THEN 6   -- Entreprise trimestriel
-        WHEN 7 THEN 4   -- Basic trimestriel
-        WHEN 8 THEN 6   -- Entreprise trimestriel
-        WHEN 11 THEN 5  -- Pro trimestriel
-        WHEN 12 THEN 5  -- Pro trimestriel
-        -- Mensuels (9 organisateurs)
-        WHEN 9 THEN 1   -- Basic mensuel
-        WHEN 10 THEN 3  -- Entreprise mensuel
-        WHEN 13 THEN 3  -- Entreprise mensuel
-        WHEN 14 THEN 3  -- Entreprise mensuel
-        WHEN 15 THEN 3  -- Entreprise mensuel
-        WHEN 16 THEN 3  -- Entreprise mensuel
-    END,
-    'active',
-    0,
-    '2025-09-01',
-    '2025-09-01',
-    CASE 
-        WHEN po.id IN (3, 4, 5, 6, 7, 8, 11, 12, 17, 18, 19, 20) THEN TIMESTAMPTZ '2025-11-30'  -- Trimestriels
-        ELSE TIMESTAMPTZ '2025-09-30'  -- Mensuels
-    END
-FROM profils_organisateurs po
-WHERE (po.id BETWEEN 3 AND 16 OR po.id IN (9, 10, 13, 14, 15, 16))
-  AND po.statut_verification = 'verified';  -- Exclure les non validés
-
--- Factures pour SEPTEMBRE 2025 (9 mensuels + 9 trimestriels = 18 factures)
-INSERT INTO factures_abonnements (
-    id_abonnement,
-    id_client,
-    devise,
-    montant_sous_total,
-    montant_tva,
-    montant_total,
-    montant_ht,
-    montant_tva_detail,
-    montant_ttc,
-    mois_facturation,
-    est_mois_pause,
-    est_prepayee,
-    statut,
-    emise_le,
-    echeance_le,
-    payee_le
-)
-SELECT
-    ao.id,
-    u.id,
-    'MGA',
-    p.prix,
-    ROUND(p.prix * p.taux_tva / 100, 2),
-    p.prix + ROUND(p.prix * p.taux_tva / 100, 2),
-    p.prix,
-    ROUND(p.prix * p.taux_tva / 100, 2),
-    p.prix + ROUND(p.prix * p.taux_tva / 100, 2),
-    '2025-09-01',
-    FALSE,
-    FALSE,
-    'paid',
-    '2025-09-01',
-    '2025-09-15',
-    '2025-09-05'
-FROM abonnements_organisateurs ao
-JOIN plans_abonnements p ON ao.id_plan = p.id
-JOIN profils_organisateurs po ON ao.id_profil_organisateur = po.id
-JOIN utilisateurs u ON po.id_utilisateur = u.id
-WHERE ao.debut_periode_courante = '2025-09-01'
-  AND ao.statut = 'active'
-  AND po.statut_verification = 'verified';  -- Exclure les non validés
-
--- Factures pour SEPTEMBRE 2025 : Factures avec montant 0 pour les organisateurs en pause (IDs 1, 2)
-INSERT INTO factures_abonnements (
-    id_abonnement,
-    id_client,
-    devise,
-    montant_sous_total,
-    montant_tva,
-    montant_total,
-    montant_ht,
-    montant_tva_detail,
-    montant_ttc,
-    mois_facturation,
-    est_mois_pause,
-    est_prepayee,
-    statut,
-    emise_le,
-    echeance_le,
-    payee_le
-)
-SELECT
-    ao.id,
-    u.id,
-    'MGA',
-    0,  -- Montant 0 pour les organisateurs en pause
-    0,
-    0,
-    0,
-    0,
-    0,
-    '2025-09-01',
-    TRUE,  -- est_mois_pause = TRUE
-    FALSE,
-    'paid',
-    '2025-09-01',
-    '2025-09-15',
-    '2025-09-01'
-FROM abonnements_organisateurs ao
-JOIN profils_organisateurs po ON ao.id_profil_organisateur = po.id
-JOIN utilisateurs u ON po.id_utilisateur = u.id
-WHERE ao.statut = 'paused'
-  AND ao.id_profil_organisateur IN (1, 2)
-  AND ao.mis_en_pause_le <= '2025-09-01'
-  AND (ao.repris_le IS NULL OR ao.repris_le > '2025-09-01');
-
--- OCTOBRE 2025 : 22 organisateurs actifs + 0 en pause
--- Les 2 en pause (IDs 1,2) reviennent
--- 3 nouveaux (IDs 21-23, dont 1 non validé = 23)
--- Mensuels : 3 basic, 3 pro, 2 entreprise (8 total)
--- Trimestriels : 1 basic, 2 pro, 4 entreprise (7 total)
--- Prépayés : 9
-
--- D'abord, réactivons les 2 organisateurs en pause (IDs 1,2)
-INSERT INTO abonnements_organisateurs (
-    id_profil_organisateur,
-    id_plan,
-    statut,
-    mois_prepayes_restants,
-    commence_le,
-    debut_periode_courante,
-    fin_periode_courante,
-    repris_le
-)
-SELECT
-    po.id,
-    2,  -- Pro mensuel (comme avant la pause)
-    'active',
-    0,
-    '2025-10-01',
-    '2025-10-01',
-    '2025-10-31',
-    '2025-10-01'
-FROM profils_organisateurs po
-WHERE po.id IN (1, 2)
-  AND po.statut_verification = 'verified';  -- Exclure les non validés
-
--- Ensuite, créons les abonnements mensuels pour octobre
-INSERT INTO abonnements_organisateurs (
-    id_profil_organisateur,
-    id_plan,
-    statut,
-    mois_prepayes_restants,
-    commence_le,
-    debut_periode_courante,
-    fin_periode_courante
-)
-SELECT
-    po.id,
-    CASE po.id
-        WHEN 9 THEN 1   -- Basic mensuel
-        WHEN 17 THEN 1  -- Basic mensuel (change de trimestriel à mensuel)
-        WHEN 21 THEN 1  -- Basic mensuel (nouveau)
-        WHEN 18 THEN 2  -- Pro mensuel (change de trimestriel à mensuel)
-        WHEN 22 THEN 2  -- Pro mensuel (nouveau)
-        WHEN 10 THEN 3  -- Entreprise mensuel
-        WHEN 13 THEN 3  -- Entreprise mensuel
-        WHEN 14 THEN 3  -- Entreprise mensuel
-    END,
-    'active',
-    0,
-    '2025-10-01',
-    '2025-10-01',
-    '2025-10-31'
-FROM profils_organisateurs po
-WHERE po.id IN (9, 10, 13, 14, 17, 18, 21, 22)
-  AND po.statut_verification = 'verified';  -- Exclure les non validés (23)
-
--- Créons les abonnements trimestriels pour octobre
--- Ce sont les organisateurs qui ont déjà un trimestriel en septembre et qui continuent
-INSERT INTO abonnements_organisateurs (
-    id_profil_organisateur,
-    id_plan,
-    statut,
-    mois_prepayes_restants,
-    commence_le,
-    debut_periode_courante,
-    fin_periode_courante
-)
-SELECT
-    po.id,
-    CASE po.id
-        WHEN 3 THEN 4   -- Basic trimestriel
-        WHEN 4 THEN 5   -- Pro trimestriel
-        WHEN 12 THEN 5  -- Pro trimestriel
-        WHEN 6 THEN 6   -- Entreprise trimestriel
-        WHEN 7 THEN 6   -- Entreprise trimestriel
-        WHEN 8 THEN 6   -- Entreprise trimestriel
-        WHEN 11 THEN 6  -- Entreprise trimestriel
-    END,
-    'active',
-    0,
-    '2025-10-01',
-    '2025-10-01',
-    '2025-12-31'
-FROM profils_organisateurs po
-WHERE po.id IN (3, 4, 6, 7, 8, 11, 12)
-  AND po.statut_verification = 'verified';  -- Exclure les non validés
-
--- Mettons 4 organisateurs en pause (IDs 15, 16, 19, 20) qui reviendront en décembre
-INSERT INTO abonnements_organisateurs (
-    id_profil_organisateur,
-    id_plan,
-    statut,
-    mois_prepayes_restants,
-    commence_le,
-    debut_periode_courante,
-    fin_periode_courante,
-    mis_en_pause_le
-)
-SELECT
-    po.id,
-    CASE po.id
-        WHEN 15 THEN 3  -- Entreprise mensuel
-        WHEN 16 THEN 3  -- Entreprise mensuel
-        WHEN 19 THEN 4  -- Basic trimestriel
-        WHEN 20 THEN 5  -- Pro trimestriel
-    END,
-    'paused',
-    0,
-    '2025-10-01',
-    '2025-10-15',
-    '2025-11-30',
-    '2025-10-15'
-FROM profils_organisateurs po
-WHERE po.id IN (15, 16, 19, 20);
-
--- Créons 9 abonnements prépayés
--- EXCLURE les organisateurs non validés (23, 25, 26)
-INSERT INTO abonnements_organisateurs (
-    id_profil_organisateur,
-    id_plan,
-    statut,
-    mois_prepayes_restants,
-    commence_le,
-    debut_periode_courante,
-    fin_periode_courante
-)
-SELECT
-    po.id,
-    7,  -- Entreprise prépayé annuel
-    'active',
-    12,
-    '2025-10-01',
-    '2025-10-01',
-    '2026-09-30'
-FROM profils_organisateurs po
-WHERE po.id IN (5, 24, 1, 2, 9, 10, 11, 12, 13)
-  AND po.statut_verification = 'verified'  -- Exclure les non validés
-LIMIT 9;
-
--- Factures pour OCTOBRE 2025 : 6 mensuels + 7 trimestriels + 9 prépayés
--- Factures mensuelles (6)
-INSERT INTO factures_abonnements (
-    id_abonnement,
-    id_client,
-    devise,
-    montant_sous_total,
-    montant_tva,
-    montant_total,
-    montant_ht,
-    montant_tva_detail,
-    montant_ttc,
-    mois_facturation,
-    est_mois_pause,
-    est_prepayee,
-    statut,
-    emise_le,
-    echeance_le,
-    payee_le
-)
-SELECT
-    ao.id,
-    u.id,
-    'MGA',
-    p.prix,
-    ROUND(p.prix * p.taux_tva / 100, 2),
-    p.prix + ROUND(p.prix * p.taux_tva / 100, 2),
-    p.prix,
-    ROUND(p.prix * p.taux_tva / 100, 2),
-    p.prix + ROUND(p.prix * p.taux_tva / 100, 2),
-    '2025-10-01',
-    FALSE,
-    FALSE,
-    'paid',
-    '2025-10-01',
-    '2025-10-15',
-    '2025-10-05'
-FROM abonnements_organisateurs ao
-JOIN plans_abonnements p ON ao.id_plan = p.id
-JOIN profils_organisateurs po ON ao.id_profil_organisateur = po.id
-JOIN utilisateurs u ON po.id_utilisateur = u.id
-WHERE ao.debut_periode_courante = '2025-10-01'
-  AND ao.statut = 'active'
-  AND p.periode_facturation = 'monthly'
-  AND ao.mois_prepayes_restants = 0
-  AND ao.id_profil_organisateur IN (1, 2, 9, 10, 17, 18)
-  AND po.statut_verification = 'verified'  -- Exclure les non validés
-LIMIT 6;
-
--- Factures trimestrielles (7)
-INSERT INTO factures_abonnements (
-    id_abonnement,
-    id_client,
-    devise,
-    montant_sous_total,
-    montant_tva,
-    montant_total,
-    montant_ht,
-    montant_tva_detail,
-    montant_ttc,
-    mois_facturation,
-    est_mois_pause,
-    est_prepayee,
-    statut,
-    emise_le,
-    echeance_le,
-    payee_le
-)
-SELECT
-    ao.id,
-    u.id,
-    'MGA',
-    p.prix,
-    ROUND(p.prix * p.taux_tva / 100, 2),
-    p.prix + ROUND(p.prix * p.taux_tva / 100, 2),
-    p.prix,
-    ROUND(p.prix * p.taux_tva / 100, 2),
-    p.prix + ROUND(p.prix * p.taux_tva / 100, 2),
-    '2025-10-01',
-    FALSE,
-    FALSE,
-    'paid',
-    '2025-10-01',
-    '2025-10-15',
-    '2025-10-05'
-FROM abonnements_organisateurs ao
-JOIN plans_abonnements p ON ao.id_plan = p.id
-JOIN profils_organisateurs po ON ao.id_profil_organisateur = po.id
-JOIN utilisateurs u ON po.id_utilisateur = u.id
-WHERE ao.debut_periode_courante = '2025-10-01'
-  AND ao.statut = 'active'
-  AND p.periode_facturation = 'quarterly'
-  AND ao.mois_prepayes_restants = 0
-  AND ao.id_profil_organisateur IN (3, 4, 6, 7, 8, 11, 12)
-  AND po.statut_verification = 'verified'  -- Exclure les non validés
-LIMIT 7;
-
--- Factures prépayées (9)
-INSERT INTO factures_abonnements (
-    id_abonnement,
-    id_client,
-    devise,
-    montant_sous_total,
-    montant_tva,
-    montant_total,
-    montant_ht,
-    montant_tva_detail,
-    montant_ttc,
-    mois_facturation,
-    est_mois_pause,
-    est_prepayee,
-    statut,
-    emise_le,
-    echeance_le,
-    payee_le
-)
-SELECT
-    ao.id,
-    u.id,
-    'MGA',
-    4000000,
-    ROUND(4000000 * 20 / 100, 2),
-    4000000 + ROUND(4000000 * 20 / 100, 2),
-    4000000,
-    ROUND(4000000 * 20 / 100, 2),
-    4000000 + ROUND(4000000 * 20 / 100, 2),
-    '2025-10-01',
-    FALSE,
-    TRUE,
-    'paid',
-    '2025-10-01',
-    '2025-10-01',
-    '2025-10-01'
-FROM abonnements_organisateurs ao
-JOIN profils_organisateurs po ON ao.id_profil_organisateur = po.id
-JOIN utilisateurs u ON po.id_utilisateur = u.id
-WHERE ao.debut_periode_courante = '2025-10-01'
-  AND ao.statut = 'active'
-  AND ao.mois_prepayes_restants > 0
-  AND po.statut_verification = 'verified'  -- Exclure les non validés
-LIMIT 9;
-
--- Factures pour OCTOBRE 2025 : Factures avec montant 0 pour les organisateurs en pause (IDs 15, 16, 19, 20)
-INSERT INTO factures_abonnements (
-    id_abonnement,
-    id_client,
-    devise,
-    montant_sous_total,
-    montant_tva,
-    montant_total,
-    montant_ht,
-    montant_tva_detail,
-    montant_ttc,
-    mois_facturation,
-    est_mois_pause,
-    est_prepayee,
-    statut,
-    emise_le,
-    echeance_le,
-    payee_le
-)
-SELECT
-    ao.id,
-    u.id,
-    'MGA',
-    0,  -- Montant 0 pour les organisateurs en pause
-    0,
-    0,
-    0,
-    0,
-    0,
-    '2025-10-01',
-    TRUE,  -- est_mois_pause = TRUE
-    FALSE,
-    'paid',
-    '2025-10-01',
-    '2025-10-15',
-    '2025-10-01'
-FROM abonnements_organisateurs ao
-JOIN profils_organisateurs po ON ao.id_profil_organisateur = po.id
-JOIN utilisateurs u ON po.id_utilisateur = u.id
-WHERE ao.statut = 'paused'
-  AND ao.id_profil_organisateur IN (15, 16, 19, 20)
-  AND ao.mis_en_pause_le <= '2025-10-01'
-  AND (ao.repris_le IS NULL OR ao.repris_le > '2025-10-01');
-
--- NOVEMBRE 2025 : 19 organisateurs actifs + 4 en pause
--- Les 4 en pause restent (IDs 15, 16, 19, 20)
--- 3 nouveaux (IDs 24-26, dont 2 non validés = 25,26)
--- Mensuels : 0 basic, 2 pro, 1 entreprise (3 total)
--- Trimestriels : 1 basic, 1 pro, 0 entreprise (2 total)
--- Prépayés : 14
-
--- D'abord, créons les 3 abonnements mensuels
-INSERT INTO abonnements_organisateurs (
-    id_profil_organisateur,
-    id_plan,
-    statut,
-    mois_prepayes_restants,
-    commence_le,
-    debut_periode_courante,
-    fin_periode_courante
-)
-SELECT
-    po.id,
-    CASE po.id
-        WHEN 18 THEN 2  -- Pro mensuel
-        WHEN 24 THEN 2  -- Pro mensuel (nouveau)
-        WHEN 13 THEN 3  -- Entreprise mensuel
-    END,
-    'active',
-    0,
-    '2025-11-01',
-    '2025-11-01',
-    '2025-11-30'
-FROM profils_organisateurs po
-WHERE po.id IN (18, 24, 13)
-  AND po.statut_verification = 'verified';  -- Exclure les non validés (25, 26)
-
--- Créons les 2 abonnements trimestriels
-INSERT INTO abonnements_organisateurs (
-    id_profil_organisateur,
-    id_plan,
-    statut,
-    mois_prepayes_restants,
-    commence_le,
-    debut_periode_courante,
-    fin_periode_courante
-)
-SELECT
-    po.id,
-    CASE po.id
-        WHEN 3 THEN 4   -- Basic trimestriel
-        WHEN 4 THEN 5   -- Pro trimestriel
-    END,
-    'active',
-    0,
-    '2025-11-01',
-    '2025-11-01',
-    '2026-01-31'
-FROM profils_organisateurs po
-WHERE po.id IN (3, 4)
-  AND po.statut_verification = 'verified';  -- Exclure les non validés
-
--- Ajoutons 5 nouveaux prépayés (total prépayés = 9 d'octobre + 5 = 14)
-INSERT INTO abonnements_organisateurs (
-    id_profil_organisateur,
-    id_plan,
-    statut,
-    mois_prepayes_restants,
-    commence_le,
-    debut_periode_courante,
-    fin_periode_courante
-)
-SELECT
-    po.id,
-    7,  -- Entreprise prépayé annuel
-    'active',
-    12,
-    '2025-11-01',
-    '2025-11-01',
-    '2026-10-31'
-FROM profils_organisateurs po
-WHERE po.id IN (21, 22, 14, 17, 6)
-  AND po.statut_verification = 'verified'  -- Exclure les non validés (23, 25, 26)
-LIMIT 5;
-
--- Factures pour NOVEMBRE 2025 : 3 mensuels + 2 trimestriels
--- Factures mensuelles (3)
-INSERT INTO factures_abonnements (
-    id_abonnement,
-    id_client,
-    devise,
-    montant_sous_total,
-    montant_tva,
-    montant_total,
-    montant_ht,
-    montant_tva_detail,
-    montant_ttc,
-    mois_facturation,
-    est_mois_pause,
-    est_prepayee,
-    statut,
-    emise_le,
-    echeance_le,
-    payee_le
-)
-SELECT
-    ao.id,
-    u.id,
-    'MGA',
-    p.prix,
-    ROUND(p.prix * p.taux_tva / 100, 2),
-    p.prix + ROUND(p.prix * p.taux_tva / 100, 2),
-    p.prix,
-    ROUND(p.prix * p.taux_tva / 100, 2),
-    p.prix + ROUND(p.prix * p.taux_tva / 100, 2),
-    '2025-11-01',
-    FALSE,
-    FALSE,
-    'paid',
-    '2025-11-01',
-    '2025-11-15',
-    '2025-11-05'
-FROM abonnements_organisateurs ao
-JOIN plans_abonnements p ON ao.id_plan = p.id
-JOIN profils_organisateurs po ON ao.id_profil_organisateur = po.id
-JOIN utilisateurs u ON po.id_utilisateur = u.id
-WHERE ao.debut_periode_courante = '2025-11-01'
-  AND ao.statut = 'active'
-  AND p.periode_facturation = 'monthly'
-  AND ao.mois_prepayes_restants = 0
-  AND ao.id_profil_organisateur IN (18, 24, 13)
-  AND po.statut_verification = 'verified'  -- Exclure les non validés (25, 26)
-LIMIT 3;
-
--- Factures trimestrielles (2)
-INSERT INTO factures_abonnements (
-    id_abonnement,
-    id_client,
-    devise,
-    montant_sous_total,
-    montant_tva,
-    montant_total,
-    montant_ht,
-    montant_tva_detail,
-    montant_ttc,
-    mois_facturation,
-    est_mois_pause,
-    est_prepayee,
-    statut,
-    emise_le,
-    echeance_le,
-    payee_le
-)
-SELECT
-    ao.id,
-    u.id,
-    'MGA',
-    p.prix,
-    ROUND(p.prix * p.taux_tva / 100, 2),
-    p.prix + ROUND(p.prix * p.taux_tva / 100, 2),
-    p.prix,
-    ROUND(p.prix * p.taux_tva / 100, 2),
-    p.prix + ROUND(p.prix * p.taux_tva / 100, 2),
-    '2025-11-01',
-    FALSE,
-    FALSE,
-    'paid',
-    '2025-11-01',
-    '2025-11-15',
-    '2025-11-05'
-FROM abonnements_organisateurs ao
-JOIN plans_abonnements p ON ao.id_plan = p.id
-JOIN profils_organisateurs po ON ao.id_profil_organisateur = po.id
-JOIN utilisateurs u ON po.id_utilisateur = u.id
-WHERE ao.debut_periode_courante = '2025-11-01'
-  AND ao.statut = 'active'
-  AND p.periode_facturation = 'quarterly'
-  AND ao.mois_prepayes_restants = 0
-  AND ao.id_profil_organisateur IN (3, 4)
-  AND po.statut_verification = 'verified'  -- Exclure les non validés
-LIMIT 2;
-
--- Factures pour NOVEMBRE 2025 : Factures avec montant 0 pour les organisateurs en pause (IDs 15, 16, 19, 20)
-INSERT INTO factures_abonnements (
-    id_abonnement,
-    id_client,
-    devise,
-    montant_sous_total,
-    montant_tva,
-    montant_total,
-    montant_ht,
-    montant_tva_detail,
-    montant_ttc,
-    mois_facturation,
-    est_mois_pause,
-    est_prepayee,
-    statut,
-    emise_le,
-    echeance_le,
-    payee_le
-)
-SELECT
-    ao.id,
-    u.id,
-    'MGA',
-    0,  -- Montant 0 pour les organisateurs en pause
-    0,
-    0,
-    0,
-    0,
-    0,
-    '2025-11-01',
-    TRUE,  -- est_mois_pause = TRUE
-    FALSE,
-    'paid',
-    '2025-11-01',
-    '2025-11-15',
-    '2025-11-01'
-FROM abonnements_organisateurs ao
-JOIN profils_organisateurs po ON ao.id_profil_organisateur = po.id
-JOIN utilisateurs u ON po.id_utilisateur = u.id
-WHERE ao.statut = 'paused'
-  AND ao.id_profil_organisateur IN (15, 16, 19, 20)
-  AND ao.mis_en_pause_le <= '2025-11-01'
-  AND (ao.repris_le IS NULL OR ao.repris_le > '2025-11-01');
-
--- NOVEMBRE 2025 : Ajout des abonnements actifs pour atteindre 19 organisateurs actifs
--- On a déjà : 3 mensuels + 2 trimestriels + 5 nouveaux prépayés = 10
--- Il manque 9 organisateurs actifs → les 9 prépayés d'octobre continuent en novembre
-INSERT INTO abonnements_organisateurs (
-    id_profil_organisateur,
-    id_plan,
-    statut,
-    mois_prepayes_restants,
-    commence_le,
-    debut_periode_courante,
-    fin_periode_courante
-)
-SELECT
-    ao.id_profil_organisateur,
-    ao.id_plan,
-    'active',
-    ao.mois_prepayes_restants,
-    '2025-11-01',
-    '2025-11-01',
-    ao.fin_periode_courante
-FROM abonnements_organisateurs ao
-WHERE ao.debut_periode_courante = '2025-10-01'
-  AND ao.statut = 'active'
-  AND ao.mois_prepayes_restants > 0
-LIMIT 9;
-
--- DÉCEMBRE 2025 : 23 organisateurs actifs + 0 en pause
--- Les 4 en pause (IDs 15, 16, 19, 20) reviennent
--- 0 mensuels, 0 trimestriels, 7 prépayés
--- Les autres consomment leur crédit prépayé
-
--- Réactivation des 4 organisateurs en pause
-INSERT INTO abonnements_organisateurs (
-    id_profil_organisateur,
-    id_plan,
-    statut,
-    mois_prepayes_restants,
-    commence_le,
-    debut_periode_courante,
-    fin_periode_courante,
-    repris_le
-)
-SELECT
-    po.id,
-    CASE po.id
-        WHEN 15 THEN 3  -- Entreprise mensuel
-        WHEN 16 THEN 3  -- Entreprise mensuel
-        WHEN 19 THEN 4  -- Basic trimestriel
-        WHEN 20 THEN 5  -- Pro trimestriel
-    END,
-    'active',
-    0,
-    '2025-12-01',
-    '2025-12-01',
-    '2025-12-31',
-    '2025-12-01'
-FROM profils_organisateurs po
-WHERE po.id IN (15, 16, 19, 20);
-
--- DÉCEMBRE 2025 : Ajout des abonnements actifs pour atteindre 23 organisateurs actifs
--- On a déjà : 4 qui reviennent de pause = 4
--- Il manque 19 organisateurs actifs → les 14 prépayés de novembre continuent + 5 autres organisateurs actifs
--- D'abord, les 14 prépayés de novembre continuent en décembre
--- Les 9 prépayés d'octobre (5, 24, 1, 2, 9, 10, 11, 12, 13) + les 5 nouveaux de novembre (21, 22, 14, 17, 6)
--- NOTE: Les organisateurs non validés (23, 25, 26) sont exclus
-INSERT INTO abonnements_organisateurs (
-    id_profil_organisateur,
-    id_plan,
-    statut,
-    mois_prepayes_restants,
-    commence_le,
-    debut_periode_courante,
-    fin_periode_courante
-)
-SELECT
-    ao.id_profil_organisateur,
-    ao.id_plan,
-    'active',
-    ao.mois_prepayes_restants,
-    '2025-12-01',
-    '2025-12-01',
-    ao.fin_periode_courante
-FROM abonnements_organisateurs ao
-WHERE ao.debut_periode_courante = '2025-11-01'
-  AND ao.statut = 'active'
-  AND ao.mois_prepayes_restants > 0;
-
--- Ensuite, ajoutons les organisateurs actifs de novembre (non prépayés) pour décembre
--- Ce sont les 3 mensuels (18, 24, 13) et les 2 trimestriels (3, 4) = 5 organisateurs
-INSERT INTO abonnements_organisateurs (
-    id_profil_organisateur,
-    id_plan,
-    statut,
-    mois_prepayes_restants,
-    commence_le,
-    debut_periode_courante,
-    fin_periode_courante
-)
-SELECT
-    ao.id_profil_organisateur,
-    ao.id_plan,
-    'active',
-    ao.mois_prepayes_restants,
-    '2025-12-01',
-    '2025-12-01',
-    CASE 
-        WHEN p.periode_facturation = 'quarterly' THEN TIMESTAMPTZ '2026-01-31'
-        ELSE TIMESTAMPTZ '2025-12-31'
-    END
-FROM abonnements_organisateurs ao
-JOIN plans_abonnements p ON ao.id_plan = p.id
-WHERE ao.debut_periode_courante = '2025-11-01'
-  AND ao.statut = 'active'
-  AND ao.mois_prepayes_restants = 0
-  AND ao.id_profil_organisateur IN (3, 4, 13, 18, 24)  -- Les 5 organisateurs non prépayés de novembre
-  AND ao.id_profil_organisateur NOT IN (15, 16, 19, 20);  -- Exclure ceux déjà ajoutés (pause)
-  -- Note: Les organisateurs non validés (25, 26) sont déjà exclus car ils n'ont pas d'abonnements
-
--- Ajoutons les organisateurs trimestriels d'octobre qui continuent en décembre
--- Ce sont les trimestriels qui ont débuté en octobre (6, 7, 8, 11, 12) et qui doivent être comptés pour décembre
-INSERT INTO abonnements_organisateurs (
-    id_profil_organisateur,
-    id_plan,
-    statut,
-    mois_prepayes_restants,
-    commence_le,
-    debut_periode_courante,
-    fin_periode_courante
-)
-SELECT
-    ao.id_profil_organisateur,
-    ao.id_plan,
-    'active',
-    ao.mois_prepayes_restants,
-    '2025-12-01',
-    '2025-12-01',
-    ao.fin_periode_courante
-FROM abonnements_organisateurs ao
-WHERE ao.debut_periode_courante = '2025-10-01'
-  AND ao.statut = 'active'
-  AND ao.id_profil_organisateur IN (6, 7, 8, 11, 12)  -- Trimestriels d'octobre (sauf 3, 4 qui sont déjà dans les 5 ci-dessus)
-  AND ao.id_profil_organisateur NOT IN (15, 16, 19, 20);  -- Exclure ceux déjà ajoutés (pause)
-
--- Ajoutons aussi les organisateurs mensuels d'octobre qui continuent en décembre
--- Ce sont les mensuels qui ne sont pas déjà prépayés (17, 21, 22)
--- Note : 1, 2, 9, 10 sont déjà prépayés, donc inclus dans les 14 prépayés ci-dessus
-INSERT INTO abonnements_organisateurs (
-    id_profil_organisateur,
-    id_plan,
-    statut,
-    mois_prepayes_restants,
-    commence_le,
-    debut_periode_courante,
-    fin_periode_courante
-)
-SELECT
-    ao.id_profil_organisateur,
-    ao.id_plan,
-    'active',
-    ao.mois_prepayes_restants,
-    '2025-12-01',
-    '2025-12-01',
-    TIMESTAMPTZ '2025-12-31'
-FROM abonnements_organisateurs ao
-WHERE ao.debut_periode_courante = '2025-10-01'
-  AND ao.statut = 'active'
-  AND ao.mois_prepayes_restants = 0
-  AND ao.id_profil_organisateur IN (17, 21, 22)  -- Mensuels d'octobre non prépayés
-  AND ao.id_profil_organisateur NOT IN (15, 16, 19, 20, 3, 4, 13, 18, 24, 6, 7, 8, 11, 12);  -- Exclure ceux déjà ajoutés
-
--- Factures pour DÉCEMBRE 2025 : 7 prépayés consomment leur crédit
--- Même si c'est de la consommation de crédit prépayé, on crée des factures pour le chiffre d'affaires
-INSERT INTO factures_abonnements (
-    id_abonnement,
-    id_client,
-    devise,
-    montant_sous_total,
-    montant_tva,
-    montant_total,
-    montant_ht,
-    montant_tva_detail,
-    montant_ttc,
-    mois_facturation,
-    est_mois_pause,
-    est_prepayee,
-    statut,
-    emise_le,
-    echeance_le,
-    payee_le
-)
-SELECT
-    ao.id,
-    u.id,
-    'MGA',
-    p.prix,
-    ROUND(p.prix * p.taux_tva / 100, 2),
-    p.prix + ROUND(p.prix * p.taux_tva / 100, 2),
-    p.prix,
-    ROUND(p.prix * p.taux_tva / 100, 2),
-    p.prix + ROUND(p.prix * p.taux_tva / 100, 2),
-    '2025-12-01',
-    FALSE,
-    TRUE,
-    'paid',
-    '2025-12-01',
-    '2025-12-01',
-    '2025-12-01'
-FROM abonnements_organisateurs ao
-JOIN plans_abonnements p ON ao.id_plan = p.id
-JOIN profils_organisateurs po ON ao.id_profil_organisateur = po.id
-JOIN utilisateurs u ON po.id_utilisateur = u.id
-WHERE ao.debut_periode_courante = '2025-12-01'
-  AND ao.statut = 'active'
-  AND ao.mois_prepayes_restants > 0
-  AND po.statut_verification = 'verified'  -- Exclure les non validés
-LIMIT 7;
-
-/* ========================================================================== */
-/* 4. MODES DE PAIEMENT                                                       */
-/* ========================================================================== */
-INSERT INTO modes_paiement (code, libelle, est_actif, ordre_affichage)
-VALUES
-    ('mvola', 'MVola', TRUE, 1),
-    ('orange', 'Orange Money', TRUE, 2),
-    ('airtel', 'Airtel Money', TRUE, 3),
-    ('espace', 'Espace', TRUE, 4),
-    ('carte_bancaire', 'Carte bancaire', TRUE, 5)
-ON CONFLICT (code) DO NOTHING;
-
-/* ========================================================================== */
-/* 5. TRANSACTIONS DE PAIEMENT MOBILE                                         */
-/* ========================================================================== */
-INSERT INTO transactions_paiement_mobile (
-    reference_transaction,
-    id_facture,
-    id_utilisateur,
-    id_profil_organisateur,
-    operateur_mobile,
-    type_paiement,
-    numero_telephone,
-    numero_transaction_operateur,
-    montant,
-    statut_paiement,
-    initie_le,
-    confirme_le,
-    expire_le
-)
-SELECT
-    'SUB-' || TO_CHAR(fa.emise_le, 'YYYYMMDD') || '-' || LPAD(fa.id::TEXT, 6, '0'),
-    fa.id,
-    fa.id_client,
-    ao.id_profil_organisateur,
-    CASE 
-        WHEN u.telephone = '+261343500003' THEN 'mvola'
-        ELSE 'orange'
-    END,
-    CASE 
-        WHEN fa.id % 3 = 0 THEN 'abonnement'
-        WHEN fa.id % 3 = 1 THEN 'renouvellement'
-        ELSE 'mise_a_niveau'
-    END,
-    u.telephone,
-    'OP-' || TO_CHAR(fa.emise_le, 'YYYYMMDD') || '-' || LPAD((fa.id * 1000)::TEXT, 6, '0'),
-    fa.montant_total,
-    'paid'::payment_status_enum,
-    fa.emise_le + INTERVAL '2 hours',
-    fa.emise_le + INTERVAL '3 hours',
-    fa.emise_le + INTERVAL '26 hours'
+-- Vérification des factures par mois
+SELECT 
+    DATE_TRUNC('month', fa.mois_facturation) as mois,
+    pa.niveau,
+    pa.periode_facturation,
+    COUNT(*) as nombre_factures,
+    COUNT(CASE WHEN fa.est_prepayee THEN 1 END) as prepayees,
+    SUM(fa.montant_total) as montant_total
 FROM factures_abonnements fa
-JOIN utilisateurs u ON fa.id_client = u.id
 JOIN abonnements_organisateurs ao ON fa.id_abonnement = ao.id
-JOIN profils_organisateurs po ON ao.id_profil_organisateur = po.id
-WHERE po.statut_verification = 'verified';  -- Exclure les non validés
+JOIN plans_abonnements pa ON ao.id_plan = pa.id
+GROUP BY DATE_TRUNC('month', fa.mois_facturation), pa.niveau, pa.periode_facturation
+ORDER BY mois, pa.niveau;
 
-/* ========================================================================== */
-/* 6. VÉRIFICATION                                                           */
-/* ========================================================================== */
-SELECT '=== DONNÉES CRÉÉES AVEC SUCCÈS ===' as message;
-
-SELECT 'Utilisateurs totaux:' as type, COUNT(*) as count FROM utilisateurs
-UNION ALL
-SELECT 'Organisateurs:', COUNT(*) FROM profils_organisateurs
-UNION ALL
-SELECT 'Abonnements:', COUNT(*) FROM abonnements_organisateurs
-UNION ALL
-SELECT 'Factures:', COUNT(*) FROM factures_abonnements
-UNION ALL
-SELECT 'Transactions mobile:', COUNT(*) FROM transactions_paiement_mobile;
-
--- Vérification par mois
-SELECT '=== ORGANISATEURS ACTIFS PAR MOIS ===' as check_message;
-
-WITH mois_list AS (
-    SELECT generate_series(
-        DATE '2025-06-01',
-        DATE '2025-12-01',
-        INTERVAL '1 month'
-    )::DATE as mois_debut
-),
-factures_par_mois AS (
-    SELECT 
-        DATE_TRUNC('month', fa.mois_facturation::DATE) as mois,
-        ao.id_profil_organisateur,
-        COUNT(*) as nb_factures,
-        BOOL_OR(fa.est_mois_pause) as en_pause
-    FROM factures_abonnements fa
-    JOIN abonnements_organisateurs ao ON fa.id_abonnement = ao.id
-    GROUP BY DATE_TRUNC('month', fa.mois_facturation::DATE), ao.id_profil_organisateur
-)
+-- Statistiques des organisateurs non validés
 SELECT 
-    TO_CHAR(ml.mois_debut, 'YYYY-MM') as mois,
-    COUNT(DISTINCT fpm.id_profil_organisateur) FILTER (
-        WHERE fpm.en_pause = FALSE
-    ) as actifs,
-    COUNT(DISTINCT fpm.id_profil_organisateur) FILTER (
-        WHERE fpm.en_pause = TRUE
-    ) as en_pause,
-    COUNT(DISTINCT fpm.id_profil_organisateur) FILTER (
-        WHERE fpm.en_pause IS NULL
-    ) as sans_facture
-FROM mois_list ml
-LEFT JOIN factures_par_mois fpm ON fpm.mois = ml.mois_debut
-GROUP BY ml.mois_debut
-ORDER BY ml.mois_debut;
+    po.statut_verification,
+    COUNT(*) as nombre_organisateurs
+FROM profils_organisateurs po
+GROUP BY po.statut_verification;
 
--- Vérification des plans par mois
-SELECT '=== PLANS PAR MOIS ===' as check_message;
+-- Nettoyage des fonctions temporaires
+DROP FUNCTION IF EXISTS creer_organisateur(TEXT, TEXT, TEXT, organizer_type_enum, TEXT);
+DROP FUNCTION IF EXISTS creer_abonnement(TEXT, TEXT, TIMESTAMPTZ, subscription_status_enum);
+DROP FUNCTION IF EXISTS creer_facture_abonnement(BIGINT, DATE, TEXT, BOOLEAN, TIMESTAMPTZ);
 
-WITH factures_details AS (
-    SELECT 
-        DATE_TRUNC('month', fa.mois_facturation::DATE) as mois,
-        p.code as plan_code,
-        p.niveau as niveau,
-        p.periode_facturation as periode,
-        COUNT(DISTINCT ao.id_profil_organisateur) as nb_organisateurs,
-        COUNT(DISTINCT fa.id) as nb_factures
-    FROM factures_abonnements fa
-    JOIN abonnements_organisateurs ao ON fa.id_abonnement = ao.id
-    JOIN plans_abonnements p ON ao.id_plan = p.id
-    WHERE fa.est_mois_pause = FALSE
-    GROUP BY DATE_TRUNC('month', fa.mois_facturation::DATE), p.code, p.niveau, p.periode_facturation
-)
-SELECT 
-    TO_CHAR(mois, 'YYYY-MM') as mois,
-    plan_code,
-    niveau,
-    periode,
-    nb_organisateurs,
-    nb_factures
-FROM factures_details
-ORDER BY mois, nb_organisateurs DESC;
+-- ============================================================
+-- FIN DU SCRIPT
+-- ============================================================
