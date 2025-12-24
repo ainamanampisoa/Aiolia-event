@@ -2,6 +2,11 @@
 
 {% block title %}Liste d'attente - Aiolia Event{% endblock %}
 
+{% block stylesheets %}
+{{ parent() }}
+{% endblock %}
+
+
 {% block body %}
 <div class="dashboard">
     <div class="dashboard-header">
@@ -27,7 +32,7 @@
                             <th class="col-left">Email</th>
                             <th class="col-left">Téléphone</th>
                             <th class="col-left">Catégorie / Segment</th>
-                            <th class="col-center">Nombre de billets</th>
+                            <th class="col-center">Events</th>
                             <th class="col-center">Liste d'attente</th>
                             <th class="col-center">Actions</th>
                         </tr>
@@ -84,8 +89,18 @@
                                             <span class="text-muted">—</span>
                                         {% endif %}
                                     </td>
-                                    <td class="col-center">
-                                        <span class="badge-sold">{{ user.nombreBillets|default(0)|number_format(0, ',', ' ') }}</span>
+                                    <td class="col-left">
+                                        {% if user.eventTitres is defined and user.eventTitres|length > 0 %}
+                                            <div class="events-list">
+                                                {% for eventTitre in user.eventTitres %}
+                                                    <div class="event-name-item">
+                                                        <span class="event-name">{{ eventTitre }}</span>
+                                                    </div>
+                                                {% endfor %}
+                                            </div>
+                                        {% else %}
+                                            <span class="text-muted">—</span>
+                                        {% endif %}
                                     </td>
                                     <td class="col-center">
                                         {% if user.categoriesSegments is defined and user.categoriesSegments|length > 0 %}
@@ -195,13 +210,41 @@
     </div>
 </div>
 
-<style>
-.dashboard {
-    padding: 24px;
-    max-width: 1400px;
-    margin: 0 auto;
-}
+<!-- Modal pour modifier la quantité de billets -->
+<div id="editQuantityModal" class="modal-overlay">
+    <div class="modal-content">
+        <div class="modal-header">
+            <h3><i class="fas fa-edit"></i> Modifier la quantité de billets</h3>
+            <button type="button" class="modal-close" id="closeQuantityModal">&times;</button>
+        </div>
+        <div class="modal-body" id="quantityModalBody">
+            <form id="editQuantityForm">
+                <div class="form-group">
+                    <label for="typeBilletSelect">Catégorie / Segment</label>
+                    <select id="typeBilletSelect" name="typeBilletId" class="form-control" required>
+                        <option value="">Sélectionner une catégorie/segment</option>
+                    </select>
+                    <div class="form-error" id="typeBilletError"></div>
+                </div>
+                <div class="form-group">
+                    <label for="quantiteTotale">Quantité totale</label>
+                    <input type="number" id="quantiteTotale" name="quantiteTotale" class="form-control" min="1" required>
+                    <div class="form-error" id="quantiteError"></div>
+                    <small class="text-secondary" style="margin-top: 4px; display: block;">
+                        La quantité ne peut pas être inférieure à <span id="minQuantite">0</span> (quantité déjà vendue)
+                    </small>
+                </div>
+                <input type="hidden" id="userId" name="userId">
+            </form>
+        </div>
+        <div class="modal-footer">
+            <button type="button" class="btn-modal btn-modal-secondary" id="cancelQuantityBtn">Annuler</button>
+            <button type="button" class="btn-modal btn-modal-primary" id="saveQuantityBtn">Enregistrer</button>
+        </div>
+    </div>
+</div>
 
+<style>
 .dashboard-header {
     margin-bottom: 32px;
 }
@@ -572,6 +615,24 @@
     color: white;
 }
 
+.events-list {
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+}
+
+.event-name-item {
+    display: flex;
+    align-items: center;
+}
+
+.event-name {
+    color: var(--text-primary);
+    font-size: 0.9rem;
+    font-weight: var(--font-weight-medium);
+    line-height: 1.4;
+}
+
 /* Modal styles */
 .modal-overlay {
     display: none;
@@ -744,41 +805,10 @@
     box-shadow: 0 4px 8px rgba(0, 0, 0, 0.15);
 }
 </style>
+{% endblock %}
 
-<!-- Modal pour modifier la quantité de billets -->
-<div id="editQuantityModal" class="modal-overlay">
-    <div class="modal-content">
-        <div class="modal-header">
-            <h3><i class="fas fa-edit"></i> Modifier la quantité de billets</h3>
-            <button type="button" class="modal-close" id="closeQuantityModal">&times;</button>
-        </div>
-        <div class="modal-body" id="quantityModalBody">
-            <form id="editQuantityForm">
-                <div class="form-group">
-                    <label for="typeBilletSelect">Catégorie / Segment</label>
-                    <select id="typeBilletSelect" name="typeBilletId" class="form-control" required>
-                        <option value="">Sélectionner une catégorie/segment</option>
-                    </select>
-                    <div class="form-error" id="typeBilletError"></div>
-                </div>
-                <div class="form-group">
-                    <label for="quantiteTotale">Quantité totale</label>
-                    <input type="number" id="quantiteTotale" name="quantiteTotale" class="form-control" min="1" required>
-                    <div class="form-error" id="quantiteError"></div>
-                    <small class="text-secondary" style="margin-top: 4px; display: block;">
-                        La quantité ne peut pas être inférieure à <span id="minQuantite">0</span> (quantité déjà vendue)
-                    </small>
-                </div>
-                <input type="hidden" id="userId" name="userId">
-            </form>
-        </div>
-        <div class="modal-footer">
-            <button type="button" class="btn-modal btn-modal-secondary" id="cancelQuantityBtn">Annuler</button>
-            <button type="button" class="btn-modal btn-modal-primary" id="saveQuantityBtn">Enregistrer</button>
-        </div>
-    </div>
-</div>
-
+{% block javascripts %}
+{{ parent() }}
 <script>
 // Fonction pour ouvrir le modal de modification de quantité
 function openEditQuantityModal(userId, eventId, categoriesSegments) {

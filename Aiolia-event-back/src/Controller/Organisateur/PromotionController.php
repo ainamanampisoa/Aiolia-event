@@ -38,7 +38,7 @@ class PromotionController extends AbstractController
 
         
         $page = max(1, (int) $request->query->get('page', 1));
-        $perPage = 3;
+        $perPage = 4;
 
         
         $dateDebut = null;

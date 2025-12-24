@@ -335,6 +335,8 @@ class WaitlistRepository extends ServiceEntityRepository
                         seg.age_min as ageMin,
                         seg.age_max as ageMax,
                         tb.id as typeBilletId,
+                        e.id as eventId,
+                        e.titre as eventTitre,
                         COALESCE(ib.quantite_totale, 0) as quantiteTotale,
                         COALESCE(ib.quantite_vendue, 0) as quantiteVendue,
                         COALESCE(ib.quantite_reservee, 0) as quantiteReservee,
@@ -360,13 +362,14 @@ class WaitlistRepository extends ServiceEntityRepository
                 $params['organizerProfileId'] = $organizerProfileId;
             }
 
-            $sql .= ' GROUP BY cat.nom, seg.nom, seg.age_min, seg.age_max, tb.id, ib.quantite_totale, ib.quantite_vendue, ib.quantite_reservee
+            $sql .= ' GROUP BY cat.nom, seg.nom, seg.age_min, seg.age_max, tb.id, e.id, e.titre, ib.quantite_totale, ib.quantite_vendue, ib.quantite_reservee
                       ORDER BY cat.nom, seg.nom';
 
             $waitlistData = $conn->executeQuery($sql, $params)->fetchAllAssociative();
 
-            // Formater les résultats
+            // Formater les résultats et collecter les événements uniques
             $details = [];
+            $eventTitres = [];
             foreach ($waitlistData as $wl) {
                 $details[] = [
                     'categorie' => $wl['categorie'] ?? '',
@@ -379,9 +382,17 @@ class WaitlistRepository extends ServiceEntityRepository
                     'quantiteReservee' => (int)($wl['quantitereservee'] ?? 0),
                     'quantiteAttente' => (int)($wl['quantiteattente'] ?? 0),
                 ];
+                
+                // Collecter les événements uniques
+                $eventId = $wl['eventid'];
+                $eventTitre = $wl['eventtitre'] ?? '';
+                if ($eventId && !isset($eventTitres[$eventId])) {
+                    $eventTitres[$eventId] = $eventTitre;
+                }
             }
 
             $item['categoriesSegments'] = $details;
+            $item['eventTitres'] = array_values($eventTitres);
         }
         $pages = (int) ceil($total / $perPage);
         
