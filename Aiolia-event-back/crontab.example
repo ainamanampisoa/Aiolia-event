@@ -1,0 +1,15 @@
+# Configuration CRON pour Aiolia Event Back
+# Pour installer cette configuration, exécutez : crontab crontab.example
+
+# Générer les factures mensuelles (5 derniers jours du mois à 2h du matin)
+0 2 27-31 * * cd /home/fifah/Documents/GitHub/Aiolia-event/Aiolia-event-back && php bin/console app:generate-monthly-invoices >> /var/log/aiolia/cron.log 2>&1
+
+# Marquer les factures en retard (10-15 du mois à 3h du matin)
+0 3 10-15 * * cd /home/fifah/Documents/GitHub/Aiolia-event/Aiolia-event-back && php bin/console app:mark-overdue-invoices >> /var/log/aiolia/cron.log 2>&1
+
+# Mettre en pause les abonnements non payés (le 11ème jour du mois à minuit)
+0 0 11 * * cd /home/fifah/Documents/GitHub/Aiolia-event/Aiolia-event-back && php bin/console app:auto-pause-unpaid-subscriptions >> /var/log/aiolia/cron.log 2>&1
+
+# Mettre à jour le statut des événements (une fois par jour à minuit)
+0 0 * * * cd /home/fifah/Documents/GitHub/Aiolia-event/Aiolia-event-back && php bin/console app:update-event-status >> /var/log/aiolia/cron.log 2>&1
+
