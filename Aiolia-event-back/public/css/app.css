@@ -224,8 +224,8 @@ a:hover {
 .admin-container {
     display: flex;
     flex: 1;
-    margin-top: 72px;
-    min-height: calc(100vh - 72px);
+    margin-top: 90px;
+    min-height: calc(100vh - 90px);
     position: relative;
 }
 
@@ -233,9 +233,9 @@ a:hover {
    HEADER AMÉLIORÉ
    ============================================ */
 .admin-header {
-    --header-height: 72px;
+    --header-height: 90px;
     background: var(--bg-secondary);
-    padding: 0 2rem;
+    padding: 0 1rem;
     display: flex;
     justify-content: space-between;
     align-items: center;
@@ -836,17 +836,17 @@ a:hover {
    SIDEBAR AMÉLIORÉE
    ============================================ */
 .admin-sidebar {
-    width: 260px;
-    min-width: 260px;
-    max-width: 260px;
+    width: 300px;
+    min-width: 300px;
+    max-width: 300px;
     background: var(--bg-sidebar);
     color: var(--text-inverse);
     display: flex !important;
     flex-direction: column !important;
-    height: calc(100vh - 72px) !important;
-    max-height: calc(100vh - 72px) !important;
+    height: calc(100vh - 90px) !important;
+    max-height: calc(100vh - 90px) !important;
     position: fixed;
-    top: 72px;
+    top: 90px;
     left: 0;
     box-shadow: var(--shadow-lg);
     transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
@@ -884,8 +884,8 @@ a:hover {
     overflow-x: hidden !important;
     padding: 1.5rem 0;
     min-height: 0 !important;
-    max-height: calc(100vh - 72px - 120px) !important;
-    height: calc(100vh - 72px - 120px) !important;
+    max-height: calc(100vh - 90px - 120px) !important;
+    height: calc(100vh - 90px - 120px) !important;
     -webkit-overflow-scrolling: touch !important;
     scrollbar-width: thin !important;
     scrollbar-color: rgba(255,255,255,0.2) rgba(255,255,255,0.05) !important;
@@ -1180,12 +1180,12 @@ body.sidebar-collapsed .admin-sidebar .help-text {
 .admin-main {
     flex: 1;
     min-width: 0;
-    padding: 2rem;
+    padding: 2rem 1rem;
     overflow-y: auto;
     background: var(--bg-primary);
-    margin-left: 260px;
-    width: calc(100% - 260px);
-    min-height: calc(100vh - 72px);
+    margin-left: 300px;
+    width: calc(100% - 300px);
+    min-height: calc(100vh - 90px);
     box-sizing: border-box;
     transition: margin-left 0.3s cubic-bezier(0.4, 0, 0.2, 1), width 0.3s cubic-bezier(0.4, 0, 0.2, 1);
 }
@@ -1404,7 +1404,8 @@ input[type="button"].btn:not(.btn-secondary):not(.btn-success):not(.btn-danger):
    DASHBOARD AMÉLIORÉ
    ============================================ */
 .dashboard {
-    max-width: 1400px;
+    max-width: 1600px;
+    width: 100%;
     margin: 0 auto;
 }
 
@@ -1608,7 +1609,7 @@ input[type="button"].btn:not(.btn-secondary):not(.btn-success):not(.btn-danger):
    ============================================ */
 @media (max-width: 1200px) {
     .admin-main {
-        padding: 1.5rem;
+        padding: 1.5rem 0.75rem;
     }
     
     .header-search {
@@ -1649,11 +1650,11 @@ input[type="button"].btn:not(.btn-secondary):not(.btn-success):not(.btn-danger):
 
 @media (max-width: 768px) {
     .admin-header {
-        padding: 0 1rem;
+        padding: 0 0.75rem;
     }
     
     .admin-main {
-        padding: 1rem;
+        padding: 1rem 0.5rem;
     }
     
     .header-search {

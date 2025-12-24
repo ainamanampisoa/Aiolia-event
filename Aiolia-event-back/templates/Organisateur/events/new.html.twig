@@ -2,6 +2,11 @@
 
 {% block title %}{{ isEditMode|default(false) ? 'Modifier l\'événement' : 'Créer un événement' }} - Aiolia Event{% endblock %}
 
+{% block stylesheets %}
+{{ parent() }}
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/flatpickr/dist/flatpickr.min.css">
+<style>
+
 {% block body %}
 <div class="dashboard" {% if isEditMode is defined and isEditMode %}data-edit-mode="true"{% endif %}>
     <!-- En-tête -->
@@ -611,7 +616,13 @@
         {{ form_rest(form) }}
     {{ form_end(form) }}
 </div>
+{% endblock %}
+{% endblock %}
 
+{% block javascripts %}
+{{ parent() }}
+<script src="https://cdn.jsdelivr.net/npm/flatpickr"></script>
+<script src="https://cdn.jsdelivr.net/npm/flatpickr/dist/l10n/fr.js"></script>
 <script>
 // Stocker toutes les options disponibles
 const allCategories = [
@@ -1176,12 +1187,11 @@ function removeTicket(btn) {
     }
 }
 </script>
+{% endblock %}
 
-<!-- Flatpickr (calendrier + heure) -->
+{% block stylesheets %}
+{{ parent() }}
 <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/flatpickr/dist/flatpickr.min.css">
-<script src="https://cdn.jsdelivr.net/npm/flatpickr"></script>
-<script src="https://cdn.jsdelivr.net/npm/flatpickr/dist/l10n/fr.js"></script>
-
 <style>
 .event-form {
     max-width: 1200px;
@@ -2148,3 +2158,7 @@ function removeTicket(btn) {
 }
 </style>
 {% endblock %}
+{{ parent() }}
+<script src="https://cdn.jsdelivr.net/npm/flatpickr"></script>
+<script src="https://cdn.jsdelivr.net/npm/flatpickr/dist/l10n/fr.js"></script>
+<script>

@@ -2,6 +2,10 @@
 
 {% block title %}{{ event.titre ?? 'Événement' }} - Statistiques - Aiolia Event{% endblock %}
 
+{% block stylesheets %}
+{{ parent() }}
+{% endblock %}
+
 {% block body %}
 <div class="dashboard">
     {% include 'Organisateur/events/_header.html.twig' %}
@@ -96,9 +100,12 @@
         </div>
     </div>
 </div>
+{% include 'Organisateur/events/_styles.html.twig' %}
+{% endblock %}
 
-{# Chart.js pour les graphiques de ventes #}
-<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+{% block javascripts %}
+{{ parent() }}
+<script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
 <script>
 document.addEventListener('DOMContentLoaded', function () {
     const textColor = getComputedStyle(document.documentElement).getPropertyValue('--text-primary') || '#333';
@@ -358,7 +365,5 @@ document.addEventListener('DOMContentLoaded', function () {
     }
 });
 </script>
-
-{% include 'Organisateur/events/_styles.html.twig' %}
 {% endblock %}
 

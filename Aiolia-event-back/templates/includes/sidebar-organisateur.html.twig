@@ -127,12 +127,21 @@
 <style>
     /* Scroll vertical indépendant pour la sidebar */
     #adminSidebar.admin-sidebar {
+        width: 300px !important;
+        min-width: 300px !important;
+        max-width: 300px !important;
         display: flex !important;
         flex-direction: column !important;
-        height: calc(100vh - 72px) !important;
-        max-height: calc(100vh - 72px) !important;
+        height: calc(100vh - 90px) !important;
+        max-height: calc(100vh - 90px) !important;
         overflow: hidden !important;
         position: fixed !important;
+    }
+    
+    /* Ajuste le contenu principal */
+    .admin-main {
+        margin-left: 300px !important;
+        width: calc(100% - 300px) !important;
     }
     
     #adminSidebar .sidebar-header {
@@ -147,8 +156,8 @@
         overflow-y: scroll !important;
         overflow-x: hidden !important;
         min-height: 0 !important;
-        max-height: calc(100vh - 72px - 120px) !important;
-        height: calc(100vh - 72px - 120px) !important;
+        max-height: calc(100vh - 90px - 120px) !important;
+        height: calc(100vh - 90px - 120px) !important;
         -webkit-overflow-scrolling: touch !important;
         position: relative !important;
     }
@@ -194,7 +203,7 @@
         if (sidebar && sidebarNav) {
             // Calculer la hauteur disponible pour la nav
             const headerHeight = sidebar.querySelector('.sidebar-header')?.offsetHeight || 100;
-            const availableHeight = window.innerHeight - 72 - headerHeight;
+            const availableHeight = window.innerHeight - 90 - headerHeight;
             
             // Forcer la hauteur maximale
             sidebarNav.style.maxHeight = availableHeight + 'px';
@@ -205,7 +214,7 @@
             // Recalculer lors du redimensionnement
             window.addEventListener('resize', function() {
                 const newHeaderHeight = sidebar.querySelector('.sidebar-header')?.offsetHeight || 100;
-                const newAvailableHeight = window.innerHeight - 72 - newHeaderHeight;
+                const newAvailableHeight = window.innerHeight - 90 - newHeaderHeight;
                 sidebarNav.style.maxHeight = newAvailableHeight + 'px';
                 sidebarNav.style.height = newAvailableHeight + 'px';
             });
