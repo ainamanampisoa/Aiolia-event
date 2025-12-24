@@ -164,6 +164,36 @@ class ProfileController extends AbstractController
         ]);
     }
 
+    #[Route('/profile/history/{id}/delete', name: 'profile_history_delete', methods: ['DELETE'], requirements: ['id' => '\d+'])]
+    public function deleteOrderFromHistory(int $id, Request $request): JsonResponse
+    {
+        $session = $request->getSession();
+        if (!$session->isStarted()) {
+            $session->start();
+        }
+
+        $sessionUser = $session->get('user');
+        $isAuthenticated = is_array($sessionUser) && isset($sessionUser['id']);
+
+        if (!$isAuthenticated) {
+            return new JsonResponse([
+                'success' => false,
+                'message' => 'Non authentifié'
+            ], 401);
+        }
+
+        $userId = (int) $sessionUser['id'];
+
+        // Supprimer la commande (la méthode vérifie déjà l'appartenance)
+        $result = $this->orderRepository->deleteOrderFromHistory($id, $userId);
+
+        if ($result['success']) {
+            return new JsonResponse($result);
+        } else {
+            return new JsonResponse($result, 500);
+        }
+    }
+
     #[Route('/profile/history/export', name: 'profile_history_export')]
     public function exportHistory(Request $request): Response
     {

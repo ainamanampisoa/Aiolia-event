@@ -633,5 +633,79 @@ class OrderRepository
             ];
         }, $rows);
     }
+
+    /**
+     * Supprime une commande de l'historique d'un utilisateur.
+     * Vérifie que la commande appartient bien à l'utilisateur avant de la supprimer.
+     * 
+     * @return array ['success' => bool, 'message' => string]
+     */
+    public function deleteOrderFromHistory(int $orderId, int $userId): array
+    {
+        // Vérifier que la commande appartient à l'utilisateur
+        $order = $this->findOrderByIdAndUserId($orderId, $userId);
+        
+        if (!$order) {
+            return [
+                'success' => false,
+                'message' => 'Commande introuvable ou vous n\'avez pas la permission de la supprimer'
+            ];
+        }
+        
+        try {
+            // Démarrer une transaction
+            $this->connection->beginTransaction();
+            
+            // Supprimer l'historique des statuts de commande
+            $this->connection->executeStatement(
+                'DELETE FROM aiolia.order_status_history WHERE order_id = :order_id',
+                ['order_id' => $orderId]
+            );
+            
+            // Supprimer les order_items liés (les tickets seront mis à NULL automatiquement grâce à ON DELETE SET NULL)
+            $this->connection->executeStatement(
+                'DELETE FROM aiolia.order_items WHERE order_id = :order_id',
+                ['order_id' => $orderId]
+            );
+            
+            // Supprimer la commande
+            $this->connection->executeStatement(
+                'DELETE FROM aiolia.orders WHERE id = :order_id AND user_id = :user_id',
+                [
+                    'order_id' => $orderId,
+                    'user_id' => $userId
+                ]
+            );
+            
+            // Valider la transaction
+            $this->connection->commit();
+            
+            return [
+                'success' => true,
+                'message' => 'Commande supprimée avec succès'
+            ];
+        } catch (Exception $e) {
+            // Annuler la transaction en cas d'erreur
+            if ($this->connection->isTransactionActive()) {
+                $this->connection->rollBack();
+            }
+            
+            // Retourner un message d'erreur détaillé
+            $errorMessage = $e->getMessage();
+            
+            // Messages d'erreur plus conviviaux
+            if (strpos($errorMessage, 'foreign key') !== false) {
+                return [
+                    'success' => false,
+                    'message' => 'Impossible de supprimer cette commande car elle est liée à d\'autres données (tickets, paiements, etc.)'
+                ];
+            }
+            
+            return [
+                'success' => false,
+                'message' => 'Erreur lors de la suppression : ' . $errorMessage
+            ];
+        }
+    }
 }
 

@@ -633,47 +633,77 @@
     text-decoration: none;
 }
 
-/* Bouton PDF amélioré */
+/* Conteneur des icônes d'action */
+.action-icons {
+    display: flex;
+    align-items: center;
+    justify-content: flex-end;
+    gap: 8px;
+}
+
+/* Boutons icônes (PDF et suppression) */
+.btn-icon {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 32px;
+    height: 32px;
+    border: none;
+    border-radius: 8px;
+    color: #ffffff;
+    text-decoration: none;
+    font-size: 14px;
+    transition: all 0.3s ease;
+    cursor: pointer;
+    box-shadow: 0 2px 6px rgba(0, 0, 0, 0.15);
+}
+
+.btn-icon-pdf {
+    background: linear-gradient(135deg, #e74c3c, #c0392b);
+}
+
+.btn-icon-pdf:hover {
+    background: linear-gradient(135deg, #c0392b, #a93226);
+    transform: translateY(-2px) scale(1.1);
+    box-shadow: 0 4px 12px rgba(231, 76, 60, 0.35);
+    color: #ffffff;
+    text-decoration: none;
+}
+
+.btn-icon-delete {
+    background: linear-gradient(135deg, #95a5a6, #7f8c8d);
+}
+
+.btn-icon-delete:hover {
+    background: linear-gradient(135deg, #e74c3c, #c0392b);
+    transform: translateY(-2px) scale(1.1);
+    box-shadow: 0 4px 12px rgba(231, 76, 60, 0.35);
+    color: #ffffff;
+}
+
+/* Ancien style pour compatibilité (si utilisé ailleurs) */
 .btn-pdf-icon {
     display: inline-flex;
     align-items: center;
     justify-content: center;
-    width: 44px;
-    height: 44px;
+    width: 32px;
+    height: 32px;
     background: linear-gradient(135deg, #e74c3c, #c0392b);
     color: #ffffff;
     text-decoration: none;
-    border-radius: 12px;
+    border-radius: 8px;
     font-weight: 600;
-    font-size: 18px;
+    font-size: 14px;
     transition: all 0.3s ease;
-    box-shadow: 0 4px 12px rgba(231, 76, 60, 0.25);
-    position: relative;
+    box-shadow: 0 2px 6px rgba(231, 76, 60, 0.25);
 }
 
 .btn-pdf-icon:hover {
     background: linear-gradient(135deg, #c0392b, #a93226);
-    transform: translateY(-3px) scale(1.05);
-    box-shadow: 0 8px 20px rgba(231, 76, 60, 0.35);
+    transform: translateY(-2px) scale(1.1);
+    box-shadow: 0 4px 12px rgba(231, 76, 60, 0.35);
     color: #ffffff;
     text-decoration: none;
-}
-
-.btn-pdf-icon::after {
-    content: 'PDF';
-    position: absolute;
-    bottom: -20px;
-    left: 50%;
-    transform: translateX(-50%);
-    font-size: 10px;
-    font-weight: 600;
-    color: #e74c3c;
-    opacity: 0;
-    transition: opacity 0.3s ease;
-}
-
-.btn-pdf-icon:hover::after {
-    opacity: 1;
 }
 
 /* État vide amélioré */
@@ -804,11 +834,168 @@
         justify-content: center;
     }
     
-    .btn-pdf-icon {
-        width: 40px;
-        height: 40px;
-        font-size: 16px;
+    .btn-icon {
+        width: 28px;
+        height: 28px;
+        font-size: 12px;
     }
+    
+    .action-icons {
+        gap: 6px;
+    }
+}
+
+/* Modal de confirmation de suppression */
+.delete-modal-overlay {
+    position: fixed;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    background: rgba(15, 35, 74, 0.75);
+    backdrop-filter: blur(4px);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    z-index: 10000;
+    opacity: 0;
+    visibility: hidden;
+    transition: opacity 0.3s ease, visibility 0.3s ease;
+}
+
+.delete-modal-overlay.active {
+    opacity: 1;
+    visibility: visible;
+}
+
+.delete-modal {
+    background: linear-gradient(135deg, #ffffff 0%, #f8f9fa 100%);
+    border-radius: 20px;
+    box-shadow: 0 24px 65px -40px rgba(15, 35, 74, 0.6);
+    max-width: 480px;
+    width: 90%;
+    max-height: 90vh;
+    overflow: hidden;
+    transform: scale(0.9) translateY(-20px);
+    transition: transform 0.3s ease;
+    border: 1px solid rgba(31, 45, 61, 0.1);
+}
+
+.delete-modal-overlay.active .delete-modal {
+    transform: scale(1) translateY(0);
+}
+
+.delete-modal-header {
+    padding: 28px 28px 20px;
+    text-align: center;
+    border-bottom: 1px solid rgba(31, 45, 61, 0.1);
+}
+
+.delete-modal-icon {
+    width: 64px;
+    height: 64px;
+    margin: 0 auto 16px;
+    background: linear-gradient(135deg, rgba(231, 76, 60, 0.15), rgba(192, 57, 43, 0.15));
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    border: 3px solid rgba(231, 76, 60, 0.2);
+}
+
+.delete-modal-icon i {
+    font-size: 32px;
+    color: #e74c3c;
+    animation: pulse 2s ease-in-out infinite;
+}
+
+@keyframes pulse {
+    0%, 100% {
+        transform: scale(1);
+    }
+    50% {
+        transform: scale(1.1);
+    }
+}
+
+.delete-modal-header h3 {
+    margin: 0;
+    font-size: 22px;
+    color: #1F2D3D;
+    font-weight: 700;
+}
+
+.delete-modal-body {
+    padding: 24px 28px;
+    text-align: center;
+}
+
+.delete-modal-body p {
+    margin: 0 0 12px;
+    font-size: 16px;
+    color: #1F2D3D;
+    line-height: 1.6;
+}
+
+.delete-modal-warning {
+    font-size: 14px !important;
+    color: #e74c3c !important;
+    font-weight: 600;
+    margin-top: 8px !important;
+}
+
+.delete-modal-footer {
+    padding: 20px 28px 28px;
+    display: flex;
+    gap: 12px;
+    justify-content: flex-end;
+    border-top: 1px solid rgba(31, 45, 61, 0.1);
+}
+
+.btn-modal-cancel,
+.btn-modal-confirm {
+    padding: 12px 24px;
+    border-radius: 12px;
+    font-weight: 600;
+    font-size: 14px;
+    border: none;
+    cursor: pointer;
+    transition: all 0.3s ease;
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+    min-width: 120px;
+    justify-content: center;
+}
+
+.btn-modal-cancel {
+    background: rgba(31, 45, 61, 0.08);
+    color: #1F2D3D;
+    border: 2px solid transparent;
+}
+
+.btn-modal-cancel:hover {
+    background: rgba(31, 45, 61, 0.15);
+    transform: translateY(-2px);
+    box-shadow: 0 4px 12px rgba(31, 45, 61, 0.2);
+}
+
+.btn-modal-confirm {
+    background: linear-gradient(135deg, #e74c3c, #c0392b);
+    color: #ffffff;
+    box-shadow: 0 4px 12px rgba(231, 76, 60, 0.3);
+}
+
+.btn-modal-confirm:hover:not(:disabled) {
+    background: linear-gradient(135deg, #c0392b, #a93226);
+    transform: translateY(-2px);
+    box-shadow: 0 6px 16px rgba(231, 76, 60, 0.4);
+}
+
+.btn-modal-confirm:disabled {
+    opacity: 0.7;
+    cursor: not-allowed;
+    transform: none;
 }
 
 @media (max-width: 480px) {
@@ -828,5 +1015,26 @@
 
     .summary-card {
         padding: 18px;
+    }
+
+    .delete-modal {
+        width: 95%;
+        max-width: none;
+    }
+
+    .delete-modal-header,
+    .delete-modal-body,
+    .delete-modal-footer {
+        padding-left: 20px;
+        padding-right: 20px;
+    }
+
+    .delete-modal-footer {
+        flex-direction: column-reverse;
+    }
+
+    .btn-modal-cancel,
+    .btn-modal-confirm {
+        width: 100%;
     }
 }

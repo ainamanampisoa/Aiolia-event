@@ -217,7 +217,7 @@
                                 <th>Billets</th>
                                 <th>Montant</th>
                                 <th>Paiement</th>
-                                <th class="align-right">Facture</th>
+                                <th class="align-right">Actions</th>
                             </tr>
                         </thead>
                         <tbody>
@@ -252,12 +252,20 @@
                                             </div>
                                         </td>
                                         <td class="align-right">
+                                            <div class="action-icons">
                                             <a href="{{ path('profile_history_invoice', {id: order.id}) }}" 
-                                               class="btn-pdf-icon" 
+                                                   class="btn-icon btn-icon-pdf" 
                                                target="_blank"
                                                title="Télécharger la facture PDF">
                                                 <i class="fas fa-file-pdf"></i>
                                             </a>
+                                                <button type="button" 
+                                                        class="btn-icon btn-icon-delete" 
+                                                        data-order-id="{{ order.id }}"
+                                                        title="Supprimer cette commande">
+                                                    <i class="fas fa-trash"></i>
+                                                </button>
+                                            </div>
                                         </td>
                                     </tr>
                                 {% endfor %}
@@ -317,6 +325,50 @@
             </section>
         </div>
     </main>
+
+    {# Modal de confirmation de suppression #}
+    <div id="deleteConfirmModal" class="delete-modal-overlay">
+        <div class="delete-modal">
+            <div class="delete-modal-header">
+                <div class="delete-modal-icon">
+                    <i class="fas fa-exclamation-triangle"></i>
+                </div>
+                <h3>Confirmer la suppression</h3>
+            </div>
+            <div class="delete-modal-body">
+                <p>Êtes-vous sûr de vouloir supprimer cette commande de votre historique ?</p>
+                <p class="delete-modal-warning">Cette action est irréversible.</p>
+            </div>
+            <div class="delete-modal-footer">
+                <button type="button" class="btn-modal-cancel" id="deleteModalCancel">
+                    <i class="fas fa-times"></i> Annuler
+                </button>
+                <button type="button" class="btn-modal-confirm" id="deleteModalConfirm">
+                    <i class="fas fa-trash"></i> Supprimer
+                </button>
+            </div>
+        </div>
+    </div>
+
+    {# Modal d'erreur #}
+    <div id="errorModal" class="delete-modal-overlay">
+        <div class="delete-modal">
+            <div class="delete-modal-header">
+                <div class="delete-modal-icon" style="background: linear-gradient(135deg, rgba(231, 76, 60, 0.15), rgba(192, 57, 43, 0.15)); border-color: rgba(231, 76, 60, 0.2);">
+                    <i class="fas fa-times-circle" style="color: #e74c3c;"></i>
+                </div>
+                <h3>Erreur</h3>
+            </div>
+            <div class="delete-modal-body">
+                <p id="errorModalMessage"></p>
+            </div>
+            <div class="delete-modal-footer">
+                <button type="button" class="btn-modal-confirm" id="errorModalClose" style="width: 100%;">
+                    <i class="fas fa-check"></i> Compris
+                </button>
+            </div>
+        </div>
+    </div>
 {% endblock %}
 
 {% block javascripts %}
@@ -431,11 +483,195 @@
                 });
             });
 
-            // Tooltip pour le bouton PDF
-            const pdfButtons = document.querySelectorAll('.btn-pdf-icon');
-            pdfButtons.forEach(btn => {
-                btn.addEventListener('mouseenter', function() {
-                    this.setAttribute('title', 'Télécharger la facture PDF');
+            // Gestion du modal de confirmation de suppression
+            const deleteModal = document.getElementById('deleteConfirmModal');
+            const deleteModalCancel = document.getElementById('deleteModalCancel');
+            const deleteModalConfirm = document.getElementById('deleteModalConfirm');
+            const errorModal = document.getElementById('errorModal');
+            const errorModalMessage = document.getElementById('errorModalMessage');
+            const errorModalClose = document.getElementById('errorModalClose');
+            let currentDeleteButton = null;
+            let currentOrderId = null;
+            let currentOrderRow = null;
+
+            // Fonction pour afficher le modal d'erreur
+            function showErrorModal(message) {
+                if (errorModal && errorModalMessage) {
+                    errorModalMessage.textContent = message;
+                    errorModal.classList.add('active');
+                    document.body.style.overflow = 'hidden';
+                }
+            }
+
+            // Fonction pour fermer le modal d'erreur
+            function closeErrorModal() {
+                if (errorModal) {
+                    errorModal.classList.remove('active');
+                    document.body.style.overflow = '';
+                }
+            }
+
+            // Fermer le modal d'erreur
+            if (errorModalClose) {
+                errorModalClose.addEventListener('click', closeErrorModal);
+            }
+            if (errorModal) {
+                errorModal.addEventListener('click', function(e) {
+                    if (e.target === errorModal) {
+                        closeErrorModal();
+                    }
+                });
+            }
+
+            // Fonction pour ouvrir le modal
+            function openDeleteModal(orderId, orderRow, deleteButton) {
+                if (!deleteModal) return;
+                
+                currentOrderId = orderId;
+                currentOrderRow = orderRow;
+                currentDeleteButton = deleteButton;
+                deleteModal.classList.add('active');
+                document.body.style.overflow = 'hidden';
+            }
+
+            // Fonction pour fermer le modal
+            function closeDeleteModal() {
+                if (deleteModal) {
+                    deleteModal.classList.remove('active');
+                    document.body.style.overflow = '';
+                }
+                currentOrderId = null;
+                currentOrderRow = null;
+                currentDeleteButton = null;
+            }
+
+            // Fermer le modal en cliquant sur l'overlay
+            if (deleteModal) {
+                deleteModal.addEventListener('click', function(e) {
+                    if (e.target === deleteModal) {
+                        closeDeleteModal();
+                    }
+                });
+            }
+
+            // Fermer le modal avec le bouton Annuler
+            if (deleteModalCancel) {
+                deleteModalCancel.addEventListener('click', closeDeleteModal);
+            }
+
+            // Fermer le modal avec la touche Escape
+            document.addEventListener('keydown', function(e) {
+                if (e.key === 'Escape' && deleteModal && deleteModal.classList.contains('active')) {
+                    closeDeleteModal();
+                }
+            });
+
+            // Confirmer la suppression
+            if (deleteModalConfirm) {
+                deleteModalConfirm.addEventListener('click', function() {
+                    if (!currentOrderId || !currentOrderRow || !currentDeleteButton) {
+                        closeDeleteModal();
+                        return;
+                    }
+
+                    // Désactiver le bouton pendant la requête
+                    currentDeleteButton.disabled = true;
+                    if (currentDeleteButton.style) {
+                        currentDeleteButton.style.opacity = '0.5';
+                    }
+                    if (deleteModalConfirm) {
+                        deleteModalConfirm.disabled = true;
+                        deleteModalConfirm.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Suppression...';
+                    }
+
+                // Envoyer la requête de suppression
+                fetch(`/profile/history/${currentOrderId}/delete`, {
+                    method: 'DELETE',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'X-Requested-With': 'XMLHttpRequest'
+                    },
+                    credentials: 'same-origin'
+                })
+                .then(response => {
+                    if (!response.ok) {
+                        return response.json().then(data => {
+                            throw new Error(data.message || 'Erreur lors de la suppression');
+                        });
+                    }
+                    return response.json();
+                })
+                .then(data => {
+                    // Sauvegarder les références avant de fermer le modal
+                    const orderRow = currentOrderRow;
+                    const deleteButton = currentDeleteButton;
+                    
+                    closeDeleteModal();
+                    
+                    if (data.success) {
+                        // Vérifier que l'élément existe toujours dans le DOM
+                        if (orderRow && orderRow.parentNode) {
+                            // Animation de disparition
+                            orderRow.style.transition = 'opacity 0.3s ease, transform 0.3s ease';
+                            orderRow.style.opacity = '0';
+                            orderRow.style.transform = 'translateX(-20px)';
+                            
+                            setTimeout(() => {
+                                if (orderRow && orderRow.parentNode) {
+                                    orderRow.remove();
+                                    
+                                    // Vérifier s'il reste des lignes
+                                    const remainingRows = document.querySelectorAll('.history-row');
+                                    if (remainingRows.length === 0) {
+                                        // Recharger la page pour afficher l'état vide
+                                        window.location.reload();
+                                    }
+                                }
+                            }, 300);
+                        } else {
+                            // Si l'élément n'existe plus, recharger la page
+                            window.location.reload();
+                        }
+                    } else {
+                        // Afficher le message d'erreur du serveur
+                        showErrorModal(data.message || 'Une erreur est survenue lors de la suppression');
+                        if (deleteButton) {
+                            deleteButton.disabled = false;
+                            deleteButton.style.opacity = '1';
+                        }
+                    }
+                })
+                .catch(error => {
+                    console.error('Erreur:', error);
+                    // Sauvegarder la référence avant de fermer le modal
+                    const deleteButton = currentDeleteButton;
+                    closeDeleteModal();
+                    showErrorModal(error.message || 'Erreur lors de la suppression. Veuillez réessayer.');
+                    if (deleteButton) {
+                        deleteButton.disabled = false;
+                        deleteButton.style.opacity = '1';
+                    }
+                })
+                .finally(() => {
+                    if (deleteModalConfirm) {
+                        deleteModalConfirm.disabled = false;
+                        deleteModalConfirm.innerHTML = '<i class="fas fa-trash"></i> Supprimer';
+                    }
+                });
+                });
+            }
+
+            // Gestion de la suppression d'une commande
+            const deleteButtons = document.querySelectorAll('.btn-icon-delete');
+            deleteButtons.forEach(btn => {
+                btn.addEventListener('click', function() {
+                    const orderId = this.getAttribute('data-order-id');
+                    const orderRow = this.closest('.history-row');
+                    
+                    if (!orderId) return;
+                    
+                    // Ouvrir le modal de confirmation
+                    openDeleteModal(orderId, orderRow, this);
                 });
             });
 
