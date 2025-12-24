@@ -196,8 +196,38 @@ class TicketController extends AbstractController
         $segmentFilter = $request->query->get('segment');
 
         
+        $timezone = new \DateTimeZone('Indian/Antananarivo');
+        $now = new \DateTime('now', $timezone);
+        
         $alertesTotal = [];
         foreach ($typesBillets as $typeBillet) {
+            $evenement = $typeBillet->getEvenement();
+            
+            // Filtrer uniquement les événements en cours et à venir
+            if ($evenement && $evenement->getCommenceLe()) {
+                $commenceLe = clone $evenement->getCommenceLe();
+                if ($commenceLe->getTimezone()->getName() !== $timezone->getName()) {
+                    $commenceLe->setTimezone($timezone);
+                }
+                
+                $seTermineLe = $evenement->getSeTermineLe();
+                if ($seTermineLe) {
+                    $seTermineLe = clone $seTermineLe;
+                    if ($seTermineLe->getTimezone()->getName() !== $timezone->getName()) {
+                        $seTermineLe->setTimezone($timezone);
+                    }
+                }
+                
+                // Vérifier si l'événement est en cours ou à venir
+                $isOngoing = $commenceLe <= $now && ($seTermineLe === null || $seTermineLe >= $now);
+                $isUpcoming = $commenceLe > $now;
+                
+                // Ignorer les événements passés
+                if (!$isOngoing && !$isUpcoming) {
+                    continue;
+                }
+            }
+            
             $inventaire = $typeBillet->getInventaire();
             if ($inventaire) {
                 $quantiteRestante = $inventaire->getQuantiteTotale() - $inventaire->getQuantiteVendue() - $inventaire->getQuantiteReservee();
@@ -262,7 +292,52 @@ class TicketController extends AbstractController
         
         $categories = [];
         $segments = [];
+        $eventsIds = [];
+        $capaciteParCategorie = []; // [eventId][categorieId] => total
+        
         foreach ($typesBillets as $tb) {
+            $evenement = $tb->getEvenement();
+            
+            // Compter les événements uniques en cours et à venir
+            if ($evenement && $evenement->getCommenceLe() && $evenement->getStatut() === Event::STATUS_PUBLISHED) {
+                $commenceLe = clone $evenement->getCommenceLe();
+                if ($commenceLe->getTimezone()->getName() !== $timezone->getName()) {
+                    $commenceLe->setTimezone($timezone);
+                }
+                
+                $seTermineLe = $evenement->getSeTermineLe();
+                if ($seTermineLe) {
+                    $seTermineLe = clone $seTermineLe;
+                    if ($seTermineLe->getTimezone()->getName() !== $timezone->getName()) {
+                        $seTermineLe->setTimezone($timezone);
+                    }
+                }
+                
+                // Vérifier si l'événement est en cours ou à venir
+                $isOngoing = $commenceLe <= $now && ($seTermineLe === null || $seTermineLe >= $now);
+                $isUpcoming = $commenceLe > $now;
+                
+                if ($isOngoing || $isUpcoming) {
+                    $eventId = $evenement->getId();
+                    if (!in_array($eventId, $eventsIds)) {
+                        $eventsIds[] = $eventId;
+                    }
+                    
+                    // Calculer la capacité totale par catégorie pour cet événement
+                    $categorieId = $tb->getConfigurationCategorie() ? $tb->getConfigurationCategorie()->getId() : 'sans_categorie';
+                    $inventaire = $tb->getInventaire();
+                    $quantiteTotale = $inventaire ? $inventaire->getQuantiteTotale() : 0;
+                    
+                    if (!isset($capaciteParCategorie[$eventId])) {
+                        $capaciteParCategorie[$eventId] = [];
+                    }
+                    if (!isset($capaciteParCategorie[$eventId][$categorieId])) {
+                        $capaciteParCategorie[$eventId][$categorieId] = 0;
+                    }
+                    $capaciteParCategorie[$eventId][$categorieId] += $quantiteTotale;
+                }
+            }
+            
             if ($tb->getConfigurationCategorie() && !isset($categories[$tb->getConfigurationCategorie()->getNom()])) {
                 $categories[$tb->getConfigurationCategorie()->getNom()] = $tb->getConfigurationCategorie()->getNom();
             }
@@ -274,6 +349,8 @@ class TicketController extends AbstractController
                 }
             }
         }
+        
+        $eventsCount = count($eventsIds);
         
         return $this->render('Organisateur/ticket/stock_alerts.html.twig', [
             'alertes' => $alertes,
@@ -292,6 +369,8 @@ class TicketController extends AbstractController
             'niveauFilter' => $niveauFilter,
             'categorieFilter' => $categorieFilter,
             'segmentFilter' => $segmentFilter,
+            'eventsCount' => $eventsCount,
+            'capaciteParCategorie' => $capaciteParCategorie,
         ]);
     }
 

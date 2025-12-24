@@ -86,6 +86,19 @@
                 </a>
             </li>
             
+            {% set isStockAlerts = currentRoute == 'app_ticket_stock_alerts' %}
+            {% if has_stock_alerts_for_active_events() %}
+            <li class="nav-item {{ isStockAlerts ? 'active' }}">
+                <a href="{{ path('app_ticket_stock_alerts') }}" class="nav-link {{ isStockAlerts ? 'active' }}" {% if isStockAlerts %}aria-current="page"{% endif %}>
+                    <div class="nav-icon">
+                        <i class="fas fa-bell"></i>
+                    </div>
+                    <span class="nav-text">Alertes de stock</span>
+                    <span class="nav-tooltip">Alertes de stock</span>
+                </a>
+            </li>
+            {% endif %}
+            
             <li class="nav-item {{ isPaiementAbonnement ? 'active' }}">
                 <a href="{{ path('organisateur_paiement_abonnement_index') }}" class="nav-link {{ isPaiementAbonnement ? 'active' }}" {% if isPaiementAbonnement %}aria-current="page"{% endif %}>
                     <div class="nav-icon">
