@@ -223,10 +223,15 @@
                         <tbody>
                             {% if orders|length > 0 %}
                                 {% for order in orders %}
-                                    <tr class="history-row {% if order.status_key == 'paid' %}is-confirmed{% elseif order.status_key == 'cancelled' %}is-cancelled{% elseif order.status_key == 'failed' %}is-failed{% else %}is-pending{% endif %}">
+                                    <tr class="history-row {% if order.is_refunded %}is-refunded{% elseif order.status_key == 'paid' %}is-confirmed{% elseif order.status_key == 'cancelled' %}is-cancelled{% elseif order.status_key == 'failed' %}is-failed{% else %}is-pending{% endif %}">
                                         <td>
                                             <div class="order-code">{{ order.code }}</div>
                                             <span class="order-status">{{ order.status }}</span>
+                                            {% if order.is_refunded and order.refund_reason %}
+                                                <small class="refund-reason" style="display: block; margin-top: 4px; color: #e74c3c; font-size: 11px;">
+                                                    <i class="fas fa-undo"></i> {{ order.refund_reason }}
+                                                </small>
+                                            {% endif %}
                                         </td>
                                         <td>
                                             <div class="event-info">

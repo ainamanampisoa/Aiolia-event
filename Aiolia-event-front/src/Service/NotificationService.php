@@ -241,5 +241,30 @@ class NotificationService
             'low_stock'
         );
     }
+
+    /**
+     * Envoie une notification de remboursement à l'utilisateur
+     */
+    public function sendRefundNotification(int $userId, array $refundData): ?int
+    {
+        $amount = number_format($refundData['amount'], 0, ',', ' ') . ' ' . ($refundData['currency'] ?? 'MGA');
+        $eventTitle = $refundData['event_title'] ?? 'l\'événement';
+        $reason = $refundData['reason'] ?? 'Événement annulé';
+
+        return $this->createNotification(
+            $userId,
+            'web_push',
+            'refund',
+            [
+                'order_id' => $refundData['order_id'] ?? null,
+                'amount' => $refundData['amount'] ?? 0,
+                'currency' => $refundData['currency'] ?? 'MGA',
+                'event_title' => $eventTitle,
+                'reason' => $reason,
+                'message' => "Remboursement effectué : {$amount} pour {$eventTitle}. Raison : {$reason}",
+            ],
+            'refund_confirmation'
+        );
+    }
 }
 

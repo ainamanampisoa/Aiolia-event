@@ -1515,12 +1515,21 @@ class ProfileController extends AbstractController
                 'bank_transfer' => 'Virement bancaire',
             ];
 
-            // Extraire le payment_method depuis le champ notes (JSON)
+            // Extraire le payment_method et vérifier le remboursement depuis le champ notes (JSON)
             $paymentMethod = null;
+            $isRefunded = false;
+            $refundReason = null;
             if (!empty($row['notes'])) {
                 $notes = json_decode($row['notes'], true);
-                if (is_array($notes) && isset($notes['payment_method'])) {
-                    $paymentMethod = $notes['payment_method'];
+                if (is_array($notes)) {
+                    if (isset($notes['payment_method'])) {
+                        $paymentMethod = $notes['payment_method'];
+                    }
+                    // Vérifier si la commande a été remboursée
+                    if (isset($notes['refunded']) && $notes['refunded'] === true) {
+                        $isRefunded = true;
+                        $refundReason = $notes['refund_reason'] ?? 'Événement annulé';
+                    }
                 }
             }
 
@@ -1571,20 +1580,29 @@ class ProfileController extends AbstractController
                 }
             }
 
+            // Ajuster le statut si remboursé
+            $displayStatus = $status;
+            $displayStatusLabel = $statusLabels[$status] ?? ucfirst($status);
+            if ($isRefunded && $status === 'cancelled') {
+                $displayStatusLabel = 'Remboursée';
+            }
+
             return [
                 'id' => (int) $row['id'],
                 'code' => 'CMD-' . str_pad((string) $row['id'], 6, '0', STR_PAD_LEFT),
                 'title' => !empty($eventTitle) ? $eventTitle : 'Événement',
                 'date' => $paymentDate ? $paymentDate->format('d F Y') : '',
                 'hour' => $paymentDate ? $paymentDate->format('H:i') : '',
-                'status' => $statusLabels[$status] ?? ucfirst($status),
-                'status_key' => $status,
+                'status' => $displayStatusLabel,
+                'status_key' => $displayStatus,
                 'amount' => number_format((float) $row['total_amount'], 0, ',', ' ') . ' MGA',
                 'amount_raw' => (float) $row['total_amount'],
                 'method' => $paymentMethod ? ($paymentMethodLabels[$paymentMethod] ?? ucfirst(str_replace('-', ' ', $paymentMethod))) : 'Non spécifié',
                 'tickets' => $totalTickets,
                 'items_count' => (int) ($row['items_count'] ?? 0),
                 'created_at' => new \DateTimeImmutable($row['created_at']),
+                'is_refunded' => $isRefunded,
+                'refund_reason' => $refundReason,
             ];
         }, $rows);
     }

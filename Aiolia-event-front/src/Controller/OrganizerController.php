@@ -2,6 +2,9 @@
 
 namespace App\Controller;
 
+use App\Repository\EventRepository;
+use App\Service\RefundService;
+use Doctrine\DBAL\Connection;
 use Symfony\Bundle\FrameworkBundle\Controller\AbstractController;
 use Symfony\Component\HttpFoundation\JsonResponse;
 use Symfony\Component\HttpFoundation\Request;
@@ -9,6 +12,12 @@ use Symfony\Component\Routing\Annotation\Route;
 
 class OrganizerController extends AbstractController
 {
+    public function __construct(
+        private readonly EventRepository $eventRepository,
+        private readonly RefundService $refundService,
+        private readonly Connection $connection
+    ) {
+    }
     #[Route('/api/organizer/events', name: 'api_organizer_events', methods: ['GET'])]
     public function listOrganizerEvents(): JsonResponse
     {
@@ -117,6 +126,94 @@ class OrganizerController extends AbstractController
             'message' => "Export du rapport de l'événement {$eventId} - À implémenter",
             'status' => 'success'
         ]);
+    }
+
+    /**
+     * Route ADMIN uniquement : Annule un événement (le remboursement se déclenche automatiquement)
+     */
+    #[Route('/api/admin/events/{id}/cancel', name: 'api_admin_cancel_event', methods: ['POST'])]
+    public function cancelEvent(int $id, Request $request): JsonResponse
+    {
+        $session = $request->getSession();
+        if (!$session->isStarted()) {
+            $session->start();
+        }
+
+        $sessionUser = $session->get('user');
+        $isAuthenticated = is_array($sessionUser) && isset($sessionUser['id']);
+
+        if (!$isAuthenticated) {
+            return new JsonResponse([
+                'success' => false,
+                'message' => 'Non authentifié'
+            ], 401);
+        }
+
+        // Vérifier que l'utilisateur est un admin
+        $isAdmin = in_array('ROLE_ADMIN', $sessionUser['roles'] ?? [], true);
+
+        if (!$isAdmin) {
+            return new JsonResponse([
+                'success' => false,
+                'message' => 'Accès réservé aux administrateurs'
+            ], 403);
+        }
+
+        // Récupérer l'événement
+        $event = $this->eventRepository->findEventById($id);
+        
+        if (!$event) {
+            return new JsonResponse([
+                'success' => false,
+                'message' => 'Événement introuvable'
+            ], 404);
+        }
+
+        // Vérifier que l'événement n'est pas déjà annulé
+        if (($event['status'] ?? '') === 'cancelled') {
+            return new JsonResponse([
+                'success' => false,
+                'message' => 'Cet événement est déjà annulé'
+            ], 400);
+        }
+
+        // Récupérer la raison de l'annulation
+        $data = json_decode($request->getContent(), true);
+        $reason = $data['reason'] ?? 'Événement annulé pour cause d\'urgence';
+
+        try {
+            // Marquer l'événement comme annulé
+            // Le remboursement sera déclenché automatiquement par l'EventListener
+            $this->connection->executeStatement(
+                <<<SQL
+                    UPDATE aiolia.events
+                    SET status = 'cancelled',
+                        updated_at = NOW()
+                    WHERE id = :event_id
+                SQL,
+                ['event_id' => $id]
+            );
+
+            // Déclencher le remboursement automatique
+            $refundResult = $this->refundService->refundEventTickets($id, $reason);
+
+            return new JsonResponse([
+                'success' => true,
+                'message' => 'Événement annulé. Remboursements en cours...',
+                'refund_summary' => [
+                    'refunded_orders' => $refundResult['refunded_orders'],
+                    'refunded_tickets' => $refundResult['refunded_tickets'],
+                    'total_amount' => $refundResult['total_amount'],
+                    'errors' => $refundResult['errors'] ?? []
+                ]
+            ]);
+
+        } catch (\Exception $e) {
+            return new JsonResponse([
+                'success' => false,
+                'message' => 'Erreur lors de l\'annulation : ' . $e->getMessage()
+            ], 500);
+        }
     }
 }
 

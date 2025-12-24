@@ -275,6 +275,27 @@ class EventRepository extends ServiceEntityRepository
     }
 
     /**
+     * Récupère les informations de base d'un événement par ID.
+     */
+    public function findEventById(int $eventId): ?array
+    {
+        $sql = <<<SQL
+            SELECT 
+                id,
+                organizer_id,
+                title,
+                status,
+                starts_at
+            FROM aiolia.events
+            WHERE id = :id
+            LIMIT 1
+        SQL;
+
+        $result = $this->connection->executeQuery($sql, ['id' => $eventId])->fetchAssociative();
+        return $result ?: null;
+    }
+
+    /**
      * Récupère les événements avec recherche et filtres complexes.
      */
     public function searchEventsWithFilters(string $query = '', array $filters = []): array

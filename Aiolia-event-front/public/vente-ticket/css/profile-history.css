@@ -343,6 +343,25 @@
     font-weight: 600;
 }
 
+.history-row.is-refunded .order-status {
+    color: #27ae60;
+    background: rgba(46, 204, 113, 0.1);
+    padding: 4px 10px;
+    border-radius: 6px;
+    font-weight: 600;
+}
+
+.refund-reason {
+    color: #e74c3c;
+    font-size: 11px;
+    margin-top: 4px;
+    display: block;
+}
+
+.refund-reason i {
+    margin-right: 4px;
+}
+
 .order-code {
     font-weight: 700;
     color: #0F234A;
