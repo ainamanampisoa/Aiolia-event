@@ -2,8 +2,10 @@
 
 namespace App\Controller\Api;
 
+use App\Entity\Billet;
 use App\Repository\Organisateur\BilletRepository;
 use App\Repository\Organisateur\TicketInvoiceRepository;
+use Doctrine\ORM\EntityManagerInterface;
 use Symfony\Bundle\FrameworkBundle\Controller\AbstractController;
 use Symfony\Component\HttpFoundation\JsonResponse;
 use Symfony\Component\HttpFoundation\Request;
@@ -18,7 +20,8 @@ class TicketApiController extends AbstractController
 
     public function __construct(
         private BilletRepository $billetRepository,
-        private TicketInvoiceRepository $ticketInvoiceRepository
+        private TicketInvoiceRepository $ticketInvoiceRepository,
+        private EntityManagerInterface $entityManager
     ) {
     }
 
@@ -66,6 +69,15 @@ class TicketApiController extends AbstractController
             ], 403);
         }
 
+        // Si le billet est valide (en attente), le marquer comme utilisé
+        $statusChanged = false;
+        if ($billet->getStatut() === Billet::STATUT_VALID) {
+            $billet->setStatut(Billet::STATUT_USED);
+            $this->entityManager->persist($billet);
+            $this->entityManager->flush();
+            $statusChanged = true;
+        }
+
         // Récupérer la facture si le billet est lié à une commande
         $facture = null;
         if ($billet->getElementCommande() && $billet->getElementCommande()->getCommande()) {
@@ -73,7 +85,7 @@ class TicketApiController extends AbstractController
             $facture = $this->ticketInvoiceRepository->findOneBy(['orderId' => $commandeId]);
         }
 
-        // Préparer les données du billet
+        // Préparer les données du billet (avec le statut mis à jour)
         $billetData = [
             'id' => $billet->getId(),
             'codeQr' => $billet->getCodeQr(),
@@ -144,6 +156,7 @@ class TicketApiController extends AbstractController
             'success' => true,
             'billet' => $billetData,
             'facture' => $factureData,
+            'statusChanged' => $statusChanged,
         ]);
     }
 }

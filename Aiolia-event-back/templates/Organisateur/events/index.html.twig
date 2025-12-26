@@ -527,13 +527,60 @@
     align-items: center;
     justify-content: center;
     cursor: pointer;
-    transition: var(--transition);
+    transition: all 0.3s ease;
+    position: relative;
 }
 
 .event-action-btn:hover {
     background: var(--bg-card);
     color: var(--accent);
     box-shadow: var(--shadow-sm);
+    transform: scale(1.1);
+    filter: brightness(1.2);
+}
+
+/* Tooltip pour les boutons d'action */
+.event-action-btn[data-tooltip] {
+    position: relative;
+}
+
+.event-action-btn[data-tooltip]::after {
+    content: attr(data-tooltip);
+    position: absolute;
+    bottom: calc(100% + 8px);
+    left: 50%;
+    transform: translateX(-50%) translateY(4px);
+    background: rgba(0, 0, 0, 0.9);
+    color: white;
+    padding: 6px 12px;
+    border-radius: 6px;
+    font-size: 0.75rem;
+    white-space: nowrap;
+    opacity: 0;
+    pointer-events: none;
+    transition: all 0.3s ease;
+    z-index: 1000;
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.2);
+}
+
+.event-action-btn[data-tooltip]::before {
+    content: '';
+    position: absolute;
+    bottom: calc(100% + 2px);
+    left: 50%;
+    transform: translateX(-50%) translateY(4px);
+    border: 6px solid transparent;
+    border-top-color: rgba(0, 0, 0, 0.9);
+    opacity: 0;
+    pointer-events: none;
+    transition: all 0.3s ease;
+    z-index: 1000;
+}
+
+.event-action-btn[data-tooltip]:hover::after,
+.event-action-btn[data-tooltip]:hover::before {
+    opacity: 1;
+    transform: translateX(-50%) translateY(0);
 }
 
 .event-action-danger {
@@ -1257,6 +1304,15 @@
     .price-badge-currency {
         font-size: 0.55rem;
     }
+    
+    /* Tooltips adaptés pour mobile */
+    .event-action-btn[data-tooltip]::after {
+        font-size: 0.7rem;
+        padding: 5px 10px;
+        white-space: normal;
+        max-width: 120px;
+        text-align: center;
+    }
 }
 
 /* Modal suppression événement */
@@ -1581,6 +1637,7 @@
                                 <a
                                     href="{{ path('organisateur_events_show', {'id': event.id}) }}"
                                     class="event-action-btn"
+                                    data-tooltip="Voir les détails"
                                     title="Voir les détails"
                                     aria-label="Voir les détails de l'événement"
                                 >
@@ -1590,6 +1647,7 @@
                                 <a
                                     href="{{ path('organisateur_tickets_index', {'eventId': event.id}) }}"
                                     class="event-action-btn"
+                                    data-tooltip="Historique des ventes"
                                     title="Historique des ventes"
                                     aria-label="Voir l'historique des ventes"
                                 >

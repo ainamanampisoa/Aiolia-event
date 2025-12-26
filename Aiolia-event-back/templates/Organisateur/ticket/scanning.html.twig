@@ -301,6 +301,71 @@
     border: 1px solid var(--border-color);
 }
 
+/* Messages de statut du billet */
+.ticket-status-message {
+    margin-top: 16px;
+    padding: 16px 20px;
+    border-radius: var(--border-radius-md);
+    display: none;
+    animation: slideIn 0.4s ease;
+    font-size: 0.95rem;
+    line-height: 1.5;
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+}
+
+.ticket-status-message.active {
+    display: block;
+}
+
+.ticket-status-message.success {
+    background: linear-gradient(135deg, rgba(39, 174, 96, 0.12), rgba(39, 174, 96, 0.06));
+    border-left: 4px solid var(--success);
+    color: #155724;
+}
+
+.ticket-status-message.error {
+    background: linear-gradient(135deg, rgba(231, 76, 60, 0.12), rgba(231, 76, 60, 0.06));
+    border-left: 4px solid var(--danger);
+    color: #721c24;
+}
+
+.ticket-status-message.warning {
+    background: linear-gradient(135deg, rgba(251, 191, 36, 0.12), rgba(251, 191, 36, 0.06));
+    border-left: 4px solid var(--warning);
+    color: #856404;
+}
+
+.ticket-status-message-header {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    margin-bottom: 10px;
+    font-weight: var(--font-weight-semibold);
+    font-size: 1rem;
+}
+
+.ticket-status-message-header i {
+    font-size: 1.2rem;
+}
+
+.ticket-status-message.success .ticket-status-message-header {
+    color: var(--success);
+}
+
+.ticket-status-message.error .ticket-status-message-header {
+    color: var(--danger);
+}
+
+.ticket-status-message.warning .ticket-status-message-header {
+    color: var(--warning);
+}
+
+.ticket-status-message-body {
+    margin-top: 8px;
+    font-size: 0.9rem;
+    opacity: 0.9;
+}
+
 @media (max-width: 992px) {
     .scanner-container {
         grid-template-columns: 1fr;
@@ -343,6 +408,9 @@
                 </p>
                 <p id="scannedQrCodeText" style="margin: 0; font-family: 'Courier New', monospace; font-size: 0.9rem; color: var(--text-primary); word-break: break-all; background: var(--bg-card); padding: 14px; border-radius: var(--border-radius-sm); border: 1px solid rgba(39, 174, 96, 0.2); box-shadow: inset 0 1px 3px rgba(0, 0, 0, 0.05); line-height: 1.6;"></p>
             </div>
+            
+            <!-- Message de statut du billet -->
+            <div id="ticketStatusMessage" class="ticket-status-message"></div>
             <div id="video-container">
                 <div id="reader" style="width: 100%; min-height: 400px; background: #000; border-radius: var(--border-radius-md); position: relative; overflow: hidden; display: none;"></div>
                 <div id="scanner-placeholder" style="display: flex; flex-direction: column; align-items: center; justify-content: center; min-height: 400px; background: linear-gradient(135deg, #1a1a1a 0%, #2d2d2d 100%); border-radius: var(--border-radius-md); color: #fff; padding: 20px; position: relative; overflow: hidden;">
@@ -428,6 +496,7 @@ document.addEventListener('DOMContentLoaded', function() {
     const scannerTips = document.getElementById('scannerTips');
     const scannedQrCodeDisplay = document.getElementById('scannedQrCodeDisplay');
     const scannedQrCodeText = document.getElementById('scannedQrCodeText');
+    const ticketStatusMessage = document.getElementById('ticketStatusMessage');
     
     let html5QrCode = null;
     let scanning = false;
@@ -454,6 +523,8 @@ document.addEventListener('DOMContentLoaded', function() {
         // Réafficher les conseils au démarrage d'un nouveau scan
         scannerTips.style.display = 'block';
         scannedQrCodeDisplay.style.display = 'none';
+        ticketStatusMessage.classList.remove('active', 'success', 'error', 'warning');
+        ticketStatusMessage.innerHTML = '';
         
         // Configuration optimisée pour écrans
         const config = {
@@ -581,15 +652,79 @@ document.addEventListener('DOMContentLoaded', function() {
                 // Réafficher les conseils et masquer le code QR
                 scannerTips.style.display = 'block';
                 scannedQrCodeDisplay.style.display = 'none';
+                ticketStatusMessage.classList.remove('active', 'success', 'error', 'warning');
+                ticketStatusMessage.innerHTML = '';
             }).catch(err => console.error('Erreur arrêt:', err));
         }
     });
+
+    function displayTicketStatusMessage(billet, statusChanged) {
+        const statut = billet.statut;
+        
+        // Réinitialiser le message
+        ticketStatusMessage.classList.remove('active', 'success', 'error', 'warning');
+        ticketStatusMessage.innerHTML = '';
+        
+        if (statusChanged && statut === 'used') {
+            // Billet validé avec succès (statut changé de valid à used)
+            ticketStatusMessage.classList.add('active', 'success');
+            ticketStatusMessage.innerHTML = `
+                <div class="ticket-status-message-header">
+                    <i class="fas fa-check-circle"></i>
+                    <span>Billet validé avec succès</span>
+                </div>
+                <div class="ticket-status-message-body">
+                    Ce billet a été validé et marqué comme utilisé. L'accès à l'événement est autorisé.
+                </div>
+            `;
+        } else if (statut === 'used') {
+            // Billet déjà utilisé
+            ticketStatusMessage.classList.add('active', 'warning');
+            ticketStatusMessage.innerHTML = `
+                <div class="ticket-status-message-header">
+                    <i class="fas fa-exclamation-triangle"></i>
+                    <span>Billet déjà utilisé</span>
+                </div>
+                <div class="ticket-status-message-body">
+                    Ce billet a déjà été utilisé et validé précédemment. Veuillez vérifier l'identité du porteur du billet.
+                </div>
+            `;
+        } else if (statut === 'cancelled') {
+            // Billet annulé
+            ticketStatusMessage.classList.add('active', 'error');
+            ticketStatusMessage.innerHTML = `
+                <div class="ticket-status-message-header">
+                    <i class="fas fa-times-circle"></i>
+                    <span>Billet non valide</span>
+                </div>
+                <div class="ticket-status-message-body">
+                    Ce billet a été annulé et n'est plus valide. L'accès à l'événement n'est pas autorisé avec ce billet.
+                </div>
+            `;
+        } else if (statut === 'refunded') {
+            // Billet remboursé
+            ticketStatusMessage.classList.add('active', 'error');
+            ticketStatusMessage.innerHTML = `
+                <div class="ticket-status-message-header">
+                    <i class="fas fa-money-bill-wave"></i>
+                    <span>Billet remboursé</span>
+                </div>
+                <div class="ticket-status-message-body">
+                    Ce billet a été remboursé et n'est plus valide. L'accès à l'événement n'est pas autorisé avec ce billet.
+                </div>
+            `;
+        } else {
+            // Autres statuts (valid, transferred, etc.)
+            ticketStatusMessage.classList.remove('active');
+        }
+    }
 
     function loadTicketInfo(qrCode) {
         loadingInfo.style.display = 'block';
         noInfo.style.display = 'none';
         ticketInfo.style.display = 'none';
         factureInfo.style.display = 'none';
+        ticketStatusMessage.classList.remove('active');
         
         fetch('{{ scanApiUrl }}', {
             method: 'POST',
@@ -625,6 +760,9 @@ document.addEventListener('DOMContentLoaded', function() {
             loadingInfo.style.display = 'none';
             
             if (data.success) {
+                // Afficher le message de statut selon le statut du billet
+                displayTicketStatusMessage(data.billet, data.statusChanged || false);
+                
                 displayTicketInfo(data.billet);
                 if (data.facture) {
                     displayFactureInfo(data.facture);
@@ -634,6 +772,7 @@ document.addEventListener('DOMContentLoaded', function() {
                 scanResult.innerHTML = `<h4><i class="fas fa-exclamation-circle"></i> Erreur</h4><p>${data.message || 'Erreur de chargement'}</p>`;
                 scanResult.style.display = 'block';
                 noInfo.style.display = 'block';
+                ticketStatusMessage.classList.remove('active');
             }
         })
         .catch(error => {
