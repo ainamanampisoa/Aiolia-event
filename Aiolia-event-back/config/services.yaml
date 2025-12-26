@@ -7,6 +7,20 @@ parameters:
     # Cloudinary sera utilisé pour le stockage des médias
     app.access_token_ttl: 'PT15M'
     app.refresh_token_ttl: 'P30D'
+    mvola.environment: '%env(MVOLA_ENVIRONMENT)%'
+    mvola.consumer_key: '%env(MVOLA_CONSUMER_KEY)%'
+    mvola.consumer_secret: '%env(MVOLA_CONSUMER_SECRET)%'
+    mvola.api_base_url: '%env(MVOLA_API_BASE_URL)%'
+    mvola.token_url: '%env(MVOLA_TOKEN_URL)%'
+    mvola.auth_url: '%env(MVOLA_AUTH_URL)%'
+    mvola.merchant_msisdn: '%env(MVOLA_MERCHANT_MSISDN)%'
+    mvola.merchant_name: '%env(MVOLA_MERCHANT_NAME)%'
+    mvola.merchant_account_id: '%env(MVOLA_MERCHANT_ACCOUNT_ID)%'
+    mvola.callback_url: '%env(MVOLA_CALLBACK_URL)%'
+    mvola.notification_url: '%env(MVOLA_NOTIFICATION_URL)%'
+    mvola.request_timeout: '%env(int:MVOLA_REQUEST_TIMEOUT)%'
+    mvola.connection_timeout: '%env(int:MVOLA_CONNECTION_TIMEOUT)%'
+
 
 services:
     # default configuration for services in *this* file
@@ -39,3 +53,18 @@ services:
     App\Service\Organisateur\EventPdfExportService:
         arguments:
             $projectDir: '%kernel.project_dir%'
+    
+    App\Service\Organisateur\MvolaPaymentClientService:
+        arguments:
+            $apiBaseUrl: '%env(MVOLA_API_BASE_URL)%'
+            $consumerKey: '%env(MVOLA_CONSUMER_KEY)%'
+            $consumerSecret: '%env(MVOLA_CONSUMER_SECRET)%'
+            $merchantMsisdn: '%env(MVOLA_MERCHANT_MSISDN)%'
+            $merchantName: '%env(MVOLA_MERCHANT_NAME)%'
+            $callbackUrl: '%env(MVOLA_CALLBACK_URL)%'
+            $httpClient: '@http_client'
+            $logger: '@logger'
+    
+    App\Service\Organisateur\PaiementAbonnementService:
+        arguments:
+            $paiementAbonnementRepository: '@App\Repository\Organisateur\PaiementAbonnementRepository'

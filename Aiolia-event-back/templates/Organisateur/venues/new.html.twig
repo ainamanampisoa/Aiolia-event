@@ -1,0 +1,355 @@
+{% extends 'base.html.twig' %}
+
+{% block title %}Créer un nouveau lieu - Aiolia Event{% endblock %}
+
+{% block stylesheets %}
+{{ parent() }}
+<style>
+.event-form {
+    max-width: 1200px;
+    margin: 0 auto;
+}
+
+.form-section {
+    background: var(--white);
+    border-radius: var(--border-radius-xl);
+    padding: 28px;
+    margin-bottom: 24px;
+    box-shadow: var(--shadow-md);
+    border: 1px solid var(--gray-200);
+}
+
+.section-header {
+    display: flex;
+    align-items: center;
+    gap: 16px;
+    margin-bottom: 24px;
+    padding-bottom: 16px;
+    border-bottom: 2px solid var(--gray-200);
+}
+
+.section-icon {
+    width: 50px;
+    height: 50px;
+    border-radius: var(--border-radius-md);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 1.4rem;
+    flex-shrink: 0;
+}
+
+.section-header h2 {
+    font-size: 1.3rem;
+    font-weight: var(--font-weight-bold);
+    color: var(--primary);
+    margin: 0;
+}
+
+.section-header p {
+    font-size: 0.9rem;
+    color: var(--gray-600);
+    margin: 4px 0 0 0;
+}
+
+.form-grid {
+    display: grid;
+    grid-template-columns: repeat(2, 1fr);
+    gap: 20px;
+}
+
+.form-group {
+    display: flex;
+    flex-direction: column;
+}
+
+.form-group.span-2 {
+    grid-column: span 2;
+}
+
+.form-group label {
+    font-size: 0.9rem;
+    font-weight: var(--font-weight-semibold);
+    color: var(--gray-700);
+    margin-bottom: 8px;
+    display: flex;
+    align-items: center;
+}
+
+/* Astérisque rouge pour les champs obligatoires */
+.required {
+    color: #e74c3c !important;
+    font-weight: bold !important;
+    font-size: 1.2em !important;
+    margin-left: 3px !important;
+    display: inline-block !important;
+    vertical-align: middle !important;
+    line-height: 1 !important;
+}
+
+.form-control {
+    padding: 12px 14px;
+    border: 2px solid var(--gray-200);
+    border-radius: var(--border-radius-md);
+    font-size: 0.95rem;
+    font-family: var(--font-family);
+    transition: var(--transition-base);
+    background: var(--white);
+}
+
+.form-control:focus {
+    outline: none;
+    border-color: var(--accent);
+    box-shadow: 0 0 0 3px rgba(52, 152, 219, 0.1);
+}
+
+/* Affichage des erreurs à droite des champs */
+.form-group .invalid-feedback,
+.form-group .form-error-message,
+.form-group .field-error {
+    display: inline-flex;
+    align-items: center;
+    margin-left: 12px;
+    margin-top: 0;
+    color: var(--danger);
+    font-size: 0.9rem;
+    white-space: nowrap;
+}
+
+.form-group .invalid-feedback ul,
+.form-group .form-error-message ul,
+.form-group .field-error ul {
+    margin: 0;
+    padding: 0;
+    list-style: none;
+}
+
+.form-help {
+    font-size: 0.8rem;
+    color: var(--gray-600);
+    margin-top: 6px;
+}
+
+/* Actions du formulaire */
+.form-actions {
+    display: flex;
+    gap: 16px;
+    align-items: center;
+    padding: 24px;
+    background: var(--white);
+    border-radius: var(--border-radius-xl);
+    box-shadow: var(--shadow-md);
+    border: 1px solid var(--gray-200);
+}
+
+.btn-primary {
+    background: linear-gradient(135deg, #3498DB, #5DADE2) !important;
+    color: white;
+    border: none;
+    padding: 14px 32px;
+    border-radius: 10px;
+    font-weight: 600;
+    font-size: 1rem;
+    cursor: pointer;
+    box-shadow: 0 4px 12px rgba(52, 152, 219, 0.3);
+    text-decoration: none;
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+}
+
+.btn-secondary {
+    background: white;
+    color: var(--gray-700);
+    border: 2px solid var(--gray-300);
+    padding: 14px 32px;
+    border-radius: 10px;
+    font-weight: 600;
+    font-size: 1rem;
+    cursor: pointer;
+    text-decoration: none;
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+}
+
+.btn-text {
+    color: var(--gray-600);
+    text-decoration: none;
+    padding: 14px 24px;
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+    background: none;
+    border: none;
+    cursor: pointer;
+}
+
+@media (max-width: 768px) {
+    .form-grid {
+        grid-template-columns: 1fr;
+    }
+    
+    .form-group.span-2 {
+        grid-column: span 1;
+    }
+    
+    .form-actions {
+        flex-direction: column;
+    }
+    
+    .form-actions button,
+    .form-actions a {
+        width: 100%;
+        text-align: center;
+        justify-content: center;
+    }
+}
+</style>
+{% endblock %}
+
+{% block body %}
+<div class="dashboard">
+    <!-- En-tête -->
+    <div class="dashboard-header">
+        <div>
+            <h1>
+                <i class="fa-solid fa-map-marker-alt"></i> Créer un nouveau lieu
+            </h1>
+            <p style="color: var(--gray-600); margin-top: 8px; font-size: 1rem;">
+                Remplissez les informations pour créer un nouveau lieu
+            </p>
+        </div>
+        <div class="header-actions">
+            <a href="{{ path('app_event_new') }}" class="btn btn-secondary" style="background: white; color: var(--gray-700); border: 2px solid var(--gray-300); padding: 12px 24px; border-radius: 8px; text-decoration: none; font-weight: 600; display: inline-flex; align-items: center; gap: 8px;">
+                <i class="fas fa-arrow-left"></i>
+                Retour
+            </a>
+        </div>
+    </div>
+
+    <form method="POST" class="event-form" action="{{ path('organisateur_venues_new', app.request.query.all) }}">
+        {% if app.request.query.get('return_to') %}
+            <input type="hidden" name="return_to" value="{{ app.request.query.get('return_to') }}">
+        {% endif %}
+        
+        <!-- Section 1: Informations principales -->
+        <div class="form-section">
+            <div class="section-header">
+                <div class="section-icon" style="background: linear-gradient(135deg, rgba(52, 152, 219, 0.15), rgba(52, 152, 219, 0.05)); color: var(--accent);">
+                    <i class="fas fa-info-circle"></i>
+                </div>
+                <div>
+                    <h2>Informations principales</h2>
+                    <p>Les détails essentiels du lieu</p>
+                </div>
+            </div>
+
+            <div class="form-grid">
+                <div class="form-group span-2">
+                    <label>Nom du lieu <span class="required">*</span></label>
+                    <input type="text" name="nom" class="form-control" placeholder="Ex: Salle des fêtes de Tananarive" required>
+                    <small class="form-help">Un nom clair et descriptif</small>
+                </div>
+
+                <div class="form-group span-2">
+                    <label>Description</label>
+                    <textarea name="description" class="form-control" rows="4" placeholder="Décrivez le lieu..."></textarea>
+                </div>
+            </div>
+        </div>
+
+        <!-- Section 2: Adresse -->
+        <div class="form-section">
+            <div class="section-header">
+                <div class="section-icon" style="background: linear-gradient(135deg, rgba(39, 174, 96, 0.15), rgba(39, 174, 96, 0.05)); color: var(--success);">
+                    <i class="fas fa-map-marker-alt"></i>
+                </div>
+                <div>
+                    <h2>Adresse</h2>
+                    <p>Localisation du lieu</p>
+                </div>
+            </div>
+
+            <div class="form-grid">
+                <div class="form-group span-2">
+                    <label>Ligne d'adresse 1</label>
+                    <input type="text" name="ligne_adresse_1" class="form-control" placeholder="Ex: 123 Avenue de l'Indépendance">
+                </div>
+
+                <div class="form-group span-2">
+                    <label>Ligne d'adresse 2</label>
+                    <input type="text" name="ligne_adresse_2" class="form-control" placeholder="Complément d'adresse (optionnel)">
+                </div>
+
+                <div class="form-group">
+                    <label>Ville</label>
+                    <input type="text" name="ville" class="form-control" placeholder="Ex: Antananarivo">
+                </div>
+
+                <div class="form-group">
+                    <label>Région</label>
+                    <input type="text" name="region" class="form-control" placeholder="Ex: Analamanga">
+                </div>
+
+                <div class="form-group">
+                    <label>Code postal</label>
+                    <input type="text" name="code_postal" class="form-control" placeholder="Ex: 101">
+                </div>
+
+                <div class="form-group">
+                    <label>Code pays</label>
+                    <input type="text" name="code_pays" class="form-control" value="MG" placeholder="MG" maxlength="2">
+                    <small class="form-help">Code ISO à 2 lettres (défaut: MG)</small>
+                </div>
+            </div>
+        </div>
+
+        <!-- Section 3: Contact et capacité -->
+        <div class="form-section">
+            <div class="section-header">
+                <div class="section-icon" style="background: linear-gradient(135deg, rgba(155, 89, 182, 0.15), rgba(155, 89, 182, 0.05)); color: #9B59B6;">
+                    <i class="fas fa-phone"></i>
+                </div>
+                <div>
+                    <h2>Contact et capacité</h2>
+                    <p>Informations de contact et capacité du lieu</p>
+                </div>
+            </div>
+
+            <div class="form-grid">
+                <div class="form-group">
+                    <label>Email de contact</label>
+                    <input type="email" name="email_contact" class="form-control" placeholder="contact@exemple.mg">
+                </div>
+
+                <div class="form-group">
+                    <label>Téléphone de contact</label>
+                    <input type="tel" name="telephone_contact" class="form-control" placeholder="+261 34 12 345 67">
+                </div>
+
+                <div class="form-group">
+                    <label>Capacité</label>
+                    <input type="number" name="capacite" class="form-control" placeholder="100" min="1">
+                    <small class="form-help">Nombre de personnes maximum</small>
+                </div>
+            </div>
+        </div>
+
+        <!-- Actions -->
+        <div class="form-actions">
+            <button type="submit" class="btn btn-primary">
+                <i class="fas fa-check"></i>
+                Créer le lieu
+            </button>
+            <a href="{{ path('app_event_new') }}" class="btn btn-text">
+                Annuler
+            </a>
+        </div>
+    </form>
+</div>
+{% endblock %}
+
+{% block javascripts %}
+{{ parent() }}
+{% endblock %}

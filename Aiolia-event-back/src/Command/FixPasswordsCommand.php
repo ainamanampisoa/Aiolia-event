@@ -32,17 +32,35 @@ class FixPasswordsCommand extends Command
 
         $io->title('Mise à jour des mots de passe des utilisateurs');
 
-        // Générer le hash du mot de passe avec le hasher Symfony (BCRYPT cost 13)
+        // Générer le hash du mot de passe avec BCRYPT cost 13 (comme configuré dans security.yaml)
         $plainPassword = 'azerty!';
         
-        // Créer un utilisateur temporaire pour utiliser le hasher Symfony
-        $tempUser = new User();
-        $hashedPassword = $this->passwordHasher->hashPassword($tempUser, $plainPassword);
+        // Essayer d'utiliser un utilisateur réel de la base pour générer le hash
+        // Si aucun utilisateur n'existe, utiliser password_hash() directement
+        $hashedPassword = null;
+        $testUser = $this->userRepository->findOneBy([]);
+        
+        if ($testUser) {
+            // Utiliser le hasher Symfony avec un utilisateur réel pour garantir la compatibilité
+            $hashedPassword = $this->passwordHasher->hashPassword($testUser, $plainPassword);
+            $io->info('Hash généré avec le hasher Symfony (utilisateur réel)');
+        } else {
+            // Fallback : utiliser password_hash() directement avec les mêmes paramètres
+            $hashedPassword = password_hash($plainPassword, PASSWORD_BCRYPT, ['cost' => 13]);
+            $io->info('Hash généré avec password_hash() (BCRYPT cost 13)');
+        }
+
+        // Vérifier que le hash est valide en le testant
+        if (!password_verify($plainPassword, $hashedPassword)) {
+            $io->error('Erreur : le hash généré ne peut pas être vérifié !');
+            return Command::FAILURE;
+        }
 
         $io->info(sprintf(
             'Nouveau mot de passe : %s (hashé avec BCRYPT, cost 13)',
             $plainPassword
         ));
+        $io->note('Le hash a été testé et est valide.');
 
         // Demander confirmation
         if (!$io->confirm('Voulez-vous vraiment changer tous les mots de passe ?', false)) {

@@ -257,14 +257,24 @@ class EventRepository extends ServiceEntityRepository
         }
 
         
-        if ($dateDebut !== null) {
+        // Filtre par période : inclut tous les événements qui chevauchent la période
+        // Un événement chevauche la période si :
+        // - Il commence avant ou pendant la période ET
+        // - Il se termine après ou pendant la période (ou n'a pas de date de fin)
+        // Logique : (commenceLe <= dateFin) AND (seTermineLe IS NULL OR seTermineLe >= dateDebut)
+        // Note: Les dates sont déjà normalisées dans le contrôleur (dateFrom à 00:00:00, dateTo à 23:59:59)
+        if ($dateDebut !== null && $dateFin !== null) {
+            $qb->andWhere('e.commenceLe <= :dateFin')
+                ->andWhere('(e.seTermineLe IS NULL OR e.seTermineLe >= :dateDebut)')
+                ->setParameter('dateDebut', $dateDebut)
+                ->setParameter('dateFin', $dateFin);
+        } elseif ($dateDebut !== null) {
+            // Si seule la date de début est fournie : événements qui commencent après ou à cette date
             $qb->andWhere('e.commenceLe >= :dateDebut')
                 ->setParameter('dateDebut', $dateDebut);
-        }
-
-        
-        if ($dateFin !== null) {
-            $qb->andWhere('e.seTermineLe <= :dateFin')
+        } elseif ($dateFin !== null) {
+            // Si seule la date de fin est fournie : événements qui se terminent avant ou à cette date
+            $qb->andWhere('(e.seTermineLe IS NULL OR e.seTermineLe <= :dateFin)')
                 ->setParameter('dateFin', $dateFin);
         }
 
@@ -361,14 +371,24 @@ class EventRepository extends ServiceEntityRepository
         }
 
         
-        if ($dateDebut !== null) {
+        // Filtre par période : inclut tous les événements qui chevauchent la période
+        // Un événement chevauche la période si :
+        // - Il commence avant ou pendant la période ET
+        // - Il se termine après ou pendant la période (ou n'a pas de date de fin)
+        // Logique : (commenceLe <= dateFin) AND (seTermineLe IS NULL OR seTermineLe >= dateDebut)
+        // Note: Les dates sont déjà normalisées dans le contrôleur (dateFrom à 00:00:00, dateTo à 23:59:59)
+        if ($dateDebut !== null && $dateFin !== null) {
+            $qb->andWhere('e.commenceLe <= :dateFin')
+                ->andWhere('(e.seTermineLe IS NULL OR e.seTermineLe >= :dateDebut)')
+                ->setParameter('dateDebut', $dateDebut)
+                ->setParameter('dateFin', $dateFin);
+        } elseif ($dateDebut !== null) {
+            // Si seule la date de début est fournie : événements qui commencent après ou à cette date
             $qb->andWhere('e.commenceLe >= :dateDebut')
                 ->setParameter('dateDebut', $dateDebut);
-        }
-
-        
-        if ($dateFin !== null) {
-            $qb->andWhere('e.seTermineLe <= :dateFin')
+        } elseif ($dateFin !== null) {
+            // Si seule la date de fin est fournie : événements qui se terminent avant ou à cette date
+            $qb->andWhere('(e.seTermineLe IS NULL OR e.seTermineLe <= :dateFin)')
                 ->setParameter('dateFin', $dateFin);
         }
 

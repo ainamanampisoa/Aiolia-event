@@ -2,126 +2,8 @@
 
 {% block title %}Calendrier des événements - Aiolia Event{% endblock %}
 
-{% block body %}
-<div class="dashboard">
-    <!-- En-tête de la page -->
-    <div class="dashboard-header">
-        <div>
-            <h1>📅 Calendrier des événements</h1>
-            <p style="color: var(--text-secondary); margin-top: 8px; font-size: 1rem;">
-                Visualisez tous vos événements dans un calendrier mensuel
-            </p>
-        </div>
-        <div class="header-actions">
-            <a href="{{ path('organisateur_events_index') }}" class="btn btn-secondary">
-                <i class="fas fa-th-large"></i>
-                Vue liste
-            </a>
-            <a href="{{ path('app_event_new') }}" class="btn btn-primary">
-                <i class="fas fa-plus"></i>
-                Nouvel événement
-            </a>
-        </div>
-    </div>
-
-    <!-- Navigation du calendrier -->
-    <div class="calendar-navigation">
-        <div class="calendar-nav-group">
-            <a href="{{ path('organisateur_events_calendar', {'year': 'now'|date('Y'), 'month': 'now'|date('m')}) }}" class="calendar-nav-btn calendar-nav-today" title="Aujourd'hui">
-                <i class="fas fa-calendar-day"></i>
-                Aujourd'hui
-            </a>
-            <a href="{{ path('organisateur_events_calendar', {'year': currentMonth == 1 ? currentYear - 1 : currentYear, 'month': currentMonth == 1 ? 12 : currentMonth - 1}) }}" class="calendar-nav-btn calendar-nav-arrow" title="Mois précédent">
-                <i class="fas fa-chevron-left"></i>
-            </a>
-            <a href="{{ path('organisateur_events_calendar', {'year': currentMonth == 12 ? currentYear + 1 : currentYear, 'month': currentMonth == 12 ? 1 : currentMonth + 1}) }}" class="calendar-nav-btn calendar-nav-arrow" title="Mois suivant">
-                <i class="fas fa-chevron-right"></i>
-            </a>
-        </div>
-        <h2 class="calendar-month-year">
-            <span class="calendar-month-name">{{ monthName }}</span>
-            <span class="calendar-year">{{ currentYear }}</span>
-        </h2>
-        <div class="calendar-nav-group">
-            <select id="monthSelect" class="calendar-month-select">
-                {% for i in 1..12 %}
-                    <option value="{{ i }}" {% if i == currentMonth %}selected{% endif %}>
-                        {% set months = ['Janvier', 'Février', 'Mars', 'Avril', 'Mai', 'Juin', 'Juillet', 'Août', 'Septembre', 'Octobre', 'Novembre', 'Décembre'] %}
-                        {{ months[i-1] }}
-                    </option>
-                {% endfor %}
-            </select>
-            <select id="yearSelect" class="calendar-year-select">
-                {% for y in (currentYear - 2)..(currentYear + 2) %}
-                    <option value="{{ y }}" {% if y == currentYear %}selected{% endif %}>{{ y }}</option>
-                {% endfor %}
-            </select>
-        </div>
-    </div>
-
-    <!-- Calendrier -->
-    <div class="calendar-container">
-        <div class="calendar-grid">
-            <!-- En-têtes des jours -->
-            {% set dayHeaders = ['Lun', 'Mar', 'Mer', 'Jeu', 'Ven', 'Sam', 'Dim'] %}
-            {% for dayHeader in dayHeaders %}
-                <div class="calendar-day-header">{{ dayHeader }}</div>
-            {% endfor %}
-
-            <!-- Jours vides au début -->
-            {% if startingDayOfWeek > 0 %}
-                {% for i in 1..startingDayOfWeek %}
-                    <div class="calendar-day empty"></div>
-                {% endfor %}
-            {% endif %}
-
-            <!-- Jours du mois -->
-            {% for day in 1..daysInMonth %}
-                {% set dayStr = day < 10 ? '0' ~ day : day %}
-                {% set monthStr = currentMonth < 10 ? '0' ~ currentMonth : currentMonth %}
-                {% set dateKey = currentYear ~ '-' ~ monthStr ~ '-' ~ dayStr %}
-                {% set today = 'now'|date('Y-m-d') %}
-                {% set isToday = dateKey == today %}
-                {% set dayEvents = eventsByDate[dateKey] ?? [] %}
-                
-                <div class="calendar-day {% if isToday %}today{% endif %} {% if dayEvents|length > 0 %}has-events{% endif %}">
-                    <div class="calendar-day-header-inner">
-                        <div class="calendar-day-number">{{ day }}</div>
-                        {% if dayEvents|length > 0 %}
-                            <div class="calendar-day-badge">{{ dayEvents|length }}</div>
-                        {% endif %}
-                    </div>
-                    {% if dayEvents|length > 0 %}
-                        <div class="calendar-day-events">
-                            {% for event in dayEvents|slice(0, 3) %}
-                                <a href="{{ path('organisateur_events_show', {'id': event.id}) }}" class="calendar-event-link calendar-event-{{ event.statut }}" title="{{ event.titre }}">
-                                    <div class="calendar-event-content">
-                                        <span class="calendar-event-time">
-                                            <i class="fas fa-clock"></i>
-                                            {{ event.commenceLe|date('H:i') }}
-                                        </span>
-                                        <span class="calendar-event-title">{{ event.titre|length > 18 ? event.titre|slice(0, 18) ~ '...' : event.titre }}</span>
-                                    </div>
-                                </a>
-                            {% endfor %}
-                            {% if dayEvents|length > 3 %}
-                                <div class="calendar-event-more" title="Voir tous les événements">
-                                    <i class="fas fa-ellipsis-h"></i>
-                                    +{{ dayEvents|length - 3 }} autre(s)
-                                </div>
-                            {% endif %}
-                        </div>
-                    {% else %}
-                        <div class="calendar-day-empty">
-                            <i class="fas fa-calendar-plus"></i>
-                        </div>
-                    {% endif %}
-                </div>
-            {% endfor %}
-        </div>
-    </div>
-</div>
-
+{% block stylesheets %}
+{{ parent() }}
 <style>
 .calendar-navigation {
     display: flex;
@@ -381,7 +263,7 @@
     margin-top: auto;
     max-height: 90px;
     overflow-y: auto;
-    padding-right: 10px; /* espace pour le scrollbar pour éviter les clics involontaires */
+    padding-right: 10px;
 }
 
 .calendar-day-events::-webkit-scrollbar {
@@ -408,7 +290,6 @@
     font-size: 0.75rem;
     position: relative;
     overflow: hidden;
-    /* Empêcher les overlays de capter les clics destinés au scrollbar */
     pointer-events: auto;
 }
 
@@ -465,7 +346,6 @@
     font-size: 0.75rem;
 }
 
-/* Couleurs selon le statut */
 .calendar-event-published {
     border-left-color: #06d6a0;
     background: rgba(6, 214, 160, 0.08);
@@ -603,7 +483,131 @@
     }
 }
 </style>
+{% endblock %}
 
+{% block body %}
+<div class="dashboard">
+    <!-- En-tête de la page -->
+    <div class="dashboard-header">
+        <div>
+            <h1><i class="fa-solid fa-calendar-days"></i> Calendrier des événements</h1>
+            <p style="color: var(--text-secondary); margin-top: 8px; font-size: 1rem;">
+                Visualisez tous vos événements dans un calendrier mensuel
+            </p>
+        </div>
+        <div class="header-actions">
+            <a href="{{ path('organisateur_events_index') }}" class="btn btn-secondary">
+                <i class="fas fa-th-large"></i>
+                Vue liste
+            </a>
+            <a href="{{ path('app_event_new') }}" class="btn btn-primary">
+                <i class="fas fa-plus"></i>
+                Nouvel événement
+            </a>
+        </div>
+    </div>
+
+    <!-- Navigation du calendrier -->
+    <div class="calendar-navigation">
+        <div class="calendar-nav-group">
+            <a href="{{ path('organisateur_events_calendar', {'year': 'now'|date('Y'), 'month': 'now'|date('m')}) }}" class="calendar-nav-btn calendar-nav-today" title="Aujourd'hui">
+                <i class="fas fa-calendar-day"></i>
+                Aujourd'hui
+            </a>
+            <a href="{{ path('organisateur_events_calendar', {'year': currentMonth == 1 ? currentYear - 1 : currentYear, 'month': currentMonth == 1 ? 12 : currentMonth - 1}) }}" class="calendar-nav-btn calendar-nav-arrow" title="Mois précédent">
+                <i class="fas fa-chevron-left"></i>
+            </a>
+            <a href="{{ path('organisateur_events_calendar', {'year': currentMonth == 12 ? currentYear + 1 : currentYear, 'month': currentMonth == 12 ? 1 : currentMonth + 1}) }}" class="calendar-nav-btn calendar-nav-arrow" title="Mois suivant">
+                <i class="fas fa-chevron-right"></i>
+            </a>
+        </div>
+        <h2 class="calendar-month-year">
+            <span class="calendar-month-name">{{ monthName }}</span>
+            <span class="calendar-year">{{ currentYear }}</span>
+        </h2>
+        <div class="calendar-nav-group">
+            <select id="monthSelect" class="calendar-month-select">
+                {% for i in 1..12 %}
+                    <option value="{{ i }}" {% if i == currentMonth %}selected{% endif %}>
+                        {% set months = ['Janvier', 'Février', 'Mars', 'Avril', 'Mai', 'Juin', 'Juillet', 'Août', 'Septembre', 'Octobre', 'Novembre', 'Décembre'] %}
+                        {{ months[i-1] }}
+                    </option>
+                {% endfor %}
+            </select>
+            <select id="yearSelect" class="calendar-year-select">
+                {% for y in (currentYear - 2)..(currentYear + 2) %}
+                    <option value="{{ y }}" {% if y == currentYear %}selected{% endif %}>{{ y }}</option>
+                {% endfor %}
+            </select>
+        </div>
+    </div>
+
+    <!-- Calendrier -->
+    <div class="calendar-container">
+        <div class="calendar-grid">
+            <!-- En-têtes des jours -->
+            {% set dayHeaders = ['Lun', 'Mar', 'Mer', 'Jeu', 'Ven', 'Sam', 'Dim'] %}
+            {% for dayHeader in dayHeaders %}
+                <div class="calendar-day-header">{{ dayHeader }}</div>
+            {% endfor %}
+
+            <!-- Jours vides au début -->
+            {% if startingDayOfWeek > 0 %}
+                {% for i in 1..startingDayOfWeek %}
+                    <div class="calendar-day empty"></div>
+                {% endfor %}
+            {% endif %}
+
+            <!-- Jours du mois -->
+            {% for day in 1..daysInMonth %}
+                {% set dayStr = day < 10 ? '0' ~ day : day %}
+                {% set monthStr = currentMonth < 10 ? '0' ~ currentMonth : currentMonth %}
+                {% set dateKey = currentYear ~ '-' ~ monthStr ~ '-' ~ dayStr %}
+                {% set today = 'now'|date('Y-m-d') %}
+                {% set isToday = dateKey == today %}
+                {% set dayEvents = eventsByDate[dateKey] ?? [] %}
+                
+                <div class="calendar-day {% if isToday %}today{% endif %} {% if dayEvents|length > 0 %}has-events{% endif %}">
+                    <div class="calendar-day-header-inner">
+                        <div class="calendar-day-number">{{ day }}</div>
+                        {% if dayEvents|length > 0 %}
+                            <div class="calendar-day-badge">{{ dayEvents|length }}</div>
+                        {% endif %}
+                    </div>
+                    {% if dayEvents|length > 0 %}
+                        <div class="calendar-day-events">
+                            {% for event in dayEvents|slice(0, 3) %}
+                                <a href="{{ path('organisateur_events_show', {'id': event.id}) }}" class="calendar-event-link calendar-event-{{ event.statut }}" title="{{ event.titre }}">
+                                    <div class="calendar-event-content">
+                                        <span class="calendar-event-time">
+                                            <i class="fas fa-clock"></i>
+                                            {{ event.commenceLe|date('H:i') }}
+                                        </span>
+                                        <span class="calendar-event-title">{{ event.titre|length > 18 ? event.titre|slice(0, 18) ~ '...' : event.titre }}</span>
+                                    </div>
+                                </a>
+                            {% endfor %}
+                            {% if dayEvents|length > 3 %}
+                                <div class="calendar-event-more" title="Voir tous les événements">
+                                    <i class="fas fa-ellipsis-h"></i>
+                                    +{{ dayEvents|length - 3 }} autre(s)
+                                </div>
+                            {% endif %}
+                        </div>
+                    {% else %}
+                        <div class="calendar-day-empty">
+                            <i class="fas fa-calendar-plus"></i>
+                        </div>
+                    {% endif %}
+                </div>
+            {% endfor %}
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block javascripts %}
+{{ parent() }}
 <script>
 document.addEventListener('DOMContentLoaded', function() {
     const monthSelect = document.getElementById('monthSelect');

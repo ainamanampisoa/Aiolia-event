@@ -73,6 +73,33 @@ class UserNotificationService
         return $this->sendEmail($email);
     }
 
+    /**
+     * Envoie une notification d'approbation avec détails d'erreur pour le debug
+     * @return array{success: bool, error: ?string, details: ?string}
+     */
+    public function sendValidationApprovedNotificationWithDetails(User $user, string $newRole, ?string $comment = null): array
+    {
+        $roleLabels = [
+            'organizer' => 'Organisateur',
+            'admin' => 'Administrateur',
+            'user' => 'Utilisateur',
+        ];
+
+        $roleLabel = $roleLabels[$newRole] ?? $newRole;
+
+        $email = $this->createBaseEmail()
+            ->to($user->getEmail())
+            ->subject('Votre demande de validation a été approuvée - Aiolia Event')
+            ->htmlTemplate('emails/validation_approved.html.twig')
+            ->context([
+                'user' => $user,
+                'newRole' => $roleLabel,
+                'comment' => $comment,
+            ]);
+
+        return $this->sendEmailWithDetails($email);
+    }
+
     
     public function sendValidationRejectedNotification(User $user, string $requestedRole, ?string $reason = null): bool
     {
@@ -144,13 +171,52 @@ class UserNotificationService
                 $email->getTo() ?? []
             );
 
+            // Log détaillé côté serveur
             $this->logger?->error(sprintf(
                 'Erreur lors de l\'envoi de l\'email "%s" vers "%s": %s',
                 $email->getSubject(),
                 implode(', ', $toRecipients),
                 $e->getMessage()
-            ));
+            ), [
+                'exception' => $e,
+            ]);
+
             return false;
+        }
+    }
+
+    /**
+     * Envoie un email et retourne un tableau avec le statut et l'erreur détaillée
+     * @return array{success: bool, error: ?string, details: ?string}
+     */
+    public function sendEmailWithDetails(TemplatedEmail $email): array
+    {
+        try {
+            $this->mailer->send($email);
+            return ['success' => true, 'error' => null, 'details' => null];
+        } catch (\Throwable $e) {
+            $toRecipients = array_map(
+                static fn(Address $address) => $address->toString(),
+                $email->getTo() ?? []
+            );
+
+            $errorMessage = sprintf(
+                'Erreur lors de l\'envoi de l\'email "%s" vers "%s": %s',
+                $email->getSubject(),
+                implode(', ', $toRecipients),
+                $e->getMessage()
+            );
+
+            // Log détaillé côté serveur
+            $this->logger?->error($errorMessage, [
+                'exception' => $e,
+            ]);
+
+            return [
+                'success' => false,
+                'error' => $e->getMessage(),
+                'details' => $e->getTraceAsString()
+            ];
         }
     }
 }

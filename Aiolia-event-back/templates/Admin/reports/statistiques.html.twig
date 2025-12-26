@@ -426,7 +426,8 @@
                             <span data-i18n="stats.filters.year">Année</span>
                         </label>
                         <select id="year" name="year" class="form-input">
-                            {% for y in 2020..2030 %}
+                            <option value="0" {{ selectedYear == 0 or selectedYear is null ? 'selected' : '' }} data-i18n="stats.filters.year.all">Toutes les années</option>
+                            {% for y in 2024..2026 %}
                                 <option value="{{ y }}" {{ selectedYear == y ? 'selected' : '' }}>{{ y }}</option>
                             {% endfor %}
                         </select>
@@ -513,6 +514,7 @@
             'stats.filters.month.november': 'Novembre',
             'stats.filters.month.december': 'Décembre',
             'stats.filters.year': 'Année',
+            'stats.filters.year.all': 'Toutes les années',
             'stats.actions.search': 'Rechercher',
             'stats.actions.reset': 'Réinitialiser',
             'stats.charts.active_organizers': 'Organisateurs actifs',
@@ -554,6 +556,7 @@
             'stats.filters.month.november': 'November',
             'stats.filters.month.december': 'December',
             'stats.filters.year': 'Year',
+            'stats.filters.year.all': 'All years',
             'stats.actions.search': 'Search',
             'stats.actions.reset': 'Reset',
             'stats.charts.active_organizers': 'Active organizers',
@@ -822,7 +825,9 @@ function updateSubscriptionNameTranslation() {
     const revenueCtx = document.getElementById('revenueForecastChart').getContext('2d');
     const selectedYear = {{ selectedYear }};
     const allMonths = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
-    const allMonthLabels = allMonths.map(month => month + ' ' + selectedYear);
+    const allMonthLabels = selectedYear === 0 
+        ? allMonths 
+        : allMonths.map(month => month + ' ' + selectedYear);
     
     if (isSingleMonthSelected && revenueBreakdown.length > 0) {
         const monthLabel = formatMonthLabel(revenueBreakdown[0].month_label || '');
@@ -891,6 +896,7 @@ function updateSubscriptionNameTranslation() {
             'Dec': 'Dec', 'December': 'Dec', 'Décembre': 'Dec'
         };
         
+        // Si toutes les années sont sélectionnées, agréger les données par mois toutes années confondues
         const revenueDataMap = {};
         revenueBreakdown.forEach(item => {
             const monthLabelRaw = item.month_label || '';
@@ -901,11 +907,26 @@ function updateSubscriptionNameTranslation() {
                 const monthIndex = allMonths.indexOf(monthAbbr);
                 
                 if (monthIndex !== -1) {
-                    revenueDataMap[monthIndex] = {
-                        ht: Number(item.revenue_ht ?? 0),
-                        tva: Number(item.revenue_tva ?? 0),
-                        ttc: Number(item.revenue_ttc ?? 0)
-                    };
+                    // Si toutes les années sont sélectionnées, additionner les valeurs pour chaque mois
+                    if (selectedYear === 0) {
+                        if (!revenueDataMap[monthIndex]) {
+                            revenueDataMap[monthIndex] = {
+                                ht: 0,
+                                tva: 0,
+                                ttc: 0
+                            };
+                        }
+                        revenueDataMap[monthIndex].ht += Number(item.revenue_ht ?? 0);
+                        revenueDataMap[monthIndex].tva += Number(item.revenue_tva ?? 0);
+                        revenueDataMap[monthIndex].ttc += Number(item.revenue_ttc ?? 0);
+                    } else {
+                        // Pour une année spécifique, utiliser la dernière valeur (normalement il n'y en a qu'une)
+                        revenueDataMap[monthIndex] = {
+                            ht: Number(item.revenue_ht ?? 0),
+                            tva: Number(item.revenue_tva ?? 0),
+                            ttc: Number(item.revenue_ttc ?? 0)
+                        };
+                    }
                 }
             }
         });
@@ -925,7 +946,7 @@ function updateSubscriptionNameTranslation() {
                     borderColor: '#3b82f6',
                     backgroundColor: 'rgba(59, 130, 246, 0.1)',
                     borderWidth: 2,
-                    fill: false,
+                    fill: true,
                     tension: 0.4
                 },
                 {
@@ -934,7 +955,7 @@ function updateSubscriptionNameTranslation() {
                     borderColor: '#f97316',
                     backgroundColor: 'rgba(249, 115, 22, 0.1)',
                     borderWidth: 2,
-                    fill: false,
+                    fill: true,
                     tension: 0.4
                 },
                 {
@@ -943,7 +964,7 @@ function updateSubscriptionNameTranslation() {
                     borderColor: '#22c55e',
                     backgroundColor: 'rgba(34, 197, 94, 0.1)',
                     borderWidth: 2,
-                    fill: false,
+                    fill: true,
                     tension: 0.4
                 }
             ]
@@ -951,15 +972,38 @@ function updateSubscriptionNameTranslation() {
             options: {
                 responsive: true,
                 maintainAspectRatio: false,
+                interaction: {
+                    mode: 'index',
+                    intersect: false
+                },
                 plugins: {
                     legend: {
                         display: true,
                         position: 'top'
                     },
                     tooltip: {
+                        mode: 'index',
+                        intersect: false,
+                        filter: function(tooltipItem) {
+                            // Afficher seulement le premier dataset pour éviter la duplication
+                            return tooltipItem.datasetIndex === 0;
+                        },
                         callbacks: {
+                            title: function(context) {
+                                return context[0].label;
+                            },
                             label: function(context) {
-                                return context.dataset.label + ': ' + new Intl.NumberFormat('fr-FR').format(context.parsed.y) + ' Ar';
+                                // Afficher toutes les valeurs du même point (même index)
+                                const index = context.dataIndex;
+                                const ht = revenueHTData[index] || 0;
+                                const tva = revenueTVAData[index] || 0;
+                                const ttc = revenueTTCData[index] || 0;
+                                
+                                return [
+                                    translateInline('stats.charts.labels.ca_ht', 'CA HT (Ar)') + ': ' + new Intl.NumberFormat('fr-FR').format(ht) + ' Ar',
+                                    translateInline('stats.charts.labels.tva', 'TVA (Ar)') + ': ' + new Intl.NumberFormat('fr-FR').format(tva) + ' Ar',
+                                    translateInline('stats.charts.labels.ca_ttc', 'CA TTC (Ar)') + ': ' + new Intl.NumberFormat('fr-FR').format(ttc) + ' Ar'
+                                ];
                             }
                         }
                     }
@@ -988,6 +1032,16 @@ function updateSubscriptionNameTranslation() {
         const monthSelect = document.getElementById('month');
         if (monthSelect) {
             Array.from(monthSelect.options).forEach(option => {
+                const i18nKey = option.getAttribute('data-i18n');
+                if (i18nKey) {
+                    option.textContent = window.languageManager.translate(i18nKey);
+                }
+            });
+        }
+        
+        const yearSelect = document.getElementById('year');
+        if (yearSelect) {
+            Array.from(yearSelect.options).forEach(option => {
                 const i18nKey = option.getAttribute('data-i18n');
                 if (i18nKey) {
                     option.textContent = window.languageManager.translate(i18nKey);

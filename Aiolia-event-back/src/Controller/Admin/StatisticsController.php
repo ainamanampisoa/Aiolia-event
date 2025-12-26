@@ -21,16 +21,17 @@ class StatisticsController extends AbstractController
     #[Route('', name: '', methods: ['GET'])]
     public function index(Request $request): Response
     {
-        // Par défaut : janvier-décembre 2025
+        // Par défaut : tous les mois, toutes les années
         $month = $request->query->getInt('month', 0); // 0 = tous les mois
-        $year = $request->query->getInt('year', 2025);
+        $year = $request->query->getInt('year', 0); // 0 = toutes les années
 
         // Validation
         if ($month < 0 || $month > 12) {
             $month = 0;
         }
-        if ($year < 2020 || $year > 2100) {
-            $year = 2025;
+        // Accepter 0 pour "Toutes les années"
+        if ($year !== 0 && ($year < 2020 || $year > 2100)) {
+            $year = 0;
         }
 
         $statistics = $this->statisticsService->getDashboardStatistics($month, $year);
@@ -43,10 +44,20 @@ class StatisticsController extends AbstractController
             9 => 'Septembre', 10 => 'Octobre', 11 => 'Novembre', 12 => 'Décembre'
         ];
 
-        if ($month > 0 && $month <= 12) {
-            $periodLabel = $monthNames[$month] . ' ' . $year;
+        if ($year === 0) {
+            // Toutes les années
+            if ($month > 0 && $month <= 12) {
+                $periodLabel = $monthNames[$month] . ' (Toutes années)';
+            } else {
+                $periodLabel = 'Toutes périodes';
+            }
         } else {
-            $periodLabel = 'Jan-Déc ' . $year;
+            // Année spécifique
+            if ($month > 0 && $month <= 12) {
+                $periodLabel = $monthNames[$month] . ' ' . $year;
+            } else {
+                $periodLabel = 'Jan-Déc ' . $year;
+            }
         }
 
         return $this->render('Admin/reports/statistiques.html.twig', [

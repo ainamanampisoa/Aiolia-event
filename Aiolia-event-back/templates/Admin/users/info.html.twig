@@ -6,6 +6,61 @@
 {{ parent() }}
 <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
 <style>
+.dashboard-header h1 {
+    display: flex !important;
+    align-items: center;
+    gap: 12px;
+}
+
+.dashboard-header h1 i {
+    font-size: 2rem !important;
+    color: var(--accent) !important;
+    display: inline-block !important;
+    visibility: visible !important;
+    opacity: 1 !important;
+}
+
+.dashboard-subtitle {
+    color: var(--text-secondary);
+    margin: 0.5rem 0 0 0;
+    font-size: 0.95rem;
+}
+
+/* Fil d'Ariane */
+.breadcrumb-horizontal {
+    display: flex;
+    align-items: center;
+    gap: 0.75rem;
+    font-size: 1rem;
+    font-weight: var(--font-weight-semibold);
+    color: var(--text-primary);
+    margin-bottom: 1.75rem;
+}
+
+.breadcrumb-horizontal a {
+    color: var(--accent);
+    text-decoration: none;
+    transition: var(--transition-fast);
+}
+
+.breadcrumb-horizontal a:hover {
+    color: var(--accent-light);
+    text-decoration: underline;
+}
+
+.breadcrumb-horizontal .breadcrumb-active {
+    color: var(--text-secondary);
+    font-weight: var(--font-weight-semibold);
+}
+
+.validation-card {
+    border: 1px solid var(--border-color);
+    border-radius: var(--border-radius-lg);
+    box-shadow: var(--shadow-sm);
+    overflow: hidden;
+    background: var(--bg-card);
+}
+
 .user-info-page .info-alert {
     background: rgba(52, 152, 219, 0.1);
     border-left: 4px solid var(--accent);
@@ -52,32 +107,28 @@
 {% endblock %}
 
 {% block body %}
-<div class="container-fluid py-4 user-info-page">
-    <!-- En-tête avec breadcrumb -->
-    <div class="row mb-4">
-        <div class="col-12">
-            <nav aria-label="breadcrumb">
-                <ol class="breadcrumb">
-                    <li class="breadcrumb-item"><a href="{{ path('admin_users_list') }}" data-i18n-fr="Utilisateurs" data-i18n-en="Users">Utilisateurs</a></li>
-                    <li class="breadcrumb-item"><a href="{{ path('admin_users_show', {id: user.id}) }}">{{ user.nomComplet }}</a></li>
-                    <li class="breadcrumb-item active" data-i18n-fr="Informations supplémentaires" data-i18n-en="Additional information">Informations supplémentaires</li>
-                </ol>
-            </nav>
+<div class="dashboard">
+    <!-- Fil d'Ariane -->
+    <div class="breadcrumb-horizontal" style="margin-bottom: 1.75rem;">
+        <a href="{{ path('admin_users_list') }}" data-i18n-fr="Gestion des utilisateurs" data-i18n-en="User management">Gestion des utilisateurs</a>
+        <span>/</span>
+        <a href="{{ path('admin_users_show', {id: user.id}) }}">{{ user.nomComplet }}</a>
+        <span>/</span>
+        <span class="breadcrumb-active" data-i18n-fr="Informations supplémentaires" data-i18n-en="Additional information">Informations supplémentaires</span>
+    </div>
+
+    <!-- En-tête -->
+    <div class="dashboard-header">
+        <div>
+            <h1><i class="fas fa-info-circle"></i> <span data-i18n="users.info.header.title">Informations supplémentaires</span> · {{ user.nomComplet }}</h1>
+            <p class="dashboard-subtitle" data-i18n="users.info.header.subtitle">
+                Gérez les informations et les actions liées à cet utilisateur
+            </p>
         </div>
     </div>
 
-    <div class="row">
-        <div class="col-md-8 offset-md-2">
-            <div class="card">
-                <div class="card-header" style="display:flex; justify-content:space-between; align-items:center;">
-                    <h5 class="mb-0">
-                        <i class="fas fa-info-circle"></i> <span data-i18n-fr="Informations supplémentaires" data-i18n-en="Additional information">Informations supplémentaires</span> - {{ user.nomComplet }}
-                    </h5>
-                    <a href="{{ path('admin_users_show', {id: user.id}) }}" class="btn btn-sm btn-secondary">
-                        <i class="fas fa-arrow-left"></i> <span data-i18n-fr="Retour" data-i18n-en="Back">Retour</span>
-                    </a>
-                </div>
-                <div class="card-body">
+    <div class="card validation-card">
+        <div class="card-body">
                     <div class="alert info-alert">
                         <i class="fas fa-info-circle"></i>
                         <strong data-i18n-fr="Gestion des utilisateurs" data-i18n-en="User management">Gestion des utilisateurs</strong><br>
@@ -156,7 +207,6 @@
                 </div>
             </div>
         </div>
-    </div>
     </div>
 </div>
 {% endblock %}

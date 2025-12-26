@@ -26,7 +26,7 @@ class AuthenticationSuccessHandler implements AuthenticationSuccessHandlerInterf
 
             return match ($role) {
                 Role::ADMIN => new RedirectResponse($this->urlGenerator->generate('app_reports_statistiques')),
-                Role::ORGANIZER => new RedirectResponse($this->urlGenerator->generate('organisateur_dashboard_statistiques')),
+                Role::ORGANIZER => new RedirectResponse($this->urlGenerator->generate('app_organisateur_dashboard_statistiques')),
                 default => new RedirectResponse($this->urlGenerator->generate('app_event_index')),
             };
         }

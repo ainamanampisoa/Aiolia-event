@@ -282,7 +282,7 @@
                                     <div class="password-input">
                                         {{ form_widget(registrationForm.plainPassword.first, {'attr': {'class': 'form-control', 'placeholder': '********', 'id': 'password'}}) }}
                                         <button type="button" class="toggle-password" data-target="password">
-                                            <i class="far fa-eye"></i>
+                                            <i class="far fa-eye-slash"></i>
                                         </button>
                                     </div>
                                     <div class="password-strength" id="password-strength" style="margin-top: 8px; font-size: 0.9rem; display: none;">
@@ -298,7 +298,7 @@
                                     <div class="password-input">
                                         {{ form_widget(registrationForm.plainPassword.second, {'attr': {'class': 'form-control', 'placeholder': '********', 'id': 'confirm-password'}}) }}
                                         <button type="button" class="toggle-password" data-target="confirm-password">
-                                            <i class="far fa-eye"></i>
+                                            <i class="far fa-eye-slash"></i>
                                         </button>
                                     </div>
                                     <div class="password-match" id="password-match" style="margin-top: 8px; font-size: 0.9rem; display: none;">
@@ -347,11 +347,11 @@
                     
                     input.setAttribute('type', type);
                     
-                    // Toggle icon
+                    // Toggle icon - l'icône reflète l'état actuel
                     if (type === 'password') {
-                        icon.className = 'far fa-eye';
-                    } else {
                         icon.className = 'far fa-eye-slash';
+                    } else {
+                        icon.className = 'far fa-eye';
                     }
                 });
             });

@@ -2,1180 +2,9 @@
 
 {% block title %}{{ isEditMode|default(false) ? 'Modifier l\'événement' : 'Créer un événement' }} - Aiolia Event{% endblock %}
 
-{% block body %}
-<div class="dashboard" {% if isEditMode is defined and isEditMode %}data-edit-mode="true"{% endif %}>
-    <!-- En-tête -->
-    <div class="dashboard-header">
-        <div>
-            <h1>{{ isEditMode|default(false) ? '✏️ Modifier l\'événement' : '✨ Créer un nouvel événement' }}</h1>
-            <p style="color: var(--gray-600); margin-top: 8px; font-size: 1rem;">
-                {{ isEditMode|default(false) ? 'Modifiez les informations de votre événement' : 'Remplissez les informations pour créer votre événement' }}
-            </p>
-        </div>
-        <div class="header-actions">
-            <a href="{{ path('organisateur_events_index') }}" class="btn btn-secondary" style="background: white; color: var(--gray-700); border: 2px solid var(--gray-300); padding: 12px 24px; border-radius: 8px; text-decoration: none; font-weight: 600; display: inline-flex; align-items: center; gap: 8px;">
-                <i class="fas fa-arrow-left"></i>
-                Retour
-            </a>
-        </div>
-    </div>
-
-    {{ form_start(form, {'attr': {'class': 'event-form', 'enctype': 'multipart/form-data'}}) }}
-        <!-- Section 1: Informations principales (masquée en mode édition) -->
-        {% if not (isEditMode is defined and isEditMode) %}
-        <div class="form-section" id="section-informations-principales">
-            <div class="section-header">
-                <div class="section-icon" style="background: linear-gradient(135deg, rgba(52, 152, 219, 0.15), rgba(52, 152, 219, 0.05)); color: var(--accent);">
-                    <i class="fas fa-info-circle"></i>
-                </div>
-                <div>
-                    <h2>Informations principales</h2>
-                    <p>Les détails essentiels de votre événement</p>
-                </div>
-            </div>
-
-            <div class="form-grid">
-                <div class="form-group span-2">
-                    <label>Nom de l'événement <span class="required">*</span></label>
-                    {{ form_widget(form.titre, {'attr': {'class': 'form-control', 'placeholder': 'Ex: Concert Rock Nation 2025', 'required': 'required'}}) }}
-                    {{ form_errors(form.titre) }}
-                    <small class="form-help">Un nom accrocheur et descriptif</small>
-                </div>
-
-                <div class="form-group">
-                    <label>Catégorie <span class="required">*</span></label>
-                    {{ form_widget(form.categoriePrincipale, {'attr': {'class': 'form-control', 'required': 'required'}}) }}
-                    {{ form_errors(form.categoriePrincipale) }}
-                </div>
-
-                <div class="form-group">
-                    <label>Type d'événement</label>
-                    {{ form_widget(form.typeEvenement, {'attr': {'class': 'form-control'}}) }}
-                    {{ form_errors(form.typeEvenement) }}
-                </div>
-
-                <div class="form-group span-2">
-                    <label>Résumé <span class="required">*</span></label>
-                    {{ form_widget(form.resume, {'attr': {'class': 'form-control', 'rows': 3, 'placeholder': 'Résumé court de l\'événement (max 500 caractères)', 'maxlength': 500}}) }}
-                    {{ form_errors(form.resume) }}
-                    <small class="form-help"><span id="charCount">0</span>/500 caractères</small>
-                </div>
-
-                <div class="form-group span-2">
-                    <label>Description complète</label>
-                    {{ form_widget(form.description, {'attr': {'class': 'form-control', 'rows': 6, 'placeholder': 'Décrivez votre événement en détail...'}}) }}
-                    {{ form_errors(form.description) }}
-                </div>
-            </div>
-        </div>
-        {% endif %}
-
-        <!-- Section 2: Date et lieu -->
-        <div class="form-section">
-            <div class="section-header">
-                <div class="section-icon" style="background: linear-gradient(135deg, rgba(39, 174, 96, 0.15), rgba(39, 174, 96, 0.05)); color: var(--success);">
-                    <i class="fas fa-calendar-alt"></i>
-                </div>
-                <div>
-                    <h2>Date et lieu</h2>
-                    <p>Quand et où se déroulera votre événement</p>
-                </div>
-            </div>
-
-            <div class="form-grid">
-                <div class="form-group">
-                    <label>Date de début <span class="required">*</span></label>
-                    <div class="datetime-split">
-                        <input type="text" name="date_start_date" class="form-control date-only" placeholder="jj/mm/aaaa" 
-                               value="{{ (isEditMode is defined and isEditMode) and event.commenceLe ? event.commenceLe|date('d/m/Y') : '' }}" required>
-                        <input type="time" name="date_start_time" class="form-control time-only" placeholder="hh:mm" step="60" 
-                               value="{{ (isEditMode is defined and isEditMode) and event.commenceLe ? event.commenceLe|date('H:i') : '' }}" required>
-                        <input type="hidden" name="date_start" required>
-                    </div>
-                </div>
-
-                <div class="form-group">
-                    <label>Date de fin</label>
-                    <div class="datetime-split">
-                        <input type="text" name="date_end_date" class="form-control date-only" placeholder="jj/mm/aaaa"
-                               value="{{ (isEditMode is defined and isEditMode) and event.seTermineLe ? event.seTermineLe|date('d/m/Y') : '' }}">
-                        <input type="time" name="date_end_time" class="form-control time-only" placeholder="hh:mm" step="60"
-                               value="{{ (isEditMode is defined and isEditMode) and event.seTermineLe ? event.seTermineLe|date('H:i') : '' }}">
-                        <input type="hidden" name="date_end">
-                    </div>
-                </div>
-
-                <div class="form-group span-2">
-                    <label>Lieu <span class="required">*</span></label>
-                    <div class="venue-select-wrapper">
-                        <div class="venue-select-row">
-                            <select name="venue_id" id="venueSelect" class="form-control" required>
-                                <option value="">Sélectionner un lieu...</option>
-                                {% for venue in venues %}
-                                    <option value="{{ venue.id }}" {% if (isEditMode is defined and isEditMode) and event.lieu and event.lieu.id == venue.id %}selected{% endif %}>
-                                        {{ venue.nom ?? venue.name ?? venue.label ?? ('Lieu #' ~ venue.id) }}
-                                    </option>
-                                {% endfor %}
-                            </select>
-                            <a href="/organisateur/venues/new" class="btn-create-venue" title="Créer un nouveau lieu">
-                                <i class="fas fa-plus-circle"></i>
-                                <span>Créer un lieu</span>
-                            </a>
-                        </div>
-                        <small class="form-help">Choisissez un lieu existant ou créez-en un nouveau</small>
-                    </div>
-                </div>
-            </div>
-        </div>
-
-        <!-- Section 3: Tags et Classification -->
-        <div class="form-section">
-            <div class="section-header">
-                <div class="section-icon" style="background: linear-gradient(135deg, rgba(155, 89, 182, 0.15), rgba(155, 89, 182, 0.05)); color: #9B59B6;">
-                    <i class="fas fa-tags"></i>
-                </div>
-                <div>
-                    <h2>Tags et Classification</h2>
-                    <p>Catégorisez votre événement pour une meilleure découverte</p>
-                </div>
-            </div>
-
-            <div class="form-grid">
-                <div class="form-group span-2">
-                    <label>Tags <span class="required">*</span></label>
-                    <div class="tags-selector">
-                        <div class="tags-grid">
-                            <label class="tag-option">
-                                <input type="checkbox" name="tags[]" value="musique">
-                                <div class="tag-card">
-                                    <div class="tag-icon">🎵</div>
-                                    <span>Musique Live</span>
-                                </div>
-                            </label>
-                            <label class="tag-option">
-                                <input type="checkbox" name="tags[]" value="danse">
-                                <div class="tag-card">
-                                    <div class="tag-icon">💃</div>
-                                    <span>Danse</span>
-                                </div>
-                            </label>
-                            <label class="tag-option">
-                                <input type="checkbox" name="tags[]" value="gastronomie">
-                                <div class="tag-card">
-                                    <div class="tag-icon">🍽️</div>
-                                    <span>Gastronomie</span>
-                                </div>
-                            </label>
-                            <label class="tag-option">
-                                <input type="checkbox" name="tags[]" value="art">
-                                <div class="tag-card">
-                                    <div class="tag-icon">🎨</div>
-                                    <span>Art</span>
-                                </div>
-                            </label>
-                            <label class="tag-option">
-                                <input type="checkbox" name="tags[]" value="technologie">
-                                <div class="tag-card">
-                                    <div class="tag-icon">💻</div>
-                                    <span>Technologie</span>
-                                </div>
-                            </label>
-                            <label class="tag-option">
-                                <input type="checkbox" name="tags[]" value="sport">
-                                <div class="tag-card">
-                                    <div class="tag-icon">⚽</div>
-                                    <span>Sport</span>
-                                </div>
-                            </label>
-                            <label class="tag-option">
-                                <input type="checkbox" name="tags[]" value="famille">
-                                <div class="tag-card">
-                                    <div class="tag-icon">👨‍👩‍👧‍👦</div>
-                                    <span>Famille</span>
-                                </div>
-                            </label>
-                            <label class="tag-option">
-                                <input type="checkbox" name="tags[]" value="business">
-                                <div class="tag-card">
-                                    <div class="tag-icon">💼</div>
-                                    <span>Business</span>
-                                </div>
-                            </label>
-                        </div>
-                    </div>
-                    <small class="form-help">Sélectionnez les tags qui correspondent à votre événement</small>
-                </div>
-            </div>
-        </div>
-
-        <!-- Section 4: Médias -->
-        <div class="form-section">
-            <div class="section-header">
-                <div class="section-icon" style="background: linear-gradient(135deg, rgba(155, 89, 182, 0.15), rgba(155, 89, 182, 0.05)); color: #9B59B6;">
-                    <i class="fas fa-image"></i>
-                </div>
-                <div>
-                    <h2>Images et médias</h2>
-                    <p>Ajoutez des visuels attractifs pour votre événement</p>
-                </div>
-            </div>
-
-            <div class="form-grid">
-                <div class="form-group span-2">
-                    <label>Image principale <span class="required">*</span></label>
-                    <div class="file-upload-area" id="imageUpload">
-                        <div class="upload-icon">
-                            <i class="fas fa-cloud-upload-alt"></i>
-                        </div>
-                        <div class="upload-text">
-                            <strong>Cliquez pour uploader</strong> ou glissez-déposez
-                        </div>
-                        <div class="upload-info">
-                            PNG, JPG jusqu'à 10MB
-                        </div>
-                        <input type="file" name="image" accept="image/*" class="file-input" required>
-                    </div>
-                    <div id="imagePreview" class="image-preview"></div>
-                </div>
-
-                <div class="form-group span-2">
-                    <label>Images supplémentaires</label>
-                    <div class="file-upload-area" id="galleryUpload">
-                        <div class="upload-icon">
-                            <i class="fas fa-images"></i>
-                        </div>
-                        <div class="upload-text">
-                            <strong>Ajouter des images</strong> (max 5)
-                        </div>
-                        <input type="file" name="gallery[]" accept="image/*" class="file-input" multiple>
-                    </div>
-                    <div id="galleryPreview" class="gallery-preview"></div>
-                </div>
-            </div>
-        </div>
-
-        <!-- Section 5: Billets et tarifs -->
-        <div class="form-section">
-            <div class="section-header">
-                <div class="section-icon" style="background: linear-gradient(135deg, rgba(243, 156, 18, 0.15), rgba(243, 156, 18, 0.05)); color: var(--warning);">
-                    <i class="fas fa-ticket-alt"></i>
-                </div>
-                <div>
-                    <h2>Billets et tarifs</h2>
-                    <p>Configurez les catégories de billets et leurs prix</p>
-                </div>
-            </div>
-
-            <div id="ticketsContainer">
-                {% if isEditMode is defined and isEditMode and existingTicketTypes is defined and existingTicketTypes|length > 0 %}
-                    {# Afficher tous les types de billets existants en mode édition #}
-                    {% for ticketType in existingTicketTypes %}
-                        {% set inventaire = ticketType.inventaire %}
-                        {% set quantiteVendue = inventaire ? inventaire.quantiteVendue : 0 %}
-                        {% set quantiteTotale = inventaire ? inventaire.quantiteTotale : 0 %}
-                        <div class="ticket-category" data-ticket-id="{{ ticketType.id }}">
-                            <div class="ticket-header">
-                                <h3>Catégorie {{ loop.index }}</h3>
-                                <button type="button" class="btn-remove-ticket" onclick="removeTicket(this)">
-                                    <i class="fas fa-times"></i>
-                                </button>
-                            </div>
-                            <input type="hidden" name="ticket_id[]" value="{{ ticketType.id }}">
-                            <div class="form-grid">
-                                <div class="form-group">
-                                    <label>Catégorie <span class="required">*</span></label>
-                                    <select name="ticket_categorie[]" class="form-control" required>
-                                        <option value="">Sélectionner une catégorie...</option>
-                                        <option value="tous">Tous</option>
-                                        {% for categorie in categoriesBillets %}
-                                            <option value="{{ categorie.id }}" {% if ticketType.configurationCategorie and ticketType.configurationCategorie.id == categorie.id %}selected{% endif %}>{{ categorie.nom }}</option>
-                                        {% endfor %}
-                                    </select>
-                                </div>
-                                <div class="form-group">
-                                    <label>Segment âge <span class="required">*</span></label>
-                                    <select name="ticket_segment[]" class="form-control" required>
-                                        <option value="">Sélectionner un segment...</option>
-                                        <option value="tous">Tous</option>
-                                        {% for segment in segmentsBillets %}
-                                            <option value="{{ segment.id }}" {% if ticketType.configurationSegment and ticketType.configurationSegment.id == segment.id %}selected{% endif %}>
-                                                {{ segment.nom }}{% if segment.ageMin is not null or segment.ageMax is not null %} 
-                                                    ({% if segment.ageMin is not null %}{{ segment.ageMin }}{% endif %}{% if segment.ageMin is not null and segment.ageMax is not null %}-{% endif %}{% if segment.ageMax is not null %}{{ segment.ageMax }}{% endif %} ans)
-                                                {% endif %}
-                                            </option>
-                                        {% endfor %}
-                                    </select>
-                                </div>
-                                <div class="form-group">
-                                    <label>Prix (€) <span class="required">*</span></label>
-                                    <input type="number" name="ticket_price[]" class="form-control" placeholder="0.00" min="0" step="0.01" 
-                                           value="{{ ticketType.prixDeBase }}" required>
-                                </div>
-                                <div class="form-group">
-                                    <label>Quantité <span class="required">*</span></label>
-                                    <input type="number" name="ticket_quantity[]" class="form-control ticket-quantity-input" 
-                                           placeholder="100" min="{{ quantiteVendue }}" step="1" 
-                                           value="{{ quantiteTotale }}" 
-                                           data-sold="{{ quantiteVendue }}"
-                                           data-original="{{ quantiteTotale }}"
-                                           required>
-                                    {% if quantiteVendue > 0 %}
-                                        <small class="form-help" style="color: var(--warning);">
-                                            <i class="fas fa-exclamation-triangle"></i> 
-                                            {{ quantiteVendue }} billet(s) déjà vendu(s). La quantité ne peut pas être inférieure à {{ quantiteVendue }}.
-                                        </small>
-                                    {% endif %}
-                                </div>
-                            </div>
-                        </div>
-                    {% endfor %}
-                {% else %}
-                    {# Formulaire vide pour création #}
-                    <div class="ticket-category">
-                        <div class="ticket-header">
-                            <h3>Catégorie 1</h3>
-                            <button type="button" class="btn-remove-ticket" onclick="removeTicket(this)">
-                                <i class="fas fa-times"></i>
-                            </button>
-                        </div>
-                        <div class="form-grid">
-                            <div class="form-group">
-                                <label>Catégorie <span class="required">*</span></label>
-                                <select name="ticket_categorie[]" class="form-control" required>
-                                    <option value="">Sélectionner une catégorie...</option>
-                                    <option value="tous">Tous</option>
-                                    {% for categorie in categoriesBillets %}
-                                        <option value="{{ categorie.id }}">{{ categorie.nom }}</option>
-                                    {% endfor %}
-                                </select>
-                            </div>
-                            <div class="form-group">
-                                <label>Segment âge <span class="required">*</span></label>
-                                <select name="ticket_segment[]" class="form-control" required>
-                                    <option value="">Sélectionner un segment...</option>
-                                    <option value="tous">Tous</option>
-                                    {% for segment in segmentsBillets %}
-                                        <option value="{{ segment.id }}">
-                                            {{ segment.nom }}{% if segment.ageMin is not null or segment.ageMax is not null %} 
-                                                ({% if segment.ageMin is not null %}{{ segment.ageMin }}{% endif %}{% if segment.ageMin is not null and segment.ageMax is not null %}-{% endif %}{% if segment.ageMax is not null %}{{ segment.ageMax }}{% endif %} ans)
-                                            {% endif %}
-                                        </option>
-                                    {% endfor %}
-                                </select>
-                            </div>
-                            <div class="form-group">
-                                <label>Prix (€) <span class="required">*</span></label>
-                                <input type="number" name="ticket_price[]" class="form-control" placeholder="0.00" min="0" step="0.01" required>
-                            </div>
-                            <div class="form-group">
-                                <label>Quantité <span class="required">*</span></label>
-                                <input type="number" name="ticket_quantity[]" class="form-control" placeholder="100" min="1" required>
-                            </div>
-                        </div>
-                    </div>
-                {% endif %}
-            </div>
-
-            <button type="button" class="btn-add-ticket" onclick="addTicket()">
-                <i class="fas fa-plus"></i>
-                Ajouter une catégorie de billet
-            </button>
-
-            <!-- Paramètres de vente des billets -->
-            <div class="ticket-sales-settings">
-                <div class="section-header">
-                    <div class="section-icon" style="background: linear-gradient(135deg, rgba(52, 152, 219, 0.15), rgba(52, 152, 219, 0.05)); color: var(--accent);">
-                        <i class="fas fa-cog"></i>
-                    </div>
-                    <div>
-                        <h2>Paramètres de vente</h2>
-                        <p>Configurez les dates de vente et les limites par commande pour tous les billets</p>
-                    </div>
-                </div>
-                
-                <div class="form-grid">
-                    <div class="form-group">
-                        <label>Date de début des ventes</label>
-                        <div class="datetime-split">
-                            <input type="text" name="ticket_sales_start_date" id="ticketSalesStartDate" class="form-control" placeholder="jj/mm/aaaa"
-                                   value="{{ (isEditMode is defined and isEditMode) and event.ventesCommencentLe ? event.ventesCommencentLe|date('d/m/Y') : '' }}">
-                            <input type="time" name="ticket_sales_start_time" id="ticketSalesStartTime" class="form-control time-only" placeholder="hh:mm"
-                                   value="{{ (isEditMode is defined and isEditMode) and event.ventesCommencentLe ? event.ventesCommencentLe|date('H:i') : '' }}">
-                        </div>
-                        <input type="hidden" name="ticket_sales_start" id="ticketSalesStart">
-                        <small class="form-help">Date et heure à partir de laquelle les billets seront en vente</small>
-                    </div>
-                    
-                    <div class="form-group">
-                        <label>Date de fin des ventes</label>
-                        <div class="datetime-split">
-                            <input type="text" name="ticket_sales_end_date" id="ticketSalesEndDate" class="form-control" placeholder="jj/mm/aaaa"
-                                   value="{{ (isEditMode is defined and isEditMode) and event.ventesSeTerminentLe ? event.ventesSeTerminentLe|date('d/m/Y') : '' }}">
-                            <input type="time" name="ticket_sales_end_time" id="ticketSalesEndTime" class="form-control time-only" placeholder="hh:mm"
-                                   value="{{ (isEditMode is defined and isEditMode) and event.ventesSeTerminentLe ? event.ventesSeTerminentLe|date('H:i') : '' }}">
-                        </div>
-                        <input type="hidden" name="ticket_sales_end" id="ticketSalesEnd">
-                        <small class="form-help">Date et heure jusqu'à laquelle les billets seront en vente</small>
-                    </div>
-                    
-                    <div class="form-group">
-                        <label>Minimum par commande</label>
-                        <input type="number" name="ticket_min_per_order" class="form-control" placeholder="1" min="1" value="1">
-                        <small class="form-help">Nombre minimum de billets par commande</small>
-                    </div>
-                    
-                    <div class="form-group">
-                        <label>Maximum par commande</label>
-                        <input type="number" name="ticket_max_per_order" class="form-control" placeholder="Illimité" min="1">
-                        <small class="form-help">Nombre maximum de billets par commande (laisser vide pour illimité)</small>
-                    </div>
-                </div>
-            </div>
-        </div>
-
-        <!-- Section 6: Paiement et Accessibilité -->
-        <div class="form-section">
-            <div class="section-header">
-                <div class="section-icon" style="background: linear-gradient(135deg, rgba(46, 204, 113, 0.15), rgba(46, 204, 113, 0.05)); color: #2ECC71;">
-                    <i class="fas fa-credit-card"></i>
-                </div>
-                <div>
-                    <h2>Paiement et Accessibilité</h2>
-                    <p>Configurez les options de paiement et d'accessibilité</p>
-                </div>
-            </div>
-
-            <div class="form-grid">
-                <!-- Modes de paiement -->
-                <div class="form-group span-2">
-                    <label>Modes de paiement acceptés <span class="required">*</span></label>
-                    <div class="payment-selector">
-                        <div class="payment-grid">
-                            {% for modePaiement in modesPaiement %}
-                                {% set paymentValue = modePaiement.code %}
-                                {% if modePaiement.code == 'orange' %}
-                                    {% set paymentValue = 'orange_money' %}
-                                {% elseif modePaiement.code == 'airtel' %}
-                                    {% set paymentValue = 'airtel_money' %}
-                                {% elseif modePaiement.code == 'autre' %}
-                                    {% set paymentValue = 'cash' %}
-                                {% endif %}
-                                <div class="payment-option">
-                                    <div class="payment-card{% if modePaiement.code == 'mvola' %} payment-card-mvola{% endif %}">
-                                        <div class="payment-icon">
-                                            {% if modePaiement.icone %}
-                                                <img src="{{ asset('images/' ~ modePaiement.icone) }}" alt="{{ modePaiement.libelle }}" class="payment-logo">
-                                            {% else %}
-                                                {% if modePaiement.code == 'orange' %}
-                                                    <img src="{{ asset('images/orange-money.png') }}" alt="{{ modePaiement.libelle }}" class="payment-logo">
-                                                {% elseif modePaiement.code == 'airtel' %}
-                                                    <img src="{{ asset('images/airtel.png') }}" alt="{{ modePaiement.libelle }}" class="payment-logo">
-                                                {% elseif modePaiement.code == 'mvola' %}
-                                                    <img src="{{ asset('images/m-vola.png') }}" alt="{{ modePaiement.libelle }}" class="payment-logo">
-                                                {% else %}
-                                                    💰
-                                                {% endif %}
-                                            {% endif %}
-                                        </div>
-                                        <span class="payment-label">{{ modePaiement.libelle }}</span>
-                                    </div>
-                                    <label class="payment-checkbox-label">
-                                        <input type="checkbox" name="payment_methods[]" value="{{ paymentValue }}" class="payment-checkbox">
-                                        <span class="payment-checkbox-custom"></span>
-                                    </label>
-                                </div>
-                            {% endfor %}
-                        </div>
-                    </div>
-                </div>
-
-                <!-- Accessibilité -->
-                <div class="form-group span-2">
-                    <label>Options d'accessibilité</label>
-                    <div class="accessibility-selector">
-                        <div class="accessibility-grid">
-                            {% for typeAccessibilite in typesAccessibilite %}
-                                {% set accessibilityValue = typeAccessibilite.code %}
-                                {% set accessibilityLabel = typeAccessibilite.libelle %}
-                                {% set iconUrl = typeAccessibilite.urlImage ?? ('images/acces1.svg') %}
-                                {% set isSelected = false %}
-                                {% if (isEditMode is defined and isEditMode) and event.liensAccessibilites is defined %}
-                                    {% for lien in event.liensAccessibilites %}
-                                        {% if lien.typeAccessibilite.code == accessibilityValue %}
-                                            {% set isSelected = true %}
-                                        {% endif %}
-                                    {% endfor %}
-                                {% endif %}
-                                <label class="accessibility-option">
-                                    <input type="checkbox" name="accessibility[]" value="{{ accessibilityValue }}" {% if isSelected %}checked{% endif %}>
-                                    <div class="accessibility-card">
-                                        <div class="accessibility-icon">
-                                            <img src="{{ asset(iconUrl) }}" alt="{{ accessibilityLabel }}" class="accessibility-logo">
-                                        </div>
-                                        <div class="accessibility-info">
-                                            <span class="accessibility-title">{{ accessibilityLabel }}</span>
-                                        </div>
-                                    </div>
-                                </label>
-                            {% endfor %}
-                        </div>
-                    </div>
-                </div>
-            </div>
-        </div>
-
-        <!-- Section 7: Options avancées (masquée en mode édition) -->
-        {% if not (isEditMode is defined and isEditMode) %}
-        <div class="form-section">
-            <div class="section-header">
-                <div class="section-icon" style="background: linear-gradient(135deg, rgba(231, 76, 60, 0.15), rgba(231, 76, 60, 0.05)); color: var(--danger);">
-                    <i class="fas fa-cog"></i>
-                </div>
-                <div>
-                    <h2>Options avancées</h2>
-                    <p>Paramètres supplémentaires</p>
-                </div>
-            </div>
-
-            <div class="form-grid">
-                <div class="form-group">
-                    <label class="checkbox-label">
-                        <input type="checkbox" name="is_featured" value="1">
-                        <span>Événement mis en avant</span>
-                    </label>
-                    <small class="form-help">L'événement sera affiché en priorité</small>
-                </div>
-
-                <div class="form-group">
-                    <label class="checkbox-label">
-                        <input type="checkbox" name="allow_waiting_list" value="1" checked>
-                        <span>Activer la liste d'attente</span>
-                    </label>
-                    <small class="form-help">Si complet, les utilisateurs pourront s'inscrire</small>
-                </div>
-
-                <div class="form-group">
-                    <label class="checkbox-label">
-                        <input type="checkbox" name="send_reminders" value="1" checked>
-                        <span>Envoyer des rappels automatiques</span>
-                    </label>
-                    <small class="form-help">Les participants recevront des rappels avant l'événement</small>
-                </div>
-
-                <div class="form-group">
-                    <label class="checkbox-label">
-                        <input type="checkbox" name="publish_immediately" value="1" checked>
-                        <span>Publier immédiatement</span>
-                    </label>
-                    <small class="form-help">L'événement sera visible tout de suite</small>
-                </div>
-            </div>
-        </div>
-        {% endif %}
-
-        <!-- Actions -->
-        <div class="form-actions">
-            <button type="submit" class="btn btn-primary">
-                <i class="fas fa-check"></i>
-                {{ isEditMode|default(false) ? 'Enregistrer les modifications' : 'Créer l\'événement' }}
-            </button>
-            <a href="{{ path('organisateur_events_index') }}" class="btn btn-text">
-                Annuler
-            </a>
-        </div>
-        
-        {# Masquer les champs de date du formulaire Symfony car on utilise des champs HTML personnalisés #}
-        <div style="display: none !important;">
-            {{ form_widget(form.commenceLe) }}
-            {{ form_widget(form.seTermineLe) }}
-        </div>
-        
-        {# En mode édition, masquer aussi les champs d'informations principales qui pourraient être rendus par form_rest #}
-        {% if isEditMode is defined and isEditMode %}
-        <div style="display: none !important;">
-            {{ form_widget(form.titre) }}
-            {{ form_widget(form.categoriePrincipale) }}
-            {{ form_widget(form.typeEvenement) }}
-            {{ form_widget(form.resume) }}
-            {{ form_widget(form.description) }}
-        </div>
-        {% endif %}
-        
-        {# Afficher le reste des champs non rendus (token CSRF, etc.) #}
-        {{ form_rest(form) }}
-    {{ form_end(form) }}
-</div>
-
-<script>
-// Stocker toutes les options disponibles
-const allCategories = [
-    { id: 'tous', nom: 'Tous' },
-    {% for categorie in categoriesBillets %}
-    { id: '{{ categorie.id }}', nom: '{{ categorie.nom }}' },
-    {% endfor %}
-];
-
-const allSegments = [
-    { id: 'tous', nom: 'Tous', ageMin: null, ageMax: null, label: 'Tous' },
-    {% for segment in segmentsBillets %}
-    { 
-        id: '{{ segment.id }}', 
-        nom: '{{ segment.nom }}',
-        ageMin: {{ segment.ageMin ?? 'null' }},
-        ageMax: {{ segment.ageMax ?? 'null' }},
-        label: '{{ segment.nom }}{% if segment.ageMin is not null or segment.ageMax is not null %} ({% if segment.ageMin is not null %}{{ segment.ageMin }}{% endif %}{% if segment.ageMin is not null and segment.ageMax is not null %}-{% endif %}{% if segment.ageMax is not null %}{{ segment.ageMax }}{% endif %} ans){% endif %}'
-    },
-    {% endfor %}
-];
-
-// Suivre les options déjà sélectionnées
-let selectedCategories = new Set();
-let selectedSegments = new Set();
-let hasTousCategory = false;
-let hasTousSegment = false;
-
-// Fonction pour générer toutes les options de catégories (sans filtre)
-function getAllCategoriesOptions() {
-    let options = '<option value="">Sélectionner une catégorie...</option>';
-    allCategories.forEach(cat => {
-        options += `<option value="${cat.id}">${cat.nom}</option>`;
-    });
-    return options;
-}
-
-// Fonction pour générer toutes les options de segments (sans filtre)
-function getAllSegmentsOptions() {
-    let options = '<option value="">Sélectionner un segment...</option>';
-    allSegments.forEach(seg => {
-        options += `<option value="${seg.id}">${seg.label}</option>`;
-    });
-    return options;
-}
-
-// Fonction pour générer les options de catégories filtrées (pour nouveaux ajouts)
-function getFilteredCategoriesOptions() {
-    let options = '<option value="">Sélectionner une catégorie...</option>';
-    
-    // Si "tous" a été sélectionné, ne garder que "tous"
-    if (hasTousCategory) {
-        const tousCategory = allCategories.find(c => c.id === 'tous');
-        if (tousCategory) {
-            options += `<option value="${tousCategory.id}">${tousCategory.nom}</option>`;
-        }
-        return options;
-    }
-    
-    // Sinon, exclure les options déjà sélectionnées (inclure "tous" si disponible)
-    allCategories.forEach(cat => {
-        if (!selectedCategories.has(cat.id)) {
-            options += `<option value="${cat.id}">${cat.nom}</option>`;
-        }
-    });
-    
-    return options;
-}
-
-// Fonction pour générer les options de segments filtrées (pour nouveaux ajouts)
-function getFilteredSegmentsOptions() {
-    let options = '<option value="">Sélectionner un segment...</option>';
-    
-    // Si "tous" a été sélectionné, ne garder que "tous"
-    if (hasTousSegment) {
-        const tousSegment = allSegments.find(s => s.id === 'tous');
-        if (tousSegment) {
-            options += `<option value="${tousSegment.id}">${tousSegment.label}</option>`;
-        }
-        return options;
-    }
-    
-    // Sinon, exclure les options déjà sélectionnées (inclure "tous" si disponible)
-    allSegments.forEach(seg => {
-        if (!selectedSegments.has(seg.id)) {
-            options += `<option value="${seg.id}">${seg.label}</option>`;
-        }
-    });
-    
-    return options;
-}
-
-// Fonction pour mettre à jour les selects existants
-// Les selects existants gardent toutes les options, seuls les nouveaux ajouts sont filtrés
-function updateAllSelects() {
-    // Ne pas modifier les selects existants, ils gardent toutes leurs options
-    // Cette fonction est maintenant principalement pour mettre à jour les états
-}
-
-// Fonction pour gérer le changement de sélection
-function handleSelectionChange(select, type) {
-    const value = select.value;
-    
-    if (type === 'category') {
-        // Retirer l'ancienne sélection
-        selectedCategories.clear();
-        hasTousCategory = false;
-        
-        // Ajouter toutes les sélections actuelles
-        document.querySelectorAll('select[name="ticket_categorie[]"]').forEach(s => {
-            if (s.value) {
-                const cat = allCategories.find(c => c.id === s.value);
-                if (cat) {
-                    if (cat.id === 'tous' || cat.nom === 'Tous' || cat.nom === 'tous') {
-                        hasTousCategory = true;
-                    } else {
-                        selectedCategories.add(s.value);
-                    }
-                }
-            }
-        });
-    } else if (type === 'segment') {
-        // Retirer l'ancienne sélection
-        selectedSegments.clear();
-        hasTousSegment = false;
-        
-        // Ajouter toutes les sélections actuelles
-        document.querySelectorAll('select[name="ticket_segment[]"]').forEach(s => {
-            if (s.value) {
-                const seg = allSegments.find(se => se.id === s.value);
-                if (seg) {
-                    if (seg.id === 'tous' || seg.nom === 'Tous' || seg.nom === 'tous') {
-                        hasTousSegment = true;
-                    } else {
-                        selectedSegments.add(s.value);
-                    }
-                }
-            }
-        });
-    }
-    
-    // Ne pas modifier les selects existants, ils gardent toutes leurs options
-    // Seuls les nouveaux ajouts utiliseront les options filtrées
-}
-
-// Compteur de caractères
-document.addEventListener('DOMContentLoaded', function() {
-    const textarea = document.querySelector('textarea[name="event[resume]"]');
-    const charCount = document.getElementById('charCount');
-    
-    if (textarea && charCount) {
-        textarea.addEventListener('input', function() {
-            charCount.textContent = this.value.length;
-        });
-        // Initialiser le compteur avec la valeur actuelle
-        if (textarea.value) {
-            charCount.textContent = textarea.value.length;
-        }
-    }
-
-    // Upload d'image avec prévisualisation
-    setupImageUpload('imageUpload', 'imagePreview', false);
-    setupImageUpload('galleryUpload', 'galleryPreview', true);
-
-    // Sélecteurs date/heure séparés (jj/mm/aaaa et hh:mm)
-    setupDateTimeSplit({
-        dateSelector: 'input[name="date_start_date"]',
-        timeSelector: 'input[name="date_start_time"]',
-        hiddenSelector: 'input[name="date_start"]',
-        required: true
-    });
-    setupDateTimeSplit({
-        dateSelector: 'input[name="date_end_date"]',
-        timeSelector: 'input[name="date_end_time"]',
-        hiddenSelector: 'input[name="date_end"]',
-        required: false
-    });
-
-    // Dates de vente des billets
-    setupDateTimeSplit({
-        dateSelector: 'input[name="ticket_sales_start_date"]',
-        timeSelector: 'input[name="ticket_sales_start_time"]',
-        hiddenSelector: 'input[name="ticket_sales_start"]',
-        required: false
-    });
-    setupDateTimeSplit({
-        dateSelector: 'input[name="ticket_sales_end_date"]',
-        timeSelector: 'input[name="ticket_sales_end_time"]',
-        hiddenSelector: 'input[name="ticket_sales_end"]',
-        required: false
-    });
-
-    // Le bouton "Créer un lieu" est maintenant un lien séparé, pas besoin de gestion JS
-    
-    // Initialiser les écouteurs pour les selects de billets
-    initializeTicketSelects();
-    
-    // Vérifier l'état initial des selects
-    checkInitialTicketSelections();
-    
-    // Validation de la quantité minimale pour les billets existants
-    document.querySelectorAll('.ticket-quantity-input').forEach(input => {
-        const soldQuantity = parseInt(input.dataset.sold) || 0;
-        const originalQuantity = parseInt(input.dataset.original) || 0;
-        
-        input.addEventListener('change', function() {
-            const newQuantity = parseInt(this.value) || 0;
-            if (newQuantity < soldQuantity) {
-                showNotification(
-                    `La quantité ne peut pas être inférieure à ${soldQuantity} (${soldQuantity} billet(s) déjà vendu(s)).`,
-                    'error',
-                    'Quantité invalide'
-                );
-                this.value = Math.max(soldQuantity, originalQuantity);
-                this.focus();
-            }
-        });
-        
-        input.addEventListener('input', function() {
-            const newQuantity = parseInt(this.value) || 0;
-            if (newQuantity < soldQuantity) {
-                this.setCustomValidity(`La quantité minimale est ${soldQuantity} (billets vendus)`);
-            } else {
-                this.setCustomValidity('');
-            }
-        });
-    });
-});
-
-function setupDateTimeSplit({ dateSelector, timeSelector, hiddenSelector, required }) {
-    const dateInput = document.querySelector(dateSelector);
-    const timeInput = document.querySelector(timeSelector);
-    const hiddenInput = document.querySelector(hiddenSelector);
-    if (!dateInput || !timeInput || !hiddenInput) return;
-
-    const updateHidden = () => {
-        const dateVal = dateInput.value.trim();
-        const timeVal = timeInput.value.trim();
-        if (!dateVal || !timeVal) {
-            hiddenInput.value = '';
-            return;
-        }
-        // dateVal au format d/m/Y, timeVal au format H:i
-        const [day, month, year] = dateVal.split('/');
-        if (!day || !month || !year) {
-            hiddenInput.value = '';
-            return;
-        }
-        const isoDate = `${year.padStart(4, '0')}-${month.padStart(2, '0')}-${day.padStart(2, '0')}`;
-        hiddenInput.value = `${isoDate}T${timeVal}`;
-    };
-
-    flatpickr(dateInput, {
-        dateFormat: 'd/m/Y',
-        altInput: false,
-        allowInput: true,
-        locale: 'fr',
-        onChange: updateHidden,
-        onValueUpdate: updateHidden
-    });
-
-    const initDefaultDateTime = () => {
-        const now = new Date();
-        const dd = String(now.getDate()).padStart(2, '0');
-        const mm = String(now.getMonth() + 1).padStart(2, '0');
-        const yyyy = now.getFullYear();
-        const hh = String(now.getHours()).padStart(2, '0');
-        const min = String(now.getMinutes()).padStart(2, '0');
-        if (!dateInput.value) {
-            dateInput.value = `${dd}/${mm}/${yyyy}`;
-        }
-        if (!timeInput.value) {
-            timeInput.value = `${hh}:${min}`;
-        }
-    };
-
-    initDefaultDateTime();
-
-    // Picker heure (flatpickr, format 24h) + saisie manuelle possible
-    const timePicker = flatpickr(timeInput, {
-        enableTime: true,
-        noCalendar: true,
-        dateFormat: 'H:i',
-        time_24hr: true,
-        allowInput: true,
-        locale: 'fr',
-        onChange: updateHidden,
-        onValueUpdate: updateHidden
-    });
-
-    // Écoute native en complément
-    timeInput.addEventListener('input', () => {
-        // Si l'utilisateur tape au clavier, synchroniser le picker et le hidden
-        if (timePicker) {
-            timePicker.setDate(timeInput.value, false, 'H:i');
-        }
-        updateHidden();
-    });
-    timeInput.addEventListener('change', updateHidden);
-
-    // Synchroniser initialement
-    updateHidden();
-
-    if (required) {
-        dateInput.required = true;
-        timeInput.required = true;
-        hiddenInput.required = true;
-    }
-}
-
-function setupImageUpload(uploadId, previewId, multiple) {
-    const uploadArea = document.getElementById(uploadId);
-    const preview = document.getElementById(previewId);
-    const input = uploadArea.querySelector('input[type="file"]');
-
-    uploadArea.addEventListener('click', () => input.click());
-
-    input.addEventListener('change', function() {
-        preview.innerHTML = '';
-        const files = Array.from(this.files);
-        
-        files.forEach(file => {
-            if (file.type.startsWith('image/')) {
-                const reader = new FileReader();
-                reader.onload = function(e) {
-                    const img = document.createElement('div');
-                    img.className = 'preview-image';
-                    img.innerHTML = `
-                        <img src="${e.target.result}" alt="Preview">
-                        <button type="button" class="remove-image" onclick="this.parentElement.remove()">
-                            <i class="fas fa-times"></i>
-                        </button>
-                    `;
-                    preview.appendChild(img);
-                };
-                reader.readAsDataURL(file);
-            }
-        });
-    });
-
-    // Drag and drop
-    uploadArea.addEventListener('dragover', (e) => {
-        e.preventDefault();
-        uploadArea.style.borderColor = 'var(--accent)';
-        uploadArea.style.background = 'rgba(52, 152, 219, 0.05)';
-    });
-
-    uploadArea.addEventListener('dragleave', () => {
-        uploadArea.style.borderColor = 'var(--gray-300)';
-        uploadArea.style.background = 'var(--gray-50)';
-    });
-
-    uploadArea.addEventListener('drop', (e) => {
-        e.preventDefault();
-        uploadArea.style.borderColor = 'var(--gray-300)';
-        uploadArea.style.background = 'var(--gray-50)';
-        input.files = e.dataTransfer.files;
-        input.dispatchEvent(new Event('change'));
-    });
-}
-
-// Gestion des catégories de billets
-let ticketCount = 1;
-
-// Vérifier l'état initial des sélections
-function checkInitialTicketSelections() {
-    document.querySelectorAll('select[name="ticket_categorie[]"]').forEach(select => {
-        if (select.value) {
-            const cat = allCategories.find(c => c.id === select.value);
-            if (cat) {
-                if (cat.id === 'tous' || cat.nom === 'Tous' || cat.nom === 'tous') {
-                    hasTousCategory = true;
-                } else {
-                    selectedCategories.add(select.value);
-                }
-            }
-        }
-    });
-    
-    document.querySelectorAll('select[name="ticket_segment[]"]').forEach(select => {
-        if (select.value) {
-            const seg = allSegments.find(s => s.id === select.value);
-            if (seg) {
-                if (seg.id === 'tous' || seg.nom === 'Tous' || seg.nom === 'tous') {
-                    hasTousSegment = true;
-                } else {
-                    selectedSegments.add(select.value);
-                }
-            }
-        }
-    });
-    
-    // Ne pas modifier les selects existants, ils gardent toutes leurs options
-}
-
-// Initialiser les écouteurs pour les selects existants
-function initializeTicketSelects() {
-    document.querySelectorAll('select[name="ticket_categorie[]"]').forEach(select => {
-        select.addEventListener('change', function() {
-            handleSelectionChange(this, 'category');
-        });
-    });
-    
-    document.querySelectorAll('select[name="ticket_segment[]"]').forEach(select => {
-        select.addEventListener('change', function() {
-            handleSelectionChange(this, 'segment');
-        });
-    });
-}
-
-// Fonction pour afficher une notification toast moderne
-function showNotification(message, type = 'info', title = null) {
-    // Définir les titres par défaut selon le type
-    if (!title) {
-        switch(type) {
-            case 'error':
-                title = 'Erreur';
-                break;
-            case 'warning':
-                title = 'Attention';
-                break;
-            case 'success':
-                title = 'Succès';
-                break;
-            default:
-                title = 'Information';
-        }
-    }
-    
-    // Créer l'élément de notification
-    const notification = document.createElement('div');
-    notification.className = `toast-notification toast-${type}`;
-    notification.innerHTML = `
-        <div class="toast-icon-wrapper">
-            <i class="fas ${type === 'error' ? 'fa-exclamation-circle' : type === 'warning' ? 'fa-exclamation-triangle' : type === 'success' ? 'fa-check-circle' : 'fa-info-circle'}"></i>
-        </div>
-        <div class="toast-content">
-            <div class="toast-title">${title}</div>
-            <div class="toast-message">${message}</div>
-        </div>
-        <button class="toast-close" onclick="this.parentElement.remove()" aria-label="Fermer">
-            <i class="fas fa-times"></i>
-        </button>
-    `;
-    
-    // Ajouter au body
-    document.body.appendChild(notification);
-    
-    // Animation d'entrée
-    setTimeout(() => {
-        notification.classList.add('show');
-    }, 10);
-    
-    // Suppression automatique après 6 secondes pour les erreurs, 5 pour les autres
-    const duration = type === 'error' ? 6000 : 5000;
-    setTimeout(() => {
-        notification.classList.remove('show');
-        setTimeout(() => {
-            if (notification.parentElement) {
-                notification.remove();
-            }
-        }, 300);
-    }, duration);
-}
-
-function addTicket() {
-    // Vérifier si on peut ajouter (mais permettre le clic)
-    if (hasTousCategory && hasTousSegment) {
-        showNotification(
-            'Les deux champs <strong>Catégorie</strong> et <strong>Segment âge</strong> sont déjà sur "tous".<br>Veuillez modifier au moins une sélection avant d\'ajouter un nouveau billet.',
-            'error',
-            'Impossible d\'ajouter un billet'
-        );
-        return;
-    }
-    
-    ticketCount++;
-    const container = document.getElementById('ticketsContainer');
-    const ticketHTML = `
-        <div class="ticket-category">
-            <div class="ticket-header">
-                <h3>Catégorie ${ticketCount}</h3>
-                <button type="button" class="btn-remove-ticket" onclick="removeTicket(this)">
-                    <i class="fas fa-times"></i>
-                </button>
-            </div>
-            <div class="form-grid">
-                <div class="form-group">
-                    <label>Catégorie <span class="required">*</span></label>
-                    <select name="ticket_categorie[]" class="form-control ticket-categorie-select" required>${getFilteredCategoriesOptions()}</select>
-                </div>
-                <div class="form-group">
-                    <label>Segment âge <span class="required">*</span></label>
-                    <select name="ticket_segment[]" class="form-control ticket-segment-select" required>${getFilteredSegmentsOptions()}</select>
-                </div>
-                <div class="form-group">
-                    <label>Prix (€) <span class="required">*</span></label>
-                    <input type="number" name="ticket_price[]" class="form-control" placeholder="0.00" min="0" step="0.01" required>
-                </div>
-                <div class="form-group">
-                    <label>Quantité <span class="required">*</span></label>
-                    <input type="number" name="ticket_quantity[]" class="form-control" placeholder="100" min="1" required>
-                </div>
-            </div>
-        </div>
-    `;
-    container.insertAdjacentHTML('beforeend', ticketHTML);
-    
-    // Ajouter les écouteurs au nouveau select
-    const newCategorySelect = container.querySelector('.ticket-category:last-child .ticket-categorie-select');
-    const newSegmentSelect = container.querySelector('.ticket-category:last-child .ticket-segment-select');
-    
-    if (newCategorySelect) {
-        newCategorySelect.addEventListener('change', function() {
-            handleSelectionChange(this, 'category');
-        });
-    }
-    
-    if (newSegmentSelect) {
-        newSegmentSelect.addEventListener('change', function() {
-            handleSelectionChange(this, 'segment');
-        });
-    }
-}
-
-function removeTicket(btn) {
-    const tickets = document.querySelectorAll('.ticket-category');
-    if (tickets.length > 1) {
-        const ticketToRemove = btn.closest('.ticket-category');
-        const categorySelect = ticketToRemove.querySelector('select[name="ticket_categorie[]"]');
-        const segmentSelect = ticketToRemove.querySelector('select[name="ticket_segment[]"]');
-        
-        // Retirer les sélections de cet élément
-        if (categorySelect && categorySelect.value) {
-            const cat = allCategories.find(c => c.id === categorySelect.value);
-            if (cat && (cat.id === 'tous' || cat.nom === 'Tous' || cat.nom === 'tous')) {
-                hasTousCategory = false;
-            } else if (cat) {
-                selectedCategories.delete(categorySelect.value);
-            }
-        }
-        
-        if (segmentSelect && segmentSelect.value) {
-            const seg = allSegments.find(s => s.id === segmentSelect.value);
-            if (seg && (seg.id === 'tous' || seg.nom === 'Tous' || seg.nom === 'tous')) {
-                hasTousSegment = false;
-            } else if (seg) {
-                selectedSegments.delete(segmentSelect.value);
-            }
-        }
-        
-        ticketToRemove.remove();
-        
-        // Les selects existants gardent toutes leurs options
-        // Seuls les nouveaux ajouts utiliseront les options filtrées
-    } else {
-        showNotification(
-            'Au moins une catégorie de billet est requise pour votre événement.<br>Vous ne pouvez pas supprimer la dernière catégorie.',
-            'error',
-            'Suppression impossible'
-        );
-    }
-}
-</script>
-
-<!-- Flatpickr (calendrier + heure) -->
+{% block stylesheets %}
+{{ parent() }}
 <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/flatpickr/dist/flatpickr.min.css">
-<script src="https://cdn.jsdelivr.net/npm/flatpickr"></script>
-<script src="https://cdn.jsdelivr.net/npm/flatpickr/dist/l10n/fr.js"></script>
-
 <style>
 .event-form {
     max-width: 1200px;
@@ -2141,4 +970,1200 @@ function removeTicket(btn) {
     }
 }
 </style>
+{% endblock %}
+
+{% block body %}
+<div class="dashboard" {% if isEditMode is defined and isEditMode %}data-edit-mode="true"{% endif %}>
+    <!-- En-tête -->
+    <div class="dashboard-header">
+        <div>
+            <h1>
+                {% if isEditMode|default(false) %}
+                    <i class="fa-solid fa-pen"></i> Modifier l'événement
+                {% else %}
+                    <i class="fa-solid fa-circle-plus"></i> Créer un nouvel événement
+                {% endif %}
+            </h1>
+            <p style="color: var(--gray-600); margin-top: 8px; font-size: 1rem;">
+                {{ isEditMode|default(false) ? 'Modifiez les informations de votre événement' : 'Remplissez les informations pour créer votre événement' }}
+            </p>
+        </div>
+        <div class="header-actions">
+            <a href="{{ path('organisateur_events_index') }}" class="btn btn-secondary" style="background: white; color: var(--gray-700); border: 2px solid var(--gray-300); padding: 12px 24px; border-radius: 8px; text-decoration: none; font-weight: 600; display: inline-flex; align-items: center; gap: 8px;">
+                <i class="fas fa-arrow-left"></i>
+                Retour
+            </a>
+        </div>
+    </div>
+
+    {{ form_start(form, {'attr': {'class': 'event-form', 'enctype': 'multipart/form-data'}}) }}
+        <!-- Section 1: Informations principales (masquée en mode édition) -->
+        {% if not (isEditMode is defined and isEditMode) %}
+        <div class="form-section" id="section-informations-principales">
+            <div class="section-header">
+                <div class="section-icon" style="background: linear-gradient(135deg, rgba(52, 152, 219, 0.15), rgba(52, 152, 219, 0.05)); color: var(--accent);">
+                    <i class="fas fa-info-circle"></i>
+                </div>
+                <div>
+                    <h2>Informations principales</h2>
+                    <p>Les détails essentiels de votre événement</p>
+                </div>
+            </div>
+
+            <div class="form-grid">
+                <div class="form-group span-2">
+                    <label>Nom de l'événement <span class="required">*</span></label>
+                    {{ form_widget(form.titre, {'attr': {'class': 'form-control', 'placeholder': 'Ex: Concert Rock Nation 2025', 'required': 'required'}}) }}
+                    {{ form_errors(form.titre) }}
+                    <small class="form-help">Un nom accrocheur et descriptif</small>
+                </div>
+
+                <div class="form-group">
+                    <label>Catégorie <span class="required">*</span></label>
+                    {{ form_widget(form.categoriePrincipale, {'attr': {'class': 'form-control', 'required': 'required'}}) }}
+                    {{ form_errors(form.categoriePrincipale) }}
+                </div>
+
+                <div class="form-group">
+                    <label>Type d'événement</label>
+                    {{ form_widget(form.typeEvenement, {'attr': {'class': 'form-control'}}) }}
+                    {{ form_errors(form.typeEvenement) }}
+                </div>
+
+                <div class="form-group span-2">
+                    <label>Résumé <span class="required">*</span></label>
+                    {{ form_widget(form.resume, {'attr': {'class': 'form-control', 'rows': 3, 'placeholder': 'Résumé court de l\'événement (max 500 caractères)', 'maxlength': 500}}) }}
+                    {{ form_errors(form.resume) }}
+                    <small class="form-help"><span id="charCount">0</span>/500 caractères</small>
+                </div>
+
+                <div class="form-group span-2">
+                    <label>Description complète</label>
+                    {{ form_widget(form.description, {'attr': {'class': 'form-control', 'rows': 6, 'placeholder': 'Décrivez votre événement en détail...'}}) }}
+                    {{ form_errors(form.description) }}
+                </div>
+            </div>
+        </div>
+        {% endif %}
+
+        <!-- Section 2: Date et lieu -->
+        <div class="form-section">
+            <div class="section-header">
+                <div class="section-icon" style="background: linear-gradient(135deg, rgba(39, 174, 96, 0.15), rgba(39, 174, 96, 0.05)); color: var(--success);">
+                    <i class="fas fa-calendar-alt"></i>
+                </div>
+                <div>
+                    <h2>Date et lieu</h2>
+                    <p>Quand et où se déroulera votre événement</p>
+                </div>
+            </div>
+
+            <div class="form-grid">
+                <div class="form-group">
+                    <label>Date de début <span class="required">*</span></label>
+                    <div class="datetime-split">
+                        <input type="text" name="date_start_date" class="form-control date-only" placeholder="jj/mm/aaaa" 
+                               value="{{ (isEditMode is defined and isEditMode) and event.commenceLe ? event.commenceLe|date('d/m/Y') : '' }}" required>
+                        <input type="time" name="date_start_time" class="form-control time-only" placeholder="hh:mm" step="60" 
+                               value="{{ (isEditMode is defined and isEditMode) and event.commenceLe ? event.commenceLe|date('H:i') : '' }}" required>
+                        <input type="hidden" name="date_start" required>
+                    </div>
+                </div>
+
+                <div class="form-group">
+                    <label>Date de fin</label>
+                    <div class="datetime-split">
+                        <input type="text" name="date_end_date" class="form-control date-only" placeholder="jj/mm/aaaa"
+                               value="{{ (isEditMode is defined and isEditMode) and event.seTermineLe ? event.seTermineLe|date('d/m/Y') : '' }}">
+                        <input type="time" name="date_end_time" class="form-control time-only" placeholder="hh:mm" step="60"
+                               value="{{ (isEditMode is defined and isEditMode) and event.seTermineLe ? event.seTermineLe|date('H:i') : '' }}">
+                        <input type="hidden" name="date_end">
+                    </div>
+                </div>
+
+                <div class="form-group span-2">
+                    <label>Lieu <span class="required">*</span></label>
+                    <div class="venue-select-wrapper">
+                        <div class="venue-select-row">
+                            <select name="venue_id" id="venueSelect" class="form-control" required>
+                                <option value="">Sélectionner un lieu...</option>
+                                {% for venue in venues %}
+                                    <option value="{{ venue.id }}" {% if (isEditMode is defined and isEditMode) and event.lieu and event.lieu.id == venue.id %}selected{% elseif selectedVenueId is defined and selectedVenueId == venue.id %}selected{% endif %}>
+                                        {{ venue.nom ?? venue.name ?? venue.label ?? ('Lieu #' ~ venue.id) }}
+                                    </option>
+                                {% endfor %}
+                            </select>
+                            <a href="{{ path('organisateur_venues_new', {'return_to': 'events_new'}) }}" class="btn-create-venue" title="Créer un nouveau lieu">
+                                <i class="fas fa-plus-circle"></i>
+                                <span>Créer un lieu</span>
+                            </a>
+                        </div>
+                        <small class="form-help">Choisissez un lieu existant ou créez-en un nouveau</small>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Section 3: Tags et Classification -->
+        <div class="form-section">
+            <div class="section-header">
+                <div class="section-icon" style="background: linear-gradient(135deg, rgba(155, 89, 182, 0.15), rgba(155, 89, 182, 0.05)); color: #9B59B6;">
+                    <i class="fas fa-tags"></i>
+                </div>
+                <div>
+                    <h2>Tags et Classification</h2>
+                    <p>Catégorisez votre événement pour une meilleure découverte</p>
+                </div>
+            </div>
+
+            <div class="form-grid">
+                <div class="form-group span-2">
+                    <label>Tags <span class="required">*</span></label>
+                    <div class="tags-selector">
+                        <div class="tags-grid">
+                            <label class="tag-option">
+                                <input type="checkbox" name="tags[]" value="musique">
+                                <div class="tag-card">
+                                    <div class="tag-icon">🎵</div>
+                                    <span>Musique Live</span>
+                                </div>
+                            </label>
+                            <label class="tag-option">
+                                <input type="checkbox" name="tags[]" value="danse">
+                                <div class="tag-card">
+                                    <div class="tag-icon">💃</div>
+                                    <span>Danse</span>
+                                </div>
+                            </label>
+                            <label class="tag-option">
+                                <input type="checkbox" name="tags[]" value="gastronomie">
+                                <div class="tag-card">
+                                    <div class="tag-icon">🍽️</div>
+                                    <span>Gastronomie</span>
+                                </div>
+                            </label>
+                            <label class="tag-option">
+                                <input type="checkbox" name="tags[]" value="art">
+                                <div class="tag-card">
+                                    <div class="tag-icon">🎨</div>
+                                    <span>Art</span>
+                                </div>
+                            </label>
+                            <label class="tag-option">
+                                <input type="checkbox" name="tags[]" value="technologie">
+                                <div class="tag-card">
+                                    <div class="tag-icon">💻</div>
+                                    <span>Technologie</span>
+                                </div>
+                            </label>
+                            <label class="tag-option">
+                                <input type="checkbox" name="tags[]" value="sport">
+                                <div class="tag-card">
+                                    <div class="tag-icon">⚽</div>
+                                    <span>Sport</span>
+                                </div>
+                            </label>
+                            <label class="tag-option">
+                                <input type="checkbox" name="tags[]" value="famille">
+                                <div class="tag-card">
+                                    <div class="tag-icon">👨‍👩‍👧‍👦</div>
+                                    <span>Famille</span>
+                                </div>
+                            </label>
+                            <label class="tag-option">
+                                <input type="checkbox" name="tags[]" value="business">
+                                <div class="tag-card">
+                                    <div class="tag-icon">💼</div>
+                                    <span>Business</span>
+                                </div>
+                            </label>
+                        </div>
+                    </div>
+                    <small class="form-help">Sélectionnez les tags qui correspondent à votre événement</small>
+                </div>
+            </div>
+        </div>
+
+        <!-- Section 4: Médias -->
+        <div class="form-section">
+            <div class="section-header">
+                <div class="section-icon" style="background: linear-gradient(135deg, rgba(155, 89, 182, 0.15), rgba(155, 89, 182, 0.05)); color: #9B59B6;">
+                    <i class="fas fa-image"></i>
+                </div>
+                <div>
+                    <h2>Images et médias</h2>
+                    <p>Ajoutez des visuels attractifs pour votre événement</p>
+                </div>
+            </div>
+
+            <div class="form-grid">
+                <div class="form-group span-2">
+                    <label>Image principale <span class="required">*</span></label>
+                    <div class="file-upload-area" id="imageUpload">
+                        <div class="upload-icon">
+                            <i class="fas fa-cloud-upload-alt"></i>
+                        </div>
+                        <div class="upload-text">
+                            <strong>Cliquez pour uploader</strong> ou glissez-déposez
+                        </div>
+                        <div class="upload-info">
+                            PNG, JPG jusqu'à 10MB
+                        </div>
+                        <input type="file" name="image" accept="image/*" class="file-input" required>
+                    </div>
+                    <div id="imagePreview" class="image-preview"></div>
+                </div>
+
+                <div class="form-group span-2">
+                    <label>Images supplémentaires</label>
+                    <div class="file-upload-area" id="galleryUpload">
+                        <div class="upload-icon">
+                            <i class="fas fa-images"></i>
+                        </div>
+                        <div class="upload-text">
+                            <strong>Ajouter des images</strong> (max 5)
+                        </div>
+                        <input type="file" name="gallery[]" accept="image/*" class="file-input" multiple>
+                    </div>
+                    <div id="galleryPreview" class="gallery-preview"></div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Section 5: Billets et tarifs -->
+        <div class="form-section">
+            <div class="section-header">
+                <div class="section-icon" style="background: linear-gradient(135deg, rgba(243, 156, 18, 0.15), rgba(243, 156, 18, 0.05)); color: var(--warning);">
+                    <i class="fas fa-ticket-alt"></i>
+                </div>
+                <div>
+                    <h2>Billets et tarifs</h2>
+                    <p>Configurez les catégories de billets et leurs prix</p>
+                </div>
+            </div>
+
+            <div id="ticketsContainer">
+                {% if isEditMode is defined and isEditMode and existingTicketTypes is defined and existingTicketTypes|length > 0 %}
+                    {# Afficher tous les types de billets existants en mode édition #}
+                    {% for ticketType in existingTicketTypes %}
+                        {% set inventaire = ticketType.inventaire %}
+                        {% set quantiteVendue = inventaire ? inventaire.quantiteVendue : 0 %}
+                        {% set quantiteTotale = inventaire ? inventaire.quantiteTotale : 0 %}
+                        <div class="ticket-category" data-ticket-id="{{ ticketType.id }}">
+                            <div class="ticket-header">
+                                <h3>Catégorie {{ loop.index }}</h3>
+                                <button type="button" class="btn-remove-ticket" onclick="removeTicket(this)">
+                                    <i class="fas fa-times"></i>
+                                </button>
+                            </div>
+                            <input type="hidden" name="ticket_id[]" value="{{ ticketType.id }}">
+                            <div class="form-grid">
+                                <div class="form-group">
+                                    <label>Catégorie <span class="required">*</span></label>
+                                    <select name="ticket_categorie[]" class="form-control" required>
+                                        <option value="">Sélectionner une catégorie...</option>
+                                        <option value="tous">Tous</option>
+                                        {% for categorie in categoriesBillets %}
+                                            <option value="{{ categorie.id }}" {% if ticketType.configurationCategorie and ticketType.configurationCategorie.id == categorie.id %}selected{% endif %}>{{ categorie.nom }}</option>
+                                        {% endfor %}
+                                    </select>
+                                </div>
+                                <div class="form-group">
+                                    <label>Segment âge <span class="required">*</span></label>
+                                    <select name="ticket_segment[]" class="form-control" required>
+                                        <option value="">Sélectionner un segment...</option>
+                                        <option value="tous">Tous</option>
+                                        {% for segment in segmentsBillets %}
+                                            <option value="{{ segment.id }}" {% if ticketType.configurationSegment and ticketType.configurationSegment.id == segment.id %}selected{% endif %}>
+                                                {{ segment.nom }}{% if segment.ageMin is not null or segment.ageMax is not null %} 
+                                                    ({% if segment.ageMin is not null %}{{ segment.ageMin }}{% endif %}{% if segment.ageMin is not null and segment.ageMax is not null %}-{% endif %}{% if segment.ageMax is not null %}{{ segment.ageMax }}{% endif %} ans)
+                                                {% endif %}
+                                            </option>
+                                        {% endfor %}
+                                    </select>
+                                </div>
+                                <div class="form-group">
+                                    <label>Prix (€) <span class="required">*</span></label>
+                                    <input type="number" name="ticket_price[]" class="form-control" placeholder="0.00" min="0" step="0.01" 
+                                           value="{{ ticketType.prixDeBase }}" required>
+                                </div>
+                                <div class="form-group">
+                                    <label>Quantité <span class="required">*</span></label>
+                                    <input type="number" name="ticket_quantity[]" class="form-control ticket-quantity-input" 
+                                           placeholder="100" min="{{ quantiteVendue }}" step="1" 
+                                           value="{{ quantiteTotale }}" 
+                                           data-sold="{{ quantiteVendue }}"
+                                           data-original="{{ quantiteTotale }}"
+                                           required>
+                                    {% if quantiteVendue > 0 %}
+                                        <small class="form-help" style="color: var(--warning);">
+                                            <i class="fas fa-exclamation-triangle"></i> 
+                                            {{ quantiteVendue }} billet(s) déjà vendu(s). La quantité ne peut pas être inférieure à {{ quantiteVendue }}.
+                                        </small>
+                                    {% endif %}
+                                </div>
+                            </div>
+                        </div>
+                    {% endfor %}
+                {% else %}
+                    {# Formulaire vide pour création #}
+                    <div class="ticket-category">
+                        <div class="ticket-header">
+                            <h3>Catégorie 1</h3>
+                            <button type="button" class="btn-remove-ticket" onclick="removeTicket(this)">
+                                <i class="fas fa-times"></i>
+                            </button>
+                        </div>
+                        <div class="form-grid">
+                            <div class="form-group">
+                                <label>Catégorie <span class="required">*</span></label>
+                                <select name="ticket_categorie[]" class="form-control" required>
+                                    <option value="">Sélectionner une catégorie...</option>
+                                    <option value="tous">Tous</option>
+                                    {% for categorie in categoriesBillets %}
+                                        <option value="{{ categorie.id }}">{{ categorie.nom }}</option>
+                                    {% endfor %}
+                                </select>
+                            </div>
+                            <div class="form-group">
+                                <label>Segment âge <span class="required">*</span></label>
+                                <select name="ticket_segment[]" class="form-control" required>
+                                    <option value="">Sélectionner un segment...</option>
+                                    <option value="tous">Tous</option>
+                                    {% for segment in segmentsBillets %}
+                                        <option value="{{ segment.id }}">
+                                            {{ segment.nom }}{% if segment.ageMin is not null or segment.ageMax is not null %} 
+                                                ({% if segment.ageMin is not null %}{{ segment.ageMin }}{% endif %}{% if segment.ageMin is not null and segment.ageMax is not null %}-{% endif %}{% if segment.ageMax is not null %}{{ segment.ageMax }}{% endif %} ans)
+                                            {% endif %}
+                                        </option>
+                                    {% endfor %}
+                                </select>
+                            </div>
+                            <div class="form-group">
+                                <label>Prix (€) <span class="required">*</span></label>
+                                <input type="number" name="ticket_price[]" class="form-control" placeholder="0.00" min="0" step="0.01" required>
+                            </div>
+                            <div class="form-group">
+                                <label>Quantité <span class="required">*</span></label>
+                                <input type="number" name="ticket_quantity[]" class="form-control" placeholder="100" min="1" required>
+                            </div>
+                        </div>
+                    </div>
+                {% endif %}
+            </div>
+
+            <button type="button" class="btn-add-ticket" onclick="addTicket()">
+                <i class="fas fa-plus"></i>
+                Ajouter une catégorie de billet
+            </button>
+
+            <!-- Paramètres de vente des billets -->
+            <div class="ticket-sales-settings">
+                <div class="section-header">
+                    <div class="section-icon" style="background: linear-gradient(135deg, rgba(52, 152, 219, 0.15), rgba(52, 152, 219, 0.05)); color: var(--accent);">
+                        <i class="fas fa-cog"></i>
+                    </div>
+                    <div>
+                        <h2>Paramètres de vente</h2>
+                        <p>Configurez les dates de vente et les limites par commande pour tous les billets</p>
+                    </div>
+                </div>
+                
+                <div class="form-grid">
+                    <div class="form-group">
+                        <label>Date de début des ventes</label>
+                        <div class="datetime-split">
+                            <input type="text" name="ticket_sales_start_date" id="ticketSalesStartDate" class="form-control" placeholder="jj/mm/aaaa"
+                                   value="{{ (isEditMode is defined and isEditMode) and event.ventesCommencentLe ? event.ventesCommencentLe|date('d/m/Y') : '' }}">
+                            <input type="time" name="ticket_sales_start_time" id="ticketSalesStartTime" class="form-control time-only" placeholder="hh:mm"
+                                   value="{{ (isEditMode is defined and isEditMode) and event.ventesCommencentLe ? event.ventesCommencentLe|date('H:i') : '' }}">
+                        </div>
+                        <input type="hidden" name="ticket_sales_start" id="ticketSalesStart">
+                        <small class="form-help">Date et heure à partir de laquelle les billets seront en vente</small>
+                    </div>
+                    
+                    <div class="form-group">
+                        <label>Date de fin des ventes</label>
+                        <div class="datetime-split">
+                            <input type="text" name="ticket_sales_end_date" id="ticketSalesEndDate" class="form-control" placeholder="jj/mm/aaaa"
+                                   value="{{ (isEditMode is defined and isEditMode) and event.ventesSeTerminentLe ? event.ventesSeTerminentLe|date('d/m/Y') : '' }}">
+                            <input type="time" name="ticket_sales_end_time" id="ticketSalesEndTime" class="form-control time-only" placeholder="hh:mm"
+                                   value="{{ (isEditMode is defined and isEditMode) and event.ventesSeTerminentLe ? event.ventesSeTerminentLe|date('H:i') : '' }}">
+                        </div>
+                        <input type="hidden" name="ticket_sales_end" id="ticketSalesEnd">
+                        <small class="form-help">Date et heure jusqu'à laquelle les billets seront en vente</small>
+                    </div>
+                    
+                    <div class="form-group">
+                        <label>Minimum par commande</label>
+                        <input type="number" name="ticket_min_per_order" class="form-control" placeholder="1" min="1" value="1">
+                        <small class="form-help">Nombre minimum de billets par commande</small>
+                    </div>
+                    
+                    <div class="form-group">
+                        <label>Maximum par commande</label>
+                        <input type="number" name="ticket_max_per_order" class="form-control" placeholder="Illimité" min="1">
+                        <small class="form-help">Nombre maximum de billets par commande (laisser vide pour illimité)</small>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Section 6: Paiement et Accessibilité -->
+        <div class="form-section">
+            <div class="section-header">
+                <div class="section-icon" style="background: linear-gradient(135deg, rgba(46, 204, 113, 0.15), rgba(46, 204, 113, 0.05)); color: #2ECC71;">
+                    <i class="fas fa-credit-card"></i>
+                </div>
+                <div>
+                    <h2>Paiement et Accessibilité</h2>
+                    <p>Configurez les options de paiement et d'accessibilité</p>
+                </div>
+            </div>
+
+            <div class="form-grid">
+                <!-- Modes de paiement -->
+                <div class="form-group span-2">
+                    <label>Modes de paiement acceptés <span class="required">*</span></label>
+                    <div class="payment-selector">
+                        <div class="payment-grid">
+                            {% for modePaiement in modesPaiement %}
+                                {% set paymentValue = modePaiement.code %}
+                                {% if modePaiement.code == 'orange' %}
+                                    {% set paymentValue = 'orange_money' %}
+                                {% elseif modePaiement.code == 'airtel' %}
+                                    {% set paymentValue = 'airtel_money' %}
+                                {% elseif modePaiement.code == 'autre' %}
+                                    {% set paymentValue = 'cash' %}
+                                {% endif %}
+                                <div class="payment-option">
+                                    <div class="payment-card{% if modePaiement.code == 'mvola' %} payment-card-mvola{% endif %}">
+                                        <div class="payment-icon">
+                                            {% if modePaiement.icone %}
+                                                <img src="{{ asset('images/' ~ modePaiement.icone) }}" alt="{{ modePaiement.libelle }}" class="payment-logo">
+                                            {% else %}
+                                                {% if modePaiement.code == 'orange' %}
+                                                    <img src="{{ asset('images/orange-money.png') }}" alt="{{ modePaiement.libelle }}" class="payment-logo">
+                                                {% elseif modePaiement.code == 'airtel' %}
+                                                    <img src="{{ asset('images/airtel.png') }}" alt="{{ modePaiement.libelle }}" class="payment-logo">
+                                                {% elseif modePaiement.code == 'mvola' %}
+                                                    <img src="{{ asset('images/m-vola.png') }}" alt="{{ modePaiement.libelle }}" class="payment-logo">
+                                                {% else %}
+                                                    💰
+                                                {% endif %}
+                                            {% endif %}
+                                        </div>
+                                        <span class="payment-label">{{ modePaiement.libelle }}</span>
+                                    </div>
+                                    <label class="payment-checkbox-label">
+                                        <input type="checkbox" name="payment_methods[]" value="{{ paymentValue }}" class="payment-checkbox">
+                                        <span class="payment-checkbox-custom"></span>
+                                    </label>
+                                </div>
+                            {% endfor %}
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Accessibilité -->
+                <div class="form-group span-2">
+                    <label>Options d'accessibilité</label>
+                    <div class="accessibility-selector">
+                        <div class="accessibility-grid">
+                            {% for typeAccessibilite in typesAccessibilite %}
+                                {% set accessibilityValue = typeAccessibilite.code %}
+                                {% set accessibilityLabel = typeAccessibilite.libelle %}
+                                {% set iconUrl = typeAccessibilite.urlImage ?? ('images/acces1.svg') %}
+                                {% set isSelected = false %}
+                                {% if (isEditMode is defined and isEditMode) and event.liensAccessibilites is defined %}
+                                    {% for lien in event.liensAccessibilites %}
+                                        {% if lien.typeAccessibilite.code == accessibilityValue %}
+                                            {% set isSelected = true %}
+                                        {% endif %}
+                                    {% endfor %}
+                                {% endif %}
+                                <label class="accessibility-option">
+                                    <input type="checkbox" name="accessibility[]" value="{{ accessibilityValue }}" {% if isSelected %}checked{% endif %}>
+                                    <div class="accessibility-card">
+                                        <div class="accessibility-icon">
+                                            <img src="{{ asset(iconUrl) }}" alt="{{ accessibilityLabel }}" class="accessibility-logo">
+                                        </div>
+                                        <div class="accessibility-info">
+                                            <span class="accessibility-title">{{ accessibilityLabel }}</span>
+                                        </div>
+                                    </div>
+                                </label>
+                            {% endfor %}
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Section 7: Options avancées (masquée en mode édition) -->
+        {% if not (isEditMode is defined and isEditMode) %}
+        <div class="form-section">
+            <div class="section-header">
+                <div class="section-icon" style="background: linear-gradient(135deg, rgba(231, 76, 60, 0.15), rgba(231, 76, 60, 0.05)); color: var(--danger);">
+                    <i class="fas fa-cog"></i>
+                </div>
+                <div>
+                    <h2>Options avancées</h2>
+                    <p>Paramètres supplémentaires</p>
+                </div>
+            </div>
+
+            <div class="form-grid">
+                <div class="form-group">
+                    <label class="checkbox-label">
+                        <input type="checkbox" name="is_featured" value="1">
+                        <span>Événement mis en avant</span>
+                    </label>
+                    <small class="form-help">L'événement sera affiché en priorité</small>
+                </div>
+
+                <div class="form-group">
+                    <label class="checkbox-label">
+                        <input type="checkbox" name="allow_waiting_list" value="1" checked>
+                        <span>Activer la liste d'attente</span>
+                    </label>
+                    <small class="form-help">Si complet, les utilisateurs pourront s'inscrire</small>
+                </div>
+
+                <div class="form-group">
+                    <label class="checkbox-label">
+                        <input type="checkbox" name="send_reminders" value="1" checked>
+                        <span>Envoyer des rappels automatiques</span>
+                    </label>
+                    <small class="form-help">Les participants recevront des rappels avant l'événement</small>
+                </div>
+
+                <div class="form-group">
+                    <label class="checkbox-label">
+                        <input type="checkbox" name="publish_immediately" value="1" checked>
+                        <span>Publier immédiatement</span>
+                    </label>
+                    <small class="form-help">L'événement sera visible tout de suite</small>
+                </div>
+            </div>
+        </div>
+        {% endif %}
+
+        <!-- Actions -->
+        <div class="form-actions">
+            <button type="submit" class="btn btn-primary">
+                <i class="fas fa-check"></i>
+                {{ isEditMode|default(false) ? 'Enregistrer les modifications' : 'Créer l\'événement' }}
+            </button>
+            <a href="{{ path('organisateur_events_index') }}" class="btn btn-text">
+                Annuler
+            </a>
+        </div>
+        
+        {# Masquer les champs de date du formulaire Symfony car on utilise des champs HTML personnalisés #}
+        <div style="display: none !important;">
+            {{ form_widget(form.commenceLe) }}
+            {{ form_widget(form.seTermineLe) }}
+        </div>
+        
+        {# En mode édition, masquer aussi les champs d'informations principales qui pourraient être rendus par form_rest #}
+        {% if isEditMode is defined and isEditMode %}
+        <div style="display: none !important;">
+            {{ form_widget(form.titre) }}
+            {{ form_widget(form.categoriePrincipale) }}
+            {{ form_widget(form.typeEvenement) }}
+            {{ form_widget(form.resume) }}
+            {{ form_widget(form.description) }}
+        </div>
+        {% endif %}
+        
+        {# Afficher le reste des champs non rendus (token CSRF, etc.) #}
+        {{ form_rest(form) }}
+    {{ form_end(form) }}
+</div>
+{% endblock %}
+
+{% block javascripts %}
+{{ parent() }}
+<script src="https://cdn.jsdelivr.net/npm/flatpickr"></script>
+<script src="https://cdn.jsdelivr.net/npm/flatpickr/dist/l10n/fr.js"></script>
+<script>
+// Stocker toutes les options disponibles
+const allCategories = [
+    { id: 'tous', nom: 'Tous' },
+    {% for categorie in categoriesBillets %}
+    { id: '{{ categorie.id }}', nom: '{{ categorie.nom }}' },
+    {% endfor %}
+];
+
+const allSegments = [
+    { id: 'tous', nom: 'Tous', ageMin: null, ageMax: null, label: 'Tous' },
+    {% for segment in segmentsBillets %}
+    { 
+        id: '{{ segment.id }}', 
+        nom: '{{ segment.nom }}',
+        ageMin: {{ segment.ageMin ?? 'null' }},
+        ageMax: {{ segment.ageMax ?? 'null' }},
+        label: '{{ segment.nom }}{% if segment.ageMin is not null or segment.ageMax is not null %} ({% if segment.ageMin is not null %}{{ segment.ageMin }}{% endif %}{% if segment.ageMin is not null and segment.ageMax is not null %}-{% endif %}{% if segment.ageMax is not null %}{{ segment.ageMax }}{% endif %} ans){% endif %}'
+    },
+    {% endfor %}
+];
+
+// Suivre les options déjà sélectionnées
+let selectedCategories = new Set();
+let selectedSegments = new Set();
+let hasTousCategory = false;
+let hasTousSegment = false;
+
+// Fonction pour générer toutes les options de catégories (sans filtre)
+function getAllCategoriesOptions() {
+    let options = '<option value="">Sélectionner une catégorie...</option>';
+    allCategories.forEach(cat => {
+        options += `<option value="${cat.id}">${cat.nom}</option>`;
+    });
+    return options;
+}
+
+// Fonction pour générer toutes les options de segments (sans filtre)
+function getAllSegmentsOptions() {
+    let options = '<option value="">Sélectionner un segment...</option>';
+    allSegments.forEach(seg => {
+        options += `<option value="${seg.id}">${seg.label}</option>`;
+    });
+    return options;
+}
+
+// Fonction pour générer les options de catégories filtrées (pour nouveaux ajouts)
+function getFilteredCategoriesOptions() {
+    let options = '<option value="">Sélectionner une catégorie...</option>';
+    
+    // Si "tous" a été sélectionné, ne garder que "tous"
+    if (hasTousCategory) {
+        const tousCategory = allCategories.find(c => c.id === 'tous');
+        if (tousCategory) {
+            options += `<option value="${tousCategory.id}">${tousCategory.nom}</option>`;
+        }
+        return options;
+    }
+    
+    // Sinon, exclure les options déjà sélectionnées (inclure "tous" si disponible)
+    allCategories.forEach(cat => {
+        if (!selectedCategories.has(cat.id)) {
+            options += `<option value="${cat.id}">${cat.nom}</option>`;
+        }
+    });
+    
+    return options;
+}
+
+// Fonction pour générer les options de segments filtrées (pour nouveaux ajouts)
+function getFilteredSegmentsOptions() {
+    let options = '<option value="">Sélectionner un segment...</option>';
+    
+    // Si "tous" a été sélectionné, ne garder que "tous"
+    if (hasTousSegment) {
+        const tousSegment = allSegments.find(s => s.id === 'tous');
+        if (tousSegment) {
+            options += `<option value="${tousSegment.id}">${tousSegment.label}</option>`;
+        }
+        return options;
+    }
+    
+    // Sinon, exclure les options déjà sélectionnées (inclure "tous" si disponible)
+    allSegments.forEach(seg => {
+        if (!selectedSegments.has(seg.id)) {
+            options += `<option value="${seg.id}">${seg.label}</option>`;
+        }
+    });
+    
+    return options;
+}
+
+// Fonction pour mettre à jour les selects existants
+// Les selects existants gardent toutes les options, seuls les nouveaux ajouts sont filtrés
+function updateAllSelects() {
+    // Ne pas modifier les selects existants, ils gardent toutes leurs options
+    // Cette fonction est maintenant principalement pour mettre à jour les états
+}
+
+// Fonction pour gérer le changement de sélection
+function handleSelectionChange(select, type) {
+    const value = select.value;
+    
+    if (type === 'category') {
+        // Retirer l'ancienne sélection
+        selectedCategories.clear();
+        hasTousCategory = false;
+        
+        // Ajouter toutes les sélections actuelles
+        document.querySelectorAll('select[name="ticket_categorie[]"]').forEach(s => {
+            if (s.value) {
+                const cat = allCategories.find(c => c.id === s.value);
+                if (cat) {
+                    if (cat.id === 'tous' || cat.nom === 'Tous' || cat.nom === 'tous') {
+                        hasTousCategory = true;
+                    } else {
+                        selectedCategories.add(s.value);
+                    }
+                }
+            }
+        });
+    } else if (type === 'segment') {
+        // Retirer l'ancienne sélection
+        selectedSegments.clear();
+        hasTousSegment = false;
+        
+        // Ajouter toutes les sélections actuelles
+        document.querySelectorAll('select[name="ticket_segment[]"]').forEach(s => {
+            if (s.value) {
+                const seg = allSegments.find(se => se.id === s.value);
+                if (seg) {
+                    if (seg.id === 'tous' || seg.nom === 'Tous' || seg.nom === 'tous') {
+                        hasTousSegment = true;
+                    } else {
+                        selectedSegments.add(s.value);
+                    }
+                }
+            }
+        });
+    }
+    
+    // Ne pas modifier les selects existants, ils gardent toutes leurs options
+    // Seuls les nouveaux ajouts utiliseront les options filtrées
+}
+
+// Compteur de caractères
+document.addEventListener('DOMContentLoaded', function() {
+    const textarea = document.querySelector('textarea[name="event[resume]"]');
+    const charCount = document.getElementById('charCount');
+    
+    if (textarea && charCount) {
+        textarea.addEventListener('input', function() {
+            charCount.textContent = this.value.length;
+        });
+        // Initialiser le compteur avec la valeur actuelle
+        if (textarea.value) {
+            charCount.textContent = textarea.value.length;
+        }
+    }
+
+    // Upload d'image avec prévisualisation
+    setupImageUpload('imageUpload', 'imagePreview', false);
+    setupImageUpload('galleryUpload', 'galleryPreview', true);
+
+    // Sélecteurs date/heure séparés (jj/mm/aaaa et hh:mm)
+    setupDateTimeSplit({
+        dateSelector: 'input[name="date_start_date"]',
+        timeSelector: 'input[name="date_start_time"]',
+        hiddenSelector: 'input[name="date_start"]',
+        required: true
+    });
+    setupDateTimeSplit({
+        dateSelector: 'input[name="date_end_date"]',
+        timeSelector: 'input[name="date_end_time"]',
+        hiddenSelector: 'input[name="date_end"]',
+        required: false
+    });
+
+    // Dates de vente des billets
+    setupDateTimeSplit({
+        dateSelector: 'input[name="ticket_sales_start_date"]',
+        timeSelector: 'input[name="ticket_sales_start_time"]',
+        hiddenSelector: 'input[name="ticket_sales_start"]',
+        required: false
+    });
+    setupDateTimeSplit({
+        dateSelector: 'input[name="ticket_sales_end_date"]',
+        timeSelector: 'input[name="ticket_sales_end_time"]',
+        hiddenSelector: 'input[name="ticket_sales_end"]',
+        required: false
+    });
+
+    // Le bouton "Créer un lieu" est maintenant un lien séparé, pas besoin de gestion JS
+    
+    // Initialiser les écouteurs pour les selects de billets
+    initializeTicketSelects();
+    
+    // Vérifier l'état initial des selects
+    checkInitialTicketSelections();
+    
+    // Validation de la quantité minimale pour les billets existants
+    document.querySelectorAll('.ticket-quantity-input').forEach(input => {
+        const soldQuantity = parseInt(input.dataset.sold) || 0;
+        const originalQuantity = parseInt(input.dataset.original) || 0;
+        
+        input.addEventListener('change', function() {
+            const newQuantity = parseInt(this.value) || 0;
+            if (newQuantity < soldQuantity) {
+                showNotification(
+                    `La quantité ne peut pas être inférieure à ${soldQuantity} (${soldQuantity} billet(s) déjà vendu(s)).`,
+                    'error',
+                    'Quantité invalide'
+                );
+                this.value = Math.max(soldQuantity, originalQuantity);
+                this.focus();
+            }
+        });
+        
+        input.addEventListener('input', function() {
+            const newQuantity = parseInt(this.value) || 0;
+            if (newQuantity < soldQuantity) {
+                this.setCustomValidity(`La quantité minimale est ${soldQuantity} (billets vendus)`);
+            } else {
+                this.setCustomValidity('');
+            }
+        });
+    });
+});
+
+function setupDateTimeSplit({ dateSelector, timeSelector, hiddenSelector, required }) {
+    const dateInput = document.querySelector(dateSelector);
+    const timeInput = document.querySelector(timeSelector);
+    const hiddenInput = document.querySelector(hiddenSelector);
+    if (!dateInput || !timeInput || !hiddenInput) return;
+
+    const updateHidden = () => {
+        const dateVal = dateInput.value.trim();
+        const timeVal = timeInput.value.trim();
+        if (!dateVal || !timeVal) {
+            hiddenInput.value = '';
+            return;
+        }
+        // dateVal au format d/m/Y, timeVal au format H:i
+        const [day, month, year] = dateVal.split('/');
+        if (!day || !month || !year) {
+            hiddenInput.value = '';
+            return;
+        }
+        const isoDate = `${year.padStart(4, '0')}-${month.padStart(2, '0')}-${day.padStart(2, '0')}`;
+        hiddenInput.value = `${isoDate}T${timeVal}`;
+    };
+
+    flatpickr(dateInput, {
+        dateFormat: 'd/m/Y',
+        altInput: false,
+        allowInput: true,
+        locale: 'fr',
+        onChange: updateHidden,
+        onValueUpdate: updateHidden
+    });
+
+    const initDefaultDateTime = () => {
+        const now = new Date();
+        const dd = String(now.getDate()).padStart(2, '0');
+        const mm = String(now.getMonth() + 1).padStart(2, '0');
+        const yyyy = now.getFullYear();
+        const hh = String(now.getHours()).padStart(2, '0');
+        const min = String(now.getMinutes()).padStart(2, '0');
+        if (!dateInput.value) {
+            dateInput.value = `${dd}/${mm}/${yyyy}`;
+        }
+        if (!timeInput.value) {
+            timeInput.value = `${hh}:${min}`;
+        }
+    };
+
+    initDefaultDateTime();
+
+    // Picker heure (flatpickr, format 24h) + saisie manuelle possible
+    const timePicker = flatpickr(timeInput, {
+        enableTime: true,
+        noCalendar: true,
+        dateFormat: 'H:i',
+        time_24hr: true,
+        allowInput: true,
+        locale: 'fr',
+        onChange: updateHidden,
+        onValueUpdate: updateHidden
+    });
+
+    // Écoute native en complément
+    timeInput.addEventListener('input', () => {
+        // Si l'utilisateur tape au clavier, synchroniser le picker et le hidden
+        if (timePicker) {
+            timePicker.setDate(timeInput.value, false, 'H:i');
+        }
+        updateHidden();
+    });
+    timeInput.addEventListener('change', updateHidden);
+
+    // Synchroniser initialement
+    updateHidden();
+
+    if (required) {
+        dateInput.required = true;
+        timeInput.required = true;
+        hiddenInput.required = true;
+    }
+}
+
+function setupImageUpload(uploadId, previewId, multiple) {
+    const uploadArea = document.getElementById(uploadId);
+    const preview = document.getElementById(previewId);
+    const input = uploadArea.querySelector('input[type="file"]');
+
+    uploadArea.addEventListener('click', () => input.click());
+
+    input.addEventListener('change', function() {
+        preview.innerHTML = '';
+        const files = Array.from(this.files);
+        
+        files.forEach(file => {
+            if (file.type.startsWith('image/')) {
+                const reader = new FileReader();
+                reader.onload = function(e) {
+                    const img = document.createElement('div');
+                    img.className = 'preview-image';
+                    img.innerHTML = `
+                        <img src="${e.target.result}" alt="Preview">
+                        <button type="button" class="remove-image" onclick="this.parentElement.remove()">
+                            <i class="fas fa-times"></i>
+                        </button>
+                    `;
+                    preview.appendChild(img);
+                };
+                reader.readAsDataURL(file);
+            }
+        });
+    });
+
+    // Drag and drop
+    uploadArea.addEventListener('dragover', (e) => {
+        e.preventDefault();
+        uploadArea.style.borderColor = 'var(--accent)';
+        uploadArea.style.background = 'rgba(52, 152, 219, 0.05)';
+    });
+
+    uploadArea.addEventListener('dragleave', () => {
+        uploadArea.style.borderColor = 'var(--gray-300)';
+        uploadArea.style.background = 'var(--gray-50)';
+    });
+
+    uploadArea.addEventListener('drop', (e) => {
+        e.preventDefault();
+        uploadArea.style.borderColor = 'var(--gray-300)';
+        uploadArea.style.background = 'var(--gray-50)';
+        input.files = e.dataTransfer.files;
+        input.dispatchEvent(new Event('change'));
+    });
+}
+
+// Gestion des catégories de billets
+let ticketCount = 1;
+
+// Vérifier l'état initial des sélections
+function checkInitialTicketSelections() {
+    document.querySelectorAll('select[name="ticket_categorie[]"]').forEach(select => {
+        if (select.value) {
+            const cat = allCategories.find(c => c.id === select.value);
+            if (cat) {
+                if (cat.id === 'tous' || cat.nom === 'Tous' || cat.nom === 'tous') {
+                    hasTousCategory = true;
+                } else {
+                    selectedCategories.add(select.value);
+                }
+            }
+        }
+    });
+    
+    document.querySelectorAll('select[name="ticket_segment[]"]').forEach(select => {
+        if (select.value) {
+            const seg = allSegments.find(s => s.id === select.value);
+            if (seg) {
+                if (seg.id === 'tous' || seg.nom === 'Tous' || seg.nom === 'tous') {
+                    hasTousSegment = true;
+                } else {
+                    selectedSegments.add(select.value);
+                }
+            }
+        }
+    });
+    
+    // Ne pas modifier les selects existants, ils gardent toutes leurs options
+}
+
+// Initialiser les écouteurs pour les selects existants
+function initializeTicketSelects() {
+    document.querySelectorAll('select[name="ticket_categorie[]"]').forEach(select => {
+        select.addEventListener('change', function() {
+            handleSelectionChange(this, 'category');
+        });
+    });
+    
+    document.querySelectorAll('select[name="ticket_segment[]"]').forEach(select => {
+        select.addEventListener('change', function() {
+            handleSelectionChange(this, 'segment');
+        });
+    });
+}
+
+// Fonction pour afficher une notification toast moderne
+function showNotification(message, type = 'info', title = null) {
+    // Définir les titres par défaut selon le type
+    if (!title) {
+        switch(type) {
+            case 'error':
+                title = 'Erreur';
+                break;
+            case 'warning':
+                title = 'Attention';
+                break;
+            case 'success':
+                title = 'Succès';
+                break;
+            default:
+                title = 'Information';
+        }
+    }
+    
+    // Créer l'élément de notification
+    const notification = document.createElement('div');
+    notification.className = `toast-notification toast-${type}`;
+    notification.innerHTML = `
+        <div class="toast-icon-wrapper">
+            <i class="fas ${type === 'error' ? 'fa-exclamation-circle' : type === 'warning' ? 'fa-exclamation-triangle' : type === 'success' ? 'fa-check-circle' : 'fa-info-circle'}"></i>
+        </div>
+        <div class="toast-content">
+            <div class="toast-title">${title}</div>
+            <div class="toast-message">${message}</div>
+        </div>
+        <button class="toast-close" onclick="this.parentElement.remove()" aria-label="Fermer">
+            <i class="fas fa-times"></i>
+        </button>
+    `;
+    
+    // Ajouter au body
+    document.body.appendChild(notification);
+    
+    // Animation d'entrée
+    setTimeout(() => {
+        notification.classList.add('show');
+    }, 10);
+    
+    // Suppression automatique après 6 secondes pour les erreurs, 5 pour les autres
+    const duration = type === 'error' ? 6000 : 5000;
+    setTimeout(() => {
+        notification.classList.remove('show');
+        setTimeout(() => {
+            if (notification.parentElement) {
+                notification.remove();
+            }
+        }, 300);
+    }, duration);
+}
+
+function addTicket() {
+    // Vérifier si on peut ajouter (mais permettre le clic)
+    if (hasTousCategory && hasTousSegment) {
+        showNotification(
+            'Les deux champs <strong>Catégorie</strong> et <strong>Segment âge</strong> sont déjà sur "tous".<br>Veuillez modifier au moins une sélection avant d\'ajouter un nouveau billet.',
+            'error',
+            'Impossible d\'ajouter un billet'
+        );
+        return;
+    }
+    
+    ticketCount++;
+    const container = document.getElementById('ticketsContainer');
+    const ticketHTML = `
+        <div class="ticket-category">
+            <div class="ticket-header">
+                <h3>Catégorie ${ticketCount}</h3>
+                <button type="button" class="btn-remove-ticket" onclick="removeTicket(this)">
+                    <i class="fas fa-times"></i>
+                </button>
+            </div>
+            <div class="form-grid">
+                <div class="form-group">
+                    <label>Catégorie <span class="required">*</span></label>
+                    <select name="ticket_categorie[]" class="form-control ticket-categorie-select" required>${getFilteredCategoriesOptions()}</select>
+                </div>
+                <div class="form-group">
+                    <label>Segment âge <span class="required">*</span></label>
+                    <select name="ticket_segment[]" class="form-control ticket-segment-select" required>${getFilteredSegmentsOptions()}</select>
+                </div>
+                <div class="form-group">
+                    <label>Prix (€) <span class="required">*</span></label>
+                    <input type="number" name="ticket_price[]" class="form-control" placeholder="0.00" min="0" step="0.01" required>
+                </div>
+                <div class="form-group">
+                    <label>Quantité <span class="required">*</span></label>
+                    <input type="number" name="ticket_quantity[]" class="form-control" placeholder="100" min="1" required>
+                </div>
+            </div>
+        </div>
+    `;
+    container.insertAdjacentHTML('beforeend', ticketHTML);
+    
+    // Ajouter les écouteurs au nouveau select
+    const newCategorySelect = container.querySelector('.ticket-category:last-child .ticket-categorie-select');
+    const newSegmentSelect = container.querySelector('.ticket-category:last-child .ticket-segment-select');
+    
+    if (newCategorySelect) {
+        newCategorySelect.addEventListener('change', function() {
+            handleSelectionChange(this, 'category');
+        });
+    }
+    
+    if (newSegmentSelect) {
+        newSegmentSelect.addEventListener('change', function() {
+            handleSelectionChange(this, 'segment');
+        });
+    }
+}
+
+function removeTicket(btn) {
+    const tickets = document.querySelectorAll('.ticket-category');
+    if (tickets.length > 1) {
+        const ticketToRemove = btn.closest('.ticket-category');
+        const categorySelect = ticketToRemove.querySelector('select[name="ticket_categorie[]"]');
+        const segmentSelect = ticketToRemove.querySelector('select[name="ticket_segment[]"]');
+        
+        // Retirer les sélections de cet élément
+        if (categorySelect && categorySelect.value) {
+            const cat = allCategories.find(c => c.id === categorySelect.value);
+            if (cat && (cat.id === 'tous' || cat.nom === 'Tous' || cat.nom === 'tous')) {
+                hasTousCategory = false;
+            } else if (cat) {
+                selectedCategories.delete(categorySelect.value);
+            }
+        }
+        
+        if (segmentSelect && segmentSelect.value) {
+            const seg = allSegments.find(s => s.id === segmentSelect.value);
+            if (seg && (seg.id === 'tous' || seg.nom === 'Tous' || seg.nom === 'tous')) {
+                hasTousSegment = false;
+            } else if (seg) {
+                selectedSegments.delete(segmentSelect.value);
+            }
+        }
+        
+        ticketToRemove.remove();
+        
+        // Les selects existants gardent toutes leurs options
+        // Seuls les nouveaux ajouts utiliseront les options filtrées
+    } else {
+        showNotification(
+            'Au moins une catégorie de billet est requise pour votre événement.<br>Vous ne pouvez pas supprimer la dernière catégorie.',
+            'error',
+            'Suppression impossible'
+        );
+    }
+}
+
+// Si un lieu vient d'être créé, rafraîchir la liste des lieux
+document.addEventListener('DOMContentLoaded', function() {
+    const urlParams = new URLSearchParams(window.location.search);
+    const venueId = urlParams.get('venue_id');
+    if (venueId) {
+        const select = document.getElementById('venueSelect');
+        if (select) {
+            // Le lieu devrait déjà être sélectionné côté serveur, mais on s'assure qu'il l'est
+            select.value = venueId;
+            // Faire défiler jusqu'au select pour que l'utilisateur voie le lieu sélectionné
+            select.scrollIntoView({ behavior: 'smooth', block: 'center' });
+        }
+    }
+});
+</script>
 {% endblock %}

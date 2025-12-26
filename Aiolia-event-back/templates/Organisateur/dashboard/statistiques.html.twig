@@ -1,321 +1,660 @@
 {% extends 'base.html.twig' %}
 
-{% block title %}Statistiques - Aiolia Event{% endblock %}
+{% block title %}Tableau de bord - Statistiques{% endblock %}
+
+{% block stylesheets %}
+{{ parent() }}
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/flatpickr/dist/flatpickr.min.css">
+<style>
+    .flatpickr-calendar {
+        font-family: inherit;
+        border-radius: var(--border-radius-lg);
+        box-shadow: var(--shadow-md);
+    }
+    
+    .flatpickr-day.selected,
+    .flatpickr-day.startRange,
+    .flatpickr-day.endRange {
+        background: var(--accent);
+        border-color: var(--accent);
+    }
+    
+    .flatpickr-day.selected:hover,
+    .flatpickr-day.startRange:hover,
+    .flatpickr-day.endRange:hover {
+        background: var(--accent);
+        border-color: var(--accent);
+    }
+    
+    /* Style pour l'input alternatif de Flatpickr */
+    .flatpickr-input.flatpickr-mobile {
+        display: none;
+    }
+    
+    /* Cacher l'input original et afficher seulement l'input alternatif */
+    #date_from.flatpickr-input,
+    #date_to.flatpickr-input {
+        position: absolute;
+        opacity: 0;
+        pointer-events: none;
+        width: 0;
+        height: 0;
+        padding: 0;
+        border: 0;
+    }
+    
+    /* Style pour l'input alternatif */
+    .flatpickr-input.form-control {
+        background: var(--bg-secondary);
+        cursor: pointer;
+    }
+</style>
+{% endblock %}
 
 {% block body %}
-<div class="dashboard-container">
+<div class="dashboard">
     <div class="dashboard-header">
-        <h1>
-            <i class="fas fa-chart-line"></i>
-            <span data-i18n="organisateur.dashboard.title">Statistiques</span>
-        </h1>
-        <p class="dashboard-subtitle" data-i18n="organisateur.dashboard.subtitle">Vue d'ensemble de vos événements et performances</p>
-    </div>
-
-    <!-- Cards de statistiques -->
-    <div class="stats-grid">
-        <div class="stat-card">
-            <div class="stat-icon">
-                <i class="fas fa-calendar-alt"></i>
-            </div>
-            <div class="stat-content">
-                <h3 class="stat-value">{{ totalEvents }}</h3>
-                <p class="stat-label" data-i18n="organisateur.dashboard.total_events">Total événements</p>
-            </div>
-        </div>
-
-        <div class="stat-card">
-            <div class="stat-icon published">
-                <i class="fas fa-check-circle"></i>
-            </div>
-            <div class="stat-content">
-                <h3 class="stat-value">{{ publishedEvents }}</h3>
-                <p class="stat-label" data-i18n="organisateur.dashboard.published_events">Événements publiés</p>
-            </div>
-        </div>
-
-        <div class="stat-card">
-            <div class="stat-icon draft">
-                <i class="fas fa-edit"></i>
-            </div>
-            <div class="stat-content">
-                <h3 class="stat-value">{{ draftEvents }}</h3>
-                <p class="stat-label" data-i18n="organisateur.dashboard.draft_events">Brouillons</p>
-            </div>
+        <div>
+            <h1><i class="fas fa-chart-line"></i> Statistiques de vos événements</h1>
+            <p style="color: var(--gray-600); margin-top: 8px; font-size: 1rem;">
+                Suivez les performances de vos événements et vos dépenses d'abonnement
+            </p>
         </div>
     </div>
 
-    <!-- Événements récents -->
-    <div class="content-card">
-        <div class="card-header">
-            <h2>
-                <i class="fas fa-clock"></i>
-                <span data-i18n="organisateur.dashboard.recent_events">Événements récents</span>
-            </h2>
+    <!-- Stats rapides -->
+    <div class="stats-grid stats-grid-compact">
+        <div class="stat-card stat-card-compact">
+            <div class="stat-icon stat-icon-compact" style="background: linear-gradient(135deg, rgba(52, 152, 219, 0.1), rgba(52, 152, 219, 0.05)); color: var(--accent);">
+                <i class="fas fa-calendar-check"></i>
+            </div>
+            <div class="stat-content">
+                <h3>{{ statistics.widgets.published_events ?? 0 }}</h3>
+                <p>Événements publiés</p>
+            </div>
         </div>
+
+        <div class="stat-card stat-card-compact">
+            <div class="stat-icon stat-icon-compact" style="background: linear-gradient(135deg, rgba(39, 174, 96, 0.1), rgba(39, 174, 96, 0.05)); color: var(--success);">
+                <i class="fas fa-coins"></i>
+            </div>
+            <div class="stat-content">
+                <h3>{{ (statistics.widgets.total_revenue ?? 0)|number_format(0, ',', ' ') }} Ar</h3>
+                <p>Chiffre d'affaires {% if dateFrom or dateTo %}({{ periodLabel }}){% endif %}</p>
+            </div>
+        </div>
+
+        <div class="stat-card stat-card-compact">
+            <div class="stat-icon stat-icon-compact" style="background: linear-gradient(135deg, rgba(243, 156, 18, 0.1), rgba(243, 156, 18, 0.05)); color: var(--warning);">
+                <i class="fas fa-users"></i>
+            </div>
+            <div class="stat-content">
+                <h3>{{ statistics.widgets.total_participants ?? 0 }}</h3>
+                <p>Participants totaux {% if dateFrom or dateTo %}({{ periodLabel }}){% endif %}</p>
+            </div>
+        </div>
+
+        <div class="stat-card stat-card-compact">
+            <div class="stat-icon stat-icon-compact" style="background: linear-gradient(135deg, rgba(231, 76, 60, 0.1), rgba(231, 76, 60, 0.05)); color: var(--danger);">
+                <i class="fas fa-credit-card"></i>
+            </div>
+            <div class="stat-content">
+                <h3>{{ (statistics.widgets.current_month_subscription_expense ?? 0)|number_format(0, ',', ' ') }} Ar</h3>
+                <p>Dépense abonnement {% if dateFrom or dateTo %}({{ periodLabel }}){% endif %}</p>
+            </div>
+        </div>
+    </div>
+
+    <!-- Filtres -->
+    <div class="card filters-card" style="margin-top: 20px;">
         <div class="card-body">
-            {% if recentEvents|length > 0 %}
-                <div class="events-list">
-                    {% for event in recentEvents %}
-                        <div class="event-item">
-                            <div class="event-info">
-                                <h3>{{ event.titre }}</h3>
-                                <p class="event-meta">
-                                    <span class="event-status status-{{ event.statut }}">
-                                        {{ event.statut|capitalize }}
-                                    </span>
-                                    <span class="event-date">
-                                        <i class="fas fa-calendar"></i>
-                                        {{ event.creeLe|date('d/m/Y') }}
-                                    </span>
-                                </p>
-                            </div>
-                            <div class="event-actions">
-                                {# TODO: Ajouter une vraie route de détail d'événement pour l'organisateur #}
-                                <button type="button" class="btn btn-sm btn-primary" data-event-id="{{ event.id }}">
-                                    <i class="fas fa-eye"></i>
-                                    <span data-i18n="common.view">Voir</span>
-                                </button>
-                            </div>
-                        </div>
-                    {% endfor %}
+            <form method="GET" action="{{ path('app_organisateur_dashboard_statistiques') }}" class="filters-grid">
+                <div class="filter-field">
+                    <label for="date_from">
+                        <i class="fas fa-calendar-alt"></i>
+                        Date de début
+                    </label>
+                    <input 
+                        type="text" 
+                        id="date_from" 
+                        name="date_from" 
+                        value="{{ dateFrom ? dateFrom|date('Y-m-d') : '' }}"
+                        class="form-control"
+                        placeholder="jj/mm/aaaa"
+                    >
                 </div>
-            {% else %}
-                <div class="empty-state">
-                    <i class="fas fa-calendar-times"></i>
-                    <p data-i18n="organisateur.dashboard.no_events">Aucun événement pour le moment</p>
-                    <a href="{{ path('app_event_new') }}" class="btn btn-primary">
-                        <i class="fas fa-plus"></i>
-                        <span data-i18n="organisateur.dashboard.create_event">Créer un événement</span>
+                <div class="filter-field">
+                    <label for="date_to">
+                        <i class="fas fa-calendar-alt"></i>
+                        Date de fin
+                    </label>
+                    <input 
+                        type="text" 
+                        id="date_to" 
+                        name="date_to" 
+                        value="{{ dateTo ? dateTo|date('Y-m-d') : '' }}"
+                        class="form-control"
+                        placeholder="jj/mm/aaaa"
+                    >
+                </div>
+                <div class="filter-actions">
+                    <button type="submit" class="btn-modal btn-modal-primary">
+                        <i class="fas fa-filter"></i> Filtrer
+                    </button>
+                    <a class="btn-modal btn-modal-secondary" href="{{ path('app_organisateur_dashboard_statistiques') }}">
+                        Réinitialiser
                     </a>
                 </div>
+            </form>
+            {% if dateFrom or dateTo %}
+                <div style="margin-top: 16px; padding: 12px; background: var(--bg-secondary); border-radius: var(--border-radius); color: var(--text-secondary); display: flex; align-items: center; gap: 8px;">
+                    <i class="fas fa-info-circle" style="color: var(--accent);"></i>
+                    Période sélectionnée : <strong>{{ periodLabel }}</strong>
+                </div>
             {% endif %}
+        </div>
+    </div>
+
+    <!-- Graphiques -->
+    <div class="charts-grid" style="margin-top: 20px; display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 20px;">
+        <div class="card validation-card">
+            <div class="card-body">
+                <h2 style="margin-bottom: 20px; font-size: 1.3rem; font-weight: var(--font-weight-semibold); color: var(--text-primary); display: flex; align-items: center; gap: 10px;">
+                    <i class="fas fa-chart-line" style="color: var(--accent);"></i>
+                    Évolution des ventes dans le temps ({{ periodLabel }})
+                </h2>
+                <div class="chart-container" style="position: relative; height: 300px;">
+                    <canvas id="salesEvolutionChart"></canvas>
+                </div>
+            </div>
+        </div>
+
+        <div class="card validation-card">
+            <div class="card-body">
+                <h2 style="margin-bottom: 20px; font-size: 1.3rem; font-weight: var(--font-weight-semibold); color: var(--text-primary); display: flex; align-items: center; gap: 10px;">
+                    <i class="fas fa-chart-pie" style="color: var(--accent);"></i>
+                    Répartition des ventes par type ({{ periodLabel }})
+                </h2>
+                <div class="chart-container" style="position: relative; height: 300px;">
+                    <canvas id="salesDistributionChart"></canvas>
+                </div>
+            </div>
+        </div>
+
+        <div class="card validation-card">
+            <div class="card-body">
+                <h2 style="margin-bottom: 20px; font-size: 1.3rem; font-weight: var(--font-weight-semibold); color: var(--text-primary); display: flex; align-items: center; gap: 10px;">
+                    <i class="fas fa-chart-bar" style="color: var(--accent);"></i>
+                    Comparaison des ventes par type de billet ({{ periodLabel }})
+                </h2>
+                <div class="chart-container" style="position: relative; height: 300px;">
+                    <canvas id="salesComparisonChart"></canvas>
+                </div>
+            </div>
+        </div>
+
+        <div class="card validation-card">
+            <div class="card-body">
+                <h2 style="margin-bottom: 20px; font-size: 1.3rem; font-weight: var(--font-weight-semibold); color: var(--text-primary); display: flex; align-items: center; gap: 10px;">
+                    <i class="fas fa-ticket-alt" style="color: var(--accent);"></i>
+                    Taux de remplissage par événement ({{ periodLabel }})
+                </h2>
+                <div class="chart-container" style="position: relative; height: 300px;">
+                    <canvas id="occupancyChart"></canvas>
+                </div>
+            </div>
         </div>
     </div>
 </div>
 
 <style>
-.dashboard-container {
-    padding: 24px;
-    max-width: 1400px;
-    margin: 0 auto;
+/* Styles pour les filtres */
+.filters-card {
+    border: 1px solid var(--border-color);
+    border-radius: var(--border-radius-lg);
+    box-shadow: var(--shadow-sm);
+    background: var(--bg-card);
 }
 
-.dashboard-header {
-    margin-bottom: 32px;
-}
-
-.dashboard-header h1 {
-    font-size: 2rem;
-    font-weight: 700;
-    color: var(--text-primary);
-    margin-bottom: 8px;
-    display: flex;
-    align-items: center;
-    gap: 12px;
-}
-
-.dashboard-header h1 i {
-    color: var(--accent);
-}
-
-.dashboard-subtitle {
-    color: var(--text-secondary);
-    font-size: 1rem;
-}
-
-.stats-grid {
+.filters-grid {
     display: grid;
-    grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
-    gap: 24px;
-    margin-bottom: 32px;
+    gap: 16px;
+    grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+    align-items: end;
 }
 
-.stat-card {
-    background: var(--bg-card);
-    border-radius: var(--border-radius-lg);
-    padding: 24px;
+.filter-field label {
+    display: block;
+    margin-bottom: 8px;
+    font-weight: var(--font-weight-medium);
+    color: var(--text-primary);
+    font-size: 0.95rem;
     display: flex;
     align-items: center;
-    gap: 20px;
-    box-shadow: var(--shadow-md);
-    border: 1px solid var(--border-color);
-    transition: transform 0.2s ease, box-shadow 0.2s ease;
+    gap: 8px;
 }
 
-.stat-card:hover {
-    transform: translateY(-2px);
-    box-shadow: var(--shadow-lg);
-}
-
-.stat-icon {
-    width: 60px;
-    height: 60px;
-    border-radius: var(--border-radius-md);
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    background: var(--accent-light);
+.filter-field label i {
     color: var(--accent);
-    font-size: 1.5rem;
 }
 
-.stat-icon.published {
-    background: rgba(34, 197, 94, 0.1);
-    color: #22c55e;
-}
-
-.stat-icon.draft {
-    background: rgba(251, 191, 36, 0.1);
-    color: #fbbf24;
-}
-
-.stat-content {
-    flex: 1;
-}
-
-.stat-value {
-    font-size: 2rem;
-    font-weight: 700;
-    color: var(--text-primary);
-    margin: 0 0 4px 0;
-}
-
-.stat-label {
-    font-size: 0.9rem;
-    color: var(--text-secondary);
-    margin: 0;
-}
-
-.content-card {
-    background: var(--bg-card);
-    border-radius: var(--border-radius-lg);
-    box-shadow: var(--shadow-md);
+.filter-field .form-control {
+    width: 100%;
+    padding: 12px;
     border: 1px solid var(--border-color);
-    overflow: hidden;
-}
-
-.card-header {
-    padding: 24px;
-    border-bottom: 1px solid var(--border-color);
-}
-
-.card-header h2 {
-    font-size: 1.25rem;
-    font-weight: 600;
+    border-radius: var(--border-radius-sm);
+    background: var(--bg-secondary);
     color: var(--text-primary);
-    margin: 0;
+    font-size: 1rem;
+    transition: all 0.3s ease;
+}
+
+.filter-field .form-control:focus {
+    outline: none;
+    border-color: var(--accent);
+    box-shadow: 0 0 0 3px rgba(52, 152, 219, 0.1);
+}
+
+.filter-actions {
     display: flex;
-    align-items: center;
     gap: 10px;
+    align-items: center;
 }
 
-.card-header h2 i {
-    color: var(--accent);
+/* Styles harmonisés avec la liste des factures */
+.validation-card {
+    border: 1px solid var(--border-color);
+    border-radius: var(--border-radius-lg);
+    box-shadow: var(--shadow-sm);
+    overflow: hidden;
+    background: var(--bg-card);
 }
 
 .card-body {
     padding: 24px;
 }
 
-.events-list {
-    display: flex;
-    flex-direction: column;
-    gap: 16px;
-}
-
-.event-item {
-    display: flex;
-    justify-content: space-between;
-    align-items: center;
-    padding: 16px;
-    background: var(--bg-secondary);
-    border-radius: var(--border-radius-md);
-    border: 1px solid var(--border-color);
-}
-
-.event-info h3 {
-    font-size: 1rem;
-    font-weight: 600;
-    color: var(--text-primary);
-    margin: 0 0 8px 0;
-}
-
-.event-meta {
-    display: flex;
-    gap: 16px;
-    align-items: center;
-    font-size: 0.875rem;
-    color: var(--text-secondary);
-}
-
-.event-status {
-    padding: 4px 12px;
+.btn-modal {
+    padding: 10px 20px;
+    border: none;
     border-radius: var(--border-radius-sm);
-    font-size: 0.75rem;
-    font-weight: 600;
-    text-transform: uppercase;
-}
-
-.status-published {
-    background: rgba(34, 197, 94, 0.1);
-    color: #22c55e;
-}
-
-.status-draft {
-    background: rgba(251, 191, 36, 0.1);
-    color: #fbbf24;
-}
-
-.event-date {
-    display: flex;
-    align-items: center;
-    gap: 6px;
-}
-
-.empty-state {
-    text-align: center;
-    padding: 48px 24px;
-}
-
-.empty-state i {
-    font-size: 3rem;
-    color: var(--text-tertiary);
-    margin-bottom: 16px;
-}
-
-.empty-state p {
-    color: var(--text-secondary);
-    margin-bottom: 24px;
-}
-
-.btn {
+    font-weight: var(--font-weight-medium);
+    cursor: pointer;
+    transition: all 0.3s ease;
+    font-size: 0.95rem;
+    text-decoration: none;
     display: inline-flex;
     align-items: center;
     gap: 8px;
-    padding: 10px 20px;
-    border-radius: var(--border-radius-md);
-    font-weight: 500;
-    text-decoration: none;
-    transition: all 0.2s ease;
-    border: none;
-    cursor: pointer;
 }
 
-.btn-primary {
-    background: var(--accent);
+.btn-modal-secondary {
+    background: var(--bg-secondary);
+    color: var(--text-primary);
+    border: 1px solid var(--border-color);
+}
+
+.btn-modal-secondary:hover {
+    background: var(--gray-100);
+}
+
+.btn-modal-primary {
+    background: linear-gradient(135deg, #5DADE2 0%, #3498DB 100%);
     color: white;
 }
 
-.btn-primary:hover {
-    background: var(--accent-dark);
-    transform: translateY(-1px);
+.btn-modal-primary:hover {
+    background: linear-gradient(135deg, #3498DB 0%, #2980B9 100%);
+    transform: translateY(-2px);
+    box-shadow: 0 4px 8px rgba(0, 0, 0, 0.15);
 }
 
-.btn-sm {
-    padding: 6px 12px;
-    font-size: 0.875rem;
+/* Responsive */
+@media (max-width: 1200px) {
+    .charts-grid {
+        grid-template-columns: 1fr !important;
+    }
+}
+
+@media (max-width: 768px) {
+    .filters-grid {
+        grid-template-columns: 1fr;
+    }
+    
+    .stats-grid {
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+    }
+}
+
+@media (max-width: 480px) {
+    .stats-grid {
+        grid-template-columns: 1fr;
+    }
 }
 </style>
 {% endblock %}
 
+{% block javascripts %}
+{{ parent() }}
+<script src="https://cdn.jsdelivr.net/npm/flatpickr"></script>
+<script src="https://cdn.jsdelivr.net/npm/flatpickr/dist/l10n/fr.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
+<script>
+    // Données pour les graphiques
+    const salesEvolution = {{ statistics.charts.sales_evolution|json_encode|raw }};
+    const salesDistribution = {{ statistics.charts.sales_distribution|json_encode|raw }};
+    const salesComparison = {{ statistics.charts.sales_comparison|json_encode|raw }};
+    const ticketOccupancy = {{ statistics.charts.ticket_occupancy|json_encode|raw }};
+
+    // Graphique 1 : Évolution des ventes dans le temps
+    const salesEvolutionCtx = document.getElementById('salesEvolutionChart').getContext('2d');
+    const salesEvolutionLabels = salesEvolution.map(item => {
+        const date = new Date(item.date);
+        // Format: jour/mois (dd/MM)
+        const day = String(date.getDate()).padStart(2, '0');
+        const month = String(date.getMonth() + 1).padStart(2, '0');
+        return `${day}/${month}`;
+    });
+    const salesEvolutionCounts = salesEvolution.map(item => item.count);
+    const salesEvolutionRevenues = salesEvolution.map(item => item.revenue);
+
+    new Chart(salesEvolutionCtx, {
+        type: 'line',
+        data: {
+            labels: salesEvolutionLabels,
+            datasets: [
+                {
+                    label: 'Nombre de billets vendus',
+                    data: salesEvolutionCounts,
+                    borderColor: '#2563eb',
+                    backgroundColor: 'rgba(37, 99, 235, 0.1)',
+                    yAxisID: 'y',
+                    tension: 0.4
+                },
+                {
+                    label: 'Chiffre d\'affaires (Ar)',
+                    data: salesEvolutionRevenues,
+                    borderColor: '#16a34a',
+                    backgroundColor: 'rgba(22, 163, 74, 0.1)',
+                    yAxisID: 'y1',
+                    tension: 0.4
+                }
+            ]
+        },
+        options: {
+            responsive: true,
+            maintainAspectRatio: false,
+            interaction: {
+                mode: 'index',
+                intersect: false,
+            },
+            scales: {
+                y: {
+                    type: 'linear',
+                    display: true,
+                    position: 'left',
+                    beginAtZero: true,
+                    title: {
+                        display: true,
+                        text: 'Nombre de billets'
+                    }
+                },
+                y1: {
+                    type: 'linear',
+                    display: true,
+                    position: 'right',
+                    beginAtZero: true,
+                    title: {
+                        display: true,
+                        text: 'CA (Ar)'
+                    },
+                    grid: {
+                        drawOnChartArea: false,
+                    },
+                }
+            }
+        }
+    });
+
+    // Graphique 2 : Répartition des ventes par type (camembert)
+    const salesDistributionCtx = document.getElementById('salesDistributionChart').getContext('2d');
+    const distributionLabels = salesDistribution.map(item => item.category);
+    const distributionRevenues = salesDistribution.map(item => item.revenue);
+
+    new Chart(salesDistributionCtx, {
+        type: 'pie',
+        data: {
+            labels: distributionLabels,
+            datasets: [{
+                label: 'Chiffre d\'affaires (Ar)',
+                data: distributionRevenues,
+                backgroundColor: [
+                    'rgba(37, 99, 235, 0.8)',
+                    'rgba(22, 163, 74, 0.8)',
+                    'rgba(249, 115, 22, 0.8)',
+                    'rgba(168, 85, 247, 0.8)',
+                    'rgba(236, 72, 153, 0.8)',
+                ],
+                borderWidth: 2
+            }]
+        },
+        options: {
+            responsive: true,
+            maintainAspectRatio: false,
+            plugins: {
+                legend: {
+                    position: 'bottom'
+                },
+                tooltip: {
+                    callbacks: {
+                        label: function(context) {
+                            const label = context.label || '';
+                            const value = context.parsed || 0;
+                            const total = context.dataset.data.reduce((a, b) => a + b, 0);
+                            const percentage = total > 0 ? ((value / total) * 100).toFixed(1) : 0;
+                            return label + ': ' + new Intl.NumberFormat('fr-FR').format(value) + ' Ar (' + percentage + '%)';
+                        }
+                    }
+                }
+            }
+        }
+    });
+
+    // Graphique 3 : Comparaison des ventes par type de billet
+    const salesComparisonCtx = document.getElementById('salesComparisonChart').getContext('2d');
+    const comparisonLabels = salesComparison.map(item => item.ticket_type);
+    const comparisonCounts = salesComparison.map(item => item.count);
+    const comparisonRevenues = salesComparison.map(item => item.revenue);
+
+    new Chart(salesComparisonCtx, {
+        type: 'bar',
+        data: {
+            labels: comparisonLabels,
+            datasets: [
+                {
+                    label: 'Nombre de billets',
+                    data: comparisonCounts,
+                    backgroundColor: 'rgba(37, 99, 235, 0.8)',
+                    yAxisID: 'y',
+                },
+                {
+                    label: 'Chiffre d\'affaires (Ar)',
+                    data: comparisonRevenues,
+                    backgroundColor: 'rgba(22, 163, 74, 0.8)',
+                    yAxisID: 'y1',
+                }
+            ]
+        },
+        options: {
+            responsive: true,
+            maintainAspectRatio: false,
+            scales: {
+                y: {
+                    type: 'linear',
+                    display: true,
+                    position: 'left',
+                    beginAtZero: true,
+                    title: {
+                        display: true,
+                        text: 'Nombre de billets'
+                    }
+                },
+                y1: {
+                    type: 'linear',
+                    display: true,
+                    position: 'right',
+                    beginAtZero: true,
+                    title: {
+                        display: true,
+                        text: 'CA (Ar)'
+                    },
+                    grid: {
+                        drawOnChartArea: false,
+                    },
+                    ticks: {
+                        callback: function(value) {
+                            return new Intl.NumberFormat('fr-FR', {
+                                notation: 'compact',
+                                maximumFractionDigits: 1
+                            }).format(value) + ' Ar';
+                        }
+                    }
+                }
+            }
+        }
+    });
+
+    // Graphique 4 : Taux de remplissage par événement
+    const occupancyCtx = document.getElementById('occupancyChart').getContext('2d');
+    const occupancyLabels = ticketOccupancy.map(item => item.event_title);
+    const occupancyRates = ticketOccupancy.map(item => item.occupation_rate);
+    const soldTickets = ticketOccupancy.map(item => item.sold_tickets);
+    const totalCapacity = ticketOccupancy.map(item => item.total_capacity);
+
+    new Chart(occupancyCtx, {
+        type: 'bar',
+        data: {
+            labels: occupancyLabels,
+            datasets: [
+                {
+                    label: 'Taux de remplissage (%)',
+                    data: occupancyRates,
+                    backgroundColor: occupancyRates.map(rate => {
+                        if (rate >= 90) return 'rgba(239, 68, 68, 0.8)'; // Rouge : presque complet
+                        if (rate >= 70) return 'rgba(249, 115, 22, 0.8)'; // Orange : bien rempli
+                        if (rate >= 50) return 'rgba(234, 179, 8, 0.8)'; // Jaune : moyen
+                        return 'rgba(34, 197, 94, 0.8)'; // Vert : encore de la place
+                    }),
+                    borderColor: occupancyRates.map(rate => {
+                        if (rate >= 90) return '#ef4444';
+                        if (rate >= 70) return '#f97316';
+                        if (rate >= 50) return '#eab308';
+                        return '#22c55e';
+                    }),
+                    borderWidth: 1,
+                    borderRadius: 6,
+                }
+            ]
+        },
+        options: {
+            responsive: true,
+            maintainAspectRatio: false,
+            scales: {
+                y: {
+                    beginAtZero: true,
+                    max: 100,
+                    title: {
+                        display: true,
+                        text: 'Taux de remplissage (%)'
+                    },
+                    ticks: {
+                        callback: function(value) {
+                            return value + '%';
+                        }
+                    }
+                }
+            },
+            plugins: {
+                tooltip: {
+                    callbacks: {
+                        afterLabel: function(context) {
+                            const index = context.dataIndex;
+                            const sold = soldTickets[index];
+                            const total = totalCapacity[index];
+                            const remaining = total - sold;
+                            return [
+                                `Billets vendus: ${sold}`,
+                                `Capacité totale: ${total}`,
+                                `Places restantes: ${remaining}`
+                            ];
+                        }
+                    }
+                },
+                legend: {
+                    display: true,
+                    position: 'top'
+                }
+            }
+        }
+    });
+
+    // Initialiser Flatpickr pour les champs de date
+    flatpickr.localize(flatpickr.l10ns.fr);
+    
+    // Initialiser le calendrier pour la date de début
+    const dateFromInput = document.getElementById('date_from');
+    if (dateFromInput) {
+        flatpickr(dateFromInput, {
+            dateFormat: 'Y-m-d', // Format pour la soumission (caché)
+            altInput: true,
+            altFormat: 'd/m/Y', // Format d'affichage jj/mm/aaaa
+            altInputClass: 'form-control',
+            locale: 'fr',
+            allowInput: false,
+            clickOpens: true,
+            onChange: function(selectedDates, dateStr, instance) {
+                // Si une date de fin existe, s'assurer que la date de début n'est pas après
+                const dateToInput = document.getElementById('date_to');
+                if (dateToInput && dateToInput._flatpickr) {
+                    const dateTo = dateToInput._flatpickr.selectedDates[0];
+                    if (dateTo && selectedDates[0] > dateTo) {
+                        dateToInput._flatpickr.setDate(selectedDates[0]);
+                    }
+                    dateToInput._flatpickr.set('minDate', selectedDates[0]);
+                }
+            }
+        });
+    }
+    
+    // Initialiser le calendrier pour la date de fin
+    const dateToInput = document.getElementById('date_to');
+    if (dateToInput) {
+        const dateToPicker = flatpickr(dateToInput, {
+            dateFormat: 'Y-m-d', // Format pour la soumission (caché)
+            altInput: true,
+            altFormat: 'd/m/Y', // Format d'affichage jj/mm/aaaa
+            altInputClass: 'form-control',
+            locale: 'fr',
+            allowInput: false,
+            clickOpens: true,
+            onChange: function(selectedDates, dateStr, instance) {
+                // Si une date de début existe, s'assurer que la date de fin n'est pas avant
+                if (dateFromInput && dateFromInput._flatpickr) {
+                    const dateFrom = dateFromInput._flatpickr.selectedDates[0];
+                    if (dateFrom && selectedDates[0] < dateFrom) {
+                        dateFromInput._flatpickr.setDate(selectedDates[0]);
+                    }
+                }
+            }
+        });
+        
+        // Définir la date minimale basée sur la date de début
+        if (dateFromInput && dateFromInput._flatpickr) {
+            const dateFrom = dateFromInput._flatpickr.selectedDates[0];
+            if (dateFrom) {
+                dateToPicker.set('minDate', dateFrom);
+            }
+        }
+    }
+</script>
+{% endblock %}

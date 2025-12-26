@@ -6,7 +6,7 @@
 <div class="dashboard">
     <div class="dashboard-header">
         <div>
-            <h1>🎁 Promotions & Codes promo</h1>
+            <h1><i class="fas fa-tags"></i> Promotions & Codes promo</h1>
             <p style="color: var(--gray-600); margin-top: 8px; font-size: 1rem;">
                 Gérez vos réductions et codes promo
             </p>
@@ -26,28 +26,28 @@
                 <i class="fas fa-tags"></i>
             </div>
             <div class="stat-content">
+                <h3>{{ totalPromotions }}</h3>
+                <p>Total promotion</p>
+            </div>
+        </div>
+
+        <div class="stat-card stat-card-compact">
+            <div class="stat-icon stat-icon-compact" style="background: linear-gradient(135deg, rgba(39, 174, 96, 0.1), rgba(39, 174, 96, 0.05)); color: var(--success);">
+                <i class="fas fa-check-circle"></i>
+            </div>
+            <div class="stat-content">
                 <h3>{{ promotionsActives }}</h3>
                 <p>Codes actifs</p>
             </div>
         </div>
 
         <div class="stat-card stat-card-compact">
-            <div class="stat-icon stat-icon-compact" style="background: linear-gradient(135deg, rgba(39, 174, 96, 0.1), rgba(39, 174, 96, 0.05)); color: var(--success);">
+            <div class="stat-icon stat-icon-compact" style="background: linear-gradient(135deg, rgba(243, 156, 18, 0.1), rgba(243, 156, 18, 0.05)); color: var(--warning);">
                 <i class="fas fa-chart-line"></i>
             </div>
             <div class="stat-content">
                 <h3>{{ totalUtilisations }}</h3>
                 <p>Utilisations</p>
-            </div>
-        </div>
-
-        <div class="stat-card stat-card-compact">
-            <div class="stat-icon stat-icon-compact" style="background: linear-gradient(135deg, rgba(243, 156, 18, 0.1), rgba(243, 156, 18, 0.05)); color: var(--warning);">
-                <i class="fas fa-euro-sign"></i>
-            </div>
-            <div class="stat-content">
-                <h3>-{{ totalRemises|number_format(2, ',', ' ') }} €</h3>
-                <p>Réductions accordées</p>
             </div>
         </div>
 
@@ -124,6 +124,7 @@
                     {% set isActive = promo.isActive() %}
                     {% set now = date('now') %}
                     {% set expiresSoon = promo.seTermineLe and promo.seTermineLe <= date('+7 days') and promo.seTermineLe > now %}
+                    {% set isExpired = promo.seTermineLe and promo.seTermineLe < now %}
                     
                     <div class="promo-card {% if expiresSoon %}promo-card-expiring{% endif %}">
                         {% if expiresSoon %}
@@ -184,27 +185,39 @@
                             {% endif %}
                         </div>
                         <div class="promo-actions">
+                            {% if not isExpired %}
                             <a href="{{ path('organisateur_promotions_edit', {id: promo.id}) }}" class="btn-promo-action" title="Modifier">
                                 <i class="fas fa-edit"></i>
                             </a>
+                            {% endif %}
                             <a href="{{ path('organisateur_promotions_history', {id: promo.id}) }}" class="btn-promo-action" title="Historique">
                                 <i class="fas fa-history"></i>
                             </a>
-                            <form method="post" action="{{ path('organisateur_promotions_delete', {id: promo.id}) }}" style="display: inline;" onsubmit="return confirm('Êtes-vous sûr de vouloir supprimer ce code promo ?');">
+                            {% if isExpired %}
+                            <form
+                                method="post"
+                                action="{{ path('organisateur_promotions_delete', {id: promo.id}) }}"
+                                style="display: inline; flex: 1;"
+                                class="promo-delete-form"
+                                data-promo-code="{{ promo.code }}"
+                            >
                                 <input type="hidden" name="_token" value="{{ csrf_token('delete_promotion') }}">
-                                <button type="submit" class="btn-promo-action" style="color: var(--danger); border: none; background: none; cursor: pointer;" title="Supprimer">
+                                <button type="submit" class="btn-promo-action btn-promo-delete" title="Supprimer">
                                     <i class="fas fa-trash"></i>
                                 </button>
                             </form>
+                            {% endif %}
                         </div>
                     </div>
                 {% endfor %}
             </div>
             {% else %}
-            <div style="text-align: center; padding: 40px; color: var(--gray-600);">
-                <i class="fas fa-tags" style="font-size: 3rem; margin-bottom: 16px; opacity: 0.3;"></i>
-                <p style="font-size: 1.1rem; margin-bottom: 8px;">Aucun code promo trouvé</p>
-                <p style="font-size: 0.9rem;">
+            <div style="text-align: center; padding: 60px 40px; color: var(--gray-600);">
+                <div style="width: 120px; height: 120px; margin: 0 auto 24px; background: linear-gradient(135deg, rgba(52, 152, 219, 0.1), rgba(52, 152, 219, 0.05)); border-radius: 50%; display: flex; align-items: center; justify-content: center;">
+                    <i class="fas fa-tags" style="font-size: 3.5rem; color: var(--accent); opacity: 0.6;"></i>
+                </div>
+                <h3 style="font-size: 1.3rem; margin-bottom: 12px; color: var(--gray-800); font-weight: var(--font-weight-semibold);">Aucun code promo trouvé</h3>
+                <p style="font-size: 1rem; line-height: 1.6; max-width: 500px; margin: 0 auto;">
                     {% if filters.date_debut or filters.date_fin %}
                         Aucun code promo ne correspond à vos critères de recherche. Essayez de modifier les filtres.
                     {% else %}
@@ -296,25 +309,62 @@
     </div>
 </div>
 
+{# Modal de confirmation suppression #}
+<div id="deletePromoModal" class="modal-overlay" aria-hidden="true">
+    <div class="modal-content modal-delete">
+        <div class="modal-header modal-delete-header">
+            <div class="modal-icon-wrapper">
+                <i class="fas fa-trash-alt"></i>
+            </div>
+            <button type="button" class="modal-close" aria-label="Fermer">&times;</button>
+        </div>
+        <div class="modal-body modal-delete-body">
+            <h3 class="modal-delete-title">Supprimer le code promo ?</h3>
+            <p id="deletePromoMessage" class="modal-delete-message">
+                <strong id="deletePromoCode"></strong>
+            </p>
+        </div>
+        <div class="modal-footer modal-delete-footer">
+            <button type="button" class="btn-modal-cancel modal-cancel">
+                <i class="fas fa-times"></i>
+                Annuler
+            </button>
+            <button type="button" class="btn-modal-delete modal-confirm">
+                <i class="fas fa-trash-alt"></i>
+                Supprimer
+            </button>
+        </div>
+    </div>
+</div>
+
 <style>
 .promotions-grid {
     display: grid;
-    grid-template-columns: repeat(auto-fill, minmax(320px, 1fr));
-    gap: 20px;
+    grid-template-columns: repeat(auto-fill, minmax(340px, 1fr));
+    gap: 24px;
+}
+
+@media (max-width: 768px) {
+    .promotions-grid {
+        grid-template-columns: 1fr;
+        gap: 20px;
+    }
 }
 
 .promo-card {
     background: var(--white);
     border-radius: var(--border-radius-lg);
-    padding: 20px;
+    padding: 24px;
     border: 1px solid var(--gray-200);
-    transition: var(--transition-base);
+    transition: all 0.3s ease;
     position: relative;
+    box-shadow: 0 1px 3px rgba(0, 0, 0, 0.05);
 }
 
 .promo-card:hover {
-    border-color: var(--gray-300);
-    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.05);
+    border-color: var(--accent);
+    box-shadow: 0 4px 12px rgba(52, 152, 219, 0.15);
+    transform: translateY(-2px);
 }
 
 .promo-card-expiring {
@@ -351,12 +401,14 @@
 
 .promo-code {
     font-family: 'Courier New', monospace;
-    font-size: 1.2rem;
+    font-size: 1.3rem;
     font-weight: var(--font-weight-bold);
     color: var(--gray-800);
-    background: var(--gray-100);
-    padding: 6px 12px;
-    border-radius: var(--border-radius-sm);
+    background: linear-gradient(135deg, rgba(52, 152, 219, 0.08), rgba(52, 152, 219, 0.03));
+    padding: 10px 16px;
+    border-radius: var(--border-radius-md);
+    border: 1px solid rgba(52, 152, 219, 0.2);
+    letter-spacing: 0.5px;
 }
 
 .promo-code-expiring {
@@ -364,25 +416,31 @@
 }
 
 .promo-status {
-    padding: 4px 10px;
-    border-radius: 6px;
-    font-size: 0.75rem;
+    padding: 6px 14px;
+    border-radius: 20px;
+    font-size: 0.8rem;
     font-weight: var(--font-weight-semibold);
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.05);
 }
 
 .status-active {
-    background: rgba(39, 174, 96, 0.1);
+    background: linear-gradient(135deg, rgba(39, 174, 96, 0.15), rgba(39, 174, 96, 0.08));
     color: var(--success);
+    border: 1px solid rgba(39, 174, 96, 0.3);
 }
 
 .status-warning {
-    background: rgba(243, 156, 18, 0.1);
+    background: linear-gradient(135deg, rgba(243, 156, 18, 0.15), rgba(243, 156, 18, 0.08));
     color: var(--warning);
+    border: 1px solid rgba(243, 156, 18, 0.3);
 }
 
 .status-inactive {
-    background: rgba(149, 165, 166, 0.1);
+    background: linear-gradient(135deg, rgba(149, 165, 166, 0.15), rgba(149, 165, 166, 0.08));
     color: var(--gray-600);
+    border: 1px solid rgba(149, 165, 166, 0.3);
 }
 
 .promo-details {
@@ -390,37 +448,47 @@
 }
 
 .promo-discount {
-    font-size: 2rem;
+    font-size: 2.5rem;
     font-weight: var(--font-weight-bold);
-    color: var(--accent);
-    margin-bottom: 8px;
+    background: linear-gradient(135deg, #3498DB, #2980B9);
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+    background-clip: text;
+    margin-bottom: 12px;
+    line-height: 1.2;
 }
 
 .promo-details p {
     color: var(--gray-600);
-    font-size: 0.9rem;
+    font-size: 0.95rem;
+    line-height: 1.6;
+    margin: 0;
+    min-height: 2.4em;
 }
 
 .promo-info {
     display: flex;
     flex-direction: column;
-    gap: 8px;
-    margin-bottom: 16px;
-    padding-top: 16px;
-    border-top: 1px solid var(--gray-200);
+    gap: 10px;
+    margin-bottom: 20px;
+    padding-top: 18px;
+    border-top: 2px solid var(--gray-100);
 }
 
 .promo-stat {
     display: flex;
     align-items: center;
-    gap: 8px;
-    font-size: 0.85rem;
-    color: var(--gray-600);
+    gap: 10px;
+    font-size: 0.9rem;
+    color: var(--gray-700);
+    padding: 6px 0;
 }
 
 .promo-stat i {
-    color: var(--gray-500);
-    width: 16px;
+    color: var(--accent);
+    width: 18px;
+    font-size: 0.95rem;
+    opacity: 0.8;
 }
 
 .expiring-text {
@@ -431,23 +499,46 @@
 
 .promo-actions {
     display: flex;
-    gap: 8px;
+    gap: 10px;
+    padding-top: 16px;
+    border-top: 1px solid var(--gray-100);
 }
 
 .btn-promo-action {
     flex: 1;
-    padding: 10px;
-    background: var(--gray-100);
-    border: none;
-    border-radius: var(--border-radius-sm);
+    padding: 12px;
+    background: var(--gray-50);
+    border: 1px solid var(--gray-200);
+    border-radius: var(--border-radius-md);
     cursor: pointer;
     color: var(--gray-700);
-    transition: var(--transition-base);
+    transition: all 0.3s ease;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 1rem;
+    text-decoration: none;
 }
 
 .btn-promo-action:hover {
     background: var(--accent);
     color: white;
+    border-color: var(--accent);
+    transform: translateY(-2px);
+    box-shadow: 0 4px 8px rgba(52, 152, 219, 0.3);
+}
+
+.btn-promo-delete {
+    background: rgba(231, 76, 60, 0.1) !important;
+    border-color: rgba(231, 76, 60, 0.3) !important;
+    color: var(--danger) !important;
+}
+
+.btn-promo-delete:hover {
+    background: var(--danger) !important;
+    color: white !important;
+    border-color: var(--danger) !important;
+    box-shadow: 0 4px 8px rgba(231, 76, 60, 0.3) !important;
 }
 
 .filters-card {
@@ -694,6 +785,192 @@
     align-items: center;
 }
 
+/* Modal suppression */
+.modal-overlay {
+    position: fixed;
+    inset: 0;
+    background: rgba(0, 0, 0, 0.5);
+    backdrop-filter: blur(4px);
+    display: none;
+    align-items: center;
+    justify-content: center;
+    z-index: 2000;
+    padding: 16px;
+    animation: fadeIn 0.2s ease;
+}
+
+@keyframes fadeIn {
+    from {
+        opacity: 0;
+    }
+    to {
+        opacity: 1;
+    }
+}
+
+.modal-overlay.active {
+    display: flex;
+}
+
+.modal-content {
+    background: var(--white);
+    border-radius: 16px;
+    box-shadow: 0 20px 60px rgba(0, 0, 0, 0.3);
+    max-width: 500px;
+    width: 100%;
+    overflow: hidden;
+    animation: slideUp 0.3s ease;
+    border: 1px solid var(--gray-200);
+}
+
+@keyframes slideUp {
+    from {
+        transform: translateY(20px);
+        opacity: 0;
+    }
+    to {
+        transform: translateY(0);
+        opacity: 1;
+    }
+}
+
+.modal-delete {
+    border-top: 4px solid var(--danger);
+}
+
+.modal-delete-header {
+    padding: 24px 24px 0;
+    display: flex;
+    align-items: flex-start;
+    justify-content: space-between;
+    border-bottom: none;
+}
+
+.modal-icon-wrapper {
+    width: 64px;
+    height: 64px;
+    background: linear-gradient(135deg, rgba(231, 76, 60, 0.15), rgba(231, 76, 60, 0.08));
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    margin-bottom: 20px;
+    border: 2px solid rgba(231, 76, 60, 0.2);
+}
+
+.modal-icon-wrapper i {
+    font-size: 1.8rem;
+    color: var(--danger);
+}
+
+.modal-close {
+    background: transparent;
+    border: none;
+    font-size: 1.5rem;
+    cursor: pointer;
+    color: var(--gray-500);
+    width: 32px;
+    height: 32px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    border-radius: 8px;
+    transition: all 0.2s ease;
+    margin-top: -8px;
+    margin-right: -8px;
+}
+
+.modal-close:hover {
+    background: var(--gray-100);
+    color: var(--gray-700);
+}
+
+.modal-delete-body {
+    padding: 0 24px 24px;
+    text-align: center;
+}
+
+.modal-delete-title {
+    font-size: 1.5rem;
+    font-weight: var(--font-weight-bold);
+    color: var(--gray-900);
+    margin: 0 0 16px 0;
+    line-height: 1.3;
+}
+
+.modal-delete-message {
+    font-size: 1rem;
+    color: var(--gray-700);
+    line-height: 1.6;
+    margin: 0 0 20px 0;
+    text-align: center;
+}
+
+.modal-delete-message strong {
+    color: var(--gray-900);
+    font-weight: var(--font-weight-bold);
+    background: linear-gradient(135deg, rgba(52, 152, 219, 0.1), rgba(52, 152, 219, 0.05));
+    padding: 4px 10px;
+    border-radius: 6px;
+    font-family: 'Courier New', monospace;
+    font-size: 1.05rem;
+    letter-spacing: 0.5px;
+}
+
+
+.modal-delete-footer {
+    padding: 20px 24px;
+    display: flex;
+    gap: 12px;
+    justify-content: flex-end;
+    border-top: 1px solid var(--gray-200);
+    background: var(--gray-50);
+}
+
+.btn-modal-cancel,
+.btn-modal-delete {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    gap: 8px;
+    padding: 12px 24px;
+    border-radius: 10px;
+    font-weight: var(--font-weight-semibold);
+    font-size: 0.95rem;
+    border: none;
+    cursor: pointer;
+    transition: all 0.2s ease;
+    min-width: 140px;
+}
+
+.btn-modal-cancel {
+    background: var(--white);
+    color: var(--gray-700);
+    border: 2px solid var(--gray-300);
+}
+
+.btn-modal-cancel:hover {
+    background: var(--gray-100);
+    border-color: var(--gray-400);
+    color: var(--gray-800);
+}
+
+.btn-modal-delete {
+    background: linear-gradient(135deg, #e74c3c, #c0392b);
+    color: white;
+    box-shadow: 0 4px 12px rgba(231, 76, 60, 0.3);
+}
+
+.btn-modal-delete:hover {
+    background: linear-gradient(135deg, #c0392b, #a93226);
+    box-shadow: 0 6px 16px rgba(231, 76, 60, 0.4);
+    transform: translateY(-1px);
+}
+
+.btn-modal-delete:active {
+    transform: translateY(0);
+}
+
 @media (max-width: 768px) {
     .filters-grid {
         grid-template-columns: 1fr;
@@ -719,7 +996,93 @@
     .filters-body {
         padding: 20px;
     }
+    
+    .modal-content {
+        max-width: 100%;
+        margin: 16px;
+        border-radius: 12px;
+    }
+    
+    .modal-delete-header {
+        padding: 20px 20px 0;
+    }
+    
+    .modal-icon-wrapper {
+        width: 56px;
+        height: 56px;
+        margin-bottom: 16px;
+    }
+    
+    .modal-icon-wrapper i {
+        font-size: 1.5rem;
+    }
+    
+    .modal-delete-body {
+        padding: 0 20px 20px;
+    }
+    
+    .modal-delete-title {
+        font-size: 1.3rem;
+    }
+    
+    .modal-delete-footer {
+        padding: 16px 20px;
+        flex-direction: column;
+    }
+    
+    .btn-modal-cancel,
+    .btn-modal-delete {
+        width: 100%;
+        min-width: 0;
+    }
 }
 </style>
+<script>
+document.addEventListener('DOMContentLoaded', () => {
+    const deleteModal = document.getElementById('deletePromoModal');
+    const deleteMessage = document.getElementById('deletePromoMessage');
+    const btnCancel = deleteModal?.querySelector('.modal-cancel');
+    const btnConfirm = deleteModal?.querySelector('.modal-confirm');
+    const btnClose = deleteModal?.querySelector('.modal-close');
+    let formToSubmit = null;
+
+    const openDeleteModal = (form) => {
+        formToSubmit = form;
+        const code = form.dataset.promoCode || 'ce code promo';
+        const codeElement = document.getElementById('deletePromoCode');
+        if (codeElement) {
+            codeElement.textContent = code;
+        }
+        deleteModal?.classList.add('active');
+        deleteModal?.setAttribute('aria-hidden', 'false');
+    };
+
+    const closeDeleteModal = () => {
+        formToSubmit = null;
+        deleteModal?.classList.remove('active');
+        deleteModal?.setAttribute('aria-hidden', 'true');
+    };
+
+    document.querySelectorAll('.promo-delete-form').forEach(form => {
+        form.addEventListener('submit', (e) => {
+            e.preventDefault();
+            openDeleteModal(form);
+        });
+    });
+
+    btnCancel?.addEventListener('click', closeDeleteModal);
+    btnClose?.addEventListener('click', closeDeleteModal);
+    deleteModal?.addEventListener('click', (e) => {
+        if (e.target === deleteModal) closeDeleteModal();
+    });
+
+    btnConfirm?.addEventListener('click', () => {
+        if (formToSubmit) {
+            formToSubmit.submit();
+        }
+        closeDeleteModal();
+    });
+});
+</script>
 {% endblock %}
 

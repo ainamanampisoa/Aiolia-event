@@ -325,14 +325,26 @@ Le système de facturation automatique gère les abonnements mensuels des organi
 
 **Fichier** : `src/Command/AutoPauseUnpaidSubscriptionsCommand.php`
 
-#### 4. Statuts des factures
+#### 4. Mise à jour automatique du statut des événements
+
+**Commande** : `php bin/console app:update-event-status`
+
+**CRON** : `0 0 * * *` (une fois par jour à minuit)
+
+**Règle** : Vérifie les événements "à venir" et met à jour leur statut s'ils sont maintenant en cours (live). Un événement est considéré comme "live" si sa date de début est passée et qu'il n'est pas encore terminé.
+
+**Fichier** : `src/Command/UpdateEventStatusCommand.php`
+
+**Protection** : La commande utilise un fichier de verrouillage pour s'assurer qu'elle ne s'exécute qu'une seule fois par jour, même si elle est appelée plusieurs fois.
+
+#### 5. Statuts des factures
 
 - `draft` → `issued` → `paid` (après paiement)
 - `issued` → `overdue` (si non payée après échéance)
 - `pending` (facture prépayée)
 - `suspendue` (facture de mois en pause, 0 Ar)
 
-#### 5. Envoi automatique après paiement
+#### 6. Envoi automatique après paiement
 
 **Fichier** : `src/EventSubscriber/SubscriptionInvoiceSubscriber.php`
 
@@ -607,6 +619,9 @@ Module d'analyse des performances avec widgets, graphiques et filtres de dates.
 
 # Mettre en pause les abonnements non payés (le 11ème jour du mois)
 0 0 11 * * cd /chemin/vers/Aiolia-event-back && php bin/console app:auto-pause-unpaid-subscriptions
+
+# Mettre à jour le statut des événements (une fois par jour à minuit)
+0 0 * * * cd /chemin/vers/Aiolia-event-back && php bin/console app:update-event-status
 ```
 
 ### Ordre d'exécution important
@@ -755,6 +770,7 @@ LIMIT 10
 - `app:generate-monthly-invoices` : Génération factures
 - `app:mark-overdue-invoices` : Marquage en retard
 - `app:auto-pause-unpaid-subscriptions` : Mise en pause
+- `app:update-event-status` : Mise à jour du statut des événements (vérifie les événements à venir et les met à jour s'ils sont en cours/live)
 
 ---
 
@@ -806,6 +822,9 @@ php bin/console app:mark-overdue-invoices
 
 # Mise en pause
 php bin/console app:auto-pause-unpaid-subscriptions
+
+# Mise à jour statut événements
+php bin/console app:update-event-status
 ```
 
 ### Fichiers clés

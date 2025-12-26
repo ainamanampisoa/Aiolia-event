@@ -76,7 +76,9 @@ class SubscriptionInvoice
     #[ORM\Column(name: 'payee_le', type: Types::DATETIMETZ_MUTABLE, nullable: true)]
     private ?\DateTimeInterface $paidAt = null;
 
-    #[ORM\Column(name: 'methode_paiement', type: Types::STRING, length: 50, nullable: true)]
+    // Note: La colonne methode_paiement n'existe pas dans la base de données
+    // Elle est stockée dans metadonnees si nécessaire
+    // #[ORM\Column(name: 'methode_paiement', type: Types::STRING, length: 50, nullable: true)]
     private ?string $paymentMethod = null;
 
     #[ORM\Column(name: 'metadonnees', type: Types::JSON, nullable: true)]
@@ -90,16 +92,16 @@ class SubscriptionInvoice
 
     public function __construct()
     {
-        $this->issuedAt = new \DateTimeImmutable();
-        $this->createdAt = new \DateTimeImmutable();
-        $this->updatedAt = new \DateTimeImmutable();
-        $this->billingMonth = new \DateTimeImmutable();
+        $this->issuedAt = new \DateTime();
+        $this->createdAt = new \DateTime();
+        $this->updatedAt = new \DateTime();
+        $this->billingMonth = new \DateTime();
     }
 
     #[ORM\PreUpdate]
     public function setUpdatedAtValue(): void
     {
-        $this->updatedAt = new \DateTimeImmutable();
+        $this->updatedAt = new \DateTime();
     }
 
     public function getId(): ?string
@@ -339,7 +341,7 @@ class SubscriptionInvoice
                 && $this->dueAt !== null
             ) {
                 $this->status = self::STATUS_ISSUED;
-                $this->issuedAt = new \DateTimeImmutable();
+                $this->issuedAt = new \DateTime();
             }
         }
         
@@ -353,7 +355,7 @@ class SubscriptionInvoice
     {
         if ($this->status !== self::STATUS_PAID) {
             $this->status = self::STATUS_PAID;
-            $this->paidAt = new \DateTimeImmutable();
+            $this->paidAt = new \DateTime();
         }
         
         return $this;

@@ -2,48 +2,16 @@
 
 {% block title %}{{ event.titre ?? 'Événement' }} - Statistiques - Aiolia Event{% endblock %}
 
+{% block stylesheets %}
+{{ parent() }}
+{% endblock %}
+
 {% block body %}
 <div class="dashboard">
     {% include 'Organisateur/events/_header.html.twig' %}
 
     <!-- Contenu Statistiques -->
     <div class="event-main-content">
-        <!-- Graphiques de ventes -->
-        <div class="charts-grid">
-            <!-- Graphique d'évolution temporelle -->
-            <div class="content-card">
-                <div class="card-title">
-                    <i class="fas fa-chart-line"></i>
-                    Évolution des ventes dans le temps
-                </div>
-                <div class="card-content">
-                    <canvas id="salesChart" style="height: 300px;"></canvas>
-                </div>
-            </div>
-
-            <!-- Graphique en camembert - Répartition par type -->
-            <div class="content-card">
-                <div class="card-title">
-                    <i class="fas fa-chart-pie"></i>
-                    Répartition des ventes par type
-                </div>
-                <div class="card-content">
-                    <canvas id="salesPieChart" style="height: 300px;"></canvas>
-                </div>
-            </div>
-        </div>
-
-        <!-- Graphique en barres - Comparaison des types -->
-        <div class="content-card">
-            <div class="card-title">
-                <i class="fas fa-chart-bar"></i>
-                Comparaison des ventes par type de billet
-            </div>
-            <div class="card-content">
-                <canvas id="salesBarChart" style="height: 300px;"></canvas>
-            </div>
-        </div>
-
         <!-- Statistiques de ventes -->
         {% if ticketTypes is defined and ticketTypes|length > 0 %}
             {% set totalSold = 0 %}
@@ -94,11 +62,50 @@
                 </div>
             </div>
         {% endif %}
+
+        <!-- Graphiques de ventes -->
+        <div class="charts-grid">
+            <!-- Graphique d'évolution temporelle -->
+            <div class="content-card">
+                <div class="card-title">
+                    <i class="fas fa-chart-line"></i>
+                    Évolution des ventes dans le temps
+                </div>
+                <div class="card-content">
+                    <canvas id="salesChart" style="height: 300px;"></canvas>
+                </div>
+            </div>
+
+            <!-- Graphique en camembert - Répartition par type -->
+            <div class="content-card">
+                <div class="card-title">
+                    <i class="fas fa-chart-pie"></i>
+                    Répartition des ventes par type
+                </div>
+                <div class="card-content">
+                    <canvas id="salesPieChart" style="height: 300px;"></canvas>
+                </div>
+            </div>
+        </div>
+
+        <!-- Graphique en barres - Comparaison des types -->
+        <div class="content-card">
+            <div class="card-title">
+                <i class="fas fa-chart-bar"></i>
+                Comparaison des ventes par type de billet
+            </div>
+            <div class="card-content">
+                <canvas id="salesBarChart" style="height: 300px;"></canvas>
+            </div>
+        </div>
     </div>
 </div>
+{% include 'Organisateur/events/_styles.html.twig' %}
+{% endblock %}
 
-{# Chart.js pour les graphiques de ventes #}
-<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+{% block javascripts %}
+{{ parent() }}
+<script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
 <script>
 document.addEventListener('DOMContentLoaded', function () {
     const textColor = getComputedStyle(document.documentElement).getPropertyValue('--text-primary') || '#333';
@@ -358,7 +365,5 @@ document.addEventListener('DOMContentLoaded', function () {
     }
 });
 </script>
-
-{% include 'Organisateur/events/_styles.html.twig' %}
 {% endblock %}
 

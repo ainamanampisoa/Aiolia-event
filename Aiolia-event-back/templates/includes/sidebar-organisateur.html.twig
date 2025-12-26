@@ -1,10 +1,11 @@
 {% set currentRoute = app.request.attributes.get('_route') %}
-{% set isStats = currentRoute == 'organisateur_dashboard_statistiques' %}
+{% set isStats = currentRoute starts with 'app_organisateur_dashboard_statistiques' %}
 {% set isReports = currentRoute starts with 'organisateur_reports' %}
 {% set isEvents = currentRoute starts with 'organisateur_events' or currentRoute starts with 'app_event' %}
 {% set isPromotions = currentRoute starts with 'organisateur_promotions' %}
 {% set isWaitlist = currentRoute starts with 'organisateur_waitlist' %}
-{% set isBilling = currentRoute starts with 'organisateur_billing' %}
+{% set isPaiementAbonnement = currentRoute starts with 'organisateur_paiement_abonnement' %}
+{% set isScanning = currentRoute == 'app_ticket_scanning' %}
 {% set isProfile = currentRoute starts with 'app_profile' %}
 {% set isSettings = currentRoute starts with 'app_settings' %}
 
@@ -22,7 +23,7 @@
             </li>
             
             <li class="nav-item {{ isStats ? 'active' }}">
-                <a href="{{ path('organisateur_dashboard_statistiques') }}" class="nav-link {{ isStats ? 'active' }}" {% if isStats %}aria-current="page"{% endif %}>
+                <a href="{{ path('app_organisateur_dashboard_statistiques') }}" class="nav-link {{ isStats ? 'active' }}" {% if isStats %}aria-current="page"{% endif %}>
                     <div class="nav-icon">
                         <i class="fas fa-chart-line"></i>
                     </div>
@@ -55,6 +56,16 @@
                 </a>
             </li>
             
+            <li class="nav-item {{ isScanning ? 'active' }}">
+                <a href="{{ path('app_ticket_scanning') }}" class="nav-link {{ isScanning ? 'active' }}" {% if isScanning %}aria-current="page"{% endif %}>
+                    <div class="nav-icon">
+                        <i class="fas fa-qrcode"></i>
+                    </div>
+                    <span class="nav-text" data-i18n="layout.sidebar.organisateur.scanner">Scanner</span>
+                    <span class="nav-tooltip" data-i18n="layout.sidebar.organisateur.scanner">Scanner</span>
+                </a>
+            </li>
+            
             <li class="nav-item {{ isPromotions ? 'active' }}">
                 <a href="{{ path('organisateur_promotions_index') }}" class="nav-link {{ isPromotions ? 'active' }}" {% if isPromotions %}aria-current="page"{% endif %}>
                     <div class="nav-icon">
@@ -75,13 +86,26 @@
                 </a>
             </li>
             
-            <li class="nav-item {{ isBilling ? 'active' }}">
-                <a href="{{ path('organisateur_billing_index') }}" class="nav-link {{ isBilling ? 'active' }}" {% if isBilling %}aria-current="page"{% endif %}>
+            {% set isStockAlerts = currentRoute == 'app_ticket_stock_alerts' %}
+            {% if has_stock_alerts_for_active_events() %}
+            <li class="nav-item {{ isStockAlerts ? 'active' }}">
+                <a href="{{ path('app_ticket_stock_alerts') }}" class="nav-link {{ isStockAlerts ? 'active' }}" {% if isStockAlerts %}aria-current="page"{% endif %}>
                     <div class="nav-icon">
-                        <i class="fas fa-file-invoice-dollar"></i>
+                        <i class="fas fa-bell"></i>
                     </div>
-                    <span class="nav-text" data-i18n="layout.sidebar.organisateur.billing">Facturation</span>
-                    <span class="nav-tooltip" data-i18n="layout.sidebar.organisateur.billing">Facturation</span>
+                    <span class="nav-text">Alertes de stock</span>
+                    <span class="nav-tooltip">Alertes de stock</span>
+                </a>
+            </li>
+            {% endif %}
+            
+            <li class="nav-item {{ isPaiementAbonnement ? 'active' }}">
+                <a href="{{ path('organisateur_paiement_abonnement_index') }}" class="nav-link {{ isPaiementAbonnement ? 'active' }}" {% if isPaiementAbonnement %}aria-current="page"{% endif %}>
+                    <div class="nav-icon">
+                        <i class="fas fa-credit-card"></i>
+                    </div>
+                    <span class="nav-text">Paiement Abonnement</span>
+                    <span class="nav-tooltip">Paiement Abonnement</span>
                 </a>
             </li>
             
@@ -116,12 +140,21 @@
 <style>
     /* Scroll vertical indépendant pour la sidebar */
     #adminSidebar.admin-sidebar {
+        width: 300px !important;
+        min-width: 300px !important;
+        max-width: 300px !important;
         display: flex !important;
         flex-direction: column !important;
-        height: calc(100vh - 72px) !important;
-        max-height: calc(100vh - 72px) !important;
+        height: calc(100vh - 90px) !important;
+        max-height: calc(100vh - 90px) !important;
         overflow: hidden !important;
         position: fixed !important;
+    }
+    
+    /* Ajuste le contenu principal */
+    .admin-main {
+        margin-left: 300px !important;
+        width: calc(100% - 300px) !important;
     }
     
     #adminSidebar .sidebar-header {
@@ -136,8 +169,8 @@
         overflow-y: scroll !important;
         overflow-x: hidden !important;
         min-height: 0 !important;
-        max-height: calc(100vh - 72px - 120px) !important;
-        height: calc(100vh - 72px - 120px) !important;
+        max-height: calc(100vh - 90px - 120px) !important;
+        height: calc(100vh - 90px - 120px) !important;
         -webkit-overflow-scrolling: touch !important;
         position: relative !important;
     }
@@ -183,7 +216,7 @@
         if (sidebar && sidebarNav) {
             // Calculer la hauteur disponible pour la nav
             const headerHeight = sidebar.querySelector('.sidebar-header')?.offsetHeight || 100;
-            const availableHeight = window.innerHeight - 72 - headerHeight;
+            const availableHeight = window.innerHeight - 90 - headerHeight;
             
             // Forcer la hauteur maximale
             sidebarNav.style.maxHeight = availableHeight + 'px';
@@ -194,7 +227,7 @@
             // Recalculer lors du redimensionnement
             window.addEventListener('resize', function() {
                 const newHeaderHeight = sidebar.querySelector('.sidebar-header')?.offsetHeight || 100;
-                const newAvailableHeight = window.innerHeight - 72 - newHeaderHeight;
+                const newAvailableHeight = window.innerHeight - 90 - newHeaderHeight;
                 sidebarNav.style.maxHeight = newAvailableHeight + 'px';
                 sidebarNav.style.height = newAvailableHeight + 'px';
             });

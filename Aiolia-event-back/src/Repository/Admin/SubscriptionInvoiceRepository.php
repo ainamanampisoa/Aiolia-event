@@ -3,8 +3,10 @@
 namespace App\Repository\Admin;
 
 use App\Entity\SubscriptionInvoice;
+use App\Entity\User;
 use Doctrine\Bundle\DoctrineBundle\Repository\ServiceEntityRepository;
 use Doctrine\Persistence\ManagerRegistry;
+use Doctrine\DBAL\ArrayParameterType;
 
 /**
  * @extends ServiceEntityRepository<SubscriptionInvoice>
@@ -16,68 +18,164 @@ class SubscriptionInvoiceRepository extends ServiceEntityRepository
         parent::__construct($registry, SubscriptionInvoice::class);
     }
 
-    public function findAllWithFilters(?string $status = null, ?string $search = null, ?\DateTime $dateFrom = null, ?\DateTime $dateTo = null, int $limit = 50, int $offset = 0): array
-    {
+    public function findAllWithFilters(
+        ?string $status = null, 
+        ?string $search = null, 
+        ?int $month = null, 
+        ?int $year = null, 
+        int $limit = 50, 
+        int $offset = 0
+    ): array {
         $qb = $this->createQueryBuilder('si')
             ->leftJoin('si.customer', 'c')
             ->addSelect('c');
 
-        if ($status) {
-            $qb->andWhere('si.status = :status')
-                ->setParameter('status', $status);
-        }
+        $this->applyFilters($qb, $status, $search, $month, $year);
 
-        if ($search) {
-            $this->applySearchFilter($qb, $search, 'si', 'c');
-        }
-
-        if ($dateFrom) {
-            $dateFromStart = (clone $dateFrom)->setTime(0, 0, 0);
-            $qb->andWhere('si.issuedAt >= :dateFrom')
-                ->setParameter('dateFrom', $dateFromStart);
-        }
-
-        if ($dateTo) {
-            $dateToEnd = (clone $dateTo)->setTime(23, 59, 59);
-            $qb->andWhere('si.issuedAt <= :dateTo')
-                ->setParameter('dateTo', $dateToEnd);
-        }
-
-        return $qb->orderBy('si.createdAt', 'DESC')
+        // Trier par billingMonth DESC (plus pertinent pour les factures d'abonnement)
+        // Si billingMonth est null, utiliser createdAt comme fallback
+        return $qb->orderBy('si.billingMonth', 'DESC')
+            ->addOrderBy('si.createdAt', 'DESC')
             ->setMaxResults($limit)
             ->setFirstResult($offset)
             ->getQuery()
             ->getResult();
     }
 
-    public function countWithFilters(?string $status = null, ?string $search = null, ?\DateTime $dateFrom = null, ?\DateTime $dateTo = null): int
-    {
+    public function countWithFilters(
+        ?string $status = null, 
+        ?string $search = null, 
+        ?int $month = null, 
+        ?int $year = null
+    ): int {
         $qb = $this->createQueryBuilder('si')
             ->select('COUNT(si.id)');
 
+        $this->applyFilters($qb, $status, $search, $month, $year);
+
+        return (int) $qb->getQuery()->getSingleScalarResult();
+    }
+
+    private function applyFilters($qb, ?string $status, ?string $search, ?int $month, ?int $year): void
+    {
         if ($status) {
             $qb->andWhere('si.status = :status')
                 ->setParameter('status', $status);
         }
 
         if ($search) {
-            $qb->leftJoin('si.customer', 'c');
+            if ($qb->getDQLPart('join') === null || !$this->hasCustomerJoin($qb)) {
+                $qb->leftJoin('si.customer', 'c');
+            }
             $this->applySearchFilter($qb, $search, 'si', 'c');
         }
 
-        if ($dateFrom) {
-            $dateFromStart = (clone $dateFrom)->setTime(0, 0, 0);
-            $qb->andWhere('si.issuedAt >= :dateFrom')
-                ->setParameter('dateFrom', $dateFromStart);
+        $this->applyDateFilter($qb, $month, $year);
+    }
+
+    private function hasCustomerJoin($qb): bool
+    {
+        $joins = $qb->getDQLPart('join');
+        foreach ($joins as $joinAlias => $join) {
+            foreach ($join as $joinItem) {
+                if (strpos((string) $joinItem, 'si.customer') !== false) {
+                    return true;
+                }
+            }
+        }
+        return false;
+    }
+
+    private function applyDateFilter($qb, ?int $month, ?int $year): void
+    {
+        if ($year === null) {
+            return;
         }
 
-        if ($dateTo) {
-            $dateToEnd = (clone $dateTo)->setTime(23, 59, 59);
-            $qb->andWhere('si.issuedAt <= :dateTo')
-                ->setParameter('dateTo', $dateToEnd);
+        if ($month !== null && $month > 0) {
+            $this->applyMonthYearFilter($qb, $month, $year);
+        } else {
+            // Pour une année complète, utiliser le filtre d'année qui exclut les mois avant le premier mois disponible
+            $this->applyYearFilter($qb, $year);
+        }
+    }
+
+    private function applyMonthYearFilter($qb, int $month, int $year): void
+    {
+        // Vérifier que le mois demandé n'est pas avant le premier mois disponible
+        $firstMonth = $this->getFirstAvailableMonthForYear($year);
+        
+        // Si le mois demandé est avant le premier mois disponible, ne rien retourner
+        if ($month < $firstMonth) {
+            // Forcer un résultat vide en ajoutant une condition impossible
+            $qb->andWhere('1 = 0');
+            return;
+        }
+        
+        $monthStart = (new \DateTime())
+            ->setDate($year, $month, 1)
+            ->setTime(0, 0, 0);
+        
+        $monthEnd = (clone $monthStart)
+            ->modify('last day of this month')
+            ->setTime(23, 59, 59);
+
+        $qb->andWhere('si.billingMonth BETWEEN :monthStart AND :monthEnd')
+            ->setParameter('monthStart', $monthStart)
+            ->setParameter('monthEnd', $monthEnd);
+    }
+
+    /**
+     * Détermine dynamiquement le premier mois disponible dans la base de données pour une année donnée
+     * Basé sur les factures d'abonnement (identique à StatisticsRepository)
+     * 
+     * @param int $year L'année à vérifier
+     * @return int Le numéro du mois (1-12), ou 1 si aucune donnée n'est trouvée
+     */
+    public function getFirstAvailableMonthForYear(int $year): int
+    {
+        $connection = $this->getEntityManager()->getConnection();
+        
+        $yearStart = sprintf('%04d-01-01', $year);
+        $yearEnd = sprintf('%04d-12-31', $year);
+
+        try {
+            // Utiliser SQL direct pour être cohérent avec StatisticsRepository
+            $result = $connection->fetchOne(
+                "SELECT MIN(mois_facturation) FROM aiolia.factures_abonnements WHERE mois_facturation >= ? AND mois_facturation <= ?",
+                [$yearStart, $yearEnd]
+            );
+
+            if ($result) {
+                $date = new \DateTime($result);
+                // Normaliser au premier jour du mois
+                $firstMonth = (int) $date->format('n');
+                return $firstMonth;
+            }
+        } catch (\Exception $e) {
+            // En cas d'erreur, retourner janvier par défaut
         }
 
-        return (int) $qb->getQuery()->getSingleScalarResult();
+        // Par défaut, commencer en janvier si aucune donnée n'est trouvée
+        return 1;
+    }
+
+    private function applyYearFilter($qb, int $year): void
+    {
+        $firstMonth = $this->getFirstAvailableMonthForYear($year);
+        
+        $yearStart = (new \DateTime())
+            ->setDate($year, $firstMonth, 1)
+            ->setTime(0, 0, 0);
+        
+        $yearEnd = (clone $yearStart)
+            ->setDate($year, 12, 31)
+            ->setTime(23, 59, 59);
+
+        $qb->andWhere('si.billingMonth >= :yearStart')
+            ->andWhere('si.billingMonth <= :yearEnd')
+            ->setParameter('yearStart', $yearStart)
+            ->setParameter('yearEnd', $yearEnd);
     }
 
     public function findByInvoiceNumber(string $invoiceNumber): ?SubscriptionInvoice
@@ -89,7 +187,6 @@ class SubscriptionInvoiceRepository extends ServiceEntityRepository
             ->getOneOrNullResult();
     }
 
-    // Récupérer le niveau de plan (tier) pour une facture d'abonnement
     public function getPlanTierForInvoice(SubscriptionInvoice $invoice): ?string
     {
         $connection = $this->getEntityManager()->getConnection();
@@ -107,30 +204,56 @@ class SubscriptionInvoiceRepository extends ServiceEntityRepository
         return $tier !== false ? $tier : null;
     }
 
-    // Récupérer les tiers de plans pour plusieurs factures
     public function getPlanTiersForInvoices(array $invoices): array
     {
-        $tiers = [];
-        foreach ($invoices as $invoice) {
-            $tier = $this->getPlanTierForInvoice($invoice);
-            if ($tier !== null) {
-                $tiers[$invoice->getId()] = $tier;
-            }
+        if (empty($invoices)) {
+            return [];
         }
+
+        $invoiceIds = array_map(fn($invoice) => $invoice->getId(), $invoices);
+        
+        $connection = $this->getEntityManager()->getConnection();
+        $sql = "
+            SELECT fi.id as invoice_id, sp.niveau
+            FROM aiolia.factures_abonnements fi
+            INNER JOIN aiolia.abonnements_organisateurs os ON os.id = fi.id_abonnement
+            INNER JOIN aiolia.plans_abonnements sp ON sp.id = os.id_plan
+            WHERE fi.id IN (:invoice_ids)
+        ";
+
+        $results = $connection->fetchAllKeyValue(
+            $sql,
+            ['invoice_ids' => $invoiceIds],
+            ['invoice_ids' => ArrayParameterType::INTEGER]
+        );
+
+        $tiers = [];
+        foreach ($invoiceIds as $id) {
+            $tiers[$id] = $results[$id] ?? null;
+        }
+
         return $tiers;
     }
 
-    // Récupérer les infos complètes du plan pour une facture
     public function getPlanInfoForInvoice(SubscriptionInvoice $invoice): ?array
     {
+        // 1. D'abord, essayer de récupérer les informations depuis les métadonnées de la facture
+        // (les nouvelles factures stockent le plan dans les métadonnées)
+        $metadata = $invoice->getMetadata();
+        if ($metadata && isset($metadata['plan_niveau']) && !empty($metadata['plan_niveau'])) {
+            return [
+                'niveau' => $metadata['plan_niveau'],
+                'periode_facturation' => $metadata['plan_periode'] ?? null,
+                'nom' => $metadata['plan_code'] ?? null,
+                'code' => $metadata['plan_code'] ?? null,
+            ];
+        }
+
+        // 2. Si les métadonnées ne contiennent pas les informations, utiliser le plan de l'abonnement (fallback)
         $connection = $this->getEntityManager()->getConnection();
 
         $sql = "
-            SELECT 
-                sp.niveau,
-                sp.periode_facturation,
-                sp.nom,
-                sp.code
+            SELECT sp.niveau, sp.periode_facturation, sp.nom, sp.code
             FROM aiolia.factures_abonnements fi
             INNER JOIN aiolia.abonnements_organisateurs os ON os.id = fi.id_abonnement
             INNER JOIN aiolia.plans_abonnements sp ON sp.id = os.id_plan
@@ -139,36 +262,150 @@ class SubscriptionInvoiceRepository extends ServiceEntityRepository
 
         $result = $connection->fetchAssociative($sql, ['invoice_id' => $invoice->getId()]);
 
+        if (!$result) {
+            $sql = "
+                SELECT DISTINCT sp.niveau, sp.periode_facturation, sp.nom, sp.code
+                FROM aiolia.factures_abonnements fi
+                INNER JOIN aiolia.transactions_paiement_mobile tpm ON tpm.id_facture = fi.id
+                INNER JOIN aiolia.abonnements_organisateurs os ON os.id = fi.id_abonnement
+                INNER JOIN aiolia.plans_abonnements sp ON sp.id = os.id_plan
+                WHERE fi.id = :invoice_id
+            ";
+
+            $result = $connection->fetchAssociative($sql, ['invoice_id' => $invoice->getId()]);
+        }
+
         return $result ?: null;
     }
 
-    // Même principe pour plusieurs factures
     public function getPlanInfosForInvoices(array $invoices): array
     {
-        $result = [];
+        if (empty($invoices)) {
+            return [];
+        }
+
+        $planInfos = [];
+        $invoicesNeedingFallback = [];
+
+        // 1. D'abord, récupérer les informations depuis les métadonnées de chaque facture
         foreach ($invoices as $invoice) {
-            $info = $this->getPlanInfoForInvoice($invoice);
-            if ($info) {
-                $result[$invoice->getId()] = $info;
+            $invoiceId = (string) $invoice->getId();
+            $metadata = $invoice->getMetadata();
+            
+            if ($metadata && isset($metadata['plan_niveau']) && !empty($metadata['plan_niveau'])) {
+                // Les informations sont dans les métadonnées
+                $planInfos[$invoiceId] = [
+                    'niveau' => $metadata['plan_niveau'],
+                    'periode_facturation' => $metadata['plan_periode'] ?? null,
+                    'nom' => $metadata['plan_code'] ?? null,
+                    'code' => $metadata['plan_code'] ?? null,
+                ];
+            } else {
+                // Les métadonnées ne contiennent pas les informations, utiliser le fallback
+                $invoicesNeedingFallback[] = $invoice;
             }
         }
-        return $result;
+
+        // 2. Pour les factures sans métadonnées, récupérer depuis l'abonnement (fallback)
+        if (!empty($invoicesNeedingFallback)) {
+            $invoiceIds = array_map(fn($invoice) => $invoice->getId(), $invoicesNeedingFallback);
+            $connection = $this->getEntityManager()->getConnection();
+
+            $sql = "
+                SELECT 
+                    fi.id as invoice_id, 
+                    sp.niveau, 
+                    sp.periode_facturation, 
+                    sp.nom, 
+                    sp.code
+                FROM aiolia.factures_abonnements fi
+                INNER JOIN aiolia.abonnements_organisateurs os ON os.id = fi.id_abonnement
+                INNER JOIN aiolia.plans_abonnements sp ON sp.id = os.id_plan
+                WHERE fi.id IN (:invoice_ids)
+            ";
+
+            $results = $connection->fetchAllAssociative(
+                $sql,
+                ['invoice_ids' => $invoiceIds],
+                ['invoice_ids' => ArrayParameterType::INTEGER]
+            );
+
+            foreach ($results as $row) {
+                $invoiceId = (string) $row['invoice_id'];
+                $niveau = $row['niveau'] ?? null;
+                if ($niveau !== null && $niveau !== '') {
+                    $planInfos[$invoiceId] = [
+                        'niveau' => $niveau,
+                        'periode_facturation' => $row['periode_facturation'] ?? null,
+                        'nom' => $row['nom'] ?? null,
+                        'code' => $row['code'] ?? null,
+                    ];
+                }
+            }
+        }
+
+        return $planInfos;
     }
 
-    // Récupérer les lignes d’une facture via relations Doctrine
     public function getInvoiceItemsForInvoice(SubscriptionInvoice $invoice): array
     {
-        // L'entité SubscriptionInvoice actuelle ne possède pas de relation vers des lignes de facture.
-        // On retourne donc un tableau vide pour éviter les erreurs, en attendant une éventuelle
-        // implémentation d'entités de lignes de facture.
         return [];
     }
 
-    // Mode de paiement depuis l'entité SubscriptionInvoice
     public function getPaymentMethodForInvoice(SubscriptionInvoice $invoice): ?string
     {
-        // L'entité SubscriptionInvoice expose déjà le mode de paiement via getPaymentMethod()
-        return $invoice->getPaymentMethod();
+        // Première tentative : récupérer depuis les métadonnées de la facture
+        // C'est là que le mode de paiement est stocké lors de la création
+        $metadata = $invoice->getMetadata();
+        if ($metadata && isset($metadata['payment_method']) && !empty($metadata['payment_method'])) {
+            return (string) $metadata['payment_method'];
+        }
+
+        $connection = $this->getEntityManager()->getConnection();
+        $invoiceId = $invoice->getId();
+
+        // Deuxième tentative : récupérer depuis transactions_paiement_mobile
+        // On privilégie les transactions confirmées (paid), puis les autres
+        $sql = "
+            SELECT operateur_mobile 
+            FROM aiolia.transactions_paiement_mobile 
+            WHERE id_facture = :invoice_id
+            ORDER BY 
+                CASE WHEN statut_paiement = 'paid' THEN 1 ELSE 2 END,
+                confirme_le DESC NULLS LAST,
+                initie_le DESC
+            LIMIT 1
+        ";
+
+        try {
+            $result = $connection->fetchOne($sql, ['invoice_id' => $invoiceId]);
+        } catch (\Exception $e) {
+            // En cas d'erreur, continuer avec la requête suivante
+            $result = false;
+        }
+
+        // Si aucune transaction trouvée, vérifier si la facture a un id_mode_paiement dans factures_abonnements
+        if ($result === false || $result === null || $result === '') {
+            try {
+                $sql = "
+                    SELECT mp.code
+                    FROM aiolia.factures_abonnements fa
+                    LEFT JOIN aiolia.modes_paiement mp ON mp.id = fa.id_mode_paiement
+                    WHERE fa.id = :invoice_id AND mp.code IS NOT NULL AND mp.code != ''
+                ";
+                
+                $result = $connection->fetchOne($sql, ['invoice_id' => $invoiceId]);
+            } catch (\Exception $e) {
+                $result = false;
+            }
+        }
+
+        // Normaliser le résultat : convertir false/empty en null, et s'assurer que c'est une chaîne
+        if ($result === false || $result === null || $result === '') {
+            return null;
+        }
+
+        return (string) $result;
     }
 
     public function findOverdueInvoices(\DateTimeInterface $currentDate): array
@@ -195,9 +432,8 @@ class SubscriptionInvoiceRepository extends ServiceEntityRepository
             return;
         }
 
-        if (strpos($searchTrimmed, '@') !== false) {
-            $qb->leftJoin("$invoiceAlias.customer", $customerAlias)
-                ->andWhere("$customerAlias.email LIKE :search")
+        if (str_contains($searchTrimmed, '@')) {
+            $qb->andWhere("$customerAlias.email LIKE :search")
                 ->setParameter('search', $pattern);
             return;
         }
@@ -205,29 +441,41 @@ class SubscriptionInvoiceRepository extends ServiceEntityRepository
         $words = preg_split('/\s+/', $searchTrimmed);
 
         if (count($words) > 1) {
-            $qb->leftJoin("$invoiceAlias.customer", $customerAlias)
-                ->andWhere("$customerAlias.prenom LIKE :firstWord")
-                ->andWhere("$customerAlias.nom LIKE :lastWord")
+            $qb->andWhere("$customerAlias.prenom LIKE :firstWord AND $customerAlias.nom LIKE :lastWord")
                 ->setParameter('firstWord', '%' . $words[0] . '%')
                 ->setParameter('lastWord', '%' . end($words) . '%');
         } else {
-            $qb->leftJoin("$invoiceAlias.customer", $customerAlias)
-                ->andWhere($qb->expr()->orX(
+            $qb->andWhere(
+                $qb->expr()->orX(
                     $qb->expr()->like("$customerAlias.prenom", ':search'),
                     $qb->expr()->like("$customerAlias.nom", ':search')
-                ))
-                ->setParameter('search', $pattern);
+                )
+            )->setParameter('search', $pattern);
         }
+    }
+
+    /**
+     * Récupère la dernière facture d'un utilisateur (tous statuts confondus)
+     * triée par mois de facturation décroissant
+     */
+    public function findLastInvoiceByUser(User $user): ?SubscriptionInvoice
+    {
+        return $this->createQueryBuilder('si')
+            ->where('si.customer = :user')
+            ->setParameter('user', $user)
+            ->orderBy('si.billingMonth', 'DESC')
+            ->setMaxResults(1)
+            ->getQuery()
+            ->getOneOrNullResult();
     }
 
     public function findInvoiceForMonth(string $subscriptionId, \DateTimeInterface $billingMonth): ?SubscriptionInvoice
     {
-        // Normalisation du mois de facturation : on crée des objets DateTimeImmutable
         $monthStart = \DateTimeImmutable::createFromInterface($billingMonth)
             ->modify('first day of this month')
             ->setTime(0, 0, 0);
-        $monthEnd = $monthStart
-            ->modify('+1 month');
+        
+        $monthEnd = $monthStart->modify('+1 month');
 
         return $this->createQueryBuilder('si')
             ->where('si.subscriptionId = :subscriptionId')
@@ -238,5 +486,38 @@ class SubscriptionInvoiceRepository extends ServiceEntityRepository
             ->setParameter('monthEnd', $monthEnd)
             ->getQuery()
             ->getOneOrNullResult();
+    }
+
+    /**
+     * Calcule le montant total des factures d'abonnement payées par un utilisateur (organisateur)
+     * Inclut uniquement les factures payées ou partiellement payées
+     * Note: Pour l'organisateur, ce sont des dépenses, pas des revenus
+     * 
+     * @param \App\Entity\User $user L'utilisateur (organisateur)
+     * @param \DateTimeInterface|null $dateFrom Date de début (optionnel)
+     * @param \DateTimeInterface|null $dateTo Date de fin (optionnel)
+     * @return float Le montant total des factures d'abonnement payées
+     */
+    public function getSubscriptionRevenueByUser(\App\Entity\User $user, ?\DateTimeInterface $dateFrom = null, ?\DateTimeInterface $dateTo = null): float
+    {
+        $qb = $this->createQueryBuilder('si')
+            ->select('COALESCE(SUM(si.totalAmount), 0)')
+            ->where('si.customer = :user')
+            ->andWhere('si.status IN (:paidStatuses)')
+            ->setParameter('user', $user)
+            ->setParameter('paidStatuses', [SubscriptionInvoice::STATUS_PAID, SubscriptionInvoice::STATUS_PARTIALLY_PAID]);
+
+        if ($dateFrom !== null) {
+            $qb->andWhere('si.billingMonth >= :dateFrom')
+                ->setParameter('dateFrom', $dateFrom);
+        }
+
+        if ($dateTo !== null) {
+            $qb->andWhere('si.billingMonth <= :dateTo')
+                ->setParameter('dateTo', $dateTo);
+        }
+
+        $result = $qb->getQuery()->getSingleScalarResult();
+        return (float) $result;
     }
 }

@@ -1,11 +1,11 @@
 <!-- En-tête avec actions -->
-<div class="event-detail-header">
-    <div class="header-breadcrumb">
+<div class="event-detail-header" style="display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 16px; margin-bottom: 16px;">
+    <div class="header-breadcrumb" style="display: inline-flex; align-items: center; gap: 8px; font-weight: 600; color: var(--text-secondary);">
         <a href="{{ path('organisateur_events_index') }}">Événements</a>
         <i class="fas fa-chevron-right"></i>
         <span>{{ event.titre ?? 'Événement' }}</span>
     </div>
-    <div class="header-actions-row">
+    <div class="header-actions-row" style="display: inline-flex; align-items: center; justify-content: flex-end; gap: 12px; flex-wrap: wrap;">
         {% set isOngoing = event.statut == 'published' and event.commenceLe and event.commenceLe <= date() and (event.seTermineLe is null or event.seTermineLe >= date()) %}
         {% set isUpcoming = event.statut == 'published' and event.commenceLe and event.commenceLe > date() %}
         <a href="{{ path('organisateur_tickets_index', {'eventId': event.id}) }}" class="btn btn-secondary" style="background: #5DADE2; color: white; border: none; padding: 10px 20px; border-radius: 8px; cursor: pointer; font-weight: 600; text-decoration: none; display: inline-flex; align-items: center; gap: 8px;">

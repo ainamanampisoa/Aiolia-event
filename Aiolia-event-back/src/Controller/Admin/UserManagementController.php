@@ -312,7 +312,7 @@ class UserManagementController extends AbstractController
 
         // Compter les statistiques de l'utilisateur
         $eventsCount = count($events);
-        $publishedEventsCount = count(array_filter($events, fn($e) => $e->getStatus() === 'published'));
+        $publishedEventsCount = count(array_filter($events, fn($e) => $e->getStatut() === 'published'));
 
         // Récupérer les informations d'abonnement si c'est un organisateur
         $subscriptionInfo = null;
@@ -577,6 +577,38 @@ class UserManagementController extends AbstractController
                            ($result['mis_en_pause_le'] !== null && 
                             ($result['repris_le'] === null || new \DateTime($result['repris_le']) > new \DateTime()));
                 
+                // Vérifier aussi s'il y a des factures en retard (overdue) qui indiquent une pause
+                if (!$isPaused) {
+                    $sqlOverdueInvoice = "
+                        SELECT COUNT(*) as count
+                        FROM aiolia.factures_abonnements
+                        WHERE id_abonnement = :subscriptionId
+                            AND statut = 'overdue'
+                            AND payee_le IS NULL
+                        LIMIT 1
+                    ";
+                    $overdueCount = (int) $conn->fetchOne($sqlOverdueInvoice, ['subscriptionId' => $result['id']]);
+                    if ($overdueCount > 0) {
+                        $isPaused = true;
+                        // Si pas de mis_en_pause_le enregistré, utiliser la date de la facture en retard
+                        if ($result['mis_en_pause_le'] === null) {
+                            $sqlOverdueDate = "
+                                SELECT mois_facturation
+                                FROM aiolia.factures_abonnements
+                                WHERE id_abonnement = :subscriptionId
+                                    AND statut = 'overdue'
+                                    AND payee_le IS NULL
+                                ORDER BY mois_facturation ASC
+                                LIMIT 1
+                            ";
+                            $overdueDateResult = $conn->fetchOne($sqlOverdueDate, ['subscriptionId' => $result['id']]);
+                            if ($overdueDateResult) {
+                                $result['mis_en_pause_le'] = $overdueDateResult;
+                            }
+                        }
+                    }
+                }
+                
                 if ($isPaused && $result['mis_en_pause_le']) {
                     $pauseDate = new \DateTime($result['mis_en_pause_le']);
                     $monthNames = [
@@ -589,8 +621,7 @@ class UserManagementController extends AbstractController
                 
                 // Calculer le prochain paiement (première facture non payée à venir)
                 $sqlNextPayment = "
-                    SELECT 
-                        (mois_facturation + INTERVAL '1 month')::date as next_payment
+                    SELECT mois_facturation
                     FROM aiolia.factures_abonnements
                     WHERE id_abonnement = :subscriptionId
                         AND statut IN ('issued', 'draft', 'pending')
@@ -601,9 +632,27 @@ class UserManagementController extends AbstractController
                 $nextPaymentResult = $conn->fetchOne($sqlNextPayment, ['subscriptionId' => $result['id']]);
                 if ($nextPaymentResult) {
                     $nextPaymentDate = new \DateTime($nextPaymentResult);
+                    $nextPaymentDate->modify('first day of this month');
                 } else {
-                    // Si aucune facture en attente, calculer à partir du mois suivant
-                    $nextPaymentDate = new \DateTime('first day of next month');
+                    // Si aucune facture en attente, calculer à partir de la dernière facture payée
+                    $sqlLastPaid = "
+                        SELECT mois_facturation
+                        FROM aiolia.factures_abonnements
+                        WHERE id_abonnement = :subscriptionId
+                            AND statut = 'paid'
+                        ORDER BY mois_facturation DESC
+                        LIMIT 1
+                    ";
+                    $lastPaidResult = $conn->fetchOne($sqlLastPaid, ['subscriptionId' => $result['id']]);
+                    if ($lastPaidResult) {
+                        $lastPaidDate = new \DateTime($lastPaidResult);
+                        $nextPaymentDate = clone $lastPaidDate;
+                        $nextPaymentDate->modify('+1 month');
+                        $nextPaymentDate->modify('first day of this month');
+                    } else {
+                        // Si aucune facture payée, utiliser le mois suivant
+                        $nextPaymentDate = new \DateTime('first day of next month');
+                    }
                 }
             }
         }
@@ -677,30 +726,89 @@ class UserManagementController extends AbstractController
             return $this->redirectToRoute('admin_users_show', ['id' => $id]);
         }
 
-        // Pagination : 5 événements par page
+        // Paramètres de filtrage et recherche
+        $search = $request->query->get('search', '');
+        $status = $request->query->get('status', '');
+        $sort = $request->query->get('sort', 'date_desc'); // date_desc, date_asc, title_asc, title_desc
+
+        // Pagination : 10 événements par page
         $page = max(1, (int) $request->query->get('page', 1));
-        $perPage = 5;
+        $perPage = 10;
         $offset = ($page - 1) * $perPage;
 
         // Récupérer tous les événements de l'organisateur
         $allEvents = $this->eventRepository->findByOrganizer($user);
-        $totalEvents = count($allEvents);
+
+        // Appliquer les filtres
+        $filteredEvents = $allEvents;
+        
+        if ($search) {
+            $searchLower = mb_strtolower($search);
+            $filteredEvents = array_filter($filteredEvents, function($event) use ($searchLower) {
+                return str_contains(mb_strtolower($event->getTitre()), $searchLower);
+            });
+        }
+
+        if ($status && in_array($status, ['published', 'draft', 'cancelled', 'archived'], true)) {
+            $filteredEvents = array_filter($filteredEvents, fn($e) => $e->getStatut() === $status);
+        }
+
+        // Réindexer le tableau après filtrage
+        $filteredEvents = array_values($filteredEvents);
+
+        // Appliquer le tri
+        usort($filteredEvents, function($a, $b) use ($sort) {
+            switch ($sort) {
+                case 'date_asc':
+                    $dateA = $a->getCommenceLe();
+                    $dateB = $b->getCommenceLe();
+                    if (!$dateA && !$dateB) return 0;
+                    if (!$dateA) return 1;
+                    if (!$dateB) return -1;
+                    return $dateA <=> $dateB;
+                case 'date_desc':
+                    $dateA = $a->getCommenceLe();
+                    $dateB = $b->getCommenceLe();
+                    if (!$dateA && !$dateB) return 0;
+                    if (!$dateA) return 1;
+                    if (!$dateB) return -1;
+                    return $dateB <=> $dateA;
+                case 'title_asc':
+                    return strcasecmp($a->getTitre(), $b->getTitre());
+                case 'title_desc':
+                    return strcasecmp($b->getTitre(), $a->getTitre());
+                default:
+                    return 0;
+            }
+        });
+
+        $totalEvents = count($filteredEvents);
         $totalPages = ceil($totalEvents / $perPage);
 
         // Paginer les événements
-        $events = array_slice($allEvents, $offset, $perPage);
+        $events = array_slice($filteredEvents, $offset, $perPage);
 
         // Statistiques
-        $eventsCount = $totalEvents;
-        $publishedEventsCount = count(array_filter($allEvents, fn($e) => $e->getStatus() === 'published'));
+        $eventsCount = count($allEvents);
+        $publishedEventsCount = count(array_filter($allEvents, fn($e) => $e->getStatut() === 'published'));
+        $draftEventsCount = count(array_filter($allEvents, fn($e) => $e->getStatut() === 'draft'));
+        $cancelledEventsCount = count(array_filter($allEvents, fn($e) => $e->getStatut() === 'cancelled'));
+        $archivedEventsCount = count(array_filter($allEvents, fn($e) => $e->getStatut() === 'archived'));
 
         return $this->render('@Admin/users/events.html.twig', [
             'user' => $user,
             'events' => $events,
             'eventsCount' => $eventsCount,
             'publishedEventsCount' => $publishedEventsCount,
+            'draftEventsCount' => $draftEventsCount,
+            'cancelledEventsCount' => $cancelledEventsCount,
+            'archivedEventsCount' => $archivedEventsCount,
             'currentPage' => $page,
             'totalPages' => $totalPages,
+            'totalEventsFiltered' => $totalEvents,
+            'search' => $search,
+            'status' => $status,
+            'sort' => $sort,
         ]);
     }
 

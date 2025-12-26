@@ -110,3 +110,6 @@ Sur mobile, le scanner utilise automatiquement la caméra arrière. Assurez-vous
 - [MDN - MediaDevices.getUserMedia()](https://developer.mozilla.org/en-US/docs/Web/API/MediaDevices/getUserMedia)
 - [Chrome - Permissions de caméra](https://support.google.com/chrome/answer/2693767)
 
+- postgres : https://www.postgresql.org/
+- chat : https://chatgpt.com/c/6943f046-1c3c-832b-9c50-482a03185441
+- postman : https://www.postman.com/

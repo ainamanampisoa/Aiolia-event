@@ -6,45 +6,76 @@
 {{ parent() }}
 <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
 <style>
-.user-details-page {
-    background-color: var(--bg-primary);
-    min-height: calc(100vh - 80px);
-    padding: 1.5rem 0;
+.dashboard-header h1 {
+    display: flex !important;
+    align-items: center;
+    gap: 12px;
 }
 
-.user-details-page .breadcrumb {
-    background: none;
-    padding: 0;
-    margin-bottom: 1rem;
+.dashboard-header h1 i {
+    font-size: 2rem !important;
+    color: var(--accent) !important;
+    display: inline-block !important;
+    visibility: visible !important;
+    opacity: 1 !important;
 }
 
-.user-details-page .breadcrumb-item a {
+.dashboard-subtitle {
+    color: var(--text-secondary);
+    margin: 0.5rem 0 0 0;
+    font-size: 0.95rem;
+}
+
+/* Fil d'Ariane */
+.breadcrumb-horizontal {
+    display: flex;
+    align-items: center;
+    gap: 0.75rem;
+    font-size: 1rem;
+    font-weight: var(--font-weight-semibold);
+    color: var(--text-primary);
+    margin-bottom: 1.75rem;
+}
+
+.breadcrumb-horizontal a {
     color: var(--accent);
     text-decoration: none;
+    transition: var(--transition-fast);
 }
 
-.user-details-page .breadcrumb-item.active {
+.breadcrumb-horizontal a:hover {
+    color: var(--accent-light);
+    text-decoration: underline;
+}
+
+.breadcrumb-horizontal .breadcrumb-active {
     color: var(--text-secondary);
+    font-weight: var(--font-weight-semibold);
 }
 
 /* Carte profil utilisateur */
-.user-details-page .user-profile-card {
+.validation-card {
     border: 1px solid var(--border-color);
-    border-radius: var(--border-radius-xl);
-    box-shadow: var(--shadow-md);
+    border-radius: var(--border-radius-lg);
+    box-shadow: var(--shadow-sm);
     overflow: hidden;
     background: var(--bg-card);
+}
+
+.user-profile-card {
+    border-radius: var(--border-radius-xl);
+    box-shadow: var(--shadow-md);
     margin-bottom: 1.5rem;
 }
 
-.user-details-page .user-profile-card .card-header {
+.user-profile-card .card-header {
     background: linear-gradient(135deg, var(--bg-secondary), var(--bg-primary));
     color: var(--text-primary);
     border-bottom: 2px solid var(--border-color);
     padding: 1.5rem 2rem;
 }
 
-.user-details-page .user-profile-card .card-header h5 {
+.user-profile-card .card-header h5 {
     margin: 0;
     font-weight: var(--font-weight-bold);
     font-size: 1.5rem;
@@ -54,12 +85,12 @@
     gap: 0.75rem;
 }
 
-.user-details-page .user-profile-card .card-header i {
+.user-profile-card .card-header i {
     color: var(--accent);
     font-size: 1.3rem;
 }
 
-.user-details-page .user-profile-card .card-body {
+.user-profile-card .card-body {
     padding: 2rem;
     display: flex;
     flex-direction: column;
@@ -67,7 +98,7 @@
 }
 
 /* Section principale avec avatar */
-.user-details-page .user-header-section {
+.user-header-section {
     display: flex;
     align-items: center;
     gap: 1.5rem;
@@ -78,18 +109,18 @@
     border: 1px solid var(--border-color);
 }
 
-.user-details-page .user-avatar-wrapper {
+.user-avatar-wrapper {
     flex-shrink: 0;
     position: relative;
 }
 
-.user-details-page .user-avatar {
+.user-avatar {
     position: relative;
     width: 64px;
     height: 64px;
 }
 
-.user-details-page .user-avatar img {
+.user-avatar img {
     width: 100%;
     height: 100%;
     border-radius: 50%;
@@ -99,7 +130,7 @@
     transition: var(--transition-smooth);
 }
 
-.user-details-page .user-avatar-initials {
+.user-avatar-initials {
     width: 64px;
     height: 64px;
     border-radius: 50%;
@@ -115,7 +146,7 @@
     transition: var(--transition-smooth);
 }
 
-.user-details-page .user-status {
+.user-status {
     position: absolute;
     bottom: 0;
     right: 0;
@@ -137,21 +168,21 @@
     }
 }
 
-.user-details-page .user-details {
+.user-details {
     display: flex;
     flex-direction: column;
     align-items: flex-start;
     gap: 0.125rem;
 }
 
-.user-details-page .user-name {
+.user-name {
     font-weight: var(--font-weight-semibold);
     color: var(--text-primary);
     font-size: 1.1rem;
     line-height: 1.2;
 }
 
-.user-details-page .user-role {
+.user-role {
     font-size: 0.75rem;
     color: var(--text-muted);
     background: var(--bg-primary);
@@ -159,14 +190,14 @@
     border-radius: var(--border-radius-full);
 }
 
-.user-details-page .user-info-main {
+.user-info-main {
     flex: 1;
     display: flex;
     flex-direction: column;
     gap: 0.75rem;
 }
 
-.user-details-page .user-contact-info {
+.user-contact-info {
     display: flex;
     flex-wrap: wrap;
     gap: 1.5rem;
@@ -174,14 +205,14 @@
     color: var(--text-secondary);
 }
 
-.user-details-page .user-contact-item {
+.user-contact-item {
     display: flex;
     align-items: center;
     gap: 0.5rem;
     padding: 0.5rem 0;
 }
 
-.user-details-page .user-contact-item i {
+.user-contact-item i {
     color: var(--accent);
     font-size: 0.85rem;
     width: 16px;
@@ -189,7 +220,7 @@
     opacity: 0.8;
 }
 
-.user-details-page .user-contact-item span {
+.user-contact-item span {
     color: var(--text-primary);
     font-weight: var(--font-weight-medium);
 }
@@ -217,11 +248,11 @@
 }
 
 /* Statistiques utilisateur */
-.user-details-page .stats-section {
+.stats-section {
     margin-top: 1rem;
 }
 
-.user-details-page .stats-section-title {
+.stats-section-title {
     font-size: 1.1rem;
     font-weight: var(--font-weight-semibold);
     color: var(--text-primary);
@@ -233,18 +264,18 @@
     gap: 0.75rem;
 }
 
-.user-details-page .stats-section-title i {
+.stats-section-title i {
     color: var(--accent);
     font-size: 1rem;
 }
 
-.user-details-page .user-stats {
+.user-stats {
     display: grid;
     grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
     gap: 1.25rem;
 }
 
-.user-details-page .stat-item {
+.stat-item {
     display: flex;
     align-items: flex-start;
     gap: 1rem;
@@ -255,13 +286,13 @@
     transition: var(--transition-base);
 }
 
-.user-details-page .stat-item:hover {
+.stat-item:hover {
     border-color: var(--accent);
     box-shadow: var(--shadow-sm);
     background: var(--bg-secondary);
 }
 
-.user-details-page .stat-icon-wrapper {
+.stat-icon-wrapper {
     flex-shrink: 0;
     width: 48px;
     height: 48px;
@@ -273,12 +304,12 @@
     border: 1px solid var(--border-color);
 }
 
-.user-details-page .stat-icon-wrapper i {
+.stat-icon-wrapper i {
     font-size: 1.1rem;
     color: var(--accent);
 }
 
-.user-details-page .stat-content {
+.stat-content {
     flex: 1;
     display: flex;
     flex-direction: column;
@@ -286,7 +317,7 @@
     min-width: 0;
 }
 
-.user-details-page .stat-label {
+.stat-label {
     font-size: 0.75rem;
     color: var(--text-secondary);
     letter-spacing: 0.5px;
@@ -296,7 +327,7 @@
     line-height: 1.2;
 }
 
-.user-details-page .stat-value {
+.stat-value {
     font-size: 1rem;
     font-weight: var(--font-weight-semibold);
     color: var(--text-primary);
@@ -308,11 +339,11 @@
     flex-wrap: wrap;
 }
 
-.user-details-page .stat-value i {
+.stat-value i {
     font-size: 0.85rem;
 }
 
-.user-details-page .stat-badge {
+.stat-badge {
     display: inline-flex;
     align-items: center;
     gap: 0.35rem;
@@ -324,141 +355,108 @@
 }
 
 /* Badges */
-.user-details-page .badge {
+.badge {
     font-size: 0.8rem;
     padding: 0.5rem 0.9rem;
     border-radius: var(--border-radius-full);
     font-weight: var(--font-weight-semibold);
 }
 
-
-.user-details-page .badge.bg-success {
+.badge.bg-success {
     background: var(--success) !important;
 }
 
-.user-details-page .badge.bg-warning {
+.badge.bg-warning {
     background: var(--warning) !important;
 }
 
-.user-details-page .badge.bg-danger {
+.badge.bg-danger {
     background: var(--danger) !important;
 }
 
-.user-details-page .badge.bg-primary {
+.badge.bg-primary {
     background: var(--accent) !important;
 }
 
-.user-details-page .badge.bg-secondary {
+.badge.bg-secondary {
     background: var(--secondary) !important;
     color: var(--text-primary);
 }
 
-.user-details-page .badge.bg-dark {
+.badge.bg-dark {
     background: var(--primary) !important;
 }
 
-
-.user-details-page .breadcrumb-horizontal {
-    display: flex;
-    align-items: center;
-    gap: 0.75rem;
-    font-size: 1rem;
-    font-weight: var(--font-weight-semibold);
-    color: var(--text-primary);
-    margin-bottom: 2rem;
-    padding: 0.75rem 0;
-}
-
-.user-details-page .breadcrumb-horizontal a {
-    color: var(--accent);
-    text-decoration: none;
-    transition: var(--transition-fast);
-}
-
-.user-details-page .breadcrumb-horizontal a:hover {
-    color: var(--accent-light);
-}
-
-.user-details-page .breadcrumb-active {
-    color: var(--primary);
-    font-weight: var(--font-weight-semibold);
-}
-
-
 /* Icônes de statut */
-.user-details-page .text-success {
+.text-success {
     color: var(--success) !important;
     font-weight: var(--font-weight-semibold);
 }
 
-.user-details-page .text-danger {
+.text-danger {
     color: var(--danger) !important;
     font-weight: var(--font-weight-semibold);
 }
 
-.user-details-page .text-muted {
+.text-muted {
     color: var(--text-muted) !important;
 }
 
 /* Responsive */
 @media (max-width: 1200px) {
-    .user-details-page .user-profile-card .card-body {
+    .user-profile-card .card-body {
         padding: 1.75rem;
     }
     
-    .user-details-page .user-header-section {
+    .user-header-section {
         gap: 2rem;
         padding: 1.75rem;
     }
     
-    .user-details-page .user-stats {
+    .user-stats {
         grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
     }
 }
 
 @media (max-width: 992px) {
-    .user-details-page .user-profile-card .card-body {
+    .user-profile-card .card-body {
         padding: 1.5rem;
     }
     
-    .user-details-page .user-header-section {
+    .user-header-section {
         gap: 1.5rem;
         padding: 1.5rem;
     }
     
-    .user-details-page .user-avatar {
+    .user-avatar {
         width: 56px;
         height: 56px;
     }
     
-    .user-details-page .user-avatar-initials {
+    .user-avatar-initials {
         font-size: 1.3rem;
     }
     
-    .user-details-page .user-stats {
+    .user-stats {
         grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
         gap: 1rem;
     }
     
-    .user-details-page .stat-item {
+    .stat-item {
         padding: 1.25rem;
     }
 }
 
 @media (max-width: 768px) {
-    .user-details-page {
-        padding: 1rem 0;
-    }
-    
-    .user-details-page .user-profile-card .card-body {
+    .user-profile-card .card-body {
         padding: 1.25rem;
     }
     
-    .user-details-page .user-profile-card .card-header {
+    .user-profile-card .card-header {
         padding: 1.25rem 1.5rem;
     }
     
-    .user-details-page .user-header-section {
+    .user-header-section {
         flex-direction: column;
         align-items: center;
         text-align: center;
@@ -466,86 +464,86 @@
         padding: 1.5rem;
     }
     
-    .user-details-page .user-info-main {
+    .user-info-main {
         align-items: center;
         width: 100%;
     }
     
-    .user-details-page .user-contact-info {
+    .user-contact-info {
         flex-direction: column;
         gap: 0.75rem;
         align-items: center;
     }
     
-    .user-details-page .user-avatar {
+    .user-avatar {
         width: 56px;
         height: 56px;
     }
     
-    .user-details-page .user-avatar-initials {
+    .user-avatar-initials {
         font-size: 1.3rem;
     }
     
-    .user-details-page .user-stats {
+    .user-stats {
         grid-template-columns: 1fr;
         gap: 1rem;
     }
     
-    .user-details-page .stat-item {
+    .stat-item {
         padding: 1.25rem;
     }
     
-    .user-details-page .stat-icon-wrapper {
+    .stat-icon-wrapper {
         width: 44px;
         height: 44px;
     }
     
-    .user-details-page .stat-icon-wrapper i {
+    .stat-icon-wrapper i {
         font-size: 1rem;
     }
 }
 
 @media (max-width: 576px) {
-    .user-details-page .user-profile-card .card-body {
+    .user-profile-card .card-body {
         padding: 1rem;
     }
     
-    .user-details-page .user-profile-card .card-header {
+    .user-profile-card .card-header {
         padding: 1rem 1.25rem;
     }
     
-    .user-details-page .user-profile-card .card-header h5 {
+    .user-profile-card .card-header h5 {
         font-size: 1.25rem;
     }
     
-    .user-details-page .user-header-section {
+    .user-header-section {
         padding: 1.25rem;
     }
     
-    .user-details-page .user-avatar {
+    .user-avatar {
         width: 56px;
         height: 56px;
     }
     
-    .user-details-page .user-avatar-initials {
+    .user-avatar-initials {
         font-size: 1.3rem;
     }
     
-    .user-details-page .stat-item {
+    .stat-item {
         padding: 1rem;
         gap: 0.75rem;
     }
     
-    .user-details-page .stat-icon-wrapper {
+    .stat-icon-wrapper {
         width: 40px;
         height: 40px;
     }
     
-    .user-details-page .stat-icon-wrapper i {
+    .stat-icon-wrapper i {
         font-size: 0.95rem;
     }
     
-    .user-details-page .stats-section-title {
+    .stats-section-title {
         font-size: 1rem;
     }
 }
@@ -557,22 +555,26 @@
 {% endblock %}
 
 {% block body %}
-<div class="container-fluid py-3 user-details-page">
+<div class="dashboard">
     <!-- Fil d'Ariane -->
-    <div class="row">
-        <div class="col-12">
-            <div class="breadcrumb-horizontal">
-                <a href="{{ path('admin_users_list') }}" data-i18n-fr="Gestion des utilisateurs" data-i18n-en="User management">Gestion des utilisateurs</a>
-                <span>/</span>
-                <span class="breadcrumb-active">{{ user.nomComplet }}</span>
-            </div>
+    <div class="breadcrumb-horizontal" style="margin-bottom: 1.75rem;">
+        <a href="{{ path('admin_users_list') }}" data-i18n-fr="Gestion des utilisateurs" data-i18n-en="User management">Gestion des utilisateurs</a>
+        <span>/</span>
+        <span class="breadcrumb-active">{{ user.nomComplet }}</span>
+    </div>
+
+    <!-- En-tête -->
+    <div class="dashboard-header">
+        <div>
+            <h1><i class="fas fa-user-shield"></i> <span data-i18n="users.show.header.title">Profil utilisateur</span> · {{ user.nomComplet }}</h1>
+            <p class="dashboard-subtitle" data-i18n="users.show.header.subtitle">
+                Consultez et gérez les informations détaillées de cet utilisateur
+            </p>
         </div>
     </div>
 
-    <div class="row justify-content-center">
-        <!-- Profil utilisateur -->
-        <div class="col-xxl-10 col-xl-11 col-12">
-            <div class="card user-profile-card">
+    <!-- Profil utilisateur -->
+    <div class="card validation-card user-profile-card">
                 <div class="card-header">
                     <h5 class="mb-0">
                         <i class="fas fa-user-shield me-3"></i>
@@ -668,9 +670,7 @@
                                 <div class="stat-content">
                                     <div class="stat-label" data-i18n-fr="État du compte" data-i18n-en="Account status">État du compte</div>
                                     <div class="stat-value">
-                                        {% if user.role == 'organizer' and organizerSubscriptionStatus == 'paused' %}
-                                            <span class="badge bg-warning stat-badge" data-i18n="users.status.paused">En pause</span>
-                                        {% elseif user.role == 'organizer' and organizerSubscriptionStatus == 'pending' %}
+                                        {% if user.role == 'organizer' and organizerSubscriptionStatus == 'pending' %}
                                             <span class="badge bg-warning stat-badge" data-i18n="users.status.pending">En attente</span>
                                         {% elseif user.statutCompte == 'active' %}
                                             <span class="badge bg-success stat-badge" data-i18n="users.status.active">Actif</span>
@@ -757,7 +757,5 @@
 
                 </div>
             </div>
-        </div>
-    </div>
 </div>
 {% endblock %}

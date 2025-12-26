@@ -68,7 +68,7 @@ class OrganizerSubscription
 
     public function __construct()
     {
-        $now = new \DateTimeImmutable();
+        $now = new \DateTime();
         $this->creeLe = $now;
         $this->modifieLe = $now;
         $this->commenceLe = $now;
@@ -78,7 +78,7 @@ class OrganizerSubscription
     #[ORM\PrePersist]
     public function initializeTimestamps(): void
     {
-        $now = new \DateTimeImmutable();
+        $now = new \DateTime();
         $this->creeLe ??= $now;
         $this->modifieLe = $now;
         $this->commenceLe ??= $now;
@@ -88,7 +88,7 @@ class OrganizerSubscription
     #[ORM\PreUpdate]
     public function refreshUpdatedAt(): void
     {
-        $this->modifieLe = new \DateTimeImmutable();
+        $this->modifieLe = new \DateTime();
     }
 
     public function getId(): ?string

@@ -148,5 +148,133 @@ class OrganizerSubscriptionRepository
         
         return (int) ($result ?? 0);
     }
+
+    /**
+     * Récupère l'abonnement actif d'un utilisateur
+     * 
+     * @param int $userId ID de l'utilisateur
+     * @return array{id: int, fin_periode_courante: string|null}|null
+     */
+    public function findActiveSubscriptionByUserId(int $userId): ?array
+    {
+        $connection = $this->registry->getConnection();
+        
+        $sql = "
+            SELECT os.id, os.fin_periode_courante
+            FROM aiolia.abonnements_organisateurs os
+            INNER JOIN aiolia.profils_organisateurs po ON po.id = os.id_profil_organisateur
+            WHERE po.id_utilisateur = :userId
+                AND os.statut = 'active'
+                AND os.annule_le IS NULL
+            ORDER BY os.cree_le DESC
+            LIMIT 1
+        ";
+        
+        $result = $connection->fetchAssociative($sql, ['userId' => $userId]);
+        
+        return $result ?: null;
+    }
+
+    /**
+     * Récupère le prochain mois de facturation depuis les factures non payées
+     * 
+     * @param int $subscriptionId ID de l'abonnement
+     * @return string|null Date au format Y-m-d ou null
+     */
+    public function findNextUnpaidInvoiceMonth(int $subscriptionId): ?string
+    {
+        $connection = $this->registry->getConnection();
+        
+        $sql = "
+            SELECT mois_facturation
+            FROM aiolia.factures_abonnements
+            WHERE id_abonnement = :subscriptionId
+                AND statut IN ('issued', 'draft', 'pending')
+                AND mois_facturation >= DATE_TRUNC('month', CURRENT_DATE)
+            ORDER BY mois_facturation ASC
+            LIMIT 1
+        ";
+        
+        $result = $connection->fetchOne($sql, ['subscriptionId' => $subscriptionId]);
+        
+        return $result ?: null;
+    }
+
+    /**
+     * Récupère le prochain mois de facturation depuis les factures en retard
+     * 
+     * @param int $subscriptionId ID de l'abonnement
+     * @return string|null Date au format Y-m-d ou null
+     */
+    public function findNextOverdueInvoiceMonth(int $subscriptionId): ?string
+    {
+        $connection = $this->registry->getConnection();
+        
+        $sql = "
+            SELECT mois_facturation
+            FROM aiolia.factures_abonnements
+            WHERE id_abonnement = :subscriptionId
+                AND statut = 'overdue'
+                AND payee_le IS NULL
+                AND mois_facturation >= DATE_TRUNC('month', CURRENT_DATE)
+            ORDER BY mois_facturation ASC
+            LIMIT 1
+        ";
+        
+        $result = $connection->fetchOne($sql, ['subscriptionId' => $subscriptionId]);
+        
+        return $result ?: null;
+    }
+
+    /**
+     * Récupère le dernier mois de facturation payé
+     * 
+     * @param int $subscriptionId ID de l'abonnement
+     * @return string|null Date au format Y-m-d ou null
+     */
+    public function findLastPaidInvoiceMonth(int $subscriptionId): ?string
+    {
+        $connection = $this->registry->getConnection();
+        
+        $sql = "
+            SELECT mois_facturation
+            FROM aiolia.factures_abonnements
+            WHERE id_abonnement = :subscriptionId
+                AND statut = 'paid'
+            ORDER BY mois_facturation DESC
+            LIMIT 1
+        ";
+        
+        $result = $connection->fetchOne($sql, ['subscriptionId' => $subscriptionId]);
+        
+        return $result ?: null;
+    }
+
+    /**
+     * Vérifie s'il existe une facture pour un mois donné
+     * 
+     * @param int $subscriptionId ID de l'abonnement
+     * @param string $month Date au format Y-m-01
+     * @return array{id: int, statut: string, payee_le: string|null}|null
+     */
+    public function findInvoiceForMonth(int $subscriptionId, string $month): ?array
+    {
+        $connection = $this->registry->getConnection();
+        
+        $sql = "
+            SELECT id, statut, payee_le
+            FROM aiolia.factures_abonnements
+            WHERE id_abonnement = :subscriptionId
+                AND mois_facturation = :checkMonth
+            LIMIT 1
+        ";
+        
+        $result = $connection->fetchAssociative($sql, [
+            'subscriptionId' => $subscriptionId,
+            'checkMonth' => $month
+        ]);
+        
+        return $result ?: null;
+    }
 }
 

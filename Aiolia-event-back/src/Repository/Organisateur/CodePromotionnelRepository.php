@@ -19,6 +19,7 @@ class CodePromotionnelRepository extends ServiceEntityRepository
     public function getAll(): array
     {
         return $this->createQueryBuilder('c')
+            ->andWhere('c.dateSuppression IS NULL')
             ->orderBy('c.creeLe', 'DESC')
             ->getQuery()
             ->getResult();
@@ -35,6 +36,7 @@ class CodePromotionnelRepository extends ServiceEntityRepository
     {
         return $this->createQueryBuilder('c')
             ->andWhere('c.code = :code')
+            ->andWhere('c.dateSuppression IS NULL')
             ->setParameter('code', $code)
             ->getQuery()
             ->getOneOrNullResult();
@@ -46,6 +48,7 @@ class CodePromotionnelRepository extends ServiceEntityRepository
         $now = new \DateTimeImmutable();
         
         return $this->createQueryBuilder('c')
+            ->andWhere('c.dateSuppression IS NULL')
             ->andWhere('(c.commenceLe IS NULL OR c.commenceLe <= :now)')
             ->andWhere('(c.seTermineLe IS NULL OR c.seTermineLe >= :now)')
             ->setParameter('now', $now)
@@ -74,7 +77,7 @@ class CodePromotionnelRepository extends ServiceEntityRepository
     
     public function delete(CodePromotionnel $codePromotionnel): void
     {
-        $this->getEntityManager()->remove($codePromotionnel);
+        $codePromotionnel->setDateSuppression(new \DateTimeImmutable());
         $this->getEntityManager()->flush();
     }
 
@@ -83,6 +86,7 @@ class CodePromotionnelRepository extends ServiceEntityRepository
     {
         return $this->createQueryBuilder('c')
             ->andWhere('c.profilOrganisateur = :organisateur')
+            ->andWhere('c.dateSuppression IS NULL')
             ->setParameter('organisateur', $organisateur)
             ->orderBy('c.creeLe', 'DESC')
             ->getQuery()
@@ -103,6 +107,7 @@ class CodePromotionnelRepository extends ServiceEntityRepository
         $totalQueryBuilder = $this->createQueryBuilder('c')
             ->select('COUNT(c.id)')
             ->andWhere('c.profilOrganisateur = :organisateur')
+            ->andWhere('c.dateSuppression IS NULL')
             ->setParameter('organisateur', $organisateur);
         
         
@@ -123,6 +128,7 @@ class CodePromotionnelRepository extends ServiceEntityRepository
         
         $itemsQueryBuilder = $this->createQueryBuilder('c')
             ->andWhere('c.profilOrganisateur = :organisateur')
+            ->andWhere('c.dateSuppression IS NULL')
             ->setParameter('organisateur', $organisateur);
         
         
@@ -163,6 +169,7 @@ class CodePromotionnelRepository extends ServiceEntityRepository
         
         return $this->createQueryBuilder('c')
             ->andWhere('c.profilOrganisateur = :organisateur')
+            ->andWhere('c.dateSuppression IS NULL')
             ->andWhere('(c.commenceLe IS NULL OR c.commenceLe <= :now)')
             ->andWhere('(c.seTermineLe IS NULL OR c.seTermineLe >= :now)')
             ->setParameter('organisateur', $organisateur)
@@ -223,6 +230,7 @@ class CodePromotionnelRepository extends ServiceEntityRepository
         
         return $this->createQueryBuilder('c')
             ->andWhere('c.profilOrganisateur = :organisateur')
+            ->andWhere('c.dateSuppression IS NULL')
             ->andWhere('c.seTermineLe IS NOT NULL')
             ->andWhere('c.seTermineLe >= :now')
             ->andWhere('c.seTermineLe <= :limit')

@@ -2,6 +2,10 @@
 
 {% block title %}{{ event.titre ?? 'Événement' }} - Informations - Aiolia Event{% endblock %}
 
+{% block stylesheets %}
+{{ parent() }}
+{% endblock %}
+
 {% block body %}
 <div class="dashboard">
     {% include 'Organisateur/events/_header.html.twig' %}
@@ -244,5 +248,9 @@
 </div>
 
 {% include 'Organisateur/events/_styles.html.twig' %}
+{% endblock %}
+
+{% block javascripts %}
+{{ parent() }}
 {% endblock %}
 

@@ -7,11 +7,6 @@
 <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/flatpickr/dist/flatpickr.min.css">
 <style>
 /* Styles généraux - harmonisés avec le tableau de bord */
-.dashboard {
-    padding: 24px;
-    max-width: 1400px;
-    margin: 0 auto;
-}
 
 .dashboard-header {
     display: flex;
@@ -20,6 +15,26 @@
     margin-bottom: 32px;
     flex-wrap: wrap;
     gap: 16px;
+}
+
+.dashboard-header h1 {
+    font-size: 2rem;
+    font-weight: var(--font-weight-bold);
+    color: var(--text-primary);
+    margin-bottom: 8px;
+    display: flex;
+    align-items: center;
+    gap: 12px;
+}
+
+.dashboard-header h1 i {
+    color: var(--accent);
+}
+
+.dashboard-header p {
+    color: var(--text-secondary);
+    margin-top: 8px;
+    font-size: 1rem;
 }
 
 .events-stats {
@@ -105,6 +120,16 @@
     display: flex;
     justify-content: space-between;
     align-items: center;
+}
+
+.search-header-title {
+    font-size: 1.1rem;
+    color: var(--text-primary);
+    margin: 0;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    font-weight: var(--font-weight-semibold);
 }
 
 .btn-toggle-search {
@@ -203,7 +228,7 @@
     display: flex;
     align-items: center;
     gap: 6px;
-    font-weight: 600;
+    font-weight: var(--font-weight-semibold);
 }
 
 .active-filters-label i {
@@ -261,7 +286,7 @@
     display: flex;
     align-items: center;
     gap: 8px;
-    font-weight: 600;
+    font-weight: var(--font-weight-semibold);
     color: var(--text-primary);
     font-size: 0.9rem;
 }
@@ -475,7 +500,7 @@
     padding: 4px 10px;
     border-radius: 20px;
     font-size: 0.7rem;
-    font-weight: 600;
+    font-weight: var(--font-weight-semibold);
     display: flex;
     align-items: center;
     gap: 4px;
@@ -612,7 +637,7 @@
 
 .event-title {
     font-size: 1.2rem;
-    font-weight: 700;
+    font-weight: var(--font-weight-bold);
     color: var(--text-primary);
     margin: 0;
     line-height: 1.4;
@@ -718,7 +743,7 @@
 
 .price-value {
     font-size: 1.2rem;
-    font-weight: 700;
+    font-weight: var(--font-weight-bold);
     color: var(--accent);
 }
 
@@ -734,7 +759,7 @@
     gap: 6px;
     margin-bottom: 12px;
     font-size: 0.8rem;
-    font-weight: 600;
+    font-weight: var(--font-weight-semibold);
     color: var(--text-primary);
     text-transform: uppercase;
     letter-spacing: 0.8px;
@@ -824,7 +849,7 @@
 
 .price-badge-name {
     font-size: 0.7rem;
-    font-weight: 700;
+    font-weight: var(--font-weight-bold);
     color: var(--text-primary);
     text-transform: uppercase;
     letter-spacing: 0.4px;
@@ -848,7 +873,7 @@
 .price-badge-currency {
     font-size: 0.65rem;
     color: var(--text-secondary);
-    font-weight: 600;
+    font-weight: var(--font-weight-semibold);
     margin-top: 1px;
     opacity: 0.85;
     white-space: nowrap;
@@ -859,7 +884,7 @@
     border-radius: 8px;
     border: none;
     font-size: 0.9rem;
-    font-weight: 600;
+    font-weight: var(--font-weight-semibold);
     cursor: pointer;
     transition: all 0.3s ease;
     display: flex;
@@ -1233,6 +1258,119 @@
         font-size: 0.55rem;
     }
 }
+
+/* Modal suppression événement */
+.modal-overlay {
+    position: fixed;
+    inset: 0;
+    background: rgba(0, 0, 0, 0.45);
+    display: none;
+    align-items: center;
+    justify-content: center;
+    z-index: 3000;
+    padding: 16px;
+}
+
+.modal-overlay.active {
+    display: flex;
+}
+
+.modal-content {
+    background: var(--white);
+    border-radius: var(--border-radius-lg);
+    box-shadow: 0 14px 32px rgba(0, 0, 0, 0.2);
+    max-width: 460px;
+    width: 100%;
+    overflow: hidden;
+}
+
+.modal-header {
+    padding: 16px 20px;
+    border-bottom: 1px solid var(--gray-200);
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 12px;
+}
+
+.modal-title {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    font-weight: var(--font-weight-bold);
+    color: var(--gray-900);
+    font-size: 1rem;
+}
+
+.modal-title i {
+    color: var(--warning);
+}
+
+.modal-close {
+    background: transparent;
+    border: none;
+    font-size: 1.4rem;
+    cursor: pointer;
+    color: var(--gray-600);
+}
+
+.modal-body {
+    padding: 18px 20px 6px;
+    color: var(--gray-800);
+    line-height: 1.5;
+}
+
+.modal-warning {
+    color: var(--danger);
+    font-weight: var(--font-weight-semibold);
+    margin-top: 8px;
+}
+
+.modal-footer {
+    padding: 14px 20px 18px;
+    display: flex;
+    gap: 12px;
+    justify-content: flex-end;
+    border-top: 1px solid var(--gray-200);
+}
+
+.btn-filter {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    gap: 8px;
+    padding: 12px 18px;
+    border-radius: var(--border-radius-md);
+    font-weight: var(--font-weight-semibold);
+    font-size: 0.95rem;
+    text-decoration: none;
+    border: none;
+    cursor: pointer;
+    transition: all 0.2s ease;
+    min-height: 44px;
+    box-sizing: border-box;
+}
+
+.btn-filter-primary {
+    background: linear-gradient(135deg, #e74c3c, #c0392b);
+    color: white;
+    box-shadow: 0 2px 8px rgba(231, 76, 60, 0.25);
+}
+
+.btn-filter-primary:hover {
+    background: linear-gradient(135deg, #c0392b, #a93226);
+    box-shadow: 0 4px 12px rgba(231, 76, 60, 0.35);
+}
+
+.btn-filter-secondary {
+    background: var(--gray-100);
+    color: var(--gray-800);
+    border: 1px solid var(--gray-300);
+}
+
+.btn-filter-secondary:hover {
+    background: var(--gray-200);
+}
 </style>
 {% endblock %}
 
@@ -1241,23 +1379,10 @@
     <!-- En-tête de la page -->
     <div class="dashboard-header">
         <div>
-            <h1 data-i18n="events.header.title">📅 Mes événements</h1>
-            <p style="color: var(--text-secondary); margin-top: 8px; font-size: 1rem;" data-i18n="events.header.subtitle">
+            <h1><i class="fas fa-calendar-alt"></i> Mes événements</h1>
+            <p data-i18n="events.header.subtitle">
                 Gérez tous vos événements et collaborations
             </p>
-            <div class="events-stats">
-                <span class="stat-item">
-                    <strong>{{ globalStats.total ?? events|length }}</strong> <span data-i18n="events.stats.total">événement(s) total</span>
-                </span>
-                <span class="stat-item">
-                    <i class="fas fa-calendar-alt"></i>
-                    <strong>{{ globalStats.upcoming ?? events|filter(e => e.statut == 'published' and e.commenceLe and e.commenceLe > date())|length }}</strong> <span data-i18n="events.stats.upcoming">à venir</span>
-                </span>
-                <span class="stat-item">
-                    <i class="fas fa-broadcast-tower"></i>
-                    <strong>{{ globalStats.ongoing ?? events|filter(e => e.statut == 'published' and e.commenceLe and e.commenceLe|date('U') <= 'now'|date('U') and (e.seTermineLe is null or e.seTermineLe|date('U') >= 'now'|date('U')))|length }}</strong> <span data-i18n="events.stats.live">en cours</span>
-                </span>
-            </div>
         </div>
         <div class="header-actions">
             <button class="btn btn-primary" onclick="window.location.href='{{ path('app_event_new') }}'" data-i18n="events.actions.new">
@@ -1274,7 +1399,7 @@
     <!-- Filtres avancés (structure harmonisée avec la liste des utilisateurs) -->
     <div class="search-section advanced-filters" id="advancedFilters">
         <div class="search-header">
-            <h3 style="font-size: 1.1rem; color: var(--text-primary); margin: 0; display: flex; align-items: center; gap: 8px;">
+            <h3 class="search-header-title">
                 <i class="fas fa-filter"></i>
                 <span data-i18n="events.filters.title">Recherche multicritère</span>
             </h3>
@@ -1484,7 +1609,13 @@
                                     </a>
                                 {% endif %}
                                 {% if event.statut == 'draft' %}
-                                    <form method="POST" action="{{ path('organisateur_events_delete', {'id': event.id}) }}" style="display: inline;" onsubmit="return confirm('Êtes-vous sûr de vouloir supprimer cet événement ?');">
+                                    <form
+                                        method="POST"
+                                        action="{{ path('organisateur_events_delete', {'id': event.id}) }}"
+                                        style="display: inline;"
+                                        class="event-delete-form"
+                                        data-event-title="{{ event.titre ?? 'cet événement' }}"
+                                    >
                                         <input type="hidden" name="_token" value="{{ csrf_token('delete_event_' ~ event.id) }}">
                                         <button
                                             type="submit"
@@ -1574,58 +1705,6 @@
                             </div>
                         </div>
 
-                        <!-- Bloc méta bas (compteur + prix/actions) aligné à droite -->
-                        <div class="event-bottom-meta">
-                            <!-- Indicateur de progression - seulement pour les événements futurs -->
-                            {% if event.commenceLe and event.commenceLe > date() %}
-                                <div class="event-progress">
-                                    {% set daysLeft = date(event.commenceLe).diff(date()).days %}
-                                    {% if daysLeft > 0 %}
-                                        <div class="progress-info">
-                                            <span>{{ daysLeft }} jours restants</span>
-                                            <span>{{ event.commenceLe|date('d/m/Y') }}</span>
-                                        </div>
-                                        <div class="progress-bar">
-                                            <div class="progress-fill" style="width: {{ min(100, (30 - daysLeft) / 30 * 100) }}%"></div>
-                                        </div>
-                                    {% endif %}
-                                </div>
-                            {% endif %}
-
-                            <!-- Pied de carte -->
-                            <div class="event-card-footer">
-                                <div class="event-price">
-                                    {% set stats = eventsStats[event.id] ?? {'totalTickets': 0, 'soldTickets': 0, 'minPrice': null, 'adultTicketTypes': []} %}
-                                    {% if stats.adultTicketTypes|length > 0 %}
-                                        <div class="price-section">
-                                            <div class="price-section-header">
-                                                <i class="fas fa-ticket-alt"></i>
-                                                <span class="price-section-title" data-i18n="events.card.tarifs.adult">Tarifs Adulte</span>
-                                            </div>
-                                            <div class="price-badges">
-                                                {% for ticketType in stats.adultTicketTypes %}
-                                                    <div class="price-badge">
-                                                        <span class="price-badge-name">{{ ticketType.nom }}</span>
-                                                        <span class="price-badge-value">{{ ticketType.prix|number_format(0, ',', ' ') }}</span>
-                                                        <span class="price-badge-currency">{{ ticketType.devise }}</span>
-                                                    </div>
-                                                {% endfor %}
-                                            </div>
-                                        </div>
-                                    {% elseif stats.minPrice is not null %}
-                                        <div class="price-label-line">
-                                            <i class="fas fa-money-bill-wave"></i>
-                                            <span class="price-value">{{ stats.minPrice|number_format(0, ',', ' ') }} MGA</span>
-                                        </div>
-                                    {% else %}
-                                        <div class="price-label-line">
-                                            <i class="fas fa-money-bill-wave"></i>
-                                            <span class="price-label" data-i18n="events.card.price.undefined">Prix non défini</span>
-                                        </div>
-                                    {% endif %}
-                                </div>
-                            </div>
-                        </div>
                     </div>
                 {% endfor %}
             </div>
@@ -1658,6 +1737,27 @@
             'criteria': criteria
         } %}
     {% endif %}
+</div>
+
+{# Modal de confirmation suppression événement #}
+<div id="deleteEventModal" class="modal-overlay" aria-hidden="true">
+    <div class="modal-content">
+        <div class="modal-header">
+            <div class="modal-title">
+                <i class="fas fa-exclamation-triangle"></i>
+                Confirmer la suppression
+            </div>
+            <button type="button" class="modal-close" aria-label="Fermer">&times;</button>
+        </div>
+        <div class="modal-body">
+            <p id="deleteEventMessage">Voulez-vous supprimer cet événement ?</p>
+            <p class="modal-warning">Cette action est définitive.</p>
+        </div>
+        <div class="modal-footer">
+            <button type="button" class="btn-filter btn-filter-secondary modal-cancel">Annuler</button>
+            <button type="button" class="btn-filter btn-filter-primary modal-confirm">Supprimer</button>
+        </div>
+    </div>
 </div>
 
 <!-- Modal de partage -->
@@ -1869,6 +1969,50 @@ document.addEventListener('DOMContentLoaded', function() {
     }
 
     // Fonctions utilitaires
+    // Modal de suppression événement (remplace confirm natif)
+    const deleteModal = document.getElementById('deleteEventModal');
+    const deleteMessage = document.getElementById('deleteEventMessage');
+    const btnCancel = deleteModal?.querySelector('.modal-cancel');
+    const btnConfirm = deleteModal?.querySelector('.modal-confirm');
+    const btnClose = deleteModal?.querySelector('.modal-close');
+    let formToSubmit = null;
+
+    const openDeleteModal = (form) => {
+        formToSubmit = form;
+        const title = form.dataset.eventTitle || 'cet événement';
+        if (deleteMessage) {
+            deleteMessage.textContent = `Voulez-vous supprimer ${title} ?`;
+        }
+        deleteModal?.classList.add('active');
+        deleteModal?.setAttribute('aria-hidden', 'false');
+    };
+
+    const closeDeleteModal = () => {
+        formToSubmit = null;
+        deleteModal?.classList.remove('active');
+        deleteModal?.setAttribute('aria-hidden', 'true');
+    };
+
+    document.querySelectorAll('.event-delete-form').forEach(form => {
+        form.addEventListener('submit', (e) => {
+            e.preventDefault();
+            openDeleteModal(form);
+        });
+    });
+
+    btnCancel?.addEventListener('click', closeDeleteModal);
+    btnClose?.addEventListener('click', closeDeleteModal);
+    deleteModal?.addEventListener('click', (e) => {
+        if (e.target === deleteModal) closeDeleteModal();
+    });
+
+    btnConfirm?.addEventListener('click', () => {
+        if (formToSubmit) {
+            formToSubmit.submit();
+        }
+        closeDeleteModal();
+    });
+
     function sortEventCards(sortBy) {
         const container = document.getElementById('eventsGrid');
         const cards = Array.from(container.querySelectorAll('.event-card'));

@@ -419,7 +419,8 @@ sudo chown postgres:postgres /tmp/script.sql
 j
 mail : https://mailtrap.io/home
 
-Dbdiagrma : https://dbdiagram.io/d/69313c70d6676488ba8af59e
+Dbdiagrma : user : https://dbdiagram.io/d/69411519137ea0780bded518
+            back : https://dbdiagram.io/d/6942755be4bb1dd3a969e46f
 
 explication : https://chatgpt.com/c/691c09da-a1b0-8328-b7a2-1b815d4289f6
 
@@ -429,6 +430,9 @@ cloud : https://cloudinary.com/users/login
 Synthèse des abonnements et revenus par mois
 
 redonne moi le @data.sql avec ces critere
+# 2 admin
+# Abonnement : facture des mois
+# 45 utilisateur 
 # pour le nombre organisateur: 26
 -juin 2025 : 10 (actifs)
 -juillet 2025 : + plus 2 new organisateur 
@@ -436,45 +440,71 @@ redonne moi le @data.sql avec ces critere
 -septembre 2025: +  plus 4 new organisateur
 -octobre 2025: +  plus 3 new organisateur(1 non valider)
 -novembre 2025: + plus 3 new organisateur (2 non valider)
-# 78 utilisateur 
-# 2 admin
-# Abonnement : facture des mois
--juin 2025 : mensuelle (5 organisateur basic , 2 organisateur pro,3 organisateur entreprise)
+! offre populaire (le plus utiliser): pro trimestre (mensuelle < trimenstre < annulle)
+
+-juin 2025 : 
 => 10 organisateurs actifs ,0 organisateur en pausse ,0 organisateur non valider 
-=> 10 organisateurs paye mensuelle
-=> offre populaire : basic mensuelle
+=> 10 factures paye mensuelle mensuelle (5 factures basic , 2 factures pro,3 factures entreprise)
 
--juillet 2025: mensuelle (4 organisateur basic , 6 organisateur pro,2 organisateur entreprise)
+-juillet 2025: 
 => 12 organisateurs actifs ,0 organisateur en pausse ,0 organisateur non valider 
-=> 12 organisateurs paye mensuelle
-=> offre populaire (le plus utiliser): pro mensuelle
+=> 12 factures paye mensuelle(4 factures basic , 6 factures pro,2 factures entreprise)
 
--aout 2025: mensuelle ( 4 organisateur basic , 5 organisateur pro,7 organisateur entreprise)
+-aout 2025: 
 => 16 organisateurs actifs ,0 organisateur en pausse ,0 organisateur non valider 
-=> 16 organisateurs paye mensuelle
-=> offre populaire (le plus utiliser): entreprise mensuelle
-* 2 organisateur pausse (2 paye mensuelle ,0 paye trimestre)et revient octobre 
+=> 16 factures paye mensuelle ( 4 factures basic , 5 factures pro,7 factures entreprise)
 
--septembre 2025:  mensuelle (2 organisateur basic , 3 organisateur pro,4 organisateur entreprise)
--septembre 2025:  trimestre (3 organisateur basic , 4 organisateur pro,2 organisateur entreprise)
-=> 18 organisateurs actifs , 2 organisateur en pausse ,0 organisateur non valider 
-=> 9 organisateurs paye mensuelle ,  9 organisateurs paye trimestre
-=> offre populaire (le plus utiliser): pro trimestre (mensuelle < trimenstre < annulle)
+-septembre 2025:  
+=> 20 organisateurs actifs , 2 organisateur en pausse ,0 organisateur non valider 
+=> 11 facture paye mensuelle (3 factures basic , 3 factures pro,5 factures entreprise)
+=> 9 factures paye trimestre(3 factures basic , 4 factures pro,2 factures entreprise)
 
--octobre 2025: mensuelle (3 organisateur basic , 3 organisateur pro,2 organisateur entreprise)
--octobre 2025: trimestre (1 organisateur basic , 2 organisateur pro,4 organisateur entreprise)
+
+-octobre 2025: mensuelle (3 factures basic , 3 factures pro,2 factures entreprise)
+-octobre 2025: trimestre (1 factures basic , 2 factures pro,4 factures entreprise)
 => 22 organisateurs actifs ,0 organisateur en pausse ,total 1 organisateur  non valider 
-=> 6 organisateurs paye mensuelle,7 organisateurs paye trimestre , 9 prepraid
-=> offre populaire (le plus utiliser): entreprise trimestre
-* 4 organisateur en pausse (2 paye mensuelle ,2 paye trimestre) et revient dec 
+=> 6 factures paye mensuelle(2 factures basic , 1 factures pro,2 factures entreprise),
+=> 7 factures paye trimestre (1 factures basic , 2 factures pro,4 factures entreprise),
+
   
--novembre 2025: mesuelle (0 organisateur basic , 2 organisateur pro,1 organisateur entreprise)
--novembre 2025: trimestre (1 organisateur basic , 1 organisateur pro,0 organisateur entreprise)
-=> 19 organisateurs actifs ,4 organisateur en pausse ,total 3 organisateur non valider 
-=> 3 organisateurs paye mensuelle,2 organisateurs paye trimestre ,14 prepraid
-=> offre populaire (le plus utiliser): pro mesuelle
+-novembre 2025: mesuelle (0 factures basic , 2 factures pro,1 factures entreprise)
+-novembre 2025: trimestre (1 factures basic , 1 factures pro,0 factures entreprise)
+=> 23 organisateurs actifs ,4 organisateur en pausse ,total 3 organisateur non valider 
+=> 5 factures paye mensuelle (1 factures basic , 3 factures pro,1 factures entreprise)
+=> 2 factures paye trimestre (1 factures basic , 1 factures pro,0 factures entreprise)
 
 -decembre 2025:
 => 23 organisateurs actifs ,0 organisateur en pausse ,total 3 organisateur non valider 
-=> 0 organisateurs paye mensuelle,0 organisateurs paye trimestre , 7 prepraid
-=> offre populaire (le plus utiliser): entreprise trimestre
+=> 10 factures paye mensuelle (2 factures basic , 3 factures pro,5 factures entreprise)
+=> 4 factures paye trimestre (1 factures basic , 1 factures pro,2 factures entreprise) 
+
+
+
+Header:
+Authorization: Bearer mon_token
+Version: 1.0
+X-CorrelationID: mvola-12345678
+UserLanguage: mg
+UserAccountIdentifier: msisdn;0382795455
+partnerName: AioliaEvent
+Content-Type: application/json
+Cache-Control: no-cache
+X-Callback-URL: http://localhost:8000/api/mvola/callback
+Body:
+{
+  "amount": "1000",
+  "currency": "Ar",
+  "descriptionText": "Test-paiement",
+  "requestingOrganisationTransactionReference": "TEST-001",
+  "requestDate": "2025-12-08T18:00:00.000Z",
+  "originalTransactionReference": "",
+  "debitParty": [
+    { "key": "msisdn", "value": "0343500003" }
+  ],
+  "creditParty": [
+    { "key": "msisdn", "value": "0382795455" }
+  ],
+  "metadata": [
+    { "key": "partnerName", "value": "AioliaEvent" }
+  ]
+}
