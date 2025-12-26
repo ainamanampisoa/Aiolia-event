@@ -9,6 +9,20 @@ SET search_path TO aiolia, public;
 CREATE EXTENSION IF NOT EXISTS pgcrypto;
 
 -- ============================================================
+-- 0. INSERTION DES MODES DE PAIEMENT
+-- ============================================================
+INSERT INTO modes_paiement (code, libelle, description, est_actif, ordre_affichage) VALUES
+('espace', 'Espèce', 'Paiement en espèces', true, 1),
+('mvola', 'MVola', 'Paiement mobile MVola', true, 2),
+('orange', 'Orange Money', 'Paiement mobile Orange Money', true, 3),
+('airtel', 'Airtel Money', 'Paiement mobile Airtel Money', true, 4),
+('virement', 'Virement bancaire', 'Virement bancaire', true, 5),
+('carte_bancaire', 'Carte bancaire', 'Paiement par carte bancaire', true, 6),
+('cheque', 'Chèque', 'Paiement par chèque', true, 7),
+('autre', 'Autre', 'Autre mode de paiement', true, 8)
+ON CONFLICT (code) DO NOTHING;
+
+-- ============================================================
 -- 1. INSERTION DES TYPES D'ABONNEMENTS (plans_abonnements)
 -- ============================================================
 INSERT INTO plans_abonnements (code, nom, description, niveau, periode_facturation, nombre_periodes, devise, prix, taux_tva, fonctionnalites, ordre_affichage, est_actif) VALUES
@@ -207,7 +221,8 @@ CREATE OR REPLACE FUNCTION creer_facture_abonnement(
     p_mois_facturation DATE,
     p_statut TEXT DEFAULT 'paid',
     p_est_prepayee BOOLEAN DEFAULT false,
-    p_date_paiement TIMESTAMPTZ DEFAULT NULL
+    p_date_paiement TIMESTAMPTZ DEFAULT NULL,
+    p_mode_paiement_code TEXT DEFAULT NULL
 ) RETURNS BIGINT AS $$
 DECLARE
     v_facture_id BIGINT;
@@ -217,6 +232,8 @@ DECLARE
     v_tva NUMERIC;
     v_total NUMERIC;
     v_existing_id BIGINT;
+    v_mode_paiement_id BIGINT;
+    v_periode_facturation TEXT;
 BEGIN
     -- Vérifier si une facture existe déjà pour cet abonnement et ce mois
     SELECT id INTO v_existing_id
@@ -235,12 +252,33 @@ BEGIN
         po.id_utilisateur,
         ao.id_plan,
         pa.prix,
-        pa.taux_tva
-    INTO v_user_id, v_plan_id, v_prix, v_tva
+        pa.taux_tva,
+        pa.periode_facturation
+    INTO v_user_id, v_plan_id, v_prix, v_tva, v_periode_facturation
     FROM abonnements_organisateurs ao
     JOIN profils_organisateurs po ON ao.id_profil_organisateur = po.id
     JOIN plans_abonnements pa ON ao.id_plan = pa.id
     WHERE ao.id = p_abonnement_id;
+    
+    -- Pour les abonnements trimestriels, calculer le prix mensuel (prix trimestriel / 3)
+    -- Les prix trimestriels et annuels incluent déjà les réductions (10% et 20%)
+    -- On divise simplement pour obtenir le prix mensuel facturé
+    IF v_periode_facturation = 'quarterly' THEN
+        -- Prix trimestriel avec réduction / 3 = prix mensuel facturé
+        -- Exemple : Basic 135000 / 3 = 45000 MGA par mois
+        v_prix := ROUND((v_prix / 3)::NUMERIC, 2);
+    ELSIF v_periode_facturation = 'yearly' THEN
+        -- Prix annuel avec réduction / 12 = prix mensuel facturé
+        -- Exemple : Basic 480000 / 12 = 40000 MGA par mois
+        v_prix := ROUND((v_prix / 12)::NUMERIC, 2);
+    END IF;
+    
+    -- Récupérer l'ID du mode de paiement si un code est fourni
+    IF p_mode_paiement_code IS NOT NULL AND p_mode_paiement_code != '' THEN
+        SELECT id INTO v_mode_paiement_id
+        FROM modes_paiement
+        WHERE code = p_mode_paiement_code;
+    END IF;
     
     -- Calculer les montants
     v_tva := (v_prix * v_tva) / 100;
@@ -248,13 +286,13 @@ BEGIN
     
     -- Créer la facture
     INSERT INTO factures_abonnements (
-        id_abonnement, id_client, devise,
+        id_abonnement, id_client, id_mode_paiement, devise,
         montant_sous_total, montant_tva, montant_total,
         montant_ht, montant_tva_detail, montant_ttc,
         mois_facturation, est_prepayee, statut,
         emise_le, echeance_le, payee_le
     ) VALUES (
-        p_abonnement_id, v_user_id, 'MGA',
+        p_abonnement_id, v_user_id, v_mode_paiement_id, 'MGA',
         v_prix, v_tva, v_total,
         v_prix, v_tva, v_total,
         p_mois_facturation, p_est_prepayee, p_statut,
@@ -269,11 +307,315 @@ BEGIN
         id_facture, id_plan, description,
         quantite, prix_unitaire, montant_total
     ) VALUES (
-        v_facture_id, v_plan_id, 'Abonnement mensuel',
+        v_facture_id, v_plan_id, 
+        CASE 
+            WHEN v_periode_facturation = 'quarterly' THEN 'Abonnement trimestriel (mensuel)'
+            WHEN v_periode_facturation = 'yearly' THEN 'Abonnement annuel (mensuel)'
+            ELSE 'Abonnement mensuel'
+        END,
         1, v_prix, v_prix
     );
     
     RETURN v_facture_id;
+END;
+$$ LANGUAGE plpgsql;
+
+-- Fonction pour créer une facture avec un montant spécifique (pour les organisateurs en pause)
+CREATE OR REPLACE FUNCTION creer_facture_abonnement_avec_montant(
+    p_abonnement_id BIGINT,
+    p_mois_facturation DATE,
+    p_statut TEXT DEFAULT 'paid',
+    p_est_prepayee BOOLEAN DEFAULT false,
+    p_date_paiement TIMESTAMPTZ DEFAULT NULL,
+    p_mode_paiement_code TEXT DEFAULT NULL,
+    p_montant NUMERIC DEFAULT 0
+) RETURNS BIGINT AS $$
+DECLARE
+    v_facture_id BIGINT;
+    v_user_id BIGINT;
+    v_plan_id BIGINT;
+    v_tva NUMERIC;
+    v_total NUMERIC;
+    v_existing_id BIGINT;
+    v_mode_paiement_id BIGINT;
+    v_periode_facturation TEXT;
+BEGIN
+    -- Vérifier si une facture existe déjà pour cet abonnement et ce mois
+    SELECT id INTO v_existing_id
+    FROM factures_abonnements
+    WHERE id_abonnement = p_abonnement_id
+    AND mois_facturation = p_mois_facturation
+    LIMIT 1;
+    
+    -- Si une facture existe déjà, la retourner
+    IF v_existing_id IS NOT NULL THEN
+        RETURN v_existing_id;
+    END IF;
+    
+    -- Récupérer les informations de l'abonnement
+    SELECT 
+        po.id_utilisateur,
+        ao.id_plan,
+        pa.taux_tva,
+        pa.periode_facturation
+    INTO v_user_id, v_plan_id, v_tva, v_periode_facturation
+    FROM abonnements_organisateurs ao
+    JOIN profils_organisateurs po ON ao.id_profil_organisateur = po.id
+    JOIN plans_abonnements pa ON ao.id_plan = pa.id
+    WHERE ao.id = p_abonnement_id;
+    
+    -- Récupérer l'ID du mode de paiement si un code est fourni
+    IF p_mode_paiement_code IS NOT NULL AND p_mode_paiement_code != '' THEN
+        SELECT id INTO v_mode_paiement_id
+        FROM modes_paiement
+        WHERE code = p_mode_paiement_code;
+    END IF;
+    
+    -- Calculer les montants avec le montant spécifié
+    v_tva := (p_montant * v_tva) / 100;
+    v_total := p_montant + v_tva;
+    
+    -- Créer la facture
+    INSERT INTO factures_abonnements (
+        id_abonnement, id_client, id_mode_paiement, devise,
+        montant_sous_total, montant_tva, montant_total,
+        montant_ht, montant_tva_detail, montant_ttc,
+        mois_facturation, est_prepayee, est_mois_pause, statut,
+        emise_le, echeance_le, payee_le
+    ) VALUES (
+        p_abonnement_id, v_user_id, v_mode_paiement_id, 'MGA',
+        p_montant, v_tva, v_total,
+        p_montant, v_tva, v_total,
+        p_mois_facturation, p_est_prepayee, true, p_statut,
+        p_mois_facturation::TIMESTAMPTZ,
+        p_mois_facturation::TIMESTAMPTZ + INTERVAL '30 days',
+        COALESCE(p_date_paiement, p_mois_facturation::TIMESTAMPTZ + INTERVAL '1 day')
+    )
+    RETURNING id INTO v_facture_id;
+    
+    -- Ajouter l'élément de facture
+    INSERT INTO elements_factures_abonnements (
+        id_facture, id_plan, description,
+        quantite, prix_unitaire, montant_total
+    ) VALUES (
+        v_facture_id, v_plan_id, 
+        CASE 
+            WHEN v_periode_facturation = 'quarterly' THEN 'Abonnement trimestriel (mensuel) - Mois en pause'
+            WHEN v_periode_facturation = 'yearly' THEN 'Abonnement annuel (mensuel) - Mois en pause'
+            ELSE 'Abonnement mensuel - Mois en pause'
+        END,
+        1, p_montant, p_montant
+    );
+    
+    RETURN v_facture_id;
+END;
+$$ LANGUAGE plpgsql;
+
+-- Fonction pour créer les factures trimestrielles (3 factures)
+CREATE OR REPLACE FUNCTION creer_factures_trimestrielles(
+    p_abonnement_id BIGINT,
+    p_mois_debut DATE,
+    p_statut TEXT DEFAULT 'paid',
+    p_date_paiement TIMESTAMPTZ DEFAULT NULL,
+    p_mode_paiement_code TEXT DEFAULT NULL
+) RETURNS INTEGER AS $$
+DECLARE
+    v_facture_id BIGINT;
+    v_mois_2 DATE;
+    v_mois_3 DATE;
+    v_nombre_factures INTEGER := 0;
+BEGIN
+    -- Calculer les 2 autres mois
+    v_mois_2 := (p_mois_debut + INTERVAL '1 month')::DATE;
+    v_mois_3 := (p_mois_debut + INTERVAL '2 months')::DATE;
+    
+    -- Créer la première facture (non prépayée)
+    SELECT creer_facture_abonnement(p_abonnement_id, p_mois_debut, p_statut, false, p_date_paiement, p_mode_paiement_code) INTO v_facture_id;
+    v_nombre_factures := v_nombre_factures + 1;
+    
+    -- Créer la deuxième facture (prépayée)
+    SELECT creer_facture_abonnement(p_abonnement_id, v_mois_2, p_statut, true, p_date_paiement, p_mode_paiement_code) INTO v_facture_id;
+    v_nombre_factures := v_nombre_factures + 1;
+    
+    -- Créer la troisième facture (prépayée)
+    SELECT creer_facture_abonnement(p_abonnement_id, v_mois_3, p_statut, true, p_date_paiement, p_mode_paiement_code) INTO v_facture_id;
+    v_nombre_factures := v_nombre_factures + 1;
+    
+    RETURN v_nombre_factures;
+END;
+$$ LANGUAGE plpgsql;
+
+-- Fonction globale pour générer les factures de tous les organisateurs actifs
+CREATE OR REPLACE FUNCTION generer_factures_organisateurs_actifs(
+    p_mois_facturation DATE
+) RETURNS TABLE(
+    organisateur_id BIGINT,
+    abonnement_id BIGINT,
+    periode_facturation TEXT,
+    statut_abonnement TEXT,
+    factures_creees INTEGER,
+    message TEXT
+) AS $$
+DECLARE
+    v_abonnement RECORD;
+    v_facture_id BIGINT;
+    v_nb_factures INTEGER;
+    v_existing_invoice_id BIGINT;
+    v_facture_prepayee_id BIGINT;
+    v_mois_2 DATE;
+    v_mois_3 DATE;
+    v_mode_paiement_code TEXT;
+    v_modes_paiement TEXT[] := ARRAY['mvola', 'orange', 'airtel', 'virement', 'mvola', 'orange', 'airtel', 'virement'];
+    v_mode_index INTEGER;
+    v_is_pause_month BOOLEAN;
+    v_month_num INTEGER;
+BEGIN
+    -- Parcourir tous les abonnements actifs
+    FOR v_abonnement IN 
+        SELECT 
+            ao.id as abonnement_id,
+            ao.statut as statut_abonnement,
+            pa.periode_facturation,
+            ao.commence_le,
+            po.id as organisateur_id,
+            po.statut_verification
+        FROM abonnements_organisateurs ao
+        JOIN profils_organisateurs po ON ao.id_profil_organisateur = po.id
+        JOIN plans_abonnements pa ON ao.id_plan = pa.id
+        WHERE ao.statut IN ('active', 'paused')
+        AND po.statut_verification = 'verified'
+        ORDER BY ao.id
+    LOOP
+        v_nb_factures := 0;
+        v_mode_index := (v_abonnement.abonnement_id % array_length(v_modes_paiement, 1)) + 1;
+        v_mode_paiement_code := v_modes_paiement[v_mode_index];
+        
+        -- Vérifier si une facture existe déjà pour ce mois
+        SELECT id INTO v_existing_invoice_id
+        FROM factures_abonnements
+        WHERE id_abonnement = v_abonnement.abonnement_id
+        AND mois_facturation = p_mois_facturation
+        LIMIT 1;
+        
+        -- Vérifier si l'organisateur est en pause ce mois
+        v_is_pause_month := (v_abonnement.statut_abonnement = 'paused');
+        
+        IF v_abonnement.periode_facturation = 'monthly' THEN
+            -- ABONNEMENT MENSUEL
+            IF v_existing_invoice_id IS NULL THEN
+                IF v_is_pause_month THEN
+                    -- Créer une facture à 0 Ar avec est_mois_pause = true
+                    SELECT creer_facture_abonnement_avec_montant(
+                        v_abonnement.abonnement_id, 
+                        p_mois_facturation, 
+                        'paid', 
+                        false, 
+                        NULL, 
+                        v_mode_paiement_code,
+                        0  -- Montant à 0
+                    ) INTO v_facture_id;
+                ELSE
+                    -- Créer une facture normale
+                    SELECT creer_facture_abonnement(
+                        v_abonnement.abonnement_id, 
+                        p_mois_facturation, 
+                        'paid', 
+                        false, 
+                        NULL, 
+                        v_mode_paiement_code
+                    ) INTO v_facture_id;
+                END IF;
+                v_nb_factures := 1;
+            END IF;
+            
+        ELSIF v_abonnement.periode_facturation = 'quarterly' THEN
+            -- ABONNEMENT TRIMESTRIEL
+            -- Vérifier si une facture prépayée existe déjà pour ce mois
+            SELECT id INTO v_facture_prepayee_id
+            FROM factures_abonnements
+            WHERE id_abonnement = v_abonnement.abonnement_id
+            AND mois_facturation = p_mois_facturation
+            AND est_prepayee = true
+            LIMIT 1;
+            
+            IF v_facture_prepayee_id IS NOT NULL AND NOT v_is_pause_month THEN
+                -- Si la facture du mois est déjà prépayée et l'organisateur est toujours actif, passer au suivant
+                CONTINUE;
+            END IF;
+            
+            IF v_existing_invoice_id IS NULL THEN
+                IF v_is_pause_month THEN
+                    -- Si l'organisateur est en pause, créer une facture à 0 Ar
+                    SELECT creer_facture_abonnement_avec_montant(
+                        v_abonnement.abonnement_id, 
+                        p_mois_facturation, 
+                        'paid', 
+                        false, 
+                        NULL, 
+                        v_mode_paiement_code,
+                        0
+                    ) INTO v_facture_id;
+                    v_nb_factures := 1;
+                    
+                    -- Mettre à jour les factures prépayées existantes pour décaler d'un mois
+                    UPDATE factures_abonnements
+                    SET mois_facturation = mois_facturation + INTERVAL '1 month',
+                        emise_le = emise_le + INTERVAL '1 month',
+                        echeance_le = echeance_le + INTERVAL '1 month',
+                        payee_le = payee_le + INTERVAL '1 month',
+                        modifie_le = NOW()
+                    WHERE id_abonnement = v_abonnement.abonnement_id
+                    AND est_prepayee = true
+                    AND mois_facturation > p_mois_facturation;
+                ELSE
+                    -- Vérifier si c'est le début d'un trimestre (mois 1, 4, 7, 10)
+                    v_month_num := EXTRACT(MONTH FROM p_mois_facturation)::INTEGER;
+                    IF v_month_num IN (1, 4, 7, 10) OR DATE_TRUNC('month', v_abonnement.commence_le) = DATE_TRUNC('month', p_mois_facturation) THEN
+                        -- Générer les 3 factures trimestrielles (1 normale + 2 prépayées)
+                        SELECT creer_factures_trimestrielles(
+                            v_abonnement.abonnement_id,
+                            p_mois_facturation,
+                            'paid',
+                            NULL,
+                            v_mode_paiement_code
+                        ) INTO v_nb_factures;
+                    ELSE
+                        -- Ce n'est pas le début d'un trimestre, ne rien faire
+                        CONTINUE;
+                    END IF;
+                END IF;
+            ELSIF v_is_pause_month THEN
+                -- Facture existe déjà, mais l'organisateur est en pause, mettre à jour à 0 Ar
+                UPDATE factures_abonnements
+                SET montant_sous_total = 0,
+                    montant_tva = 0,
+                    montant_total = 0,
+                    montant_ht = 0,
+                    montant_tva_detail = 0,
+                    montant_ttc = 0,
+                    est_mois_pause = true,
+                    modifie_le = NOW()
+                WHERE id = v_existing_invoice_id;
+            END IF;
+        END IF;
+        
+        -- Retourner les résultats
+        organisateur_id := v_abonnement.organisateur_id;
+        abonnement_id := v_abonnement.abonnement_id;
+        periode_facturation := v_abonnement.periode_facturation;
+        statut_abonnement := v_abonnement.statut_abonnement;
+        factures_creees := v_nb_factures;
+        message := CASE 
+            WHEN v_existing_invoice_id IS NOT NULL AND NOT v_is_pause_month THEN 'Facture déjà existante'
+            WHEN v_facture_prepayee_id IS NOT NULL AND v_abonnement.periode_facturation = 'quarterly' AND NOT v_is_pause_month THEN 'Facture prépayée existante - passé'
+            WHEN v_is_pause_month THEN 'Facture créée/modifiée à 0 Ar (en pause)'
+            ELSE 'Factures générées avec succès'
+        END;
+        
+        RETURN NEXT;
+    END LOOP;
+    
+    RETURN;
 END;
 $$ LANGUAGE plpgsql;
 
@@ -310,6 +652,8 @@ DECLARE
     v_abonnement RECORD;
     v_facture_id BIGINT;
     v_count INTEGER := 0;
+    v_modes_paiement TEXT[] := ARRAY['mvola', 'orange', 'airtel', 'virement', 'mvola'];
+    v_mode_index INTEGER := 1;
 BEGIN
     FOR v_abonnement IN 
         SELECT ao.id 
@@ -322,7 +666,8 @@ BEGIN
         AND u.email BETWEEN 'organisateur11@yopmail.com' AND 'organisateur20@yopmail.com'
         ORDER BY u.email
     LOOP
-        SELECT creer_facture_abonnement(v_abonnement.id, '2025-06-01'::DATE) INTO v_facture_id;
+        SELECT creer_facture_abonnement(v_abonnement.id, '2025-06-01'::DATE, 'paid', false, NULL, v_modes_paiement[v_mode_index]) INTO v_facture_id;
+        v_mode_index := (v_mode_index % array_length(v_modes_paiement, 1)) + 1;
         v_count := v_count + 1;
     END LOOP;
     
@@ -368,6 +713,8 @@ DO $$
 DECLARE
     v_abonnement RECORD;
     v_facture_id BIGINT;
+    v_modes_paiement TEXT[] := ARRAY['orange', 'mvola', 'airtel', 'virement', 'orange', 'mvola', 'airtel', 'virement', 'orange', 'mvola', 'airtel', 'virement'];
+    v_mode_index INTEGER := 1;
 BEGIN
     FOR v_abonnement IN 
         SELECT ao.id 
@@ -376,8 +723,10 @@ BEGIN
         JOIN utilisateurs u ON po.id_utilisateur = u.id
         WHERE u.email LIKE 'organisateur%@yopmail.com'
         AND ao.statut = 'active'
+        ORDER BY u.email
     LOOP
-        SELECT creer_facture_abonnement(v_abonnement.id, '2025-07-01') INTO v_facture_id;
+        SELECT creer_facture_abonnement(v_abonnement.id, '2025-07-01', 'paid', false, NULL, v_modes_paiement[v_mode_index]) INTO v_facture_id;
+        v_mode_index := (v_mode_index % array_length(v_modes_paiement, 1)) + 1;
     END LOOP;
 END $$;
 
@@ -415,6 +764,8 @@ DECLARE
     v_abonnement RECORD;
     v_count INTEGER := 0;
     v_facture_id BIGINT;
+    v_modes_paiement TEXT[] := ARRAY['airtel', 'mvola', 'orange', 'virement', 'airtel', 'mvola', 'orange', 'virement', 'airtel', 'mvola', 'orange', 'virement', 'airtel', 'mvola'];
+    v_mode_index INTEGER := 1;
 BEGIN
     FOR v_abonnement IN 
         SELECT ao.id 
@@ -424,8 +775,10 @@ BEGIN
         WHERE u.email LIKE 'organisateur%@yopmail.com'
         AND ao.statut = 'active'
         AND u.email NOT IN ('organisateur16@yopmail.com', 'organisateur17@yopmail.com')
+        ORDER BY u.email
     LOOP
-        SELECT creer_facture_abonnement(v_abonnement.id, '2025-08-01') INTO v_facture_id;
+        SELECT creer_facture_abonnement(v_abonnement.id, '2025-08-01', 'paid', false, NULL, v_modes_paiement[v_mode_index]) INTO v_facture_id;
+        v_mode_index := (v_mode_index % array_length(v_modes_paiement, 1)) + 1;
         v_count := v_count + 1;
     END LOOP;
     
@@ -476,6 +829,9 @@ DECLARE
     v_mensuel_count INTEGER := 0;
     v_trimestre_count INTEGER := 0;
     v_facture_id BIGINT;
+    v_nb_factures INTEGER;
+    v_modes_paiement TEXT[] := ARRAY['virement', 'mvola', 'orange', 'airtel', 'virement', 'mvola', 'orange', 'airtel', 'virement', 'mvola', 'orange', 'airtel', 'virement', 'mvola', 'orange', 'airtel', 'virement', 'mvola'];
+    v_mode_index INTEGER := 1;
 BEGIN
     FOR v_abonnement IN 
         SELECT ao.id, pa.periode_facturation
@@ -486,14 +842,18 @@ BEGIN
         WHERE u.email LIKE 'organisateur%@yopmail.com'
         AND ao.statut = 'active'
         AND u.email NOT IN ('organisateur16@yopmail.com', 'organisateur17@yopmail.com')
+        ORDER BY u.email
     LOOP
-        SELECT creer_facture_abonnement(v_abonnement.id, '2025-09-01') INTO v_facture_id;
-        
-        IF v_abonnement.periode_facturation = 'monthly' THEN
-            v_mensuel_count := v_mensuel_count + 1;
-        ELSE
+        IF v_abonnement.periode_facturation = 'quarterly' THEN
+            -- Pour les abonnements trimestriels, créer les 3 factures (1 normale + 2 prépayées)
+            SELECT creer_factures_trimestrielles(v_abonnement.id, '2025-09-01', 'paid', NULL, v_modes_paiement[v_mode_index]) INTO v_nb_factures;
             v_trimestre_count := v_trimestre_count + 1;
+        ELSE
+            -- Pour les abonnements mensuels, créer une seule facture
+            SELECT creer_facture_abonnement(v_abonnement.id, '2025-09-01', 'paid', false, NULL, v_modes_paiement[v_mode_index]) INTO v_facture_id;
+            v_mensuel_count := v_mensuel_count + 1;
         END IF;
+        v_mode_index := (v_mode_index % array_length(v_modes_paiement, 1)) + 1;
     END LOOP;
     
     RAISE NOTICE 'Septembre 2025: % mensuels, % trimestriels', v_mensuel_count, v_trimestre_count;
@@ -551,6 +911,9 @@ DECLARE
     v_trimestre_count INTEGER := 0;
     v_prepaye_count INTEGER := 0;
     v_facture_id BIGINT;
+    v_nb_factures INTEGER;
+    v_modes_paiement TEXT[] := ARRAY['mvola', 'orange', 'airtel', 'virement', 'mvola', 'orange', 'airtel', 'virement', 'mvola', 'orange', 'airtel', 'virement', 'mvola', 'orange', 'airtel', 'virement', 'mvola', 'orange'];
+    v_mode_index INTEGER := 1;
 BEGIN
     FOR v_abonnement IN 
         SELECT ao.id, pa.periode_facturation, pa.niveau
@@ -563,25 +926,27 @@ BEGIN
         AND u.email != 'organisateur33@yopmail.com' -- non validé
         AND u.email NOT IN ('organisateur11@yopmail.com', 'organisateur18@yopmail.com', 
                            'organisateur24@yopmail.com', 'organisateur27@yopmail.com') -- en pause
+        ORDER BY u.email
     LOOP
         -- Déterminer le type de facturation
-        IF v_abonnement.niveau IN ('basic', 'pro', 'enterprise') AND 
-           v_abonnement.periode_facturation = 'monthly' AND
+        IF v_abonnement.periode_facturation = 'monthly' AND
            v_mensuel_count < 8 THEN
             -- Factures mensuelles
-            SELECT creer_facture_abonnement(v_abonnement.id, '2025-10-01') INTO v_facture_id;
+            SELECT creer_facture_abonnement(v_abonnement.id, '2025-10-01', 'paid', false, NULL, v_modes_paiement[v_mode_index]) INTO v_facture_id;
+            v_mode_index := (v_mode_index % array_length(v_modes_paiement, 1)) + 1;
             v_mensuel_count := v_mensuel_count + 1;
             
-        ELSIF v_abonnement.niveau IN ('basic', 'pro', 'enterprise') AND 
-              v_abonnement.periode_facturation = 'quarterly' AND
+        ELSIF v_abonnement.periode_facturation = 'quarterly' AND
               v_trimestre_count < 7 THEN
-            -- Factures trimestrielles
-            SELECT creer_facture_abonnement(v_abonnement.id, '2025-10-01') INTO v_facture_id;
+            -- Factures trimestrielles : octobre est le début d'un nouveau trimestre, générer les 3 factures
+            SELECT creer_factures_trimestrielles(v_abonnement.id, '2025-10-01', 'paid', NULL, v_modes_paiement[v_mode_index]) INTO v_nb_factures;
+            v_mode_index := (v_mode_index % array_length(v_modes_paiement, 1)) + 1;
             v_trimestre_count := v_trimestre_count + 1;
             
         ELSE
-            -- Factures prépayées
-            SELECT creer_facture_abonnement(v_abonnement.id, '2025-10-01', 'paid', true) INTO v_facture_id;
+            -- Factures prépayées (pour les autres cas)
+            SELECT creer_facture_abonnement(v_abonnement.id, '2025-10-01', 'paid', true, NULL, v_modes_paiement[v_mode_index]) INTO v_facture_id;
+            v_mode_index := (v_mode_index % array_length(v_modes_paiement, 1)) + 1;
             v_prepaye_count := v_prepaye_count + 1;
         END IF;
     END LOOP;
@@ -622,9 +987,12 @@ DECLARE
     v_trimestre_count INTEGER := 0;
     v_prepaye_count INTEGER := 0;
     v_facture_id BIGINT;
+    v_nb_factures INTEGER;
+    v_modes_paiement TEXT[] := ARRAY['airtel', 'mvola', 'orange', 'virement', 'airtel', 'mvola', 'orange', 'virement', 'airtel', 'mvola', 'orange', 'virement', 'airtel', 'mvola', 'orange', 'virement'];
+    v_mode_index INTEGER := 1;
 BEGIN
     FOR v_abonnement IN 
-        SELECT ao.id, pa.periode_facturation, pa.niveau
+        SELECT ao.id, pa.periode_facturation, pa.niveau, ao.commence_le
         FROM abonnements_organisateurs ao
         JOIN profils_organisateurs po ON ao.id_profil_organisateur = po.id
         JOIN utilisateurs u ON po.id_utilisateur = u.id
@@ -635,25 +1003,31 @@ BEGIN
         AND u.email NOT IN ('organisateur33@yopmail.com', 'organisateur35@yopmail.com', 'organisateur36@yopmail.com') -- non validés
         AND u.email NOT IN ('organisateur11@yopmail.com', 'organisateur18@yopmail.com', 
                            'organisateur24@yopmail.com', 'organisateur27@yopmail.com') -- en pause
+        ORDER BY u.email
     LOOP
         -- Déterminer le type de facturation
-        IF v_abonnement.niveau IN ('basic', 'pro', 'enterprise') AND 
-           v_abonnement.periode_facturation = 'monthly' AND
+        IF v_abonnement.periode_facturation = 'monthly' AND
            v_mensuel_count < 3 THEN
             -- Factures mensuelles
-            SELECT creer_facture_abonnement(v_abonnement.id, '2025-11-01') INTO v_facture_id;
+            SELECT creer_facture_abonnement(v_abonnement.id, '2025-11-01', 'paid', false, NULL, v_modes_paiement[v_mode_index]) INTO v_facture_id;
+            v_mode_index := (v_mode_index % array_length(v_modes_paiement, 1)) + 1;
             v_mensuel_count := v_mensuel_count + 1;
             
-        ELSIF v_abonnement.niveau IN ('basic', 'pro', 'enterprise') AND 
-              v_abonnement.periode_facturation = 'quarterly' AND
-              v_trimestre_count < 2 THEN
-            -- Factures trimestrielles
-            SELECT creer_facture_abonnement(v_abonnement.id, '2025-11-01') INTO v_facture_id;
+        ELSIF v_abonnement.periode_facturation = 'quarterly' AND
+              DATE_TRUNC('month', v_abonnement.commence_le) = '2025-11-01'::DATE THEN
+            -- Nouvel abonnement trimestriel qui commence en novembre, générer les 3 factures
+            SELECT creer_factures_trimestrielles(v_abonnement.id, '2025-11-01', 'paid', NULL, v_modes_paiement[v_mode_index]) INTO v_nb_factures;
+            v_mode_index := (v_mode_index % array_length(v_modes_paiement, 1)) + 1;
             v_trimestre_count := v_trimestre_count + 1;
+            
+        ELSIF v_abonnement.periode_facturation = 'quarterly' THEN
+            -- Pour les autres abonnements trimestriels, les factures ont déjà été créées
+            CONTINUE;
             
         ELSE
             -- Factures prépayées
-            SELECT creer_facture_abonnement(v_abonnement.id, '2025-11-01', 'paid', true) INTO v_facture_id;
+            SELECT creer_facture_abonnement(v_abonnement.id, '2025-11-01', 'paid', true, NULL, v_modes_paiement[v_mode_index]) INTO v_facture_id;
+            v_mode_index := (v_mode_index % array_length(v_modes_paiement, 1)) + 1;
             v_prepaye_count := v_prepaye_count + 1;
         END IF;
     END LOOP;
@@ -690,6 +1064,8 @@ DECLARE
     v_trimestre_count INTEGER := 0;
     v_prepaye_count INTEGER := 0;
     v_facture_id BIGINT;
+    v_modes_paiement TEXT[] := ARRAY['virement', 'mvola', 'orange', 'airtel', 'virement', 'mvola', 'orange', 'airtel', 'virement', 'mvola', 'orange', 'airtel', 'virement', 'mvola', 'orange', 'airtel', 'virement', 'mvola', 'orange', 'airtel', 'virement', 'mvola', 'orange'];
+    v_mode_index INTEGER := 1;
 BEGIN
     FOR v_abonnement IN 
         SELECT ao.id, pa.periode_facturation, pa.niveau
@@ -701,25 +1077,25 @@ BEGIN
         AND ao.statut = 'active'
         AND po.statut_verification = 'verified'
         AND u.email NOT IN ('organisateur33@yopmail.com', 'organisateur35@yopmail.com', 'organisateur36@yopmail.com') -- non validés
+        ORDER BY u.email
     LOOP
         -- Déterminer le type de facturation
-        IF v_abonnement.niveau IN ('basic', 'pro', 'enterprise') AND 
-           v_abonnement.periode_facturation = 'monthly' AND
+        IF v_abonnement.periode_facturation = 'monthly' AND
            v_mensuel_count < 10 THEN
             -- Factures mensuelles
-            SELECT creer_facture_abonnement(v_abonnement.id, '2025-12-01') INTO v_facture_id;
+            SELECT creer_facture_abonnement(v_abonnement.id, '2025-12-01', 'paid', false, NULL, v_modes_paiement[v_mode_index]) INTO v_facture_id;
+            v_mode_index := (v_mode_index % array_length(v_modes_paiement, 1)) + 1;
             v_mensuel_count := v_mensuel_count + 1;
             
-        ELSIF v_abonnement.niveau IN ('basic', 'pro', 'enterprise') AND 
-              v_abonnement.periode_facturation = 'quarterly' AND
-              v_trimestre_count < 6 THEN
-            -- Factures trimestrielles
-            SELECT creer_facture_abonnement(v_abonnement.id, '2025-12-01') INTO v_facture_id;
-            v_trimestre_count := v_trimestre_count + 1;
+        ELSIF v_abonnement.periode_facturation = 'quarterly' THEN
+            -- Pour décembre, les factures trimestrielles ont déjà été créées lors du début du trimestre
+            -- Ne rien faire pour les trimestriels ce mois-ci
+            CONTINUE;
             
         ELSE
             -- Factures prépayées
-            SELECT creer_facture_abonnement(v_abonnement.id, '2025-12-01', 'paid', true) INTO v_facture_id;
+            SELECT creer_facture_abonnement(v_abonnement.id, '2025-12-01', 'paid', true, NULL, v_modes_paiement[v_mode_index]) INTO v_facture_id;
+            v_mode_index := (v_mode_index % array_length(v_modes_paiement, 1)) + 1;
             v_prepaye_count := v_prepaye_count + 1;
         END IF;
     END LOOP;
@@ -731,33 +1107,27 @@ END $$;
 -- ============================================================
 -- 13. ABONNEMENTS JANVIER 2026
 -- ============================================================
--- Offre populaire: Enterprise mensuel
--- Créer des transactions pour certains paiements
-DO $$
-DECLARE
-    v_abonnement RECORD;
-    v_facture_id BIGINT;
-BEGIN
-    -- Factures Janvier 2026
-    FOR v_abonnement IN (
-        SELECT ao.id 
-        FROM abonnements_organisateurs ao
-        JOIN profils_organisateurs po ON ao.id_profil_organisateur = po.id
-        JOIN utilisateurs u ON po.id_utilisateur = u.id
-        JOIN plans_abonnements pa ON ao.id_plan = pa.id
-        WHERE u.email LIKE 'organisateur%@yopmail.com'
-        AND ao.statut = 'active'
-        AND po.statut_verification = 'verified'
-        AND u.email NOT IN ('organisateur33@yopmail.com', 'organisateur35@yopmail.com', 'organisateur36@yopmail.com')
-        AND pa.code = 'enterprise_monthly'
-        LIMIT 5
-    ) LOOP
-        SELECT creer_facture_abonnement(v_abonnement.id, '2026-01-01') INTO v_facture_id;
-    END LOOP;
-END $$;
+-- Utiliser la fonction generer_factures_organisateurs_actifs
+-- Cette fonction gère automatiquement:
+-- - Les factures mensuelles (1 facture pour janvier)
+-- - Les factures trimestrielles:
+--   * Si janvier est le début d'un trimestre → crée 3 factures (janvier + février et mars prépayées)
+--   * Si une facture prépayée existe déjà (créée en nov/déc) → passe au suivant
+SELECT * FROM generer_factures_organisateurs_actifs('2026-01-01'::DATE);
 
 -- ============================================================
--- 14. VERIFICATION DES DONNEES
+-- 14. ABONNEMENTS FÉVRIER 2026
+-- ============================================================
+-- Utiliser la fonction generer_factures_organisateurs_actifs
+-- Cette fonction gère automatiquement:
+-- - Les factures mensuelles (1 facture pour février)
+-- - Les factures trimestrielles:
+--   * Si une facture prépayée existe déjà (créée en nov/déc/jan) → passe au suivant
+--   * Sinon, si février est le début d'un trimestre → crée 3 factures
+SELECT * FROM generer_factures_organisateurs_actifs('2026-02-01'::DATE);
+
+-- ============================================================
+-- 15. VERIFICATION DES DONNEES
 -- ============================================================
 -- Vérification du nombre d'utilisateurs
 SELECT 'Utilisateurs totaux' as type, COUNT(*) as nombre FROM utilisateurs
@@ -805,7 +1175,8 @@ GROUP BY po.statut_verification;
 -- Nettoyage des fonctions temporaires
 DROP FUNCTION IF EXISTS creer_organisateur(TEXT, TEXT, TEXT, organizer_type_enum, TEXT);
 DROP FUNCTION IF EXISTS creer_abonnement(TEXT, TEXT, TIMESTAMPTZ, subscription_status_enum);
-DROP FUNCTION IF EXISTS creer_facture_abonnement(BIGINT, DATE, TEXT, BOOLEAN, TIMESTAMPTZ);
+DROP FUNCTION IF EXISTS creer_factures_trimestrielles(BIGINT, DATE, TEXT, TIMESTAMPTZ, TEXT);
+DROP FUNCTION IF EXISTS creer_facture_abonnement(BIGINT, DATE, TEXT, BOOLEAN, TIMESTAMPTZ, TEXT);
 
 -- ============================================================
 -- FIN DU SCRIPT

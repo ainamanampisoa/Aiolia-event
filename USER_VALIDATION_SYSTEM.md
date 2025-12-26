@@ -466,7 +466,6 @@ redonne moi le @data.sql avec ces critere
 => 22 organisateurs actifs ,0 organisateur en pausse ,total 1 organisateur  non valider 
 => 6 factures paye mensuelle(2 factures basic , 1 factures pro,2 factures entreprise),
 => 7 factures paye trimestre (1 factures basic , 2 factures pro,4 factures entreprise),
-=> 9 factures prepraid (3 factures basic , 4 factures pro,2 factures entreprise)
 * 4 organisateur en pausse (2 paye mensuelle ,2 paye trimestre) et revient dec 
 
   
@@ -475,20 +474,11 @@ redonne moi le @data.sql avec ces critere
 => 19 organisateurs actifs ,4 organisateur en pausse ,total 3 organisateur non valider 
 => 3 factures paye mensuelle (0 factures basic , 2 factures pro,1 factures entreprise)
 => 2 factures paye trimestre (1 factures basic , 1 factures pro,0 factures entreprise)
-=> 14 factures prepraid (3 factures basic , 6 factures pro,5 factures entreprise)
 
 -decembre 2025:
 => 23 organisateurs actifs ,0 organisateur en pausse ,total 3 organisateur non valider 
 => 10 factures paye mensuelle (2 factures basic , 3 factures pro,5 factures entreprise)
 => 6 factures paye trimestre (1 factures basic , 3 factures pro,2 factures entreprise) 
-=> 7 factures prepraid (1 factures basic , 2 factures pro,4 factures entreprise)
-
--janvier 2026:
-=> 23 organisateurs actifs ,0 organisateur en pausse ,total 3 organisateur non valider 
-=> 11 factures paye mensuelle (2 factures basic , 3 factures pro,6 factures entreprise)
-=> 6 factures paye trimestre (1 factures basic , 3 factures pro,2 factures entreprise) 
-=> 6 factures paye trimestre (1 factures basic , 3 factures pro,2 factures entreprise) 
-=> offre populaire (le plus utiliser): entreprise mensuelle
 
 
 

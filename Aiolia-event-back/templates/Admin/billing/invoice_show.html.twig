@@ -675,18 +675,16 @@
                         'mvola': 'MVola',
                         'bank_transfer': 'Virement bancaire'
                     } %}
-                    {% if paymentMethodFromDb is not null and paymentMethodFromDb is not empty and paymentMethodFromDb != '' %}
-                        {% set paymentMethodLabel = paymentMethodLabels[paymentMethodFromDb] ?? paymentMethodFromDb|capitalize %}
-                        <div class="info-row info-row-payment">
-                            <span class="info-label">
-                                <i class="fas fa-credit-card"></i>
-                                <span data-i18n-fr="Mode de paiement" data-i18n-en="Payment method">Mode de paiement</span>
-                            </span>
-                            <span class="info-value payment-method-badge">
-                                <span data-i18n-fr="{{ paymentMethodLabel }}" data-i18n-en="{{ paymentMethodLabel }}">{{ paymentMethodLabel }}</span>
-                            </span>
-                        </div>
-                    {% endif %}
+                    {% set paymentMethodLabel = paymentMethodFromDb and paymentMethodFromDb != '' ? (paymentMethodLabels[paymentMethodFromDb] ?? paymentMethodFromDb|capitalize) : 'Non défini' %}
+                    <div class="info-row info-row-payment">
+                        <span class="info-label">
+                            <i class="fas fa-credit-card"></i>
+                            <span data-i18n-fr="Mode de paiement" data-i18n-en="Payment method">Mode de paiement</span>
+                        </span>
+                        <span class="info-value payment-method-badge">
+                            <span data-i18n-fr="{{ paymentMethodLabel }}" data-i18n-en="{{ paymentMethodLabel }}">{{ paymentMethodLabel }}</span>
+                        </span>
+                    </div>
                 {% else %}
                     {% set paymentMethodFromDb = paymentMethod|default(null) %}
                     {% set paymentMethodLabels = {
