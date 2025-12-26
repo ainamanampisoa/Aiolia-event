@@ -66,12 +66,33 @@ class BillingController extends AbstractController
         // Filtrer les factures d'abonnement pour exclure les mois avant le premier mois disponible
         $allInvoices = $this->filterInvoicesByFirstAvailableMonth($allInvoices, $month, $year);
         
-        // Trier par date d'émission décroissante (les plus récentes en premier)
+        // Trier par date de facturation décroissante (les plus récentes en premier)
+        // Pour les factures d'abonnement, utiliser billingMonth qui est plus pertinent
         usort($allInvoices, function($a, $b) {
-            // Utiliser issuedAt pour les deux types de factures (date d'émission)
-            $dateA = $a->getIssuedAt();
-            $dateB = $b->getIssuedAt();
-            return $dateB <=> $dateA; // Ordre décroissant : les plus récentes en premier
+            // Pour les factures d'abonnement, utiliser billingMonth
+            if ($a instanceof SubscriptionInvoice && $b instanceof SubscriptionInvoice) {
+                $dateA = $a->getBillingMonth();
+                $dateB = $b->getBillingMonth();
+                
+                // Si billingMonth n'est pas disponible, utiliser issuedAt comme fallback
+                if (!$dateA) $dateA = $a->getIssuedAt();
+                if (!$dateB) $dateB = $b->getIssuedAt();
+                
+                // Si toujours null, utiliser createdAt
+                if (!$dateA) $dateA = $a->getCreatedAt();
+                if (!$dateB) $dateB = $b->getCreatedAt();
+            } else {
+                // Pour les autres types, utiliser issuedAt
+                $dateA = $a->getIssuedAt();
+                $dateB = $b->getIssuedAt();
+                
+                // Si issuedAt n'est pas disponible, utiliser createdAt
+                if (!$dateA) $dateA = $a->getCreatedAt();
+                if (!$dateB) $dateB = $b->getCreatedAt();
+            }
+            
+            // Ordre décroissant : les plus récentes en premier
+            return $dateB <=> $dateA;
         });
         
         // Recalculer le total après filtrage

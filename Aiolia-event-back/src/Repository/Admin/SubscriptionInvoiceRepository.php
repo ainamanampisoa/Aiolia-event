@@ -32,7 +32,10 @@ class SubscriptionInvoiceRepository extends ServiceEntityRepository
 
         $this->applyFilters($qb, $status, $search, $month, $year);
 
-        return $qb->orderBy('si.createdAt', 'DESC')
+        // Trier par billingMonth DESC (plus pertinent pour les factures d'abonnement)
+        // Si billingMonth est null, utiliser createdAt comme fallback
+        return $qb->orderBy('si.billingMonth', 'DESC')
+            ->addOrderBy('si.createdAt', 'DESC')
             ->setMaxResults($limit)
             ->setFirstResult($offset)
             ->getQuery()
