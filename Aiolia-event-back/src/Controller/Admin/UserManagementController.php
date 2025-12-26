@@ -577,6 +577,38 @@ class UserManagementController extends AbstractController
                            ($result['mis_en_pause_le'] !== null && 
                             ($result['repris_le'] === null || new \DateTime($result['repris_le']) > new \DateTime()));
                 
+                // Vérifier aussi s'il y a des factures en retard (overdue) qui indiquent une pause
+                if (!$isPaused) {
+                    $sqlOverdueInvoice = "
+                        SELECT COUNT(*) as count
+                        FROM aiolia.factures_abonnements
+                        WHERE id_abonnement = :subscriptionId
+                            AND statut = 'overdue'
+                            AND payee_le IS NULL
+                        LIMIT 1
+                    ";
+                    $overdueCount = (int) $conn->fetchOne($sqlOverdueInvoice, ['subscriptionId' => $result['id']]);
+                    if ($overdueCount > 0) {
+                        $isPaused = true;
+                        // Si pas de mis_en_pause_le enregistré, utiliser la date de la facture en retard
+                        if ($result['mis_en_pause_le'] === null) {
+                            $sqlOverdueDate = "
+                                SELECT mois_facturation
+                                FROM aiolia.factures_abonnements
+                                WHERE id_abonnement = :subscriptionId
+                                    AND statut = 'overdue'
+                                    AND payee_le IS NULL
+                                ORDER BY mois_facturation ASC
+                                LIMIT 1
+                            ";
+                            $overdueDateResult = $conn->fetchOne($sqlOverdueDate, ['subscriptionId' => $result['id']]);
+                            if ($overdueDateResult) {
+                                $result['mis_en_pause_le'] = $overdueDateResult;
+                            }
+                        }
+                    }
+                }
+                
                 if ($isPaused && $result['mis_en_pause_le']) {
                     $pauseDate = new \DateTime($result['mis_en_pause_le']);
                     $monthNames = [
@@ -589,8 +621,7 @@ class UserManagementController extends AbstractController
                 
                 // Calculer le prochain paiement (première facture non payée à venir)
                 $sqlNextPayment = "
-                    SELECT 
-                        (mois_facturation + INTERVAL '1 month')::date as next_payment
+                    SELECT mois_facturation
                     FROM aiolia.factures_abonnements
                     WHERE id_abonnement = :subscriptionId
                         AND statut IN ('issued', 'draft', 'pending')
@@ -601,9 +632,27 @@ class UserManagementController extends AbstractController
                 $nextPaymentResult = $conn->fetchOne($sqlNextPayment, ['subscriptionId' => $result['id']]);
                 if ($nextPaymentResult) {
                     $nextPaymentDate = new \DateTime($nextPaymentResult);
+                    $nextPaymentDate->modify('first day of this month');
                 } else {
-                    // Si aucune facture en attente, calculer à partir du mois suivant
-                    $nextPaymentDate = new \DateTime('first day of next month');
+                    // Si aucune facture en attente, calculer à partir de la dernière facture payée
+                    $sqlLastPaid = "
+                        SELECT mois_facturation
+                        FROM aiolia.factures_abonnements
+                        WHERE id_abonnement = :subscriptionId
+                            AND statut = 'paid'
+                        ORDER BY mois_facturation DESC
+                        LIMIT 1
+                    ";
+                    $lastPaidResult = $conn->fetchOne($sqlLastPaid, ['subscriptionId' => $result['id']]);
+                    if ($lastPaidResult) {
+                        $lastPaidDate = new \DateTime($lastPaidResult);
+                        $nextPaymentDate = clone $lastPaidDate;
+                        $nextPaymentDate->modify('+1 month');
+                        $nextPaymentDate->modify('first day of this month');
+                    } else {
+                        // Si aucune facture payée, utiliser le mois suivant
+                        $nextPaymentDate = new \DateTime('first day of next month');
+                    }
                 }
             }
         }

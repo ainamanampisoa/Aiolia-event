@@ -36,7 +36,7 @@ class BillingController extends AbstractController
         $status = $request->query->get('status');
         $search = $request->query->get('search');
         $month = $request->query->getInt('month', 0);
-        $year = $request->query->getInt('year', (int) date('Y'));
+        $year = $request->query->getInt('year', 0);
         $page = max(1, (int) $request->query->get('page', 1));
         $perPage = 7;
 
@@ -46,6 +46,7 @@ class BillingController extends AbstractController
         // Augmenter la limite pour récupérer suffisamment de factures pour le filtrage
         $fetchLimit = 10000;
         $monthFilter = $month > 0 ? $month : null;
+        $yearFilter = $year > 0 ? $year : null;
 
         // Récupérer uniquement les factures d'abonnements
         // Les factures de tickets sont gérées séparément et ne doivent pas être mélangées
@@ -54,7 +55,7 @@ class BillingController extends AbstractController
             $status,
             $search,
             $monthFilter,
-            $year,
+            $yearFilter,
             $fetchLimit,
             0
         );
@@ -83,7 +84,7 @@ class BillingController extends AbstractController
         $invoiceInfo = $this->processInvoicesInfo($allInvoices);
 
         // Statistiques
-        $stats = $this->calculateStats($status, $search, $monthFilter, $year);
+        $stats = $this->calculateStats($status, $search, $monthFilter, $yearFilter);
 
         return $this->render('@Admin/billing/invoices.html.twig', [
             'allInvoices' => $allInvoices,
@@ -108,7 +109,11 @@ class BillingController extends AbstractController
 
     private function validateYear(int $year): int
     {
-        return ($year >= 2020 && $year <= 2100) ? $year : (int) date('Y');
+        // Accepter 0 pour "Toutes les années"
+        if ($year === 0) {
+            return 0;
+        }
+        return ($year >= 2020 && $year <= 2100) ? $year : 0;
     }
 
     /**
@@ -117,6 +122,13 @@ class BillingController extends AbstractController
      */
     private function filterInvoicesByFirstAvailableMonth(array $invoices, int $month, int $year): array
     {
+        // Si aucune année n'est sélectionnée (0 = toutes les années), ne pas filtrer par année
+        if ($year === 0) {
+            // Si un mois spécifique est sélectionné, on ne peut pas filtrer sans année
+            // Dans ce cas, retourner toutes les factures
+            return $invoices;
+        }
+
         // Toujours appliquer le filtre, même si un mois spécifique est sélectionné
         // car le repository peut retourner des résultats incorrects si le mois est invalide
 

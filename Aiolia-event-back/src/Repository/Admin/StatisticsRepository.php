@@ -26,11 +26,10 @@ class StatisticsRepository extends ServiceEntityRepository
      */
     private function resolvePeriod(int $month, int $year): array
     {
-        if ($month === 0 && $year === 0) {
+        // Si l'année est 0 (toutes les années), retourner null pour ne pas filtrer par date
+        if ($year === 0) {
             return ['start' => null, 'end' => null];
         }
-
-        $year = $year > 0 ? $year : (int) date('Y');
 
         if ($month > 0) {
             $start = sprintf('%04d-%02d-01 00:00:00', $year, $month);
@@ -246,8 +245,30 @@ class StatisticsRepository extends ServiceEntityRepository
     public function getActiveOrganizersTrend(int $month, int $year): array
     {
         $period = $this->resolvePeriod($month, $year);
-        $start = $period['start'] ?? date('Y-01-01');
-        $end = $period['end'] ?? date('Y-12-31');
+        
+        // Si toutes les années sont sélectionnées, utiliser une plage large pour couvrir toutes les données
+        if ($year === 0) {
+            // Récupérer la première et dernière date de facturation disponible
+            $connection = $this->getEntityManager()->getConnection();
+            $firstDate = $connection->fetchOne(
+                "SELECT MIN(mois_facturation) FROM aiolia.factures_abonnements WHERE mois_facturation IS NOT NULL"
+            );
+            $lastDate = $connection->fetchOne(
+                "SELECT MAX(mois_facturation) FROM aiolia.factures_abonnements WHERE mois_facturation IS NOT NULL"
+            );
+            
+            if ($firstDate && $lastDate) {
+                $start = (new \DateTime($firstDate))->modify('first day of this month')->format('Y-m-01');
+                $end = (new \DateTime($lastDate))->modify('last day of this month')->format('Y-m-t');
+            } else {
+                // Fallback : utiliser une plage large
+                $start = '2020-01-01';
+                $end = date('Y-12-31');
+            }
+        } else {
+            $start = $period['start'] ?? date('Y-01-01');
+            $end = $period['end'] ?? date('Y-12-31');
+        }
 
         $months = $this->generateMonthlyPeriods($start, $end);
         $trends = [];
@@ -336,10 +357,6 @@ class StatisticsRepository extends ServiceEntityRepository
         $start = $period['start'];
         $end = $period['end'];
 
-        if (!$start || !$end) {
-            return [];
-        }
-
         $qb = $this->getEntityManager()->createQueryBuilder()
             ->select(
                 'i.billingMonth AS billingMonth',
@@ -349,12 +366,16 @@ class StatisticsRepository extends ServiceEntityRepository
             )
             ->from(SubscriptionInvoice::class, 'i')
             ->where('i.status IN (:paidStatuses)')
-            ->andWhere('i.billingMonth BETWEEN :date_start AND :date_end')
             ->groupBy('i.billingMonth')
             ->orderBy('i.billingMonth', 'ASC')
-            ->setParameter('paidStatuses', ['paid', 'partially_paid'])
-            ->setParameter('date_start', new \DateTime($start))
-            ->setParameter('date_end', new \DateTime($end));
+            ->setParameter('paidStatuses', ['paid', 'partially_paid']);
+
+        // Si des dates sont spécifiées, ajouter le filtre de date
+        if ($start && $end) {
+            $qb->andWhere('i.billingMonth BETWEEN :date_start AND :date_end')
+                ->setParameter('date_start', new \DateTime($start))
+                ->setParameter('date_end', new \DateTime($end));
+        }
 
         $rows = $qb->getQuery()->getResult();
 

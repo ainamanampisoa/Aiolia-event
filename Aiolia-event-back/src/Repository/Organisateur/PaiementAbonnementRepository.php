@@ -66,4 +66,24 @@ class PaiementAbonnementRepository extends ServiceEntityRepository
 
         return array_column($result, 'niveau');
     }
+
+    /**
+     * Trouve un plan par niveau et période de facturation
+     *
+     * @param string $niveau Le niveau (basic, pro, enterprise)
+     * @param string $periode La période (monthly, quarterly, yearly)
+     * @return SubscriptionPlan|null
+     */
+    public function findByNiveauAndPeriode(string $niveau, string $periode): ?SubscriptionPlan
+    {
+        return $this->createQueryBuilder('p')
+            ->where('p.niveau = :niveau')
+            ->andWhere('p.periodeFacturation = :periode')
+            ->andWhere(self::ACTIVE_CONDITION)
+            ->setParameter('niveau', $niveau)
+            ->setParameter('periode', $periode)
+            ->setParameter('actif', true)
+            ->getQuery()
+            ->getOneOrNullResult();
+    }
 }

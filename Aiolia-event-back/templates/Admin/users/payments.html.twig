@@ -468,21 +468,6 @@
             </div>
             <div class="col-md-3">
                 <div class="subscription-info-item">
-                    <div class="info-icon icon-warning">
-                        <i class="fas fa-pause-circle"></i>
-                    </div>
-                    <div class="info-label" data-i18n="users.payments.current_pause">Pause actuelle</div>
-                    <div class="info-value">
-                        {% if isPaused %}
-                            <span style="color: #F39C12;" data-i18n-fr="Oui{% if pauseMonth %} ({{ pauseMonth }}){% endif %}" data-i18n-en="Yes{% if pauseMonth %} ({{ pauseMonth }}){% endif %}">Oui{% if pauseMonth %} ({{ pauseMonth }}){% endif %}</span>
-                        {% else %}
-                            <span style="color: #27AE60; font-size: 1rem;" data-i18n="users.payments.pause.no">Non</span>
-                        {% endif %}
-                    </div>
-                </div>
-            </div>
-            <div class="col-md-3">
-                <div class="subscription-info-item">
                     <div class="info-icon icon-info">
                         <i class="fas fa-tag"></i>
                     </div>

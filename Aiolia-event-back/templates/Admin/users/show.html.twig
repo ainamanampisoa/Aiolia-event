@@ -670,9 +670,7 @@
                                 <div class="stat-content">
                                     <div class="stat-label" data-i18n-fr="État du compte" data-i18n-en="Account status">État du compte</div>
                                     <div class="stat-value">
-                                        {% if user.role == 'organizer' and organizerSubscriptionStatus == 'paused' %}
-                                            <span class="badge bg-warning stat-badge" data-i18n="users.status.paused">En pause</span>
-                                        {% elseif user.role == 'organizer' and organizerSubscriptionStatus == 'pending' %}
+                                        {% if user.role == 'organizer' and organizerSubscriptionStatus == 'pending' %}
                                             <span class="badge bg-warning stat-badge" data-i18n="users.status.pending">En attente</span>
                                         {% elseif user.statutCompte == 'active' %}
                                             <span class="badge bg-success stat-badge" data-i18n="users.status.active">Actif</span>

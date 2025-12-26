@@ -106,6 +106,7 @@
                             <span data-i18n="billing.filters.year">Année</span>
                         </label>
                         <select id="year" name="year" class="form-input">
+                            <option value="0" {{ selectedYear == 0 or selectedYear is null ? 'selected' : '' }} data-i18n="billing.filters.year.all">Toutes les années</option>
                             {% for y in 2024..2026 %}
                                 <option value="{{ y }}" {{ selectedYear == y ? 'selected' : '' }}>{{ y }}</option>
                             {% endfor %}
@@ -1270,7 +1271,8 @@ select.form-input {
                 'billing.filters.month.october': 'Octobre',
                 'billing.filters.month.november': 'Novembre',
                 'billing.filters.month.december': 'Décembre',
-                'billing.filters.year': 'Année'
+                'billing.filters.year': 'Année',
+                'billing.filters.year.all': 'Toutes les années'
             },
             en: {
                 'billing.filters.month': 'Month',
@@ -1287,7 +1289,8 @@ select.form-input {
                 'billing.filters.month.october': 'October',
                 'billing.filters.month.november': 'November',
                 'billing.filters.month.december': 'December',
-                'billing.filters.year': 'Year'
+                'billing.filters.year': 'Year',
+                'billing.filters.year.all': 'All years'
             }
         });
         return true;
@@ -1314,6 +1317,19 @@ function translateSelectOptions() {
     const monthSelect = document.getElementById('month');
     if (monthSelect) {
         Array.from(monthSelect.options).forEach(option => {
+            const i18nKey = option.getAttribute('data-i18n');
+            if (i18nKey) {
+                const translation = window.languageManager.translate(i18nKey);
+                if (translation) {
+                    option.textContent = translation;
+                }
+            }
+        });
+    }
+    
+    const yearSelect = document.getElementById('year');
+    if (yearSelect) {
+        Array.from(yearSelect.options).forEach(option => {
             const i18nKey = option.getAttribute('data-i18n');
             if (i18nKey) {
                 const translation = window.languageManager.translate(i18nKey);

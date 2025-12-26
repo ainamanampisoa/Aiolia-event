@@ -3,6 +3,7 @@
 namespace App\Repository\Admin;
 
 use App\Entity\SubscriptionInvoice;
+use App\Entity\User;
 use Doctrine\Bundle\DoctrineBundle\Repository\ServiceEntityRepository;
 use Doctrine\Persistence\ManagerRegistry;
 use Doctrine\DBAL\ArrayParameterType;
@@ -233,6 +234,19 @@ class SubscriptionInvoiceRepository extends ServiceEntityRepository
 
     public function getPlanInfoForInvoice(SubscriptionInvoice $invoice): ?array
     {
+        // 1. D'abord, essayer de récupérer les informations depuis les métadonnées de la facture
+        // (les nouvelles factures stockent le plan dans les métadonnées)
+        $metadata = $invoice->getMetadata();
+        if ($metadata && isset($metadata['plan_niveau']) && !empty($metadata['plan_niveau'])) {
+            return [
+                'niveau' => $metadata['plan_niveau'],
+                'periode_facturation' => $metadata['plan_periode'] ?? null,
+                'nom' => $metadata['plan_code'] ?? null,
+                'code' => $metadata['plan_code'] ?? null,
+            ];
+        }
+
+        // 2. Si les métadonnées ne contiennent pas les informations, utiliser le plan de l'abonnement (fallback)
         $connection = $this->getEntityManager()->getConnection();
 
         $sql = "
@@ -267,41 +281,63 @@ class SubscriptionInvoiceRepository extends ServiceEntityRepository
             return [];
         }
 
-        $invoiceIds = array_map(fn($invoice) => $invoice->getId(), $invoices);
-        $connection = $this->getEntityManager()->getConnection();
-
-        $sql = "
-            SELECT 
-                fi.id as invoice_id, 
-                sp.niveau, 
-                sp.periode_facturation, 
-                sp.nom, 
-                sp.code
-            FROM aiolia.factures_abonnements fi
-            INNER JOIN aiolia.abonnements_organisateurs os ON os.id = fi.id_abonnement
-            INNER JOIN aiolia.plans_abonnements sp ON sp.id = os.id_plan
-            WHERE fi.id IN (:invoice_ids)
-        ";
-
-        $results = $connection->fetchAllAssociative(
-            $sql,
-            ['invoice_ids' => $invoiceIds],
-            ['invoice_ids' => ArrayParameterType::INTEGER]
-        );
-
         $planInfos = [];
-        foreach ($results as $row) {
-            // Convertir l'ID en chaîne pour correspondre au format utilisé dans le contrôleur
-            $invoiceId = (string) $row['invoice_id'];
-            // Vérifier que niveau n'est pas null et n'est pas une chaîne vide avant d'ajouter
-            $niveau = $row['niveau'] ?? null;
-            if ($niveau !== null && $niveau !== '') {
+        $invoicesNeedingFallback = [];
+
+        // 1. D'abord, récupérer les informations depuis les métadonnées de chaque facture
+        foreach ($invoices as $invoice) {
+            $invoiceId = (string) $invoice->getId();
+            $metadata = $invoice->getMetadata();
+            
+            if ($metadata && isset($metadata['plan_niveau']) && !empty($metadata['plan_niveau'])) {
+                // Les informations sont dans les métadonnées
                 $planInfos[$invoiceId] = [
-                    'niveau' => $niveau,
-                    'periode_facturation' => $row['periode_facturation'] ?? null,
-                    'nom' => $row['nom'] ?? null,
-                    'code' => $row['code'] ?? null,
+                    'niveau' => $metadata['plan_niveau'],
+                    'periode_facturation' => $metadata['plan_periode'] ?? null,
+                    'nom' => $metadata['plan_code'] ?? null,
+                    'code' => $metadata['plan_code'] ?? null,
                 ];
+            } else {
+                // Les métadonnées ne contiennent pas les informations, utiliser le fallback
+                $invoicesNeedingFallback[] = $invoice;
+            }
+        }
+
+        // 2. Pour les factures sans métadonnées, récupérer depuis l'abonnement (fallback)
+        if (!empty($invoicesNeedingFallback)) {
+            $invoiceIds = array_map(fn($invoice) => $invoice->getId(), $invoicesNeedingFallback);
+            $connection = $this->getEntityManager()->getConnection();
+
+            $sql = "
+                SELECT 
+                    fi.id as invoice_id, 
+                    sp.niveau, 
+                    sp.periode_facturation, 
+                    sp.nom, 
+                    sp.code
+                FROM aiolia.factures_abonnements fi
+                INNER JOIN aiolia.abonnements_organisateurs os ON os.id = fi.id_abonnement
+                INNER JOIN aiolia.plans_abonnements sp ON sp.id = os.id_plan
+                WHERE fi.id IN (:invoice_ids)
+            ";
+
+            $results = $connection->fetchAllAssociative(
+                $sql,
+                ['invoice_ids' => $invoiceIds],
+                ['invoice_ids' => ArrayParameterType::INTEGER]
+            );
+
+            foreach ($results as $row) {
+                $invoiceId = (string) $row['invoice_id'];
+                $niveau = $row['niveau'] ?? null;
+                if ($niveau !== null && $niveau !== '') {
+                    $planInfos[$invoiceId] = [
+                        'niveau' => $niveau,
+                        'periode_facturation' => $row['periode_facturation'] ?? null,
+                        'nom' => $row['nom'] ?? null,
+                        'code' => $row['code'] ?? null,
+                    ];
+                }
             }
         }
 
@@ -315,10 +351,17 @@ class SubscriptionInvoiceRepository extends ServiceEntityRepository
 
     public function getPaymentMethodForInvoice(SubscriptionInvoice $invoice): ?string
     {
+        // Première tentative : récupérer depuis les métadonnées de la facture
+        // C'est là que le mode de paiement est stocké lors de la création
+        $metadata = $invoice->getMetadata();
+        if ($metadata && isset($metadata['payment_method']) && !empty($metadata['payment_method'])) {
+            return (string) $metadata['payment_method'];
+        }
+
         $connection = $this->getEntityManager()->getConnection();
         $invoiceId = $invoice->getId();
 
-        // Première tentative : récupérer depuis transactions_paiement_mobile
+        // Deuxième tentative : récupérer depuis transactions_paiement_mobile
         // On privilégie les transactions confirmées (paid), puis les autres
         $sql = "
             SELECT operateur_mobile 
@@ -406,6 +449,21 @@ class SubscriptionInvoiceRepository extends ServiceEntityRepository
                 )
             )->setParameter('search', $pattern);
         }
+    }
+
+    /**
+     * Récupère la dernière facture d'un utilisateur (tous statuts confondus)
+     * triée par mois de facturation décroissant
+     */
+    public function findLastInvoiceByUser(User $user): ?SubscriptionInvoice
+    {
+        return $this->createQueryBuilder('si')
+            ->where('si.customer = :user')
+            ->setParameter('user', $user)
+            ->orderBy('si.billingMonth', 'DESC')
+            ->setMaxResults(1)
+            ->getQuery()
+            ->getOneOrNullResult();
     }
 
     public function findInvoiceForMonth(string $subscriptionId, \DateTimeInterface $billingMonth): ?SubscriptionInvoice

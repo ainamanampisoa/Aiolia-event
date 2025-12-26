@@ -9,7 +9,7 @@ use Symfony\Contracts\HttpClient\Exception\HttpExceptionInterface;
 use Symfony\Contracts\HttpClient\Exception\TransportExceptionInterface;
 
 /**
- * Client pour l'API MVola MerchantPay selon la documentation officielle.
+ * Client pour l'API MVola MerchantPay avec support du code PIN.
  * 
  * Documentation basée sur API_MerchantPay.pdf v1.0
  * Sandbox URL: https://devapi.mvola.mg
@@ -211,12 +211,22 @@ class MvolaPaymentClientService
     }
 
     /**
-     * Initialise une transaction MerchantPay selon la documentation officielle.
+     * Valide le format du code PIN MVola (4-6 chiffres)
+     */
+    private function validatePin(string $pin): bool
+    {
+        // Le PIN doit être composé de 4 à 6 chiffres
+        return preg_match('/^[0-9]{4,6}$/', $pin) === 1;
+    }
+
+    /**
+     * Initialise une transaction MerchantPay avec code PIN.
      * 
      * @param float $amount Montant en MGA (sans décimales)
      * @param string $customerMsisdn Numéro MVola du client (ex: 03412345678)
      * @param string $transactionReference Référence unique de la transaction côté client
      * @param string $description Description de la transaction (max 50 caractères)
+     * @param string|null $pin Code PIN MVola (4-6 chiffres)
      * 
      * @return array{success: bool, serverCorrelationId?: string, transactionReference?: string, status?: string, error?: string, raw_response?: array}
      */
@@ -224,7 +234,8 @@ class MvolaPaymentClientService
         float $amount,
         string $customerMsisdn,
         string $transactionReference,
-        string $description = 'Paiement de billets'
+        string $description = 'Paiement de billets',
+        ?string $pin = null
     ): array {
         // Vérifier la configuration
         if (empty($this->apiBaseUrl) || empty($this->consumerKey) || empty($this->consumerSecret) || empty($this->merchantMsisdn)) {
@@ -253,7 +264,17 @@ class MvolaPaymentClientService
             ];
         }
 
-        // Obtenir l'access token (IMPORTANT: doit être valide)
+        // Si un PIN est fourni, le valider
+        if ($pin !== null) {
+            if (!$this->validatePin($pin)) {
+                return [
+                    'success' => false,
+                    'error' => 'Code PIN invalide. Il doit contenir 4 à 6 chiffres.',
+                ];
+            }
+        }
+
+        // Obtenir l'access token
         $tokenResult = $this->getAccessToken();
         if (!$tokenResult['success']) {
             error_log('[MVola] ERREUR: Impossible d\'obtenir le token - ' . ($tokenResult['error'] ?? 'Erreur inconnue'));
@@ -277,16 +298,12 @@ class MvolaPaymentClientService
 
         try {
             // Endpoint selon la documentation: /mvola/mm/transactions/type/merchantpay/1.0.0/
-            // IMPORTANT: Pas de slash final dans Postman
             $endpoint = rtrim($this->apiBaseUrl, '/') . '/mvola/mm/transactions/type/merchantpay/1.0.0';
             
             // Date au format exact MVola (ISO 8601 avec millisecondes réelles)
-            // Format strict: YYYY-MM-DDTHH:mm:ss.SSSZ (ex: 2022-05-16T08:59:03.076Z)
-            // IMPORTANT: Utiliser UTC strict (gmdate) pour éviter les problèmes de timezone
             $microtime = microtime(true);
             $seconds = floor($microtime);
             $milliseconds = str_pad((int)(($microtime - $seconds) * 1000), 3, '0', STR_PAD_LEFT);
-            // Utiliser gmdate pour garantir UTC (pas d'ajout de +3h car on est déjà en UTC)
             $requestDate = gmdate('Y-m-d\TH:i:s.', $seconds) . $milliseconds . 'Z';
 
             // Validation des champs AVANT de créer le payload
@@ -294,8 +311,7 @@ class MvolaPaymentClientService
                 $description = 'Paiement de billets';
             }
 
-            // Nettoyer la description pour éviter les caractères spéciaux non supportés
-            // Supprimer les apostrophes et autres caractères spéciaux qui peuvent causer l'erreur 4001
+            // Nettoyer la description
             $description = preg_replace('/[^\w\s\-.,]/u', '', $description);
             $description = trim($description);
             if (empty($description)) {
@@ -303,22 +319,18 @@ class MvolaPaymentClientService
             }
 
             if (empty($transactionReference) || trim($transactionReference) === '') {
-                // Générer une référence unique avec timestamp et microsecondes pour éviter les doublons
                 $transactionReference = 'TXN-' . time() . '-' . uniqid('', true);
             }
 
-            // S'assurer que la référence de transaction est unique (pas de doublons)
             $transactionReference = trim($transactionReference);
 
-            // Payload EXACTEMENT comme Postman (ordre et champs identiques)
-            // IMPORTANT: L'ordre des champs peut être important pour certaines APIs
+            // Payload avec code PIN si fourni
             $payload = [
                 'amount' => (string) ((int) round($amount)),
                 'currency' => 'Ar',
                 'descriptionText' => substr($description, 0, 50),
                 'requestingOrganisationTransactionReference' => $transactionReference,
                 'requestDate' => $requestDate,
-                // SUPPRIMEZ "originalTransactionReference" complètement (selon Postman)
                 'debitParty' => [
                     [
                         'key' => 'msisdn',
@@ -332,12 +344,10 @@ class MvolaPaymentClientService
                     ]
                 ],
                 'metadata' => [
-                    // CHANGER "merchantName" en "partnerName" comme Postman
                     [
                         'key' => 'partnerName',
                         'value' => $this->merchantName
                     ],
-                    // AJOUTER ces deux champs obligatoires de Postman
                     [
                         'key' => 'fc',
                         'value' => 'USD'
@@ -349,8 +359,15 @@ class MvolaPaymentClientService
                 ],
             ];
             
+            // Ajouter le code PIN aux métadonnées si fourni
+            if ($pin !== null) {
+                $payload['metadata'][] = [
+                    'key' => 'pin',
+                    'value' => $pin
+                ];
+            }
+            
             // Vérification finale que tous les champs sont bien présents
-            // CORRECTION : Retirer 'originalTransactionReference' car il n'est plus dans le payload
             $expectedFields = ['amount', 'currency', 'descriptionText', 'requestingOrganisationTransactionReference', 'requestDate', 'debitParty', 'creditParty', 'metadata'];
             $missingInPayload = [];
             foreach ($expectedFields as $field) {
@@ -375,9 +392,14 @@ class MvolaPaymentClientService
             error_log('[MVola] TransactionRef: ' . $payload['requestingOrganisationTransactionReference']);
             error_log('[MVola] DebitParty: ' . $payload['debitParty'][0]['value']);
             error_log('[MVola] CreditParty: ' . $payload['creditParty'][0]['value']);
+            error_log('[MVola] PIN fourni: ' . ($pin ? 'Oui (masqué)' : 'Non'));
             error_log('[MVola] Metadata count: ' . count($payload['metadata']));
             foreach ($payload['metadata'] as $index => $meta) {
-                error_log('[MVola]   Metadata[' . $index . ']: ' . $meta['key'] . ' = ' . $meta['value']);
+                if ($meta['key'] === 'pin') {
+                    error_log('[MVola]   Metadata[' . $index . ']: ' . $meta['key'] . ' = ****');
+                } else {
+                    error_log('[MVola]   Metadata[' . $index . ']: ' . $meta['key'] . ' = ' . $meta['value']);
+                }
             }
             error_log('[MVola] ========================================');
             
@@ -449,25 +471,22 @@ class MvolaPaymentClientService
                 ];
             }
 
-            // Headers EXACTEMENT comme dans Postman (ordre et format identiques)
-            // IMPORTANT: Les noms de headers sont sensibles à la casse
+            // Headers
             $merchantMsisdnClean = trim($merchantMsisdn);
             $userAccountIdentifier = 'msisdn;' . $merchantMsisdnClean;
             
-            // Headers EXACTEMENT dans l'ordre de Postman
             $headers = [
                 'Authorization' => 'Bearer ' . trim($accessToken),
                 'Version' => '1.0',
                 'X-CorrelationID' => $correlationId,
                 'UserLanguage' => 'mg',
                 'UserAccountIdentifier' => $userAccountIdentifier,
-                'partnerName' => trim($this->merchantName), // IMPORTANT: 'partnerName' avec 'p' minuscule
+                'partnerName' => trim($this->merchantName),
                 'Content-Type' => 'application/json',
                 'Cache-Control' => 'no-cache',
                 'Accept' => 'application/json',
             ];
             
-            // Ajouter X-Callback-URL seulement si fourni (comme dans Postman)
             if (!empty($this->callbackUrl)) {
                 $headers['X-Callback-URL'] = trim($this->callbackUrl);
             }
@@ -485,7 +504,6 @@ class MvolaPaymentClientService
 
             // Envoyer la requête
             try {
-                // Encoder le payload en JSON
                 $jsonPayload = json_encode($payload, JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES);
                 
                 if ($jsonPayload === false) {
@@ -540,14 +558,28 @@ class MvolaPaymentClientService
 
                 // Gérer les erreurs
                 $apiError = $data['errorDescription'] ?? $data['message'] ?? 'Erreur inconnue';
-                $missingField = null;
                 
-                // Essayer de trouver le champ manquant
-                if (preg_match('/Missing field[:\s]+([a-zA-Z_]+)/i', $apiError, $matches)) {
-                    $missingField = $matches[1] ?? null;
+                // Analyser l'erreur pour savoir si c'est lié au PIN
+                $isPinError = false;
+                $pinErrorMessage = '';
+                
+                if (stripos($apiError, 'pin') !== false || 
+                    stripos($apiError, 'password') !== false || 
+                    stripos($apiError, 'code secret') !== false) {
+                    $isPinError = true;
+                    $pinErrorMessage = 'Code PIN incorrect. Veuillez vérifier votre code PIN MVola.';
                 }
-                if (!$missingField && preg_match('/field[:\s]+([a-zA-Z_]+)[\s]+is required/i', $apiError, $matches)) {
-                    $missingField = $matches[1] ?? null;
+                
+                // Si c'est une erreur de PIN spécifique, retourner un message adapté
+                if ($isPinError && $pin !== null) {
+                    return [
+                        'success' => false,
+                        'error' => $pinErrorMessage ?: 'Code PIN invalide.',
+                        'is_pin_error' => true,
+                        'raw_response' => $data,
+                        'payload_sent' => $payload,
+                        'http_status' => $statusCode,
+                    ];
                 }
 
                 return [
@@ -556,7 +588,6 @@ class MvolaPaymentClientService
                     'raw_response' => $data,
                     'payload_sent' => $payload,
                     'http_status' => $statusCode,
-                    'missing_field' => $missingField,
                 ];
                 
             } catch (\Exception $e) {
@@ -663,5 +694,111 @@ class MvolaPaymentClientService
                 'error' => 'Erreur lors de la vérification du statut: ' . $e->getMessage(),
             ];
         }
+    }
+
+    /**
+     * Vérifie le code PIN avec MVola (méthode alternative).
+     * Cette méthode peut être utilisée pour valider le PIN avant d'initier une transaction.
+     * 
+     * @param string $customerMsisdn Numéro MVola du client
+     * @param string $pin Code PIN à vérifier (4-6 chiffres)
+     * 
+     * @return array{success: bool, error?: string}
+     */
+    public function validatePinWithMvola(string $customerMsisdn, string $pin): array
+    {
+        // Normaliser le numéro
+        $customerMsisdn = $this->normalizeMsisdn($customerMsisdn);
+        
+        // Valider le format du PIN
+        if (!$this->validatePin($pin)) {
+            return [
+                'success' => false,
+                'error' => 'Format de PIN invalide. Il doit contenir 4 à 6 chiffres.',
+            ];
+        }
+
+        // Note: MVola n'a pas d'API dédiée pour valider uniquement le PIN.
+        // La validation se fait généralement lors de l'initiation de la transaction.
+        // Cette méthode peut être utilisée pour faire un test avec un montant minimal.
+        
+        try {
+            // Tester avec un montant minimal (1 MGA) pour valider le PIN
+            $testAmount = 1.0;
+            $testReference = 'PIN-TEST-' . time() . '-' . uniqid();
+            
+            $result = $this->initiateTransaction(
+                $testAmount,
+                $customerMsisdn,
+                $testReference,
+                'Validation de code PIN',
+                $pin
+            );
+            
+            if ($result['success']) {
+                return [
+                    'success' => true,
+                    'message' => 'Code PIN validé avec succès.',
+                ];
+            } else {
+                // Vérifier si c'est une erreur spécifique au PIN
+                if (isset($result['is_pin_error']) && $result['is_pin_error']) {
+                    return [
+                        'success' => false,
+                        'error' => $result['error'] ?? 'Code PIN incorrect.',
+                        'is_pin_error' => true,
+                    ];
+                }
+                
+                return [
+                    'success' => false,
+                    'error' => $result['error'] ?? 'Erreur lors de la validation du PIN.',
+                ];
+            }
+            
+        } catch (\Exception $e) {
+            return [
+                'success' => false,
+                'error' => 'Erreur lors de la validation du PIN: ' . $e->getMessage(),
+            ];
+        }
+    }
+
+    /**
+     * Effectue un paiement avec code PIN.
+     * Version simplifiée avec gestion des erreurs de PIN.
+     * 
+     * @param float $amount Montant en MGA
+     * @param string $customerMsisdn Numéro MVola du client
+     * @param string $transactionReference Référence unique
+     * @param string $description Description
+     * @param string $pin Code PIN MVola
+     * 
+     * @return array{success: bool, serverCorrelationId?: string, transactionReference?: string, status?: string, error?: string, is_pin_error?: bool}
+     */
+    public function payWithPin(
+        float $amount,
+        string $customerMsisdn,
+        string $transactionReference,
+        string $description,
+        string $pin
+    ): array {
+        // Valider le PIN
+        if (!$this->validatePin($pin)) {
+            return [
+                'success' => false,
+                'error' => 'Code PIN invalide. Il doit contenir 4 à 6 chiffres.',
+                'is_pin_error' => true,
+            ];
+        }
+
+        // Initier la transaction avec PIN
+        return $this->initiateTransaction(
+            $amount,
+            $customerMsisdn,
+            $transactionReference,
+            $description,
+            $pin
+        );
     }
 }

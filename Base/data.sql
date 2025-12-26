@@ -117,17 +117,19 @@ BEGIN
     SELECT public.gen_salt('bf'::text, 8) INTO v_salt;
     
     -- Créer l'utilisateur
+    -- Tous les organisateurs ont le même numéro de téléphone: +261343500003 (format E.164)
     INSERT INTO utilisateurs (email, identifiant_connexion, methode_connexion, hash_mot_de_passe, prenom, nom, telephone, code_pays, code_langue, fuseau_horaire, role, statut, fournisseur_auth, email_verifie, telephone_verifie, termes_acceptes_le) VALUES
     (p_email, p_email, 'password', crypt('Organisateur123!', v_salt), 
      'Organisateur', 
      'Nom' || v_organisateur_num,
-     '+26134' || LPAD((2000000 + v_organisateur_num)::TEXT, 6, '0'), 
+     '+261343500003', 
      'MG', 'fr-FR', 'Indian/Antananarivo', 'organizer', 1, 'password', true, true, '2025-01-01 00:00:00')
     RETURNING id INTO v_user_id;
     
     -- Créer le profil organisateur
+    -- Tous les organisateurs ont le même numéro de support MVola (Débiteur): +261343500004 (format E.164)
     INSERT INTO profils_organisateurs (id_utilisateur, nom_affichage, nom_legal, email_support, telephone_support, type_organisation, statut_verification, onboarding_termine_le) VALUES
-    (v_user_id, p_nom_affichage, p_nom_legal, p_email, '+26134' || LPAD((2000000 + v_organisateur_num)::TEXT, 6, '0'), p_type_organisation, p_statut_verification, '2025-06-01 00:00:00')
+    (v_user_id, p_nom_affichage, p_nom_legal, p_email, '+261343500004', p_type_organisation, p_statut_verification, '2025-06-01 00:00:00')
     RETURNING id INTO v_organisateur_id;
     
     RETURN v_organisateur_id;
@@ -530,19 +532,14 @@ BEGIN
             
         ELSIF v_abonnement.periode_facturation = 'quarterly' THEN
             -- ABONNEMENT TRIMESTRIEL
-            -- Vérifier si une facture prépayée existe déjà pour ce mois
-            SELECT id INTO v_facture_prepayee_id
-            FROM factures_abonnements
-            WHERE id_abonnement = v_abonnement.abonnement_id
-            AND mois_facturation = p_mois_facturation
-            AND est_prepayee = true
-            LIMIT 1;
-            
-            IF v_facture_prepayee_id IS NOT NULL AND NOT v_is_pause_month THEN
-                -- Si la facture du mois est déjà prépayée et l'organisateur est toujours actif, passer au suivant
+            -- Pour les trimestriels, v_existing_invoice_id vérifie déjà si une facture (normale ou prépayée) existe
+            -- Si une facture existe déjà, le paiement est complet pour ce mois, on passe au suivant
+            IF v_existing_invoice_id IS NOT NULL AND NOT v_is_pause_month THEN
+                -- La facture existe déjà (normale ou prépayée), le paiement est complet pour ce mois
                 CONTINUE;
             END IF;
             
+            -- Aucune facture n'existe pour ce mois, il faut la créer
             IF v_existing_invoice_id IS NULL THEN
                 IF v_is_pause_month THEN
                     -- Si l'organisateur est en pause, créer une facture à 0 Ar
@@ -556,22 +553,11 @@ BEGIN
                         0
                     ) INTO v_facture_id;
                     v_nb_factures := 1;
-                    
-                    -- Mettre à jour les factures prépayées existantes pour décaler d'un mois
-                    UPDATE factures_abonnements
-                    SET mois_facturation = mois_facturation + INTERVAL '1 month',
-                        emise_le = emise_le + INTERVAL '1 month',
-                        echeance_le = echeance_le + INTERVAL '1 month',
-                        payee_le = payee_le + INTERVAL '1 month',
-                        modifie_le = NOW()
-                    WHERE id_abonnement = v_abonnement.abonnement_id
-                    AND est_prepayee = true
-                    AND mois_facturation > p_mois_facturation;
                 ELSE
-                    -- Vérifier si c'est le début d'un trimestre (mois 1, 4, 7, 10)
+                    -- Vérifier si c'est le début d'un trimestre (mois 1, 4, 7, 10) ou le mois de début de l'abonnement
                     v_month_num := EXTRACT(MONTH FROM p_mois_facturation)::INTEGER;
                     IF v_month_num IN (1, 4, 7, 10) OR DATE_TRUNC('month', v_abonnement.commence_le) = DATE_TRUNC('month', p_mois_facturation) THEN
-                        -- Générer les 3 factures trimestrielles (1 normale + 2 prépayées)
+                        -- Générer les 3 factures trimestrielles (1 normale pour ce mois + 2 prépayées pour les 2 mois suivants)
                         SELECT creer_factures_trimestrielles(
                             v_abonnement.abonnement_id,
                             p_mois_facturation,
@@ -580,8 +566,18 @@ BEGIN
                             v_mode_paiement_code
                         ) INTO v_nb_factures;
                     ELSE
-                        -- Ce n'est pas le début d'un trimestre, ne rien faire
-                        CONTINUE;
+                        -- Ce n'est pas le début d'un trimestre, mais aucune facture n'existe
+                        -- Cela ne devrait pas arriver normalement, mais créer quand même une facture pour ce mois
+                        -- pour s'assurer que tous les organisateurs actifs ont un paiement complet
+                        SELECT creer_facture_abonnement(
+                            v_abonnement.abonnement_id, 
+                            p_mois_facturation, 
+                            'paid', 
+                            false, 
+                            NULL, 
+                            v_mode_paiement_code
+                        ) INTO v_facture_id;
+                        v_nb_factures := 1;
                     END IF;
                 END IF;
             ELSIF v_is_pause_month THEN
@@ -606,10 +602,9 @@ BEGIN
         statut_abonnement := v_abonnement.statut_abonnement;
         factures_creees := v_nb_factures;
         message := CASE 
-            WHEN v_existing_invoice_id IS NOT NULL AND NOT v_is_pause_month THEN 'Facture déjà existante'
-            WHEN v_facture_prepayee_id IS NOT NULL AND v_abonnement.periode_facturation = 'quarterly' AND NOT v_is_pause_month THEN 'Facture prépayée existante - passé'
+            WHEN v_existing_invoice_id IS NOT NULL AND NOT v_is_pause_month THEN 'Facture déjà existante - paiement complet'
             WHEN v_is_pause_month THEN 'Facture créée/modifiée à 0 Ar (en pause)'
-            ELSE 'Factures générées avec succès'
+            ELSE 'Factures générées avec succès - paiement complet'
         END;
         
         RETURN NEXT;
@@ -736,7 +731,6 @@ END $$;
 -- +4 nouveaux organisateurs (23-26)
 -- Total: 16 organisateurs
 -- 4 basic, 5 pro, 7 enterprise
--- 2 organisateurs en pause (reviennent en octobre)
 DO $$
 DECLARE
     v_abonnement_id BIGINT;
@@ -746,25 +740,15 @@ BEGIN
     SELECT creer_abonnement('organisateur24@yopmail.com', 'enterprise_monthly', '2025-08-01 00:00:00') INTO v_abonnement_id;
     SELECT creer_abonnement('organisateur25@yopmail.com', 'enterprise_monthly', '2025-08-01 00:00:00') INTO v_abonnement_id;
     SELECT creer_abonnement('organisateur26@yopmail.com', 'enterprise_monthly', '2025-08-01 00:00:00') INTO v_abonnement_id;
-    
-    -- Mettre en pause 2 organisateurs (16 et 17)
-    UPDATE abonnements_organisateurs ao
-    SET statut = 'paused',
-        mis_en_pause_le = '2025-08-15 00:00:00',
-        modifie_le = NOW()
-    FROM profils_organisateurs po
-    JOIN utilisateurs u ON po.id_utilisateur = u.id
-    WHERE ao.id_profil_organisateur = po.id
-    AND u.email IN ('organisateur16@yopmail.com', 'organisateur17@yopmail.com');
 END $$;
 
--- Factures Août 2025 (14 factures seulement - 2 en pause)
+-- Factures Août 2025
 DO $$
 DECLARE
     v_abonnement RECORD;
     v_count INTEGER := 0;
     v_facture_id BIGINT;
-    v_modes_paiement TEXT[] := ARRAY['airtel', 'mvola', 'orange', 'virement', 'airtel', 'mvola', 'orange', 'virement', 'airtel', 'mvola', 'orange', 'virement', 'airtel', 'mvola'];
+    v_modes_paiement TEXT[] := ARRAY['airtel', 'mvola', 'orange', 'virement', 'airtel', 'mvola', 'orange', 'virement', 'airtel', 'mvola', 'orange', 'virement', 'airtel', 'mvola', 'orange', 'virement'];
     v_mode_index INTEGER := 1;
 BEGIN
     FOR v_abonnement IN 
@@ -774,7 +758,6 @@ BEGIN
         JOIN utilisateurs u ON po.id_utilisateur = u.id
         WHERE u.email LIKE 'organisateur%@yopmail.com'
         AND ao.statut = 'active'
-        AND u.email NOT IN ('organisateur16@yopmail.com', 'organisateur17@yopmail.com')
         ORDER BY u.email
     LOOP
         SELECT creer_facture_abonnement(v_abonnement.id, '2025-08-01', 'paid', false, NULL, v_modes_paiement[v_mode_index]) INTO v_facture_id;
@@ -789,7 +772,7 @@ END $$;
 -- 9. ABONNEMENTS SEPTEMBRE 2025
 -- ============================================================
 -- +4 nouveaux organisateurs (27-30)
--- Total: 20 organisateurs (18 actifs + 2 en pause)
+-- Total: 20 organisateurs actifs
 -- 9 factures mensuelles, 9 factures trimestrielles
 DO $$
 DECLARE
@@ -823,49 +806,19 @@ BEGIN
 END $$;
 
 -- Factures Septembre 2025
-DO $$
-DECLARE
-    v_abonnement RECORD;
-    v_mensuel_count INTEGER := 0;
-    v_trimestre_count INTEGER := 0;
-    v_facture_id BIGINT;
-    v_nb_factures INTEGER;
-    v_modes_paiement TEXT[] := ARRAY['virement', 'mvola', 'orange', 'airtel', 'virement', 'mvola', 'orange', 'airtel', 'virement', 'mvola', 'orange', 'airtel', 'virement', 'mvola', 'orange', 'airtel', 'virement', 'mvola'];
-    v_mode_index INTEGER := 1;
-BEGIN
-    FOR v_abonnement IN 
-        SELECT ao.id, pa.periode_facturation
-        FROM abonnements_organisateurs ao
-        JOIN profils_organisateurs po ON ao.id_profil_organisateur = po.id
-        JOIN utilisateurs u ON po.id_utilisateur = u.id
-        JOIN plans_abonnements pa ON ao.id_plan = pa.id
-        WHERE u.email LIKE 'organisateur%@yopmail.com'
-        AND ao.statut = 'active'
-        AND u.email NOT IN ('organisateur16@yopmail.com', 'organisateur17@yopmail.com')
-        ORDER BY u.email
-    LOOP
-        IF v_abonnement.periode_facturation = 'quarterly' THEN
-            -- Pour les abonnements trimestriels, créer les 3 factures (1 normale + 2 prépayées)
-            SELECT creer_factures_trimestrielles(v_abonnement.id, '2025-09-01', 'paid', NULL, v_modes_paiement[v_mode_index]) INTO v_nb_factures;
-            v_trimestre_count := v_trimestre_count + 1;
-        ELSE
-            -- Pour les abonnements mensuels, créer une seule facture
-            SELECT creer_facture_abonnement(v_abonnement.id, '2025-09-01', 'paid', false, NULL, v_modes_paiement[v_mode_index]) INTO v_facture_id;
-            v_mensuel_count := v_mensuel_count + 1;
-        END IF;
-        v_mode_index := (v_mode_index % array_length(v_modes_paiement, 1)) + 1;
-    END LOOP;
-    
-    RAISE NOTICE 'Septembre 2025: % mensuels, % trimestriels', v_mensuel_count, v_trimestre_count;
-END $$;
+-- Utiliser la fonction generer_factures_organisateurs_actifs
+-- Cette fonction gère automatiquement:
+-- - Les factures mensuelles (1 facture pour septembre)
+-- - Les factures trimestrielles:
+--   * Si septembre est le début d'un abonnement trimestriel → crée 3 factures (septembre + octobre et novembre prépayées)
+--   * Ne génère pas de facture si elle existe déjà
+SELECT * FROM generer_factures_organisateurs_actifs('2025-09-01'::DATE);
 
 -- ============================================================
 -- 10. ABONNEMENTS OCTOBRE 2025
 -- ============================================================
 -- +3 nouveaux organisateurs (31-33, dont 1 non validé)
 -- Total: 23 organisateurs (22 actifs + 1 non validé)
--- Réactiver les 2 organisateurs en pause
--- Mettre 4 organisateurs en pause
 DO $$
 DECLARE
     v_abonnement_id BIGINT;
@@ -879,87 +832,23 @@ BEGIN
     UPDATE profils_organisateurs 
     SET statut_verification = 'pending'
     WHERE id_utilisateur = (SELECT id FROM utilisateurs WHERE email = 'organisateur33@yopmail.com');
-    
-    -- Réactiver les organisateurs en pause (16 et 17)
-    UPDATE abonnements_organisateurs ao
-    SET statut = 'active',
-        repris_le = '2025-10-01 00:00:00',
-        modifie_le = NOW()
-    FROM profils_organisateurs po
-    JOIN utilisateurs u ON po.id_utilisateur = u.id
-    WHERE ao.id_profil_organisateur = po.id
-    AND u.email IN ('organisateur16@yopmail.com', 'organisateur17@yopmail.com');
-    
-    -- Mettre 4 organisateurs en pause (11, 18, 24, 27)
-    UPDATE abonnements_organisateurs ao
-    SET statut = 'paused',
-        mis_en_pause_le = '2025-10-15 00:00:00',
-        modifie_le = NOW()
-    FROM profils_organisateurs po
-    JOIN utilisateurs u ON po.id_utilisateur = u.id
-    WHERE ao.id_profil_organisateur = po.id
-    AND u.email IN ('organisateur11@yopmail.com', 'organisateur18@yopmail.com', 
-                   'organisateur24@yopmail.com', 'organisateur27@yopmail.com');
 END $$;
 
 -- Factures Octobre 2025
-DO $$
-DECLARE
-    v_abonnement RECORD;
-    v_type_plan TEXT;
-    v_mensuel_count INTEGER := 0;
-    v_trimestre_count INTEGER := 0;
-    v_prepaye_count INTEGER := 0;
-    v_facture_id BIGINT;
-    v_nb_factures INTEGER;
-    v_modes_paiement TEXT[] := ARRAY['mvola', 'orange', 'airtel', 'virement', 'mvola', 'orange', 'airtel', 'virement', 'mvola', 'orange', 'airtel', 'virement', 'mvola', 'orange', 'airtel', 'virement', 'mvola', 'orange'];
-    v_mode_index INTEGER := 1;
-BEGIN
-    FOR v_abonnement IN 
-        SELECT ao.id, pa.periode_facturation, pa.niveau
-        FROM abonnements_organisateurs ao
-        JOIN profils_organisateurs po ON ao.id_profil_organisateur = po.id
-        JOIN utilisateurs u ON po.id_utilisateur = u.id
-        JOIN plans_abonnements pa ON ao.id_plan = pa.id
-        WHERE u.email LIKE 'organisateur%@yopmail.com'
-        AND ao.statut = 'active'
-        AND u.email != 'organisateur33@yopmail.com' -- non validé
-        AND u.email NOT IN ('organisateur11@yopmail.com', 'organisateur18@yopmail.com', 
-                           'organisateur24@yopmail.com', 'organisateur27@yopmail.com') -- en pause
-        ORDER BY u.email
-    LOOP
-        -- Déterminer le type de facturation
-        IF v_abonnement.periode_facturation = 'monthly' AND
-           v_mensuel_count < 8 THEN
-            -- Factures mensuelles
-            SELECT creer_facture_abonnement(v_abonnement.id, '2025-10-01', 'paid', false, NULL, v_modes_paiement[v_mode_index]) INTO v_facture_id;
-            v_mode_index := (v_mode_index % array_length(v_modes_paiement, 1)) + 1;
-            v_mensuel_count := v_mensuel_count + 1;
-            
-        ELSIF v_abonnement.periode_facturation = 'quarterly' AND
-              v_trimestre_count < 7 THEN
-            -- Factures trimestrielles : octobre est le début d'un nouveau trimestre, générer les 3 factures
-            SELECT creer_factures_trimestrielles(v_abonnement.id, '2025-10-01', 'paid', NULL, v_modes_paiement[v_mode_index]) INTO v_nb_factures;
-            v_mode_index := (v_mode_index % array_length(v_modes_paiement, 1)) + 1;
-            v_trimestre_count := v_trimestre_count + 1;
-            
-        ELSE
-            -- Factures prépayées (pour les autres cas)
-            SELECT creer_facture_abonnement(v_abonnement.id, '2025-10-01', 'paid', true, NULL, v_modes_paiement[v_mode_index]) INTO v_facture_id;
-            v_mode_index := (v_mode_index % array_length(v_modes_paiement, 1)) + 1;
-            v_prepaye_count := v_prepaye_count + 1;
-        END IF;
-    END LOOP;
-    
-    RAISE NOTICE 'Octobre 2025: % mensuels, % trimestriels, % prépayés', 
-        v_mensuel_count, v_trimestre_count, v_prepaye_count;
-END $$;
+-- Utiliser la fonction generer_factures_organisateurs_actifs
+-- Cette fonction gère automatiquement:
+-- - Les factures mensuelles (1 facture pour octobre)
+-- - Les factures trimestrielles:
+--   * Si octobre est le début d'un trimestre → crée 3 factures (octobre + novembre et décembre prépayées)
+--   * Si une facture prépayée existe déjà (créée en septembre) → passe au suivant
+--   * Ne génère pas de facture si elle existe déjà
+SELECT * FROM generer_factures_organisateurs_actifs('2025-10-01'::DATE);
 
 -- ============================================================
 -- 11. ABONNEMENTS NOVEMBRE 2025
 -- ============================================================
 -- +3 nouveaux organisateurs (34-36, dont 2 non validés)
--- Total: 26 organisateurs (19 actifs + 4 en pause + 3 non validés)
+-- Total: 26 organisateurs (23 actifs + 3 non validés)
 DO $$
 DECLARE
     v_abonnement_id BIGINT;
@@ -979,130 +868,28 @@ BEGIN
 END $$;
 
 -- Factures Novembre 2025
-DO $$
-DECLARE
-    v_abonnement RECORD;
-    v_type_plan TEXT;
-    v_mensuel_count INTEGER := 0;
-    v_trimestre_count INTEGER := 0;
-    v_prepaye_count INTEGER := 0;
-    v_facture_id BIGINT;
-    v_nb_factures INTEGER;
-    v_modes_paiement TEXT[] := ARRAY['airtel', 'mvola', 'orange', 'virement', 'airtel', 'mvola', 'orange', 'virement', 'airtel', 'mvola', 'orange', 'virement', 'airtel', 'mvola', 'orange', 'virement'];
-    v_mode_index INTEGER := 1;
-BEGIN
-    FOR v_abonnement IN 
-        SELECT ao.id, pa.periode_facturation, pa.niveau, ao.commence_le
-        FROM abonnements_organisateurs ao
-        JOIN profils_organisateurs po ON ao.id_profil_organisateur = po.id
-        JOIN utilisateurs u ON po.id_utilisateur = u.id
-        JOIN plans_abonnements pa ON ao.id_plan = pa.id
-        WHERE u.email LIKE 'organisateur%@yopmail.com'
-        AND ao.statut = 'active'
-        AND po.statut_verification = 'verified'
-        AND u.email NOT IN ('organisateur33@yopmail.com', 'organisateur35@yopmail.com', 'organisateur36@yopmail.com') -- non validés
-        AND u.email NOT IN ('organisateur11@yopmail.com', 'organisateur18@yopmail.com', 
-                           'organisateur24@yopmail.com', 'organisateur27@yopmail.com') -- en pause
-        ORDER BY u.email
-    LOOP
-        -- Déterminer le type de facturation
-        IF v_abonnement.periode_facturation = 'monthly' AND
-           v_mensuel_count < 3 THEN
-            -- Factures mensuelles
-            SELECT creer_facture_abonnement(v_abonnement.id, '2025-11-01', 'paid', false, NULL, v_modes_paiement[v_mode_index]) INTO v_facture_id;
-            v_mode_index := (v_mode_index % array_length(v_modes_paiement, 1)) + 1;
-            v_mensuel_count := v_mensuel_count + 1;
-            
-        ELSIF v_abonnement.periode_facturation = 'quarterly' AND
-              DATE_TRUNC('month', v_abonnement.commence_le) = '2025-11-01'::DATE THEN
-            -- Nouvel abonnement trimestriel qui commence en novembre, générer les 3 factures
-            SELECT creer_factures_trimestrielles(v_abonnement.id, '2025-11-01', 'paid', NULL, v_modes_paiement[v_mode_index]) INTO v_nb_factures;
-            v_mode_index := (v_mode_index % array_length(v_modes_paiement, 1)) + 1;
-            v_trimestre_count := v_trimestre_count + 1;
-            
-        ELSIF v_abonnement.periode_facturation = 'quarterly' THEN
-            -- Pour les autres abonnements trimestriels, les factures ont déjà été créées
-            CONTINUE;
-            
-        ELSE
-            -- Factures prépayées
-            SELECT creer_facture_abonnement(v_abonnement.id, '2025-11-01', 'paid', true, NULL, v_modes_paiement[v_mode_index]) INTO v_facture_id;
-            v_mode_index := (v_mode_index % array_length(v_modes_paiement, 1)) + 1;
-            v_prepaye_count := v_prepaye_count + 1;
-        END IF;
-    END LOOP;
-    
-    RAISE NOTICE 'Novembre 2025: % mensuels, % trimestriels, % prépayés', 
-        v_mensuel_count, v_trimestre_count, v_prepaye_count;
-END $$;
+-- Utiliser la fonction generer_factures_organisateurs_actifs
+-- Cette fonction gère automatiquement:
+-- - Les factures mensuelles (1 facture pour novembre)
+-- - Les factures trimestrielles:
+--   * Si une facture prépayée existe déjà (créée en septembre/octobre) → passe au suivant
+--   * Si novembre est le début d'un abonnement trimestriel → crée 3 factures (novembre + décembre et janvier prépayées)
+--   * Ne génère pas de facture si elle existe déjà
+SELECT * FROM generer_factures_organisateurs_actifs('2025-11-01'::DATE);
 
 -- ============================================================
 -- 12. ABONNEMENTS DÉCEMBRE 2025
 -- ============================================================
--- Réactiver les 4 organisateurs en pause
 -- Total: 23 organisateurs actifs + 3 non validés
-DO $$
-BEGIN
-    -- Réactiver les organisateurs en pause
-    UPDATE abonnements_organisateurs ao
-    SET statut = 'active',
-        repris_le = '2025-12-01 00:00:00',
-        modifie_le = NOW()
-    FROM profils_organisateurs po
-    JOIN utilisateurs u ON po.id_utilisateur = u.id
-    WHERE ao.id_profil_organisateur = po.id
-    AND u.email IN ('organisateur11@yopmail.com', 'organisateur18@yopmail.com', 
-                   'organisateur24@yopmail.com', 'organisateur27@yopmail.com');
-END $$;
 
 -- Factures Décembre 2025
-DO $$
-DECLARE
-    v_abonnement RECORD;
-    v_type_plan TEXT;
-    v_mensuel_count INTEGER := 0;
-    v_trimestre_count INTEGER := 0;
-    v_prepaye_count INTEGER := 0;
-    v_facture_id BIGINT;
-    v_modes_paiement TEXT[] := ARRAY['virement', 'mvola', 'orange', 'airtel', 'virement', 'mvola', 'orange', 'airtel', 'virement', 'mvola', 'orange', 'airtel', 'virement', 'mvola', 'orange', 'airtel', 'virement', 'mvola', 'orange', 'airtel', 'virement', 'mvola', 'orange'];
-    v_mode_index INTEGER := 1;
-BEGIN
-    FOR v_abonnement IN 
-        SELECT ao.id, pa.periode_facturation, pa.niveau
-        FROM abonnements_organisateurs ao
-        JOIN profils_organisateurs po ON ao.id_profil_organisateur = po.id
-        JOIN utilisateurs u ON po.id_utilisateur = u.id
-        JOIN plans_abonnements pa ON ao.id_plan = pa.id
-        WHERE u.email LIKE 'organisateur%@yopmail.com'
-        AND ao.statut = 'active'
-        AND po.statut_verification = 'verified'
-        AND u.email NOT IN ('organisateur33@yopmail.com', 'organisateur35@yopmail.com', 'organisateur36@yopmail.com') -- non validés
-        ORDER BY u.email
-    LOOP
-        -- Déterminer le type de facturation
-        IF v_abonnement.periode_facturation = 'monthly' AND
-           v_mensuel_count < 10 THEN
-            -- Factures mensuelles
-            SELECT creer_facture_abonnement(v_abonnement.id, '2025-12-01', 'paid', false, NULL, v_modes_paiement[v_mode_index]) INTO v_facture_id;
-            v_mode_index := (v_mode_index % array_length(v_modes_paiement, 1)) + 1;
-            v_mensuel_count := v_mensuel_count + 1;
-            
-        ELSIF v_abonnement.periode_facturation = 'quarterly' THEN
-            -- Pour décembre, les factures trimestrielles ont déjà été créées lors du début du trimestre
-            -- Ne rien faire pour les trimestriels ce mois-ci
-            CONTINUE;
-            
-        ELSE
-            -- Factures prépayées
-            SELECT creer_facture_abonnement(v_abonnement.id, '2025-12-01', 'paid', true, NULL, v_modes_paiement[v_mode_index]) INTO v_facture_id;
-            v_mode_index := (v_mode_index % array_length(v_modes_paiement, 1)) + 1;
-            v_prepaye_count := v_prepaye_count + 1;
-        END IF;
-    END LOOP;
-    
-    RAISE NOTICE 'Décembre 2025: % mensuels, % trimestriels, % prépayés', 
-        v_mensuel_count, v_trimestre_count, v_prepaye_count;
-END $$;
+-- Utiliser la fonction generer_factures_organisateurs_actifs
+-- Cette fonction gère automatiquement:
+-- - Les factures mensuelles (1 facture pour décembre)
+-- - Les factures trimestrielles:
+--   * Si une facture prépayée existe déjà (créée en septembre/octobre/novembre) → passe au suivant
+--   * Ne génère pas de facture si elle existe déjà
+SELECT * FROM generer_factures_organisateurs_actifs('2025-12-01'::DATE);
 
 -- ============================================================
 -- 13. ABONNEMENTS JANVIER 2026
@@ -1171,6 +958,36 @@ SELECT
     COUNT(*) as nombre_organisateurs
 FROM profils_organisateurs po
 GROUP BY po.statut_verification;
+
+-- ============================================================
+-- 16. MISE À JOUR DES NUMÉROS DE TÉLÉPHONE DES ORGANISATEURS
+-- ============================================================
+-- Tous les organisateurs doivent avoir:
+-- - telephone (utilisateurs): +261343500003 (format E.164)
+-- - telephone_support (profils_organisateurs): +261343500004 (format E.164, numéro MVola débiteur/customer)
+-- Le numéro merchant (créancier) vient du .env (MVOLA_MERCHANT_MSISDN)
+-- Note: Le format E.164 est requis par la contrainte phone_e164_check
+
+-- Mettre à jour tous les numéros de téléphone des utilisateurs organisateurs
+UPDATE utilisateurs 
+SET telephone = '+261343500003'
+WHERE role = 'organizer';
+
+-- Mettre à jour tous les numéros de support MVola (débiteur/customer) des organisateurs
+UPDATE profils_organisateurs 
+SET telephone_support = '+261343500004'
+WHERE id IN (SELECT id FROM profils_organisateurs);
+
+-- Vérification des numéros mis à jour
+SELECT 
+    u.email,
+    u.telephone as telephone_utilisateur,
+    po.telephone_support as telephone_support_mvola
+FROM utilisateurs u
+JOIN profils_organisateurs po ON u.id = po.id_utilisateur
+WHERE u.role = 'organizer'
+ORDER BY u.email
+LIMIT 10;
 
 -- Nettoyage des fonctions temporaires
 DROP FUNCTION IF EXISTS creer_organisateur(TEXT, TEXT, TEXT, organizer_type_enum, TEXT);

@@ -485,6 +485,9 @@ class EventsController extends AbstractController
             }
         }
 
+        // Récupérer le venue_id depuis la requête si présent (après création d'un lieu)
+        $venueId = $request->query->get('venue_id');
+
         return $this->render('Organisateur/events/new.html.twig', [
             'event' => $event,
             'form' => $form,
@@ -497,6 +500,7 @@ class EventsController extends AbstractController
             'typesAccessibilite' => $typeAccessibiliteService->getAll(),
             'existingTicketTypes' => [],
             'isEditMode' => false,
+            'selectedVenueId' => $venueId,
         ]);
     }
 
