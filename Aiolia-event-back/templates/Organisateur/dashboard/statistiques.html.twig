@@ -80,7 +80,7 @@
             </div>
             <div class="stat-content">
                 <h3>{{ (statistics.widgets.total_revenue ?? 0)|number_format(0, ',', ' ') }} Ar</h3>
-                <p>Chiffre d'affaires {% if dateFrom or dateTo %}({{ periodLabel }}){% else %}(Toutes les périodes){% endif %}</p>
+                <p>Chiffre d'affaires {% if dateFrom or dateTo %}({{ periodLabel }}){% endif %}</p>
             </div>
         </div>
 
@@ -100,7 +100,7 @@
             </div>
             <div class="stat-content">
                 <h3>{{ (statistics.widgets.current_month_subscription_expense ?? 0)|number_format(0, ',', ' ') }} Ar</h3>
-                <p>Dépense abonnement {% if dateFrom or dateTo %}({{ periodLabel }}){% else %}(toutes les périodes){% endif %}</p>
+                <p>Dépense abonnement {% if dateFrom or dateTo %}({{ periodLabel }}){% endif %}</p>
             </div>
         </div>
     </div>
