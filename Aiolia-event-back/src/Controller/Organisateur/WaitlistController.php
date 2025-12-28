@@ -2,17 +2,11 @@
 
 namespace App\Controller\Organisateur;
 
-use App\Entity\TypeBillet;
-use App\Entity\User;
-use App\Repository\Organisateur\InventaireBilletRepository;
 use App\Repository\Organisateur\OrganizerProfileRepository;
 use App\Repository\Organisateur\TypeBilletRepository;
 use App\Repository\UserRepository;
-use App\Service\Organisateur\InventaireBilletService;
-use App\Service\Organisateur\TypeBilletService;
 use App\Service\Organisateur\WaitlistService;
-use App\Service\Organisateur\WaitlistEmailService;
-use Doctrine\ORM\EntityManagerInterface;
+use App\Service\Organisateur\WaitlistManagementService;
 use Symfony\Bundle\FrameworkBundle\Controller\AbstractController;
 use Symfony\Component\HttpFoundation\JsonResponse;
 use Symfony\Component\HttpFoundation\Request;
@@ -26,13 +20,10 @@ class WaitlistController extends AbstractController
 {
     public function __construct(
         private WaitlistService $waitlistService,
+        private WaitlistManagementService $waitlistManagementService,
         private OrganizerProfileRepository $organizerProfileRepository,
         private TypeBilletRepository $typeBilletRepository,
-        private TypeBilletService $typeBilletService,
-        private InventaireBilletService $inventaireBilletService,
-        private UserRepository $userRepository,
-        private WaitlistEmailService $waitlistEmailService,
-        private EntityManagerInterface $entityManager
+        private UserRepository $userRepository
     ) {
     }
     
@@ -90,45 +81,21 @@ class WaitlistController extends AbstractController
         $data = json_decode($request->getContent(), true);
         $quantiteTotale = isset($data['quantiteTotale']) ? (int)$data['quantiteTotale'] : null;
 
-        if ($quantiteTotale === null || $quantiteTotale < 0) {
+        if ($quantiteTotale === null) {
             return new JsonResponse([
                 'success' => false,
                 'message' => 'Quantité invalide',
-                'errors' => ['quantiteTotale' => 'La quantité doit être un nombre positif']
+                'errors' => ['quantiteTotale' => 'La quantité est requise']
             ], 400);
         }
 
-        $inventaire = $this->inventaireBilletService->getByTypeBillet($typeBillet);
-        
-        if (!$inventaire) {
-            $inventaire = $this->inventaireBilletService->create([
-                'quantiteTotale' => $quantiteTotale,
-                'quantiteVendue' => 0,
-                'quantiteReservee' => 0
-            ], $typeBillet);
-        } else {
-            if ($quantiteTotale < $inventaire->getQuantiteVendue()) {
-                return new JsonResponse([
-                    'success' => false,
-                    'message' => 'Quantité invalide',
-                    'errors' => ['quantiteTotale' => 'La quantité totale ne peut pas être inférieure à la quantité vendue (' . $inventaire->getQuantiteVendue() . ')']
-                ], 400);
-            }
+        $result = $this->waitlistManagementService->updateQuantity($typeBillet, $quantiteTotale);
 
-            $this->inventaireBilletService->update($inventaire, [
-                'quantiteTotale' => $quantiteTotale
-            ]);
+        if (!$result['success']) {
+            return new JsonResponse($result, 400);
         }
 
-        return new JsonResponse([
-            'success' => true,
-            'message' => 'Quantité mise à jour avec succès',
-            'data' => [
-                'quantiteTotale' => $inventaire->getQuantiteTotale(),
-                'quantiteVendue' => $inventaire->getQuantiteVendue(),
-                'quantiteDisponible' => $inventaire->getQuantiteDisponible()
-            ]
-        ]);
+        return new JsonResponse($result);
     }
 
     #[Route('/process/{userId}/{typeBilletId}', name: 'organisateur_waitlist_process', methods: ['POST'])]
@@ -144,7 +111,6 @@ class WaitlistController extends AbstractController
             return new JsonResponse(['success' => false, 'message' => 'Profil organisateur non trouvé'], 403);
         }
 
-        // Récupérer l'utilisateur de la liste d'attente
         $waitlistUser = $this->userRepository->find($userId);
         if (!$waitlistUser) {
             return new JsonResponse(['success' => false, 'message' => 'Utilisateur non trouvé'], 404);
@@ -161,128 +127,20 @@ class WaitlistController extends AbstractController
         }
 
         $data = json_decode($request->getContent(), true);
-        $action = $data['action'] ?? null; // 'accept' ou 'reject'
+        $action = $data['action'] ?? null;
         $quantiteTotale = isset($data['quantiteTotale']) ? (int)$data['quantiteTotale'] : null;
         $prixDeBase = isset($data['prixDeBase']) ? (float)$data['prixDeBase'] : null;
 
-        if (!in_array($action, ['accept', 'reject'])) {
-            return new JsonResponse([
-                'success' => false,
-                'message' => 'Action invalide. Doit être "accept" ou "reject"'
-            ], 400);
-        }
+        $result = $this->waitlistManagementService->processWaitlistRequest(
+            $waitlistUser,
+            $typeBillet,
+            $action,
+            $quantiteTotale,
+            $prixDeBase
+        );
 
-        // Validation pour l'acceptation
-        if ($action === 'accept') {
-            if ($quantiteTotale === null || $quantiteTotale < 0) {
-                return new JsonResponse([
-                    'success' => false,
-                    'message' => 'Quantité invalide',
-                    'errors' => ['quantiteTotale' => 'La quantité doit être un nombre positif']
-                ], 400);
-            }
-
-            if ($prixDeBase === null || $prixDeBase < 0) {
-                return new JsonResponse([
-                    'success' => false,
-                    'message' => 'Prix invalide',
-                    'errors' => ['prixDeBase' => 'Le prix doit être un nombre positif']
-                ], 400);
-            }
-
-            $inventaire = $this->inventaireBilletService->getByTypeBillet($typeBillet);
-            $quantiteVendue = $inventaire ? $inventaire->getQuantiteVendue() : 0;
-
-            if ($quantiteTotale < $quantiteVendue) {
-                return new JsonResponse([
-                    'success' => false,
-                    'message' => 'Quantité invalide',
-                    'errors' => ['quantiteTotale' => 'La quantité totale ne peut pas être inférieure à la quantité vendue (' . $quantiteVendue . ')']
-                ], 400);
-            }
-
-            // Vérifier la capacité de l'événement
-            $quantiteDisponible = $quantiteTotale - $quantiteVendue;
-            $conn = $this->entityManager->getConnection();
-            
-            // Récupérer la quantité demandée en liste d'attente
-            $waitlistSql = 'SELECT SUM(quantite_demandee) as quantite_demandee
-                          FROM aiolia.listes_attente_billets
-                          WHERE id_utilisateur = :userId
-                          AND id_type_billet = :typeBilletId
-                          AND statut = :statut';
-            
-            $waitlistResult = $conn->executeQuery($waitlistSql, [
-                'userId' => $userId,
-                'typeBilletId' => $typeBilletId,
-                'statut' => 'pending'
-            ])->fetchAssociative();
-            
-            $quantiteDemandee = (int)($waitlistResult['quantite_demandee'] ?? 0);
-            
-            if ($quantiteDisponible < $quantiteDemandee) {
-                return new JsonResponse([
-                    'success' => false,
-                    'message' => 'Capacité insuffisante',
-                    'errors' => ['quantiteTotale' => 'La quantité disponible (' . $quantiteDisponible . ') est insuffisante pour satisfaire la demande (' . $quantiteDemandee . ')']
-                ], 400);
-            }
-
-            // Mettre à jour le prix et la quantité
-            $this->typeBilletService->update($typeBillet, [
-                'prixDeBase' => $prixDeBase
-            ]);
-
-            if (!$inventaire) {
-                $inventaire = $this->inventaireBilletService->create([
-                    'quantiteTotale' => $quantiteTotale,
-                    'quantiteVendue' => 0,
-                    'quantiteReservee' => 0
-                ], $typeBillet);
-            } else {
-                $this->inventaireBilletService->update($inventaire, [
-                    'quantiteTotale' => $quantiteTotale
-                ]);
-            }
-
-            // Supprimer l'entrée de la liste d'attente
-            $deleteSql = 'DELETE FROM aiolia.listes_attente_billets
-                         WHERE id_utilisateur = :userId
-                         AND id_type_billet = :typeBilletId';
-            
-            $conn->executeStatement($deleteSql, [
-                'userId' => $userId,
-                'typeBilletId' => $typeBilletId
-            ]);
-
-            // Envoyer l'email de confirmation
-            $this->waitlistEmailService->sendAcceptanceEmail($waitlistUser, $event, $typeBillet, $quantiteDemandee);
-
-            return new JsonResponse([
-                'success' => true,
-                'message' => 'Liste d\'attente acceptée avec succès. Un email de confirmation a été envoyé à l\'utilisateur.'
-            ]);
-        } else {
-            // Rejet
-            // Supprimer l'entrée de la liste d'attente
-            $conn = $this->entityManager->getConnection();
-            $deleteSql = 'DELETE FROM aiolia.listes_attente_billets
-                         WHERE id_utilisateur = :userId
-                         AND id_type_billet = :typeBilletId';
-            
-            $conn->executeStatement($deleteSql, [
-                'userId' => $userId,
-                'typeBilletId' => $typeBilletId
-            ]);
-
-            // Envoyer l'email de rejet
-            $this->waitlistEmailService->sendRejectionEmail($waitlistUser, $event, $typeBillet);
-
-            return new JsonResponse([
-                'success' => true,
-                'message' => 'Liste d\'attente rejetée. Un email de notification a été envoyé à l\'utilisateur.'
-            ]);
-        }
+        $statusCode = $result['success'] ? 200 : 400;
+        return new JsonResponse($result, $statusCode);
     }
 }
 

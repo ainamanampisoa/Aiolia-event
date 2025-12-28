@@ -7,8 +7,7 @@ use App\Form\TypeBilletPriceType;
 use App\Repository\Organisateur\EventRepository;
 use App\Repository\Organisateur\TicketInvoiceRepository;
 use App\Service\Organisateur\BilletService;
-use App\Service\Organisateur\HistoriquePrixBilletService;
-use App\Service\Organisateur\InventaireBilletService;
+use App\Service\Organisateur\TicketManagementService;
 use App\Service\Organisateur\TypeBilletService;
 use App\Service\QrCodeService;
 use Symfony\Bundle\FrameworkBundle\Controller\AbstractController;
@@ -21,9 +20,8 @@ class TicketController extends AbstractController
 {
     public function __construct(
         private BilletService $billetService,
+        private TicketManagementService $ticketManagementService,
         private TypeBilletService $typeBilletService,
-        private HistoriquePrixBilletService $historiquePrixBilletService,
-        private InventaireBilletService $inventaireBilletService,
         private QrCodeService $qrCodeService,
         private EventRepository $eventRepository,
         private TicketInvoiceRepository $ticketInvoiceRepository
@@ -185,183 +183,37 @@ class TicketController extends AbstractController
     {
         $this->denyAccessUnlessGranted('IS_AUTHENTICATED_REMEMBERED');
 
-        
         $user = $this->getUser();
-        
-        $typesBillets = $this->typeBilletService->getByOrganizer($user);
-
-        
         $niveauFilter = $request->query->get('niveau');
         $categorieFilter = $request->query->get('categorie');
         $segmentFilter = $request->query->get('segment');
-
-        
-        $timezone = new \DateTimeZone('Indian/Antananarivo');
-        $now = new \DateTime('now', $timezone);
-        
-        $alertesTotal = [];
-        foreach ($typesBillets as $typeBillet) {
-            $evenement = $typeBillet->getEvenement();
-            
-            // Filtrer uniquement les événements en cours et à venir
-            if ($evenement && $evenement->getCommenceLe()) {
-                $commenceLe = clone $evenement->getCommenceLe();
-                if ($commenceLe->getTimezone()->getName() !== $timezone->getName()) {
-                    $commenceLe->setTimezone($timezone);
-                }
-                
-                $seTermineLe = $evenement->getSeTermineLe();
-                if ($seTermineLe) {
-                    $seTermineLe = clone $seTermineLe;
-                    if ($seTermineLe->getTimezone()->getName() !== $timezone->getName()) {
-                        $seTermineLe->setTimezone($timezone);
-                    }
-                }
-                
-                // Vérifier si l'événement est en cours ou à venir
-                $isOngoing = $commenceLe <= $now && ($seTermineLe === null || $seTermineLe >= $now);
-                $isUpcoming = $commenceLe > $now;
-                
-                // Ignorer les événements passés
-                if (!$isOngoing && !$isUpcoming) {
-                    continue;
-                }
-            }
-            
-            $inventaire = $typeBillet->getInventaire();
-            if ($inventaire) {
-                $quantiteRestante = $inventaire->getQuantiteTotale() - $inventaire->getQuantiteVendue() - $inventaire->getQuantiteReservee();
-                $pourcentage = $inventaire->getQuantiteTotale() > 0
-                    ? ($quantiteRestante / $inventaire->getQuantiteTotale()) * 100
-                    : 0;
-
-                if ($pourcentage <= 10) {
-                    $niveau = $pourcentage <= 5 ? 'critique' : 'attention';
-                    
-                    $alertesTotal[] = [
-                        'typeBillet' => $typeBillet,
-                        'inventaire' => $inventaire,
-                        'quantiteRestante' => $quantiteRestante,
-                        'pourcentage' => $pourcentage,
-                        'niveau' => $niveau,
-                    ];
-                }
-            }
-        }
-
-        
-        $alertesCritiquesTotal = array_filter($alertesTotal, fn($a) => $a['niveau'] === 'critique');
-        $alertesAttentionTotal = array_filter($alertesTotal, fn($a) => $a['niveau'] === 'attention');
-
-        
-        $alertes = [];
-        foreach ($alertesTotal as $alerte) {
-            $typeBillet = $alerte['typeBillet'];
-            $niveau = $alerte['niveau'];
-            $categorieNom = $typeBillet->getConfigurationCategorie() ? $typeBillet->getConfigurationCategorie()->getNom() : null;
-            $segmentNom = $typeBillet->getConfigurationSegment() ? $typeBillet->getConfigurationSegment()->getNom() : null;
-            
-            
-            if ($niveauFilter && $niveau !== $niveauFilter) {
-                continue;
-            }
-            if ($categorieFilter && $categorieNom !== $categorieFilter) {
-                continue;
-            }
-            if ($segmentFilter && $segmentNom !== $segmentFilter) {
-                continue;
-            }
-            
-            $alertes[] = $alerte;
-        }
-        
-        
         $page = max(1, (int) $request->query->get('page', 1));
         $limit = 3;
-        $totalItems = count($alertes);
+
+        $result = $this->ticketManagementService->calculateStockAlerts(
+            $user,
+            $niveauFilter,
+            $categorieFilter,
+            $segmentFilter
+        );
+
+        $totalItems = count($result['alertes']);
         $totalPages = max(1, (int) ceil($totalItems / $limit));
-        
-        
         $offset = ($page - 1) * $limit;
-        $alertesPaginated = array_slice($alertes, $offset, $limit);
-        
-        
+        $alertesPaginated = array_slice($result['alertes'], $offset, $limit);
         $alertesCritiquesPaginated = array_filter($alertesPaginated, fn($a) => $a['niveau'] === 'critique');
         $alertesAttentionPaginated = array_filter($alertesPaginated, fn($a) => $a['niveau'] === 'attention');
 
-        
-        $categories = [];
-        $segments = [];
-        $eventsIds = [];
-        $capaciteParCategorie = []; // [eventId][categorieId] => total
-        
-        foreach ($typesBillets as $tb) {
-            $evenement = $tb->getEvenement();
-            
-            // Compter les événements uniques en cours et à venir
-            if ($evenement && $evenement->getCommenceLe() && $evenement->getStatut() === Event::STATUS_PUBLISHED) {
-                $commenceLe = clone $evenement->getCommenceLe();
-                if ($commenceLe->getTimezone()->getName() !== $timezone->getName()) {
-                    $commenceLe->setTimezone($timezone);
-                }
-                
-                $seTermineLe = $evenement->getSeTermineLe();
-                if ($seTermineLe) {
-                    $seTermineLe = clone $seTermineLe;
-                    if ($seTermineLe->getTimezone()->getName() !== $timezone->getName()) {
-                        $seTermineLe->setTimezone($timezone);
-                    }
-                }
-                
-                // Vérifier si l'événement est en cours ou à venir
-                $isOngoing = $commenceLe <= $now && ($seTermineLe === null || $seTermineLe >= $now);
-                $isUpcoming = $commenceLe > $now;
-                
-                if ($isOngoing || $isUpcoming) {
-                    $eventId = $evenement->getId();
-                    if (!in_array($eventId, $eventsIds)) {
-                        $eventsIds[] = $eventId;
-                    }
-                    
-                    // Calculer la capacité totale par catégorie pour cet événement
-                    $categorieId = $tb->getConfigurationCategorie() ? $tb->getConfigurationCategorie()->getId() : 'sans_categorie';
-                    $inventaire = $tb->getInventaire();
-                    $quantiteTotale = $inventaire ? $inventaire->getQuantiteTotale() : 0;
-                    
-                    if (!isset($capaciteParCategorie[$eventId])) {
-                        $capaciteParCategorie[$eventId] = [];
-                    }
-                    if (!isset($capaciteParCategorie[$eventId][$categorieId])) {
-                        $capaciteParCategorie[$eventId][$categorieId] = 0;
-                    }
-                    $capaciteParCategorie[$eventId][$categorieId] += $quantiteTotale;
-                }
-            }
-            
-            if ($tb->getConfigurationCategorie() && !isset($categories[$tb->getConfigurationCategorie()->getNom()])) {
-                $categories[$tb->getConfigurationCategorie()->getNom()] = $tb->getConfigurationCategorie()->getNom();
-            }
-            if ($tb->getConfigurationSegment()) {
-                $segmentNom = $tb->getConfigurationSegment()->getNom();
-                
-                if ($segmentNom !== 'tous' && !isset($segments[$segmentNom])) {
-                    $segments[$segmentNom] = $segmentNom;
-                }
-            }
-        }
-        
-        $eventsCount = count($eventsIds);
-        
         return $this->render('Organisateur/ticket/stock_alerts.html.twig', [
-            'alertes' => $alertes,
-            'alertesTotal' => $alertesTotal,
+            'alertes' => $result['alertes'],
+            'alertesTotal' => $result['alertesTotal'],
             'alertesPaginated' => $alertesPaginated,
-            'alertesCritiques' => array_values($alertesCritiquesTotal),
-            'alertesAttention' => array_values($alertesAttentionTotal),
+            'alertesCritiques' => $result['alertesCritiques'],
+            'alertesAttention' => $result['alertesAttention'],
             'alertesCritiquesPaginated' => array_values($alertesCritiquesPaginated),
             'alertesAttentionPaginated' => array_values($alertesAttentionPaginated),
-            'categories' => $categories,
-            'segments' => $segments,
+            'categories' => $result['categories'],
+            'segments' => $result['segments'],
             'currentPage' => $page,
             'totalPages' => $totalPages,
             'totalItems' => $totalItems,
@@ -369,8 +221,8 @@ class TicketController extends AbstractController
             'niveauFilter' => $niveauFilter,
             'categorieFilter' => $categorieFilter,
             'segmentFilter' => $segmentFilter,
-            'eventsCount' => $eventsCount,
-            'capaciteParCategorie' => $capaciteParCategorie,
+            'eventsCount' => $result['eventsCount'],
+            'capaciteParCategorie' => $result['capaciteParCategorie'],
         ]);
     }
 
@@ -379,82 +231,25 @@ class TicketController extends AbstractController
     {
         $this->denyAccessUnlessGranted('IS_AUTHENTICATED_REMEMBERED');
 
-        
         $user = $this->getUser();
-
-        $typesBillets = $this->typeBilletService->getByOrganizer($user);
         $categorieFilter = $request->query->get('categorie');
         $segmentFilter = $request->query->get('segment');
         $page = max(1, (int) $request->query->get('page', 1));
         $limit = 5;
 
-        $historiques = [];
-        $paginationData = [];
-
-        
-        $paginator = $this->historiquePrixBilletService->getByOrganizerPaginated($user, $page, $limit, $categorieFilter, $segmentFilter);
-        $totalItems = $paginator->count();
-        $totalPages = max(1, (int) ceil($totalItems / $limit));
-
-        
-        $groupedByType = [];
-        $itemsOnCurrentPage = 0;
-        foreach ($paginator as $hist) {
-            $itemsOnCurrentPage++;
-            $typeId = $hist->getTypeBillet()->getId();
-            if (!isset($groupedByType[$typeId])) {
-                $groupedByType[$typeId] = [
-                    'typeBillet' => $hist->getTypeBillet(),
-                    'historique' => [],
-                ];
-            }
-            $groupedByType[$typeId]['historique'][] = $hist;
-        }
-
-        $historiques = $groupedByType;
-
-        $paginationData = [
-            'currentPage' => $page,
-            'totalPages' => $totalPages,
-            'totalItems' => $totalItems,
-            'limit' => $limit,
-            'categorieFilter' => $categorieFilter,
-            'segmentFilter' => $segmentFilter,
-            'itemsOnCurrentPage' => $itemsOnCurrentPage,
-        ];
-
-        
-        $categories = [];
-        $segments = [];
-        foreach ($typesBillets as $tb) {
-            if ($tb->getConfigurationCategorie() && !isset($categories[$tb->getConfigurationCategorie()->getNom()])) {
-                $categories[$tb->getConfigurationCategorie()->getNom()] = $tb->getConfigurationCategorie()->getNom();
-            }
-            if ($tb->getConfigurationSegment()) {
-                $segmentNom = $tb->getConfigurationSegment()->getNom();
-                
-                if ($segmentNom !== 'tous' && !isset($segments[$segmentNom])) {
-                    $segments[$segmentNom] = $segmentNom;
-                }
-            }
-        }
-
-        
-        if (empty($paginationData)) {
-            $paginationData = [
-                'currentPage' => 1,
-                'totalPages' => 0,
-                'totalItems' => 0,
-                'limit' => $limit,
-                'itemsOnCurrentPage' => 0,
-            ];
-        }
+        $result = $this->ticketManagementService->getGroupedPriceHistory(
+            $user,
+            $page,
+            $limit,
+            $categorieFilter,
+            $segmentFilter
+        );
 
         return $this->render('Organisateur/ticket/historique_prix.html.twig', [
-            'pagination' => $paginationData,
-            'historiques' => $historiques,
-            'categories' => $categories,
-            'segments' => $segments,
+            'pagination' => $result['pagination'],
+            'historiques' => $result['historiques'],
+            'categories' => $result['categories'],
+            'segments' => $result['segments'],
         ]);
     }
 
@@ -550,22 +345,9 @@ class TicketController extends AbstractController
             $nouveauPrix = $data['prixDeBase'];
             $raison = $data['raison'] ?? null;
             
-            
-            $nouveauPrixString = is_numeric($nouveauPrix) ? number_format((float)$nouveauPrix, 2, '.', '') : (string)$nouveauPrix;
-            
-            
-            $ancienPrix = $typeBillet->getPrixDeBase();
-            
-            
-            $this->typeBilletService->update($typeBillet, [
-                'prixDeBase' => $nouveauPrixString,
-            ]);
-            
-            
-            $this->historiquePrixBilletService->enregistrerChangement(
+            $result = $this->ticketManagementService->updatePrice(
                 $typeBillet,
-                $ancienPrix,
-                $nouveauPrixString,
+                $nouveauPrix,
                 $user,
                 $raison,
                 ['action' => 'modification_prix', 'billet_id' => $billet->getId()]
@@ -575,8 +357,8 @@ class TicketController extends AbstractController
                 return $this->json([
                     'success' => true,
                     'message' => 'Prix modifié avec succès',
-                    'nouveauPrix' => number_format((float)$nouveauPrix, 2, ',', ' '),
-                    'devise' => $typeBillet->getDevise(),
+                    'nouveauPrix' => $result['nouveauPrix'],
+                    'devise' => $result['devise'],
                 ]);
             }
             
@@ -642,12 +424,7 @@ class TicketController extends AbstractController
             ], 404);
         }
 
-        $now = new \DateTime();
-        $isEventActive = $event->getCommenceLe() && $event->getSeTermineLe()
-            && $now >= $event->getCommenceLe() && $now <= $event->getSeTermineLe();
-        $isEventUpcoming = $event->getCommenceLe() && $now < $event->getCommenceLe();
-
-        if (!$isEventActive && !$isEventUpcoming) {
+        if (!$this->ticketManagementService->isEventActiveOrUpcoming($event)) {
             return $this->json([
                 'success' => false,
                 'message' => 'L\'événement est terminé, vous ne pouvez plus modifier ce type de billet',
@@ -655,62 +432,32 @@ class TicketController extends AbstractController
         }
 
         $data = json_decode($request->getContent(), true);
-        $errors = [];
-
-        // Validation du prix
-        if (!isset($data['prixDeBase']) || !is_numeric($data['prixDeBase']) || (float)$data['prixDeBase'] < 0) {
-            $errors['prixDeBase'] = 'Le prix doit être un nombre positif';
-        }
-
-        // Validation de la quantité
-        $inventaire = $typeBillet->getInventaire();
-        $quantiteVendue = $inventaire ? $inventaire->getQuantiteVendue() : 0;
         
-        if (!isset($data['quantiteTotale']) || !is_numeric($data['quantiteTotale'])) {
-            $errors['quantiteTotale'] = 'La quantité doit être un nombre';
-        } elseif ((int)$data['quantiteTotale'] < $quantiteVendue) {
-            $errors['quantiteTotale'] = "La quantité ne peut pas être inférieure à {$quantiteVendue} (quantité déjà vendue)";
-        }
-
-        if (!empty($errors)) {
+        if (!isset($data['prixDeBase']) || !is_numeric($data['prixDeBase'])) {
             return $this->json([
                 'success' => false,
                 'message' => 'Erreurs de validation',
-                'errors' => $errors,
+                'errors' => ['prixDeBase' => 'Le prix doit être un nombre']
             ], 400);
         }
 
-        // Mettre à jour le prix
-        $nouveauPrix = number_format((float)$data['prixDeBase'], 2, '.', '');
-        $ancienPrix = $typeBillet->getPrixDeBase();
-        
-        $this->typeBilletService->update($typeBillet, [
-            'prixDeBase' => $nouveauPrix,
-        ]);
-
-        // Enregistrer l'historique si le prix a changé
-        if ($ancienPrix !== $nouveauPrix) {
-            $this->historiquePrixBilletService->enregistrerChangement(
-                $typeBillet,
-                $ancienPrix,
-                $nouveauPrix,
-                $user,
-                'Modification via interface catégories',
-                ['action' => 'modification_prix_quantite', 'type_billet_id' => $typeBillet->getId()]
-            );
+        if (!isset($data['quantiteTotale']) || !is_numeric($data['quantiteTotale'])) {
+            return $this->json([
+                'success' => false,
+                'message' => 'Erreurs de validation',
+                'errors' => ['quantiteTotale' => 'La quantité doit être un nombre']
+            ], 400);
         }
 
-        // Mettre à jour la quantité dans l'inventaire
-        if ($inventaire) {
-            $this->inventaireBilletService->update($inventaire, [
-                'quantiteTotale' => (int)$data['quantiteTotale'],
-            ]);
-        }
+        $result = $this->ticketManagementService->updateTypeBillet(
+            $typeBillet,
+            (float)$data['prixDeBase'],
+            (int)$data['quantiteTotale'],
+            $user
+        );
 
-        return $this->json([
-            'success' => true,
-            'message' => 'Type de billet modifié avec succès',
-        ]);
+        $statusCode = $result['success'] ? 200 : 400;
+        return $this->json($result, $statusCode);
     }
 }
 
