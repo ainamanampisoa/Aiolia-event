@@ -97,27 +97,19 @@
     white-space: nowrap;
 }
 
-/* Désactivation des effets de hover "animés" pour les boutons PDF et Partager */
-.btn-pdf::before,
-.btn-share::before {
+/* Désactivation des effets de hover "animés" pour le bouton PDF */
+.btn-pdf::before {
     display: none;
-    /* supprime le voile dégradé qui glisse */
 }
 
-.btn-pdf,
-.btn-share {
+.btn-pdf {
     transition: none;
-    /* plus d’animation de transition de fond/couleur */
 }
 
 .btn-pdf:hover,
 .btn-pdf:active,
-.btn-pdf:focus,
-.btn-share:hover,
-.btn-share:active,
-.btn-share:focus {
+.btn-pdf:focus {
     background: linear-gradient(135deg, #fff 0%, #f9f9f9 100%) !important;
-    /* garde le même fond clair */
     border-color: var(--border-light) !important;
     color: var(--text-dark) !important;
     transform: none !important;
@@ -126,16 +118,12 @@
 }
 
 .btn-pdf:hover i,
-.btn-pdf:hover .btn-text,
-.btn-share:hover i,
-.btn-share:hover .btn-text {
+.btn-pdf:hover .btn-text {
     color: var(--text-dark) !important;
-    /* évite le passage forcé en blanc/bleu */
 }
 
-/* Couleurs spécifiques pour chaque action */
-.btn-pdf,
-.btn-share {
+/* Couleurs spécifiques pour le bouton PDF */
+.btn-pdf {
     border: 2px solid var(--border-light) !important;
     border-radius: var(--radius-md) !important;
     height: 48px;
@@ -159,31 +147,12 @@
     color: var(--text-dark) !important;
 }
 
-.btn-share {
-    color: var(--text-dark) !important;
-    background: linear-gradient(135deg, #fff 0%, #f9f9f9 100%) !important;
-}
-
-/* Petite animation : bordure bleue au survol/clic pour Partager */
-.btn-share:hover,
-.btn-share:active,
-.btn-share:focus {
-    background: linear-gradient(135deg, #fff 0%, #f9f9f9 100%) !important;
-    /* fond reste neutre */
-    border-color: var(--secondary-blue) !important;
-    /* bordure bleue animée */
-    box-shadow: var(--shadow-hover) !important;
-    color: var(--text-dark) !important;
-}
-
-/* Petite animation : bordure rouge au survol/clic pour PDF (même style que Partager) */
+/* Petite animation : bordure bleue au survol/clic pour PDF */
 .btn-pdf:hover,
 .btn-pdf:active,
 .btn-pdf:focus {
     background: linear-gradient(135deg, #fff 0%, #f9f9f9 100%) !important;
-    /* fond reste neutre */
     border-color: var(--secondary-blue) !important;
-    /* bordure bleue animée (match Partager) */
     box-shadow: var(--shadow-hover) !important;
     color: var(--text-dark) !important;
 }
@@ -262,29 +231,6 @@
 .btn-pdf.downloading i {
     animation: none !important;
     transform: none !important;
-}
-
-/* Animation de partage */
-.btn-share.sharing i {
-    animation: shareBounce 0.8s ease;
-}
-
-@keyframes shareBounce {
-
-    0%,
-    20%,
-    60%,
-    100% {
-        transform: scale(1);
-    }
-
-    40% {
-        transform: scale(1.3);
-    }
-
-    80% {
-        transform: scale(0.9);
-    }
 }
 
 /* Animation d'échange */
@@ -592,25 +538,8 @@
     /* Supprime l'animation de pulsation */
 }
 
-/* Désactivation des animations pour Partager */
-.btn-share:active,
-.btn-share:focus {
-    animation: none !important;
-}
-
-.btn-share:active i,
-.btn-share:focus i {
-    animation: none !important;
-    transform: scale(1) !important;
-}
-
-.btn-share.sharing i {
-    animation: none !important;
-    /* Supprime l'animation de bounce */
-}
-
-/* ===== ÉTATS ACTIFS SIMPLIFIÉS (sauf PDF/Partager) ===== */
-.action-btn:not(.btn-pdf):not(.btn-share):active {
+/* ===== ÉTATS ACTIFS SIMPLIFIÉS (sauf PDF/Calendrier) ===== */
+.action-btn:not(.btn-pdf):not(.btn-calendar):active {
     transform: none !important;
     transition: none !important;
     background: inherit !important;
@@ -618,7 +547,7 @@
     box-shadow: inherit !important;
 }
 
-.action-btn:not(.btn-pdf):not(.btn-share):active::before {
+.action-btn:not(.btn-pdf):not(.btn-calendar):active::before {
     transition: none !important;
 }
 
@@ -657,13 +586,6 @@
     transform: none !important;
 }
 
-.btn-share:hover i,
-.btn-share:active i,
-.btn-share:focus i,
-.btn-share.sharing i {
-    animation: none !important;
-    transform: none !important;
-}
 
 /* Métadonnées du billet améliorées */
 .ticket-meta {
@@ -974,4 +896,171 @@
 .page-number:focus {
     outline: 2px solid var(--primary-green);
     outline-offset: 2px;
+}
+
+/* ===== MENU CALENDRIER ===== */
+.calendar-dropdown {
+    position: relative;
+    display: inline-block;
+}
+
+.btn-calendar {
+    border: 2px solid var(--border-light) !important;
+    border-radius: var(--radius-md) !important;
+    height: 48px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    background: linear-gradient(135deg, #fff 0%, #f9f9f9 100%) !important;
+    color: var(--text-dark) !important;
+}
+
+.btn-calendar::before {
+    display: none;
+}
+
+.btn-calendar:hover,
+.btn-calendar:active,
+.btn-calendar:focus {
+    background: linear-gradient(135deg, #fff 0%, #f9f9f9 100%) !important;
+    border-color: var(--primary-green) !important;
+    box-shadow: var(--shadow-hover) !important;
+    color: var(--text-dark) !important;
+    transform: none !important;
+}
+
+.btn-calendar i {
+    color: var(--primary-green);
+    transition: var(--transition);
+}
+
+.btn-calendar:hover i {
+    color: var(--primary-green) !important;
+    transform: scale(1.1);
+}
+
+/* Menu déroulant */
+.calendar-menu {
+    position: absolute;
+    top: calc(100% + 8px);
+    left: 50%;
+    transform: translateX(-50%) scale(0.95);
+    background: white;
+    border-radius: var(--radius-md);
+    box-shadow: 0 10px 40px rgba(0, 0, 0, 0.15);
+    min-width: 200px;
+    opacity: 0;
+    visibility: hidden;
+    transition: all 0.2s ease;
+    z-index: 1000;
+    overflow: hidden;
+    border: 1px solid var(--border-light);
+}
+
+.calendar-dropdown.active .calendar-menu {
+    opacity: 1;
+    visibility: visible;
+    transform: translateX(-50%) scale(1);
+}
+
+/* Options du menu */
+.calendar-option {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    padding: 14px 18px;
+    text-decoration: none;
+    color: var(--text-dark);
+    font-weight: 500;
+    font-size: 14px;
+    transition: var(--transition);
+    border-bottom: 1px solid var(--border-light);
+}
+
+.calendar-option:last-child {
+    border-bottom: none;
+}
+
+.calendar-option:hover {
+    background: var(--bg-light);
+    color: var(--primary-green);
+}
+
+.calendar-option i {
+    font-size: 18px;
+    width: 24px;
+    text-align: center;
+}
+
+/* Couleurs des icônes */
+.calendar-option[data-calendar="google"] i {
+    color: #4285F4;
+}
+
+.calendar-option[data-calendar="ical"] i {
+    color: #333;
+}
+
+.calendar-option[data-calendar="outlook"] i {
+    color: #0078D4;
+}
+
+.calendar-option:hover i {
+    transform: scale(1.1);
+}
+
+/* Flèche du menu */
+.calendar-menu::before {
+    content: '';
+    position: absolute;
+    top: -8px;
+    left: 50%;
+    transform: translateX(-50%);
+    border-left: 8px solid transparent;
+    border-right: 8px solid transparent;
+    border-bottom: 8px solid white;
+}
+
+.calendar-menu::after {
+    content: '';
+    position: absolute;
+    top: -10px;
+    left: 50%;
+    transform: translateX(-50%);
+    border-left: 9px solid transparent;
+    border-right: 9px solid transparent;
+    border-bottom: 9px solid var(--border-light);
+    z-index: -1;
+}
+
+/* Responsive */
+@media (max-width: 480px) {
+    .calendar-menu {
+        position: fixed;
+        top: auto;
+        bottom: 0;
+        left: 0;
+        right: 0;
+        transform: translateY(100%);
+        border-radius: var(--radius-lg) var(--radius-lg) 0 0;
+        min-width: 100%;
+    }
+    
+    .calendar-dropdown.active .calendar-menu {
+        transform: translateY(0);
+    }
+    
+    .calendar-menu::before,
+    .calendar-menu::after {
+        display: none;
+    }
+    
+    .calendar-option {
+        padding: 18px 20px;
+        font-size: 16px;
+    }
+    
+    .calendar-option i {
+        font-size: 22px;
+    }
 }

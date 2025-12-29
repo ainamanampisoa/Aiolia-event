@@ -147,10 +147,29 @@
                                             <span class="btn-text">PDF</span>
                                         </a>
                                         
-                                        <button class="action-btn btn-share" data-tooltip="Partager le billet" data-ticket-id="{{ ticket.id }}">
-                                            <i class="fas fa-share-alt"></i>
-                                            <span class="btn-text">Partager</span>
-                                        </button>
+                                        <div class="calendar-dropdown">
+                                            <button class="action-btn btn-calendar" 
+                                                    data-tooltip="Ajouter au calendrier"
+                                                    data-event-title="{{ event.title|e('html_attr') }}"
+                                                    data-event-date="{{ startsAt ? startsAt|date('Y-m-d\\TH:i:s') : '' }}"
+                                                    data-event-location="{{ event.location|e('html_attr') }}"
+                                                    data-event-description="Billet {{ ticket.ticket_type }} - {{ ticket.price ? (ticket.price|number_format(0, ',', ' ') ~ ' MGA') : 'Gratuit' }}"
+                                                    data-ticket-id="{{ ticket.id }}">
+                                                <i class="fas fa-calendar-plus"></i>
+                                                <span class="btn-text">Calendrier</span>
+                                            </button>
+                                            <div class="calendar-menu">
+                                                <a href="#" class="calendar-option" data-calendar="google">
+                                                    <i class="fab fa-google"></i> Google Calendar
+                                                </a>
+                                                <a href="#" class="calendar-option" data-calendar="ical">
+                                                    <i class="fas fa-apple-alt"></i> Apple Calendar
+                                                </a>
+                                                <a href="#" class="calendar-option" data-calendar="outlook">
+                                                    <i class="fab fa-microsoft"></i> Outlook
+                                                </a>
+                                            </div>
+                                        </div>
                                     </div>  
                                 </div>
 
@@ -222,56 +241,133 @@
     
     <script>
     document.addEventListener('DOMContentLoaded', function() {
-        // Le bouton PDF est maintenant un lien direct vers le PDF, pas besoin de JS spécifique
-
-        // Animation pour le bouton Partage
-        document.querySelectorAll('.btn-share').forEach(btn => {
+        
+        // ===== CALENDRIER =====
+        // Afficher/masquer le menu calendrier
+        document.querySelectorAll('.btn-calendar').forEach(btn => {
             btn.addEventListener('click', function(e) {
                 e.preventDefault();
-                const ticketId = this.getAttribute('data-ticket-id');
+                e.stopPropagation();
                 
-                // Ajouter l'animation de partage
-                this.classList.add('sharing');
+                // Fermer les autres menus ouverts
+                document.querySelectorAll('.calendar-dropdown.active').forEach(dropdown => {
+                    if (dropdown !== this.parentElement) {
+                        dropdown.classList.remove('active');
+                    }
+                });
                 
-                // Simuler le partage (remplacer par votre logique réelle)
-                setTimeout(() => {
-                    this.classList.remove('sharing');
-                    // Ici vous ajouteriez la logique de partage réel
-                    console.log('Partage du billet:', ticketId);
-                }, 1000);
+                this.parentElement.classList.toggle('active');
             });
         });
 
-        // Gestion responsive des tooltips
-        function handleTooltips() {
-            if (window.innerWidth <= 480) {
-                document.querySelectorAll('.action-btn[data-tooltip]').forEach(btn => {
-                    btn.setAttribute('title', btn.getAttribute('data-tooltip'));
-                });
-            } else {
-                document.querySelectorAll('.action-btn[data-tooltip]').forEach(btn => {
-                    btn.removeAttribute('title');
+        // Fermer le menu si on clique ailleurs
+        document.addEventListener('click', function(e) {
+            if (!e.target.closest('.calendar-dropdown')) {
+                document.querySelectorAll('.calendar-dropdown.active').forEach(dropdown => {
+                    dropdown.classList.remove('active');
                 });
             }
+        });
+
+        // Gérer les options du calendrier
+        document.querySelectorAll('.calendar-option').forEach(option => {
+            option.addEventListener('click', function(e) {
+                e.preventDefault();
+                
+                const dropdown = this.closest('.calendar-dropdown');
+                const btn = dropdown.querySelector('.btn-calendar');
+                const calendarType = this.getAttribute('data-calendar');
+                
+                const eventData = {
+                    title: btn.getAttribute('data-event-title'),
+                    date: btn.getAttribute('data-event-date'),
+                    location: btn.getAttribute('data-event-location'),
+                    description: btn.getAttribute('data-event-description')
+                };
+
+                // Durée par défaut : 2 heures
+                const startDate = new Date(eventData.date);
+                const endDate = new Date(startDate.getTime() + 2 * 60 * 60 * 1000);
+
+                if (calendarType === 'google') {
+                    addToGoogleCalendar(eventData, startDate, endDate);
+                } else if (calendarType === 'ical' || calendarType === 'outlook') {
+                    downloadICS(eventData, startDate, endDate, calendarType);
+                }
+
+                dropdown.classList.remove('active');
+            });
+        });
+
+        // Ajouter à Google Calendar
+        function addToGoogleCalendar(event, startDate, endDate) {
+            const formatDate = (date) => date.toISOString().replace(/-|:|\.\d+/g, '').slice(0, 15) + 'Z';
+            
+            const url = new URL('https://calendar.google.com/calendar/render');
+            url.searchParams.set('action', 'TEMPLATE');
+            url.searchParams.set('text', event.title);
+            url.searchParams.set('dates', formatDate(startDate) + '/' + formatDate(endDate));
+            url.searchParams.set('location', event.location);
+            url.searchParams.set('details', event.description + '\n\nBillet réservé sur Aiolia Event');
+            
+            window.open(url.toString(), '_blank');
         }
 
-        // Initialiser et surveiller les changements de taille
+        // Télécharger fichier ICS (Apple Calendar / Outlook)
+        function downloadICS(event, startDate, endDate, type) {
+            const formatDate = (date) => date.toISOString().replace(/-|:|\.\d+/g, '').slice(0, 15) + 'Z';
+            
+            const icsContent = [
+                'BEGIN:VCALENDAR',
+                'VERSION:2.0',
+                'PRODID:-//Aiolia Event//Ticket//FR',
+                'CALSCALE:GREGORIAN',
+                'METHOD:PUBLISH',
+                'BEGIN:VEVENT',
+                'DTSTART:' + formatDate(startDate),
+                'DTEND:' + formatDate(endDate),
+                'SUMMARY:' + event.title,
+                'LOCATION:' + event.location,
+                'DESCRIPTION:' + event.description.replace(/\n/g, '\\n') + '\\n\\nBillet réservé sur Aiolia Event',
+                'STATUS:CONFIRMED',
+                'BEGIN:VALARM',
+                'TRIGGER:-P1D',
+                'ACTION:DISPLAY',
+                'DESCRIPTION:Rappel : ' + event.title + ' demain !',
+                'END:VALARM',
+                'BEGIN:VALARM',
+                'TRIGGER:-PT2H',
+                'ACTION:DISPLAY',
+                'DESCRIPTION:Rappel : ' + event.title + ' dans 2 heures !',
+                'END:VALARM',
+                'END:VEVENT',
+                'END:VCALENDAR'
+            ].join('\r\n');
+
+            const blob = new Blob([icsContent], { type: 'text/calendar;charset=utf-8' });
+            const link = document.createElement('a');
+            link.href = URL.createObjectURL(blob);
+            link.download = event.title.replace(/[^a-z0-9]/gi, '_') + '.ics';
+            document.body.appendChild(link);
+            link.click();
+            document.body.removeChild(link);
+            URL.revokeObjectURL(link.href);
+        }
+
+        // ===== TOOLTIPS RESPONSIVE =====
+        function handleTooltips() {
+            const isMobile = window.innerWidth <= 480;
+            document.querySelectorAll('.action-btn[data-tooltip]').forEach(btn => {
+                if (isMobile) {
+                    btn.setAttribute('title', btn.getAttribute('data-tooltip'));
+                } else {
+                    btn.removeAttribute('title');
+                }
+            });
+        }
+
         handleTooltips();
         window.addEventListener('resize', handleTooltips);
-
-        // Badge de notification exemple (à adapter selon vos besoins)
-        function addNotificationBadge(button, count) {
-            if (count > 0) {
-                const badge = document.createElement('span');
-                badge.className = 'action-badge';
-                badge.textContent = count;
-                button.style.position = 'relative';
-                button.appendChild(badge);
-            }
-        }
-
-        // Exemple d'ajout de badge (à remplacer par votre logique)
-        // addNotificationBadge(document.querySelector('.btn-other'), 1);
     });
     </script>
 {% endblock %}
