@@ -249,14 +249,23 @@
                 e.preventDefault();
                 e.stopPropagation();
                 
-                // Fermer les autres menus ouverts
+                const parentDropdown = this.parentElement;
+                const wasActive = parentDropdown.classList.contains('active');
+                
+                // Fermer les autres menus ouverts et reset z-index
                 document.querySelectorAll('.calendar-dropdown.active').forEach(dropdown => {
-                    if (dropdown !== this.parentElement) {
-                        dropdown.classList.remove('active');
-                    }
+                    dropdown.classList.remove('active');
+                    // Reset z-index du parent card
+                    const card = dropdown.closest('.ticket-card');
+                    if (card) card.style.zIndex = '';
                 });
                 
-                this.parentElement.classList.toggle('active');
+                if (!wasActive) {
+                    parentDropdown.classList.add('active');
+                    // Augmenter z-index pour passer au-dessus des autres cartes
+                    const card = parentDropdown.closest('.ticket-card');
+                    if (card) card.style.zIndex = '100';
+                }
             });
         });
 
@@ -265,6 +274,9 @@
             if (!e.target.closest('.calendar-dropdown')) {
                 document.querySelectorAll('.calendar-dropdown.active').forEach(dropdown => {
                     dropdown.classList.remove('active');
+                    // Reset z-index
+                    const card = dropdown.closest('.ticket-card');
+                    if (card) card.style.zIndex = '';
                 });
             }
         });

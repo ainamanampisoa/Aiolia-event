@@ -332,7 +332,9 @@
     box-shadow: var(--shadow-soft);
     transition: var(--transition);
     border: 1px solid var(--border-light);
-    overflow: hidden;
+    /* overflow: hidden;  <-- REMOVED to allow dropdown to show */
+    position: relative;
+    /* Ensure z-index works */
 }
 
 .ticket-card:hover {
@@ -635,6 +637,8 @@
     display: flex;
     align-items: center;
     overflow: hidden;
+    /* Fix border radius since parent no longer clips */
+    border-radius: 0 var(--radius-lg) var(--radius-lg) 0;
 }
 
 .blc-col2 .img {
@@ -929,12 +933,20 @@
     transform: none !important;
 }
 
+.btn-calendar:hover span,
+.btn-calendar:active span,
+.btn-calendar:focus span {
+    color: var(--text-dark) !important;
+}
+
 .btn-calendar i {
     color: var(--primary-green);
     transition: var(--transition);
 }
 
-.btn-calendar:hover i {
+.btn-calendar:hover i,
+.btn-calendar:active i,
+.btn-calendar:focus i {
     color: var(--primary-green) !important;
     transform: scale(1.1);
 }
@@ -1045,21 +1057,21 @@
         border-radius: var(--radius-lg) var(--radius-lg) 0 0;
         min-width: 100%;
     }
-    
+
     .calendar-dropdown.active .calendar-menu {
         transform: translateY(0);
     }
-    
+
     .calendar-menu::before,
     .calendar-menu::after {
         display: none;
     }
-    
+
     .calendar-option {
         padding: 18px 20px;
         font-size: 16px;
     }
-    
+
     .calendar-option i {
         font-size: 22px;
     }
