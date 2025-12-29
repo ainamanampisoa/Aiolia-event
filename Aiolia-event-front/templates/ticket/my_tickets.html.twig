@@ -113,31 +113,25 @@
                             <!-- Détails de l'événement -->
                             <div class="col2">
                                 <span class="bandeau {{ event.category|lower|replace({' ': '-'}) }}">{{ event.category }}</span>
-                                <h3 class="event-title">{{ event.title }}</h3>
+                                <h3>{{ event.title }}</h3>
                                 
-                                <div class="event-details">
-                                    <div class="detail-item">
-                                        <i class="fas fa-map-marker-alt"></i>
-                                        <span>{{ event.location }}</span>
-                                    </div>
-                                    <div class="detail-item">
-                                        <i class="fas fa-tag"></i>
-                                        <span>
-                                            {% if ticket.price is not null %}
-                                                {{ ticket.price|number_format(0, ',', ' ') }} MGA
-                                            {% else %}
-                                                Gratuit
-                                            {% endif %}
-                                            · {{ ticket.ticket_type }}
-                                        </span>
-                                    </div>
+                                <div class="adresse">{{ event.location }}</div>
+                                <div class="tarif">
+                                    {% if ticket.price is not null %}
+                                        {{ ticket.price|number_format(0, ',', ' ') }} MGA
+                                    {% else %}
+                                        Gratuit
+                                    {% endif %}
+                                    · {{ ticket.ticket_type }}
                                 </div>
 
+                                <!-- Actions améliorées -->
+                                <!-- Actions améliorées -->
                                 <!-- Actions améliorées -->
                                 <div class="blcBtn ticket-actions">
                                     <a href="{{ path('my_ticket_details', {id: ticket.id}) }}" class="btn btn-primary details">
                                         <i class="fas fa-eye"></i>
-                                        Détails
+                                        <span class="btn-text">Détails</span>
                                     </a>
                                     <div class="action-group enhanced compact-mobile">
                                         <a href="{{ path('ticket_pdf', {id: ticket.id}) }}"

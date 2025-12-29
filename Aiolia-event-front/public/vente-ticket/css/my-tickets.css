@@ -393,7 +393,7 @@
 } */
 
 /* ===== BADGE CATÉGORIE AMÉLIORÉ ===== */
-.ticket-card .col2 .bandeau {
+/* .ticket-card .col2 .bandeau {
     display: inline-flex !important;
     align-items: center !important;
     padding: 6px 16px !important;
@@ -406,10 +406,10 @@
     width: fit-content !important;
     background: linear-gradient(135deg, #667eea 0%, #764ba2 100%) !important;
     color: white !important;
-}
+} */
 
 /* Couleurs par catégorie */
-.ticket-card .col2 .bandeau.business {
+/* .ticket-card .col2 .bandeau.business {
     background: linear-gradient(135deg, #1a5f4a 0%, #0d3d2e 100%) !important;
 }
 
@@ -439,19 +439,19 @@
 .ticket-card .col2 .bandeau.culture,
 .ticket-card .col2 .bandeau.spectacle {
     background: linear-gradient(135deg, #f39c12 0%, #e67e22 100%) !important;
-}
+} */
 
 /* Titre de l'événement */
-.ticket-card .col2 .event-title {
+/* .ticket-card .col2 .event-title {
     font-size: 24px !important;
     font-weight: 700 !important;
     color: var(--text-dark) !important;
     margin: 0 0 10px 0 !important;
     line-height: 1.2 !important;
-}
+} */
 
 /* Détails de l'événement */
-.ticket-card .col2 .event-details {
+/* .ticket-card .col2 .event-details {
     display: flex !important;
     flex-direction: column !important;
     gap: 8px !important;
@@ -471,7 +471,7 @@
     color: var(--primary-green) !important;
     font-size: 14px !important;
     flex-shrink: 0 !important;
-}
+} */
 
 /* Date card améliorée */
 .date-card {
