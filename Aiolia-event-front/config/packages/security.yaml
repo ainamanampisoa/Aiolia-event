@@ -19,6 +19,11 @@ security:
             pattern: ^/api/notifications
             security: false
 
+        # Firewall pour ticket-chance (authentification manuelle par session)
+        ticket_chance:
+            pattern: ^/api/ticket-chance
+            security: false
+
         main:
             lazy: true
             provider: app_user_provider

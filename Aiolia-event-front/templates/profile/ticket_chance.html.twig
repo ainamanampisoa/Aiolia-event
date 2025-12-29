@@ -191,10 +191,23 @@
                         {% if recentWins|length > 0 %}
                             <div class="history-list">
                                 {% for win in recentWins %}
-                                    <div class="history-item">
-                                        <div class="history-date">{{ win.date|date('d/m') }}</div>
+                                    <div class="history-item" style="border-left: 3px solid {{ win.color|default('#4A90E2') }}">
+                                        <div class="history-icon" style="background: {{ win.color|default('#4A90E2') }}">
+                                            <i class="fas {{ win.icon|default('fa-gift') }}"></i>
+                                        </div>
                                         <div class="history-details">
                                             <span class="history-prize">{{ win.prize }}</span>
+                                            <span class="history-date">{{ win.date|date('d/m/Y') }}</span>
+                                            {% if win.promo_code %}
+                                                <span class="history-code">Code: {{ win.promo_code }}</span>
+                                            {% endif %}
+                                        </div>
+                                        <div class="history-status">
+                                            {% if win.status == 'claimed' %}
+                                                <span class="badge badge-used">Utilisé</span>
+                                            {% else %}
+                                                <span class="badge badge-available">Disponible</span>
+                                            {% endif %}
                                         </div>
                                     </div>
                                 {% endfor %}
@@ -203,6 +216,7 @@
                             <div class="empty-state">
                                 <i class="fas fa-ghost"></i>
                                 <p>Aucun gain pour le moment</p>
+                                <small>Tournez la roue pour gagner des récompenses !</small>
                             </div>
                         {% endif %}
                     </div>
@@ -215,7 +229,6 @@
     <script>
         document.addEventListener('DOMContentLoaded', function() {
             const spinBtn = document.getElementById('spinBtn');
-            const playBtn = document.getElementById('playBtn');
             const wheel = document.getElementById('wheel');
             
             // Prix disponibles depuis le backend
@@ -229,53 +242,91 @@
                 let isSpinning = false;
                 let currentRotation = 0;
                 
-                spinBtn.addEventListener('click', function() {
+                spinBtn.addEventListener('click', async function() {
                     if (isSpinning) return;
                     
                     isSpinning = true;
                     spinBtn.disabled = true;
-                    // Find the icon and text to update
-                    const btnIcon = spinBtn.querySelector('i');
-                    const btnText = spinBtn.querySelector('.btn-content');
                     
-                    if (btnIcon) {
-                        btnIcon.className = 'fas fa-spinner fa-spin';
-                    } else if (btnText) {
-                        // Fallback if icon not found directly
-                         btnText.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Tirage en cours...';
+                    const btnContent = spinBtn.querySelector('.btn-content');
+                    if (btnContent) {
+                        btnContent.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Tirage en cours...';
                     }
                     
-                    // Sélectionner un prix aléatoire (pour l'instant, on simule)
-                    // TODO: Appeler l'API pour obtenir le prix réel
-                    const selectedPrizeIndex = Math.floor(Math.random() * prizeCount);
-                    const selectedPrize = availablePrizes[selectedPrizeIndex];
-                    
-                    // Calculer l'angle pour que le pointeur pointe vers le centre du segment gagnant
-                    // Le pointeur est en haut (0deg), donc on doit faire tourner la roue pour que
-                    // le segment gagnant soit aligné avec le pointeur
-                    const targetAngle = selectedPrizeIndex * anglePerPrize + (anglePerPrize / 2);
-                    // On inverse car la roue tourne dans le sens horaire
-                    const finalAngle = 360 - targetAngle;
-                    
-                    // Ajouter plusieurs rotations pour l'effet
-                    const rotations = 5 + Math.random() * 3; // 5 à 8 rotations
-                    const totalRotation = currentRotation + (rotations * 360) + finalAngle;
-                    
-                    wheel.style.transition = 'transform 4s cubic-bezier(0.17, 0.67, 0.12, 0.99)';
-                    wheel.style.transform = `rotate(${totalRotation}deg)`;
-                    
-                    // Mettre à jour la rotation actuelle (normalisée à 0-360)
-                    currentRotation = totalRotation % 360;
-                    
-                    // Simuler l'appel API
-                    setTimeout(() => {
-                        // TODO: Appeler l'API pour enregistrer le tirage
-                        alert(`Félicitations ! Vous avez gagné : ${selectedPrize.label}`);
+                    try {
+                        // Appeler l'API pour effectuer le tirage
+                        const response = await fetch('{{ path("api_ticket_chance_play") }}', {
+                            method: 'POST',
+                            credentials: 'include',
+                            headers: {
+                                'Accept': 'application/json',
+                                'X-Requested-With': 'XMLHttpRequest'
+                            }
+                        });
+                        
+                        const data = await response.json();
+                        
+                        if (!data.success) {
+                            throw new Error(data.error || 'Erreur lors du tirage');
+                        }
+                        
+                        // Trouver l'index du prix gagné
+                        const wonPrize = data.prize;
+                        const prizeIndex = availablePrizes.findIndex(p => p.id === wonPrize.id);
+                        
+                        // Calculer l'angle pour pointer vers le prix gagné
+                        const targetAngle = prizeIndex * anglePerPrize + (anglePerPrize / 2);
+                        const finalAngle = 360 - targetAngle;
+                        
+                        // Ajouter plusieurs rotations pour l'effet
+                        const rotations = 5 + Math.random() * 3;
+                        const totalRotation = currentRotation + (rotations * 360) + finalAngle;
+                        
+                        wheel.style.transition = 'transform 4s cubic-bezier(0.17, 0.67, 0.12, 0.99)';
+                        wheel.style.transform = `rotate(${totalRotation}deg)`;
+                        
+                        currentRotation = totalRotation % 360;
+                        
+                        // Afficher le résultat après l'animation
+                        setTimeout(() => {
+                            showWinModal(wonPrize, data.play_type);
+                        }, 4200);
+                        
+                    } catch (error) {
+                        console.error('Erreur:', error);
+                        alert(error.message || 'Une erreur est survenue. Veuillez réessayer.');
                         location.reload();
-                    }, 4000);
+                    }
                 });
             }
             {% endif %}
+            
+            // Modal de victoire
+            function showWinModal(prize, playType) {
+                const modal = document.createElement('div');
+                modal.className = 'win-modal';
+                modal.innerHTML = `
+                    <div class="win-modal-content">
+                        <div class="win-icon" style="background: ${prize.color}">
+                            <i class="fas ${prize.icon}"></i>
+                        </div>
+                        <h2>🎉 Félicitations !</h2>
+                        <p class="win-prize">Vous avez gagné</p>
+                        <div class="win-prize-name" style="color: ${prize.color}">${prize.label}</div>
+                        ${prize.type === 'extra_play' ? 
+                            '<p class="win-info">Vous pouvez rejouer immédiatement !</p>' :
+                            '<p class="win-info">Votre gain a été ajouté à votre compte.</p>'
+                        }
+                        <button class="btn-close-modal" onclick="location.reload()">
+                            ${prize.type === 'extra_play' ? 'Rejouer maintenant' : 'Super !'}
+                        </button>
+                    </div>
+                `;
+                document.body.appendChild(modal);
+                
+                // Animation d'entrée
+                setTimeout(() => modal.classList.add('show'), 10);
+            }
             
             // Animation de la barre de progression
             const progressFill = document.querySelector('.progress-fill');
@@ -287,4 +338,100 @@
             }
         });
     </script>
+    
+    <style>
+        /* Modal de victoire */
+        .win-modal {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(0, 0, 0, 0.7);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            z-index: 9999;
+            opacity: 0;
+            transition: opacity 0.3s ease;
+        }
+        
+        .win-modal.show {
+            opacity: 1;
+        }
+        
+        .win-modal-content {
+            background: white;
+            border-radius: 24px;
+            padding: 40px;
+            text-align: center;
+            max-width: 400px;
+            transform: scale(0.8);
+            transition: transform 0.3s ease;
+            box-shadow: 0 20px 60px rgba(0, 0, 0, 0.3);
+        }
+        
+        .win-modal.show .win-modal-content {
+            transform: scale(1);
+        }
+        
+        .win-icon {
+            width: 80px;
+            height: 80px;
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            margin: 0 auto 20px;
+            font-size: 36px;
+            color: white;
+            animation: bounce 0.6s ease;
+        }
+        
+        @keyframes bounce {
+            0%, 100% { transform: scale(1); }
+            50% { transform: scale(1.2); }
+        }
+        
+        .win-modal h2 {
+            margin: 0 0 10px;
+            font-size: 28px;
+            color: #2D3436;
+        }
+        
+        .win-prize {
+            margin: 0;
+            color: #636E72;
+            font-size: 16px;
+        }
+        
+        .win-prize-name {
+            font-size: 32px;
+            font-weight: 800;
+            margin: 15px 0;
+        }
+        
+        .win-info {
+            color: #636E72;
+            font-size: 14px;
+            margin-bottom: 25px;
+        }
+        
+        .btn-close-modal {
+            background: linear-gradient(135deg, #4A90E2, #50E3C2);
+            color: white;
+            border: none;
+            padding: 14px 40px;
+            border-radius: 100px;
+            font-size: 16px;
+            font-weight: 700;
+            cursor: pointer;
+            transition: transform 0.2s, box-shadow 0.2s;
+        }
+        
+        .btn-close-modal:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 10px 30px rgba(74, 144, 226, 0.4);
+        }
+    </style>
 {% endblock %}

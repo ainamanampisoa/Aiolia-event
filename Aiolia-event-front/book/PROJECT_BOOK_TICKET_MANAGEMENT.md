@@ -20,7 +20,7 @@ La page "Mes billets" est l'espace central où l'utilisateur peut voir tous ses 
   - Le lieu (ville et adresse)
   - Le type de billet (VIP, Standard, etc.)
   - Le code QR unique du billet
-  - Le statut (valide, utilisé, remboursé, etc.)
+  - Le filtre(a venir,passe,annule)
 
 **Navigation** :
 - Des onglets permettent de filtrer rapidement par statut
@@ -63,69 +63,6 @@ La génération PDF est gérée par TicketController::generateTicketPdf() :
 
 ---
 
-## 🔄 c. Transfert de billets
-
-Le transfert de billets permet à un utilisateur de donner ou vendre ses billets à une autre personne, offrant flexibilité et facilité.
-
-### L'expérience utilisateur
-**Processus de transfert** :
-1. L'utilisateur sélectionne un billet qu'il souhaite transférer
-2. Il clique sur "Transférer ce billet"
-3. Il saisit l'email ou le numéro de téléphone du destinataire
-4. Il peut ajouter un message personnel (optionnel)
-5. Le système envoie une notification au destinataire
-6. Le destinataire accepte le transfert
-7. Le billet est transféré et apparaît dans "Mes billets" du destinataire
-
-**Gestion des transferts** :
-- L'utilisateur peut voir l'historique de ses transferts (billets envoyés et reçus)
-- Les transferts peuvent être annulés avant acceptation
-- Une fois accepté, le transfert est définitif
-
-### Les coulisses techniques ⚙️
-Le transfert de billets est géré par TicketController::transferTicket() :
-1. **Validation** : Le système vérifie que le billet peut être transféré (non utilisé, événement à venir)
-2. **Création de la demande** : Une entrée est créée dans ticket_transfers avec le statut "pending"
-3. **Notification** : Le destinataire reçoit une notification (email et/ou push)
-4. **Acceptation** : Lors de l'acceptation, le user_id du billet est mis à jour
-5. **Historique** : Le transfert est enregistré pour traçabilité
-
----
-
-## ✅ d. Validation des billets à l'entrée
-
-Le jour de l'événement, les billets doivent être validés à l'entrée. Le système offre des outils pour les organisateurs et une expérience fluide pour les participants.
-
-### L'expérience utilisateur (participant)
-**Présentation du billet** :
-- Le participant présente son billet (PDF imprimé ou sur smartphone)
-- Le code QR est scanné par l'organisateur
-- Le billet est validé instantanément
-- Le participant peut entrer
-
-**Statut du billet** :
-- Une fois validé, le billet passe au statut "used" (utilisé)
-- Il apparaît dans la section "Passés" de "Mes billets"
-- Il ne peut plus être transféré ou remboursé
-
-### L'expérience utilisateur (organisateur)
-**Validation** :
-- L'organisateur utilise une application ou interface web de validation
-- Il scanne le code QR du billet
-- Le système vérifie :
-  - Que le billet existe et est valide
-  - Que l'événement correspond
-  - Que le billet n'a pas déjà été utilisé
-- Si tout est valide, le billet est marqué comme "used"
-
-### Sous le capot 🛠️
-La validation est gérée par TicketController::validateTicket() :
-1. **Scan QR** : Le code QR est décodé pour extraire l'ID du billet et le hash
-2. **Vérification** : Le système vérifie la validité du billet et du hash
-3. **Validation** : Le statut du billet est mis à jour à "used"
-4. **Traçabilité** : L'heure et le lieu de validation sont enregistrés
-
----
 
 ## 📊 e. Détails d'un billet
 
@@ -164,8 +101,6 @@ Hery accède à "Mes billets" et voit ses 3 billets pour le festival. Ils sont d
 ### 2. Téléchargement des PDF
 Hery télécharge les 3 PDFs de ses billets. Il les imprime et les garde dans son portefeuille pour le jour J. Il garde aussi les versions numériques sur son téléphone au cas où.
 
-### 3. Transfert d'un billet
-Un de ses amis ne peut finalement pas venir. Hery décide de transférer un billet à son cousin. Il clique sur "Transférer", saisit l'email de son cousin, et envoie. Son cousin reçoit une notification, accepte le transfert, et le billet apparaît dans son compte.
 
 ### 4. Le jour de l'événement
 Hery arrive au festival avec ses 2 billets (lui et son cousin). À l'entrée, les codes QR sont scannés. Les billets sont validés instantanément. Hery et son cousin entrent sans problème.

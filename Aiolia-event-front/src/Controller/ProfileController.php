@@ -1223,13 +1223,80 @@ class ProfileController extends AbstractController
         $eligibility = $this->ticketChanceService->canUserPlay($userId);
         $availablePrizes = $this->ticketChanceService->getAvailablePrizes();
 
-        // TODO: Récupérer l'historique des gains depuis la base de données
-        $recentWins = []; // À implémenter avec un repository
+        // Récupérer l'historique des gains
+        $recentWins = $this->ticketChanceService->getUserHistory($userId, 10);
 
         return $this->render('profile/ticket_chance.html.twig', [
             'eligibility' => $eligibility,
             'recentWins' => $recentWins,
             'availablePrizes' => $availablePrizes,
+        ]);
+    }
+
+    #[Route('/api/ticket-chance/play', name: 'api_ticket_chance_play', methods: ['POST'])]
+    public function playTicketChance(Request $request): JsonResponse
+    {
+        $session = $request->getSession();
+        if (!$session->isStarted()) {
+            $session->start();
+        }
+
+        $sessionUser = $session->get('user');
+        if (!is_array($sessionUser) || !isset($sessionUser['id'])) {
+            return new JsonResponse([
+                'success' => false,
+                'error' => 'Vous devez être connecté pour jouer.',
+            ], 401);
+        }
+
+        $userId = (int) $sessionUser['id'];
+
+        try {
+            // Effectuer le tirage
+            $result = $this->ticketChanceService->play($userId);
+
+            return new JsonResponse([
+                'success' => true,
+                'prize' => $result['prize'],
+                'entry_id' => $result['entry_id'],
+                'play_type' => $result['play_type'],
+                'message' => 'Félicitations ! Vous avez gagné : ' . $result['prize']['label'],
+            ]);
+
+        } catch (\RuntimeException $e) {
+            return new JsonResponse([
+                'success' => false,
+                'error' => $e->getMessage(),
+            ], 400);
+        } catch (\Throwable $e) {
+            return new JsonResponse([
+                'success' => false,
+                'error' => 'Une erreur est survenue: ' . $e->getMessage(),
+            ], 500);
+        }
+    }
+
+    #[Route('/api/ticket-chance/status', name: 'api_ticket_chance_status', methods: ['GET'])]
+    public function getTicketChanceStatus(Request $request): JsonResponse
+    {
+        $session = $request->getSession();
+        if (!$session->isStarted()) {
+            $session->start();
+        }
+
+        $sessionUser = $session->get('user');
+        if (!is_array($sessionUser) || !isset($sessionUser['id'])) {
+            return $this->json(['error' => 'Non authentifié'], 401);
+        }
+
+        $userId = (int) $sessionUser['id'];
+
+        $eligibility = $this->ticketChanceService->canUserPlay($userId);
+        $playsInfo = $this->ticketChanceService->getRemainingPlays($userId);
+
+        return $this->json([
+            'eligibility' => $eligibility,
+            'plays' => $playsInfo,
         ]);
     }
 
