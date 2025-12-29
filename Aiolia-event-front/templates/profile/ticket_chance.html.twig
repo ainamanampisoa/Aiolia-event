@@ -26,143 +26,189 @@
     <main class="ticket-chance-wrapper">
         <div class="container">
             <header class="ticket-chance-header wow fadeIn" data-wow-delay="100ms">
-                <div>
-                    <h1 style="background: linear-gradient(135deg, #1F2D3D 0%, #4A90E2 100%); -webkit-background-clip: text; -webkit-text-fill-color: transparent; background-clip: text;">Ticket Chance</h1>
+                <div class="header-content">
+                    <h1>Ticket Chance</h1>
                     <p>Tentez votre chance et gagnez des réductions ou des billets offerts pour vos prochains évènements.</p>
                 </div>
-                {% if eligibility.can_play %}
-                    <button class="btn-solid btn-play" id="playBtn"><i class="fas fa-play-circle"></i> Lancer un tirage</button>
-                {% else %}
-                    <button class="btn-solid btn-play" disabled style="opacity: 0.6; cursor: not-allowed;"><i class="fas fa-lock"></i> Verrouillé</button>
-                {% endif %}
             </header>
 
             {# Barre de progression pour atteindre le seuil #}
             {% if not eligibility.can_play %}
             <section class="eligibility-progress wow fadeIn" data-wow-delay="120ms">
-                <div class="progress-card">
+                <div class="glass-card progress-card">
                     <div class="progress-header">
-                        <h3><i class="fas fa-trophy"></i> Débloquez le Ticket Chance</h3>
-                        <p>Atteignez <strong>{{ eligibility.threshold|number_format(0, ',', ' ') }} MGA</strong> d'achat pour pouvoir jouer</p>
+                        <div class="icon-box warning">
+                            <i class="fas fa-lock"></i>
+                        </div>
+                        <div class="text-content">
+                            <h3>Débloquez le Ticket Chance</h3>
+                            <p>Atteignez <strong>{{ eligibility.threshold|number_format(0, ',', ' ') }} MGA</strong> d'achat pour pouvoir jouer</p>
+                        </div>
                     </div>
                     <div class="progress-bar-wrapper">
-                        <div class="progress-bar">
-                            <div class="progress-fill" style="width: {{ eligibility.progress }}%; background: linear-gradient(90deg, #4A90E2 0%, #50C878 100%);"></div>
-                        </div>
                         <div class="progress-info">
-                            <span class="progress-current">{{ eligibility.total_spent|number_format(0, ',', ' ') }} MGA</span>
-                            <span class="progress-remaining">{{ eligibility.remaining|number_format(0, ',', ' ') }} MGA restants</span>
-                            <span class="progress-target">{{ eligibility.threshold|number_format(0, ',', ' ') }} MGA</span>
+                            <span class="progress-label">Progression</span>
+                            <span class="progress-percentage">{{ ((eligibility.total_spent / eligibility.threshold) * 100)|round }}%</span>
                         </div>
-                    </div>
-                    <div class="progress-tip">
-                        <i class="fas fa-lightbulb"></i> Continuez vos achats pour débloquer le Ticket Chance !
+                        <div class="progress-bar">
+                            <div class="progress-fill" style="width: {{ eligibility.progress }}%;"></div>
+                        </div>
+                        <div class="progress-stats">
+                            <span class="stat-current">{{ eligibility.total_spent|number_format(0, ',', ' ') }} MGA <small>dépensés</small></span>
+                            <span class="stat-remaining">{{ eligibility.remaining|number_format(0, ',', ' ') }} MGA <small>restants</small></span>
+                        </div>
                     </div>
                 </div>
             </section>
             {% endif %}
 
-            <section class="ticket-chance-grid">
-                <div class="ticket-chance-card wow fadeInUp" data-wow-delay="150ms">
-                    <div class="prize-wheel-container">
-                        <div class="prize-wheel {% if not eligibility.can_play %}disabled{% endif %}" id="prizeWheel">
-                            {% set prizeCount = availablePrizes|length %}
-                            {% set anglePerPrize = 360 / prizeCount %}
-                            {% set conicGradient = [] %}
-                            {% for prize in availablePrizes %}
-                                {% set startAngle = loop.index0 * anglePerPrize %}
-                                {% set endAngle = loop.index * anglePerPrize %}
-                                {% set conicGradient = conicGradient|merge([prize.color ~ ' ' ~ startAngle ~ 'deg ' ~ endAngle ~ 'deg']) %}
-                            {% endfor %}
-                            <div class="wheel" id="wheel" style="background: conic-gradient({{ conicGradient|join(', ') }});">
+            <div class="main-grid">
+                <!-- Left Column: Wheel & Action -->
+                <section class="game-section wow fadeInUp" data-wow-delay="150ms">
+                    <div class="glass-card game-card">
+                        <div class="wheel-header">
+                            <h2>Roulette des récompenses</h2>
+                            {% if eligibility.can_play %}
+                                <span class="status-badge active"><i class="fas fa-check-circle"></i> Disponible</span>
+                            {% else %}
+                                <span class="status-badge locked"><i class="fas fa-lock"></i> Verrouillé</span>
+                            {% endif %}
+                        </div>
+
+                        <div class="prize-wheel-container">
+                            <div class="prize-wheel {% if not eligibility.can_play %}disabled{% endif %}" id="prizeWheel">
+                                {% set prizeCount = availablePrizes|length %}
+                                {% set anglePerPrize = 360 / prizeCount %}
+                                {% set conicGradient = [] %}
                                 {% for prize in availablePrizes %}
                                     {% set startAngle = loop.index0 * anglePerPrize %}
-                                    {% set rotation = startAngle + (anglePerPrize / 2) %}
-                                    <div class="wheel-segment" 
-                                         data-prize-id="{{ prize.id }}"
-                                         style="--rotation: {{ rotation }}deg;">
-                                        <div class="segment-content">
-                                            <i class="fas {{ prize.icon }}"></i>
-                                            <span class="segment-label">{{ prize.label }}</span>
+                                    {% set endAngle = loop.index * anglePerPrize %}
+                                    {% set color = prize.color %}
+                                    {# Alternating colors if not defined #}
+                                    {% if not color %}
+                                        {% set color = loop.index0 is even ? '#4A90E2' : '#50E3C2' %}
+                                    {% endif %}
+                                    {% set conicGradient = conicGradient|merge([color ~ ' ' ~ startAngle ~ 'deg ' ~ endAngle ~ 'deg']) %}
+                                {% endfor %}
+                                
+                                <div class="wheel-outer-ring"></div>
+                                <div class="wheel" id="wheel" style="background: conic-gradient({{ conicGradient|join(', ') }});">
+                                    {% for prize in availablePrizes %}
+                                        {% set startAngle = loop.index0 * anglePerPrize %}
+                                        {% set rotation = startAngle + (anglePerPrize / 2) %}
+                                        <div class="wheel-segment" 
+                                             data-prize-id="{{ prize.id }}"
+                                             style="--rotation: {{ rotation }}deg;">
+                                            <div class="segment-content">
+                                                <i class="fas {{ prize.icon }}"></i>
+                                                <span class="segment-label">{{ prize.label }}</span>
+                                            </div>
+                                        </div>
+                                    {% endfor %}
+                                </div>
+                                
+                                <div class="wheel-center">
+                                    <div class="center-inner">
+                                        <i class="fas fa-gift"></i>
+                                    </div>
+                                </div>
+
+                                <div class="wheel-pointer"></div>
+                            </div>
+                        </div>
+
+                        <div class="game-controls">
+                            {% if eligibility.can_play %}
+                                <button class="btn-play-large pulse-animation" id="spinBtn">
+                                    <span class="btn-content">
+                                        <i class="fas fa-play"></i> Lancer la roue
+                                    </span>
+                                    <span class="btn-shine"></span>
+                                </button>
+                                <p class="game-hint">Bonne chance ! 🍀</p>
+                            {% else %}
+                                <button class="btn-play-large disabled" disabled>
+                                    <i class="fas fa-lock"></i> Verrouillé
+                                </button>
+                                <p class="game-hint">Continuez vos achats pour débloquer</p>
+                            {% endif %}
+                        </div>
+                    </div>
+                </section>
+
+                <!-- Right Column: Info, Rules, History -->
+                <aside class="sidebar-section wow fadeInUp" data-wow-delay="180ms">
+                    
+                    <!-- Prizes List (Mini) -->
+                    <div class="glass-card prizes-card mb-4">
+                        <h3><i class="fas fa-trophy"></i> Récompenses possibles</h3>
+                        <div class="prizes-grid">
+                            {% for prize in availablePrizes %}
+                                <div class="mini-prize-item" style="--prize-color: {{ prize.color|default('#4A90E2') }}">
+                                    <div class="prize-icon">
+                                        <i class="fas {{ prize.icon }}"></i>
+                                    </div>
+                                    <span class="prize-name">{{ prize.label }}</span>
+                                </div>
+                            {% endfor %}
+                        </div>
+                    </div>
+
+                    <!-- Rules -->
+                    <div class="glass-card rules-card mb-4">
+                        <h3><i class="fas fa-info-circle"></i> Comment ça marche ?</h3>
+                        <ul class="clean-list">
+                            <li>
+                                <span class="step-number">1</span>
+                                <div class="step-content">
+                                    <strong>Achetez des billets</strong>
+                                    <p>Cumulez {{ eligibility.threshold|number_format(0, ',', ' ') }} MGA d'achats.</p>
+                                </div>
+                            </li>
+                            <li>
+                                <span class="step-number">2</span>
+                                <div class="step-content">
+                                    <strong>Tournez la roue</strong>
+                                    <p>Utilisez votre ticket chance pour gagner.</p>
+                                </div>
+                            </li>
+                            <li>
+                                <span class="step-number">3</span>
+                                <div class="step-content">
+                                    <strong>Profitez !</strong>
+                                    <p>Utilisez vos réductions sur vos prochains achats.</p>
+                                </div>
+                            </li>
+                        </ul>
+                        <div class="rules-footer">
+                            <small><i class="fas fa-exclamation-triangle"></i> Les gains sont valables pour une durée limitée.</small>
+                        </div>
+                    </div>
+
+                    <!-- History -->
+                    <div class="glass-card history-card">
+                        <h3><i class="fas fa-history"></i> Vos derniers gains</h3>
+                        {% if recentWins|length > 0 %}
+                            <div class="history-list">
+                                {% for win in recentWins %}
+                                    <div class="history-item">
+                                        <div class="history-date">{{ win.date|date('d/m') }}</div>
+                                        <div class="history-details">
+                                            <span class="history-prize">{{ win.prize }}</span>
                                         </div>
                                     </div>
                                 {% endfor %}
-                                <div class="wheel-center">
-                                    <i class="fas fa-gift"></i>
-                                </div>
                             </div>
-                            {% if eligibility.can_play %}
-                                <button class="wheel-btn" id="spinBtn"><i class="fas fa-play"></i></button>
-                            {% else %}
-                                <div class="wheel-lock">
-                                    <i class="fas fa-lock"></i>
-                                    <span>Verrouillé</span>
-                                </div>
-                            {% endif %}
-                            <div class="wheel-pointer"></div>
-                        </div>
-                    </div>
-                    <div class="ticket-chance-info">
-                        <h2>Roulette des récompenses</h2>
-                        <ul class="prizes-list">
-                            {% for prize in availablePrizes %}
-                                <li class="prize-item prize-{{ prize.type|replace({'_': '-'}) }}" style="border-left-color: {{ prize.color }};">
-                                    <i class="fas {{ prize.icon }}"></i> 
-                                    <span>{{ prize.label }}</span>
-                                </li>
-                            {% endfor %}
-                        </ul>
-                    </div>
-                </div>
-                <aside class="ticket-chance-card wow fadeInUp" data-wow-delay="180ms">
-                    <h2><i class="fas fa-info-circle"></i> Règles du jeu</h2>
-                    <ol class="rules-list">
-                        <li>
-                            <i class="fas fa-check-circle"></i>
-                            <div>
-                                <strong>Condition d'accès :</strong> Achetez pour au moins <strong>{{ eligibility.threshold|number_format(0, ',', ' ') }} MGA</strong> pour débloquer le Ticket Chance.
-                            </div>
-                        </li>
-                        <li>
-                            <i class="fas fa-check-circle"></i>
-                            <div>
-                                <strong>1 tirage gratuit par semaine</strong>, bonus après chaque achat validé.
-                            </div>
-                        </li>
-                        <li>
-                            <i class="fas fa-check-circle"></i>
-                            <div>
-                                Les récompenses sont créditées <strong>immédiatement</strong> sur votre compte.
-                            </div>
-                        </li>
-                        <li>
-                            <i class="fas fa-check-circle"></i>
-                            <div>
-                                Les billets gratuits sont valables sur une <strong>sélection d'évènements partenaires</strong>.
-                            </div>
-                        </li>
-                    </ol>
-                    <div class="ticket-chance-history">
-                        <h3><i class="fas fa-history"></i> Derniers gains</h3>
-                        {% if recentWins|length > 0 %}
-                            <ul>
-                                {% for win in recentWins %}
-                                    <li>
-                                        <strong>{{ win.date|date('d/m') }}</strong> · 
-                                        <span class="prize-badge prize-{{ win.type|lower|replace({' ': '-'}) }}">{{ win.prize }}</span>
-                                    </li>
-                                {% endfor %}
-                            </ul>
                         {% else %}
-                            <div class="no-history">
-                                <i class="fas fa-inbox"></i>
+                            <div class="empty-state">
+                                <i class="fas fa-ghost"></i>
                                 <p>Aucun gain pour le moment</p>
-                                <small>Tentez votre chance pour gagner des récompenses !</small>
                             </div>
                         {% endif %}
                     </div>
+
                 </aside>
-            </section>
+            </div>
         </div>
     </main>
 
@@ -188,7 +234,16 @@
                     
                     isSpinning = true;
                     spinBtn.disabled = true;
-                    spinBtn.innerHTML = '<i class="fas fa-spinner fa-spin"></i>';
+                    // Find the icon and text to update
+                    const btnIcon = spinBtn.querySelector('i');
+                    const btnText = spinBtn.querySelector('.btn-content');
+                    
+                    if (btnIcon) {
+                        btnIcon.className = 'fas fa-spinner fa-spin';
+                    } else if (btnText) {
+                        // Fallback if icon not found directly
+                         btnText.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Tirage en cours...';
+                    }
                     
                     // Sélectionner un prix aléatoire (pour l'instant, on simule)
                     // TODO: Appeler l'API pour obtenir le prix réel

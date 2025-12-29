@@ -70,3 +70,74 @@ body.theme-dark .btn-play-chance:hover {
   box-shadow: var(--dark-shadow-accent-hover);
   transform: translateY(-1px);
 }
+
+/* ========== SECTIONS DES RÈGLES ========== */
+html[data-theme="dark"] .rules-section,
+html.theme-dark .rules-section,
+body.theme-dark .rules-section {
+  border-bottom-color: var(--dark-border-primary);
+}
+
+html[data-theme="dark"] .rules-section h4,
+html.theme-dark .rules-section h4,
+body.theme-dark .rules-section h4 {
+  color: var(--dark-text-primary);
+}
+
+html[data-theme="dark"] .rules-section h4 i,
+html.theme-dark .rules-section h4 i,
+body.theme-dark .rules-section h4 i {
+  color: var(--dark-accent-primary);
+}
+
+html[data-theme="dark"] .rules-list li,
+html.theme-dark .rules-list li,
+body.theme-dark .rules-list li {
+  color: var(--dark-text-secondary);
+}
+
+html[data-theme="dark"] .rules-list li strong,
+html.theme-dark .rules-list li strong,
+body.theme-dark .rules-list li strong {
+  color: var(--dark-text-primary);
+}
+
+html[data-theme="dark"] .rules-list li i,
+html.theme-dark .rules-list li i,
+body.theme-dark .rules-list li i {
+  color: var(--dark-success);
+}
+
+/* Badge rare en mode sombre */
+html[data-theme="dark"] .badge-rare,
+html.theme-dark .badge-rare,
+body.theme-dark .badge-rare {
+  background: linear-gradient(135deg, #FFD700 0%, #FFA500 100%);
+  color: #1F2D3D;
+}
+
+/* Section conditions en mode sombre */
+html[data-theme="dark"] .rules-conditions,
+html.theme-dark .rules-conditions,
+body.theme-dark .rules-conditions {
+  background: rgba(255, 193, 7, 0.15);
+  border: 1px solid rgba(255, 193, 7, 0.3);
+}
+
+html[data-theme="dark"] .rules-conditions h4,
+html.theme-dark .rules-conditions h4,
+body.theme-dark .rules-conditions h4 {
+  color: #FFD700;
+}
+
+html[data-theme="dark"] .rules-conditions h4 i,
+html.theme-dark .rules-conditions h4 i,
+body.theme-dark .rules-conditions h4 i {
+  color: #FFC107;
+}
+
+html[data-theme="dark"] .rules-list.small li i,
+html.theme-dark .rules-list.small li i,
+body.theme-dark .rules-list.small li i {
+  color: #FFC107;
+}
