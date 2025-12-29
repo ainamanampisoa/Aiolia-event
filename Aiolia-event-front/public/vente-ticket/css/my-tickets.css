@@ -357,20 +357,15 @@
     background: none;
 } */
 
-/* .ticket-card .col1 {
+.ticket-card .col1 {
     display: flex;
     flex-direction: column;
     align-items: center;
     justify-content: center;
-    gap: 24px;
-    min-width: 140px;
-    padding: 20px;
-    border-right: 1px dashed var(--border-light);
-    margin: 0;
-    background: none;
+    gap: 10px;
 }
 
-.ticket-card .col1::before {
+/* .ticket-card .col1::before {
     display: none;
 } */
 
@@ -503,7 +498,7 @@
 }
 
 /* QR code / code barre billet */
-.code-barre {
+.ticket-card .code-barre {
     text-align: center;
     padding: 6px;
     background: var(--bg-light);
@@ -514,6 +509,7 @@
     align-items: center;
     justify-content: center;
     gap: 4px;
+    margin-top: 20px !important;
 }
 
 .code-barre img {
