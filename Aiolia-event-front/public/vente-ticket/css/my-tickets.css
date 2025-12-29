@@ -326,43 +326,151 @@
 }
 
 /* ===== AMELIORATION DES CARTES DE BILLETS ===== */
-.ticket-card {
+/* .ticket-card {
     background: white;
     border-radius: var(--radius-lg);
     box-shadow: var(--shadow-soft);
     transition: var(--transition);
     border: 1px solid var(--border-light);
-    /* overflow: hidden;  <-- REMOVED to allow dropdown to show */
     position: relative;
-    /* Ensure z-index works */
 }
 
 .ticket-card:hover {
     transform: translateY(-5px);
     box-shadow: var(--shadow-hover);
-}
+} */
 
-.ticket-card .inner {
+/* .ticket-card .inner {
     display: flex;
     align-items: stretch;
     min-height: 200px;
-}
+} */
 
-/* Colonne principale améliorée */
-.blc-col1 {
+/* Colonne principale améliorée - Specificity Restoration */
+/* .ticket-card .blc-col1 {
     flex: 1;
-    padding: 20px;
     display: flex;
-    gap: 20px;
-    align-items: center;
-}
+    gap: 0;
+    align-items: stretch;
+    width: auto;
+    height: auto;
+    background: none;
+} */
 
-.col1 {
+/* .ticket-card .col1 {
     display: flex;
     flex-direction: column;
     align-items: center;
+    justify-content: center;
     gap: 24px;
-    min-width: 100px;
+    min-width: 140px;
+    padding: 20px;
+    border-right: 1px dashed var(--border-light);
+    margin: 0;
+    background: none;
+}
+
+.ticket-card .col1::before {
+    display: none;
+} */
+
+/* .ticket-card .col2 {
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+    align-items: flex-start;
+    padding: 24px 30px;
+    gap: 12px;
+    margin: 0;
+    width: auto;
+    background: none;
+}
+
+.ticket-card .col2::before,
+.ticket-card .col2::after {
+    display: none;
+} */
+
+/* ===== BADGE CATÉGORIE AMÉLIORÉ ===== */
+.ticket-card .col2 .bandeau {
+    display: inline-flex !important;
+    align-items: center !important;
+    padding: 6px 16px !important;
+    font-size: 10px !important;
+    font-weight: 700 !important;
+    text-transform: uppercase !important;
+    letter-spacing: 1px !important;
+    border-radius: 4px !important;
+    margin: 0 0 8px 0 !important;
+    width: fit-content !important;
+    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%) !important;
+    color: white !important;
+}
+
+/* Couleurs par catégorie */
+.ticket-card .col2 .bandeau.business {
+    background: linear-gradient(135deg, #1a5f4a 0%, #0d3d2e 100%) !important;
+}
+
+.ticket-card .col2 .bandeau.concert,
+.ticket-card .col2 .bandeau.musique {
+    background: linear-gradient(135deg, #e74c3c 0%, #c0392b 100%) !important;
+}
+
+.ticket-card .col2 .bandeau.festival {
+    background: linear-gradient(135deg, #9b59b6 0%, #8e44ad 100%) !important;
+}
+
+.ticket-card .col2 .bandeau.conférence,
+.ticket-card .col2 .bandeau.conference {
+    background: linear-gradient(135deg, #3498db 0%, #2980b9 100%) !important;
+}
+
+.ticket-card .col2 .bandeau.séminaire,
+.ticket-card .col2 .bandeau.seminaire {
+    background: linear-gradient(135deg, #1abc9c 0%, #16a085 100%) !important;
+}
+
+.ticket-card .col2 .bandeau.sport {
+    background: linear-gradient(135deg, #e67e22 0%, #d35400 100%) !important;
+}
+
+.ticket-card .col2 .bandeau.culture,
+.ticket-card .col2 .bandeau.spectacle {
+    background: linear-gradient(135deg, #f39c12 0%, #e67e22 100%) !important;
+}
+
+/* Titre de l'événement */
+.ticket-card .col2 .event-title {
+    font-size: 24px !important;
+    font-weight: 700 !important;
+    color: var(--text-dark) !important;
+    margin: 0 0 10px 0 !important;
+    line-height: 1.2 !important;
+}
+
+/* Détails de l'événement */
+.ticket-card .col2 .event-details {
+    display: flex !important;
+    flex-direction: column !important;
+    gap: 8px !important;
+    margin-bottom: 15px !important;
+}
+
+.ticket-card .col2 .detail-item {
+    display: flex !important;
+    align-items: center !important;
+    gap: 10px !important;
+    font-size: 14px !important;
+    color: var(--text-light) !important;
+}
+
+.ticket-card .col2 .detail-item i {
+    width: 18px !important;
+    color: var(--primary-green) !important;
+    font-size: 14px !important;
+    flex-shrink: 0 !important;
 }
 
 /* Date card améliorée */
@@ -629,16 +737,14 @@
 }
 
 /* Image d'événement améliorée */
-.blc-col2 {
+/* .blc-col2 {
     width: 250px;
     position: relative;
     padding: 0;
-    /* l'image occupe toute la hauteur pour un meilleur alignement */
     display: flex;
     align-items: center;
     overflow: hidden;
-    /* Fix border radius since parent no longer clips */
-    border-radius: 0 var(--radius-lg) var(--radius-lg) 0;
+    border-radius: 0;
 }
 
 .blc-col2 .img {
@@ -658,7 +764,7 @@
 
 .blc-col2:hover img {
     transform: scale(1.05);
-}
+} */
 
 .image-overlay {
     position: absolute;

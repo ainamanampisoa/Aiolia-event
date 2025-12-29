@@ -193,9 +193,7 @@
                             <div class="img event-image">
                                 {% set imagePath = event.image starts with 'http' ? event.image : asset(event.image|trim('/')) %}
                                 <img src="{{ imagePath }}" alt="{{ event.title }}">
-                                <div class="image-overlay">
-                                    <span class="view-event">Voir l'événement</span>
-                                </div>
+
                             </div>  
                         </div>
                     </div>
