@@ -810,6 +810,38 @@ class EventRepository extends ServiceEntityRepository
     }
 
     /**
+     * Récupère les types d'accessibilité associés à un évènement.
+     *
+     * @return array<int, array{code:string, libelle:string, url_image:string, ordre_affichage:int}>
+     */
+    public function findEventAccessibility(int $eventId): array
+    {
+        $sql = <<<SQL
+            SELECT
+                ta.code,
+                ta.libelle,
+                ta.url_image,
+                ta.ordre_affichage
+            FROM aiolia.event_accessibility_links eal
+            INNER JOIN aiolia.types_accessibilite ta ON ta.id = eal.type_accessibilite_id
+            WHERE eal.event_id = :event_id
+              AND ta.est_actif IS TRUE
+            ORDER BY ta.ordre_affichage ASC, ta.libelle ASC
+        SQL;
+
+        $rows = $this->connection->executeQuery($sql, ['event_id' => $eventId])->fetchAllAssociative();
+
+        return array_map(static function (array $row): array {
+            return [
+                'code' => (string) $row['code'],
+                'libelle' => (string) $row['libelle'],
+                'url_image' => (string) $row['url_image'],
+                'ordre_affichage' => (int) $row['ordre_affichage'],
+            ];
+        }, $rows);
+    }
+
+    /**
      * Récupère les types de billets pour un événement.
      */
     public function findTicketTypesByEventId(int $eventId): array

@@ -283,6 +283,9 @@ class EventController extends AbstractController
             throw $this->createNotFoundException('Évènement introuvable.');
         }
 
+        // Accessibilité de l'événement
+        $eventAccessibility = $this->eventRepository->findEventAccessibility($id);
+
         $rawTicketTypes = $this->eventRepository->findTicketTypesByEventId($id);
         $ticketTypes = array_values(array_filter($rawTicketTypes, static function (array $ticket): bool {
             if (!array_key_exists('is_available', $ticket)) {
@@ -380,6 +383,7 @@ class EventController extends AbstractController
         $event['tags'] = $tags;
         $event['price_min'] = $priceMin;
         $event['price_max'] = $priceMax;
+        $event['accessibility'] = $eventAccessibility;
 
         $similarEvents = $this->eventRepository->findSimilarEvents($event['category_slug'], $event['id']);
 

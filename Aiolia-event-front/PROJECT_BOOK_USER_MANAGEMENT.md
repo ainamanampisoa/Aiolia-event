@@ -14,7 +14,7 @@ Lorsqu'un utilisateur revient nous voir, il lui suffit de saisir son adresse ema
 - **La sécurité invisible** : Derrière chaque tentative, nous vérifions non seulement les identifiants, mais aussi si le compte est actif. Nous veillons sur nos membres.
 
 ### Sous le capot 🛠️
-Techniquement, la connexion repose sur le `AuthService`. 
+Techniquement, la connexion repose sur le AuthService. 
 1. **Vérification** : Nous comparons le mot de passe (haché, bien sûr, pour une sécurité maximale) avec celui en base.
 2. **Session & JWT** : Pour le confort de la navigation, nous utilisons une session PHP classique pour le front-end, tout en générant des tokens JWT (Access & Refresh) qui nous permettent de sécuriser les futurs échanges avec nos APIs.
 3. **Persistance** : Une fois connecté, l'utilisateur est reconnu partout sur le site grâce à son profil stocké en session.
@@ -28,10 +28,10 @@ L'inscription est le début d'une aventure. Nous avons simplifié le formulaire 
 ### Le parcours d'accueil
 1. **Formulaire chaleureux** : Un design épuré qui guide l'utilisateur pas à pas. Nous avons notamment intégré le **drapeau de Madagascar 🇲🇬** et pré-rempli l'indicatif **+261**, facilitant ainsi la saisie du numéro de téléphone.
 2. **Validation bienveillante** : Si une information manque ou si le mot de passe est trop court, nous l'informons immédiatement par des messages clairs, sans jargon technique.
-3. **Le mail de bienvenue** : Dès que l'inscription est validée, un email automatique est envoyé via `UserMailer`. C'est notre façon de dire "Heureux de vous compter parmi nous".
+3. **Le mail de bienvenue** : Dès que l'inscription est validée, un email automatique est envoyé via UserMailer. C'est notre façon de dire "Heureux de vous compter parmi nous".
 
 ### Les coulisses techniques ⚙️
-Le `AuthService::register` orchestre cette naissance :
+Le AuthService::register orchestre cette naissance :
 - **Hachage** : Le mot de passe n'est jamais stocké en clair. Il est transformé en une empreinte numérique indéchiffrable.
 - **Normalisation** : Nous nettoyons les données (minuscules pour l'email, espaces supprimés) pour éviter les doublons accidentels.
 - **Prêt pour la suite** : À la fin du processus, un compte utilisateur est créé avec le statut "Actif", prêt à acheter son premier ticket.

@@ -1939,13 +1939,7 @@ a.ui-button:active,
 }
 
 #timer>div::after {
-    content: ":";
-    font-weight: bold;
-    font-size: 42px;
-    color: var(--blue);
-    position: absolute;
-    right: -25px;
-    top: 0;
+    display: none;
 }
 
 #timer>div:last-child:after {
@@ -1997,6 +1991,52 @@ a.ui-button:active,
 
 .sec-event-details .lst-event .item .blc-col1 .col2 .tarif {
     margin-bottom: 10px
+}
+
+.event-accessibility {
+    padding-left: 40px;
+    margin-bottom: 5px;
+    position: relative;
+    padding-bottom: 0;
+    display: flex;
+    align-items: center;
+    gap: 15px;
+}
+
+.event-accessibility .access-label {
+    margin-bottom: 0;
+    font-family: var(--f1);
+    font-size: 14px;
+    color: var(--blue);
+    white-space: nowrap;
+}
+
+.event-accessibility .blc-check-acces {
+    display: flex;
+    gap: 8px;
+    flex-wrap: wrap;
+}
+
+.event-accessibility .check {
+    width: 30px;
+    height: 30px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    border-radius: 50%;
+    background-color: var(--beige2);
+    transition: all 0.3s ease;
+}
+
+.event-accessibility .check:hover {
+    background-color: var(--green);
+}
+
+.event-accessibility .check img {
+    max-width: 16px;
+    max-height: 16px;
+    width: auto;
+    height: auto;
 }
 
 .blc-paiement {

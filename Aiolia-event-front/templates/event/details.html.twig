@@ -132,6 +132,20 @@
                                                 <div class="capacite">Capacité : {{ event.capacity }} personnes max.</div>
                                             {% endif %}
 
+                                            {# Accessibilité de l'événement #}
+                                            {% if event.accessibility is defined and event.accessibility is not empty %}
+                                                <div class="event-accessibility">
+                                                    <span class="access-label">Accessibilité :</span>
+                                                    <div class="blc-check-acces d-flex">
+                                                        {% for acc in event.accessibility %}
+                                                            <div class="check" title="{{ acc.libelle }}">
+                                                                <img src="{{ asset('vente-ticket/' ~ acc.url_image) }}" alt="{{ acc.libelle }}">
+                                                            </div>
+                                                        {% endfor %}
+                                                    </div>
+                                                </div>
+                                            {% endif %}
+
                                             <div id="timer">
                                                 <div id="days"><div></div></div>
                                                 <div id="hours"></div>
