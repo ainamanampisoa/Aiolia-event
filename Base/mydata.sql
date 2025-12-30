@@ -134,21 +134,111 @@ WITH organizer AS (
 venue_data AS (
     SELECT *
     FROM (VALUES
-        -- Antananarivo (capitale)
+        -- Antananarivo (capitale) - Lieux de concerts réels
         (
             'cafe-de-la-gare',
             'Café de la Gare',
             'Salle iconique du centre-ville pour concerts intimistes.',
-            'Avenue de l''Indépendance',
+            'Avenue de l''Indépendance, Gare de Soarano',
             'Quartier Analakely',
             'Antananarivo',
             'Antananarivo',
             '101',
             'MG',
-            -18.8792,
-            47.5079,
+            -18.9031,
+            47.5211,
             'Indian/Antananarivo',
             400
+        ),
+        (
+            'le-glacier',
+            'Le Glacier',
+            'Salle de concert emblématique d''Analakely pour concerts live et soirées dansantes.',
+            'Avenue de l''Indépendance',
+            'Analakely',
+            'Antananarivo',
+            'Antananarivo',
+            '101',
+            'MG',
+            -18.9144,
+            47.5181,
+            'Indian/Antananarivo',
+            450
+        ),
+        (
+            'kudeta-urban-club',
+            'Kudeta Urban Club',
+            'Club urbain moderne au Carlton Hotel pour soirées électro et dancehall.',
+            'Carlton Hotel, Rue Stibbe',
+            'Anosy',
+            'Antananarivo',
+            'Antananarivo',
+            '101',
+            'MG',
+            -18.914398,
+            47.51806,
+            'Indian/Antananarivo',
+            300
+        ),
+        (
+            'jaos-pub',
+            'Cabaret Jao''s Pub',
+            'Cabaret convivial à Ambohipo pour concerts acoustiques et folk.',
+            'Ambohipo',
+            NULL,
+            'Antananarivo',
+            'Antananarivo',
+            '101',
+            'MG',
+            -18.8720,
+            47.5570,
+            'Indian/Antananarivo',
+            200
+        ),
+        (
+            'restaurant-taxi-be',
+            'Restaurant Taxi Be',
+            'Espace concert à Antanimena pour rock et metal.',
+            'Antanimena',
+            NULL,
+            'Antananarivo',
+            'Antananarivo',
+            '101',
+            'MG',
+            -18.9200,
+            47.5300,
+            'Indian/Antananarivo',
+            400
+        ),
+        (
+            'le-louvre-hotel-spa',
+            'Le Louvre Hotel & Spa',
+            'Hôtel de prestige à Antaninarenina pour concerts jazz et piano bar.',
+            '4, Place P. Tsiranana',
+            'Antaninarenina',
+            'Antananarivo',
+            'Antananarivo',
+            '101',
+            'MG',
+            -18.8748,
+            47.54729,
+            'Indian/Antananarivo',
+            250
+        ),
+        (
+            'espace-nambinintsoa',
+            'Espace Nambinintsoa',
+            'Grand espace en plein air à Talatamaty pour concerts pop et hip-hop.',
+            'Talatamaty',
+            NULL,
+            'Antananarivo',
+            'Antananarivo',
+            '101',
+            'MG',
+            -18.8500,
+            47.4800,
+            'Indian/Antananarivo',
+            1500
         ),
         (
             'le-dome-smartone',
@@ -482,111 +572,178 @@ space_defs AS (
             'cafe-de-la-gare',
             'Salle principale',
             'Espace central pour concerts acoustiques et showcases.',
-            400
+            400,
+            TRUE
+        ),
+        (
+            'cafe-de-la-gare',
+            'Jardin',
+            'Espace extérieur pour sessions acoustiques intimistes.',
+            200,
+            FALSE
+        ),
+        (
+            'le-glacier',
+            'Salle principale',
+            'Grande salle pour concerts live et soirées dansantes.',
+            450,
+            TRUE
+        ),
+        (
+            'kudeta-urban-club',
+            'Club',
+            'Espace clubbing avec piste de danse et système son professionnel.',
+            300,
+            TRUE
+        ),
+        (
+            'jaos-pub',
+            'Scène cabaret',
+            'Scène intimiste pour concerts acoustiques et performances live.',
+            200,
+            TRUE
+        ),
+        (
+            'restaurant-taxi-be',
+            'Espace concert',
+            'Salle équipée pour concerts rock et metal avec scène surélevée.',
+            400,
+            TRUE
+        ),
+        (
+            'le-louvre-hotel-spa',
+            'Salle de réception',
+            'Salle élégante pour concerts jazz et piano bar.',
+            250,
+            TRUE
+        ),
+        (
+            'espace-nambinintsoa',
+            'Espace plein air',
+            'Vaste espace extérieur pour grands concerts et festivals.',
+            1500,
+            TRUE
         ),
         (
             'le-dome-smartone',
             'Espace conférence',
             'Salle modulable pour networking, pitchs et ateliers.',
-            250
+            250,
+            TRUE
         ),
         (
             'salle-culturelle-toamasina',
             'Salle principale',
             'Grande salle polyvalente pour concerts et spectacles.',
-            500
+            500,
+            TRUE
         ),
         (
             'centre-affaires-antsirabe',
             'Salle principale',
             'Amphithéâtre moderne équipé pour conférences et formations.',
-            300
+            300,
+            TRUE
         ),
         (
             'plage-mahajanga',
             'Espace principal',
             'Scène en plein air face à la mer avec système son et lumière.',
-            800
+            800,
+            TRUE
         ),
         (
             'universite-fianarantsoa',
             'Amphithéâtre principal',
             'Grand amphithéâtre universitaire pour conférences académiques.',
-            600
+            600,
+            TRUE
         ),
         (
             'centre-culturel-toliara',
             'Salle principale',
             'Salle de spectacle moderne pour arts et culture.',
-            400
+            400,
+            TRUE
         ),
         (
             'hotel-diego-suarez',
             'Salle de conférence',
             'Salle de conférence hôtelière équipée pour séminaires.',
-            200
+            200,
+            TRUE
         ),
         (
             'espace-culturel-morondava',
             'Espace principal',
             'Grande salle polyvalente pour expositions et spectacles.',
-            600
+            600,
+            TRUE
         ),
         (
             'centre-formation-ambositra',
             'Salle principale',
             'Amphithéâtre équipé pour conférences et formations.',
-            300
+            300,
+            TRUE
         ),
         (
             'salle-fetes-ambatondrazaka',
             'Salle principale',
             'Salle des fêtes pour concerts et événements culturels.',
-            250
+            250,
+            TRUE
         ),
         (
             'centre-hospitalier-manakara',
             'Salle de conférence',
             'Salle de conférence médicale équipée.',
-            200
+            200,
+            TRUE
         ),
         (
             'complexe-culturel-nosy-be',
             'Salle principale',
             'Grande salle de projection et spectacles.',
-            500
+            500,
+            TRUE
         ),
         (
             'espace-tech-toamasina',
             'Espace conférence',
             'Salle modulable pour ateliers et formations tech.',
-            150
+            150,
+            TRUE
         ),
         (
             'theatre-fort-dauphin',
             'Salle principale',
             'Théâtre moderne avec scène et gradins.',
-            400
+            400,
+            TRUE
         ),
         (
             'centre-conferences-majunga',
             'Salle principale',
             'Grande salle de conférence équipée.',
-            350
+            350,
+            TRUE
         ),
         (
             'parc-thermal-antsirabe',
             'Espace principal',
             'Parc en plein air avec scène et stands.',
-            600
+            600,
+            TRUE
         ),
         (
             'lycee-ambalavao',
             'Amphithéâtre',
             'Amphithéâtre scolaire pour conférences.',
-            250
+            250,
+            TRUE
         )
-    ) AS sd (venue_slug, space_name, description, capacity)
+    ) AS sd (venue_slug, space_name, description, capacity, is_default)
 ),
 space_insert AS (
     INSERT INTO venue_spaces (venue_id, name, description, capacity, is_default)
@@ -595,7 +752,7 @@ space_insert AS (
         sd.space_name,
         sd.description,
         sd.capacity,
-        TRUE
+        sd.is_default
     FROM space_defs sd
     JOIN venue_insert v ON v.slug = sd.venue_slug
     WHERE NOT EXISTS (
@@ -1288,6 +1445,78 @@ event_data AS (
             'centre-conferences-tana',
             'Salle principale',
             '{"venue_name":"Centre de Conférences d''Antananarivo","address":"Zone Galaxy Andraharo","city":"Antananarivo","region":"Antananarivo","country":"MG"}'::jsonb
+        ),
+        (
+            'concert-cabaret-tana',
+            'Cabaret Night Live',
+            'Soirée cabaret au Glacier',
+            'Ambiance feutrée et performances live exceptionnelles au cœur d''Analakely.',
+            'Venez vivre une expérience cabaret unique avec des artistes talentueux, de la bonne musique et une ambiance chaleureuse au Glacier.',
+            'public',
+            'published',
+            'in_person',
+            'Indian/Antananarivo',
+            ('2026-06-05 20:00:00'::timestamp AT TIME ZONE 'Indian/Antananarivo')::timestamptz,
+            ('2026-06-06 00:00:00'::timestamp AT TIME ZONE 'Indian/Antananarivo')::timestamptz,
+            ('2026-05-15 00:00:00'::timestamp AT TIME ZONE 'Indian/Antananarivo')::timestamptz,
+            ('2026-06-05 20:00:00'::timestamp AT TIME ZONE 'Indian/Antananarivo')::timestamptz,
+            350,
+            'fr-FR',
+            FALSE,
+            TRUE,
+            'concert',
+            'vente-ticket/images/img1.png',
+            'le-glacier',
+            'Salle principale',
+            '{"venue_name":"Le Glacier","address":"Avenue de l''Indépendance, Analakely","city":"Antananarivo","region":"Antananarivo","country":"MG","latitude":-18.9144,"longitude":47.5181}'::jsonb
+        ),
+        (
+            'concert-electro-night-tana',
+            'Electro Night Fusion',
+            'Le son de demain au Kudeta',
+            'Une nuit immersive dans les rythmes électroniques les plus pointus de la capitale.',
+            'Les meilleurs DJs de la scène electro se relaient au platines du Kudeta pour vous faire danser toute la nuit sur des rythmes hypnotiques.',
+            'public',
+            'published',
+            'in_person',
+            'Indian/Antananarivo',
+            ('2026-06-12 22:00:00'::timestamp AT TIME ZONE 'Indian/Antananarivo')::timestamptz,
+            ('2026-06-13 04:00:00'::timestamp AT TIME ZONE 'Indian/Antananarivo')::timestamptz,
+            ('2026-05-20 00:00:00'::timestamp AT TIME ZONE 'Indian/Antananarivo')::timestamptz,
+            ('2026-06-12 22:00:00'::timestamp AT TIME ZONE 'Indian/Antananarivo')::timestamptz,
+            250,
+            'fr-FR',
+            FALSE,
+            TRUE,
+            'concert',
+            'vente-ticket/images/img1.png',
+            'kudeta-urban-club',
+            'Club',
+            '{"venue_name":"Kudeta Urban Club","address":"Carlton Hotel, Rue Stibbe, Anosy","city":"Antananarivo","region":"Antananarivo","country":"MG","latitude":-18.914398,"longitude":47.51806}'::jsonb
+        ),
+        (
+            'concert-acoustic-tana',
+            'Acoustic Garden Session',
+            'Douceur musicale au Café de la Gare',
+            'Un moment suspendu avec les plus belles voix malgaches en version acoustique.',
+            'Profitez du cadre magnifique du jardin du Café de la Gare pour une session acoustique intimiste et chaleureuse. Un pur délice pour les oreilles.',
+            'public',
+            'published',
+            'in_person',
+            'Indian/Antananarivo',
+            ('2026-06-20 18:30:00'::timestamp AT TIME ZONE 'Indian/Antananarivo')::timestamptz,
+            ('2026-06-20 21:30:00'::timestamp AT TIME ZONE 'Indian/Antananarivo')::timestamptz,
+            ('2026-06-01 00:00:00'::timestamp AT TIME ZONE 'Indian/Antananarivo')::timestamptz,
+            ('2026-06-20 18:30:00'::timestamp AT TIME ZONE 'Indian/Antananarivo')::timestamptz,
+            200,
+            'fr-FR',
+            FALSE,
+            TRUE,
+            'concert',
+            'vente-ticket/images/img1.png',
+            'cafe-de-la-gare',
+            'Jardin',
+            '{"venue_name":"Café de la Gare","address":"Avenue de l''Indépendance, Gare de Soarano, Analakely","city":"Antananarivo","region":"Antananarivo","country":"MG","latitude":-18.9031,"longitude":47.5211}'::jsonb
         )
     ) AS data (
         slug,
@@ -1450,7 +1679,10 @@ WITH evt AS (
         'concert-rap-gasy-tana',
         'concert-piano-bar-tana',
         'concert-tsapiky-fever-tana',
-        'theatre-contemporain-tana'
+        'theatre-contemporain-tana',
+        'concert-cabaret-tana',
+        'concert-electro-night-tana',
+        'concert-acoustic-tana'
     )
 )
 INSERT INTO event_tag_links (event_id, tag_id)
@@ -1492,7 +1724,10 @@ WITH evt AS (
         'concert-rap-gasy-tana',
         'concert-piano-bar-tana',
         'concert-tsapiky-fever-tana',
-        'theatre-contemporain-tana'
+        'theatre-contemporain-tana',
+        'concert-cabaret-tana',
+        'concert-electro-night-tana',
+        'concert-acoustic-tana'
     )
 )
 INSERT INTO event_media (
@@ -1528,6 +1763,9 @@ SELECT evt.id,
            WHEN 'concert-piano-bar-tana' THEN 'vente-ticket/images/concert-piano-bar-tana.png'
            WHEN 'concert-tsapiky-fever-tana' THEN 'vente-ticket/images/concert-tsapiky-fever-tana.png'
            WHEN 'theatre-contemporain-tana' THEN 'vente-ticket/images/theatre-contemporain-tana.png'
+           WHEN 'concert-cabaret-tana' THEN 'vente-ticket/images/concert-cabaret-tana.png'
+           WHEN 'concert-electro-night-tana' THEN 'vente-ticket/images/concert-electro-night-tana.png'
+           WHEN 'concert-acoustic-tana' THEN 'vente-ticket/images/concert-acoustic-tana.png'
            ELSE 'vente-ticket/images/img1.png'
        END,
        CASE evt.slug
@@ -1552,6 +1790,9 @@ SELECT evt.id,
            WHEN 'concert-piano-bar-tana' THEN 'Affiche Soft Jazz & Piano Bar'
            WHEN 'concert-tsapiky-fever-tana' THEN 'Affiche Tsapiky Night Fever'
            WHEN 'theatre-contemporain-tana' THEN 'Affiche Festival de Théâtre Contemporain'
+           WHEN 'concert-cabaret-tana' THEN 'Affiche Cabaret Night Live'
+           WHEN 'concert-electro-night-tana' THEN 'Affiche Electro Night Fusion'
+           WHEN 'concert-acoustic-tana' THEN 'Affiche Acoustic Garden Session'
            ELSE 'Affiche Événement Aiolia'
        END,
        1,
@@ -1584,7 +1825,10 @@ WITH evt AS (
         'concert-rap-gasy-tana',
         'concert-piano-bar-tana',
         'concert-tsapiky-fever-tana',
-        'theatre-contemporain-tana'
+        'theatre-contemporain-tana',
+        'concert-cabaret-tana',
+        'concert-electro-night-tana',
+        'concert-acoustic-tana'
     )
 )
 INSERT INTO event_sessions (
@@ -1649,7 +1893,10 @@ WITH evt AS (
         'concert-rap-gasy-tana',
         'concert-piano-bar-tana',
         'concert-tsapiky-fever-tana',
-        'theatre-contemporain-tana'
+        'theatre-contemporain-tana',
+        'concert-cabaret-tana',
+        'concert-electro-night-tana',
+        'concert-acoustic-tana'
     )
 )
 -- Types de billets variés pour démontrer toutes les fonctionnalités
@@ -1658,8 +1905,8 @@ INSERT INTO ticket_types (
     base_price, service_fee, vat_rate, age_category,
     sales_start, sales_end, min_per_order, max_per_order
 )
--- Concert Music Sunday : Billet simple (all)
-SELECT evt.id, 'Pass Concert', 'Accès libre à l''ensemble de la soirée musicale.', 'MGA', 80000, 4000, 20, 'all'::age_category_enum, evt.sales_starts_at, evt.sales_ends_at, 1, 4
+-- Concert Music Sunday : Billet simple (all) - Concert showcase intimiste
+SELECT evt.id, 'Pass Concert', 'Accès libre à l''ensemble de la soirée musicale. Showcase artistes émergents.', 'MGA', 35000, 1750, 20, 'all'::age_category_enum, evt.sales_starts_at, evt.sales_ends_at, 1, 4
 FROM evt WHERE evt.slug = 'concert-music-sunday'
 AND NOT EXISTS (SELECT 1 FROM ticket_types tt WHERE tt.event_id = evt.id AND tt.name = 'Pass Concert')
 UNION ALL
@@ -1813,9 +2060,54 @@ SELECT evt.id, 'Billet Enfant', 'Accès complet pour un enfant. Spectacle de dan
 FROM evt WHERE evt.slug = 'spectacle-danse-toliara'
 AND NOT EXISTS (SELECT 1 FROM ticket_types tt WHERE tt.event_id = evt.id AND tt.name = 'Billet Enfant')
 UNION ALL
--- New Concerts Tana
-SELECT evt.id, 'Pass Concert', 'Accès standard au concert.', 'MGA', 50000, 2500, 20, 'all'::age_category_enum, evt.sales_starts_at, evt.sales_ends_at, 1, 10
-FROM evt WHERE evt.slug IN ('concert-kabosy-night-tana', 'concert-metal-mada-tana', 'concert-afro-dancehall-tana', 'concert-vako-drazana-tana', 'concert-rap-gasy-tana', 'concert-piano-bar-tana', 'concert-tsapiky-fever-tana')
+-- Concert Kabosy Night Tana (Acoustique, intimiste)
+SELECT evt.id, 'Pass Concert', 'Accès au concert de kabosy. Ambiance intimiste.', 'MGA', 35000, 1750, 20, 'all'::age_category_enum, evt.sales_starts_at, evt.sales_ends_at, 1, 10
+FROM evt WHERE evt.slug = 'concert-kabosy-night-tana'
+AND NOT EXISTS (SELECT 1 FROM ticket_types tt WHERE tt.event_id = evt.id AND tt.name = 'Pass Concert')
+UNION ALL
+-- Concert Metal Mada Fest (Rock/Metal, prix moyen)
+SELECT evt.id, 'Pass Concert', 'Accès au festival metal. Ambiance rock.', 'MGA', 45000, 2250, 20, 'all'::age_category_enum, evt.sales_starts_at, evt.sales_ends_at, 1, 10
+FROM evt WHERE evt.slug = 'concert-metal-mada-tana'
+AND NOT EXISTS (SELECT 1 FROM ticket_types tt WHERE tt.event_id = evt.id AND tt.name = 'Pass Concert')
+UNION ALL
+-- Concert Afro Dancehall Club (Clubbing, prix premium)
+SELECT evt.id, 'Pass Concert', 'Accès au club. Soirée dancehall exclusive.', 'MGA', 60000, 3000, 20, 'all'::age_category_enum, evt.sales_starts_at, evt.sales_ends_at, 1, 10
+FROM evt WHERE evt.slug = 'concert-afro-dancehall-tana'
+AND NOT EXISTS (SELECT 1 FROM ticket_types tt WHERE tt.event_id = evt.id AND tt.name = 'Pass Concert')
+UNION ALL
+-- Concert Vako-drazana Live (Traditionnel, prix accessible)
+SELECT evt.id, 'Pass Concert', 'Accès au concert traditionnel. Musique des hauts plateaux.', 'MGA', 30000, 1500, 20, 'all'::age_category_enum, evt.sales_starts_at, evt.sales_ends_at, 1, 10
+FROM evt WHERE evt.slug = 'concert-vako-drazana-tana'
+AND NOT EXISTS (SELECT 1 FROM ticket_types tt WHERE tt.event_id = evt.id AND tt.name = 'Pass Concert')
+UNION ALL
+-- Concert Rap Gasy Heritage (Hip-hop, grand espace)
+SELECT evt.id, 'Pass Concert', 'Accès au festival hip-hop. Open air à Talatamaty.', 'MGA', 40000, 2000, 20, 'all'::age_category_enum, evt.sales_starts_at, evt.sales_ends_at, 1, 10
+FROM evt WHERE evt.slug = 'concert-rap-gasy-tana'
+AND NOT EXISTS (SELECT 1 FROM ticket_types tt WHERE tt.event_id = evt.id AND tt.name = 'Pass Concert')
+UNION ALL
+-- Concert Piano Bar Tana (Jazz/Piano, lieu prestige)
+SELECT evt.id, 'Pass Concert', 'Accès au piano bar. Ambiance feutrée au Louvre.', 'MGA', 55000, 2750, 20, 'all'::age_category_enum, evt.sales_starts_at, evt.sales_ends_at, 1, 10
+FROM evt WHERE evt.slug = 'concert-piano-bar-tana'
+AND NOT EXISTS (SELECT 1 FROM ticket_types tt WHERE tt.event_id = evt.id AND tt.name = 'Pass Concert')
+UNION ALL
+-- Concert Tsapiky Fever Tana (Danse, prix standard)
+SELECT evt.id, 'Pass Concert', 'Accès au concert tsapiky. Ambiance dansante.', 'MGA', 38000, 1900, 20, 'all'::age_category_enum, evt.sales_starts_at, evt.sales_ends_at, 1, 10
+FROM evt WHERE evt.slug = 'concert-tsapiky-fever-tana'
+AND NOT EXISTS (SELECT 1 FROM ticket_types tt WHERE tt.event_id = evt.id AND tt.name = 'Pass Concert')
+UNION ALL
+-- Concert Cabaret Tana (Cabaret, prix moyen)
+SELECT evt.id, 'Pass Concert', 'Accès au cabaret. Performances live et ambiance chaleureuse.', 'MGA', 42000, 2100, 20, 'all'::age_category_enum, evt.sales_starts_at, evt.sales_ends_at, 1, 10
+FROM evt WHERE evt.slug = 'concert-cabaret-tana'
+AND NOT EXISTS (SELECT 1 FROM ticket_types tt WHERE tt.event_id = evt.id AND tt.name = 'Pass Concert')
+UNION ALL
+-- Concert Electro Night Fusion (Clubbing électro, prix premium)
+SELECT evt.id, 'Pass Concert', 'Accès à la soirée électro. Club Kudeta.', 'MGA', 58000, 2900, 20, 'all'::age_category_enum, evt.sales_starts_at, evt.sales_ends_at, 1, 10
+FROM evt WHERE evt.slug = 'concert-electro-night-tana'
+AND NOT EXISTS (SELECT 1 FROM ticket_types tt WHERE tt.event_id = evt.id AND tt.name = 'Pass Concert')
+UNION ALL
+-- Concert Acoustic Garden Session (Acoustique jardin, prix accessible)
+SELECT evt.id, 'Pass Concert', 'Accès au concert acoustique en jardin.', 'MGA', 32000, 1600, 20, 'all'::age_category_enum, evt.sales_starts_at, evt.sales_ends_at, 1, 10
+FROM evt WHERE evt.slug = 'concert-acoustic-tana'
 AND NOT EXISTS (SELECT 1 FROM ticket_types tt WHERE tt.event_id = evt.id AND tt.name = 'Pass Concert')
 UNION ALL
 -- New Culture Tana
@@ -1832,12 +2124,12 @@ SELECT evt.id, 'Billet Enfant', 'Accès complet pour un enfant. Spectacle de dan
 FROM evt WHERE evt.slug = 'spectacle-danse-fort-dauphin'
 AND NOT EXISTS (SELECT 1 FROM ticket_types tt WHERE tt.event_id = evt.id AND tt.name = 'Billet Enfant')
 UNION ALL
--- Conférence Environnement Majunga : Standard et Étudiant
-SELECT evt.id, 'Pass Standard', 'Accès complet à la conférence (2 jours). Documentation incluse.', 'MGA', 80000, 4000, 20, 'all'::age_category_enum, evt.sales_starts_at, evt.sales_ends_at, 1, 6
+-- Concert Blues & Soul Night Tana : Standard et Étudiant
+SELECT evt.id, 'Pass Standard', 'Accès au concert blues. Ambiance feutrée au Louvre.', 'MGA', 52000, 2600, 20, 'all'::age_category_enum, evt.sales_starts_at, evt.sales_ends_at, 1, 6
 FROM evt WHERE evt.slug = 'concert-blues-tana'
 AND NOT EXISTS (SELECT 1 FROM ticket_types tt WHERE tt.event_id = evt.id AND tt.name = 'Pass Standard')
 UNION ALL
-SELECT evt.id, 'Pass Étudiant', 'Accès étudiant avec réduction (2 jours). Carte étudiante requise.', 'MGA', 35000, 1750, 20, 'all'::age_category_enum, evt.sales_starts_at, evt.sales_ends_at, 1, 6
+SELECT evt.id, 'Pass Étudiant', 'Accès étudiant avec réduction au concert blues.', 'MGA', 28000, 1400, 20, 'all'::age_category_enum, evt.sales_starts_at, evt.sales_ends_at, 1, 6
 FROM evt WHERE evt.slug = 'concert-blues-tana'
 AND NOT EXISTS (SELECT 1 FROM ticket_types tt WHERE tt.event_id = evt.id AND tt.name = 'Pass Étudiant')
 UNION ALL
@@ -1867,12 +2159,12 @@ SELECT evt.id, 'Pass Étudiant', 'Accès étudiant avec réduction. Carte étudi
 FROM evt WHERE evt.slug = 'seminaire-education-ambalavao'
 AND NOT EXISTS (SELECT 1 FROM ticket_types tt WHERE tt.event_id = evt.id AND tt.name = 'Pass Étudiant')
 UNION ALL
--- Séminaire Entrepreneurs Toamasina : Standard et Premium
-SELECT evt.id, 'Pass Standard', 'Accès complet au séminaire. Repas de midi inclus.', 'MGA', 80000, 4000, 20, 'adult'::age_category_enum, evt.sales_starts_at, evt.sales_ends_at, 1, 5
+-- Concert Reggae Tana : Standard et Premium
+SELECT evt.id, 'Pass Standard', 'Accès au concert reggae. Placement général.', 'MGA', 40000, 2000, 20, 'all'::age_category_enum, evt.sales_starts_at, evt.sales_ends_at, 1, 8
 FROM evt WHERE evt.slug = 'concert-reggae-tana'
 AND NOT EXISTS (SELECT 1 FROM ticket_types tt WHERE tt.event_id = evt.id AND tt.name = 'Pass Standard')
 UNION ALL
-SELECT evt.id, 'Pass Premium', 'Accès premium avec place réservée, repas premium et documentation exclusive.', 'MGA', 120000, 6000, 20, 'adult'::age_category_enum, evt.sales_starts_at, evt.sales_ends_at, 1, 3
+SELECT evt.id, 'Pass Premium', 'Accès premium au concert reggae avec zone VIP.', 'MGA', 65000, 3250, 20, 'all'::age_category_enum, evt.sales_starts_at, evt.sales_ends_at, 1, 4
 FROM evt WHERE evt.slug = 'concert-reggae-tana'
 AND NOT EXISTS (SELECT 1 FROM ticket_types tt WHERE tt.event_id = evt.id AND tt.name = 'Pass Premium')
 UNION ALL
@@ -1895,9 +2187,33 @@ FROM evt WHERE evt.slug = 'conference-agriculture-tana'
 AND NOT EXISTS (SELECT 1 FROM ticket_types tt WHERE tt.event_id = evt.id AND tt.name = 'Pass Étudiant')
 UNION ALL
 -- Concert Jazz Tana : Billet simple
-SELECT evt.id, 'Pass Concert', 'Accès libre à l''ensemble de la soirée jazz.', 'MGA', 35000, 1750, 20, 'all'::age_category_enum, evt.sales_starts_at, evt.sales_ends_at, 1, 6
+SELECT evt.id, 'Pass Concert', 'Accès libre à l''ensemble de la soirée jazz au Louvre Hotel.', 'MGA', 48000, 2400, 20, 'all'::age_category_enum, evt.sales_starts_at, evt.sales_ends_at, 1, 6
 FROM evt WHERE evt.slug = 'concert-jazz-tana'
 AND NOT EXISTS (SELECT 1 FROM ticket_types tt WHERE tt.event_id = evt.id AND tt.name = 'Pass Concert')
+UNION ALL
+-- Concert Salegy Fever Tana : Billet simple
+SELECT evt.id, 'Pass Concert', 'Accès au concert salegy. Ambiance dansante au Glacier.', 'MGA', 42000, 2100, 20, 'all'::age_category_enum, evt.sales_starts_at, evt.sales_ends_at, 1, 8
+FROM evt WHERE evt.slug = 'concert-salegy-tana'
+AND NOT EXISTS (SELECT 1 FROM ticket_types tt WHERE tt.event_id = evt.id AND tt.name = 'Pass Concert')
+UNION ALL
+-- Concert Electro Urban Night : Billet simple clubbing
+SELECT evt.id, 'Pass Concert', 'Accès à la soirée électro au Kudeta Urban Club.', 'MGA', 55000, 2750, 20, 'all'::age_category_enum, evt.sales_starts_at, evt.sales_ends_at, 1, 6
+FROM evt WHERE evt.slug = 'concert-electro-tana'
+AND NOT EXISTS (SELECT 1 FROM ticket_types tt WHERE tt.event_id = evt.id AND tt.name = 'Pass Concert')
+UNION ALL
+-- Concert World Music Fusion : Billet simple
+SELECT evt.id, 'Pass Concert', 'Accès au concert world music au Café de la Gare.', 'MGA', 38000, 1900, 20, 'all'::age_category_enum, evt.sales_starts_at, evt.sales_ends_at, 1, 8
+FROM evt WHERE evt.slug = 'concert-world-tana'
+AND NOT EXISTS (SELECT 1 FROM ticket_types tt WHERE tt.event_id = evt.id AND tt.name = 'Pass Concert')
+UNION ALL
+-- Concert Pop Generation Tana : Billet Adulte et Enfant
+SELECT evt.id, 'Billet Adulte', 'Accès adulte au grand concert pop à Nambinintsoa.', 'MGA', 45000, 2250, 20, 'adult'::age_category_enum, evt.sales_starts_at, evt.sales_ends_at, 1, 10
+FROM evt WHERE evt.slug = 'concert-pop-tana'
+AND NOT EXISTS (SELECT 1 FROM ticket_types tt WHERE tt.event_id = evt.id AND tt.name = 'Billet Adulte')
+UNION ALL
+SELECT evt.id, 'Billet Enfant', 'Accès enfant au grand concert pop à Nambinintsoa.', 'MGA', 25000, 1250, 20, 'child'::age_category_enum, evt.sales_starts_at, evt.sales_ends_at, 1, 10
+FROM evt WHERE evt.slug = 'concert-pop-tana'
+AND NOT EXISTS (SELECT 1 FROM ticket_types tt WHERE tt.event_id = evt.id AND tt.name = 'Billet Enfant')
 UNION ALL
 -- Séminaire Santé Toliara : Standard et Premium
 SELECT evt.id, 'Pass Standard', 'Accès complet au séminaire. Documentation incluse.', 'MGA', 60000, 3000, 20, 'adult'::age_category_enum, evt.sales_starts_at, evt.sales_ends_at, 1, 4
@@ -1907,15 +2223,6 @@ UNION ALL
 SELECT evt.id, 'Pass Premium', 'Accès premium avec repas, documentation exclusive et accès aux ateliers privés.', 'MGA', 90000, 4500, 20, 'adult'::age_category_enum, evt.sales_starts_at, evt.sales_ends_at, 1, 2
 FROM evt WHERE evt.slug = 'seminaire-sante-toliara'
 AND NOT EXISTS (SELECT 1 FROM ticket_types tt WHERE tt.event_id = evt.id AND tt.name = 'Pass Premium')
-UNION ALL
--- Spectacle Danse Toliara : Adulte et Enfant
-SELECT evt.id, 'Billet Adulte', 'Accès complet pour un adulte. Spectacle de danse traditionnelle.', 'MGA', 30000, 1500, 20, 'adult'::age_category_enum, evt.sales_starts_at, evt.sales_ends_at, 1, 8
-FROM evt WHERE evt.slug = 'concert-world-tana'
-AND NOT EXISTS (SELECT 1 FROM ticket_types tt WHERE tt.event_id = evt.id AND tt.name = 'Billet Adulte')
-UNION ALL
-SELECT evt.id, 'Billet Enfant', 'Accès complet pour un enfant. Spectacle de danse traditionnelle.', 'MGA', 15000, 750, 20, 'child'::age_category_enum, evt.sales_starts_at, evt.sales_ends_at, 1, 8
-FROM evt WHERE evt.slug = 'concert-world-tana'
-AND NOT EXISTS (SELECT 1 FROM ticket_types tt WHERE tt.event_id = evt.id AND tt.name = 'Billet Enfant')
 UNION ALL
 -- Festival Gastronomie Tana : VIP et Standard avec adulte/enfant
 SELECT evt.id, 'VIP', 'Billet VIP pour adulte. Accès prioritaire, dégustations premium, ateliers privés.', 'MGA', 80000, 4000, 20, 'adult'::age_category_enum, evt.sales_starts_at, evt.sales_ends_at, 1, 8
@@ -1933,15 +2240,6 @@ UNION ALL
 SELECT evt.id, 'Standard', 'Billet Standard pour enfant. Accès général avec dégustations.', 'MGA', 20000, 1000, 20, 'child'::age_category_enum, evt.sales_starts_at, evt.sales_ends_at, 1, 12
 FROM evt WHERE evt.slug = 'festival-gastronomie-tana'
 AND NOT EXISTS (SELECT 1 FROM ticket_types tt WHERE tt.event_id = evt.id AND tt.name = 'Standard' AND tt.age_category = 'child')
-UNION ALL
--- Séminaire Éducation Tana : Standard et Étudiant
-SELECT evt.id, 'Pass Standard', 'Accès complet au séminaire. Documentation incluse.', 'MGA', 40000, 2000, 20, 'all'::age_category_enum, evt.sales_starts_at, evt.sales_ends_at, 1, 6
-FROM evt WHERE evt.slug = 'concert-pop-tana'
-AND NOT EXISTS (SELECT 1 FROM ticket_types tt WHERE tt.event_id = evt.id AND tt.name = 'Pass Standard')
-UNION ALL
-SELECT evt.id, 'Pass Étudiant', 'Accès étudiant avec réduction. Carte étudiante requise.', 'MGA', 20000, 1000, 20, 'all'::age_category_enum, evt.sales_starts_at, evt.sales_ends_at, 1, 6
-FROM evt WHERE evt.slug = 'concert-pop-tana'
-AND NOT EXISTS (SELECT 1 FROM ticket_types tt WHERE tt.event_id = evt.id AND tt.name = 'Pass Étudiant')
 UNION ALL
 -- Festival Artisanat Majunga : Adulte et Enfant
 SELECT evt.id, 'Billet Adulte', 'Accès complet pour un adulte. Inclut toutes les activités et démonstrations.', 'MGA', 20000, 1000, 20, 'adult'::age_category_enum, evt.sales_starts_at, evt.sales_ends_at, 1, 10
@@ -1984,7 +2282,10 @@ WITH tt AS (
         'concert-rap-gasy-tana',
         'concert-piano-bar-tana',
         'concert-tsapiky-fever-tana',
-        'theatre-contemporain-tana'
+        'theatre-contemporain-tana',
+        'concert-cabaret-tana',
+        'concert-electro-night-tana',
+        'concert-acoustic-tana'
     )
 )
 INSERT INTO ticket_inventory (
@@ -2019,7 +2320,7 @@ SELECT tt.id,
             WHEN tt.slug = 'spectacle-culturel-toliara' AND tt.name = 'Billet Enfant' THEN 150
             WHEN tt.slug = 'spectacle-danse-toliara' AND tt.name = 'Billet Adulte' THEN 250
             WHEN tt.slug = 'spectacle-danse-toliara' AND tt.name = 'Billet Enfant' THEN 150
-            WHEN tt.slug IN ('concert-kabosy-night-tana', 'concert-metal-mada-tana', 'concert-afro-dancehall-tana', 'concert-vako-drazana-tana', 'concert-rap-gasy-tana', 'concert-piano-bar-tana', 'concert-tsapiky-fever-tana') THEN 300
+            WHEN tt.slug IN ('concert-kabosy-night-tana', 'concert-metal-mada-tana', 'concert-afro-dancehall-tana', 'concert-vako-drazana-tana', 'concert-rap-gasy-tana', 'concert-piano-bar-tana', 'concert-tsapiky-fever-tana', 'concert-cabaret-tana', 'concert-electro-night-tana', 'concert-acoustic-tana') THEN 300
             WHEN tt.slug = 'theatre-contemporain-tana' THEN 200
            ELSE 100
        END,
@@ -2044,7 +2345,10 @@ WITH tt AS (
         'spectacle-culturel-toliara',
         'spectacle-danse-toliara',
         'concert-kabosy-night-tana',
-        'theatre-contemporain-tana'
+        'theatre-contemporain-tana',
+        'concert-cabaret-tana',
+        'concert-electro-night-tana',
+        'concert-acoustic-tana'
     )
 )
 INSERT INTO pricing_rules (
@@ -2193,7 +2497,11 @@ venue_corporate AS (
 ),
 space_famille AS (
     INSERT INTO venue_spaces (venue_id, name, description, capacity, is_default)
-    SELECT v.id, 'Espace principal', 'Grande pelouse avec scène et aire de jeux', 500, TRUE
+    SELECT v.id, 'Espace principal', 'Grande pelouse avec scène et aire de jeux', 500, 
+        NOT EXISTS (
+            SELECT 1 FROM venue_spaces vs2 
+            WHERE vs2.venue_id = v.id AND vs2.is_default = TRUE
+        )
     FROM venue_famille v
     WHERE NOT EXISTS (
         SELECT 1 FROM venue_spaces vs WHERE vs.venue_id = v.id AND vs.name = 'Espace principal'
@@ -2202,7 +2510,11 @@ space_famille AS (
 ),
 space_corporate AS (
     INSERT INTO venue_spaces (venue_id, name, description, capacity, is_default)
-    SELECT v.id, 'Salle principale', 'Amphithéâtre équipé pour conférences', 150, TRUE
+    SELECT v.id, 'Salle principale', 'Amphithéâtre équipé pour conférences', 150, 
+        NOT EXISTS (
+            SELECT 1 FROM venue_spaces vs2 
+            WHERE vs2.venue_id = v.id AND vs2.is_default = TRUE
+        )
     FROM venue_corporate v
     WHERE NOT EXISTS (
         SELECT 1 FROM venue_spaces vs WHERE vs.venue_id = v.id AND vs.name = 'Salle principale'
@@ -2543,9 +2855,9 @@ event_premium AS (
         vp.id,
         sp.id,
         'concert-premium-vip-types',
-        'Concert Premium - Types VIP Groupés',
-        'Expérience musicale exclusive',
-        'Un concert exceptionnel avec différents types de billets pour tous les âges. Profitez de l''expérience VIP, Gold ou Silver selon vos préférences.',
+        'Grand Concert Gala d''Antananarivo',
+        'Soirée Prestige avec Stars Malgaches',
+        'Un concert exceptionnel avec les plus grandes stars de Madagascar. Profitez de l''expérience VIP, Gold ou Silver selon vos préférences.',
         'Concert premium avec plusieurs catégories de billets. Types VIP avec accès prioritaire et zone exclusive, Gold avec meilleur placement, et Silver avec accès standard amélioré. Tarifs adaptés pour adultes et enfants.',
         'public'::event_visibility_enum,
         'published'::event_status_enum,
