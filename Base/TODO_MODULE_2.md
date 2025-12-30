@@ -60,3 +60,4 @@
 - [ ] Numérotation unique des factures (année + compteur)
 - [ ] Historique et statut des factures (Payée / En attente / Annulée)
 - [ ] Envoi automatique de la facture au client après paiement
+- sk-cf4688d632ea4ec3b8397712f5f92b22
