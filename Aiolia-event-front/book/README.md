@@ -14,6 +14,12 @@ Aiolia-Event est une application web moderne permettant aux utilisateurs de :
 
 ---
 
+## 🎭 Parcours Utilisateur Complet
+
+**📖 [PARCOURS_UTILISATEUR.md](./PARCOURS_UTILISATEUR.md)** - Un récit narratif qui suit "Miora" à travers toutes les fonctionnalités de la plateforme, de la découverte à l'achat de billets.
+
+---
+
 ## 📋 Index des Modules
 
 | # | Module | Description | Fichier |
@@ -28,6 +34,7 @@ Aiolia-Event est une application web moderne permettant aux utilisateurs de :
 | 08 | 🎰 [Ticket Chance](./MODULE_08_TICKET_CHANCE.md) | Jeu roue de la fortune | `MODULE_08_TICKET_CHANCE.md` |
 | 09 | 🎪 [Organisateur](./MODULE_09_ORGANISATEUR.md) | Gestion événements, admin | `MODULE_09_ORGANISATEUR.md` |
 | 10 | 👥 [Social](./MODULE_10_SOCIAL.md) | Invitations, partage, calendrier | `MODULE_10_SOCIAL.md` |
+| 11 | ⚙️ [Préférences](./MODULE_11_PREFERENCES.md) | Mode sombre, multilingue | `MODULE_11_PREFERENCES.md` |
 
 ---
 

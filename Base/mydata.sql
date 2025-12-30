@@ -14,11 +14,19 @@ SET search_path TO aiolia, public;
 -- Catalogues de base
 -- -------------------------------------------------------------------
 INSERT INTO event_categories (slug, label, description, display_order)
-VALUES ('concert', 'Concert', 'Concerts et showcases grand public', 1)
+VALUES ('concert', 'Concert', 'Concerts, soirées live, DJ sets et showcases musicaux', 1)
 ON CONFLICT (slug) DO NOTHING;
 
 INSERT INTO event_categories (slug, label, description, display_order)
-VALUES ('business', 'Business', 'Rencontres professionnelles & networking', 2)
+VALUES ('business', 'Business', 'Conférences, séminaires, formations et workshops professionnels', 2)
+ON CONFLICT (slug) DO NOTHING;
+
+INSERT INTO event_categories (slug, label, description, display_order)
+VALUES ('festival', 'Festival', 'Festivals multi-activités, gastronomie, artisanat et cinéma', 3)
+ON CONFLICT (slug) DO NOTHING;
+
+INSERT INTO event_categories (slug, label, description, display_order)
+VALUES ('culture', 'Culture', 'Spectacles de danse, théâtre, performances culturelles et artistiques', 4)
 ON CONFLICT (slug) DO NOTHING;
 
 INSERT INTO event_tags (slug, label)
@@ -631,7 +639,7 @@ event_data AS (
             'vente-ticket/images/img1.png',
             'cafe-de-la-gare',
             'Salle principale',
-            '{"venue_name":"Café de la Gare","address":"Avenue de l''Indépendance, Quartier Analakely","city":"Antananarivo","region":"Antananarivo","country":"MG"}'::jsonb
+            '{"venue_name":"Café de la Gare","address":"Avenue de l''Indépendance, Gare de Soarano, Analakely","city":"Antananarivo","region":"Antananarivo","country":"MG","latitude":-18.9031,"longitude":47.5211}'::jsonb
         ),
         (
             'business-connect-mada',
@@ -675,35 +683,59 @@ event_data AS (
             'fr-FR',
             TRUE,
             TRUE,
-            'concert',
+            'festival',
             'vente-ticket/images/img2.png',
             'salle-culturelle-toamasina',
             'Salle principale',
             '{"venue_name":"Salle Culturelle de Toamasina","address":"Boulevard de la République, Centre-ville","city":"Toamasina","region":"Toamasina","country":"MG"}'::jsonb
         ),
         (
-            'seminaire-entrepreneurs-toamasina',
-            'Séminaire Entrepreneurs de Toamasina',
-            'Formation & Networking',
-            'Formation intensive pour entrepreneurs de Toamasina.',
-            'Séminaire d''une journée destiné aux entrepreneurs et porteurs de projets. Programme incluant conférences sur le financement, ateliers pratiques sur le business plan, et session de networking. Repas de midi inclus avec spécialités locales.',
+            'concert-reggae-tana',
+            'Reggae Vibes Tana',
+            'Soirée Roots & Culture',
+            'Concert reggae exceptionnel avec les meilleures vibrations de la capitale.',
+            'Une soirée dédiée au reggae et à la culture rasta. Venez vibrer au son des basses et des messages positifs. Artistes locaux et invités surprises pour une ambiance inoubliable.',
             'public',
             'published',
             'in_person',
             'Indian/Antananarivo',
-            ('2026-02-05 09:00:00'::timestamp AT TIME ZONE 'Indian/Antananarivo')::timestamptz,
-            ('2026-02-05 15:00:00'::timestamp AT TIME ZONE 'Indian/Antananarivo')::timestamptz,
+            ('2026-02-05 20:00:00'::timestamp AT TIME ZONE 'Indian/Antananarivo')::timestamptz,
+            ('2026-02-05 23:30:00'::timestamp AT TIME ZONE 'Indian/Antananarivo')::timestamptz,
             ('2026-01-18 00:00:00'::timestamp AT TIME ZONE 'Indian/Antananarivo')::timestamptz,
-            ('2026-02-03 00:00:00'::timestamp AT TIME ZONE 'Indian/Antananarivo')::timestamptz,
-            300,
+            ('2026-02-05 20:00:00'::timestamp AT TIME ZONE 'Indian/Antananarivo')::timestamptz,
+            350,
             'fr-FR',
             FALSE,
             TRUE,
-            'business',
-            'vente-ticket/images/seminaire-entrepreneurs-toamasina.png',
-            'centre-affaires-toamasina',
+            'concert',
+            'vente-ticket/images/img1.png',
+            'le-glacier',
             'Salle principale',
-            '{"venue_name":"Centre d''Affaires de Toamasina","address":"Avenue de France, Quartier Port","city":"Toamasina","region":"Toamasina","country":"MG"}'::jsonb
+            '{"venue_name":"Le Glacier","address":"Avenue de l''Indépendance, Analakely","city":"Antananarivo","region":"Antananarivo","country":"MG","latitude":-18.9144,"longitude":47.5181}'::jsonb
+        ),
+        (
+            'spectacle-culturel-toliara',
+            'Spectacle Culturel du Sud',
+            'Arts & Culture',
+            'Spectacle mettant en valeur les arts et traditions du Sud de Madagascar.',
+            'Grand spectacle culturel présentant les danses traditionnelles, musiques et chants du Sud de Madagascar. Découvrez la richesse culturelle de Toliara avec des troupes locales et des artistes renommés.',
+            'public',
+            'published',
+            'in_person',
+            'Indian/Antananarivo',
+            ('2026-02-12 19:00:00'::timestamp AT TIME ZONE 'Indian/Antananarivo')::timestamptz,
+            ('2026-02-12 22:00:00'::timestamp AT TIME ZONE 'Indian/Antananarivo')::timestamptz,
+            ('2026-01-25 00:00:00'::timestamp AT TIME ZONE 'Indian/Antananarivo')::timestamptz,
+            ('2026-02-10 00:00:00'::timestamp AT TIME ZONE 'Indian/Antananarivo')::timestamptz,
+            400,
+            'fr-FR',
+            TRUE,
+            FALSE,
+            'culture',
+            'vente-ticket/images/spectacle-culturel-toliara.png',
+            'centre-culturel-toliara',
+            'Salle principale',
+            '{"venue_name":"Centre Culturel de Toliara","address":"Avenue de l''Indépendance, Centre-ville","city":"Toliara","region":"Toliara","country":"MG"}'::jsonb
         ),
         (
             'festival-plage-mahajanga',
@@ -723,7 +755,7 @@ event_data AS (
             'fr-FR',
             TRUE,
             TRUE,
-            'concert',
+            'festival',
             'vente-ticket/images/festival-plage-mahajanga.png',
             'plage-mahajanga',
             'Espace principal',
@@ -754,52 +786,52 @@ event_data AS (
             '{"venue_name":"Centre de Conférences d''Antananarivo","address":"Zone Galaxy Andraharo","city":"Antananarivo","region":"Antananarivo","country":"MG"}'::jsonb
         ),
         (
-            'spectacle-culturel-toliara',
-            'Spectacle Culturel du Sud',
-            'Arts & Culture',
-            'Spectacle mettant en valeur les arts et traditions du Sud de Madagascar.',
-            'Grand spectacle culturel présentant les danses traditionnelles, musiques et chants du Sud de Madagascar. Découvrez la richesse culturelle de Toliara avec des troupes locales et des artistes renommés.',
+            'concert-salegy-tana',
+            'Salegy Fever Tana',
+            'Le meilleur du Salegy',
+            'Une nuit de folie dédiée au Salegy, la musique qui fait danser tout Madagascar !',
+            'Retrouvez les plus grands noms du genre pour une soirée inoubliable au Glacier. Ambiance survoltée et danse jusqu''au bout de la nuit !',
             'public',
             'published',
             'in_person',
             'Indian/Antananarivo',
-            ('2026-02-12 19:00:00'::timestamp AT TIME ZONE 'Indian/Antananarivo')::timestamptz,
-            ('2026-02-12 22:00:00'::timestamp AT TIME ZONE 'Indian/Antananarivo')::timestamptz,
+            ('2026-02-12 21:00:00'::timestamp AT TIME ZONE 'Indian/Antananarivo')::timestamptz,
+            ('2026-02-13 02:00:00'::timestamp AT TIME ZONE 'Indian/Antananarivo')::timestamptz,
             ('2026-01-25 00:00:00'::timestamp AT TIME ZONE 'Indian/Antananarivo')::timestamptz,
-            ('2026-02-10 00:00:00'::timestamp AT TIME ZONE 'Indian/Antananarivo')::timestamptz,
-            400,
+            ('2026-02-12 21:00:00'::timestamp AT TIME ZONE 'Indian/Antananarivo')::timestamptz,
+            450,
             'fr-FR',
             TRUE,
-            FALSE,
+            TRUE,
             'concert',
             'vente-ticket/images/spectacle-culturel-toliara.png',
-            'centre-culturel-toliara',
+            'le-glacier',
             'Salle principale',
-            '{"venue_name":"Centre Culturel de Toliara","address":"Avenue de l''Indépendance, Centre-ville","city":"Toliara","region":"Toliara","country":"MG"}'::jsonb
+            '{"venue_name":"Le Glacier","address":"Avenue de l''Indépendance, Analakely","city":"Antananarivo","region":"Antananarivo","country":"MG","latitude":-18.9144,"longitude":47.5181}'::jsonb
         ),
         (
-            'seminaire-tourisme-diego',
-            'Séminaire Tourisme & Hôtellerie',
-            'Formation professionnelle',
-            'Formation sur le tourisme durable dans le Nord de Madagascar.',
-            'Séminaire professionnel destiné aux acteurs du tourisme et de l''hôtellerie d''Antsiranana. Formation sur le tourisme durable, l''écotourisme et les bonnes pratiques. Échanges avec des experts internationaux.',
+            'concert-rock-tana',
+            'Rock Evolution Tana',
+            'Le meilleur du rock malgache',
+            'Une nuit électrique pour les amateurs de rock avec les groupes phares de la capitale.',
+            'Venez découvrir la scène rock malgache au Taxi Be. Au programme : reprises de classiques et compositions originales. Ambiance survoltée garantie !',
             'public',
             'published',
             'in_person',
             'Indian/Antananarivo',
-            ('2026-03-08 09:00:00'::timestamp AT TIME ZONE 'Indian/Antananarivo')::timestamptz,
-            ('2026-03-08 14:00:00'::timestamp AT TIME ZONE 'Indian/Antananarivo')::timestamptz,
+            ('2026-03-08 20:00:00'::timestamp AT TIME ZONE 'Indian/Antananarivo')::timestamptz,
+            ('2026-03-09 00:00:00'::timestamp AT TIME ZONE 'Indian/Antananarivo')::timestamptz,
             ('2026-02-15 00:00:00'::timestamp AT TIME ZONE 'Indian/Antananarivo')::timestamptz,
-            ('2026-03-06 00:00:00'::timestamp AT TIME ZONE 'Indian/Antananarivo')::timestamptz,
-            200,
+            ('2026-03-08 20:00:00'::timestamp AT TIME ZONE 'Indian/Antananarivo')::timestamptz,
+            350,
             'fr-FR',
             FALSE,
             TRUE,
-            'business',
+            'concert',
             'vente-ticket/images/seminaire-tourisme-antsiranana.png',
-            'hotel-diego-suarez',
-            'Salle de conférence',
-            '{"venue_name":"Salle de Conférence Hôtel Diego Suarez","address":"Boulevard de la Mer, Quartier Joffre","city":"Antsiranana","region":"Antsiranana","country":"MG"}'::jsonb
+            'restaurant-taxi-be',
+            'Espace concert',
+            '{"venue_name":"Restaurant Taxi Be","address":"Antanimena","city":"Antananarivo","region":"Antananarivo","country":"MG","latitude":-18.9200,"longitude":47.5300}'::jsonb
         ),
         (
             'festival-artisanat-majunga',
@@ -819,7 +851,7 @@ event_data AS (
             'fr-FR',
             TRUE,
             FALSE,
-            'concert',
+            'festival',
             'vente-ticket/images/festival-artisanat-mahajanga.png',
             'salle-culturelle-majunga',
             'Espace principal',
@@ -869,33 +901,33 @@ event_data AS (
             FALSE,
             'concert',
             'vente-ticket/images/concert-jazz-antananarivo.png',
-            'cafe-de-la-gare',
-            'Salle principale',
-            '{"venue_name":"Café de la Gare","address":"Avenue de l''Indépendance, Quartier Analakely","city":"Antananarivo","region":"Antananarivo","country":"MG"}'::jsonb
+            'le-louvre-hotel-spa',
+            'Salle de réception',
+            '{"venue_name":"Le Louvre Hotel & Spa","address":"4, Place P. Tsiranana, Antaninarenina","city":"Antananarivo","region":"Antananarivo","country":"MG","latitude":-18.8748,"longitude":47.54729}'::jsonb
         ),
         (
-            'seminaire-sante-toliara',
-            'Séminaire Santé Publique',
-            'Formation professionnelle',
-            'Formation sur les enjeux de santé publique dans le Sud de Madagascar.',
-            'Séminaire destiné aux professionnels de la santé et aux acteurs de la santé publique. Programme : prévention, accès aux soins, santé communautaire. Échanges avec des experts nationaux et internationaux.',
+            'concert-electro-tana',
+            'Electro Urban Night',
+            'DJ Set au Kudeta',
+            'Soirée électro exclusive avec les meilleurs DJs de la capitale au Kudeta Urban Club.',
+            'Vivez une expérience unique avec une sélection House, Techno et Afrobeat. Show visuel, cocktails et bonne humeur au rendez-vous. Le spot idéal pour faire la fête.',
             'public',
             'published',
             'in_person',
             'Indian/Antananarivo',
-            ('2026-02-25 08:00:00'::timestamp AT TIME ZONE 'Indian/Antananarivo')::timestamptz,
-            ('2026-02-25 16:00:00'::timestamp AT TIME ZONE 'Indian/Antananarivo')::timestamptz,
+            ('2026-02-25 22:00:00'::timestamp AT TIME ZONE 'Indian/Antananarivo')::timestamptz,
+            ('2026-02-26 04:00:00'::timestamp AT TIME ZONE 'Indian/Antananarivo')::timestamptz,
             ('2026-02-05 00:00:00'::timestamp AT TIME ZONE 'Indian/Antananarivo')::timestamptz,
-            ('2026-02-23 00:00:00'::timestamp AT TIME ZONE 'Indian/Antananarivo')::timestamptz,
-            200,
+            ('2026-02-25 22:00:00'::timestamp AT TIME ZONE 'Indian/Antananarivo')::timestamptz,
+            300,
             'fr-FR',
             FALSE,
-            FALSE,
-            'business',
+            TRUE,
+            'concert',
             'vente-ticket/images/seminaire-sante-toliara.png',
-            'centre-affaires-toliara',
-            'Salle de conférence',
-            '{"venue_name":"Centre d''Affaires de Toliara","address":"Boulevard Lyautey, Quartier Centre","city":"Toliara","region":"Toliara","country":"MG"}'::jsonb
+            'kudeta-urban-club',
+            'Club',
+            '{"venue_name":"Kudeta Urban Club","address":"Carlton Hotel, Rue Stibbe, Anosy","city":"Antananarivo","region":"Antananarivo","country":"MG","latitude":-18.914398,"longitude":47.51806}'::jsonb
         ),
         (
             'festival-cinema-nosy-be',
@@ -915,35 +947,35 @@ event_data AS (
             'fr-FR',
             TRUE,
             TRUE,
-            'concert',
+            'festival',
             'vente-ticket/images/festival-cinema-nosy-be.png',
             'complexe-culturel-nosy-be',
             'Salle principale',
             '{"venue_name":"Complexe Culturel d''Antsiranana","address":"Boulevard de la Mer","city":"Antsiranana","region":"Antsiranana","country":"MG"}'::jsonb
         ),
         (
-            'workshop-tech-tamatave',
-            'Workshop Tech & Innovation',
-            'Formation & Ateliers',
-            'Ateliers pratiques sur les nouvelles technologies à Toamasina.',
-            'Workshop d''une journée sur les technologies émergentes : IA, blockchain, développement web. Ateliers pratiques, démos, et networking. Pour développeurs, entrepreneurs et étudiants en tech.',
+            'concert-folk-tana',
+            'Folk & Blues Heritage',
+            'Cabaret acoustique',
+            'Une soirée intime avec les légendes du folk malgache au Jao''s Pub.',
+            'Laissez-vous emporter par les mélodies acoustiques et les textes profonds des artistes folk de la Grande Île. Ambiance conviviale et authentique.',
             'public',
             'published',
             'in_person',
             'Indian/Antananarivo',
-            ('2026-02-20 09:00:00'::timestamp AT TIME ZONE 'Indian/Antananarivo')::timestamptz,
-            ('2026-02-20 17:00:00'::timestamp AT TIME ZONE 'Indian/Antananarivo')::timestamptz,
+            ('2026-02-20 20:00:00'::timestamp AT TIME ZONE 'Indian/Antananarivo')::timestamptz,
+            ('2026-02-20 23:30:00'::timestamp AT TIME ZONE 'Indian/Antananarivo')::timestamptz,
             ('2026-02-01 00:00:00'::timestamp AT TIME ZONE 'Indian/Antananarivo')::timestamptz,
-            ('2026-02-18 00:00:00'::timestamp AT TIME ZONE 'Indian/Antananarivo')::timestamptz,
-            150,
+            ('2026-02-20 20:00:00'::timestamp AT TIME ZONE 'Indian/Antananarivo')::timestamptz,
+            200,
             'fr-FR',
             FALSE,
             TRUE,
-            'business',
+            'concert',
             'vente-ticket/images/workshop-tech-tamatave.png',
-            'espace-tech-toamasina',
-            'Espace conférence',
-            '{"venue_name":"Espace Tech de Toamasina","address":"Boulevard Joffre","city":"Toamasina","region":"Toamasina","country":"MG"}'::jsonb
+            'jaos-pub',
+            'Scène cabaret',
+            '{"venue_name":"Cabaret Jao''s Pub","address":"Ambohipo","city":"Antananarivo","region":"Antananarivo","country":"MG","latitude":-18.8720,"longitude":47.5570}'::jsonb
         ),
         (
             'spectacle-danse-toliara',
@@ -963,35 +995,59 @@ event_data AS (
             'fr-FR',
             TRUE,
             FALSE,
-            'concert',
+            'culture',
             'vente-ticket/images/spectacle-danse-toliara.png',
             'theatre-toliara',
             'Salle principale',
             '{"venue_name":"Théâtre de Toliara","address":"Avenue de la Mer, Quartier Centre","city":"Toliara","region":"Toliara","country":"MG"}'::jsonb
         ),
         (
-            'conference-environnement-majunga',
-            'Conférence Environnement & Climat',
-            'Colloque scientifique',
-            'Colloque sur les enjeux environnementaux et climatiques à Madagascar.',
-            'Conférence réunissant scientifiques, ONG et décideurs autour des défis environnementaux. Thèmes : biodiversité, déforestation, adaptation au changement climatique, énergies renouvelables. Visites de sites incluses.',
+            'concert-world-tana',
+            'World Music Fusion',
+            'Scène ouverte au Café de la Gare',
+            'Un mélange éclectique de sons du monde et de rythmes malgaches au Café de la Gare.',
+            'Venez découvrir des collaborations inédites entre artistes locaux et internationaux dans le cadre magnifique du Café de la Gare.',
             'public',
             'published',
             'in_person',
             'Indian/Antananarivo',
-            ('2026-03-18 08:00:00'::timestamp AT TIME ZONE 'Indian/Antananarivo')::timestamptz,
-            ('2026-03-19 17:00:00'::timestamp AT TIME ZONE 'Indian/Antananarivo')::timestamptz,
+            ('2026-03-12 19:30:00'::timestamp AT TIME ZONE 'Indian/Antananarivo')::timestamptz,
+            ('2026-03-12 23:00:00'::timestamp AT TIME ZONE 'Indian/Antananarivo')::timestamptz,
+            ('2026-02-20 00:00:00'::timestamp AT TIME ZONE 'Indian/Antananarivo')::timestamptz,
+            ('2026-03-12 19:30:00'::timestamp AT TIME ZONE 'Indian/Antananarivo')::timestamptz,
+            400,
+            'fr-FR',
+            TRUE,
+            FALSE,
+            'concert',
+            'vente-ticket/images/img1.png',
+            'cafe-de-la-gare',
+            'Salle principale',
+            '{"venue_name":"Café de la Gare","address":"Avenue de l''Indépendance, Gare de Soarano, Analakely","city":"Antananarivo","region":"Antananarivo","country":"MG","latitude":-18.9031,"longitude":47.5211}'::jsonb
+        ),
+        (
+            'concert-blues-tana',
+            'Blues & Soul Night',
+            'Élégance au Louvre',
+            'Une soirée de blues refiné dans le cadre prestigieux de l''Hôtel Le Louvre.',
+            'Laissez-vous envoûter par les voix soul et les guitares blues. Une ambiance feutrée pour une soirée d''exception au cœur d''Antaninarenina.',
+            'public',
+            'published',
+            'in_person',
+            'Indian/Antananarivo',
+            ('2026-03-18 20:00:00'::timestamp AT TIME ZONE 'Indian/Antananarivo')::timestamptz,
+            ('2026-03-18 23:30:00'::timestamp AT TIME ZONE 'Indian/Antananarivo')::timestamptz,
             ('2026-02-15 00:00:00'::timestamp AT TIME ZONE 'Indian/Antananarivo')::timestamptz,
-            ('2026-03-16 00:00:00'::timestamp AT TIME ZONE 'Indian/Antananarivo')::timestamptz,
-            350,
+            ('2026-03-18 20:00:00'::timestamp AT TIME ZONE 'Indian/Antananarivo')::timestamptz,
+            250,
             'fr-FR',
             FALSE,
             TRUE,
-            'business',
+            'concert',
             'vente-ticket/images/conference-environnement-majunga.png',
-            'centre-conferences-majunga',
-            'Salle principale',
-            '{"venue_name":"Centre de Conférences de Mahajanga","address":"Avenue de France","city":"Mahajanga","region":"Mahajanga","country":"MG"}'::jsonb
+            'le-louvre-hotel-spa',
+            'Salle de réception',
+            '{"venue_name":"Le Louvre Hotel & Spa","address":"4, Place P. Tsiranana, Antaninarenina","city":"Antananarivo","region":"Antananarivo","country":"MG","latitude":-18.8748,"longitude":47.54729}'::jsonb
         ),
         (
             'festival-gastronomie-tana',
@@ -1011,32 +1067,224 @@ event_data AS (
             'fr-FR',
             TRUE,
             TRUE,
-            'concert',
+            'festival',
             'vente-ticket/images/festival-gastronomie-antananarivo.png',
             'parc-des-familles',
             'Espace principal',
             '{"venue_name":"Parc des Familles","address":"Avenue de l''Indépendance, Quartier Analakely","city":"Antananarivo","region":"Antananarivo","country":"MG"}'::jsonb
         ),
         (
-            'seminaire-education-tana',
-            'Séminaire Éducation & Formation',
-            'Formation professionnelle',
-            'Formation sur les innovations pédagogiques à Madagascar.',
-            'Séminaire destiné aux enseignants, formateurs et acteurs de l''éducation. Programme : pédagogie active, numérique éducatif, formation professionnelle. Ateliers pratiques et échanges d''expériences.',
+            'concert-pop-tana',
+            'Pop Generation Tana',
+            'Open Air au Nambinintsoa',
+            'Le plus gros concert pop de la saison à l''Espace Nambinintsoa Talatamaty.',
+            'Préparez-vous pour un show explosif avec les stars de la pop locale. Chorégraphies, effets spéciaux et ambiance festive garantie pour toute la famille.',
             'public',
             'published',
             'in_person',
             'Indian/Antananarivo',
-            ('2026-03-25 08:00:00'::timestamp AT TIME ZONE 'Indian/Antananarivo')::timestamptz,
-            ('2026-03-25 16:00:00'::timestamp AT TIME ZONE 'Indian/Antananarivo')::timestamptz,
+            ('2026-03-25 14:00:00'::timestamp AT TIME ZONE 'Indian/Antananarivo')::timestamptz,
+            ('2026-03-25 21:00:00'::timestamp AT TIME ZONE 'Indian/Antananarivo')::timestamptz,
             ('2026-03-01 00:00:00'::timestamp AT TIME ZONE 'Indian/Antananarivo')::timestamptz,
-            ('2026-03-23 00:00:00'::timestamp AT TIME ZONE 'Indian/Antananarivo')::timestamptz,
-            250,
+            ('2026-03-25 14:00:00'::timestamp AT TIME ZONE 'Indian/Antananarivo')::timestamptz,
+            1200,
             'fr-FR',
             FALSE,
             FALSE,
-            'business',
+            'concert',
             'vente-ticket/images/seminaire-education-antananarivo.png',
+            'espace-nambinintsoa',
+            'Espace plein air',
+            '{"venue_name":"Espace Nambinintsoa","address":"Talatamaty","city":"Antananarivo","region":"Antananarivo","country":"MG","latitude":-18.8500,"longitude":47.4800}'::jsonb
+        ),
+        (
+            'concert-kabosy-night-tana',
+            'Kabosy Night Fever',
+            'Concert acoustique au Café de la Gare',
+            'Une soirée dédiée au kabosy, l''instrument emblématique de Madagascar.',
+            'Découvrez la magie du kabosy avec les plus grands maîtres de l''instrument. Une fusion entre tradition et modernité dans le cadre historique de la Gare de Soarano.',
+            'public',
+            'published',
+            'in_person',
+            'Indian/Antananarivo',
+            ('2026-04-05 19:30:00'::timestamp AT TIME ZONE 'Indian/Antananarivo')::timestamptz,
+            ('2026-04-05 22:30:00'::timestamp AT TIME ZONE 'Indian/Antananarivo')::timestamptz,
+            ('2026-03-01 00:00:00'::timestamp AT TIME ZONE 'Indian/Antananarivo')::timestamptz,
+            ('2026-04-05 19:30:00'::timestamp AT TIME ZONE 'Indian/Antananarivo')::timestamptz,
+            300,
+            'fr-FR',
+            FALSE,
+            TRUE,
+            'concert',
+            'vente-ticket/images/img1.png',
+            'cafe-de-la-gare',
+            'Salle principale',
+            '{"venue_name":"Café de la Gare","address":"Avenue de l''Indépendance, Gare de Soarano, Analakely","city":"Antananarivo","region":"Antananarivo","country":"MG","latitude":-18.9031,"longitude":47.5211}'::jsonb
+        ),
+        (
+            'concert-metal-mada-tana',
+            'Metal Mada Fest',
+            'Metal malgache au Taxi Be',
+            'La plus grosse soirée metal de la capitale au Restaurant Taxi Be Antanimena.',
+            'Préparez-vous pour un déferlement de décibels avec les groupes phares du metal malgache. Une ambiance électrique pour les puristes du genre.',
+            'public',
+            'published',
+            'in_person',
+            'Indian/Antananarivo',
+            ('2026-04-12 20:00:00'::timestamp AT TIME ZONE 'Indian/Antananarivo')::timestamptz,
+            ('2026-04-13 01:00:00'::timestamp AT TIME ZONE 'Indian/Antananarivo')::timestamptz,
+            ('2026-03-15 00:00:00'::timestamp AT TIME ZONE 'Indian/Antananarivo')::timestamptz,
+            ('2026-04-12 20:00:00'::timestamp AT TIME ZONE 'Indian/Antananarivo')::timestamptz,
+            400,
+            'fr-FR',
+            FALSE,
+            FALSE,
+            'concert',
+            'vente-ticket/images/img1.png',
+            'restaurant-taxi-be',
+            'Espace concert',
+            '{"venue_name":"Restaurant Taxi Be","address":"Antanimena","city":"Antananarivo","region":"Antananarivo","country":"MG","latitude":-18.9200,"longitude":47.5300}'::jsonb
+        ),
+        (
+            'concert-afro-dancehall-tana',
+            'Afro Dancehall Club',
+            'Clubbing au Kudeta',
+            'Soirée Afrobeat et Dancehall exclusive au Kudeta Urban Club.',
+            'Vivez le meilleur des sons urbains africains. Danse, cocktails et DJs de renom pour une nuit de folie à Anosy.',
+            'public',
+            'published',
+            'in_person',
+            'Indian/Antananarivo',
+            ('2026-04-18 22:30:00'::timestamp AT TIME ZONE 'Indian/Antananarivo')::timestamptz,
+            ('2026-04-19 04:00:00'::timestamp AT TIME ZONE 'Indian/Antananarivo')::timestamptz,
+            ('2026-03-20 00:00:00'::timestamp AT TIME ZONE 'Indian/Antananarivo')::timestamptz,
+            ('2026-04-18 22:30:00'::timestamp AT TIME ZONE 'Indian/Antananarivo')::timestamptz,
+            250,
+            'fr-FR',
+            FALSE,
+            TRUE,
+            'concert',
+            'vente-ticket/images/img1.png',
+            'kudeta-urban-club',
+            'Club',
+            '{"venue_name":"Kudeta Urban Club","address":"Carlton Hotel, Rue Stibbe, Anosy","city":"Antananarivo","region":"Antananarivo","country":"MG","latitude":-18.914398,"longitude":47.51806}'::jsonb
+        ),
+        (
+            'concert-vako-drazana-tana',
+            'Vako-drazana Live',
+            'Cabaret traditionnel au Jao''s Pub',
+            'Une rencontre authentique avec les musiques des hauts plateaux au Cabaret Jao''s Pub.',
+            'Laissez-vous transporter par les chants polyphoniques et les rythmes traditionnels malgaches. Une soirée conviviale au cœur d''Ambohipo.',
+            'public',
+            'published',
+            'in_person',
+            'Indian/Antananarivo',
+            ('2026-04-24 19:30:00'::timestamp AT TIME ZONE 'Indian/Antananarivo')::timestamptz,
+            ('2026-04-24 23:30:00'::timestamp AT TIME ZONE 'Indian/Antananarivo')::timestamptz,
+            ('2026-04-01 00:00:00'::timestamp AT TIME ZONE 'Indian/Antananarivo')::timestamptz,
+            ('2026-04-24 19:30:00'::timestamp AT TIME ZONE 'Indian/Antananarivo')::timestamptz,
+            200,
+            'fr-FR',
+            FALSE,
+            TRUE,
+            'concert',
+            'vente-ticket/images/img1.png',
+            'jaos-pub',
+            'Scène cabaret',
+            '{"venue_name":"Cabaret Jao''s Pub","address":"Ambohipo","city":"Antananarivo","region":"Antananarivo","country":"MG","latitude":-18.8720,"longitude":47.5570}'::jsonb
+        ),
+        (
+            'concert-rap-gasy-tana',
+            'Rap Gasy Heritage',
+            'Hip Hop Open Air à Talatamaty',
+            'Le plus gros rassemblement hip-hop de l''année à l''Espace Nambinintsoa.',
+            'Retrouvez les pionniers et la nouvelle garde du rap malgache pour un show d''exception en plein air.',
+            'public',
+            'published',
+            'in_person',
+            'Indian/Antananarivo',
+            ('2026-05-01 14:00:00'::timestamp AT TIME ZONE 'Indian/Antananarivo')::timestamptz,
+            ('2026-05-01 21:00:00'::timestamp AT TIME ZONE 'Indian/Antananarivo')::timestamptz,
+            ('2026-04-05 00:00:00'::timestamp AT TIME ZONE 'Indian/Antananarivo')::timestamptz,
+            ('2026-05-01 14:00:00'::timestamp AT TIME ZONE 'Indian/Antananarivo')::timestamptz,
+            1500,
+            'fr-FR',
+            TRUE,
+            FALSE,
+            'concert',
+            'vente-ticket/images/img1.png',
+            'espace-nambinintsoa',
+            'Espace plein air',
+            '{"venue_name":"Espace Nambinintsoa","address":"Talatamaty","city":"Antananarivo","region":"Antananarivo","country":"MG","latitude":-18.8500,"longitude":47.4800}'::jsonb
+        ),
+        (
+            'concert-piano-bar-tana',
+            'Soft Jazz & Piano Bar',
+            'Soirée chic au Louvre',
+            'Une ambiance feutrée et élégante avec les meilleurs pianistes de jazz à l''Hôtel Le Louvre.',
+            'Détendez-vous avec une sélection de standards de jazz et de variétés internationales dans un cadre luxueux au cœur d''Antaninarenina.',
+            'public',
+            'published',
+            'in_person',
+            'Indian/Antananarivo',
+            ('2026-05-10 19:30:00'::timestamp AT TIME ZONE 'Indian/Antananarivo')::timestamptz,
+            ('2026-05-10 23:00:00'::timestamp AT TIME ZONE 'Indian/Antananarivo')::timestamptz,
+            ('2026-04-10 00:00:00'::timestamp AT TIME ZONE 'Indian/Antananarivo')::timestamptz,
+            ('2026-05-10 19:30:00'::timestamp AT TIME ZONE 'Indian/Antananarivo')::timestamptz,
+            150,
+            'fr-FR',
+            FALSE,
+            TRUE,
+            'concert',
+            'vente-ticket/images/img1.png',
+            'le-louvre-hotel-spa',
+            'Salle de réception',
+            '{"venue_name":"Le Louvre Hotel & Spa","address":"4, Place P. Tsiranana, Antaninarenina","city":"Antananarivo","region":"Antananarivo","country":"MG","latitude":-18.8748,"longitude":47.54729}'::jsonb
+        ),
+        (
+            'concert-tsapiky-fever-tana',
+            'Tsapiky Night Fever',
+            'Ambiance Sud au Glacier',
+            'Venez danser sur les rythmes endiablés du Tuléar au Glacier Analakely.',
+            'Le tsapiky débarque dans la capitale pour une nuit de danse ininterrompue. Préparez vos chaussures, ça va chauffer !',
+            'public',
+            'published',
+            'in_person',
+            'Indian/Antananarivo',
+            ('2026-05-15 21:00:00'::timestamp AT TIME ZONE 'Indian/Antananarivo')::timestamptz,
+            ('2026-05-16 03:00:00'::timestamp AT TIME ZONE 'Indian/Antananarivo')::timestamptz,
+            ('2026-04-20 00:00:00'::timestamp AT TIME ZONE 'Indian/Antananarivo')::timestamptz,
+            ('2026-05-15 21:00:00'::timestamp AT TIME ZONE 'Indian/Antananarivo')::timestamptz,
+            400,
+            'fr-FR',
+            TRUE,
+            TRUE,
+            'concert',
+            'vente-ticket/images/img1.png',
+            'le-glacier',
+            'Salle principale',
+            '{"venue_name":"Le Glacier","address":"Avenue de l''Indépendance, Analakely","city":"Antananarivo","region":"Antananarivo","country":"MG","latitude":-18.9144,"longitude":47.5181}'::jsonb
+        ),
+        (
+            'theatre-contemporain-tana',
+            'Festival de Théâtre Contemporain',
+            'Créations malgaches',
+            'Une semaine dédiée à la création théâtrale malgache contemporaine.',
+            'Découvrez une sélection de pièces originales mettant en scène les enjeux de la société malgache actuelle. Performances, lectures dramatiques et débats.',
+            'public',
+            'published',
+            'in_person',
+            'Indian/Antananarivo',
+            ('2026-05-20 18:00:00'::timestamp AT TIME ZONE 'Indian/Antananarivo')::timestamptz,
+            ('2026-05-25 21:00:00'::timestamp AT TIME ZONE 'Indian/Antananarivo')::timestamptz,
+            ('2026-04-15 00:00:00'::timestamp AT TIME ZONE 'Indian/Antananarivo')::timestamptz,
+            ('2026-05-18 00:00:00'::timestamp AT TIME ZONE 'Indian/Antananarivo')::timestamptz,
+            200,
+            'fr-FR',
+            FALSE,
+            FALSE,
+            'culture',
+            'vente-ticket/images/img1.png',
             'centre-conferences-tana',
             'Salle principale',
             '{"venue_name":"Centre de Conférences d''Antananarivo","address":"Zone Galaxy Andraharo","city":"Antananarivo","region":"Antananarivo","country":"MG"}'::jsonb
@@ -1150,15 +1398,25 @@ SELECT evt.id,
        cat.id
 FROM event_insert evt
 JOIN event_categories cat ON cat.slug = CASE evt.slug
+    -- Business : conférences, séminaires, workshops
     WHEN 'business-connect-mada' THEN 'business'
-    WHEN 'seminaire-entrepreneurs-antsirabe' THEN 'business'
-    WHEN 'conference-academique-fianarantsoa' THEN 'business'
-    WHEN 'seminaire-tourisme-diego' THEN 'business'
-    WHEN 'conference-agriculture-ambositra' THEN 'business'
-    WHEN 'seminaire-sante-manakara' THEN 'business'
-    WHEN 'workshop-tech-tamatave' THEN 'business'
-    WHEN 'conference-environnement-majunga' THEN 'business'
-    WHEN 'seminaire-education-ambalavao' THEN 'business'
+    WHEN 'conference-academique-tana' THEN 'business'
+    WHEN 'conference-agriculture-tana' THEN 'business'
+    -- Festival : festivals multi-activités
+    WHEN 'festival-musique-toamasina' THEN 'festival'
+    WHEN 'festival-plage-mahajanga' THEN 'festival'
+    WHEN 'festival-artisanat-morondava' THEN 'festival'
+    WHEN 'festival-artisanat-majunga' THEN 'festival'
+    WHEN 'festival-cinema-nosy-be' THEN 'festival'
+    WHEN 'festival-gastronomie-antsirabe' THEN 'festival'
+    WHEN 'festival-gastronomie-tana' THEN 'festival'
+    WHEN 'festival-famille-enfants' THEN 'festival'
+    -- Culture : danse, théâtre, spectacles
+    WHEN 'spectacle-culturel-toliara' THEN 'culture'
+    WHEN 'spectacle-danse-toliara' THEN 'culture'
+    WHEN 'spectacle-danse-fort-dauphin' THEN 'culture'
+    WHEN 'theatre-contemporain-tana' THEN 'culture'
+    -- Concert : soirées live, concerts
     ELSE 'concert'
 END
 ON CONFLICT DO NOTHING;
@@ -1168,29 +1426,31 @@ WITH evt AS (
         'concert-music-sunday', 
         'business-connect-mada',
         'festival-musique-toamasina',
-        'seminaire-entrepreneurs-antsirabe',
-        'seminaire-entrepreneurs-toamasina',
+        'concert-reggae-tana',
         'festival-plage-mahajanga',
-        'conference-academique-fianarantsoa',
         'conference-academique-tana',
-        'spectacle-culturel-toliara',
-        'seminaire-tourisme-diego',
-        'festival-artisanat-morondava',
-        'conference-agriculture-ambositra',
+        'concert-salegy-tana',
+        'concert-rock-tana',
+        'festival-artisanat-majunga',
         'conference-agriculture-tana',
-        'concert-jazz-ambatondrazaka',
         'concert-jazz-tana',
-        'seminaire-sante-manakara',
-        'seminaire-sante-toliara',
+        'concert-electro-tana',
         'festival-cinema-nosy-be',
-        'workshop-tech-tamatave',
-        'spectacle-danse-fort-dauphin',
-        'spectacle-danse-toliara',
-        'conference-environnement-majunga',
-        'festival-gastronomie-antsirabe',
+        'concert-folk-tana',
+        'concert-world-tana',
+        'concert-blues-tana',
         'festival-gastronomie-tana',
-        'seminaire-education-ambalavao',
-        'seminaire-education-tana'
+        'concert-pop-tana',
+        'spectacle-culturel-toliara',
+        'spectacle-danse-toliara',
+        'concert-kabosy-night-tana',
+        'concert-metal-mada-tana',
+        'concert-afro-dancehall-tana',
+        'concert-vako-drazana-tana',
+        'concert-rap-gasy-tana',
+        'concert-piano-bar-tana',
+        'concert-tsapiky-fever-tana',
+        'theatre-contemporain-tana'
     )
 )
 INSERT INTO event_tag_links (event_id, tag_id)
@@ -1208,29 +1468,31 @@ WITH evt AS (
         'concert-music-sunday', 
         'business-connect-mada',
         'festival-musique-toamasina',
-        'seminaire-entrepreneurs-antsirabe',
-        'seminaire-entrepreneurs-toamasina',
+        'concert-reggae-tana',
         'festival-plage-mahajanga',
-        'conference-academique-fianarantsoa',
         'conference-academique-tana',
-        'spectacle-culturel-toliara',
-        'seminaire-tourisme-diego',
-        'festival-artisanat-morondava',
-        'conference-agriculture-ambositra',
+        'concert-salegy-tana',
+        'concert-rock-tana',
+        'festival-artisanat-majunga',
         'conference-agriculture-tana',
-        'concert-jazz-ambatondrazaka',
         'concert-jazz-tana',
-        'seminaire-sante-manakara',
-        'seminaire-sante-toliara',
+        'concert-electro-tana',
         'festival-cinema-nosy-be',
-        'workshop-tech-tamatave',
-        'spectacle-danse-fort-dauphin',
-        'spectacle-danse-toliara',
-        'conference-environnement-majunga',
-        'festival-gastronomie-antsirabe',
+        'concert-folk-tana',
+        'concert-world-tana',
+        'concert-blues-tana',
         'festival-gastronomie-tana',
-        'seminaire-education-ambalavao',
-        'seminaire-education-tana'
+        'concert-pop-tana',
+        'spectacle-culturel-toliara',
+        'spectacle-danse-toliara',
+        'concert-kabosy-night-tana',
+        'concert-metal-mada-tana',
+        'concert-afro-dancehall-tana',
+        'concert-vako-drazana-tana',
+        'concert-rap-gasy-tana',
+        'concert-piano-bar-tana',
+        'concert-tsapiky-fever-tana',
+        'theatre-contemporain-tana'
     )
 )
 INSERT INTO event_media (
@@ -1242,52 +1504,55 @@ SELECT evt.id,
        CASE evt.slug
            WHEN 'concert-music-sunday' THEN 'vente-ticket/images/img1.png'
            WHEN 'business-connect-mada' THEN 'vente-ticket/images/business-connect-madagascar.png'
-           WHEN 'festival-musique-toamasina' THEN 'vente-ticket/images/img2.png'
-           WHEN 'seminaire-entrepreneurs-toamasina' THEN 'vente-ticket/images/seminaire-entrepreneurs-toamasina.png'
-           WHEN 'seminaire-entrepreneurs-antsirabe' THEN 'vente-ticket/images/seminaire-entrepreneurs-toamasina.png'
+           WHEN 'concert-reggae-tana' THEN 'vente-ticket/images/img1.png'
            WHEN 'festival-plage-mahajanga' THEN 'vente-ticket/images/festival-plage-mahajanga.png'
            WHEN 'conference-academique-tana' THEN 'vente-ticket/images/conference-academique-antananarivo.png'
-           WHEN 'conference-academique-fianarantsoa' THEN 'vente-ticket/images/conference-academique-antananarivo.png'
-           WHEN 'spectacle-culturel-toliara' THEN 'vente-ticket/images/spectacle-culturel-toliara.png'
-           WHEN 'seminaire-tourisme-diego' THEN 'vente-ticket/images/seminaire-tourisme-antsiranana.png'
-           WHEN 'festival-artisanat-majunga' THEN 'vente-ticket/images/festival-artisanat-mahajanga.png'
+           WHEN 'concert-salegy-tana' THEN 'vente-ticket/images/spectacle-culturel-toliara.png'
+           WHEN 'concert-rock-tana' THEN 'vente-ticket/images/seminaire-tourisme-antsiranana.png'
            WHEN 'conference-agriculture-tana' THEN 'vente-ticket/images/conference-agriculture-durable.png'
-           WHEN 'conference-agriculture-ambositra' THEN 'vente-ticket/images/conference-agriculture-durable.png'
            WHEN 'concert-jazz-tana' THEN 'vente-ticket/images/concert-jazz-antananarivo.png'
-           WHEN 'concert-jazz-ambatondrazaka' THEN 'vente-ticket/images/concert-jazz-antananarivo.png'
-           WHEN 'seminaire-sante-toliara' THEN 'vente-ticket/images/seminaire-sante-toliara.png'
-           WHEN 'seminaire-sante-manakara' THEN 'vente-ticket/images/seminaire-sante-toliara.png'
+           WHEN 'concert-electro-tana' THEN 'vente-ticket/images/seminaire-sante-toliara.png'
            WHEN 'festival-cinema-nosy-be' THEN 'vente-ticket/images/festival-cinema-nosy-be.png'
-           WHEN 'workshop-tech-tamatave' THEN 'vente-ticket/images/workshop-tech-tamatave.png'
-           WHEN 'spectacle-danse-toliara' THEN 'vente-ticket/images/spectacle-danse-toliara.png'
-           WHEN 'spectacle-danse-fort-dauphin' THEN 'vente-ticket/images/spectacle-danse-toliara.png'
-           WHEN 'conference-environnement-majunga' THEN 'vente-ticket/images/conference-environnement-majunga.png'
+           WHEN 'concert-folk-tana' THEN 'vente-ticket/images/workshop-tech-tamatave.png'
+           WHEN 'concert-world-tana' THEN 'vente-ticket/images/spectacle-danse-toliara.png'
+           WHEN 'concert-blues-tana' THEN 'vente-ticket/images/conference-environnement-majunga.png'
            WHEN 'festival-gastronomie-tana' THEN 'vente-ticket/images/festival-gastronomie-antananarivo.png'
-           WHEN 'festival-gastronomie-antsirabe' THEN 'vente-ticket/images/festival-gastronomie-antananarivo.png'
-           WHEN 'seminaire-education-tana' THEN 'vente-ticket/images/seminaire-education-antananarivo.png'
-           WHEN 'seminaire-education-ambalavao' THEN 'vente-ticket/images/seminaire-education-antananarivo.png'
+           WHEN 'concert-pop-tana' THEN 'vente-ticket/images/seminaire-education-antananarivo.png'
+           WHEN 'spectacle-culturel-toliara' THEN 'vente-ticket/images/spectacle-culturel-toliara.png'
+           WHEN 'spectacle-danse-toliara' THEN 'vente-ticket/images/spectacle-danse-toliara.png'
+           WHEN 'concert-kabosy-night-tana' THEN 'vente-ticket/images/concert-kabosy-night-tana.png'
+           WHEN 'concert-metal-mada-tana' THEN 'vente-ticket/images/concert-metal-mada-tana.png'
+           WHEN 'concert-afro-dancehall-tana' THEN 'vente-ticket/images/concert-afro-dancehall-tana.png'
+           WHEN 'concert-vako-drazana-tana' THEN 'vente-ticket/images/concert-vako-drazana-tana.png'
+           WHEN 'concert-rap-gasy-tana' THEN 'vente-ticket/images/concert-rap-gasy-tana.png'
+           WHEN 'concert-piano-bar-tana' THEN 'vente-ticket/images/concert-piano-bar-tana.png'
+           WHEN 'concert-tsapiky-fever-tana' THEN 'vente-ticket/images/concert-tsapiky-fever-tana.png'
+           WHEN 'theatre-contemporain-tana' THEN 'vente-ticket/images/theatre-contemporain-tana.png'
            ELSE 'vente-ticket/images/img1.png'
        END,
        CASE evt.slug
            WHEN 'concert-music-sunday' THEN 'Affiche Music on Sunday - Scène Malgache'
            WHEN 'business-connect-mada' THEN 'Affiche Business Connect Madagascar'
-           WHEN 'festival-musique-toamasina' THEN 'Affiche Festival de Musique de Toamasina'
-           WHEN 'seminaire-entrepreneurs-toamasina' THEN 'Affiche Séminaire Entrepreneurs de Toamasina'
-           WHEN 'festival-plage-mahajanga' THEN 'Affiche Festival Plage de Mahajanga'
-           WHEN 'conference-academique-tana' THEN 'Affiche Conférence Académique d''Antananarivo'
-           WHEN 'spectacle-culturel-toliara' THEN 'Affiche Spectacle Culturel du Sud'
-           WHEN 'seminaire-tourisme-diego' THEN 'Affiche Séminaire Tourisme & Hôtellerie'
-           WHEN 'festival-artisanat-majunga' THEN 'Affiche Festival d''Artisanat de Mahajanga'
-           WHEN 'conference-agriculture-tana' THEN 'Affiche Conférence Agriculture Durable'
+           WHEN 'concert-reggae-tana' THEN 'Affiche Reggae Vibes Tana'
            WHEN 'concert-jazz-tana' THEN 'Affiche Jazz Night à Antananarivo'
-           WHEN 'seminaire-sante-toliara' THEN 'Affiche Séminaire Santé Publique'
-           WHEN 'festival-cinema-nosy-be' THEN 'Affiche Festival de Cinéma de Nosy Be'
-           WHEN 'workshop-tech-tamatave' THEN 'Affiche Workshop Tech & Innovation'
+           WHEN 'concert-salegy-tana' THEN 'Affiche Salegy Fever Tana'
+           WHEN 'concert-rock-tana' THEN 'Affiche Rock Evolution Tana'
+           WHEN 'concert-electro-tana' THEN 'Affiche Electro Urban Night'
+           WHEN 'concert-folk-tana' THEN 'Affiche Folk & Blues Heritage'
+           WHEN 'concert-world-tana' THEN 'Affiche World Music Fusion'
+           WHEN 'concert-blues-tana' THEN 'Affiche Blues & Soul Night'
+           WHEN 'concert-pop-tana' THEN 'Affiche Pop Generation Tana'
+           WHEN 'spectacle-culturel-toliara' THEN 'Affiche Spectacle Culturel du Sud'
            WHEN 'spectacle-danse-toliara' THEN 'Affiche Spectacle de Danse Traditionnelle'
-           WHEN 'conference-environnement-majunga' THEN 'Affiche Conférence Environnement & Climat'
-           WHEN 'festival-gastronomie-tana' THEN 'Affiche Festival Gastronomique d''Antananarivo'
-           WHEN 'seminaire-education-tana' THEN 'Affiche Séminaire Éducation & Formation'
-           ELSE 'Affiche Music on Sunday - Scène Malgache'
+           WHEN 'concert-kabosy-night-tana' THEN 'Affiche Kabosy Night Fever'
+           WHEN 'concert-metal-mada-tana' THEN 'Affiche Metal Mada Fest'
+           WHEN 'concert-afro-dancehall-tana' THEN 'Affiche Afro Dancehall Club'
+           WHEN 'concert-vako-drazana-tana' THEN 'Affiche Vako-drazana Live'
+           WHEN 'concert-rap-gasy-tana' THEN 'Affiche Rap Gasy Heritage'
+           WHEN 'concert-piano-bar-tana' THEN 'Affiche Soft Jazz & Piano Bar'
+           WHEN 'concert-tsapiky-fever-tana' THEN 'Affiche Tsapiky Night Fever'
+           WHEN 'theatre-contemporain-tana' THEN 'Affiche Festival de Théâtre Contemporain'
+           ELSE 'Affiche Événement Aiolia'
        END,
        1,
        TRUE
@@ -1298,12 +1563,28 @@ WITH evt AS (
     SELECT id, slug, starts_at FROM events WHERE slug IN (
         'concert-music-sunday', 
         'business-connect-mada',
-        'festival-musique-toamasina',
-        'seminaire-entrepreneurs-antsirabe',
+        'concert-reggae-tana',
         'festival-plage-mahajanga',
-        'conference-academique-fianarantsoa',
+        'concert-jazz-tana',
+        'concert-salegy-tana',
+        'concert-rock-tana',
+        'conference-academique-tana',
+        'conference-agriculture-tana',
+        'concert-electro-tana',
+        'concert-folk-tana',
+        'concert-world-tana',
+        'concert-blues-tana',
+        'concert-pop-tana',
         'spectacle-culturel-toliara',
-        'seminaire-tourisme-diego'
+        'spectacle-danse-toliara',
+        'concert-kabosy-night-tana',
+        'concert-metal-mada-tana',
+        'concert-afro-dancehall-tana',
+        'concert-vako-drazana-tana',
+        'concert-rap-gasy-tana',
+        'concert-piano-bar-tana',
+        'concert-tsapiky-fever-tana',
+        'theatre-contemporain-tana'
     )
 )
 INSERT INTO event_sessions (
@@ -1345,30 +1626,30 @@ WITH evt AS (
         'concert-music-sunday', 
         'business-connect-mada',
         'festival-musique-toamasina',
-        'seminaire-entrepreneurs-antsirabe',
-        'seminaire-entrepreneurs-toamasina',
+        'concert-reggae-tana',
         'festival-plage-mahajanga',
-        'conference-academique-fianarantsoa',
-        'conference-academique-tana',
-        'spectacle-culturel-toliara',
-        'seminaire-tourisme-diego',
-        'festival-artisanat-morondava',
-        'festival-artisanat-majunga',
-        'conference-agriculture-ambositra',
-        'conference-agriculture-tana',
-        'concert-jazz-ambatondrazaka',
         'concert-jazz-tana',
-        'seminaire-sante-manakara',
-        'seminaire-sante-toliara',
+        'conference-academique-tana',
+        'concert-salegy-tana',
+        'concert-rock-tana',
+        'conference-agriculture-tana',
+        'concert-electro-tana',
         'festival-cinema-nosy-be',
-        'workshop-tech-tamatave',
-        'spectacle-danse-fort-dauphin',
-        'spectacle-danse-toliara',
-        'conference-environnement-majunga',
-        'festival-gastronomie-antsirabe',
+        'concert-folk-tana',
+        'concert-world-tana',
+        'concert-blues-tana',
         'festival-gastronomie-tana',
-        'seminaire-education-ambalavao',
-        'seminaire-education-tana'
+        'concert-pop-tana',
+        'spectacle-culturel-toliara',
+        'spectacle-danse-toliara',
+        'concert-kabosy-night-tana',
+        'concert-metal-mada-tana',
+        'concert-afro-dancehall-tana',
+        'concert-vako-drazana-tana',
+        'concert-rap-gasy-tana',
+        'concert-piano-bar-tana',
+        'concert-tsapiky-fever-tana',
+        'theatre-contemporain-tana'
     )
 )
 -- Types de billets variés pour démontrer toutes les fonctionnalités
@@ -1456,13 +1737,13 @@ SELECT evt.id, 'Billet Enfant', 'Accès complet pour un enfant (3 à 17 ans). Gr
 FROM evt WHERE evt.slug = 'spectacle-culturel-toliara'
 AND NOT EXISTS (SELECT 1 FROM ticket_types tt WHERE tt.event_id = evt.id AND tt.name = 'Billet Enfant')
 UNION ALL
--- Séminaire Diego : Standard et Premium (adulte seulement)
-SELECT evt.id, 'Pass Standard', 'Accès complet au séminaire. Documentation incluse.', 'MGA', 100000, 5000, 20, 'adult'::age_category_enum, evt.sales_starts_at, evt.sales_ends_at, 1, 4
-FROM evt WHERE evt.slug = 'seminaire-tourisme-diego'
+-- Concert Rock Tana (Rock Evolution)
+SELECT evt.id, 'Pass Standard', 'Accès complet au concert. Placement général.', 'MGA', 50000, 2500, 20, 'adult'::age_category_enum, evt.sales_starts_at, evt.sales_ends_at, 1, 4
+FROM evt WHERE evt.slug = 'concert-rock-tana'
 AND NOT EXISTS (SELECT 1 FROM ticket_types tt WHERE tt.event_id = evt.id AND tt.name = 'Pass Standard')
 UNION ALL
-SELECT evt.id, 'Pass Premium', 'Accès premium avec repas de midi, documentation exclusive et networking privé.', 'MGA', 150000, 7500, 20, 'adult'::age_category_enum, evt.sales_starts_at, evt.sales_ends_at, 1, 2
-FROM evt WHERE evt.slug = 'seminaire-tourisme-diego'
+SELECT evt.id, 'Pass Premium', 'Accès premium avec place réservée et une consommation gratuite.', 'MGA', 80000, 4000, 20, 'adult'::age_category_enum, evt.sales_starts_at, evt.sales_ends_at, 1, 2
+FROM evt WHERE evt.slug = 'concert-rock-tana'
 AND NOT EXISTS (SELECT 1 FROM ticket_types tt WHERE tt.event_id = evt.id AND tt.name = 'Pass Premium')
 UNION ALL
 -- Festival Artisanat Morondava : Adulte et Enfant
@@ -1514,14 +1795,33 @@ SELECT evt.id, 'Standard', 'Billet Standard pour enfant. Accès à toutes les pr
 FROM evt WHERE evt.slug = 'festival-cinema-nosy-be'
 AND NOT EXISTS (SELECT 1 FROM ticket_types tt WHERE tt.event_id = evt.id AND tt.name = 'Standard' AND tt.age_category = 'child')
 UNION ALL
--- Workshop Tech Tamatave : Standard et Étudiant
-SELECT evt.id, 'Pass Standard', 'Accès complet au workshop. Documentation et déjeuner inclus.', 'MGA', 70000, 3500, 20, 'all'::age_category_enum, evt.sales_starts_at, evt.sales_ends_at, 1, 5
-FROM evt WHERE evt.slug = 'workshop-tech-tamatave'
+-- Concert Folk Tana (Folk & Blues Heritage)
+SELECT evt.id, 'Pass Standard', 'Accès complet au concert. Documentation et placement privilégié.', 'MGA', 50000, 2500, 20, 'all'::age_category_enum, evt.sales_starts_at, evt.sales_ends_at, 1, 5
+FROM evt WHERE evt.slug = 'concert-folk-tana'
 AND NOT EXISTS (SELECT 1 FROM ticket_types tt WHERE tt.event_id = evt.id AND tt.name = 'Pass Standard')
 UNION ALL
-SELECT evt.id, 'Pass Étudiant', 'Accès étudiant avec réduction. Carte étudiante requise.', 'MGA', 30000, 1500, 20, 'all'::age_category_enum, evt.sales_starts_at, evt.sales_ends_at, 1, 5
-FROM evt WHERE evt.slug = 'workshop-tech-tamatave'
+SELECT evt.id, 'Pass Étudiant', 'Accès étudiant avec réduction. Carte étudiante requise.', 'MGA', 25000, 1250, 20, 'all'::age_category_enum, evt.sales_starts_at, evt.sales_ends_at, 1, 5
+FROM evt WHERE evt.slug = 'concert-folk-tana'
 AND NOT EXISTS (SELECT 1 FROM ticket_types tt WHERE tt.event_id = evt.id AND tt.name = 'Pass Étudiant')
+UNION ALL
+-- Spectacle Danse Toliara : Adulte et Enfant
+SELECT evt.id, 'Billet Adulte', 'Accès complet pour un adulte. Spectacle de danse traditionnelle.', 'MGA', 30000, 1500, 20, 'adult'::age_category_enum, evt.sales_starts_at, evt.sales_ends_at, 1, 8
+FROM evt WHERE evt.slug = 'spectacle-danse-toliara'
+AND NOT EXISTS (SELECT 1 FROM ticket_types tt WHERE tt.event_id = evt.id AND tt.name = 'Billet Adulte')
+UNION ALL
+SELECT evt.id, 'Billet Enfant', 'Accès complet pour un enfant. Spectacle de danse traditionnelle.', 'MGA', 15000, 750, 20, 'child'::age_category_enum, evt.sales_starts_at, evt.sales_ends_at, 1, 8
+FROM evt WHERE evt.slug = 'spectacle-danse-toliara'
+AND NOT EXISTS (SELECT 1 FROM ticket_types tt WHERE tt.event_id = evt.id AND tt.name = 'Billet Enfant')
+UNION ALL
+-- New Concerts Tana
+SELECT evt.id, 'Pass Concert', 'Accès standard au concert.', 'MGA', 50000, 2500, 20, 'all'::age_category_enum, evt.sales_starts_at, evt.sales_ends_at, 1, 10
+FROM evt WHERE evt.slug IN ('concert-kabosy-night-tana', 'concert-metal-mada-tana', 'concert-afro-dancehall-tana', 'concert-vako-drazana-tana', 'concert-rap-gasy-tana', 'concert-piano-bar-tana', 'concert-tsapiky-fever-tana')
+AND NOT EXISTS (SELECT 1 FROM ticket_types tt WHERE tt.event_id = evt.id AND tt.name = 'Pass Concert')
+UNION ALL
+-- New Culture Tana
+SELECT evt.id, 'Pass Culture', 'Accès complet au festival de théâtre contemporain.', 'MGA', 40000, 2000, 20, 'all'::age_category_enum, evt.sales_starts_at, evt.sales_ends_at, 1, 10
+FROM evt WHERE evt.slug = 'theatre-contemporain-tana'
+AND NOT EXISTS (SELECT 1 FROM ticket_types tt WHERE tt.event_id = evt.id AND tt.name = 'Pass Culture')
 UNION ALL
 -- Spectacle Danse Fort-Dauphin : Adulte et Enfant
 SELECT evt.id, 'Billet Adulte', 'Accès complet pour un adulte. Spectacle de danse traditionnelle.', 'MGA', 30000, 1500, 20, 'adult'::age_category_enum, evt.sales_starts_at, evt.sales_ends_at, 1, 8
@@ -1534,11 +1834,11 @@ AND NOT EXISTS (SELECT 1 FROM ticket_types tt WHERE tt.event_id = evt.id AND tt.
 UNION ALL
 -- Conférence Environnement Majunga : Standard et Étudiant
 SELECT evt.id, 'Pass Standard', 'Accès complet à la conférence (2 jours). Documentation incluse.', 'MGA', 80000, 4000, 20, 'all'::age_category_enum, evt.sales_starts_at, evt.sales_ends_at, 1, 6
-FROM evt WHERE evt.slug = 'conference-environnement-majunga'
+FROM evt WHERE evt.slug = 'concert-blues-tana'
 AND NOT EXISTS (SELECT 1 FROM ticket_types tt WHERE tt.event_id = evt.id AND tt.name = 'Pass Standard')
 UNION ALL
 SELECT evt.id, 'Pass Étudiant', 'Accès étudiant avec réduction (2 jours). Carte étudiante requise.', 'MGA', 35000, 1750, 20, 'all'::age_category_enum, evt.sales_starts_at, evt.sales_ends_at, 1, 6
-FROM evt WHERE evt.slug = 'conference-environnement-majunga'
+FROM evt WHERE evt.slug = 'concert-blues-tana'
 AND NOT EXISTS (SELECT 1 FROM ticket_types tt WHERE tt.event_id = evt.id AND tt.name = 'Pass Étudiant')
 UNION ALL
 -- Festival Gastronomie Antsirabe : VIP et Standard avec adulte/enfant
@@ -1569,11 +1869,11 @@ AND NOT EXISTS (SELECT 1 FROM ticket_types tt WHERE tt.event_id = evt.id AND tt.
 UNION ALL
 -- Séminaire Entrepreneurs Toamasina : Standard et Premium
 SELECT evt.id, 'Pass Standard', 'Accès complet au séminaire. Repas de midi inclus.', 'MGA', 80000, 4000, 20, 'adult'::age_category_enum, evt.sales_starts_at, evt.sales_ends_at, 1, 5
-FROM evt WHERE evt.slug = 'seminaire-entrepreneurs-toamasina'
+FROM evt WHERE evt.slug = 'concert-reggae-tana'
 AND NOT EXISTS (SELECT 1 FROM ticket_types tt WHERE tt.event_id = evt.id AND tt.name = 'Pass Standard')
 UNION ALL
 SELECT evt.id, 'Pass Premium', 'Accès premium avec place réservée, repas premium et documentation exclusive.', 'MGA', 120000, 6000, 20, 'adult'::age_category_enum, evt.sales_starts_at, evt.sales_ends_at, 1, 3
-FROM evt WHERE evt.slug = 'seminaire-entrepreneurs-toamasina'
+FROM evt WHERE evt.slug = 'concert-reggae-tana'
 AND NOT EXISTS (SELECT 1 FROM ticket_types tt WHERE tt.event_id = evt.id AND tt.name = 'Pass Premium')
 UNION ALL
 -- Conférence Académique Tana : Standard et Étudiant
@@ -1610,11 +1910,11 @@ AND NOT EXISTS (SELECT 1 FROM ticket_types tt WHERE tt.event_id = evt.id AND tt.
 UNION ALL
 -- Spectacle Danse Toliara : Adulte et Enfant
 SELECT evt.id, 'Billet Adulte', 'Accès complet pour un adulte. Spectacle de danse traditionnelle.', 'MGA', 30000, 1500, 20, 'adult'::age_category_enum, evt.sales_starts_at, evt.sales_ends_at, 1, 8
-FROM evt WHERE evt.slug = 'spectacle-danse-toliara'
+FROM evt WHERE evt.slug = 'concert-world-tana'
 AND NOT EXISTS (SELECT 1 FROM ticket_types tt WHERE tt.event_id = evt.id AND tt.name = 'Billet Adulte')
 UNION ALL
 SELECT evt.id, 'Billet Enfant', 'Accès complet pour un enfant. Spectacle de danse traditionnelle.', 'MGA', 15000, 750, 20, 'child'::age_category_enum, evt.sales_starts_at, evt.sales_ends_at, 1, 8
-FROM evt WHERE evt.slug = 'spectacle-danse-toliara'
+FROM evt WHERE evt.slug = 'concert-world-tana'
 AND NOT EXISTS (SELECT 1 FROM ticket_types tt WHERE tt.event_id = evt.id AND tt.name = 'Billet Enfant')
 UNION ALL
 -- Festival Gastronomie Tana : VIP et Standard avec adulte/enfant
@@ -1636,11 +1936,11 @@ AND NOT EXISTS (SELECT 1 FROM ticket_types tt WHERE tt.event_id = evt.id AND tt.
 UNION ALL
 -- Séminaire Éducation Tana : Standard et Étudiant
 SELECT evt.id, 'Pass Standard', 'Accès complet au séminaire. Documentation incluse.', 'MGA', 40000, 2000, 20, 'all'::age_category_enum, evt.sales_starts_at, evt.sales_ends_at, 1, 6
-FROM evt WHERE evt.slug = 'seminaire-education-tana'
+FROM evt WHERE evt.slug = 'concert-pop-tana'
 AND NOT EXISTS (SELECT 1 FROM ticket_types tt WHERE tt.event_id = evt.id AND tt.name = 'Pass Standard')
 UNION ALL
 SELECT evt.id, 'Pass Étudiant', 'Accès étudiant avec réduction. Carte étudiante requise.', 'MGA', 20000, 1000, 20, 'all'::age_category_enum, evt.sales_starts_at, evt.sales_ends_at, 1, 6
-FROM evt WHERE evt.slug = 'seminaire-education-tana'
+FROM evt WHERE evt.slug = 'concert-pop-tana'
 AND NOT EXISTS (SELECT 1 FROM ticket_types tt WHERE tt.event_id = evt.id AND tt.name = 'Pass Étudiant')
 UNION ALL
 -- Festival Artisanat Majunga : Adulte et Enfant
@@ -1660,30 +1960,31 @@ WITH tt AS (
         'concert-music-sunday', 
         'business-connect-mada',
         'festival-musique-toamasina',
-        'seminaire-entrepreneurs-antsirabe',
-        'seminaire-entrepreneurs-toamasina',
+        'concert-reggae-tana',
         'festival-plage-mahajanga',
-        'conference-academique-fianarantsoa',
         'conference-academique-tana',
-        'spectacle-culturel-toliara',
-        'seminaire-tourisme-diego',
-        'festival-artisanat-morondava',
-        'conference-agriculture-ambositra',
+        'concert-salegy-tana',
+        'concert-rock-tana',
+        'festival-artisanat-majunga',
         'conference-agriculture-tana',
-        'concert-jazz-ambatondrazaka',
         'concert-jazz-tana',
-        'seminaire-sante-manakara',
-        'seminaire-sante-toliara',
+        'concert-electro-tana',
         'festival-cinema-nosy-be',
-        'workshop-tech-tamatave',
-        'spectacle-danse-fort-dauphin',
-        'spectacle-danse-toliara',
-        'conference-environnement-majunga',
-        'festival-gastronomie-antsirabe',
+        'concert-folk-tana',
+        'concert-world-tana',
+        'concert-blues-tana',
         'festival-gastronomie-tana',
-        'seminaire-education-ambalavao',
-        'seminaire-education-tana',
-        'festival-artisanat-majunga'
+        'concert-pop-tana',
+        'spectacle-culturel-toliara',
+        'spectacle-danse-toliara',
+        'concert-kabosy-night-tana',
+        'concert-metal-mada-tana',
+        'concert-afro-dancehall-tana',
+        'concert-vako-drazana-tana',
+        'concert-rap-gasy-tana',
+        'concert-piano-bar-tana',
+        'concert-tsapiky-fever-tana',
+        'theatre-contemporain-tana'
     )
 )
 INSERT INTO ticket_inventory (
@@ -1693,66 +1994,33 @@ SELECT tt.id,
        CASE 
            WHEN tt.slug = 'concert-music-sunday' THEN 400
            WHEN tt.slug = 'business-connect-mada' THEN 250
-           WHEN tt.slug = 'festival-musique-toamasina' AND tt.name = 'VIP' AND tt.age_category = 'adult' THEN 100
-           WHEN tt.slug = 'festival-musique-toamasina' AND tt.name = 'VIP' AND tt.age_category = 'child' THEN 50
-           WHEN tt.slug = 'festival-musique-toamasina' AND tt.name = 'Standard' AND tt.age_category = 'adult' THEN 250
-           WHEN tt.slug = 'festival-musique-toamasina' AND tt.name = 'Standard' AND tt.age_category = 'child' THEN 100
-           WHEN tt.slug = 'seminaire-entrepreneurs-antsirabe' AND tt.name = 'Pass Standard' THEN 200
-           WHEN tt.slug = 'seminaire-entrepreneurs-antsirabe' AND tt.name = 'Pass Premium' THEN 100
-           WHEN tt.slug = 'festival-plage-mahajanga' AND tt.name = 'VIP' AND tt.age_category = 'adult' THEN 120
-           WHEN tt.slug = 'festival-plage-mahajanga' AND tt.name = 'VIP' AND tt.age_category = 'child' THEN 60
-           WHEN tt.slug = 'festival-plage-mahajanga' AND tt.name = 'Gold' AND tt.age_category = 'adult' THEN 200
-           WHEN tt.slug = 'festival-plage-mahajanga' AND tt.name = 'Gold' AND tt.age_category = 'child' THEN 100
-           WHEN tt.slug = 'festival-plage-mahajanga' AND tt.name = 'Silver' AND tt.age_category = 'adult' THEN 300
-           WHEN tt.slug = 'festival-plage-mahajanga' AND tt.name = 'Silver' AND tt.age_category = 'child' THEN 120
-           WHEN tt.slug = 'conference-academique-fianarantsoa' AND tt.name = 'Pass Standard' THEN 400
-           WHEN tt.slug = 'conference-academique-fianarantsoa' AND tt.name = 'Pass Étudiant' THEN 200
-           WHEN tt.slug = 'spectacle-culturel-toliara' AND tt.name = 'Billet Adulte' THEN 250
-           WHEN tt.slug = 'spectacle-culturel-toliara' AND tt.name = 'Billet Enfant' THEN 150
-           WHEN tt.slug = 'seminaire-tourisme-diego' AND tt.name = 'Pass Standard' THEN 150
-           WHEN tt.slug = 'seminaire-tourisme-diego' AND tt.name = 'Pass Premium' THEN 50
-           WHEN tt.slug = 'festival-artisanat-morondava' AND tt.name = 'Billet Adulte' THEN 400
-           WHEN tt.slug = 'festival-artisanat-morondava' AND tt.name = 'Billet Enfant' THEN 200
-           WHEN tt.slug = 'conference-agriculture-ambositra' AND tt.name = 'Pass Standard' THEN 200
-           WHEN tt.slug = 'conference-agriculture-ambositra' AND tt.name = 'Pass Étudiant' THEN 100
-           WHEN tt.slug = 'concert-jazz-ambatondrazaka' THEN 250
-           WHEN tt.slug = 'seminaire-sante-manakara' AND tt.name = 'Pass Standard' THEN 150
-           WHEN tt.slug = 'seminaire-sante-manakara' AND tt.name = 'Pass Premium' THEN 50
-           WHEN tt.slug = 'festival-cinema-nosy-be' AND tt.name = 'VIP' AND tt.age_category = 'adult' THEN 100
-           WHEN tt.slug = 'festival-cinema-nosy-be' AND tt.name = 'VIP' AND tt.age_category = 'child' THEN 50
-           WHEN tt.slug = 'festival-cinema-nosy-be' AND tt.name = 'Standard' AND tt.age_category = 'adult' THEN 250
-           WHEN tt.slug = 'festival-cinema-nosy-be' AND tt.name = 'Standard' AND tt.age_category = 'child' THEN 100
-           WHEN tt.slug = 'workshop-tech-tamatave' AND tt.name = 'Pass Standard' THEN 100
-           WHEN tt.slug = 'workshop-tech-tamatave' AND tt.name = 'Pass Étudiant' THEN 50
-           WHEN tt.slug = 'spectacle-danse-fort-dauphin' AND tt.name = 'Billet Adulte' THEN 250
-           WHEN tt.slug = 'spectacle-danse-fort-dauphin' AND tt.name = 'Billet Enfant' THEN 150
-           WHEN tt.slug = 'conference-environnement-majunga' AND tt.name = 'Pass Standard' THEN 250
-           WHEN tt.slug = 'conference-environnement-majunga' AND tt.name = 'Pass Étudiant' THEN 100
-           WHEN tt.slug = 'festival-gastronomie-antsirabe' AND tt.name = 'VIP' AND tt.age_category = 'adult' THEN 150
-           WHEN tt.slug = 'festival-gastronomie-antsirabe' AND tt.name = 'VIP' AND tt.age_category = 'child' THEN 75
-           WHEN tt.slug = 'festival-gastronomie-antsirabe' AND tt.name = 'Standard' AND tt.age_category = 'adult' THEN 300
-           WHEN tt.slug = 'festival-gastronomie-antsirabe' AND tt.name = 'Standard' AND tt.age_category = 'child' THEN 150
-           WHEN tt.slug = 'seminaire-education-ambalavao' AND tt.name = 'Pass Standard' THEN 150
-           WHEN tt.slug = 'seminaire-education-ambalavao' AND tt.name = 'Pass Étudiant' THEN 100
-           WHEN tt.slug = 'seminaire-entrepreneurs-toamasina' AND tt.name = 'Pass Standard' THEN 200
-           WHEN tt.slug = 'seminaire-entrepreneurs-toamasina' AND tt.name = 'Pass Premium' THEN 100
+           WHEN tt.slug = 'concert-reggae-tana' AND tt.name = 'Pass Standard' THEN 200
+           WHEN tt.slug = 'concert-reggae-tana' AND tt.name = 'Pass Premium' THEN 100
+           WHEN tt.slug = 'concert-salegy-tana' AND tt.name = 'Billet Adulte' THEN 250
+           WHEN tt.slug = 'concert-salegy-tana' AND tt.name = 'Billet Enfant' THEN 150
+           WHEN tt.slug = 'concert-rock-tana' AND tt.name = 'Pass Standard' THEN 150
+           WHEN tt.slug = 'concert-rock-tana' AND tt.name = 'Pass Premium' THEN 50
+           WHEN tt.slug = 'concert-folk-tana' AND tt.name = 'Pass Standard' THEN 100
+           WHEN tt.slug = 'concert-folk-tana' AND tt.name = 'Pass Étudiant' THEN 50
+           WHEN tt.slug = 'concert-world-tana' AND tt.name = 'Billet Adulte' THEN 250
+           WHEN tt.slug = 'concert-world-tana' AND tt.name = 'Billet Enfant' THEN 150
+           WHEN tt.slug = 'concert-blues-tana' AND tt.name = 'Pass Standard' THEN 250
+           WHEN tt.slug = 'concert-blues-tana' AND tt.name = 'Pass Étudiant' THEN 100
+           WHEN tt.slug = 'concert-pop-tana' AND tt.name = 'Pass Standard' THEN 150
+           WHEN tt.slug = 'concert-pop-tana' AND tt.name = 'Pass Étudiant' THEN 100
            WHEN tt.slug = 'conference-academique-tana' AND tt.name = 'Pass Standard' THEN 400
            WHEN tt.slug = 'conference-academique-tana' AND tt.name = 'Pass Étudiant' THEN 200
            WHEN tt.slug = 'conference-agriculture-tana' AND tt.name = 'Pass Standard' THEN 200
-           WHEN tt.slug = 'conference-agriculture-tana' AND tt.name = 'Pass Étudiant' THEN 100
-           WHEN tt.slug = 'concert-jazz-tana' THEN 250
-           WHEN tt.slug = 'seminaire-sante-toliara' AND tt.name = 'Pass Standard' THEN 150
-           WHEN tt.slug = 'seminaire-sante-toliara' AND tt.name = 'Pass Premium' THEN 50
-           WHEN tt.slug = 'spectacle-danse-toliara' AND tt.name = 'Billet Adulte' THEN 250
-           WHEN tt.slug = 'spectacle-danse-toliara' AND tt.name = 'Billet Enfant' THEN 150
-           WHEN tt.slug = 'festival-gastronomie-tana' AND tt.name = 'VIP' AND tt.age_category = 'adult' THEN 150
-           WHEN tt.slug = 'festival-gastronomie-tana' AND tt.name = 'VIP' AND tt.age_category = 'child' THEN 75
-           WHEN tt.slug = 'festival-gastronomie-tana' AND tt.name = 'Standard' AND tt.age_category = 'adult' THEN 300
-           WHEN tt.slug = 'festival-gastronomie-tana' AND tt.name = 'Standard' AND tt.age_category = 'child' THEN 150
-           WHEN tt.slug = 'seminaire-education-tana' AND tt.name = 'Pass Standard' THEN 150
-           WHEN tt.slug = 'seminaire-education-tana' AND tt.name = 'Pass Étudiant' THEN 100
-           WHEN tt.slug = 'festival-artisanat-majunga' AND tt.name = 'Billet Adulte' THEN 300
-           WHEN tt.slug = 'festival-artisanat-majunga' AND tt.name = 'Billet Enfant' THEN 200
+            WHEN tt.slug = 'conference-agriculture-tana' AND tt.name = 'Pass Étudiant' THEN 100
+            WHEN tt.slug = 'concert-jazz-tana' THEN 250
+            WHEN tt.slug = 'concert-electro-tana' AND tt.name = 'Pass Standard' THEN 150
+            WHEN tt.slug = 'concert-electro-tana' AND tt.name = 'Pass Premium' THEN 50
+            WHEN tt.slug = 'spectacle-culturel-toliara' AND tt.name = 'Billet Adulte' THEN 250
+            WHEN tt.slug = 'spectacle-culturel-toliara' AND tt.name = 'Billet Enfant' THEN 150
+            WHEN tt.slug = 'spectacle-danse-toliara' AND tt.name = 'Billet Adulte' THEN 250
+            WHEN tt.slug = 'spectacle-danse-toliara' AND tt.name = 'Billet Enfant' THEN 150
+            WHEN tt.slug IN ('concert-kabosy-night-tana', 'concert-metal-mada-tana', 'concert-afro-dancehall-tana', 'concert-vako-drazana-tana', 'concert-rap-gasy-tana', 'concert-piano-bar-tana', 'concert-tsapiky-fever-tana') THEN 300
+            WHEN tt.slug = 'theatre-contemporain-tana' THEN 200
            ELSE 100
        END,
        0,
@@ -1768,11 +2036,15 @@ WITH tt AS (
         'concert-music-sunday', 
         'business-connect-mada',
         'festival-musique-toamasina',
-        'seminaire-entrepreneurs-antsirabe',
+        'concert-reggae-tana',
         'festival-plage-mahajanga',
-        'conference-academique-fianarantsoa',
+        'concert-jazz-tana',
+        'concert-salegy-tana',
+        'concert-rock-tana',
         'spectacle-culturel-toliara',
-        'seminaire-tourisme-diego'
+        'spectacle-danse-toliara',
+        'concert-kabosy-night-tana',
+        'theatre-contemporain-tana'
     )
 )
 INSERT INTO pricing_rules (
@@ -1990,7 +2262,7 @@ event_famille AS (
     FROM organizer
     CROSS JOIN venue_famille vf
     CROSS JOIN space_famille sf
-    LEFT JOIN event_categories cat ON cat.slug = 'concert'
+    LEFT JOIN event_categories cat ON cat.slug = 'festival'
     ON CONFLICT (slug) DO UPDATE
         SET title = EXCLUDED.title,
             subtitle = EXCLUDED.subtitle,
@@ -2067,6 +2339,7 @@ SELECT evt.id, cat.id
 FROM (SELECT id, slug FROM events WHERE slug IN ('festival-famille-enfants', 'seminaire-professionnel-adultes')) evt
 JOIN event_categories cat ON cat.slug = CASE evt.slug
     WHEN 'seminaire-professionnel-adultes' THEN 'business'
+    WHEN 'festival-famille-enfants' THEN 'festival'
     ELSE 'concert'
 END
 ON CONFLICT DO NOTHING;
@@ -2510,7 +2783,7 @@ event_sport AS (
     FROM organizer
     CROSS JOIN venue_sport vs
     CROSS JOIN space_sport ss
-    LEFT JOIN event_categories cat ON cat.slug = 'concert'
+    LEFT JOIN event_categories cat ON cat.slug = 'festival'
     ON CONFLICT (slug) DO UPDATE
         SET title = EXCLUDED.title,
             subtitle = EXCLUDED.subtitle,
