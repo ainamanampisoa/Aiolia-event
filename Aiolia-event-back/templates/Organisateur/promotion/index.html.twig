@@ -119,18 +119,16 @@
         <div class="card-body">
             {% if promotions|length > 0 %}
             <div class="promotions-grid">
+                {% set now = date('now') %}
                 {% for item in promotions %}
                     {% set promo = item.promotion %}
-                    {% set now = date('now') %}
-                    
-                    {# Logique de calcul des états #}
-                    {% set hasStarted = promo.commenceLe == null or promo.commenceLe <= now %}
-                    {% set hasEnded = promo.seTermineLe != null and promo.seTermineLe < now %}
+
+                    {# Logique des états #}
+                    {% set hasStarted = promo.commenceLe is null or promo.commenceLe <= now %}
+                    {% set hasEnded = promo.seTermineLe is not null and promo.seTermineLe < now %}
                     {% set isActive = hasStarted and not hasEnded %}
-                    
-                    {% set expiresSoon = promo.seTermineLe and promo.seTermineLe <= date('+7 days') and promo.seTermineLe > now %}
-                    {% set isExpired = promo.seTermineLe and promo.seTermineLe < now %}
-                    
+                    {% set expiresSoon = promo.seTermineLe is not null and promo.seTermineLe <= date('+7 days') and promo.seTermineLe > now %}
+
                     <div class="promo-card {% if expiresSoon %}promo-card-expiring{% endif %}">
                         {% if expiresSoon %}
                         <div class="promo-expiring-banner">
@@ -138,6 +136,7 @@
                             <span>Expire bientôt</span>
                         </div>
                         {% endif %}
+
                         <div class="promo-header">
                             <div class="promo-code {% if expiresSoon %}promo-code-expiring{% endif %}">{{ promo.code }}</div>
                             {% if isActive %}
@@ -145,12 +144,12 @@
                             {% elseif expiresSoon %}
                                 <span class="promo-status status-warning">Expire bientôt</span>
                             {% elseif hasEnded %}
-                                <span class="promo-status status-inactive">Expirée</span>
+                                <span class="promo-status status-expired">Expirée</span>
                             {% else %}
-                                {# Promotion non encore commencée = Inactive #}
                                 <span class="promo-status status-inactive">Inactive</span>
                             {% endif %}
                         </div>
+
                         <div class="promo-details">
                             <div class="promo-discount">
                                 {% if promo.typePromotion == 'percent' %}
@@ -161,49 +160,45 @@
                             </div>
                             <p>{{ promo.metadonnees.description ?? 'Aucune description' }}</p>
                         </div>
+
                         <div class="promo-info">
-                            {% if promo.seTermineLe %}
-                            <div class="promo-stat">
-                                <i class="fas fa-calendar"></i>
-                                <span>
-                                    {% if isActive %}
-                                        Valable jusqu'au {{ promo.seTermineLe|date('d M Y') }}
-                                    {% elseif hasEnded %}
-                                        Expirée le {{ promo.seTermineLe|date('d M Y') }}
-                                    {% else %}
-                                        Expire le {{ promo.seTermineLe|date('d M Y') }}
-                                    {% endif %}
-                                    {% if expiresSoon %}
-                                        {% set endTimestamp = promo.seTermineLe|date('U') %}
-                                        {% set nowTimestamp = now|date('U') %}
-                                        {% set daysLeft = ((endTimestamp - nowTimestamp) / 86400)|round %}
-                                        <span class="expiring-text">({{ daysLeft }} jour{{ daysLeft > 1 ? 's' : '' }})</span>
-                                    {% endif %}
-                                </span>
-                            </div>
+                            {% if (promo.seTermineLe and hasStarted) %}
+                                {% set daysLeft = ((promo.seTermineLe|date('U') - now|date('U')) / 86400)|round %}
+                                <div class="promo-stat">
+                                    <i class="fas fa-calendar"></i>
+                                    <span>
+                                        {% if isActive %}
+                                            Valable jusqu'au {{ promo.seTermineLe|date('d M Y') }}
+                                        {% elseif hasEnded %}
+                                            Expirée le {{ promo.seTermineLe|date('d M Y') }}
+                                        {% else %}
+                                            Expire le {{ promo.seTermineLe|date('d M Y') }}
+                                        {% endif %}
+
+                                        {% if expiresSoon %}
+                                            <span class="expiring-text">({{ daysLeft }} jour{{ daysLeft > 1 ? 's' : '' }})</span>
+                                        {% endif %}
+                                    </span>
+                                </div>
                             {% endif %}
-                            
+
                             {% if promo.commenceLe and promo.commenceLe > now %}
+                            {% set commenceIn = ((promo.commenceLe|date('U') - now|date('U')) / 86400)|round %}
                             <div class="promo-stat">
                                 <i class="fas fa-clock"></i>
                                 <span>
                                     Commence le {{ promo.commenceLe|date('d M Y') }}
-                                    {% set commenceIn = ((promo.commenceLe|date('U') - now|date('U')) / 86400)|round %}
                                     <span class="pending-text">(dans {{ commenceIn }} jour{{ commenceIn > 1 ? 's' : '' }})</span>
                                 </span>
                             </div>
                             {% endif %}
-                            
+
                             <div class="promo-stat">
                                 <i class="fas fa-users"></i>
-                                {{ item.utilisations }}
-                                {% if promo.utilisationMaximaleTotale %}
-                                    / {{ promo.utilisationMaximaleTotale }} utilisations
-                                {% else %}
-                                    utilisations
-                                {% endif %}
+                                {{ item.utilisations }}{% if promo.utilisationMaximaleTotale %} / {{ promo.utilisationMaximaleTotale }} utilisations{% else %} utilisations{% endif %}
                             </div>
                         </div>
+
                         <div class="promo-actions">
                             {% if not hasEnded %}
                             <a href="{{ path('organisateur_promotions_edit', {id: promo.id}) }}" class="btn-promo-action" title="Modifier">
@@ -213,13 +208,7 @@
                             <a href="{{ path('organisateur_promotions_history', {id: promo.id}) }}" class="btn-promo-action" title="Historique">
                                 <i class="fas fa-history"></i>
                             </a>
-                            <form
-                                method="post"
-                                action="{{ path('organisateur_promotions_delete', {id: promo.id}) }}"
-                                style="display: inline; flex: 1;"
-                                class="promo-delete-form"
-                                data-promo-code="{{ promo.code }}"
-                            >
+                            <form method="post" action="{{ path('organisateur_promotions_delete', {id: promo.id}) }}" style="display: inline-flex;" class="promo-delete-form" data-promo-code="{{ promo.code }}">
                                 <input type="hidden" name="_token" value="{{ csrf_token('delete_promotion') }}">
                                 <button type="submit" class="btn-promo-action btn-promo-delete" title="Supprimer">
                                     <i class="fas fa-trash"></i>
@@ -245,7 +234,7 @@
             </div>
             {% endif %}
 
-            <!-- Pagination -->
+            {# Pagination #}
             {% if pagination.total_pages > 1 %}
             <div class="pagination-wrapper" style="margin-top: 30px; padding-top: 20px; border-top: 1px solid var(--gray-200);">
                 <nav class="pagination" aria-label="Pagination">
@@ -254,33 +243,25 @@
                     {% set queryParams = app.request.query.all|merge({'page': null})|filter(v => v != null) %}
                     
                     <ul class="pagination-list">
-                        {# Bouton Précédent #}
+                        {# Précédent #}
                         <li class="pagination-item">
                             {% if currentPage > 1 %}
                                 <a href="{{ path('organisateur_promotions_index', queryParams|merge({'page': currentPage - 1})) }}" class="pagination-link">
-                                    <i class="fas fa-chevron-left"></i>
-                                    Précédent
+                                    <i class="fas fa-chevron-left"></i> Précédent
                                 </a>
                             {% else %}
-                                <span class="pagination-link disabled">
-                                    <i class="fas fa-chevron-left"></i>
-                                    Précédent
-                                </span>
+                                <span class="pagination-link disabled"><i class="fas fa-chevron-left"></i> Précédent</span>
                             {% endif %}
                         </li>
 
-                        {# Numéros de pages #}
+                        {# Pages #}
                         {% set startPage = max(1, currentPage - 2) %}
                         {% set endPage = min(totalPages, currentPage + 2) %}
-                        
+
                         {% if startPage > 1 %}
-                            <li class="pagination-item">
-                                <a href="{{ path('organisateur_promotions_index', queryParams|merge({'page': 1})) }}" class="pagination-link">1</a>
-                            </li>
+                            <li class="pagination-item"><a href="{{ path('organisateur_promotions_index', queryParams|merge({'page': 1})) }}" class="pagination-link">1</a></li>
                             {% if startPage > 2 %}
-                                <li class="pagination-item">
-                                    <span class="pagination-ellipsis">...</span>
-                                </li>
+                                <li class="pagination-item"><span class="pagination-ellipsis">...</span></li>
                             {% endif %}
                         {% endif %}
 
@@ -296,27 +277,17 @@
 
                         {% if endPage < totalPages %}
                             {% if endPage < totalPages - 1 %}
-                                <li class="pagination-item">
-                                    <span class="pagination-ellipsis">...</span>
-                                </li>
+                                <li class="pagination-item"><span class="pagination-ellipsis">...</span></li>
                             {% endif %}
-                            <li class="pagination-item">
-                                <a href="{{ path('organisateur_promotions_index', queryParams|merge({'page': totalPages})) }}" class="pagination-link">{{ totalPages }}</a>
-                            </li>
+                            <li class="pagination-item"><a href="{{ path('organisateur_promotions_index', queryParams|merge({'page': totalPages})) }}" class="pagination-link">{{ totalPages }}</a></li>
                         {% endif %}
 
-                        {# Bouton Suivant #}
+                        {# Suivant #}
                         <li class="pagination-item">
                             {% if currentPage < totalPages %}
-                                <a href="{{ path('organisateur_promotions_index', queryParams|merge({'page': currentPage + 1})) }}" class="pagination-link">
-                                    Suivant
-                                    <i class="fas fa-chevron-right"></i>
-                                </a>
+                                <a href="{{ path('organisateur_promotions_index', queryParams|merge({'page': currentPage + 1})) }}" class="pagination-link">Suivant <i class="fas fa-chevron-right"></i></a>
                             {% else %}
-                                <span class="pagination-link disabled">
-                                    Suivant
-                                    <i class="fas fa-chevron-right"></i>
-                                </span>
+                                <span class="pagination-link disabled">Suivant <i class="fas fa-chevron-right"></i></span>
                             {% endif %}
                         </li>
                     </ul>
@@ -324,6 +295,7 @@
             </div>
             {% endif %}
         </div>
+
     </div>
 </div>
 
@@ -464,6 +436,14 @@
     color: var(--gray-600);
     border: 1px solid rgba(149, 165, 166, 0.3);
 }
+
+.status-expired {
+    background: linear-gradient(135deg, rgba(231, 76, 60, 0.15), rgba(231, 76, 60, 0.08)); /* rouge clair */
+    color: #e74c3c;
+    border: 1px solid rgba(231, 76, 60, 0.3);
+}
+
+
 
 .promo-details {
     margin-bottom: 20px;
