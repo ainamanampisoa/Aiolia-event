@@ -152,15 +152,15 @@
                     <label>Date de début</label>
                     <div class="datetime-group">
                         <div class="date-input-wrapper">
-                            <input type="text" name="start_date" id="start_date" class="form-control date-picker-input" placeholder="--/--/----" autocomplete="off" readonly>
+                            <input type="text" name="start_date" id="start_date" class="form-control date-picker-input" placeholder="JJ/MM/AAAA" autocomplete="off" readonly>
                             <button type="button" class="clear-date-btn" id="clear_start_date" style="display: none;">
                                 <i class="fas fa-times"></i>
                             </button>
                         </div>
                         <div class="time-group">
-                            <label class="time-label">De :</label>
+                            <label class="time-label">Heure :</label>
                             <div class="time-input-wrapper">
-                                <input type="text" name="start_time" id="start_time" class="form-control time-picker-input" placeholder="--:--" autocomplete="off" readonly>
+                                <input type="text" name="start_time" id="start_time" class="form-control time-picker-input" placeholder="HH:MM" autocomplete="off" readonly>
                             </div>
                         </div>
                     </div>
@@ -171,15 +171,15 @@
                     <label>Date de fin <span class="required">*</span></label>
                     <div class="datetime-group">
                         <div class="date-input-wrapper">
-                            <input type="text" name="end_date" id="end_date" class="form-control date-picker-input" placeholder="--/--/----" required autocomplete="off" readonly>
+                            <input type="text" name="end_date" id="end_date" class="form-control date-picker-input" placeholder="JJ/MM/AAAA" required autocomplete="off" readonly>
                             <button type="button" class="clear-date-btn" id="clear_end_date" style="display: none;">
                                 <i class="fas fa-times"></i>
                             </button>
                         </div>
                         <div class="time-group">
-                            <label class="time-label">De :</label>
+                            <label class="time-label">Heure :</label>
                             <div class="time-input-wrapper">
-                                <input type="text" name="end_time" id="end_time" class="form-control time-picker-input" placeholder="--:--" required autocomplete="off" readonly>
+                                <input type="text" name="end_time" id="end_time" class="form-control time-picker-input" placeholder="HH:MM" required autocomplete="off" readonly>
                             </div>
                         </div>
                     </div>
@@ -243,7 +243,7 @@
                                                             'Conférence': '🎤',
                                                             'Exposition': '🖼️'
                                                         } %}
-                                                        {{ typeIcon[event.typeEvenement.nom] ?? '📅' }}
+                                                        {{ typeIcon[event.typeEvenement.slug] ?? '📅' }}
                                                     {% else %}
                                                         📅
                                                     {% endif %}
@@ -308,32 +308,11 @@
             </div>
         </div>
 
-        <!-- Aperçu de la promotion -->
-        <div class="promo-preview">
-            <div class="preview-header">
-                <i class="fas fa-eye"></i>
-                Aperçu de votre code promo
-            </div>
-            <div class="preview-card">
-                <div class="preview-code" id="previewCode">EARLYBIRD2025</div>
-                <div class="preview-discount" id="previewDiscount">-20%</div>
-                <div class="preview-description" id="previewDescription">Réduction pour les achats anticipés</div>
-                <div class="preview-validity">
-                    <i class="fas fa-calendar"></i>
-                    <span id="previewValidity">Valide jusqu'au 31 Oct 2025</span>
-                </div>
-            </div>
-        </div>
-
         <!-- Actions -->
         <div class="form-actions">
             <button type="submit" class="btn btn-primary" style="background: linear-gradient(135deg, #3498DB, #5DADE2) !important; color: white; border: none; padding: 16px 36px; border-radius: 12px; font-weight: 600; font-size: 1.05rem; box-shadow: 0 4px 12px rgba(52, 152, 219, 0.3);">
                 <i class="fas fa-check"></i>
                 Créer le code promo
-            </button>
-            <button type="button" class="btn btn-secondary" style="background: white; color: var(--gray-700); border: 2px solid var(--gray-300); padding: 16px 32px; border-radius: 12px; font-weight: 600; font-size: 1.05rem;">
-                <i class="fas fa-save"></i>
-                Enregistrer brouillon
             </button>
             <a href="{{ path('organisateur_promotions_index') }}" class="btn" style="color: var(--gray-600); text-decoration: none; padding: 16px 24px;">
                 Annuler
@@ -379,29 +358,8 @@ document.addEventListener('DOMContentLoaded', function() {
                 monthElement.style.justifyContent = 'space-between';
                 monthElement.style.alignItems = 'center';
             }
-        },
-        onChange: function(selectedDates, dateStr, instance) {
-            // Afficher le bouton de suppression si une date est sélectionnée
-            const inputId = instance.input.id;
-            const clearBtn = document.getElementById('clear_' + inputId);
-            if (clearBtn) {
-                clearBtn.style.display = selectedDates.length > 0 ? 'flex' : 'none';
-            }
         }
     };
-    
-    // Générer les options d'heure (de 00:00 à 23:45 par tranches de 15 minutes)
-    function generateTimeOptions() {
-        const times = [];
-        for (let h = 0; h < 24; h++) {
-            for (let m = 0; m < 60; m += 15) {
-                const hour = String(h).padStart(2, '0');
-                const minute = String(m).padStart(2, '0');
-                times.push(`${hour}:${minute}`);
-            }
-        }
-        return times;
-    }
     
     // Configuration Flatpickr pour les heures avec dropdown
     const timePickerOptions = {
@@ -421,13 +379,6 @@ document.addEventListener('DOMContentLoaded', function() {
                 input.style.fontSize = '1.2rem';
                 input.style.fontWeight = '600';
             });
-        },
-        onChange: function(selectedDates, dateStr, instance) {
-            // Mettre à jour l'affichage
-            if (selectedDates.length > 0) {
-                const time = instance.formatDate(selectedDates[0], "H:i");
-                instance.input.value = time;
-            }
         }
     };
     
@@ -436,7 +387,6 @@ document.addEventListener('DOMContentLoaded', function() {
         startDatePicker = flatpickr(startDateInput, {
             ...datePickerOptions,
             onChange: function(selectedDates, dateStr, instance) {
-                updatePreview();
                 // Mettre à jour la date minimale de fin
                 if (selectedDates.length > 0 && endDatePicker) {
                     endDatePicker.set('minDate', selectedDates[0]);
@@ -450,12 +400,12 @@ document.addEventListener('DOMContentLoaded', function() {
         });
     }
     
-    // Initialiser les time pickers pour la date de début
+    // Initialiser le time picker pour l'heure de début
     if (startTimeInput) {
         startTimePicker = flatpickr(startTimeInput, {
             ...timePickerOptions,
             onChange: function(selectedDates, dateStr, instance) {
-                updatePreview();
+                // Mise à jour si nécessaire
             }
         });
     }
@@ -465,7 +415,6 @@ document.addEventListener('DOMContentLoaded', function() {
         endDatePicker = flatpickr(endDateInput, {
             ...datePickerOptions,
             onChange: function(selectedDates, dateStr, instance) {
-                updatePreview();
                 // Afficher/masquer le bouton de suppression
                 const clearBtn = document.getElementById('clear_end_date');
                 if (clearBtn) {
@@ -475,12 +424,12 @@ document.addEventListener('DOMContentLoaded', function() {
         });
     }
     
-    // Initialiser les time pickers pour la date de fin
+    // Initialiser le time picker pour l'heure de fin
     if (endTimeInput) {
         endTimePicker = flatpickr(endTimeInput, {
             ...timePickerOptions,
             onChange: function(selectedDates, dateStr, instance) {
-                updatePreview();
+                // Mise à jour si nécessaire
             }
         });
     }
@@ -511,7 +460,6 @@ document.addEventListener('DOMContentLoaded', function() {
     }
 
     // ============================================
-    // ============================================
     // GÉNÉRATEUR DE CODE PROMO
     // ============================================
     window.generatePromoCode = function() {
@@ -521,7 +469,6 @@ document.addEventListener('DOMContentLoaded', function() {
             code += chars.charAt(Math.floor(Math.random() * chars.length));
         }
         document.querySelector('input[name="code"]').value = code;
-        updatePreview();
     };
 
     // ============================================
@@ -532,60 +479,23 @@ document.addEventListener('DOMContentLoaded', function() {
     const maxValue = document.getElementById('maxValue');
     const valueInput = document.querySelector('input[name="discount_value"]');
     
-    discountTypeRadios.forEach(radio => {
-        radio.addEventListener('change', function() {
-            if (this.value === 'percentage') {
-                discountUnit.textContent = '%';
-                maxValue.textContent = '100%';
-                valueInput.max = 100;
-            } else {
-                discountUnit.textContent = '€';
-                maxValue.textContent = '1000€';
-                valueInput.max = 1000;
-            }
-            updatePreview();
+    if (discountTypeRadios.length > 0) {
+        discountTypeRadios.forEach(radio => {
+            radio.addEventListener('change', function() {
+                if (discountUnit && maxValue && valueInput) {
+                    if (this.value === 'percentage') {
+                        discountUnit.textContent = '%';
+                        maxValue.textContent = '100%';
+                        valueInput.max = 100;
+                    } else {
+                        discountUnit.textContent = '€';
+                        maxValue.textContent = '1000€';
+                        valueInput.max = 1000;
+                    }
+                }
+            });
         });
-    });
-
-    // ============================================
-    // APERÇU EN TEMPS RÉEL
-    // ============================================
-    function updatePreview() {
-        const code = document.querySelector('input[name="code"]').value || 'VOTRECODE';
-        const description = document.querySelector('textarea[name="description"]').value || 'Description de votre promotion';
-        const discountValue = document.querySelector('input[name="discount_value"]').value || '0';
-        const discountType = document.querySelector('input[name="discount_type"]:checked').value;
-        const endDate = endDatePicker ? endDatePicker.selectedDates[0] : null;
-        const endTime = endTimeInput ? endTimeInput.value : null;
-        
-        document.getElementById('previewCode').textContent = code;
-        
-        if (discountType === 'percentage') {
-            document.getElementById('previewDiscount').textContent = `-${discountValue}%`;
-        } else {
-            document.getElementById('previewDiscount').textContent = `-${discountValue}€`;
-        }
-        
-        document.getElementById('previewDescription').textContent = description;
-        
-        if (endDate) {
-            const options = { year: 'numeric', month: 'long', day: 'numeric' };
-            let dateStr = endDate.toLocaleDateString('fr-FR', options);
-            if (endTime) {
-                dateStr += ` à ${endTime}`;
-            }
-            document.getElementById('previewValidity').textContent = `Valide jusqu'au ${dateStr}`;
-        } else {
-            document.getElementById('previewValidity').textContent = 'Sélectionnez une date de fin';
-        }
     }
-    
-    // Écouter les changements
-    document.querySelector('input[name="code"]').addEventListener('input', updatePreview);
-    document.querySelector('textarea[name="description"]').addEventListener('input', updatePreview);
-    document.querySelector('input[name="discount_value"]').addEventListener('input', updatePreview);
-    
-    // Mise à jour de l'aperçu pour les dates (géré par Flatpickr onChange)
 
     // ============================================
     // CONVERSION DU FORMAT DE DATE AVANT SOUMISSION
@@ -596,8 +506,8 @@ document.addEventListener('DOMContentLoaded', function() {
             // Combiner date et heure de début (convertir DD/MM/YYYY en YYYY-MM-DD)
             if (startDatePicker && startDatePicker.selectedDates.length > 0) {
                 const date = startDatePicker.selectedDates[0];
-                let timeStr = startTimeInput.value || '00:00';
-                if (timeStr === '--:--') timeStr = '00:00';
+                let timeStr = startTimeInput?.value || '00:00';
+                if (timeStr === '--:--' || timeStr === 'HH:MM') timeStr = '00:00';
                 const [hours, minutes] = timeStr.split(':');
                 const formattedDate = date.getFullYear() + '-' + 
                     String(date.getMonth() + 1).padStart(2, '0') + '-' + 
@@ -605,13 +515,16 @@ document.addEventListener('DOMContentLoaded', function() {
                     String(hours || '00').padStart(2, '0') + ':' + 
                     String(minutes || '00').padStart(2, '0');
                 startDateInput.value = formattedDate;
+            } else if (startDateInput && !startDateInput.value) {
+                // Si la date est vide, envoyer une chaîne vide
+                startDateInput.value = '';
             }
             
             // Combiner date et heure de fin (convertir DD/MM/YYYY en YYYY-MM-DD)
             if (endDatePicker && endDatePicker.selectedDates.length > 0) {
                 const date = endDatePicker.selectedDates[0];
-                let timeStr = endTimeInput.value || '23:59';
-                if (timeStr === '--:--') timeStr = '23:59';
+                let timeStr = endTimeInput?.value || '23:59';
+                if (timeStr === '--:--' || timeStr === 'HH:MM') timeStr = '23:59';
                 const [hours, minutes] = timeStr.split(':');
                 const formattedDate = date.getFullYear() + '-' + 
                     String(date.getMonth() + 1).padStart(2, '0') + '-' + 
@@ -645,7 +558,7 @@ document.addEventListener('DOMContentLoaded', function() {
             eventCheckboxes.forEach(checkbox => {
                 checkbox.checked = this.checked;
             });
-            if (this.checked) {
+            if (this.checked && eventAllCheckbox) {
                 eventAllCheckbox.checked = false;
             }
         });
@@ -665,7 +578,7 @@ document.addEventListener('DOMContentLoaded', function() {
     
     eventCheckboxes.forEach(checkbox => {
         checkbox.addEventListener('change', function() {
-            if (this.checked) {
+            if (this.checked && eventAllCheckbox) {
                 eventAllCheckbox.checked = false;
             }
             updateSelectAllState();
@@ -681,19 +594,23 @@ document.addEventListener('DOMContentLoaded', function() {
     const allCategoriesCheck = document.querySelector('input[name="categories[]"][value="all"]');
     const categoryChecks = document.querySelectorAll('input[name="categories[]"]:not([value="all"])');
     
-    allCategoriesCheck.addEventListener('change', function() {
-        if (this.checked) {
-            categoryChecks.forEach(check => check.checked = false);
-        }
-    });
-    
-    categoryChecks.forEach(check => {
-        check.addEventListener('change', function() {
+    if (allCategoriesCheck) {
+        allCategoriesCheck.addEventListener('change', function() {
             if (this.checked) {
-                allCategoriesCheck.checked = false;
+                categoryChecks.forEach(check => check.checked = false);
             }
         });
-    });
+    }
+    
+    if (categoryChecks.length > 0) {
+        categoryChecks.forEach(check => {
+            check.addEventListener('change', function() {
+                if (this.checked && allCategoriesCheck) {
+                    allCategoriesCheck.checked = false;
+                }
+            });
+        });
+    }
 });
 </script>
 
@@ -800,7 +717,6 @@ document.addEventListener('DOMContentLoaded', function() {
     color: var(--accent);
 }
 
-/* Input avec bouton générer */
 .code-input-group {
     display: flex;
     gap: 12px;
@@ -830,7 +746,6 @@ document.addEventListener('DOMContentLoaded', function() {
     box-shadow: 0 4px 12px rgba(155, 89, 182, 0.3);
 }
 
-/* Sélecteur de type de réduction */
 .discount-type-selector {
     display: grid;
     grid-template-columns: 1fr 1fr;
@@ -906,7 +821,6 @@ document.addEventListener('DOMContentLoaded', function() {
     color: var(--accent);
 }
 
-/* Input avec unité */
 .value-input-group {
     position: relative;
     display: flex;
@@ -926,7 +840,6 @@ document.addEventListener('DOMContentLoaded', function() {
     color: var(--accent);
 }
 
-/* Checkbox group */
 .checkbox-group {
     display: flex;
     flex-direction: column;
@@ -960,75 +873,6 @@ document.addEventListener('DOMContentLoaded', function() {
     font-size: 0.95rem;
     color: var(--gray-700);
     font-weight: var(--font-weight-medium);
-}
-
-/* Aperçu de la promotion */
-.promo-preview {
-    background: linear-gradient(135deg, var(--accent), var(--accent-light));
-    border-radius: var(--border-radius-xl);
-    padding: 32px;
-    margin-bottom: 24px;
-    box-shadow: var(--shadow-lg);
-}
-
-.preview-header {
-    color: white;
-    font-size: 1.1rem;
-    font-weight: var(--font-weight-semibold);
-    margin-bottom: 20px;
-    display: flex;
-    align-items: center;
-    gap: 10px;
-    opacity: 0.95;
-}
-
-.preview-card {
-    background: white;
-    border-radius: var(--border-radius-lg);
-    padding: 32px;
-    text-align: center;
-    box-shadow: 0 8px 24px rgba(0,0,0,0.15);
-}
-
-.preview-code {
-    font-family: 'Courier New', monospace;
-    font-size: 1.5rem;
-    font-weight: var(--font-weight-bold);
-    color: var(--primary);
-    background: linear-gradient(135deg, var(--accent), var(--accent-light));
-    -webkit-background-clip: text;
-    -webkit-text-fill-color: transparent;
-    background-clip: text;
-    margin-bottom: 16px;
-}
-
-.preview-discount {
-    font-size: 1.8rem;
-    font-weight: var(--font-weight-bold);
-    color: var(--success);
-    margin-bottom: 12px;
-}
-
-.preview-description {
-    font-size: 1.1rem;
-    color: var(--gray-700);
-    margin-bottom: 20px;
-    padding: 0 20px;
-}
-
-.preview-validity {
-    display: inline-flex;
-    align-items: center;
-    gap: 8px;
-    padding: 10px 20px;
-    background: var(--gray-100);
-    border-radius: 20px;
-    font-size: 0.9rem;
-    color: var(--gray-700);
-}
-
-.preview-validity i {
-    color: var(--accent);
 }
 
 .form-actions {
@@ -1071,339 +915,390 @@ document.addEventListener('DOMContentLoaded', function() {
         text-align: center;
         justify-content: center;
     }
-    
-    .preview-code {
-        font-size: 1.3rem;
-    }
-    
-    .preview-discount {
-        font-size: 1.5rem;
-    }
 }
 
 /* Styles pour les date pickers */
+/* Groupe date/heure */
 .datetime-group {
     display: flex;
-    flex-direction: row;
     align-items: flex-end;
-    gap: 16px;
+    gap: 20px;
     flex-wrap: wrap;
 }
 
+/* Container de la date */
 .date-input-wrapper {
     position: relative;
     display: flex;
     align-items: center;
     flex: 1;
-    min-width: 200px;
+    min-width: 220px;
+    max-width: 300px;
 }
 
+/* Input date */
 .date-picker-input {
-    flex: 1;
-    padding: 14px 16px;
-    padding-right: 45px;
+    width: 100%;
+    padding: 12px 40px 12px 16px;
+    font-size: 15px;
+    font-weight: 500;
+    color: #2c3e50;
+    background: #ffffff;
+    border: 1px solid #d1d5db;
+    border-radius: 8px;
     cursor: pointer;
-    text-align: center;
-    font-size: 1.1rem;
-    color: var(--gray-700);
-    font-weight: var(--font-weight-medium);
-    background: white;
-    border: 2px solid var(--gray-200);
-    border-radius: var(--border-radius-md);
-    transition: var(--transition-base);
+    transition: all 0.2s ease;
+    text-align: left;
 }
 
 .date-picker-input:hover {
-    border-color: var(--accent);
+    border-color: #3498db;
+    background: #f8fafc;
 }
 
 .date-picker-input:focus {
     outline: none;
-    border-color: var(--accent);
-    box-shadow: 0 0 0 4px rgba(52, 152, 219, 0.1);
+    border-color: #3498db;
+    background: #ffffff;
+    box-shadow: 0 0 0 3px rgba(52, 152, 219, 0.1);
 }
 
 .date-picker-input::placeholder {
-    color: var(--gray-400);
-    font-weight: var(--font-weight-normal);
+    color: #9ca3af;
+    font-weight: 400;
 }
 
+/* Bouton clear date */
 .clear-date-btn {
     position: absolute;
-    right: 12px;
-    background: none;
-    border: none;
-    color: var(--gray-500);
-    cursor: pointer;
-    padding: 6px 8px;
+    right: 8px;
+    width: 28px;
+    height: 28px;
     display: flex;
     align-items: center;
     justify-content: center;
-    border-radius: var(--border-radius-sm);
-    transition: var(--transition-base);
-    font-size: 0.9rem;
+    background: transparent;
+    border: none;
+    border-radius: 6px;
+    color: #6b7280;
+    cursor: pointer;
+    transition: all 0.2s ease;
+    font-size: 14px;
 }
 
 .clear-date-btn:hover {
-    background: var(--gray-100);
-    color: var(--danger);
-    transform: scale(1.1);
+    background: #fee2e2;
+    color: #dc2626;
 }
 
+.clear-date-btn:active {
+    transform: scale(0.95);
+}
+
+/* Groupe time */
 .time-group {
     display: flex;
     align-items: center;
-    gap: 8px;
+    gap: 10px;
 }
 
 .time-label {
-    font-size: 0.95rem;
-    color: var(--gray-700);
-    font-weight: var(--font-weight-semibold);
-    min-width: 35px;
+    font-size: 14px;
+    font-weight: 500;
+    color: #4b5563;
     white-space: nowrap;
 }
 
+/* Container time */
 .time-input-wrapper {
     position: relative;
-    width: 120px;
-    flex-shrink: 0;
+    width: 110px;
 }
 
+/* Input time */
 .time-picker-input {
     width: 100%;
-    padding: 14px 16px;
+    padding: 12px 12px;
+    font-size: 15px;
+    font-weight: 500;
+    color: #2c3e50;
+    background: #ffffff;
+    border: 1px solid #d1d5db;
+    border-radius: 8px;
     cursor: pointer;
     text-align: center;
-    font-size: 1.1rem;
-    color: var(--gray-700);
-    font-weight: var(--font-weight-medium);
-    background: white;
-    border: 2px solid var(--gray-200);
-    border-radius: var(--border-radius-md);
-    transition: var(--transition-base);
+    transition: all 0.2s ease;
 }
 
 .time-picker-input:hover {
-    border-color: var(--accent);
+    border-color: #3498db;
+    background: #f8fafc;
 }
 
 .time-picker-input:focus {
     outline: none;
-    border-color: var(--accent);
-    box-shadow: 0 0 0 4px rgba(52, 152, 219, 0.1);
+    border-color: #3498db;
+    background: #ffffff;
+    box-shadow: 0 0 0 3px rgba(52, 152, 219, 0.1);
 }
 
 .time-picker-input::placeholder {
-    color: var(--gray-400);
-    font-weight: var(--font-weight-normal);
+    color: #9ca3af;
+    font-weight: 400;
 }
 
-/* Styles personnalisés pour Flatpickr */
+/* Form group */
+.form-group {
+    margin-bottom: 24px;
+}
+
+.form-group label {
+    display: block;
+    margin-bottom: 8px;
+    font-size: 14px;
+    font-weight: 600;
+    color: #374151;
+}
+
+.required {
+    color: #dc2626;
+    margin-left: 2px;
+}
+
+.form-help {
+    display: block;
+    margin-top: 6px;
+    font-size: 13px;
+    color: #6b7280;
+    font-style: italic;
+}
+
+/* Responsive */
+@media (max-width: 640px) {
+    .datetime-group {
+        flex-direction: column;
+        align-items: stretch;
+        gap: 16px;
+    }
+    
+    .date-input-wrapper {
+        max-width: 100%;
+    }
+    
+    .time-group {
+        width: 100%;
+    }
+    
+    .time-input-wrapper {
+        flex: 1;
+        width: auto;
+        min-width: 110px;
+    }
+}
+
+/* ============================================
+   FLATPICKR - CALENDRIER PERSONNALISÉ
+   Version simplifiée et professionnelle
+   ============================================ */
+
+/* Conteneur principal */
 .custom-flatpickr {
-    font-family: var(--font-family);
-    border-radius: var(--border-radius-lg);
-    box-shadow: 0 8px 32px rgba(0, 0, 0, 0.12);
-    border: 1px solid var(--gray-200);
-    margin-top: 8px;
-    overflow: hidden;
+    font-family: inherit;
+    border-radius: 8px;
+    border: 1px solid #e0e0e0;
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+    background: white;
+    margin-top: 4px;
 }
 
+/* En-tête du calendrier */
 .custom-flatpickr .flatpickr-month {
-    background: white;
-    color: var(--primary);
+    background: #f8f9fa;
+    border-bottom: 1px solid #e0e0e0;
     padding: 16px;
-    border-bottom: 1px solid var(--gray-200);
-    display: flex;
-    justify-content: space-between;
-    align-items: center;
+    height: auto;
+    min-height: 60px;
 }
 
 .custom-flatpickr .flatpickr-current-month {
-    color: var(--primary);
-    font-weight: var(--font-weight-bold);
-    font-size: 1.2rem;
-    display: flex;
-    align-items: center;
-    gap: 8px;
+    font-size: 16px;
+    font-weight: 600;
+    color: #333;
 }
 
-.custom-flatpickr .flatpickr-current-month .flatpickr-monthDropdown-months {
-    appearance: none;
-    background: transparent;
-    border: none;
-    font-size: 1.2rem;
-    font-weight: var(--font-weight-bold);
-    color: var(--primary);
-    cursor: pointer;
+.custom-flatpickr .flatpickr-monthDropdown-months {
+    font-size: 16px;
+    font-weight: 600;
+    color: #333;
     padding: 4px 8px;
-    border-radius: var(--border-radius-sm);
-    transition: var(--transition-base);
+    border-radius: 4px;
+    border: 1px solid #ddd;
+    background: white;
 }
 
-.custom-flatpickr .flatpickr-current-month .flatpickr-monthDropdown-months:hover {
-    background: var(--gray-50);
+.custom-flatpickr .flatpickr-monthDropdown-months:hover {
+    border-color: #3498db;
 }
 
+/* Navigation */
 .custom-flatpickr .flatpickr-prev-month,
 .custom-flatpickr .flatpickr-next-month {
-    color: var(--accent);
-    padding: 10px 12px;
-    border-radius: var(--border-radius-sm);
-    transition: var(--transition-base);
-    cursor: pointer;
-    display: flex;
-    align-items: center;
-    justify-content: center;
+    color: #3498db;
+    padding: 8px;
+    border-radius: 4px;
 }
 
 .custom-flatpickr .flatpickr-prev-month:hover,
 .custom-flatpickr .flatpickr-next-month:hover {
-    background: var(--gray-100);
-    transform: scale(1.1);
+    background: #f0f8ff;
 }
 
+/* Jours de la semaine */
 .custom-flatpickr .flatpickr-weekdays {
-    background: var(--gray-50);
-    border-bottom: 1px solid var(--gray-200);
-    padding: 8px 0;
+    background: #f8f9fa;
+    border-bottom: 1px solid #e0e0e0;
 }
 
 .custom-flatpickr .flatpickr-weekday {
-    color: var(--gray-600);
-    font-weight: var(--font-weight-semibold);
-    font-size: 0.9rem;
-    text-transform: lowercase;
+    color: #666;
+    font-weight: 600;
+    font-size: 14px;
 }
 
-.custom-flatpickr .flatpickr-days {
-    padding: 8px;
-}
-
+/* Grille des jours */
 .custom-flatpickr .flatpickr-day {
-    border-radius: var(--border-radius-sm);
-    font-size: 0.95rem;
+    border-radius: 4px;
+    font-size: 14px;
     height: 36px;
     line-height: 36px;
-    transition: var(--transition-base);
-}
-
-.custom-flatpickr .flatpickr-day.selected {
-    background: var(--accent);
-    border-color: var(--accent);
-    color: white;
-    font-weight: var(--font-weight-bold);
-    box-shadow: 0 2px 8px rgba(52, 152, 219, 0.3);
-}
-
-.custom-flatpickr .flatpickr-day.selected:hover {
-    background: var(--accent-light);
-    border-color: var(--accent-light);
-    transform: scale(1.05);
-}
-
-.custom-flatpickr .flatpickr-day.today {
-    border: 2px solid var(--accent);
-    font-weight: var(--font-weight-bold);
-    color: var(--accent);
-}
-
-.custom-flatpickr .flatpickr-day.today:hover {
-    background: rgba(52, 152, 219, 0.1);
+    color: #333;
+    border: 1px solid transparent;
 }
 
 .custom-flatpickr .flatpickr-day:hover {
-    background: var(--gray-100);
-    transform: scale(1.05);
+    background: #f0f8ff;
+    border-color: #3498db;
 }
 
-.custom-flatpickr .flatpickr-day.flatpickr-disabled,
-.custom-flatpickr .flatpickr-day.prevMonthDay,
-.custom-flatpickr .flatpickr-day.nextMonthDay {
-    color: var(--gray-400);
-    opacity: 0.5;
+/* Jour sélectionné */
+.custom-flatpickr .flatpickr-day.selected {
+    background: #3498db;
+    color: white;
+    font-weight: 600;
 }
 
-/* Styles pour le time picker uniquement */
+.custom-flatpickr .flatpickr-day.selected:hover {
+    background: #2980b9;
+}
+
+/* Aujourd'hui */
+.custom-flatpickr .flatpickr-day.today {
+    border: 1px solid #3498db;
+    color: #3498db;
+}
+
+/* Jours désactivés */
+.custom-flatpickr .flatpickr-day.flatpickr-disabled {
+    color: #ccc;
+    background: #f9f9f9;
+}
+
+/* ============================================
+   SÉLECTEUR D'HEURE
+   ============================================ */
+
 .custom-flatpickr-time {
-    font-family: var(--font-family);
-    border-radius: var(--border-radius-lg);
-    box-shadow: 0 8px 32px rgba(0, 0, 0, 0.12);
-    border: 1px solid var(--gray-200);
-    width: auto;
-    min-width: 200px;
-    margin-top: 8px;
-    overflow: hidden;
+    border-radius: 8px;
+    border: 1px solid #e0e0e0;
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+    background: white;
+    margin-top: 4px;
+    min-width: 160px;
 }
 
 .custom-flatpickr-time .flatpickr-time {
-    border-top: none;
+    border: none;
     padding: 16px;
     background: white;
     display: flex;
     align-items: center;
     justify-content: center;
-    gap: 8px;
+    gap: 2px;
 }
 
-.custom-flatpickr-time .flatpickr-time .flatpickr-time-separator {
-    font-size: 1.5rem;
-    font-weight: var(--font-weight-bold);
-    color: var(--gray-400);
+/* Séparateur */
+.custom-flatpickr-time .flatpickr-time-separator {
+    font-size: 18px;
+    font-weight: 600;
+    color: #666;
     margin: 0 4px;
 }
 
+/* Champs d'entrée */
 .custom-flatpickr-time .flatpickr-time input {
-    font-weight: var(--font-weight-bold);
-    font-size: 1.3rem;
-    padding: 12px 16px;
-    border-radius: var(--border-radius-md);
-    border: 2px solid var(--gray-200);
-    width: 70px;
+    font-size: 16px;
+    font-weight: 600;
+    padding: 8px;
+    width: 60px;
     text-align: center;
-    cursor: pointer;
-    transition: var(--transition-base);
-    background: white;
-    color: var(--gray-700);
+    border: 1px solid #ddd;
+    border-radius: 4px;
+    background: #f8f9fa;
+    color: #333;
 }
 
 .custom-flatpickr-time .flatpickr-time input:hover {
-    background: var(--gray-50);
-    border-color: var(--accent);
-    transform: scale(1.05);
-}
-
-.custom-flatpickr-time .flatpickr-time input.flatpickr-hour:focus,
-.custom-flatpickr-time .flatpickr-time input.flatpickr-minute:focus {
-    outline: none;
-    border-color: var(--accent);
-    box-shadow: 0 0 0 4px rgba(52, 152, 219, 0.1);
+    border-color: #3498db;
     background: white;
 }
 
-.custom-flatpickr-time .flatpickr-time .flatpickr-time-spacer {
-    display: none;
+.custom-flatpickr-time .flatpickr-time input:focus {
+    border-color: #3498db;
+    outline: none;
+    box-shadow: 0 0 0 2px rgba(52, 152, 219, 0.1);
+    background: white;
 }
 
-/* Améliorer l'affichage des flèches de navigation pour les heures */
-.custom-flatpickr-time .flatpickr-time .arrowUp,
-.custom-flatpickr-time .flatpickr-time .arrowDown {
-    position: absolute;
-    right: 8px;
-    width: 20px;
-    height: 20px;
-    border: none;
-    background: transparent;
-    cursor: pointer;
-    color: var(--accent);
-    font-size: 0.8rem;
-    transition: var(--transition-base);
+/* ============================================
+   RESPONSIVE
+   ============================================ */
+
+@media (max-width: 640px) {
+    .custom-flatpickr,
+    .custom-flatpickr-time {
+        font-size: 14px;
+    }
+    
+    .custom-flatpickr .flatpickr-day {
+        height: 32px;
+        line-height: 32px;
+    }
+    
+    .custom-flatpickr-time .flatpickr-time input {
+        width: 50px;
+        padding: 6px;
+        font-size: 14px;
+    }
 }
 
-.custom-flatpickr-time .flatpickr-time .arrowUp:hover,
-.custom-flatpickr-time .flatpickr-time .arrowDown:hover {
-    color: var(--accent-light);
-    transform: scale(1.2);
+/* ============================================
+   ANIMATION
+   ============================================ */
+
+.custom-flatpickr,
+.custom-flatpickr-time {
+    animation: fadeIn 0.2s ease-out;
+}
+
+@keyframes fadeIn {
+    from {
+        opacity: 0;
+        transform: translateY(-5px);
+    }
+    to {
+        opacity: 1;
+        transform: translateY(0);
+    }
 }
 
 /* Styles pour le tableau des événements */
@@ -1534,38 +1429,6 @@ document.addEventListener('DOMContentLoaded', function() {
 .event-row:has(#event_all:checked) .event-name {
     color: var(--accent);
     font-weight: var(--font-weight-bold);
-}
-
-@media (max-width: 768px) {
-    .datetime-group {
-        flex-direction: column;
-        align-items: stretch;
-        gap: 12px;
-    }
-    
-    .date-input-wrapper {
-        width: 100%;
-        min-width: auto;
-    }
-    
-    .time-group {
-        flex-direction: row;
-        align-items: center;
-        gap: 8px;
-    }
-    
-    .time-input-wrapper {
-        width: 120px;
-        max-width: 100%;
-    }
-    
-    .events-table-container {
-        max-height: 250px;
-    }
-    
-    .event-label {
-        padding: 10px 12px;
-    }
 }
 </style>
 {% endblock %}

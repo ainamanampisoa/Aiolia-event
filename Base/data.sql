@@ -15,11 +15,7 @@ INSERT INTO modes_paiement (code, libelle, description, est_actif, ordre_afficha
 ('espace', 'Espèce', 'Paiement en espèces', true, 1),
 ('mvola', 'MVola', 'Paiement mobile MVola', true, 2),
 ('orange', 'Orange Money', 'Paiement mobile Orange Money', true, 3),
-('airtel', 'Airtel Money', 'Paiement mobile Airtel Money', true, 4),
-('virement', 'Virement bancaire', 'Virement bancaire', true, 5),
-('carte_bancaire', 'Carte bancaire', 'Paiement par carte bancaire', true, 6),
-('cheque', 'Chèque', 'Paiement par chèque', true, 7),
-('autre', 'Autre', 'Autre mode de paiement', true, 8)
+('airtel', 'Airtel Money', 'Paiement mobile Airtel Money', true, 4)
 ON CONFLICT (code) DO NOTHING;
 
 -- ============================================================

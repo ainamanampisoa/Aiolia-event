@@ -38,7 +38,7 @@ DECLARE
     v_id_cat_standard BIGINT;
     v_id_cat_vip BIGINT;
     v_id_cat_early_bird BIGINT;
-    v_id_cat_backstage BIGINT;
+    v_id_cat_acces_coulisses BIGINT;
     v_id_langue_fr BIGINT;
     v_id_langue_mg BIGINT;
     v_id_langue_en BIGINT;
@@ -185,13 +185,13 @@ BEGIN
         ('mvola', 'MVola', 'Paiement mobile MVola', TRUE, 1),
         ('orange', 'Orange Money', 'Paiement mobile Orange Money', TRUE, 2),
         ('airtel', 'Airtel Money', 'Paiement mobile Airtel Money', TRUE, 3),
-        ('carte_bancaire', 'Carte bancaire', 'Paiement par carte bancaire', TRUE, 4)
+        ('espace', 'Espace', 'Paiement par espace', TRUE, 4)
     ON CONFLICT (code) DO NOTHING;
 
     SELECT id INTO v_id_mode_paiement_mvola FROM modes_paiement WHERE code = 'mvola';
     SELECT id INTO v_id_mode_paiement_orange FROM modes_paiement WHERE code = 'orange';
     SELECT id INTO v_id_mode_paiement_airtel FROM modes_paiement WHERE code = 'airtel';
-    SELECT id INTO v_id_mode_paiement_visa FROM modes_paiement WHERE code = 'carte_bancaire';
+    SELECT id INTO v_id_mode_paiement_visa FROM modes_paiement WHERE code = 'espace';
 
     -- Configuration des segments de billets
     INSERT INTO configuration_segments_billets (nom, age_min, age_max)
@@ -208,13 +208,13 @@ BEGIN
     VALUES
         ('standard', 'Billet standard'),
         ('vip', 'Billet VIP avec avantages'),
-        ('early_bird', 'Billet early bird'),
-        ('backstage', 'Billet backstage')
+        ('prevente', 'Billet Prevente'),
+        ('acces_coulisses', 'Billet acces_coulisses')
     ON CONFLICT (nom) DO NOTHING;
     SELECT id INTO v_id_cat_standard FROM configuration_categories_billets WHERE nom = 'standard';
     SELECT id INTO v_id_cat_vip FROM configuration_categories_billets WHERE nom = 'vip';
-    SELECT id INTO v_id_cat_early_bird FROM configuration_categories_billets WHERE nom = 'early_bird';
-    SELECT id INTO v_id_cat_backstage FROM configuration_categories_billets WHERE nom = 'backstage';
+    SELECT id INTO v_id_cat_early_bird FROM configuration_categories_billets WHERE nom = 'prevente';
+    SELECT id INTO v_id_cat_acces_coulisses FROM configuration_categories_billets WHERE nom = 'acces_coulisses';
 
     -- ============================================================
     -- CRÉER 5 LIEUX DIFFÉRENTS AVEC COORDONNÉES GPS RÉALISTES
@@ -393,23 +393,23 @@ BEGIN
         -- Exemple: VIP = 20 billets dont 10 adultes + 10 enfants
         -- ============================================================
         FOR j IN 1..4 LOOP
-            -- j = 1: standard, j = 2: early_bird, j = 3: vip, j = 4: backstage
+            -- j = 1: standard, j = 2: early_bird, j = 3: vip, j = 4: acces_coulisses
             DECLARE
                 v_id_cat_billet BIGINT := CASE 
                     WHEN j = 1 THEN v_id_cat_standard
                     WHEN j = 2 THEN v_id_cat_early_bird
                     WHEN j = 3 THEN v_id_cat_vip
-                    ELSE v_id_cat_backstage
+                    ELSE v_id_cat_acces_coulisses
                 END;
                 -- Varier les prix selon la catégorie et l'événement (avec variation aléatoire)
-                -- Base: Standard=15000, Early Bird=25000, VIP=60000, Backstage=100000
+                -- Base: Standard=15000, Prevente=25000, VIP=60000, acces_coulisses=100000
                 -- Variation: ±20% selon l'événement pour rendre les prix uniques
                 v_prix_base NUMERIC(12,2);
                 v_nom_categorie TEXT := CASE 
                     WHEN j = 1 THEN 'Standard'
-                    WHEN j = 2 THEN 'Early Bird'
+                    WHEN j = 2 THEN 'Prevente'
                     WHEN j = 3 THEN 'VIP'
-                    ELSE 'Backstage'
+                    ELSE 'Acces coulisses'
                 END;
                 -- Nombre total de billets pour cette catégorie (20-30)
                 v_total_categorie INTEGER;
@@ -430,9 +430,9 @@ BEGIN
                         -- Calculer le prix de base et l'arrondir à 100
                         v_prix_base := CASE 
                             WHEN j = 1 THEN 12000 + floor(random() * 6000)::INTEGER::NUMERIC  -- Standard: 12000-18000
-                            WHEN j = 2 THEN 20000 + floor(random() * 10000)::INTEGER::NUMERIC  -- Early Bird: 20000-30000
+                            WHEN j = 2 THEN 20000 + floor(random() * 10000)::INTEGER::NUMERIC  -- Prevente: 20000-30000
                             WHEN j = 3 THEN 50000 + floor(random() * 20000)::INTEGER::NUMERIC  -- VIP: 50000-70000
-                            ELSE 80000 + floor(random() * 40000)::INTEGER::NUMERIC             -- Backstage: 80000-120000
+                            ELSE 80000 + floor(random() * 40000)::INTEGER::NUMERIC             -- acces_coulisses: 80000-120000
                         END;
                         v_prix_base := round(v_prix_base / 100) * 100;
 
@@ -933,7 +933,7 @@ BEGIN
                     END; -- Fin du bloc DECLARE pour le segment
                 END LOOP; -- Fin de la boucle segment (adulte/enfant)
             END; -- Fin du bloc DECLARE pour la catégorie
-        END LOOP; -- Fin de la boucle catégorie (standard, early_bird, vip, backstage)
+        END LOOP; -- Fin de la boucle catégorie (standard, early_bird, vip, acces_coulisses)
 
         -- ============================================================
         -- AJOUTER DES VUES (TOUJOURS > participants, 2-4x le nombre de participants, max = nb users)
@@ -1179,7 +1179,7 @@ BEGIN
     -- CRÉER DES LISTES D'ATTENTE POUR 3 ÉVÉNEMENTS EN COURS OU À VENIR
     -- Chaque événement : 2-3 listes d'attente (2-3 utilisateurs différents)
     -- Chaque utilisateur : peut avoir plusieurs catégories, mais plusieurs segments d'âge possibles par catégorie
-    -- Exemple : user11 : event 12, ticket VIP 3 (2 adultes + 1 enfant) ET Early Bird 2 (1 adulte + 1 enfant)
+    -- Exemple : user11 : event 12, ticket VIP 3 (2 adultes + 1 enfant) ET Prevente 2 (1 adulte + 1 enfant)
     -- ============================================================
     DECLARE
         v_id_event_attente BIGINT;
@@ -1268,7 +1268,7 @@ BEGIN
                     -- Ajouter l'utilisateur à la liste des utilisés pour cet événement
                     v_users_utilises := array_append(v_users_utilises, v_id_user_attente);
 
-                    -- Sélectionner UNE SEULE catégorie de billet pour cet utilisateur (prioriser VIP et Early Bird)
+                    -- Sélectionner UNE SEULE catégorie de billet pour cet utilisateur (prioriser VIP et Prevente)
                     SELECT id_configuration_categorie INTO v_id_categorie_attente
                     FROM (
                         SELECT DISTINCT 
@@ -1276,12 +1276,12 @@ BEGIN
                             CASE 
                                 WHEN tb.id_configuration_categorie = v_id_cat_vip THEN 1
                                 WHEN tb.id_configuration_categorie = v_id_cat_early_bird THEN 2
-                                WHEN tb.id_configuration_categorie = v_id_cat_backstage THEN 3
+                                WHEN tb.id_configuration_categorie = v_id_cat_acces_coulisses THEN 3
                                 ELSE 4
                             END as priorite
                         FROM types_billets tb
                         WHERE tb.id_evenement = v_id_event_attente
-                            AND tb.id_configuration_categorie IN (v_id_cat_standard, v_id_cat_vip, v_id_cat_early_bird, v_id_cat_backstage)
+                            AND tb.id_configuration_categorie IN (v_id_cat_standard, v_id_cat_vip, v_id_cat_early_bird, v_id_cat_acces_coulisses)
                     ) sub
                     ORDER BY priorite, RANDOM()
                     LIMIT 1;

@@ -335,6 +335,41 @@ class EventRepository extends ServiceEntityRepository
         return $qb->getQuery()->getResult();
     }
 
+    public function findActiveEventsByOrganisateur(
+    string $idOrganisateur,
+    ?int $limit = null,
+    ?int $offset = null
+    ): array {
+        $now = new \DateTime('now', new \DateTimeZone('Indian/Antananarivo'));
+
+        $qb = $this->createQueryBuilder('e')
+            ->leftJoin('e.profilOrganisateur', 'profil')
+            ->leftJoin('e.organisateursEvenements', 'oe')
+            ->leftJoin('oe.profilOrganisateur', 'profil2')
+            ->andWhere('profil.id = :idOrganisateur OR profil2.id = :idOrganisateur')
+            ->andWhere('e.statut = :published')
+            ->andWhere(
+                '( 
+                    (e.commenceLe <= :now AND (e.seTermineLe IS NULL OR e.seTermineLe >= :now))
+                    OR
+                    (e.commenceLe > :now)
+                )'
+            )
+            ->setParameter('idOrganisateur', $idOrganisateur)
+            ->setParameter('published', Event::STATUS_PUBLISHED)
+            ->setParameter('now', $now)
+            ->orderBy('e.commenceLe', 'ASC');
+
+        if ($limit !== null && $limit > 0) {
+            $qb->setMaxResults($limit);
+        }
+
+        if ($offset !== null && $offset > 0) {
+            $qb->setFirstResult($offset);
+        }
+
+        return $qb->getQuery()->getResult();
+    }
     
     public function countSearchMultiCriteria(
         string $idOrganisateur,

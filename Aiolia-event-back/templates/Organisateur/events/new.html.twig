@@ -1425,38 +1425,42 @@
                 <!-- Modes de paiement -->
                 <div class="form-group span-2">
                     <label>Modes de paiement acceptés <span class="required">*</span></label>
+
                     <div class="payment-selector">
                         <div class="payment-grid">
                             {% for modePaiement in modesPaiement %}
                                 {% set paymentValue = modePaiement.code %}
-                                {% if modePaiement.code == 'orange' %}
-                                    {% set paymentValue = 'orange_money' %}
+
+                                {# Définition du logo selon le code #}
+                                {% if modePaiement.code == 'mvola' %}
+                                    {% set logo = 'images/m-vola1.png' %}
+                                {% elseif modePaiement.code == 'orange' %}
+                                    {% set logo = 'images/Orange.png' %}
                                 {% elseif modePaiement.code == 'airtel' %}
-                                    {% set paymentValue = 'airtel_money' %}
-                                {% elseif modePaiement.code == 'autre' %}
-                                    {% set paymentValue = 'cash' %}
+                                    {% set logo = 'images/airtel.png' %}
+                                {% else %}
+                                    {% set logo = null %}
                                 {% endif %}
+
                                 <div class="payment-option">
                                     <div class="payment-card{% if modePaiement.code == 'mvola' %} payment-card-mvola{% endif %}">
                                         <div class="payment-icon">
-                                            {% if modePaiement.icone %}
-                                                <img src="{{ asset('images/' ~ modePaiement.icone) }}" alt="{{ modePaiement.libelle }}" class="payment-logo">
+                                            {% if logo %}
+                                                <img src="{{ asset(logo) }}"
+                                                    alt="{{ modePaiement.libelle }}"
+                                                    class="payment-logo">
                                             {% else %}
-                                                {% if modePaiement.code == 'orange' %}
-                                                    <img src="{{ asset('images/orange-money.png') }}" alt="{{ modePaiement.libelle }}" class="payment-logo">
-                                                {% elseif modePaiement.code == 'airtel' %}
-                                                    <img src="{{ asset('images/airtel.png') }}" alt="{{ modePaiement.libelle }}" class="payment-logo">
-                                                {% elseif modePaiement.code == 'mvola' %}
-                                                    <img src="{{ asset('images/m-vola.png') }}" alt="{{ modePaiement.libelle }}" class="payment-logo">
-                                                {% else %}
-                                                    💰
-                                                {% endif %}
+                                                💰
                                             {% endif %}
                                         </div>
                                         <span class="payment-label">{{ modePaiement.libelle }}</span>
                                     </div>
+
                                     <label class="payment-checkbox-label">
-                                        <input type="checkbox" name="payment_methods[]" value="{{ paymentValue }}" class="payment-checkbox">
+                                        <input type="checkbox"
+                                            name="payment_methods[]"
+                                            value="{{ paymentValue }}"
+                                            class="payment-checkbox">
                                         <span class="payment-checkbox-custom"></span>
                                     </label>
                                 </div>
@@ -1465,7 +1469,7 @@
                     </div>
                 </div>
 
-                <!-- Accessibilité -->
+                <!-- Accessibilité (inchangé) -->
                 <div class="form-group span-2">
                     <label>Options d'accessibilité</label>
                     <div class="accessibility-selector">
@@ -1473,20 +1477,28 @@
                             {% for typeAccessibilite in typesAccessibilite %}
                                 {% set accessibilityValue = typeAccessibilite.code %}
                                 {% set accessibilityLabel = typeAccessibilite.libelle %}
-                                {% set iconUrl = typeAccessibilite.urlImage ?? ('images/acces1.svg') %}
+                                {% set iconUrl = typeAccessibilite.urlImage ?? 'images/acces1.svg' %}
                                 {% set isSelected = false %}
-                                {% if (isEditMode is defined and isEditMode) and event.liensAccessibilites is defined %}
+
+                                {% if isEditMode is defined and isEditMode and event.liensAccessibilites is defined %}
                                     {% for lien in event.liensAccessibilites %}
                                         {% if lien.typeAccessibilite.code == accessibilityValue %}
                                             {% set isSelected = true %}
                                         {% endif %}
                                     {% endfor %}
                                 {% endif %}
+
                                 <label class="accessibility-option">
-                                    <input type="checkbox" name="accessibility[]" value="{{ accessibilityValue }}" {% if isSelected %}checked{% endif %}>
+                                    <input type="checkbox"
+                                        name="accessibility[]"
+                                        value="{{ accessibilityValue }}"
+                                        {% if isSelected %}checked{% endif %}>
+
                                     <div class="accessibility-card">
                                         <div class="accessibility-icon">
-                                            <img src="{{ asset(iconUrl) }}" alt="{{ accessibilityLabel }}" class="accessibility-logo">
+                                            <img src="{{ asset(iconUrl) }}"
+                                                alt="{{ accessibilityLabel }}"
+                                                class="accessibility-logo">
                                         </div>
                                         <div class="accessibility-info">
                                             <span class="accessibility-title">{{ accessibilityLabel }}</span>

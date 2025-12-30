@@ -55,6 +55,18 @@ class EventService
         return $this->eventRepository->getById($id);
     }
 
+    public function getActiveEventsByOrganisateur(
+        string $idOrganisateur,
+        ?int $limit = null,
+        ?int $offset = null
+    ): array {
+        return $this->eventRepository->findActiveEventsByOrganisateur(
+            $idOrganisateur,
+            $limit,
+            $offset
+        );
+    }
+
     
     public function create(array $data, ?OrganizerProfile $organizerProfile = null): Event
     {

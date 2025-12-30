@@ -120,6 +120,7 @@ class PromotionController extends AbstractController
         ]);
     }
 
+
     #[Route('/new', name: 'organisateur_promotions_new', methods: ['GET', 'POST'])]
     public function new(
         Request $request,
@@ -201,11 +202,10 @@ class PromotionController extends AbstractController
 
         
         $now = new \DateTime();
-        $events = $eventService->searchMultiCriteria([
-            'idOrganisateur' => $organizerProfile->getId(),
-            'dateFin' => null, 
-            'limit' => 1000,
-        ]);
+        $events = $eventService->getActiveEventsByOrganisateur(
+            $organizerProfile->getId(),
+            1000
+        );
         
         
         $upcomingEvents = array_filter($events, function($event) use ($now) {
@@ -317,11 +317,10 @@ class PromotionController extends AbstractController
 
         
         $now = new \DateTime();
-        $events = $eventService->searchMultiCriteria([
-            'idOrganisateur' => $organizerProfile->getId(),
-            'dateFin' => null, 
-            'limit' => 1000,
-        ]);
+        $events = $eventService->getActiveEventsByOrganisateur(
+            $organizerProfile->getId(),
+            1000
+        );
         
         
         $upcomingEvents = array_filter($events, function($event) use ($now) {
@@ -441,5 +440,6 @@ class PromotionController extends AbstractController
 
         return $this->redirectToRoute('organisateur_promotions_index');
     }
+    
 }
 

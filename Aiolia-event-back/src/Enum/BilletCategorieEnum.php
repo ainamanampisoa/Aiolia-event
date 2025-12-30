@@ -7,10 +7,8 @@ final class BilletCategorieEnum
     public const TOUS = 'tous';
     public const STANDARD = 'standard';
     public const VIP = 'vip';
-    public const GRATUIT = 'gratuit';
-    public const PROMO = 'promo';
-    public const EARLY_BIRD = 'early_bird';
-    public const BACKSTAGE = 'backstage';
+    public const PREVENTE = 'prevente';
+    public const ACCES_COULISSES = 'acces_coulisses';
 
     /**
      * Empêche l'instanciation de la classe (classe utilitaire)
@@ -46,10 +44,8 @@ final class BilletCategorieEnum
             self::TOUS,
             self::STANDARD,
             self::VIP,
-            self::GRATUIT,
-            self::PROMO,
-            self::EARLY_BIRD,
-            self::BACKSTAGE,
+            self::PREVENTE,
+            self::ACCES_COULISSES,
         ];
     }
 }

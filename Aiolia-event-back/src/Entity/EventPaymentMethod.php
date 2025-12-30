@@ -15,20 +15,12 @@ class EventPaymentMethod
     public const METHOD_MVOLA = 'mvola';
     public const METHOD_ORANGE = 'orange';
     public const METHOD_AIRTEL = 'airtel';
-    public const METHOD_TELMA = 'telma';
-    public const METHOD_MASTERCARD = 'mastercard';
-    public const METHOD_VISA = 'visa';
-    public const METHOD_BANK_TRANSFER = 'bank_transfer';
 
     public const METHODS = [
         self::METHOD_ESPACE => 'Espace',
         self::METHOD_MVOLA => 'MVola',
         self::METHOD_ORANGE => 'Orange Money',
         self::METHOD_AIRTEL => 'Airtel Money',
-        self::METHOD_TELMA => 'Telma',
-        self::METHOD_MASTERCARD => 'Mastercard',
-        self::METHOD_VISA => 'Visa',
-        self::METHOD_BANK_TRANSFER => 'Virement bancaire',
     ];
 
     #[ORM\Id]
