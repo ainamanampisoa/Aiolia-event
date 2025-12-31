@@ -197,21 +197,24 @@ class TicketController extends AbstractController
             $segmentFilter
         );
 
+        // Pagination des alertes filtrées
         $totalItems = count($result['alertes']);
         $totalPages = max(1, (int) ceil($totalItems / $limit));
         $offset = ($page - 1) * $limit;
         $alertesPaginated = array_slice($result['alertes'], $offset, $limit);
+        
+        // Filtrer les alertes paginées par niveau (pour l'affichage séparé dans le template)
         $alertesCritiquesPaginated = array_filter($alertesPaginated, fn($a) => $a['niveau'] === 'critique');
         $alertesAttentionPaginated = array_filter($alertesPaginated, fn($a) => $a['niveau'] === 'attention');
 
         return $this->render('Organisateur/ticket/stock_alerts.html.twig', [
-            'alertes' => $result['alertes'],
-            'alertesTotal' => $result['alertesTotal'],
-            'alertesPaginated' => $alertesPaginated,
-            'alertesCritiques' => $result['alertesCritiques'],
-            'alertesAttention' => $result['alertesAttention'],
-            'alertesCritiquesPaginated' => array_values($alertesCritiquesPaginated),
-            'alertesAttentionPaginated' => array_values($alertesAttentionPaginated),
+            'alertes' => $result['alertes'], // Alertes filtrées
+            'alertesTotal' => $result['alertesTotal'], // Toutes les alertes (pour les compteurs)
+            'alertesPaginated' => $alertesPaginated, // Alertes filtrées paginées
+            'alertesCritiques' => $result['alertesCritiques'], // Toutes les alertes critiques (pour les compteurs)
+            'alertesAttention' => $result['alertesAttention'], // Toutes les alertes attention (pour les compteurs)
+            'alertesCritiquesPaginated' => array_values($alertesCritiquesPaginated), // Alertes critiques paginées
+            'alertesAttentionPaginated' => array_values($alertesAttentionPaginated), // Alertes attention paginées
             'categories' => $result['categories'],
             'segments' => $result['segments'],
             'currentPage' => $page,
@@ -225,7 +228,7 @@ class TicketController extends AbstractController
             'capaciteParCategorie' => $result['capaciteParCategorie'],
         ]);
     }
-
+    
     #[Route('/historique-prix', name: 'app_ticket_historique_prix')]
     public function historiquePrix(Request $request): Response
     {

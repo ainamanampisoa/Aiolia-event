@@ -31,10 +31,15 @@ class TicketManagementService
         $now = new \DateTime('now', $timezone);
         
         $alertesTotal = [];
+        $eventsIds = [];
+        $categories = [];
+        $segments = [];
+        $capaciteParCategorie = [];
+        
         foreach ($typesBillets as $typeBillet) {
             $evenement = $typeBillet->getEvenement();
             
-            // Filtrer uniquement les événements en cours et à venir
+            // Vérifier si l'événement est en cours ou à venir
             if ($evenement && $evenement->getCommenceLe()) {
                 $commenceLe = clone $evenement->getCommenceLe();
                 if ($commenceLe->getTimezone()->getName() !== $timezone->getName()) {
@@ -52,39 +57,79 @@ class TicketManagementService
                 $isOngoing = $commenceLe <= $now && ($seTermineLe === null || $seTermineLe >= $now);
                 $isUpcoming = $commenceLe > $now;
                 
+                // Si l'événement est passé, on ne le considère pas pour les alertes
                 if (!$isOngoing && !$isUpcoming) {
                     continue;
                 }
+                
+                // Collecter les informations pour les statistiques
+                $eventId = $evenement->getId();
+                if (!in_array($eventId, $eventsIds)) {
+                    $eventsIds[] = $eventId;
+                }
+            } else {
+                // Événement sans date de début, on passe
+                continue;
             }
             
             $inventaire = $typeBillet->getInventaire();
             if ($inventaire) {
-                $quantiteRestante = $inventaire->getQuantiteTotale() - $inventaire->getQuantiteVendue() - $inventaire->getQuantiteReservee();
+                // CORRECTION IMPORTANTE : Calcul correct du stock restant
+                // Ne pas dépasser la quantité totale disponible
+                $quantiteDisponible = $inventaire->getQuantiteTotale() - $inventaire->getQuantiteReservee();
+                $quantiteRestante = max(0, $quantiteDisponible - $inventaire->getQuantiteVendue());
+                
                 $pourcentage = $inventaire->getQuantiteTotale() > 0
                     ? ($quantiteRestante / $inventaire->getQuantiteTotale()) * 100
                     : 0;
 
-                if ($pourcentage <= 10) {
+                // Collecter les informations pour les filtres et statistiques
+                $categorieNom = $typeBillet->getConfigurationCategorie() ? $typeBillet->getConfigurationCategorie()->getNom() : null;
+                $segmentNom = $typeBillet->getConfigurationSegment() ? $typeBillet->getConfigurationSegment()->getNom() : null;
+                
+                if ($categorieNom && !isset($categories[$categorieNom])) {
+                    $categories[$categorieNom] = $categorieNom;
+                }
+                
+                if ($segmentNom && $segmentNom !== 'tous' && !isset($segments[$segmentNom])) {
+                    $segments[$segmentNom] = $segmentNom;
+                }
+                
+                // Calculer la capacité par catégorie pour les statistiques
+                $categorieId = $typeBillet->getConfigurationCategorie() ? $typeBillet->getConfigurationCategorie()->getId() : 'sans_categorie';
+                if (!isset($capaciteParCategorie[$eventId])) {
+                    $capaciteParCategorie[$eventId] = [];
+                }
+                if (!isset($capaciteParCategorie[$eventId][$categorieId])) {
+                    $capaciteParCategorie[$eventId][$categorieId] = 0;
+                }
+                $capaciteParCategorie[$eventId][$categorieId] += $inventaire->getQuantiteTotale();
+                
+                // Vérifier si c'est une alerte (seulement <= 10%)
+                if ($pourcentage <= 10 && $quantiteRestante > 0) { // Ajout de la condition quantiteRestante > 0
                     $niveau = $pourcentage <= 5 ? 'critique' : 'attention';
                     
-                    $alertesTotal[] = [
+                    $alerte = [
                         'typeBillet' => $typeBillet,
                         'inventaire' => $inventaire,
                         'quantiteRestante' => $quantiteRestante,
                         'pourcentage' => $pourcentage,
                         'niveau' => $niveau,
+                        'categorieNom' => $categorieNom,
+                        'segmentNom' => $segmentNom,
                     ];
+                    
+                    $alertesTotal[] = $alerte;
                 }
             }
         }
 
-        // Filtrer les alertes
+        // Filtrer les alertes selon les filtres
         $alertes = [];
         foreach ($alertesTotal as $alerte) {
-            $typeBillet = $alerte['typeBillet'];
             $niveau = $alerte['niveau'];
-            $categorieNom = $typeBillet->getConfigurationCategorie() ? $typeBillet->getConfigurationCategorie()->getNom() : null;
-            $segmentNom = $typeBillet->getConfigurationSegment() ? $typeBillet->getConfigurationSegment()->getNom() : null;
+            $categorieNom = $alerte['categorieNom'];
+            $segmentNom = $alerte['segmentNom'];
             
             if ($niveauFilter && $niveau !== $niveauFilter) {
                 continue;
@@ -99,69 +144,13 @@ class TicketManagementService
             $alertes[] = $alerte;
         }
 
-        // Calculer les statistiques et capacités
+        // Séparer les alertes par niveau pour les compteurs
         $alertesCritiquesTotal = array_filter($alertesTotal, fn($a) => $a['niveau'] === 'critique');
         $alertesAttentionTotal = array_filter($alertesTotal, fn($a) => $a['niveau'] === 'attention');
 
-        $categories = [];
-        $segments = [];
-        $eventsIds = [];
-        $capaciteParCategorie = [];
-        
-        foreach ($typesBillets as $tb) {
-            $evenement = $tb->getEvenement();
-            
-            if ($evenement && $evenement->getCommenceLe() && $evenement->getStatut() === Event::STATUS_PUBLISHED) {
-                $commenceLe = clone $evenement->getCommenceLe();
-                if ($commenceLe->getTimezone()->getName() !== $timezone->getName()) {
-                    $commenceLe->setTimezone($timezone);
-                }
-                
-                $seTermineLe = $evenement->getSeTermineLe();
-                if ($seTermineLe) {
-                    $seTermineLe = clone $seTermineLe;
-                    if ($seTermineLe->getTimezone()->getName() !== $timezone->getName()) {
-                        $seTermineLe->setTimezone($timezone);
-                    }
-                }
-                
-                $isOngoing = $commenceLe <= $now && ($seTermineLe === null || $seTermineLe >= $now);
-                $isUpcoming = $commenceLe > $now;
-                
-                if ($isOngoing || $isUpcoming) {
-                    $eventId = $evenement->getId();
-                    if (!in_array($eventId, $eventsIds)) {
-                        $eventsIds[] = $eventId;
-                    }
-                    
-                    $categorieId = $tb->getConfigurationCategorie() ? $tb->getConfigurationCategorie()->getId() : 'sans_categorie';
-                    $inventaire = $tb->getInventaire();
-                    $quantiteTotale = $inventaire ? $inventaire->getQuantiteTotale() : 0;
-                    
-                    if (!isset($capaciteParCategorie[$eventId])) {
-                        $capaciteParCategorie[$eventId] = [];
-                    }
-                    if (!isset($capaciteParCategorie[$eventId][$categorieId])) {
-                        $capaciteParCategorie[$eventId][$categorieId] = 0;
-                    }
-                    $capaciteParCategorie[$eventId][$categorieId] += $quantiteTotale;
-                }
-            }
-            
-            if ($tb->getConfigurationCategorie() && !isset($categories[$tb->getConfigurationCategorie()->getNom()])) {
-                $categories[$tb->getConfigurationCategorie()->getNom()] = $tb->getConfigurationCategorie()->getNom();
-            }
-            if ($tb->getConfigurationSegment()) {
-                $segmentNom = $tb->getConfigurationSegment()->getNom();
-                if ($segmentNom !== 'tous' && !isset($segments[$segmentNom])) {
-                    $segments[$segmentNom] = $segmentNom;
-                }
-            }
-        }
-
         return [
-            'alertes' => $alertes,
-            'alertesTotal' => $alertesTotal,
+            'alertes' => $alertes, // Alertes filtrées
+            'alertesTotal' => $alertesTotal, // Toutes les alertes (pour les compteurs)
             'alertesCritiques' => array_values($alertesCritiquesTotal),
             'alertesAttention' => array_values($alertesAttentionTotal),
             'categories' => $categories,
