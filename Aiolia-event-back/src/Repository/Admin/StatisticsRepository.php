@@ -21,26 +21,6 @@ class StatisticsRepository extends ServiceEntityRepository
         parent::__construct($registry, OrganizerSubscription::class);
     }
 
-    /**
-     * Résout les bornes temporelles pour une période (mois/année)
-     */
-    private function resolvePeriod(int $month, int $year): array
-    {
-        // Si l'année est 0 (toutes les années), retourner null pour ne pas filtrer par date
-        if ($year === 0) {
-            return ['start' => null, 'end' => null];
-        }
-
-        if ($month > 0) {
-            $start = sprintf('%04d-%02d-01 00:00:00', $year, $month);
-            $end = date('Y-m-t 23:59:59', strtotime($start));
-        } else {
-            $start = sprintf('%04d-01-01 00:00:00', $year);
-            $end = sprintf('%04d-12-31 23:59:59', $year);
-        }
-
-        return ['start' => $start, 'end' => $end];
-    }
 
     /**
      * Compte les organisateurs selon le type (actifs/nouveaux)
@@ -223,20 +203,93 @@ class StatisticsRepository extends ServiceEntityRepository
         $start = $period['start'];
         $end = $period['end'];
 
-        if (!$start || !$end) {
-            return 0.0;
-        }
-
         $qb = $this->getEntityManager()->createQueryBuilder()
             ->select('COALESCE(SUM(i.totalAmount), 0)')
             ->from(SubscriptionInvoice::class, 'i')
             ->where('i.status IN (:paidStatuses)')
-            ->andWhere('i.billingMonth BETWEEN :date_start AND :date_end')
-            ->setParameter('paidStatuses', ['paid', 'partially_paid'])
+            ->setParameter('paidStatuses', ['paid', 'partially_paid']);
+
+        // Ajouter la condition de date seulement si start et end ne sont pas null
+        if ($start !== null && $end !== null) {
+            $qb->andWhere('i.billingMonth BETWEEN :date_start AND :date_end')
             ->setParameter('date_start', new \DateTime($start))
             ->setParameter('date_end', new \DateTime($end));
+        }
+        // Si start et end sont null (cas "Tous"), on ne filtre pas par date
 
         return (float) $qb->getQuery()->getSingleScalarResult();
+    }
+
+    /**
+     * Récupère le CA total (toutes périodes) - À supprimer car intégré dans getRevenue()
+     */
+    private function getTotalRevenue(): float
+    {
+        // Cette méthode n'est plus nécessaire
+        return $this->getRevenue(0, 0);
+    }
+
+    /**
+     * Résout la période en dates de début/fin
+     */
+    private function resolvePeriod(int $month, int $year): array
+    {
+        // Cas 1: Toutes les années et tous les mois
+        if ($year === 0 && $month === 0) {
+            return [
+                'start' => null, // Pas de filtre de date
+                'end' => null
+            ];
+        }
+        
+        // Cas 2: Année spécifique, tous les mois
+        if ($year > 0 && $month === 0) {
+            return [
+                'start' => $year . '-01-01',
+                'end' => $year . '-12-31'
+            ];
+        }
+        
+        // Cas 3: Mois et année spécifiques
+        if ($year > 0 && $month > 0) {
+            $start = new \DateTime($year . '-' . str_pad($month, 2, '0', STR_PAD_LEFT) . '-01');
+            $end = clone $start;
+            $end->modify('last day of this month');
+            
+            return [
+                'start' => $start->format('Y-m-d'),
+                'end' => $end->format('Y-m-d')
+            ];
+        }
+        
+        // Cas 4: Mois spécifique, année actuelle (si année = 0)
+        if ($month > 0 && $year === 0) {
+            $now = new \DateTime();
+            $year = (int) $now->format('Y');
+            $start = new \DateTime($year . '-' . str_pad($month, 2, '0', STR_PAD_LEFT) . '-01');
+            $end = clone $start;
+            $end->modify('last day of this month');
+            
+            return [
+                'start' => $start->format('Y-m-d'),
+                'end' => $end->format('Y-m-d')
+            ];
+        }
+        
+        // Cas par défaut: année spécifique sans mois (si année > 0 mais mois = 0 déjà traité)
+        if ($year > 0) {
+            return [
+                'start' => $year . '-01-01',
+                'end' => $year . '-12-31'
+            ];
+        }
+        
+        // Cas par défaut: date actuelle
+        $now = new \DateTime();
+        return [
+            'start' => $now->format('Y-m-01'),
+            'end' => $now->format('Y-m-t')
+        ];
     }
 
     /**
