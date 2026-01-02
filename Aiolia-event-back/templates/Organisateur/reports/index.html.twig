@@ -48,17 +48,83 @@
         background: var(--bg-secondary);
         cursor: pointer;
     }
+    /* Ajoutez ce style pour les tooltips */
+    .export-buttons a, 
+    .export-buttons button {
+        position: relative;
+    }
+
+    .export-buttons a:hover::after,
+    .export-buttons button:hover::after {
+        content: attr(title);
+        position: absolute;
+        bottom: -40px;
+        left: 50%;
+        transform: translateX(-50%);
+        background: var(--text-primary);
+        color: var(--bg-card);
+        padding: 6px 12px;
+        border-radius: var(--border-radius-sm);
+        font-size: 0.8rem;
+        white-space: nowrap;
+        z-index: 1000;
+        box-shadow: var(--shadow-md);
+    }
+
+    .export-buttons a:hover::before,
+    .export-buttons button:hover::before {
+        content: '';
+        position: absolute;
+        bottom: -10px;
+        left: 50%;
+        transform: translateX(-50%);
+        border: 5px solid transparent;
+        border-bottom-color: var(--text-primary);
+    }
 </style>
 {% endblock %}
 
 {% block body %}
 <div class="dashboard">
-    <div class="dashboard-header">
-        <div>
-            <h1> <i class="fas fa-calendar-check"></i> Rapports des événements</h1>
-            <p style="color: var(--gray-600); margin-top: 8px; font-size: 1rem;">
-                Consultez les rapports détaillés de tous vos événements
-            </p>
+       <div class="dashboard-header">
+        <div style="display: flex; justify-content: space-between; align-items: center; width: 100%;">
+            <div>
+                <h1> <i class="fas fa-calendar-check"></i> Rapports des événements</h1>
+                <p style="color: var(--gray-600); margin-top: 8px; font-size: 1rem;">
+                    Consultez les rapports détaillés de tous vos événements
+                </p>
+            </div>
+            <div style="display: flex; gap: 10px; align-items: center;">
+                <a href="{{ path('organisateur_reports_export_csv', {
+                    'date_from': dateFrom ? dateFrom|date('Y-m-d') : '',
+                    'date_to': dateTo ? dateTo|date('Y-m-d') : ''
+                }) }}" 
+                class="btn-modal btn-modal-secondary"
+                style="display: flex; align-items: center; gap: 8px;"
+                title="Exporter les événements (filtres appliqués)">
+                    <i class="fas fa-file-csv" style="color: var(--success);"></i>
+                    Exporter CSV
+                </a>
+                
+                {# <a href="{{ path('organisateur_reports_export_csv_all') }}" 
+                class="btn-modal btn-modal-secondary"
+                style="display: flex; align-items: center; gap: 8px;"
+                title="Exporter TOUS les événements (sans filtres)">
+                    <i class="fas fa-file-csv" style="color: var(--info);"></i>
+                    Exporter CSV complet
+                </a> #}
+                
+                <a href="{{ path('organisateur_reports_export_pdf', {
+                    'date_from': dateFrom ? dateFrom|date('Y-m-d') : '',
+                    'date_to': dateTo ? dateTo|date('Y-m-d') : ''
+                }) }}" 
+                class="btn-modal btn-modal-secondary"
+                style="display: flex; align-items: center; gap: 8px;"
+                title="Exporter en PDF (filtres appliqués)">
+                    <i class="fas fa-file-pdf" style="color: var(--danger);"></i>
+                    Exporter PDF
+                </a>
+            </div>
         </div>
     </div>
 

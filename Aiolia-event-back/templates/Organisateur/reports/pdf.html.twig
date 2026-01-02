@@ -1,0 +1,445 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <meta charset="UTF-8">
+    <title>Rapport des événements</title>
+    <style>
+        body {
+            font-family: 'DejaVu Sans', sans-serif;
+            font-size: 12px;
+            line-height: 1.4;
+            color: #333;
+        }
+        
+        .header {
+            text-align: center;
+            margin-bottom: 30px;
+            border-bottom: 2px solid #333;
+            padding-bottom: 15px;
+        }
+        
+        .header h1 {
+            color: #2c3e50;
+            margin: 0 0 10px 0;
+            font-size: 24px;
+        }
+        
+        .header .subtitle {
+            color: #7f8c8d;
+            font-size: 14px;
+        }
+        
+        .summary {
+            margin-bottom: 25px;
+            padding: 15px;
+            background-color: #f8f9fa;
+            border-radius: 5px;
+            border-left: 4px solid #3498db;
+        }
+        
+        .summary h3 {
+            color: #2c3e50;
+            margin-top: 0;
+            font-size: 16px;
+        }
+        
+        .summary-grid {
+            display: grid;
+            grid-template-columns: repeat(4, 1fr);
+            gap: 15px;
+            margin-top: 10px;
+        }
+        
+        .summary-item {
+            text-align: center;
+            padding: 10px;
+            background-color: white;
+            border-radius: 4px;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+        }
+        
+        .summary-value {
+            font-size: 18px;
+            font-weight: bold;
+            color: #2c3e50;
+        }
+        
+        .summary-label {
+            font-size: 11px;
+            color: #7f8c8d;
+            margin-top: 5px;
+        }
+        
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            margin: 25px 0;
+            font-size: 11px;
+        }
+        
+        table thead {
+            background-color: #2c3e50;
+            color: white;
+        }
+        
+        table th {
+            padding: 10px;
+            text-align: left;
+            font-weight: bold;
+            border: 1px solid #34495e;
+        }
+        
+        table td {
+            padding: 8px 10px;
+            border: 1px solid #ddd;
+        }
+        
+        table tbody tr:nth-child(even) {
+            background-color: #f8f9fa;
+        }
+        
+        .currency {
+            text-align: right;
+            font-family: 'Courier New', monospace;
+        }
+        
+        .percentage {
+            text-align: center;
+        }
+        
+        .status-published {
+            color: #27ae60;
+            font-weight: bold;
+        }
+        
+        .status-draft {
+            color: #f39c12;
+            font-weight: bold;
+        }
+        
+        .totals {
+            margin-top: 30px;
+            padding: 15px;
+            background-color: #ecf0f1;
+            border-radius: 5px;
+        }
+        
+        .totals h3 {
+            margin-top: 0;
+            color: #2c3e50;
+            font-size: 16px;
+        }
+        
+        .totals-grid {
+            display: grid;
+            grid-template-columns: repeat(4, 1fr);
+            gap: 15px;
+        }
+        
+        .total-item {
+            text-align: center;
+            padding: 12px;
+            background-color: white;
+            border-radius: 4px;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+        }
+        
+        .total-value {
+            font-size: 20px;
+            font-weight: bold;
+            color: #e74c3c;
+        }
+        
+        .top-events {
+            margin-top: 30px;
+            page-break-inside: avoid;
+        }
+        
+        .top-events h3 {
+            color: #2c3e50;
+            font-size: 16px;
+            margin-bottom: 15px;
+        }
+        
+        .event-card {
+            display: flex;
+            align-items: center;
+            margin-bottom: 10px;
+            padding: 10px;
+            background-color: white;
+            border-radius: 4px;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+        }
+        
+        .event-rank {
+            width: 30px;
+            height: 30px;
+            background-color: #3498db;
+            color: white;
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-weight: bold;
+            margin-right: 15px;
+        }
+        
+        .event-details {
+            flex: 1;
+        }
+        
+        .event-title {
+            font-weight: bold;
+            color: #2c3e50;
+            margin-bottom: 5px;
+        }
+        
+        .event-stats {
+            display: flex;
+            gap: 15px;
+            font-size: 10px;
+            color: #7f8c8d;
+        }
+        
+        .footer {
+            margin-top: 40px;
+            padding-top: 15px;
+            border-top: 1px solid #ddd;
+            text-align: center;
+            color: #7f8c8d;
+            font-size: 10px;
+        }
+        
+        .text-right {
+            text-align: right;
+        }
+        
+        .text-center {
+            text-align: center;
+        }
+        
+        .badge {
+            padding: 3px 8px;
+            border-radius: 12px;
+            font-size: 10px;
+            font-weight: bold;
+            display: inline-block;
+        }
+        
+        .badge-success {
+            background-color: #d4edda;
+            color: #155724;
+        }
+        
+        .badge-warning {
+            background-color: #fff3cd;
+            color: #856404;
+        }
+    </style>
+</head>
+<body>
+    <div class="header">
+        <h1>Rapport des événements</h1>
+        <div class="subtitle">
+            Généré le {{ generatedAt|date('d/m/Y à H:i') }} | Période : {{ periodLabel }}
+            {% if user %}
+                | Organisateur : {{ user.getPrenom() }} {{ user.getNom() }}
+            {% endif %}
+        </div>
+    </div>
+
+    <div class="summary">
+        <h3>Synthèse</h3>
+        <div class="summary-grid">
+            <div class="summary-item">
+                <div class="summary-value">{{ reports|length }}</div>
+                <div class="summary-label">Événements</div>
+            </div>
+            <div class="summary-item">
+                <div class="summary-value">{{ totals.revenue|number_format(0, ',', ' ') }} Ar</div>
+                <div class="summary-label">Chiffre d'affaires</div>
+            </div>
+            <div class="summary-item">
+                <div class="summary-value">{{ totals.sold_tickets|number_format(0, ',', ' ') }}</div>
+                <div class="summary-label">Billets vendus</div>
+            </div>
+            <div class="summary-item">
+                <div class="summary-value">{{ totals.occupancy_rate|number_format(1, ',', ' ') }}%</div>
+                <div class="summary-label">Taux de remplissage</div>
+            </div>
+        </div>
+    </div>
+
+    <table>
+        <thead>
+            <tr>
+                <th width="25%">Événement</th>
+                <th width="10%">Date début</th>
+                <th width="10%">Date fin</th>
+                <th width="15%">Lieu</th>
+                <th width="10%" class="text-right">CA (Ar)</th>
+                <th width="7%" class="text-center">Vues</th>
+                <th width="7%" class="text-center">Participants</th>
+                <th width="7%" class="text-center">Billets vendus</th>
+                <th width="7%" class="text-center">Capacité</th>
+                <th width="7%" class="text-center">Taux remplissage</th>
+                <th width="5%" class="text-center">Statut</th>
+            </tr>
+        </thead>
+        <tbody>
+            {% for report in reports %}
+                {% set event = report.event %}
+                <tr>
+                    <td>{{ event.titre }}</td>
+                    <td>{{ event.commenceLe ? event.commenceLe|date('d/m/Y H:i') : '-' }}</td>
+                    <td>{{ event.seTermineLe ? event.seTermineLe|date('d/m/Y H:i') : '-' }}</td>
+                    <td>
+                        {% if event.lieu %}
+                            {{ event.lieu.nom }}
+                            {% if event.lieu.ville %}
+                                - {{ event.lieu.ville }}
+                            {% endif %}
+                        {% elseif event.nomLieuTexte %}
+                            {{ event.nomLieuTexte }}
+                        {% else %}
+                            -
+                        {% endif %}
+                    </td>
+                    <td class="currency">{{ report.revenue|number_format(0, ',', ' ') }}</td>
+                    <td class="text-center">{{ report.views|number_format(0, ',', ' ') }}</td>
+                    <td class="text-center">{{ report.participants|number_format(0, ',', ' ') }}</td>
+                    <td class="text-center">{{ report.sold_tickets|number_format(0, ',', ' ') }}</td>
+                    <td class="text-center">{{ report.total_capacity|number_format(0, ',', ' ') }}</td>
+                    <td class="text-center">
+                        <span style="font-weight: bold; color: {{ report.occupancy_rate >= 80 ? '#27ae60' : (report.occupancy_rate >= 50 ? '#f39c12' : '#e74c3c') }}">
+                            {{ report.occupancy_rate|number_format(1, ',', ' ') }}%
+                        </span>
+                    </td>
+                    <td class="text-center">
+                        {% if event.statut == 'published' %}
+                            <span class="badge badge-success">Publié</span>
+                        {% elseif event.statut == 'draft' %}
+                            <span class="badge badge-warning">Brouillon</span>
+                        {% else %}
+                            <span class="badge">{{ event.statut }}</span>
+                        {% endif %}
+                    </td>
+                </tr>
+            {% else %}
+                <tr>
+                    <td colspan="11" class="text-center">Aucun événement trouvé</td>
+                </tr>
+            {% endfor %}
+        </tbody>
+    </table>
+
+    <div class="totals">
+        <h3>Totaux</h3>
+        <div class="totals-grid">
+            <div class="total-item">
+                <div class="total-value">{{ totals.revenue|number_format(0, ',', ' ') }} Ar</div>
+                <div class="summary-label">Chiffre d'affaires total</div>
+            </div>
+            <div class="total-item">
+                <div class="total-value">{{ totals.views|number_format(0, ',', ' ') }}</div>
+                <div class="summary-label">Vues totales</div>
+            </div>
+            <div class="total-item">
+                <div class="total-value">{{ totals.sold_tickets|number_format(0, ',', ' ') }}</div>
+                <div class="summary-label">Billets vendus total</div>
+            </div>
+            <div class="total-item">
+                <div class="total-value">{{ totals.occupancy_rate|number_format(1, ',', ' ') }}%</div>
+                <div class="summary-label">Taux de remplissage moyen</div>
+            </div>
+        </div>
+        
+        {% if subscriptionExpenses > 0 or netRevenue > 0 %}
+            <div style="margin-top: 15px; display: grid; grid-template-columns: repeat(2, 1fr); gap: 15px;">
+                {% if subscriptionExpenses > 0 %}
+                    <div class="summary-item">
+                        <div class="summary-value" style="color: #e74c3c;">- {{ subscriptionExpenses|number_format(0, ',', ' ') }} Ar</div>
+                        <div class="summary-label">Dépenses d'abonnement</div>
+                    </div>
+                {% endif %}
+                
+                {% if netRevenue > 0 %}
+                    <div class="summary-item">
+                        <div class="summary-value" style="color: #27ae60;">{{ netRevenue|number_format(0, ',', ' ') }} Ar</div>
+                        <div class="summary-label">Chiffre d'affaires net</div>
+                    </div>
+                {% endif %}
+            </div>
+        {% endif %}
+    </div>
+
+    {% if top3Events is not empty %}
+        <div class="top-events">
+            <h3>Top 3 des événements</h3>
+            <div style="margin-top: 15px;">
+                {% for report in top3Events %}
+                    <div style="
+                        display: flex;
+                        align-items: center;
+                        margin-bottom: 10px;
+                        padding: 12px;
+                        background-color: white;
+                        border-radius: 6px;
+                        box-shadow: 0 2px 5px rgba(0,0,0,0.08);
+                        border-left: 4px solid {{ loop.index == 1 ? '#FFD700' : (loop.index == 2 ? '#C0C0C0' : '#CD7F32') }};
+                    ">
+                        
+                        <div style="flex: 1;">
+                            <div style="font-weight: bold; color: #2c3e50; margin-bottom: 4px;">
+                                {% if report.event is defined and report.event.titre is defined %}
+                                    {{ report.event.titre|length > 60 ? report.event.titre|slice(0, 60) ~ '...' : report.event.titre }}
+                                {% elseif report.titre is defined %}
+                                    {{ report.titre|length > 60 ? report.titre|slice(0, 60) ~ '...' : report.titre }}
+                                {% else %}
+                                    Événement #{{ loop.index }}
+                                {% endif %}
+                            </div>
+                            
+                            <div style="display: flex; gap: 20px; font-size: 11px; color: #7f8c8d;">
+                                <span>
+                                    <strong style="color: #e74c3c;">{{ report.revenue|default(0)|number_format(0, ',', ' ') }} Ar</strong> CA
+                                </span>
+                                <span>
+                                    <strong style="color: #2c3e50;">{{ report.sold_tickets|default(0) }}</strong> billets
+                                </span>
+                                <span>
+                                    <strong style="color: {{ report.occupancy_rate|default(0) >= 80 ? '#27ae60' : (report.occupancy_rate|default(0) >= 50 ? '#f39c12' : '#e74c3c') }};">
+                                        {{ report.occupancy_rate|default(0)|number_format(1, ',', ' ') }}%
+                                    </strong> remplissage
+                                </span>
+                                <span>
+                                    <strong style="color: #3498db;">{{ report.participants|default(0) }}</strong> participants
+                                </span>
+                            </div>
+                        </div>
+                        
+                        {% if report.event is defined and report.event.statut is defined %}
+                            <div style="margin-left: 15px; flex-shrink: 0;">
+                                <span style="
+                                    padding: 3px 8px;
+                                    border-radius: 12px;
+                                    font-size: 10px;
+                                    font-weight: bold;
+                                    background-color: {{ report.event.statut == 'published' ? '#d4edda' : '#fff3cd' }};
+                                    color: {{ report.event.statut == 'published' ? '#155724' : '#856404' }};
+                                ">
+                                    {{ report.event.statut == 'published' ? 'Publié' : 'Brouillon' }}
+                                </span>
+                            </div>
+                        {% endif %}
+                    </div>
+                {% endfor %}
+            </div>
+        </div>
+    {% endif %}
+
+    <div class="footer">
+        <p>Document généré automatiquement par le système de gestion d'événements</p>
+    </div>
+</body>
+</html>
