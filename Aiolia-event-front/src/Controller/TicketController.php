@@ -328,7 +328,6 @@ class TicketController extends AbstractController
             }
         }
 
-        $this->addFlash('success', 'Événement ajouté au panier avec succès.');
         return $this->redirectToRoute('cart');
     }
 
