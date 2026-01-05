@@ -124,6 +124,7 @@ class TypeBilletRepository extends ServiceEntityRepository
             ->select([
                 'tb.id as type_billet_id',
                 'tb.nom as type_billet_nom',
+                'tb.prixDeBase',
                 'e.id as evenement_id',
                 'e.titre as evenement_titre',
                 'e.commenceLe',
@@ -146,17 +147,17 @@ class TypeBilletRepository extends ServiceEntityRepository
             ->andWhere('e.statut = :statut')
             ->andWhere('ib.quantiteTotale > 0')
             ->andWhere('(e.seTermineLe >= :now OR (e.seTermineLe IS NULL AND e.commenceLe >= :now))')
-            ->andWhere('(ib.quantiteTotale - ib.quantiteVendue - ib.quantiteReservee) <= 5')
+            // IMPORTANT: Supprimez ce filtre car vous allez faire le calcul en PHP
+            // ->andWhere('(ib.quantiteTotale - ib.quantiteVendue - ib.quantiteReservee) <= 5')
             ->setParameter('organizer', $organizer)
             ->setParameter('statut', 'published')
             ->setParameter('now', $now)
-            // CORRECTION: Supprimer le ORDER BY problématique et trier en PHP
             ->addOrderBy('e.titre', 'ASC')
             ->addOrderBy('tb.nom', 'ASC');
         
         $results = $qb->getQuery()->getArrayResult();
         
-        // Calculer la quantité disponible et déterminer le niveau d'alerte
+        // Filtrer en PHP pour avoir plus de contrôle
         $alerts = [];
         foreach ($results as $result) {
             $disponible = $result['quantite_totale'] - $result['quantite_vendue'] - $result['quantite_reservee'];
@@ -166,21 +167,37 @@ class TypeBilletRepository extends ServiceEntityRepository
                 ? round(($disponible / $result['quantite_totale']) * 100, 1)
                 : 0;
             
-            $result['quantite_disponible'] = $disponible;
-            $result['pourcentage_restant'] = $pourcentage;
-            
-            if ($disponible == 0) {
-                $result['niveau_alerte'] = 'critique';
-            } else {
-                $result['niveau_alerte'] = 'attention';
+            // Seulement inclure si le stock est bas (≤ 10%)
+            if ($pourcentage <= 10) {
+                $result['quantite_disponible'] = $disponible;
+                $result['pourcentage_restant'] = $pourcentage;
+                
+                if ($disponible == 0 || $pourcentage <= 5) {
+                    $result['niveau_alerte'] = 'critique';
+                } elseif ($pourcentage <= 10) {
+                    $result['niveau_alerte'] = 'attention';
+                } else {
+                    continue; // Ignorer si > 10%
+                }
+                
+                $result['liste_attente_count'] = $result['liste_attente_count'] ?? 0;
+                $alerts[] = $result;
             }
-            
-            $alerts[] = $result;
         }
         
-        // Trier en PHP par quantité disponible
+        // Trier par pourcentage (les plus critiques d'abord)
         usort($alerts, function($a, $b) {
-            return ($a['quantite_disponible'] ?? 0) <=> ($b['quantite_disponible'] ?? 0);
+            // D'abord par niveau (critique > attention)
+            $levelOrder = ['critique' => 1, 'attention' => 2];
+            $levelA = $levelOrder[$a['niveau_alerte']] ?? 3;
+            $levelB = $levelOrder[$b['niveau_alerte']] ?? 3;
+            
+            if ($levelA !== $levelB) {
+                return $levelA <=> $levelB;
+            }
+            
+            // Ensuite par pourcentage (plus bas d'abord)
+            return ($a['pourcentage_restant'] ?? 100) <=> ($b['pourcentage_restant'] ?? 100);
         });
         
         return $alerts;

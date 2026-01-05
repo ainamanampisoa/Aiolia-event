@@ -4,8 +4,38 @@
 
 {% block stylesheets %}
 {{ parent() }}
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
 <style>
-/* Styles pour les alertes */
+/* Variables */
+:root {
+    --danger: #e74c3c;
+    --warning: #f39c12;
+    --info: #3498db;
+    --success: #27ae60;
+    --accent: #3498db;
+    --text-primary: #2c3e50;
+    --text-secondary: #7f8c8d;
+    --text-muted: #95a5a6;
+    --text-inverse: #ffffff;
+    --bg-card: #ffffff;
+    --bg-secondary: #f8f9fa;
+    --gray-50: #f8f9fa;
+    --gray-100: #e9ecef;
+    --gray-600: #6c757d;
+    --border-color: #dee2e6;
+    --border-light: #e9ecef;
+    --shadow-sm: 0 0.125rem 0.25rem rgba(0, 0, 0, 0.075);
+    --shadow-lg: 0 1rem 3rem rgba(0, 0, 0, 0.175);
+    --border-radius-sm: 0.25rem;
+    --border-radius-md: 0.375rem;
+    --border-radius-lg: 0.5rem;
+    --font-weight-medium: 500;
+    --font-weight-semibold: 600;
+    --font-weight-bold: 700;
+    --transition-base: all 0.3s ease;
+}
+
+/* Statistiques */
 .alerts-stats {
     display: grid;
     grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
@@ -13,24 +43,51 @@
     margin-bottom: 30px;
 }
 
-/* Styles des cartes de statistiques */
-.alerts-stats .stat-card h3 {
-    font-size: 2.5rem;
+.stat-card {
+    background: var(--bg-card);
+    border: 1px solid var(--border-color);
+    border-radius: var(--border-radius-md);
+    padding: 20px;
+    display: flex;
+    align-items: center;
+    gap: 15px;
+    box-shadow: var(--shadow-sm);
+}
+
+.stat-icon {
+    width: 60px;
+    height: 60px;
+    border-radius: 12px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 1.5rem;
+    color: white;
+    flex-shrink: 0;
+}
+
+.stat-content h3 {
+    font-size: 2rem;
     font-weight: var(--font-weight-bold);
     color: var(--text-primary);
+    margin: 0 0 5px 0;
+}
+
+.stat-content p {
+    color: var(--text-secondary);
+    margin: 0 0 8px 0;
+    font-size: 0.95rem;
 }
 
 .stat-trend {
-    display: flex;
+    display: inline-flex;
     align-items: center;
     gap: 5px;
     font-size: 0.8rem;
-    margin-top: 5px;
     padding: 4px 8px;
     border-radius: var(--border-radius-sm);
     background: rgba(52, 152, 219, 0.1);
     color: var(--info);
-    width: fit-content;
 }
 
 .stat-trend.critical {
@@ -38,22 +95,19 @@
     color: var(--danger);
 }
 
-.stat-trend.success {
-    background: rgba(39, 174, 96, 0.1);
-    color: var(--success);
-}
-
-.stat-trend i {
-    font-size: 0.7rem;
-}
-
-.alerts-filters {
+/* Filtres */
+.filters-card {
     background: var(--bg-card);
     border: 1px solid var(--border-color);
     border-radius: var(--border-radius-md);
+    margin-top: 20px;
     margin-bottom: 30px;
     overflow: hidden;
     box-shadow: var(--shadow-sm);
+}
+
+.card-body {
+    padding: 0;
 }
 
 .filters-header {
@@ -97,38 +151,24 @@
     gap: 6px;
 }
 
-.filter-select, .filter-search {
+.filter-select {
     padding: 10px 12px;
     border: 2px solid var(--border-color);
     border-radius: var(--border-radius-sm);
     background: var(--bg-secondary);
     color: var(--text-primary);
     font-size: 0.9rem;
-    transition: all 0.3s ease;
+    transition: var(--transition-base);
+    width: 100%;
 }
 
-.filter-select:focus, .filter-search:focus {
+.filter-select:focus {
     outline: none;
     border-color: var(--accent);
     box-shadow: 0 0 0 3px rgba(52, 152, 219, 0.1);
 }
 
-.filter-search {
-    width: 100%;
-}
-
-.btn-outline {
-    background: transparent;
-    border: 2px solid var(--border-color);
-    color: var(--text-secondary);
-}
-
-.btn-outline:hover {
-    background: var(--gray-100);
-    border-color: var(--accent);
-    color: var(--accent);
-}
-
+/* Alertes */
 .alerts-container {
     display: flex;
     flex-direction: column;
@@ -140,6 +180,7 @@
     border: 1px solid var(--border-color);
     border-radius: var(--border-radius-md);
     overflow: hidden;
+    box-shadow: var(--shadow-sm);
 }
 
 .section-title {
@@ -157,7 +198,7 @@
 
 .alert-item {
     display: flex;
-    align-items: center;
+    align-items: flex-start;
     padding: 20px;
     border-bottom: 1px solid var(--border-light);
     transition: var(--transition-base);
@@ -176,43 +217,38 @@
     display: flex;
     flex-direction: column;
     align-items: center;
-    gap: 8px;
+    gap: 10px;
     flex-shrink: 0;
+    min-width: 100px;
 }
 
 .alert-icon {
-    width: 40px;
-    height: 40px;
+    width: 50px;
+    height: 50px;
     border-radius: 50%;
     display: flex;
     align-items: center;
     justify-content: center;
-    font-size: 1.2rem;
-    color: var(--white);
-    position: relative;
-    overflow: hidden;
+    font-size: 1.3rem;
+    color: white;
 }
 
 .alert-critical .alert-icon {
-    background: var(--danger);
+    background: linear-gradient(135deg, var(--danger), #c0392b);
 }
 
 .alert-warning .alert-icon {
-    background: var(--warning);
-}
-
-.alert-info .alert-icon {
-    background: var(--info);
+    background: linear-gradient(135deg, var(--warning), #e67e22);
 }
 
 .priority-badge {
     padding: 6px 10px;
     border-radius: var(--border-radius-sm);
-    font-size: 0.7rem;
+    font-size: 0.75rem;
     font-weight: var(--font-weight-bold);
     text-transform: uppercase;
     letter-spacing: 0.5px;
-    display: flex;
+    display: inline-flex;
     align-items: center;
     gap: 4px;
 }
@@ -220,23 +256,18 @@
 .priority-badge.critical {
     background: rgba(231, 76, 60, 0.1);
     color: var(--danger);
+    border: 1px solid rgba(231, 76, 60, 0.2);
 }
 
 .priority-badge.warning {
     background: rgba(243, 156, 18, 0.1);
     color: var(--warning);
-}
-
-.priority-badge.info {
-    background: rgba(52, 152, 219, 0.1);
-    color: var(--info);
+    border: 1px solid rgba(243, 156, 18, 0.2);
 }
 
 .alert-content {
     flex: 1;
-    display: flex;
-    flex-direction: column;
-    gap: 8px;
+    min-width: 0;
 }
 
 .alert-header {
@@ -244,11 +275,12 @@
     justify-content: space-between;
     align-items: flex-start;
     gap: 15px;
+    margin-bottom: 8px;
 }
 
 .alert-header h4 {
     margin: 0;
-    font-size: 1.1rem;
+    font-size: 1.15rem;
     font-weight: var(--font-weight-semibold);
     color: var(--text-primary);
     line-height: 1.3;
@@ -258,20 +290,21 @@
     color: var(--text-muted);
     font-size: 0.85rem;
     white-space: nowrap;
+    flex-shrink: 0;
 }
 
 .alert-description {
     color: var(--text-secondary);
     font-size: 0.95rem;
-    line-height: 1.4;
-    margin: 0;
+    line-height: 1.5;
+    margin: 0 0 12px 0;
 }
 
 .alert-details {
     display: flex;
-    gap: 20px;
     flex-wrap: wrap;
-    margin-top: 8px;
+    gap: 20px;
+    margin-bottom: 12px;
 }
 
 .detail-item {
@@ -284,64 +317,101 @@
 
 .detail-item i {
     color: var(--accent);
-    width: 12px;
+    width: 14px;
+    text-align: center;
 }
 
 .alert-actions {
     display: flex;
-    gap: 8px;
-    flex-shrink: 0;
+    gap: 10px;
+    flex-wrap: wrap;
+}
+
+/* Buttons */
+.btn {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    gap: 6px;
+    padding: 8px 16px;
+    border-radius: var(--border-radius-sm);
+    font-weight: var(--font-weight-medium);
+    font-size: 0.9rem;
+    cursor: pointer;
+    transition: var(--transition-base);
+    text-decoration: none;
+    border: none;
+    outline: none;
 }
 
 .btn-sm {
     padding: 6px 12px;
-    font-size: 0.8rem;
-    border-radius: var(--border-radius-sm);
+    font-size: 0.85rem;
 }
 
-/* Responsive */
-@media (max-width: 768px) {
-    .alerts-filters {
-        flex-direction: column;
-        align-items: stretch;
-        gap: 15px;
-    }
-    
-    .filter-group {
-        width: 100%;
-    }
-    
-    .filter-select {
-        width: 100%;
-    }
-    
-    .alert-item {
-        flex-direction: column;
-        align-items: stretch;
-        gap: 15px;
-    }
-    
-    .alert-status {
-        flex-direction: row;
-        justify-content: space-between;
-    }
-    
-    .alert-actions {
-        justify-content: center;
-        flex-wrap: wrap;
-    }
-    
-    .alert-details {
-        flex-direction: column;
-        gap: 8px;
-    }
+.btn-primary {
+    background: linear-gradient(135deg, var(--accent), #2980b9);
+    color: white;
+    border: 1px solid #2980b9;
+}
+
+.btn-primary:hover {
+    background: linear-gradient(135deg, #2980b9, #1c6ea4);
+    transform: translateY(-1px);
+    box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
+}
+
+.btn-secondary {
+    background: var(--bg-secondary);
+    color: var(--text-primary);
+    border: 1px solid var(--border-color);
+}
+
+.btn-secondary:hover {
+    background: var(--gray-100);
+    border-color: var(--accent);
+    color: var(--accent);
+}
+
+.btn-outline {
+    background: transparent;
+    border: 2px solid var(--border-color);
+    color: var(--text-secondary);
+}
+
+.btn-outline:hover {
+    background: var(--gray-100);
+    border-color: var(--accent);
+    color: var(--accent);
+}
+
+/* État vide */
+.empty-state {
+    text-align: center;
+    padding: 60px 20px;
+    color: var(--gray-600);
+}
+
+.empty-state i {
+    font-size: 4rem;
+    margin-bottom: 16px;
+    display: block;
+    color: var(--success);
+    opacity: 0.5;
+}
+
+.empty-state h3 {
+    color: var(--success);
+    margin-bottom: 8px;
 }
 
 /* Pagination */
 .pagination-wrapper {
     display: flex;
-    justify-content: center;
-    margin-top: 1rem;
+    flex-direction: column;
+    align-items: center;
+    margin-top: 2rem;
+    gap: 1rem;
 }
 
 .pagination {
@@ -353,13 +423,10 @@
     gap: 0.35rem;
 }
 
-.pagination-rounded .page-link {
-    border-radius: 999px !important;
-}
-
 .pagination .page-item.disabled .page-link {
     pointer-events: none;
     opacity: 0.5;
+    cursor: not-allowed;
 }
 
 .pagination .page-item.active .page-link {
@@ -370,34 +437,38 @@
 }
 
 .pagination .page-link {
-    border-radius: var(--border-radius-sm);
+    border-radius: 50%;
     border: 1px solid var(--border-color);
-    padding: 6px 14px;
+    padding: 8px 12px;
     color: var(--text-secondary);
     background: var(--bg-secondary);
     transition: var(--transition-base);
     text-decoration: none;
+    display: block;
+    min-width: 38px;
+    text-align: center;
 }
 
 .pagination .page-link:hover {
     color: var(--accent);
     border-color: var(--accent);
+    background: rgba(52, 152, 219, 0.05);
 }
 
 .pagination .ellipsis .page-link {
     border: none;
     background: transparent;
     color: var(--text-secondary);
+    cursor: default;
 }
 
 .pagination-summary {
     text-align: center;
-    margin-top: 0.75rem;
     color: var(--text-secondary);
     font-size: 0.9rem;
 }
 
-/* Modal styles */
+/* Modal */
 .modal-overlay {
     display: none;
     position: fixed;
@@ -409,6 +480,7 @@
     z-index: 1000;
     align-items: center;
     justify-content: center;
+    padding: 20px;
 }
 
 .modal-overlay.active {
@@ -420,7 +492,7 @@
     border-radius: var(--border-radius-lg);
     box-shadow: var(--shadow-lg);
     max-width: 500px;
-    width: 90%;
+    width: 100%;
     max-height: 90vh;
     overflow-y: auto;
     animation: modalFadeIn 0.3s ease;
@@ -468,7 +540,7 @@
     align-items: center;
     justify-content: center;
     border-radius: var(--border-radius-sm);
-    transition: all 0.3s ease;
+    transition: var(--transition-base);
 }
 
 .modal-close:hover {
@@ -492,7 +564,7 @@
     font-size: 0.95rem;
 }
 
-.form-group .form-control {
+.form-control {
     width: 100%;
     padding: 12px;
     border: 1px solid var(--border-color);
@@ -500,16 +572,16 @@
     background: var(--bg-secondary);
     color: var(--text-primary);
     font-size: 1rem;
-    transition: all 0.3s ease;
+    transition: var(--transition-base);
 }
 
-.form-group .form-control:focus {
+.form-control:focus {
     outline: none;
     border-color: var(--accent);
     box-shadow: 0 0 0 3px rgba(52, 152, 219, 0.1);
 }
 
-.form-group .form-control.error {
+.form-control.error {
     border-color: var(--danger);
 }
 
@@ -517,6 +589,14 @@
     color: var(--danger);
     font-size: 0.85rem;
     margin-top: 4px;
+    display: block;
+}
+
+.form-help {
+    color: var(--text-secondary);
+    font-size: 0.85rem;
+    margin-top: 4px;
+    display: block;
 }
 
 .modal-footer {
@@ -533,7 +613,7 @@
     border-radius: var(--border-radius-sm);
     font-weight: var(--font-weight-medium);
     cursor: pointer;
-    transition: all 0.3s ease;
+    transition: var(--transition-base);
     font-size: 0.95rem;
 }
 
@@ -557,6 +637,93 @@
     transform: translateY(-2px);
     box-shadow: 0 4px 8px rgba(0, 0, 0, 0.15);
 }
+
+/* Responsive */
+@media (max-width: 768px) {
+    .alerts-stats {
+        grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+        gap: 15px;
+    }
+    
+    .stat-card {
+        padding: 15px;
+    }
+    
+    .stat-icon {
+        width: 50px;
+        height: 50px;
+        font-size: 1.3rem;
+    }
+    
+    .filters-content {
+        grid-template-columns: 1fr;
+        gap: 15px;
+    }
+    
+    .alert-item {
+        flex-direction: column;
+        align-items: stretch;
+        gap: 15px;
+    }
+    
+    .alert-status {
+        flex-direction: row;
+        justify-content: space-between;
+        align-items: center;
+        min-width: auto;
+    }
+    
+    .alert-header {
+        flex-direction: column;
+        align-items: flex-start;
+        gap: 5px;
+    }
+    
+    .alert-actions {
+        justify-content: flex-start;
+    }
+    
+    .alert-details {
+        flex-direction: column;
+        gap: 8px;
+    }
+    
+    .pagination .page-link {
+        padding: 6px 10px;
+        min-width: 34px;
+    }
+    
+    .modal-content {
+        margin: 0;
+        max-height: 95vh;
+    }
+}
+
+@media (max-width: 480px) {
+    .alerts-stats {
+        grid-template-columns: 1fr;
+    }
+    
+    .stat-card {
+        flex-direction: column;
+        text-align: center;
+        gap: 10px;
+    }
+    
+    .stat-icon {
+        width: 70px;
+        height: 70px;
+        font-size: 1.8rem;
+    }
+    
+    .modal-footer {
+        flex-direction: column;
+    }
+    
+    .btn-modal {
+        width: 100%;
+    }
+}
 </style>
 {% endblock %}
 
@@ -565,13 +732,11 @@
     <div class="dashboard-header">
         <div>
             <h1><i class="fas fa-bell"></i> Alertes automatiques</h1>
-            <p style="color: var(--gray-600); margin-top: 8px; font-size: 1rem;">
-                Surveillance en temps réel des stocks et événements
-            </p>
+            <p class="subtitle">Surveillance en temps réel des stocks et événements</p>
         </div>
     </div>
 
-    <!-- Statistiques des alertes (toujours le total, même avec filtres) -->
+    <!-- Statistiques -->
     <div class="alerts-stats">
         <div class="stat-card">
             <div class="stat-icon" style="background: linear-gradient(135deg, var(--warning), #f39c12);">
@@ -630,62 +795,62 @@
         </div>
     </div>
 
-    <!-- Filtres des alertes -->
-    <div class="card filters-card" style="margin-top: 20px;">
+    <!-- Filtres -->
+    <div class="filters-card">
         <div class="card-body">
-            <div class="filters-header" style="margin-bottom: 20px;">
-                <h3 style="margin: 0;">
+            <div class="filters-header">
+                <h3>
                     <i class="fas fa-filter"></i>
                     Filtres et recherche
                 </h3>
                 <button class="btn btn-sm btn-outline" id="clearFilters">
                     <i class="fas fa-times"></i>
-                    Effacer
+                    Effacer les filtres
                 </button>
             </div>
             
             <div class="filters-content">
-            <div class="filter-group">
-                <label>
-                    <i class="fas fa-exclamation-circle"></i>
-                    Niveau
-                </label>
-                <select id="filterNiveau" class="filter-select">
-                    <option value="">Tous les niveaux</option>
-                    <option value="critique" {% if niveauFilter == 'critique' %}selected{% endif %}>Critique</option>
-                    <option value="attention" {% if niveauFilter == 'attention' %}selected{% endif %}>Attention</option>
-                </select>
-            </div>
-            
-            <div class="filter-group">
-                <label>
-                    <i class="fas fa-tag"></i>
-                    Catégorie
-                </label>
-                <select id="filterCategorie" class="filter-select">
-                    <option value="">Toutes les catégories</option>
-                    {% for categorieNom in categories %}
-                        <option value="{{ categorieNom }}" {% if categorieFilter == categorieNom %}selected{% endif %}>
-                            {{ categorieNom|capitalize }}
-                        </option>
-                    {% endfor %}
-                </select>
-            </div>
-            
-            <div class="filter-group">
-                <label>
-                    <i class="fas fa-user"></i>
-                    Segment d'âge
-                </label>
-                <select id="filterSegment" class="filter-select">
-                    <option value="">Tous les segments</option>
-                    {% for segmentNom in segments %}
-                        <option value="{{ segmentNom }}" {% if segmentFilter == segmentNom %}selected{% endif %}>
-                            {{ segmentNom|capitalize }}
-                        </option>
-                    {% endfor %}
-                </select>
-            </div>
+                <div class="filter-group">
+                    <label for="filterNiveau">
+                        <i class="fas fa-exclamation-circle"></i>
+                        Niveau d'alerte
+                    </label>
+                    <select id="filterNiveau" class="filter-select">
+                        <option value="">Tous les niveaux</option>
+                        <option value="critique" {% if niveauFilter == 'critique' %}selected{% endif %}>Critique</option>
+                        <option value="attention" {% if niveauFilter == 'attention' %}selected{% endif %}>Attention</option>
+                    </select>
+                </div>
+                
+                <div class="filter-group">
+                    <label for="filterCategorie">
+                        <i class="fas fa-tag"></i>
+                        Catégorie
+                    </label>
+                    <select id="filterCategorie" class="filter-select">
+                        <option value="">Toutes les catégories</option>
+                        {% for categorieNom in categories %}
+                            <option value="{{ categorieNom }}" {% if categorieFilter == categorieNom %}selected{% endif %}>
+                                {{ categorieNom|capitalize }}
+                            </option>
+                        {% endfor %}
+                    </select>
+                </div>
+                
+                <div class="filter-group">
+                    <label for="filterSegment">
+                        <i class="fas fa-user"></i>
+                        Segment d'âge
+                    </label>
+                    <select id="filterSegment" class="filter-select">
+                        <option value="">Tous les segments</option>
+                        {% for segmentNom in segments %}
+                            <option value="{{ segmentNom }}" {% if segmentFilter == segmentNom %}selected{% endif %}>
+                                {{ segmentNom|capitalize }}
+                            </option>
+                        {% endfor %}
+                    </select>
+                </div>
             </div>
         </div>
     </div>
@@ -693,186 +858,194 @@
     <!-- Liste des alertes -->
     <div class="alerts-container">
         {% if alertes is empty %}
-            <div style="text-align: center; padding: 60px; color: var(--gray-600);">
-                <i class="fas fa-check-circle" style="font-size: 4rem; margin-bottom: 16px; display: block; color: var(--success); opacity: 0.5;"></i>
-                <h3 style="color: var(--success); margin-bottom: 8px;">Aucune alerte</h3>
+            <div class="empty-state">
+                <i class="fas fa-check-circle"></i>
+                <h3>Aucune alerte</h3>
                 <p>Tous vos stocks sont à un niveau acceptable.</p>
             </div>
         {% else %}
+            <!-- Alertes critiques -->
             {% if alertesCritiquesPaginated|length > 0 %}
-        <div class="alerts-section">
-            <h3 class="section-title">
-                <i class="fas fa-exclamation-triangle" style="color: var(--danger);"></i>
-                Alertes critiques
-            </h3>
-            
+                <div class="alerts-section">
+                    <h3 class="section-title">
+                        <i class="fas fa-exclamation-triangle" style="color: var(--danger);"></i>
+                        Alertes critiques
+                        <span class="badge badge-danger ml-2">{{ alertesCritiquesPaginated|length }}</span>
+                    </h3>
+                    
                     {% for alerte in alertesCritiquesPaginated %}
                         {% set typeBillet = alerte.typeBillet %}
                         {% set inventaire = alerte.inventaire %}
                         {% set evenement = typeBillet.evenement %}
                         {% set categorieId = typeBillet.configurationCategorie ? typeBillet.configurationCategorie.id : 'sans_categorie' %}
                         {% set capaciteTotaleCategorie = (evenement and capaciteParCategorie[evenement.id][categorieId] is defined) ? capaciteParCategorie[evenement.id][categorieId] : 0 %}
+                        
                         <div class="alert-item alert-critical">
-                <div class="alert-status">
-                    <div class="alert-icon">
-                        <i class="fas fa-fire"></i>
-                    </div>
-                    <div class="alert-priority">
-                        <span class="priority-badge critical">
-                            <i class="fas fa-exclamation"></i>
-                            CRITIQUE
-                        </span>
-                    </div>
-                </div>
-                
-                <div class="alert-content">
-                    <div class="alert-header">
-                                    <h4>{{ evenement ? evenement.titre : 'N/A' }} - {{ typeBillet.nom }}</h4>
+                            <div class="alert-status">
+                                <div class="alert-icon">
+                                    <i class="fas fa-fire"></i>
+                                </div>
+                                <span class="priority-badge critical">
+                                    <i class="fas fa-exclamation"></i>
+                                    CRITIQUE
+                                </span>
+                            </div>
+                            
+                            <div class="alert-content">
+                                <div class="alert-header">
+                                    <h4>{{ evenement ? evenement.titre : 'Événement non spécifié' }} - {{ typeBillet.nom }}</h4>
                                     <span class="alert-time">Stock bas</span>
-                    </div>
-                    <p class="alert-description">
-                                    Stock critique : seulement {{ alerte.quantiteRestante }} billet(s) restant(s) sur {{ inventaire.quantiteTotale }} ({{ alerte.pourcentage|number_format(1) }}%)
-                    </p>
-                    <div class="alert-details">
+                                </div>
+                                
+                                <p class="alert-description">
+                                    Stock critique : seulement {{ alerte.quantiteRestante }} billet(s) restant(s) sur {{ alerte.quantiteTotale }} ({{ alerte.pourcentage|number_format(1) }}%)
+                                </p>
+                                
+                                <div class="alert-details">
                                     {% if evenement %}
                                         {% if evenement.commenceLe %}
-                        <span class="detail-item">
-                            <i class="fas fa-calendar"></i>
+                                            <span class="detail-item">
+                                                <i class="fas fa-calendar"></i>
                                                 Événement : {{ evenement.commenceLe|date('d M Y') }}
-                        </span>
+                                            </span>
                                         {% endif %}
                                         {% if evenement.lieu %}
-                        <span class="detail-item">
-                            <i class="fas fa-map-marker-alt"></i>
+                                            <span class="detail-item">
+                                                <i class="fas fa-map-marker-alt"></i>
                                                 {{ evenement.lieu.nom }}
-                        </span>
+                                            </span>
                                         {% endif %}
                                     {% endif %}
-                        <span class="detail-item">
-                            <i class="fas fa-euro-sign"></i>
+                                    <span class="detail-item">
+                                        <i class="fas fa-euro-sign"></i>
                                         Prix : {{ typeBillet.prixDeBase|number_format(2, ',', ' ') }} {{ typeBillet.devise }}
-                        </span>
-                    </div>
-                </div>
-                
-                <div class="alert-actions">
-                                {% if evenement %}
-                                    <a href="{{ path('organisateur_events_show', { id: evenement.id }) }}" class="btn btn-sm btn-primary">
-                        <i class="fas fa-eye"></i>
-                        Voir l'événement
-                                    </a>
-                                {% endif %}
-                    <button class="btn btn-sm btn-secondary" onclick="openEditModal({{ typeBillet.id }}, '{{ typeBillet.prixDeBase }}', {{ inventaire.quantiteTotale }}, {{ inventaire.quantiteVendue }}, {{ capaciteTotaleCategorie }})">
-                        <i class="fas fa-edit"></i>
-                        Modifier stock
-                    </button>
-                </div>
-            </div>
+                                    </span>
+                                </div>
+                                
+                                <div class="alert-actions">
+                                    {% if evenement %}
+                                        <a href="{{ path('organisateur_events_show', { id: evenement.id }) }}" class="btn btn-sm btn-primary">
+                                            <i class="fas fa-eye"></i>
+                                            Voir l'événement
+                                        </a>
+                                    {% endif %}
+                                    <button class="btn btn-sm btn-secondary" 
+                                            onclick="openEditModal({{ typeBillet.id }}, '{{ typeBillet.prixDeBase }}', {{ alerte.quantiteTotale }}, {{ alerte.quantiteVendue }}, {{ capaciteTotaleCategorie }})">
+                                        <i class="fas fa-edit"></i>
+                                        Modifier stock
+                                    </button>
+                                </div>
+                            </div>
+                        </div>
                     {% endfor %}
-                    </div>
+                </div>
             {% endif %}
             
+            <!-- Alertes d'attention -->
             {% if alertesAttentionPaginated|length > 0 %}
-        <div class="alerts-section">
-            <h3 class="section-title">
-                <i class="fas fa-exclamation-triangle" style="color: var(--warning);"></i>
-                Alertes d'attention
-            </h3>
-            
+                <div class="alerts-section">
+                    <h3 class="section-title">
+                        <i class="fas fa-exclamation-triangle" style="color: var(--warning);"></i>
+                        Alertes d'attention
+                        <span class="badge badge-warning ml-2">{{ alertesAttentionPaginated|length }}</span>
+                    </h3>
+                    
                     {% for alerte in alertesAttentionPaginated %}
                         {% set typeBillet = alerte.typeBillet %}
                         {% set inventaire = alerte.inventaire %}
                         {% set evenement = typeBillet.evenement %}
                         {% set categorieId = typeBillet.configurationCategorie ? typeBillet.configurationCategorie.id : 'sans_categorie' %}
                         {% set capaciteTotaleCategorie = (evenement and capaciteParCategorie[evenement.id][categorieId] is defined) ? capaciteParCategorie[evenement.id][categorieId] : 0 %}
-            <div class="alert-item alert-warning">
-                <div class="alert-status">
-                    <div class="alert-icon">
-                        <i class="fas fa-exclamation-triangle"></i>
-                    </div>
-                    <div class="alert-priority">
-                        <span class="priority-badge warning">ATTENTION</span>
-                    </div>
-                </div>
-                
-                <div class="alert-content">
-                    <div class="alert-header">
-                                    <h4>{{ evenement ? evenement.titre : 'N/A' }} - {{ typeBillet.nom }}</h4>
+                        
+                        <div class="alert-item alert-warning">
+                            <div class="alert-status">
+                                <div class="alert-icon">
+                                    <i class="fas fa-exclamation-triangle"></i>
+                                </div>
+                                <span class="priority-badge warning">
+                                    ATTENTION
+                                </span>
+                            </div>
+                            
+                            <div class="alert-content">
+                                <div class="alert-header">
+                                    <h4>{{ evenement ? evenement.titre : 'Événement non spécifié' }} - {{ typeBillet.nom }}</h4>
                                     <span class="alert-time">Surveillance requise</span>
-                    </div>
-                    <p class="alert-description">
-                                    Stock bas : {{ alerte.quantiteRestante }} billet(s) restant(s) sur {{ inventaire.quantiteTotale }} ({{ alerte.pourcentage|number_format(1) }}%)
-                    </p>
-                    <div class="alert-details">
+                                </div>
+                                
+                                <p class="alert-description">
+                                    Stock bas : {{ alerte.quantiteRestante }} billet(s) restant(s) sur {{ alerte.quantiteTotale }} ({{ alerte.pourcentage|number_format(1) }}%)
+                                </p>
+                                
+                                <div class="alert-details">
                                     {% if evenement %}
                                         {% if evenement.commenceLe %}
-                        <span class="detail-item">
-                            <i class="fas fa-calendar"></i>
+                                            <span class="detail-item">
+                                                <i class="fas fa-calendar"></i>
                                                 Événement : {{ evenement.commenceLe|date('d M Y') }}
-                        </span>
+                                            </span>
                                         {% endif %}
                                         {% if evenement.lieu %}
-                        <span class="detail-item">
-                            <i class="fas fa-map-marker-alt"></i>
+                                            <span class="detail-item">
+                                                <i class="fas fa-map-marker-alt"></i>
                                                 {{ evenement.lieu.nom }}
-                        </span>
+                                            </span>
                                         {% endif %}
                                     {% endif %}
-                        <span class="detail-item">
-                            <i class="fas fa-euro-sign"></i>
+                                    <span class="detail-item">
+                                        <i class="fas fa-euro-sign"></i>
                                         Prix : {{ typeBillet.prixDeBase|number_format(2, ',', ' ') }} {{ typeBillet.devise }}
-                        </span>
-                    </div>
-                </div>
-                
-                <div class="alert-actions">
-                                {% if evenement %}
-                                    <a href="{{ path('organisateur_events_show', { id: evenement.id }) }}" class="btn btn-sm btn-primary">
-                        <i class="fas fa-eye"></i>
-                        Voir l'événement
-                                    </a>
-                                {% endif %}
-                    <button class="btn btn-sm btn-secondary" onclick="openEditModal({{ typeBillet.id }}, '{{ typeBillet.prixDeBase }}', {{ inventaire.quantiteTotale }}, {{ inventaire.quantiteVendue }}, {{ capaciteTotaleCategorie }})">
-                        <i class="fas fa-edit"></i>
-                        Modifier stock
-                    </button>
-                </div>
-            </div>
+                                    </span>
+                                </div>
+                                
+                                <div class="alert-actions">
+                                    {% if evenement %}
+                                        <a href="{{ path('organisateur_events_show', { id: evenement.id }) }}" class="btn btn-sm btn-primary">
+                                            <i class="fas fa-eye"></i>
+                                            Voir l'événement
+                                        </a>
+                                    {% endif %}
+                                    <button class="btn btn-sm btn-secondary" 
+                                            onclick="openEditModal({{ typeBillet.id }}, '{{ typeBillet.prixDeBase }}', {{ alerte.quantiteTotale }}, {{ alerte.quantiteVendue }}, {{ capaciteTotaleCategorie }})">
+                                        <i class="fas fa-edit"></i>
+                                        Modifier stock
+                                    </button>
+                                </div>
+                            </div>
+                        </div>
                     {% endfor %}
-        </div>
+                </div>
             {% endif %}
         {% endif %}
+    </div>
 
-        <!-- Pagination -->
-        {% if totalPages > 1 %}
-            {% set maxPagesToShow = 5 %}
-            {% set startPage = currentPage - 2 %}
-            {% if startPage < 1 %}
-                {% set startPage = 1 %}
-            {% endif %}
-            {% set endPage = startPage + maxPagesToShow - 1 %}
-            {% if endPage > totalPages %}
-                {% set endPage = totalPages %}
-            {% endif %}
-            {% set startPage = endPage - maxPagesToShow + 1 %}
-            {% if startPage < 1 %}
-                {% set startPage = 1 %}
-            {% endif %}
+    <!-- Pagination -->
+    {% if totalPages > 1 %}
+        <div class="pagination-wrapper">
+            <ul class="pagination">
+                <li class="page-item {{ currentPage == 1 ? 'disabled' }}">
+                    {% if currentPage == 1 %}
+                        <span class="page-link" aria-disabled="true">Précédent</span>
+                    {% else %}
+                        <a class="page-link" href="{{ path('app_ticket_stock_alerts', { 
+                            page: currentPage - 1,
+                            niveau: niveauFilter|default(''),
+                            categorie: categorieFilter|default(''),
+                            segment: segmentFilter|default('')
+                        }) }}" rel="prev">Précédent</a>
+                    {% endif %}
+                </li>
 
-            <div class="pagination-wrapper" style="margin-top: 2rem;">
-                <ul class="pagination pagination-rounded">
-                    <li class="page-item {{ currentPage == 1 ? 'disabled' }}">
-                        {% if currentPage == 1 %}
-                            <span class="page-link" aria-disabled="true">Précédent</span>
-                        {% else %}
-                            <a class="page-link" href="{{ path('app_ticket_stock_alerts', { 
-                                page: currentPage - 1,
-                                niveau: niveauFilter|default(''),
-                                categorie: categorieFilter|default(''),
-                                segment: segmentFilter|default('')
-                            }) }}" rel="prev">Précédent</a>
-                        {% endif %}
-                    </li>
+                {% if totalPages > 1 %}
+                    {% set maxPagesToShow = 5 %}
+                    {% set half = (maxPagesToShow - 1) // 2 %}
+                    
+                    {% set startPage = max(1, currentPage - half) %}
+                    {% set endPage = min(totalPages, startPage + maxPagesToShow - 1) %}
+                    
+                    {% if endPage - startPage + 1 < maxPagesToShow %}
+                        {% set startPage = max(1, endPage - maxPagesToShow + 1) %}
+                    {% endif %}
 
                     {% if startPage > 1 %}
                         <li class="page-item">
@@ -884,7 +1057,7 @@
                             }) }}">1</a>
                         </li>
                         {% if startPage > 2 %}
-                            <li class="page-item ellipsis" aria-hidden="true"><span class="page-link">…</span></li>
+                            <li class="page-item ellipsis"><span class="page-link">...</span></li>
                         {% endif %}
                     {% endif %}
 
@@ -905,7 +1078,7 @@
 
                     {% if endPage < totalPages %}
                         {% if endPage < totalPages - 1 %}
-                            <li class="page-item ellipsis" aria-hidden="true"><span class="page-link">…</span></li>
+                            <li class="page-item ellipsis"><span class="page-link">...</span></li>
                         {% endif %}
                         <li class="page-item">
                             <a class="page-link" href="{{ path('app_ticket_stock_alerts', { 
@@ -916,430 +1089,71 @@
                             }) }}">{{ totalPages }}</a>
                         </li>
                     {% endif %}
+                {% endif %}
 
-                    <li class="page-item {{ currentPage == totalPages ? 'disabled' }}">
-                        {% if currentPage == totalPages %}
-                            <span class="page-link" aria-disabled="true">Suivant</span>
-                        {% else %}
-                            <a class="page-link" href="{{ path('app_ticket_stock_alerts', { 
-                                page: currentPage + 1,
-                                niveau: niveauFilter|default(''),
-                                categorie: categorieFilter|default(''),
-                                segment: segmentFilter|default('')
-                            }) }}" rel="next">Suivant</a>
-                        {% endif %}
-                    </li>
-                </ul>
-                </div>
-            <div class="pagination-summary" style="text-align: center; margin-top: 0.75rem; color: var(--text-secondary); font-size: 0.9rem;">
+                <li class="page-item {{ currentPage == totalPages ? 'disabled' }}">
+                    {% if currentPage == totalPages %}
+                        <span class="page-link" aria-disabled="true">Suivant</span>
+                    {% else %}
+                        <a class="page-link" href="{{ path('app_ticket_stock_alerts', { 
+                            page: currentPage + 1,
+                            niveau: niveauFilter|default(''),
+                            categorie: categorieFilter|default(''),
+                            segment: segmentFilter|default('')
+                        }) }}" rel="next">Suivant</a>
+                    {% endif %}
+                </li>
+            </ul>
+            
+            <div class="pagination-summary">
                 {% set startItem = ((currentPage - 1) * limit) + 1 %}
                 {% set endItem = min(currentPage * limit, totalItems) %}
                 <small>Page {{ currentPage }} sur {{ totalPages }} - Affichage de {{ startItem }} à {{ endItem }} sur {{ totalItems }} alerte(s)</small>
             </div>
-        {% elseif totalItems > 0 %}
-            <div class="pagination-wrapper" style="margin-top: 2rem;">
-                <div class="pagination-summary" style="text-align: center; color: var(--text-secondary); font-size: 0.9rem;">
-                    <small>Affichage de {{ totalItems }} alerte(s)</small>
         </div>
+    {% elseif totalItems > 0 %}
+        <div class="pagination-wrapper">
+            <div class="pagination-summary">
+                <small>Affichage de {{ totalItems }} alerte(s)</small>
             </div>
-        {% endif %}
-    </div>
+        </div>
+    {% endif %}
 </div>
 
-<style>
-/* Styles pour les alertes */
-.alerts-stats {
-    display: grid;
-    grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
-    gap: 20px;
-    margin-bottom: 30px;
-}
-
-/* Styles des cartes de statistiques */
-.stat-card h3 {
-    font-size: 2.5rem;
-    font-weight: var(--font-weight-bold);
-    color: var(--text-primary);
-}
-
-.stat-trend {
-    display: flex;
-    align-items: center;
-    gap: 5px;
-    font-size: 0.8rem;
-    margin-top: 5px;
-    padding: 4px 8px;
-    border-radius: var(--border-radius-sm);
-    background: rgba(52, 152, 219, 0.1);
-    color: var(--info);
-    width: fit-content;
-}
-
-.stat-trend.critical {
-    background: rgba(231, 76, 60, 0.1);
-    color: var(--danger);
-}
-
-.stat-trend.success {
-    background: rgba(39, 174, 96, 0.1);
-    color: var(--success);
-}
-
-.stat-trend i {
-    font-size: 0.7rem;
-}
-
-.alerts-filters {
-    background: var(--bg-card);
-    border: 1px solid var(--border-color);
-    border-radius: var(--border-radius-md);
-    margin-bottom: 30px;
-    overflow: hidden;
-    box-shadow: var(--shadow-sm);
-}
-
-.filters-header {
-    background: var(--gray-50);
-    padding: 16px 20px;
-    border-bottom: 1px solid var(--border-color);
-    display: flex;
-    justify-content: space-between;
-    align-items: center;
-}
-
-.filters-header h3 {
-    margin: 0;
-    font-size: 1.1rem;
-    font-weight: var(--font-weight-semibold);
-    color: var(--text-primary);
-    display: flex;
-    align-items: center;
-    gap: 8px;
-}
-
-.filters-content {
-    padding: 20px;
-    display: grid;
-    grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
-    gap: 20px;
-}
-
-.filter-group {
-    display: flex;
-    flex-direction: column;
-    gap: 8px;
-}
-
-.filter-group label {
-    font-weight: var(--font-weight-semibold);
-    color: var(--text-primary);
-    font-size: 0.9rem;
-    display: flex;
-    align-items: center;
-    gap: 6px;
-}
-
-.filter-select, .filter-search {
-    padding: 10px 12px;
-    border: 2px solid var(--border-color);
-    border-radius: var(--border-radius-sm);
-    background: var(--bg-secondary);
-    color: var(--text-primary);
-    font-size: 0.9rem;
-    transition: all 0.3s ease;
-}
-
-.filter-select:focus, .filter-search:focus {
-    outline: none;
-    border-color: var(--accent);
-    box-shadow: 0 0 0 3px rgba(52, 152, 219, 0.1);
-}
-
-.filter-search {
-    width: 100%;
-}
-
-.btn-outline {
-    background: transparent;
-    border: 2px solid var(--border-color);
-    color: var(--text-secondary);
-}
-
-.btn-outline:hover {
-    background: var(--gray-100);
-    border-color: var(--accent);
-    color: var(--accent);
-}
-
-.alerts-container {
-    display: flex;
-    flex-direction: column;
-    gap: 30px;
-}
-
-.alerts-section {
-    background: var(--bg-card);
-    border: 1px solid var(--border-color);
-    border-radius: var(--border-radius-md);
-    overflow: hidden;
-}
-
-.section-title {
-    background: var(--gray-50);
-    padding: 16px 20px;
-    margin: 0;
-    font-size: 1.1rem;
-    font-weight: var(--font-weight-semibold);
-    color: var(--text-primary);
-    border-bottom: 1px solid var(--border-color);
-    display: flex;
-    align-items: center;
-    gap: 10px;
-}
-
-.alert-item {
-    display: flex;
-    align-items: center;
-    padding: 20px;
-    border-bottom: 1px solid var(--border-light);
-    transition: var(--transition-base);
-    gap: 20px;
-}
-
-.alert-item:last-child {
-    border-bottom: none;
-}
-
-.alert-item:hover {
-    background: var(--gray-50);
-}
-
-.alert-status {
-    display: flex;
-    flex-direction: column;
-    align-items: center;
-    gap: 8px;
-    flex-shrink: 0;
-}
-
-.alert-icon {
-    width: 40px;
-    height: 40px;
-    border-radius: 50%;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    font-size: 1.2rem;
-    color: var(--white);
-    position: relative;
-    overflow: hidden;
-}
-
-
-.alert-critical .alert-icon {
-    background: var(--danger);
-}
-
-.alert-warning .alert-icon {
-    background: var(--warning);
-}
-
-.alert-info .alert-icon {
-    background: var(--info);
-}
-
-.priority-badge {
-    padding: 6px 10px;
-    border-radius: var(--border-radius-sm);
-    font-size: 0.7rem;
-    font-weight: var(--font-weight-bold);
-    text-transform: uppercase;
-    letter-spacing: 0.5px;
-    display: flex;
-    align-items: center;
-    gap: 4px;
-}
-
-.priority-badge.critical {
-    background: rgba(231, 76, 60, 0.1);
-    color: var(--danger);
-}
-
-.priority-badge.warning {
-    background: rgba(243, 156, 18, 0.1);
-    color: var(--warning);
-}
-
-.priority-badge.info {
-    background: rgba(52, 152, 219, 0.1);
-    color: var(--info);
-}
-
-.alert-content {
-    flex: 1;
-    display: flex;
-    flex-direction: column;
-    gap: 8px;
-}
-
-.alert-header {
-    display: flex;
-    justify-content: space-between;
-    align-items: flex-start;
-    gap: 15px;
-}
-
-.alert-header h4 {
-    margin: 0;
-    font-size: 1.1rem;
-    font-weight: var(--font-weight-semibold);
-    color: var(--text-primary);
-    line-height: 1.3;
-}
-
-.alert-time {
-    color: var(--text-muted);
-    font-size: 0.85rem;
-    white-space: nowrap;
-}
-
-.alert-description {
-    color: var(--text-secondary);
-    font-size: 0.95rem;
-    line-height: 1.4;
-    margin: 0;
-}
-
-.alert-details {
-    display: flex;
-    gap: 20px;
-    flex-wrap: wrap;
-    margin-top: 8px;
-}
-
-.detail-item {
-    display: flex;
-    align-items: center;
-    gap: 6px;
-    color: var(--text-muted);
-    font-size: 0.85rem;
-}
-
-.detail-item i {
-    color: var(--accent);
-    width: 12px;
-}
-
-.alert-actions {
-    display: flex;
-    gap: 8px;
-    flex-shrink: 0;
-}
-
-.btn-sm {
-    padding: 6px 12px;
-    font-size: 0.8rem;
-    border-radius: var(--border-radius-sm);
-}
-
-/* Responsive */
-@media (max-width: 768px) {
-    .alerts-filters {
-        flex-direction: column;
-        align-items: stretch;
-        gap: 15px;
-    }
-    
-    .filter-group {
-        width: 100%;
-    }
-    
-    .filter-select {
-        width: 100%;
-    }
-    
-    .alert-item {
-        flex-direction: column;
-        align-items: stretch;
-        gap: 15px;
-    }
-    
-    .alert-status {
-        flex-direction: row;
-        justify-content: space-between;
-    }
-    
-    .alert-actions {
-        justify-content: center;
-        flex-wrap: wrap;
-    }
-    
-    .alert-details {
-        flex-direction: column;
-        gap: 8px;
-    }
-}
-
-/* Pagination */
-.pagination-wrapper {
-    display: flex;
-    justify-content: center;
-    margin-top: 1rem;
-}
-
-.pagination {
-    list-style: none;
-    padding: 0;
-    margin: 0;
-    display: inline-flex;
-    align-items: center;
-    gap: 0.35rem;
-}
-
-.pagination-rounded .page-link {
-    border-radius: 999px !important;
-}
-
-.pagination .page-item.disabled .page-link {
-    pointer-events: none;
-    opacity: 0.5;
-}
-
-.pagination .page-item.active .page-link {
-    background: var(--accent);
-    border-color: var(--accent);
-    color: var(--text-inverse);
-    font-weight: var(--font-weight-medium);
-}
-
-.pagination .page-link {
-    border-radius: var(--border-radius-sm);
-    border: 1px solid var(--border-color);
-    padding: 6px 14px;
-    color: var(--text-secondary);
-    background: var(--bg-secondary);
-    transition: var(--transition-base);
-    text-decoration: none;
-}
-
-.pagination .page-link:hover {
-    color: var(--accent);
-    border-color: var(--accent);
-}
-
-.pagination .ellipsis .page-link {
-    border: none;
-    background: transparent;
-    color: var(--text-secondary);
-}
-
-.pagination-summary {
-    text-align: center;
-    margin-top: 0.75rem;
-    color: var(--text-secondary);
-    font-size: 0.9rem;
-}
-</style>
+<!-- Modal de modification -->
+<div id="editModal" class="modal-overlay">
+    <div class="modal-content">
+        <div class="modal-header">
+            <h3><i class="fas fa-edit"></i> Modifier le type de billet</h3>
+            <button type="button" class="modal-close" id="closeModal">&times;</button>
+        </div>
+        <div class="modal-body" id="modalBody">
+            <form id="editForm" method="post">
+                <div class="form-group">
+                    <label for="prixDeBase">Prix unitaire ({{ typeBillet.devise|default('EUR') }})</label>
+                    <input type="number" id="prixDeBase" name="prixDeBase" class="form-control" step="0.01" min="0" required>
+                    <div class="form-error" id="prixError"></div>
+                </div>
+                <div class="form-group">
+                    <label for="quantiteTotale">Quantité totale</label>
+                    <input type="number" id="quantiteTotale" name="quantiteTotale" class="form-control" min="1" required>
+                    <div class="form-error" id="quantiteError"></div>
+                    <div class="form-help">
+                        Quantité minimum : <span id="minQuantite">0</span> (quantité déjà vendue)
+                    </div>
+                    <div class="form-help" style="color: var(--accent);">
+                        <i class="fas fa-info-circle"></i> Capacité totale pour cette catégorie : <span id="capaciteTotaleCategorie">0</span> billet(s)
+                    </div>
+                </div>
+                <input type="hidden" id="typeBilletId" name="typeBilletId">
+            </form>
+        </div>
+        <div class="modal-footer">
+            <button type="button" class="btn-modal btn-modal-secondary" id="cancelBtn">Annuler</button>
+            <button type="button" class="btn-modal btn-modal-primary" id="saveBtn">Enregistrer</button>
+        </div>
+    </div>
+</div>
 
 <script>
 document.addEventListener('DOMContentLoaded', function() {
@@ -1349,6 +1163,9 @@ document.addEventListener('DOMContentLoaded', function() {
         const selectedNiveau = document.getElementById('filterNiveau')?.value || '';
         const selectedCategorie = document.getElementById('filterCategorie')?.value || '';
         const selectedSegment = document.getElementById('filterSegment')?.value || '';
+        
+        // Reset à la page 1 lors du changement de filtre
+        url.searchParams.set('page', '1');
         
         if (selectedNiveau) {
             url.searchParams.set('niveau', selectedNiveau);
@@ -1368,58 +1185,153 @@ document.addEventListener('DOMContentLoaded', function() {
             url.searchParams.delete('segment');
         }
         
-        url.searchParams.delete('page'); // Réinitialiser à la page 1 lors du changement de filtre
-        
         window.location.href = url.toString();
     }
     
-    const clearFiltersBtn = document.getElementById('clearFilters');
-    const filterNiveau = document.getElementById('filterNiveau');
-    const filterCategorie = document.getElementById('filterCategorie');
-    const filterSegment = document.getElementById('filterSegment');
+    // Écouteurs d'événements
+    document.getElementById('clearFilters')?.addEventListener('click', function() {
+        window.location.href = '{{ path("app_ticket_stock_alerts") }}';
+    });
     
-    if (clearFiltersBtn) {
-        clearFiltersBtn.addEventListener('click', function() {
-            if (filterNiveau) filterNiveau.selectedIndex = 0;
-            if (filterCategorie) filterCategorie.selectedIndex = 0;
-            if (filterSegment) filterSegment.selectedIndex = 0;
-            updateFilters();
-        });
+    document.getElementById('filterNiveau')?.addEventListener('change', updateFilters);
+    document.getElementById('filterCategorie')?.addEventListener('change', updateFilters);
+    document.getElementById('filterSegment')?.addEventListener('change', updateFilters);
+    
+    // Modal
+    const modal = document.getElementById('editModal');
+    const closeModalBtn = document.getElementById('closeModal');
+    const cancelBtn = document.getElementById('cancelBtn');
+    
+    // Fermer le modal
+    function closeModal() {
+        modal.classList.remove('active');
+        document.body.style.overflow = 'auto';
     }
     
-    if (filterNiveau) {
-        filterNiveau.addEventListener('change', updateFilters);
-    }
+    if (closeModalBtn) closeModalBtn.addEventListener('click', closeModal);
+    if (cancelBtn) cancelBtn.addEventListener('click', closeModal);
     
-    if (filterCategorie) {
-        filterCategorie.addEventListener('change', updateFilters);
-    }
+    modal?.addEventListener('click', function(e) {
+        if (e.target === this) closeModal();
+    });
     
-    if (filterSegment) {
-        filterSegment.addEventListener('change', updateFilters);
-    }
+    document.addEventListener('keydown', function(e) {
+        if (e.key === 'Escape' && modal?.classList.contains('active')) {
+            closeModal();
+        }
+    });
+    
+    // Soumission du formulaire
+    document.getElementById('saveBtn')?.addEventListener('click', async function() {
+        const form = document.getElementById('editForm');
+        const typeBilletId = document.getElementById('typeBilletId').value;
+        const prixDeBase = document.getElementById('prixDeBase').value;
+        const quantiteTotale = document.getElementById('quantiteTotale').value;
+        const minQuantite = parseInt(document.getElementById('quantiteTotale').min);
+        
+        // Validation
+        let isValid = true;
+        
+        if (!prixDeBase || parseFloat(prixDeBase) < 0) {
+            document.getElementById('prixError').textContent = 'Le prix doit être supérieur ou égal à 0';
+            document.getElementById('prixDeBase').classList.add('error');
+            isValid = false;
+        } else {
+            document.getElementById('prixError').textContent = '';
+            document.getElementById('prixDeBase').classList.remove('error');
+        }
+        
+        if (!quantiteTotale || parseInt(quantiteTotale) < minQuantite) {
+            document.getElementById('quantiteError').textContent = `La quantité doit être supérieure ou égale à ${minQuantite}`;
+            document.getElementById('quantiteTotale').classList.add('error');
+            isValid = false;
+        } else {
+            document.getElementById('quantiteError').textContent = '';
+            document.getElementById('quantiteTotale').classList.remove('error');
+        }
+        
+        if (!isValid) return;
+        
+        // Désactiver le bouton pendant la requête
+        const saveBtn = this;
+        const originalText = saveBtn.innerHTML;
+        saveBtn.disabled = true;
+        saveBtn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Enregistrement...';
+        
+        try {
+            const response = await fetch(`/tickets/types/${typeBilletId}/edit`, {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'X-Requested-With': 'XMLHttpRequest',
+                },
+                body: JSON.stringify({
+                    prixDeBase: parseFloat(prixDeBase),
+                    quantiteTotale: parseInt(quantiteTotale)
+                })
+            });
+            
+            const data = await response.json();
+            
+            if (data.success) {
+                // Afficher message de succès
+                const successMessage = document.createElement('div');
+                successMessage.className = 'alert alert-success';
+                successMessage.style.cssText = 'padding: 12px; margin-bottom: 16px; background: var(--success); color: white; border-radius: var(--border-radius-sm);';
+                successMessage.innerHTML = `<i class="fas fa-check-circle"></i> ${data.message}`;
+                document.getElementById('modalBody').insertBefore(successMessage, form);
+                
+                // Fermer et recharger
+                setTimeout(() => {
+                    closeModal();
+                    window.location.reload();
+                }, 1500);
+            } else {
+                // Afficher erreurs
+                if (data.errors) {
+                    if (data.errors.prixDeBase) {
+                        document.getElementById('prixError').textContent = data.errors.prixDeBase;
+                        document.getElementById('prixDeBase').classList.add('error');
+                    }
+                    if (data.errors.quantiteTotale) {
+                        document.getElementById('quantiteError').textContent = data.errors.quantiteTotale;
+                        document.getElementById('quantiteTotale').classList.add('error');
+                    }
+                } else if (data.message) {
+                    document.getElementById('quantiteError').textContent = data.message;
+                    document.getElementById('quantiteTotale').classList.add('error');
+                }
+                
+                // Réactiver le bouton
+                saveBtn.disabled = false;
+                saveBtn.innerHTML = originalText;
+            }
+        } catch (error) {
+            console.error('Erreur:', error);
+            document.getElementById('quantiteError').textContent = 'Une erreur est survenue lors de l\'enregistrement';
+            saveBtn.disabled = false;
+            saveBtn.innerHTML = originalText;
+        }
+    });
 });
 
-// Fonction pour ouvrir le modal de modification
+// Fonction pour ouvrir le modal
 function openEditModal(typeBilletId, prixDeBase, stockTotal, vendus, capaciteTotaleCategorie = 0) {
     const modal = document.getElementById('editModal');
-    const form = document.getElementById('editForm');
     const prixInput = document.getElementById('prixDeBase');
     const quantiteInput = document.getElementById('quantiteTotale');
     const typeBilletIdInput = document.getElementById('typeBilletId');
     const minQuantiteSpan = document.getElementById('minQuantite');
     const capaciteTotaleSpan = document.getElementById('capaciteTotaleCategorie');
 
+    // Remplir les champs
     typeBilletIdInput.value = typeBilletId;
-    // Convertir le prix en nombre (supprimer les espaces et formater)
     const prix = parseFloat(String(prixDeBase).replace(/\s/g, '').replace(',', '.'));
     prixInput.value = isNaN(prix) ? 0 : prix;
     quantiteInput.value = stockTotal;
     quantiteInput.min = vendus;
     minQuantiteSpan.textContent = vendus;
-    if (capaciteTotaleSpan) {
-        capaciteTotaleSpan.textContent = capaciteTotaleCategorie || 0;
-    }
+    capaciteTotaleSpan.textContent = capaciteTotaleCategorie || 0;
     
     // Réinitialiser les erreurs
     document.getElementById('prixError').textContent = '';
@@ -1427,175 +1339,13 @@ function openEditModal(typeBilletId, prixDeBase, stockTotal, vendus, capaciteTot
     prixInput.classList.remove('error');
     quantiteInput.classList.remove('error');
     
-    // Supprimer les messages de succès précédents
+    // Supprimer les messages précédents
     const successMessages = document.querySelectorAll('#modalBody .alert-success');
     successMessages.forEach(msg => msg.remove());
     
+    // Ouvrir le modal
     modal.classList.add('active');
+    document.body.style.overflow = 'hidden';
 }
-
-// Fermer le modal
-document.addEventListener('DOMContentLoaded', function() {
-    const closeModalBtn = document.getElementById('closeModal');
-    const cancelBtn = document.getElementById('cancelBtn');
-    const modal = document.getElementById('editModal');
-    
-    if (closeModalBtn) {
-        closeModalBtn.addEventListener('click', function() {
-            modal.classList.remove('active');
-        });
-    }
-    
-    if (cancelBtn) {
-        cancelBtn.addEventListener('click', function() {
-            modal.classList.remove('active');
-        });
-    }
-    
-    if (modal) {
-        modal.addEventListener('click', function(e) {
-            if (e.target === this) {
-                this.classList.remove('active');
-            }
-        });
-    }
-    
-    // Fermer avec Escape
-    document.addEventListener('keydown', function(e) {
-        if (e.key === 'Escape' && modal && modal.classList.contains('active')) {
-            modal.classList.remove('active');
-        }
-    });
-    
-    // Soumettre le formulaire
-    const saveBtn = document.getElementById('saveBtn');
-    if (saveBtn) {
-        saveBtn.addEventListener('click', function() {
-            const form = document.getElementById('editForm');
-            const formData = new FormData(form);
-            const typeBilletId = formData.get('typeBilletId');
-            const prixDeBase = formData.get('prixDeBase');
-            const quantiteTotale = formData.get('quantiteTotale');
-            const vendus = parseInt(document.getElementById('quantiteTotale').min);
-            
-            // Validation
-            let hasError = false;
-            
-            if (!prixDeBase || parseFloat(prixDeBase) < 0) {
-                document.getElementById('prixError').textContent = 'Le prix doit être supérieur ou égal à 0';
-                document.getElementById('prixDeBase').classList.add('error');
-                hasError = true;
-            } else {
-                document.getElementById('prixError').textContent = '';
-                document.getElementById('prixDeBase').classList.remove('error');
-            }
-            
-            if (!quantiteTotale || parseInt(quantiteTotale) < vendus) {
-                document.getElementById('quantiteError').textContent = `La quantité doit être supérieure ou égale à ${vendus}`;
-                document.getElementById('quantiteTotale').classList.add('error');
-                hasError = true;
-            } else {
-                document.getElementById('quantiteError').textContent = '';
-                document.getElementById('quantiteTotale').classList.remove('error');
-            }
-            
-            if (hasError) {
-                return;
-            }
-            
-            // Désactiver le bouton
-            this.disabled = true;
-            this.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Enregistrement...';
-            
-            // Envoyer la requête
-            fetch(`/tickets/types/${typeBilletId}/edit`, {
-                method: 'POST',
-                headers: {
-                    'Content-Type': 'application/json',
-                    'X-Requested-With': 'XMLHttpRequest',
-                },
-                body: JSON.stringify({
-                    prixDeBase: prixDeBase,
-                    quantiteTotale: quantiteTotale
-                })
-            })
-            .then(response => response.json())
-            .then(data => {
-                if (data.success) {
-                    // Afficher un message de succès
-                    const successMessage = document.createElement('div');
-                    successMessage.className = 'alert alert-success';
-                    successMessage.style.cssText = 'padding: 12px; margin-bottom: 16px; background: var(--success); color: white; border-radius: var(--border-radius-sm);';
-                    successMessage.innerHTML = `<i class="fas fa-check-circle"></i> ${data.message}`;
-                    document.getElementById('modalBody').insertBefore(successMessage, form);
-                    
-                    // Fermer le modal après 1.5 secondes et recharger la page
-                    setTimeout(() => {
-                        modal.classList.remove('active');
-                        window.location.reload();
-                    }, 1500);
-                } else {
-                    // Afficher l'erreur
-                    if (data.errors) {
-                        if (data.errors.prixDeBase) {
-                            document.getElementById('prixError').textContent = data.errors.prixDeBase;
-                            document.getElementById('prixDeBase').classList.add('error');
-                        }
-                        if (data.errors.quantiteTotale) {
-                            document.getElementById('quantiteError').textContent = data.errors.quantiteTotale;
-                            document.getElementById('quantiteTotale').classList.add('error');
-                        }
-                    } else if (data.message) {
-                        document.getElementById('quantiteError').textContent = data.message;
-                    }
-                    this.disabled = false;
-                    this.innerHTML = 'Enregistrer';
-                }
-            })
-            .catch(error => {
-                console.error('Erreur:', error);
-                document.getElementById('quantiteError').textContent = 'Une erreur est survenue lors de l\'enregistrement';
-                this.disabled = false;
-                this.innerHTML = 'Enregistrer';
-            });
-        });
-    }
-});
 </script>
-
-<!-- Modal pour modifier le prix et la quantité -->
-<div id="editModal" class="modal-overlay">
-    <div class="modal-content">
-        <div class="modal-header">
-            <h3><i class="fas fa-edit"></i> Modifier le type de billet</h3>
-            <button type="button" class="modal-close" id="closeModal">&times;</button>
-        </div>
-        <div class="modal-body" id="modalBody">
-            <form id="editForm" method="post">
-                <div class="form-group">
-                    <label for="prixDeBase">Prix unitaire</label>
-                    <input type="number" id="prixDeBase" name="prixDeBase" class="form-control" step="0.01" min="0" required>
-                    <div class="form-error" id="prixError"></div>
-                </div>
-                <div class="form-group">
-                    <label for="quantiteTotale">Quantité totale</label>
-                    <input type="number" id="quantiteTotale" name="quantiteTotale" class="form-control" min="1" required>
-                    <div class="form-error" id="quantiteError"></div>
-                    <small style="color: var(--text-secondary); margin-top: 4px; display: block;">
-                        La quantité ne peut pas être inférieure à <span id="minQuantite">0</span> (quantité déjà vendue)
-                    </small>
-                    <small style="color: var(--accent); margin-top: 8px; display: block; font-weight: var(--font-weight-medium);">
-                        <i class="fas fa-info-circle"></i> Capacité totale de l'événement pour cette catégorie : <span id="capaciteTotaleCategorie">0</span> billet(s)
-                    </small>
-                </div>
-                <input type="hidden" id="typeBilletId" name="typeBilletId">
-            </form>
-        </div>
-        <div class="modal-footer">
-            <button type="button" class="btn-modal btn-modal-secondary" id="cancelBtn">Annuler</button>
-            <button type="button" class="btn-modal btn-modal-primary" id="saveBtn">Enregistrer</button>
-        </div>
-    </div>
-</div>
 {% endblock %}
-

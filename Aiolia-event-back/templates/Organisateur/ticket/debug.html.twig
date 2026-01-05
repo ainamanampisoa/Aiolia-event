@@ -1,0 +1,45 @@
+{% extends 'base.html.twig' %}
+
+{% block body %}
+<div class="container mt-4">
+    <h1>Debug Stock</h1>
+    <table class="table">
+        <thead>
+            <tr>
+                <th>Événement</th>
+                <th>Type Billet</th>
+                <th>Total</th>
+                <th>Vendu</th>
+                <th>Réservé</th>
+                <th>Restant</th>
+                <th>%</th>
+                <th>Alerte?</th>
+                <th>Niveau</th>
+            </tr>
+        </thead>
+        <tbody>
+            {% for data in debugData %}
+            <tr class="{% if data.niveau == 'critique' %}table-danger{% elseif data.niveau == 'attention' %}table-warning{% endif %}">
+                <td>{{ data.evenement }}</td>
+                <td>{{ data.type_billet }}</td>
+                <td>{{ data.total }}</td>
+                <td>{{ data.vendu }}</td>
+                <td>{{ data.reserve }}</td>
+                <td>{{ data.restant }}</td>
+                <td>{{ data.pourcentage }}%</td>
+                <td>{{ data.est_alerte }}</td>
+                <td>
+                    {% if data.niveau == 'critique' %}
+                        <span class="badge badge-danger">CRITIQUE</span>
+                    {% elseif data.niveau == 'attention' %}
+                        <span class="badge badge-warning">ATTENTION</span>
+                    {% else %}
+                        <span class="badge badge-success">OK</span>
+                    {% endif %}
+                </td>
+            </tr>
+            {% endfor %}
+        </tbody>
+    </table>
+</div>
+{% endblock %}
