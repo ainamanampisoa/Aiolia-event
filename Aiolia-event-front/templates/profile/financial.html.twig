@@ -43,9 +43,25 @@
                         'year': currentYear,
                         'month': currentMonth,
                         'period': currentPeriod,
-                        'monthly_range': monthlyRange|default('last_6')
+                        'monthly_range': monthlyRange|default('last_6'),
+                        'payment_method': paymentMethodFilter|default('all'),
+                        'min_amount': minAmount|default(null),
+                        'max_amount': maxAmount|default(null),
+                        'category': categoryFilter|default('all')
                     }) }}" class="btn-solid btn-pdf" target="_blank">
                         <i class="fas fa-file-pdf"></i> Rapport PDF
+                    </a>
+                    <a href="{{ path('profile_financial_export_csv', {
+                        'year': currentYear,
+                        'month': currentMonth,
+                        'period': currentPeriod,
+                        'monthly_range': monthlyRange|default('last_6'),
+                        'payment_method': paymentMethodFilter|default('all'),
+                        'min_amount': minAmount|default(null),
+                        'max_amount': maxAmount|default(null),
+                        'category': categoryFilter|default('all')
+                    }) }}" class="btn-solid btn-csv" style="background: linear-gradient(135deg, #50C878 0%, #3FAF6B 100%); margin-left: 10px;">
+                        <i class="fas fa-file-csv"></i> Export CSV
                     </a>
                 </div>
             </header>
@@ -91,6 +107,118 @@
                     </div>
                 </form>
             </section>
+
+            {# Filtres avancés #}
+            <section class="financial-filters-advanced wow fadeIn" data-wow-delay="140ms">
+                <form method="GET" action="{{ path('profile_financial') }}" class="filter-form-advanced">
+                    {# Conserver les filtres de base #}
+                    <input type="hidden" name="period" value="{{ currentPeriod }}">
+                    <input type="hidden" name="year" value="{{ currentYear }}">
+                    {% if currentMonth > 0 %}
+                        <input type="hidden" name="month" value="{{ currentMonth }}">
+                    {% endif %}
+                    
+                    <div class="advanced-filters-header">
+                        <h3><i class="fas fa-sliders-h"></i> Filtres avancés</h3>
+                        <button type="button" class="toggle-advanced-filters" onclick="toggleAdvancedFilters()">
+                            <i class="fas fa-chevron-down"></i>
+                        </button>
+                    </div>
+                    
+                    <div class="advanced-filters-content" id="advancedFiltersContent" style="display: {{ (paymentMethodFilter != 'all' or minAmount or maxAmount or categoryFilter != 'all') ? 'block' : 'none' }};">
+                        {# Méthode de paiement : Mvola uniquement - filtre retiré car une seule option #}
+                        <input type="hidden" name="payment_method" value="all">
+                        <div class="filter-info-mvola">
+                            <div class="mvola-badge">
+                                <i class="fas fa-mobile-alt"></i>
+                                <strong>MVola</strong> - Méthode de paiement exclusive
+                            </div>
+                        </div>
+                        
+                        <div class="filter-group">
+                            <label for="min_amount"><i class="fas fa-money-bill-wave"></i> Montant minimum (MGA)</label>
+                            <input type="number" name="min_amount" id="min_amount" value="{{ minAmount }}" placeholder="Ex: 10000" min="0" step="1000">
+                        </div>
+                        
+                        <div class="filter-group">
+                            <label for="max_amount"><i class="fas fa-money-bill-wave"></i> Montant maximum (MGA)</label>
+                            <input type="number" name="max_amount" id="max_amount" value="{{ maxAmount }}" placeholder="Ex: 100000" min="0" step="1000">
+                        </div>
+                        
+                        <div class="filter-group">
+                            <label for="category"><i class="fas fa-tags"></i> Catégorie d'événement</label>
+                            <select name="category" id="category">
+                                <option value="all" {{ categoryFilter == 'all' ? 'selected' : '' }}>Toutes</option>
+                                {% if availableCategories is defined and availableCategories is iterable %}
+                                    {% for cat in availableCategories %}
+                                        {% if cat is iterable and cat.slug is defined %}
+                                            <option value="{{ cat.slug }}" {{ categoryFilter == cat.slug ? 'selected' : '' }}>{{ cat.label }}</option>
+                                        {% else %}
+                                            <option value="{{ cat }}" {{ categoryFilter == cat ? 'selected' : '' }}>{{ cat }}</option>
+                                        {% endif %}
+                                    {% endfor %}
+                                {% endif %}
+                            </select>
+                        </div>
+                        
+                        <div class="filter-actions">
+                            <button type="submit" class="btn-filter"><i class="fas fa-search"></i> Appliquer</button>
+                        </div>
+                    </div>
+                </form>
+            </section>
+
+            {# Insights intelligents #}
+            {% if financialInsights is defined and financialInsights|length > 0 %}
+            <section class="financial-insights wow fadeInUp" data-wow-delay="160ms">
+                <h2><i class="fas fa-lightbulb"></i> Analyses et recommandations</h2>
+                <div class="insights-grid">
+                    {% for insight in financialInsights %}
+                        <div class="insight-card insight-{{ insight.type }}">
+                            <div class="insight-icon">
+                                <i class="{{ insight.icon }}"></i>
+                            </div>
+                            <div class="insight-content">
+                                <h4>{{ insight.title }}</h4>
+                                <p>{{ insight.message }}</p>
+                            </div>
+                        </div>
+                    {% endfor %}
+                </div>
+            </section>
+            {% endif %}
+
+            {# Comparaison avec période précédente #}
+            {% if comparison is defined and comparison.has_comparison %}
+            <section class="financial-comparison wow fadeInUp" data-wow-delay="165ms">
+                <h2><i class="fas fa-chart-line"></i> Comparaison avec la période précédente</h2>
+                <div class="comparison-grid">
+                    <div class="comparison-card">
+                        <div class="comparison-label">Dépenses</div>
+                        <div class="comparison-values">
+                            <span class="current-value">{{ comparison.current_spent|number_format(0, ',', ' ') }} MGA</span>
+                            <span class="change-badge {{ comparison.spent_increase ? 'increase' : 'decrease' }}">
+                                <i class="fas fa-arrow-{{ comparison.spent_increase ? 'up' : 'down' }}"></i>
+                                {{ comparison.spent_change|abs|number_format(1) }}%
+                            </span>
+                        </div>
+                        <div class="previous-value">vs {{ comparison.previous_spent|number_format(0, ',', ' ') }} MGA</div>
+                    </div>
+                    
+                    <div class="comparison-card">
+                        <div class="comparison-label">Commandes</div>
+                        <div class="comparison-values">
+                            <span class="current-value">{{ comparison.current_orders }}</span>
+                            <span class="change-badge {{ comparison.orders_increase ? 'increase' : 'decrease' }}">
+                                <i class="fas fa-arrow-{{ comparison.orders_increase ? 'up' : 'down' }}"></i>
+                                {{ comparison.orders_change|abs|number_format(1) }}%
+                            </span>
+                        </div>
+                        <div class="previous-value">vs {{ comparison.previous_orders }}</div>
+                    </div>
+                </div>
+            </section>
+            {% endif %}
 
             <section class="financial-summary wow fadeInUp" data-wow-delay="150ms">
                 <div class="financial-card primary">
@@ -279,20 +407,97 @@
                 </div>
                 <div class="financial-breakdown wow fadeInUp" data-wow-delay="210ms">
                     <header>
-                        <h2>Sources de paiement</h2>
+                        <h2><i class="fas fa-mobile-alt"></i> Méthode de paiement</h2>
                     </header>
-                    <ul>
-                        {% if paymentMethods.methods is defined and paymentMethods.methods|length > 0 %}
-                            {% set colors = ['dot-1', 'dot-2', 'dot-3', 'dot-4'] %}
-                            {% for method in paymentMethods.methods|slice(0, 4) %}
-                                <li><span class="dot {{ colors[loop.index0 % colors|length] }}"></span> {{ method.label }} <strong>{{ method.percentage }} %</strong></li>
-                            {% endfor %}
-                        {% else %}
-                            <li><span class="dot dot-1"></span> Aucune donnée disponible</li>
+                    <div class="mvola-payment-info">
+                        <div class="mvola-logo-card">
+                            <div class="mvola-icon">
+                                <i class="fas fa-mobile-alt"></i>
+                            </div>
+                            <div class="mvola-details">
+                                <h3>MVola</h3>
+                                <p>Paiement mobile sécurisé</p>
+                                <span class="mvola-badge-exclusive">Méthode exclusive</span>
+                            </div>
+                        </div>
+                        {% if financialData.total_orders > 0 %}
+                        <div class="mvola-stats">
+                            <div class="stat-item">
+                                <i class="fas fa-check-circle"></i>
+                                <span>{{ financialData.total_orders }} transaction(s)</span>
+                            </div>
+                            <div class="stat-item">
+                                <i class="fas fa-shield-alt"></i>
+                                <span>100% sécurisé</span>
+                            </div>
+                        </div>
                         {% endif %}
-                    </ul>
-                    <div class="financial-note">
-                        Astuce : consultez vos méthodes de paiement préférées pour optimiser vos dépenses.
+                    </div>
+                    <div class="financial-note mvola-note">
+                        <i class="fas fa-info-circle"></i> Tous vos paiements sont effectués via MVola pour une sécurité optimale.
+                    </div>
+                </div>
+            </section>
+
+            {# Transactions récentes détaillées #}
+            <section class="transactions-detail wow fadeInUp" data-wow-delay="220ms">
+                <header class="transactions-header">
+                    <h2><i class="fas fa-list-alt"></i> Transactions récentes</h2>
+                    <a href="{{ path('profile_history') }}" class="btn-view-all">
+                        Voir tout <i class="fas fa-arrow-right"></i>
+                    </a>
+                </header>
+                
+                <div class="transactions-list">
+                    {% if monthly is defined and monthly|length > 0 %}
+                        {% set recentMonths = monthly|slice(0, 3) %}
+                        {% for item in recentMonths %}
+                            {% set monthName = {
+                                1: 'Janvier', 2: 'Février', 3: 'Mars', 4: 'Avril',
+                                5: 'Mai', 6: 'Juin', 7: 'Juillet', 8: 'Août',
+                                9: 'Septembre', 10: 'Octobre', 11: 'Novembre', 12: 'Décembre'
+                            }[item.month_number|default(1)] %}
+                            
+                            <div class="transaction-item">
+                                <div class="transaction-icon">
+                                    <i class="fas fa-calendar-check"></i>
+                                </div>
+                                <div class="transaction-info">
+                                    <div class="transaction-title">{{ monthName }} {{ currentYear }}</div>
+                                    <div class="transaction-meta">
+                                        <span><i class="fas fa-shopping-bag"></i> Dépenses mensuelles</span>
+                                    </div>
+                                </div>
+                                <div class="transaction-amount expense">
+                                    {{ item.total }}
+                                </div>
+                            </div>
+                        {% endfor %}
+                    {% else %}
+                        <div class="no-transactions">
+                            <div class="no-transactions-icon">
+                                <i class="fas fa-inbox"></i>
+                            </div>
+                            <p>Aucune transaction pour cette période</p>
+                            <a href="{{ path('home') }}" class="btn-browse-events">
+                                <i class="fas fa-ticket-alt"></i> Découvrir des événements
+                            </a>
+                        </div>
+                    {% endif %}
+                </div>
+                
+                <div class="transactions-summary">
+                    <div class="summary-item">
+                        <span class="summary-label">Total des dépenses</span>
+                        <span class="summary-value expense">{{ financialData.total_spent }}</span>
+                    </div>
+                    <div class="summary-item">
+                        <span class="summary-label">Remboursements</span>
+                        <span class="summary-value refund">{{ financialData.total_refunded }}</span>
+                    </div>
+                    <div class="summary-item">
+                        <span class="summary-label">Commandes</span>
+                        <span class="summary-value">{{ financialData.total_orders }}</span>
                     </div>
                 </div>
             </section>
@@ -305,5 +510,560 @@
             url.searchParams.set('monthly_range', range);
             window.location.href = url.toString();
         }
+
+        function toggleAdvancedFilters() {
+            const content = document.getElementById('advancedFiltersContent');
+            const button = document.querySelector('.toggle-advanced-filters i');
+            
+            if (content.style.display === 'none' || content.style.display === '') {
+                content.style.display = 'block';
+                button.classList.remove('fa-chevron-down');
+                button.classList.add('fa-chevron-up');
+            } else {
+                content.style.display = 'none';
+                button.classList.remove('fa-chevron-up');
+                button.classList.add('fa-chevron-down');
+            }
+        }
+
+        // Auto-expand advanced filters if any are active
+        document.addEventListener('DOMContentLoaded', function() {
+            const content = document.getElementById('advancedFiltersContent');
+            if (content && content.style.display === 'block') {
+                const button = document.querySelector('.toggle-advanced-filters i');
+                if (button) {
+                    button.classList.remove('fa-chevron-down');
+                    button.classList.add('fa-chevron-up');
+                }
+            }
+        });
     </script>
+
+    <style>
+        .financial-filters-advanced {
+            background: #ffffff;
+            border-radius: 12px;
+            padding: 25px;
+            margin-bottom: 30px;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.05);
+        }
+
+        .advanced-filters-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 20px;
+        }
+
+        .advanced-filters-header h3 {
+            font-size: 1.1rem;
+            color: #1F2D3D;
+            margin: 0;
+        }
+
+        .toggle-advanced-filters {
+            background: none;
+            border: none;
+            color: #4A90E2;
+            font-size: 1.2rem;
+            cursor: pointer;
+            transition: transform 0.3s;
+        }
+
+        .toggle-advanced-filters:hover {
+            transform: scale(1.1);
+        }
+
+        .advanced-filters-content {
+            animation: slideDown 0.3s ease-out;
+        }
+
+        @keyframes slideDown {
+            from {
+                opacity: 0;
+                transform: translateY(-10px);
+            }
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
+        }
+
+        .filter-form-advanced .filter-group {
+            margin-bottom: 15px;
+        }
+
+        .filter-form-advanced input[type="number"] {
+            width: 100%;
+            padding: 10px 15px;
+            border: 1px solid #e0e0e0;
+            border-radius: 8px;
+            font-size: 0.95rem;
+            transition: border-color 0.3s;
+        }
+
+        .filter-form-advanced input[type="number"]:focus {
+            outline: none;
+            border-color: #4A90E2;
+        }
+
+        .financial-insights {
+            margin-bottom: 30px;
+        }
+
+        .financial-insights h2 {
+            font-size: 1.3rem;
+            color: #1F2D3D;
+            margin-bottom: 20px;
+        }
+
+        .insights-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+            gap: 20px;
+        }
+
+        .insight-card {
+            display: flex;
+            align-items: flex-start;
+            padding: 20px;
+            border-radius: 12px;
+            border-left: 4px solid;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.05);
+        }
+
+        .insight-card.insight-success {
+            background: #f0f9f4;
+            border-left-color: #50C878;
+        }
+
+        .insight-card.insight-warning {
+            background: #fff8e6;
+            border-left-color: #FFA500;
+        }
+
+        .insight-card.insight-info {
+            background: #f0f7ff;
+            border-left-color: #4A90E2;
+        }
+
+        .insight-icon {
+            font-size: 1.5rem;
+            margin-right: 15px;
+            margin-top: 3px;
+        }
+
+        .insight-card.insight-success .insight-icon {
+            color: #50C878;
+        }
+
+        .insight-card.insight-warning .insight-icon {
+            color: #FFA500;
+        }
+
+        .insight-card.insight-info .insight-icon {
+            color: #4A90E2;
+        }
+
+        .insight-content h4 {
+            font-size: 1rem;
+            font-weight: 600;
+            margin: 0 0 8px 0;
+            color: #1F2D3D;
+        }
+
+        .insight-content p {
+            font-size: 0.9rem;
+            color: #666;
+            margin: 0;
+            line-height: 1.5;
+        }
+
+        .financial-comparison {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            border-radius: 12px;
+            padding: 30px;
+            margin-bottom: 30px;
+            color: white;
+        }
+
+        .financial-comparison h2 {
+            font-size: 1.3rem;
+            color: white;
+            margin-bottom: 25px;
+        }
+
+        .comparison-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+            gap: 20px;
+        }
+
+        .comparison-card {
+            background: rgba(255, 255, 255, 0.15);
+            backdrop-filter: blur(10px);
+            border-radius: 10px;
+            padding: 20px;
+            border: 1px solid rgba(255, 255, 255, 0.2);
+        }
+
+        .comparison-label {
+            font-size: 0.9rem;
+            opacity: 0.9;
+            margin-bottom: 10px;
+        }
+
+        .comparison-values {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            margin-bottom: 8px;
+        }
+
+        .current-value {
+            font-size: 1.5rem;
+            font-weight: 700;
+        }
+
+        .change-badge {
+            padding: 4px 10px;
+            border-radius: 20px;
+            font-size: 0.85rem;
+            font-weight: 600;
+        }
+
+        .change-badge.increase {
+            background: rgba(255, 87, 87, 0.2);
+            color: #ff5757;
+        }
+
+        .change-badge.decrease {
+            background: rgba(80, 200, 120, 0.2);
+            color: #50C878;
+        }
+
+        .previous-value {
+            font-size: 0.85rem;
+            opacity: 0.8;
+        }
+
+        .btn-csv {
+            display: inline-flex;
+            align-items: center;
+            gap: 8px;
+        }
+
+        /* MVola Badge dans filtres */
+        .filter-info-mvola {
+            margin-bottom: 15px;
+        }
+
+        .mvola-badge {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            padding: 15px 20px;
+            background: linear-gradient(135deg, #FF6B00 0%, #FF8C00 100%);
+            border-radius: 10px;
+            color: white;
+            font-size: 1rem;
+        }
+
+        .mvola-badge i {
+            font-size: 1.5rem;
+        }
+
+        .mvola-badge strong {
+            font-size: 1.1rem;
+        }
+
+        /* Section MVola dans breakdown */
+        .mvola-payment-info {
+            padding: 10px 0;
+        }
+
+        .mvola-logo-card {
+            display: flex;
+            align-items: center;
+            gap: 20px;
+            padding: 25px;
+            background: linear-gradient(135deg, #FF6B00 0%, #FF8C00 100%);
+            border-radius: 12px;
+            color: white;
+            margin-bottom: 20px;
+        }
+
+        .mvola-icon {
+            width: 60px;
+            height: 60px;
+            background: rgba(255, 255, 255, 0.2);
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 2rem;
+            flex-shrink: 0;
+        }
+
+        .mvola-details {
+            flex: 1;
+        }
+
+        .mvola-details h3 {
+            margin: 0 0 5px 0;
+            font-size: 1.5rem;
+            font-weight: 700;
+        }
+
+        .mvola-details p {
+            margin: 0 0 10px 0;
+            opacity: 0.9;
+            font-size: 0.95rem;
+        }
+
+        .mvola-badge-exclusive {
+            display: inline-block;
+            padding: 5px 15px;
+            background: rgba(255, 255, 255, 0.25);
+            border-radius: 20px;
+            font-size: 0.85rem;
+            font-weight: 600;
+            border: 1px solid rgba(255, 255, 255, 0.3);
+        }
+
+        .mvola-stats {
+            display: flex;
+            gap: 20px;
+            flex-wrap: wrap;
+        }
+
+        .mvola-stats .stat-item {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            padding: 12px 20px;
+            background: #f8f9fa;
+            border-radius: 8px;
+            color: #1F2D3D;
+            font-size: 0.95rem;
+        }
+
+        .mvola-stats .stat-item i {
+            color: #FF6B00;
+            font-size: 1.2rem;
+        }
+
+        .financial-note.mvola-note {
+            background: #fff8f0;
+            border-left: 4px solid #FF6B00;
+            color: #1F2D3D;
+        }
+
+        /* Transactions détaillées */
+        .transactions-detail {
+            background: white;
+            border-radius: 12px;
+            padding: 30px;
+            box-shadow: 0 2px 8px rgba(0, 0, 0, 0.05);
+        }
+
+        .transactions-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 25px;
+        }
+
+        .transactions-header h2 {
+            font-size: 1.3rem;
+            color: #1F2D3D;
+            margin: 0;
+        }
+
+        .btn-view-all {
+            color: #4A90E2;
+            text-decoration: none;
+            font-weight: 600;
+            transition: all 0.3s;
+        }
+
+        .btn-view-all:hover {
+            color: #357ABD;
+            transform: translateX(5px);
+        }
+
+        .transactions-list {
+            margin-bottom: 25px;
+        }
+
+        .transaction-item {
+            display: flex;
+            align-items: center;
+            gap: 15px;
+            padding: 20px;
+            border: 1px solid #f0f0f0;
+            border-radius: 10px;
+            margin-bottom: 12px;
+            transition: all 0.3s;
+        }
+
+        .transaction-item:hover {
+            border-color: #4A90E2;
+            background: #f8fbff;
+            transform: translateX(5px);
+        }
+
+        .transaction-icon {
+            width: 50px;
+            height: 50px;
+            background: linear-gradient(135deg, #4A90E2 0%, #357ABD 100%);
+            border-radius: 12px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            color: white;
+            font-size: 1.3rem;
+            flex-shrink: 0;
+        }
+
+        .transaction-info {
+            flex: 1;
+        }
+
+        .transaction-title {
+            font-size: 1.05rem;
+            font-weight: 600;
+            color: #1F2D3D;
+            margin-bottom: 5px;
+        }
+
+        .transaction-meta {
+            font-size: 0.9rem;
+            color: #999;
+        }
+
+        .transaction-meta i {
+            margin-right: 5px;
+        }
+
+        .transaction-amount {
+            font-size: 1.2rem;
+            font-weight: 700;
+            flex-shrink: 0;
+        }
+
+        .transaction-amount.expense {
+            color: #ff5757;
+        }
+
+        .transaction-amount.refund {
+            color: #50C878;
+        }
+
+        .no-transactions {
+            text-align: center;
+            padding: 60px 20px;
+        }
+
+        .no-transactions-icon {
+            font-size: 4rem;
+            color: #ddd;
+            margin-bottom: 20px;
+        }
+
+        .no-transactions p {
+            color: #999;
+            font-size: 1.05rem;
+            margin-bottom: 25px;
+        }
+
+        .btn-browse-events {
+            display: inline-flex;
+            align-items: center;
+            gap: 10px;
+            padding: 12px 25px;
+            background: linear-gradient(135deg, #4A90E2 0%, #357ABD 100%);
+            color: white;
+            text-decoration: none;
+            border-radius: 8px;
+            font-weight: 600;
+            transition: all 0.3s;
+        }
+
+        .btn-browse-events:hover {
+            transform: translateY(-3px);
+            box-shadow: 0 6px 20px rgba(74, 144, 226, 0.4);
+        }
+
+        .transactions-summary {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            gap: 20px;
+            padding-top: 25px;
+            border-top: 2px solid #f0f0f0;
+        }
+
+        .summary-item {
+            text-align: center;
+            padding: 15px;
+            background: #f8f9fa;
+            border-radius: 8px;
+        }
+
+        .summary-label {
+            display: block;
+            font-size: 0.9rem;
+            color: #666;
+            margin-bottom: 8px;
+        }
+
+        .summary-value {
+            display: block;
+            font-size: 1.3rem;
+            font-weight: 700;
+            color: #1F2D3D;
+        }
+
+        .summary-value.expense {
+            color: #ff5757;
+        }
+
+        .summary-value.refund {
+            color: #50C878;
+        }
+
+        @media (max-width: 768px) {
+            .insights-grid {
+                grid-template-columns: 1fr;
+            }
+
+            .comparison-grid {
+                grid-template-columns: 1fr;
+            }
+
+            .financial-actions {
+                flex-direction: column;
+                gap: 10px;
+            }
+
+            .btn-csv {
+                margin-left: 0 !important;
+                width: 100%;
+                justify-content: center;
+            }
+
+            .budget-header {
+                flex-direction: column;
+                gap: 15px;
+            }
+
+            .btn-edit-budget {
+                width: 100%;
+            }
+
+            .suggestion-buttons {
+                grid-template-columns: 1fr;
+            }
+        }
+    </style>
 {% endblock %}

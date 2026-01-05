@@ -414,7 +414,16 @@ class OrderRepository
     /**
      * Récupère l'historique financier détaillé.
      */
-    public function findFinancialHistory(int $userId, int $year = null, int $month = 0, string $period = 'year'): array
+    public function findFinancialHistory(
+        int $userId, 
+        int $year = null, 
+        int $month = 0, 
+        string $period = 'year',
+        string $paymentMethodFilter = 'all',
+        ?string $minAmount = null,
+        ?string $maxAmount = null,
+        string $categoryFilter = 'all'
+    ): array
     {
         if ($year === null) {
             $year = (int) date('Y');
@@ -437,6 +446,35 @@ class OrderRepository
             }
         }
         // Pour 'all', pas de filtre de date
+
+        // Filtre par méthode de paiement
+        if ($paymentMethodFilter !== 'all') {
+            $whereConditions[] = "o.notes::json->>'payment_method' = :payment_method";
+            $params['payment_method'] = $paymentMethodFilter;
+        }
+
+        // Filtre par montant minimum
+        if ($minAmount !== null && $minAmount !== '') {
+            $whereConditions[] = 'o.total_amount >= :min_amount';
+            $params['min_amount'] = (float) $minAmount;
+        }
+
+        // Filtre par montant maximum
+        if ($maxAmount !== null && $maxAmount !== '') {
+            $whereConditions[] = 'o.total_amount <= :max_amount';
+            $params['max_amount'] = (float) $maxAmount;
+        }
+
+        // Filtre par catégorie d'événement (nécessite une jointure avec order_items et events)
+        if ($categoryFilter !== 'all') {
+            $whereConditions[] = "EXISTS (
+                SELECT 1 FROM aiolia.order_items oi
+                INNER JOIN aiolia.events e ON oi.event_id = e.id
+                WHERE oi.order_id = o.id
+                AND e.category = :category
+            )";
+            $params['category'] = $categoryFilter;
+        }
 
         $whereClause = implode(' AND ', $whereConditions);
 

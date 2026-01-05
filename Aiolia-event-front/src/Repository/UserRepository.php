@@ -197,4 +197,64 @@ class UserRepository extends ServiceEntityRepository
         // Par défaut, les rappels sont activés
         return true;
     }
+
+    /**
+     * Récupère le budget mensuel de l'utilisateur
+     */
+    public function findUserBudget(int $userId): ?array
+    {
+        $sql = <<<SQL
+            SELECT preference_value as monthly_budget
+            FROM aiolia.user_preferences
+            WHERE user_id = :user_id
+              AND preference_key = 'monthly_budget'
+            LIMIT 1
+        SQL;
+
+        $result = $this->connection->executeQuery($sql, ['user_id' => $userId])->fetchAssociative();
+        
+        if ($result && !empty($result['monthly_budget'])) {
+            return [
+                'monthly_budget' => (float) $result['monthly_budget'],
+            ];
+        }
+
+        return null;
+    }
+
+    /**
+     * Met à jour ou crée le budget mensuel de l'utilisateur
+     */
+    public function updateUserBudget(int $userId, float $monthlyBudget): bool
+    {
+        // Vérifier si la préférence existe déjà
+        $checkSql = <<<SQL
+            SELECT id FROM aiolia.user_preferences
+            WHERE user_id = :user_id AND preference_key = 'monthly_budget'
+        SQL;
+
+        $exists = $this->connection->executeQuery($checkSql, ['user_id' => $userId])->fetchOne();
+
+        if ($exists) {
+            // Mise à jour
+            $sql = <<<SQL
+                UPDATE aiolia.user_preferences
+                SET preference_value = :budget, updated_at = NOW()
+                WHERE user_id = :user_id AND preference_key = 'monthly_budget'
+            SQL;
+        } else {
+            // Insertion
+            $sql = <<<SQL
+                INSERT INTO aiolia.user_preferences (user_id, preference_key, preference_value, created_at, updated_at)
+                VALUES (:user_id, 'monthly_budget', :budget, NOW(), NOW())
+            SQL;
+        }
+
+        $this->connection->executeStatement($sql, [
+            'user_id' => $userId,
+            'budget' => (string) $monthlyBudget
+        ]);
+
+        return true;
+    }
 }

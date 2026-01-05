@@ -1104,28 +1104,31 @@ class ProfileController extends AbstractController
         $month = $request->query->getInt('month', 0); // 0 = tous les mois
         $period = $request->query->get('period', 'year'); // year, month, all
         $monthlyRange = $request->query->get('monthly_range', 'last_6'); // last_6, first_6
+        
+        // Nouveaux filtres avancés
+        // Note: payment_method filtré sur 'mvola' par défaut car c'est la seule méthode
+        $paymentMethodFilter = $request->query->get('payment_method', 'all');
+        $minAmount = $request->query->get('min_amount', null);
+        $maxAmount = $request->query->get('max_amount', null);
+        $categoryFilter = $request->query->get('category', 'all');
 
         // Récupérer l'historique financier avec filtres
-        $financialData = $this->orderRepository->findFinancialHistory($userId, $year, $month, $period);
+        $financialData = $this->orderRepository->findFinancialHistory($userId, $year, $month, $period, $paymentMethodFilter, $minAmount, $maxAmount, $categoryFilter);
 
         // Récupérer les dépenses mensuelles avec filtres
         $monthly = $this->orderRepository->findMonthlyFinancialData($userId, $year, $month, $period, $monthlyRange);
 
-        // Debug: logger les données récupérées
-        error_log(sprintf(
-            '[Financial] User: %d, Year: %d, Period: %s, MonthlyRange: %s, Monthly data count: %d',
-            $userId,
-            $year,
-            $period,
-            $monthlyRange,
-            count($monthly)
-        ));
-        if (!empty($monthly)) {
-            error_log('[Financial] Monthly data: ' . json_encode($monthly, JSON_UNESCAPED_UNICODE));
-        }
-
         // Récupérer la répartition des méthodes de paiement avec filtres
         $paymentMethods = $this->userStatsRepository->findPaymentMethodDistribution($userId, $year, $month);
+        
+        // Récupérer les catégories disponibles pour le filtre
+        $availableCategories = $this->eventRepository->findAllCategories();
+        
+        // Calculer les comparaisons avec période précédente
+        $comparison = $this->calculatePeriodComparison($userId, $year, $month, $period);
+        
+        // Récupérer les insights intelligents
+        $financialInsights = $this->generateFinancialInsights($financialData, $monthly);
 
         return $this->render('profile/financial.html.twig', [
             'financialData' => $financialData,
@@ -1135,7 +1138,116 @@ class ProfileController extends AbstractController
             'currentMonth' => $month,
             'currentPeriod' => $period,
             'monthlyRange' => $monthlyRange,
+            'paymentMethodFilter' => $paymentMethodFilter,
+            'minAmount' => $minAmount,
+            'maxAmount' => $maxAmount,
+            'categoryFilter' => $categoryFilter,
+            'availableCategories' => $availableCategories,
+            'comparison' => $comparison,
+            'financialInsights' => $financialInsights,
         ]);
+    }
+
+    #[Route('/profile/financial-history/export-csv', name: 'profile_financial_export_csv')]
+    public function exportFinancialHistoryCSV(Request $request): Response
+    {
+        $session = $request->getSession();
+        if (!$session->isStarted()) {
+            $session->start();
+        }
+
+        $sessionUser = $session->get('user');
+        $isAuthenticated = is_array($sessionUser) && isset($sessionUser['id']);
+
+        if (!$isAuthenticated) {
+            return $this->redirectToRoute('login');
+        }
+
+        $userId = (int) $sessionUser['id'];
+
+        // Récupérer les paramètres de filtrage
+        $year = $request->query->getInt('year', (int) date('Y'));
+        $month = $request->query->getInt('month', 0);
+        $period = $request->query->get('period', 'year');
+        $monthlyRange = $request->query->get('monthly_range', 'last_6');
+        $paymentMethodFilter = $request->query->get('payment_method', 'all');
+        $minAmount = $request->query->get('min_amount', null);
+        $maxAmount = $request->query->get('max_amount', null);
+        $categoryFilter = $request->query->get('category', 'all');
+
+        // Récupérer les données
+        $financialData = $this->orderRepository->findFinancialHistory($userId, $year, $month, $period, $paymentMethodFilter, $minAmount, $maxAmount, $categoryFilter);
+        $monthly = $this->orderRepository->findMonthlyFinancialData($userId, $year, $month, $period, $monthlyRange);
+        $paymentMethods = $this->userStatsRepository->findPaymentMethodDistribution($userId, $year, $month);
+
+        // Récupérer les informations utilisateur
+        $userInfo = $this->userRepository->findUserInfo($userId);
+
+        // Générer le CSV
+        $csvLines = [];
+        
+        // En-tête du rapport
+        $csvLines[] = "Rapport Financier Détaillé - " . date('d/m/Y H:i');
+        $csvLines[] = "Utilisateur," . ($userInfo['first_name'] ?? '') . ' ' . ($userInfo['last_name'] ?? '');
+        $csvLines[] = "Période," . $this->formatPeriodLabel($period, $year, $month);
+        $csvLines[] = "";
+        
+        // Résumé des statistiques
+        $csvLines[] = "=== RÉSUMÉ FINANCIER ===";
+        $csvLines[] = "Total dépensé," . ($financialData['total_spent'] ?? '0 MGA');
+        $csvLines[] = "Total remboursé," . ($financialData['total_refunded'] ?? '0 MGA');
+        $csvLines[] = "Nombre de remboursements," . ($financialData['refund_count'] ?? 0);
+        $csvLines[] = "Nombre de commandes," . ($financialData['total_orders'] ?? 0);
+        $csvLines[] = "Panier moyen," . ($financialData['average_order'] ?? '0 MGA');
+        $csvLines[] = "Dépenses ce mois," . ($financialData['monthly_spent'] ?? '0 MGA');
+        $csvLines[] = "";
+        
+        // Répartition mensuelle
+        $csvLines[] = "=== RÉPARTITION MENSUELLE ===";
+        $csvLines[] = "Mois,Montant dépensé";
+        if (!empty($monthly)) {
+            foreach ($monthly as $item) {
+                $monthName = $this->getMonthName($item['month_number'] ?? 0);
+                $csvLines[] = sprintf(
+                    '"%s","%s"',
+                    str_replace('"', '""', $monthName),
+                    str_replace('"', '""', $item['total'] ?? '0 MGA')
+                );
+            }
+        }
+        $csvLines[] = "";
+        
+        // Méthodes de paiement
+        $csvLines[] = "=== MÉTHODES DE PAIEMENT ===";
+        $csvLines[] = "Méthode,Pourcentage";
+        if (!empty($paymentMethods['methods'])) {
+            foreach ($paymentMethods['methods'] as $method) {
+                $csvLines[] = sprintf(
+                    '"%s","%s%%"',
+                    str_replace('"', '""', $method['label'] ?? ''),
+                    $method['percentage'] ?? 0
+                );
+            }
+        }
+        $csvLines[] = "";
+        
+        // Note de bas de page
+        $csvLines[] = "Généré le," . date('d/m/Y à H:i:s');
+
+        $csvContent = implode("\n", $csvLines);
+
+        $periodLabel = $this->formatPeriodFilename($period, $year, $month);
+        $filename = 'Historique_Financier_' . $periodLabel . '_' . date('Y-m-d_His') . '.csv';
+
+        // Créer la réponse avec les bons en-têtes
+        $response = new Response("\xEF\xBB\xBF" . $csvContent); // BOM UTF-8 pour Excel
+        $response->headers->set('Content-Type', 'text/csv; charset=UTF-8');
+        $response->headers->set('Content-Disposition', 'attachment; filename="' . $filename . '"');
+        $response->headers->set('Cache-Control', 'must-revalidate, post-check=0, pre-check=0');
+        $response->headers->set('Pragma', 'public');
+        $response->headers->set('Expires', '0');
+
+        return $response;
     }
 
     #[Route('/profile/financial-history/export-pdf', name: 'profile_financial_export_pdf')]
@@ -1887,5 +1999,161 @@ class ProfileController extends AbstractController
     public function debugCloudinary(): JsonResponse
     {
         return new JsonResponse($this->cloudinaryService->getInitializationDebugInfo());
+    }
+
+    /**
+     * Calcule la comparaison avec la période précédente
+     */
+    private function calculatePeriodComparison(int $userId, int $year, int $month, string $period): array
+    {
+        // Récupérer les données de la période actuelle
+        $currentData = $this->orderRepository->findFinancialHistory($userId, $year, $month, $period);
+        
+        // Calculer la période précédente
+        if ($period === 'month' && $month > 0) {
+            $prevMonth = $month - 1;
+            $prevYear = $year;
+            if ($prevMonth === 0) {
+                $prevMonth = 12;
+                $prevYear = $year - 1;
+            }
+            $previousData = $this->orderRepository->findFinancialHistory($userId, $prevYear, $prevMonth, 'month');
+        } elseif ($period === 'year') {
+            $previousData = $this->orderRepository->findFinancialHistory($userId, $year - 1, 0, 'year');
+        } else {
+            // Pour 'all', pas de comparaison
+            return ['has_comparison' => false];
+        }
+        
+        // Extraire les valeurs numériques
+        $currentSpent = $this->extractNumericValue($currentData['total_spent'] ?? '0 MGA');
+        $previousSpent = $this->extractNumericValue($previousData['total_spent'] ?? '0 MGA');
+        
+        $currentOrders = (int) ($currentData['total_orders'] ?? 0);
+        $previousOrders = (int) ($previousData['total_orders'] ?? 0);
+        
+        // Calculer les variations en pourcentage
+        $spentChange = $previousSpent > 0 ? (($currentSpent - $previousSpent) / $previousSpent) * 100 : 0;
+        $ordersChange = $previousOrders > 0 ? (($currentOrders - $previousOrders) / $previousOrders) * 100 : 0;
+        
+        return [
+            'has_comparison' => true,
+            'current_spent' => $currentSpent,
+            'previous_spent' => $previousSpent,
+            'spent_change' => round($spentChange, 1),
+            'spent_increase' => $spentChange > 0,
+            'current_orders' => $currentOrders,
+            'previous_orders' => $previousOrders,
+            'orders_change' => round($ordersChange, 1),
+            'orders_increase' => $ordersChange > 0,
+        ];
+    }
+
+    /**
+     * Génère des insights intelligents basés sur les données financières
+     */
+    private function generateFinancialInsights(array $financialData, array $monthly): array
+    {
+        $insights = [];
+        
+        // Insight 1: Tendance de dépense
+        if (count($monthly) >= 2) {
+            $lastMonth = end($monthly);
+            $previousMonth = prev($monthly);
+            
+            if ($lastMonth && $previousMonth) {
+                $lastValue = $this->extractNumericValue($lastMonth['total'] ?? '0 MGA');
+                $prevValue = $this->extractNumericValue($previousMonth['total'] ?? '0 MGA');
+                
+                if ($prevValue > 0) {
+                    $change = (($lastValue - $prevValue) / $prevValue) * 100;
+                    
+                    if (abs($change) > 20) {
+                        $insights[] = [
+                            'type' => $change > 0 ? 'warning' : 'success',
+                            'icon' => $change > 0 ? 'fas fa-arrow-up' : 'fas fa-arrow-down',
+                            'title' => 'Tendance',
+                            'message' => sprintf('Vos dépenses ont %s de %.1f%% par rapport au mois précédent', 
+                                $change > 0 ? 'augmenté' : 'diminué', abs($change)),
+                        ];
+                    }
+                }
+            }
+        }
+        
+        // Insight 3: Économies avec remboursements
+        $totalRefunded = $this->extractNumericValue($financialData['total_refunded'] ?? '0 MGA');
+        if ($totalRefunded > 0) {
+            $insights[] = [
+                'type' => 'success',
+                'icon' => 'fas fa-money-bill-wave',
+                'title' => 'Remboursements',
+                'message' => sprintf('Vous avez reçu %s MGA en remboursements', number_format($totalRefunded, 0, ',', ' ')),
+            ];
+        }
+        
+        // Insight 4: Panier moyen
+        $totalOrders = (int) ($financialData['total_orders'] ?? 0);
+        if ($totalOrders > 0) {
+            $avgOrder = $this->extractNumericValue($financialData['average_order'] ?? '0 MGA');
+            $insights[] = [
+                'type' => 'info',
+                'icon' => 'fas fa-shopping-cart',
+                'title' => 'Panier moyen',
+                'message' => sprintf('Votre panier moyen est de %s MGA sur %d commande(s)', 
+                    number_format($avgOrder, 0, ',', ' '), $totalOrders),
+            ];
+        }
+        
+        return $insights;
+    }
+
+    /**
+     * Extrait la valeur numérique d'une chaîne formatée
+     */
+    private function extractNumericValue(string $formattedValue): float
+    {
+        // Enlever "MGA", espaces, virgules
+        $cleaned = preg_replace('/[^0-9.]/', '', $formattedValue);
+        return $cleaned !== '' ? (float) $cleaned : 0.0;
+    }
+
+    /**
+     * Formatte le label de période pour l'affichage
+     */
+    private function formatPeriodLabel(string $period, int $year, int $month): string
+    {
+        if ($period === 'month' && $month > 0) {
+            return $this->getMonthName($month) . ' ' . $year;
+        } elseif ($period === 'year') {
+            return 'Année ' . $year;
+        }
+        return 'Toutes périodes';
+    }
+
+    /**
+     * Formatte le nom du fichier selon la période
+     */
+    private function formatPeriodFilename(string $period, int $year, int $month): string
+    {
+        if ($period === 'month' && $month > 0) {
+            return $year . '_' . str_pad((string) $month, 2, '0', STR_PAD_LEFT);
+        } elseif ($period === 'year') {
+            return (string) $year;
+        }
+        return 'toutes_periodes';
+    }
+
+    /**
+     * Retourne le nom du mois en français
+     */
+    private function getMonthName(int $monthNumber): string
+    {
+        $months = [
+            1 => 'Janvier', 2 => 'Février', 3 => 'Mars', 4 => 'Avril',
+            5 => 'Mai', 6 => 'Juin', 7 => 'Juillet', 8 => 'Août',
+            9 => 'Septembre', 10 => 'Octobre', 11 => 'Novembre', 12 => 'Décembre'
+        ];
+        return $months[$monthNumber] ?? '';
     }
 }
