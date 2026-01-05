@@ -163,6 +163,9 @@ events:
   details: "détails"
   upcoming_events_list_title: "Prochains évènements"
   calendar_no_events: "Aucun événement à afficher pour le moment."
+  for_you_page_title: "Événements pour vous - Vente tickets"
+  for_you_title: "Pour vous"
+  for_you_subtitle: "Événements recommandés selon vos goûts"
 
 tickets:
   cart_page_title: "Panier - Vente tickets"
@@ -212,6 +215,7 @@ profile_favorites:
   empty_cta: "Parcourir les évènements"
   btn_details: "Détails"
   btn_alert: "Alerte"
+  btn_for_you: "Pour vous"
   confirm_remove: "Voulez-vous retirer cet événement de vos favoris ?"
   error_remove_prefix: "Erreur lors du retrait des favoris"
   error_unknown: "Erreur inconnue"

@@ -59,8 +59,8 @@ class EventController extends AbstractController
 
         // Si on a au moins un critère de recherche ou filtre, utiliser la méthode de recherche
         // Sinon, afficher tous les événements avec le tri par défaut
-        $hasFilters = !empty($query) || !empty($category) || !empty($city) || 
-                     null !== $priceMin || null !== $priceMax || !empty($dateFrom) || !empty($dateTo);
+        $hasFilters = !empty($query) || !empty($category) || !empty($city) ||
+            null !== $priceMin || null !== $priceMax || !empty($dateFrom) || !empty($dateTo);
 
         if ($hasFilters) {
             // Utiliser la méthode de recherche avec les filtres (même partiels)
@@ -74,7 +74,7 @@ class EventController extends AbstractController
                 'sort_by' => $sortBy,
                 'sort_order' => $sortOrder,
             ]);
-            
+
             // Sauvegarder l'historique de recherche si utilisateur connecté et qu'il y a une requête textuelle
             if ($isAuthenticated && !empty($query)) {
                 $this->searchHistoryRepository->saveSearch((int) $sessionUser['id'], $query, [
@@ -89,13 +89,13 @@ class EventController extends AbstractController
         } else {
             // Aucun filtre : afficher tous les événements avec tri par défaut
             $events = $this->eventRepository->findAllPublishedEvents();
-            
+
             // Appliquer le tri même sans filtres
             if ($sortBy !== 'date' || $sortOrder !== 'asc') {
                 // Trier les résultats en mémoire selon les critères sélectionnés
-                usort($events, function($a, $b) use ($sortBy, $sortOrder) {
+                usort($events, function ($a, $b) use ($sortBy, $sortOrder) {
                     $direction = $sortOrder === 'desc' ? -1 : 1;
-                    
+
                     switch ($sortBy) {
                         case 'price_asc':
                             $aPrice = $a['min_price'] ?? 0;
@@ -119,7 +119,7 @@ class EventController extends AbstractController
         $favoriteEventIds = [];
         if ($isAuthenticated && isset($sessionUser['id'])) {
             $favoriteEventIds = $this->wishlistRepository->findUserFavoriteEventIds((int) $sessionUser['id']);
-            
+
             // Ajouter la propriété isFavorite à chaque événement
             foreach ($events as &$event) {
                 $event['isFavorite'] = in_array($event['id'], $favoriteEventIds, true);
@@ -150,6 +150,45 @@ class EventController extends AbstractController
                 'sort_by' => $sortBy,
                 'sort_order' => $sortOrder,
             ],
+        ]);
+    }
+
+    #[Route('/events/for-you', name: 'events_for_you')]
+    public function forYou(Request $request): Response
+    {
+        $session = $request->getSession();
+        if (!$session->isStarted()) {
+            $session->start();
+        }
+        $sessionUser = $session->get('user');
+        $isAuthenticated = is_array($sessionUser) && isset($sessionUser['id']);
+
+        if (!$isAuthenticated) {
+            return $this->redirectToRoute('login');
+        }
+
+        $userId = (int) $sessionUser['id'];
+
+        // On récupère les catégories d'abord pour savoir si c'est un fallback
+        // Mais on délègue au repository la logique complète
+        $results = $this->eventRepository->findRecommendationsForUserDetailed($userId);
+        $events = $results['events'] ?? [];
+        $isFallback = $results['is_fallback'] ?? false;
+
+        // Grouper les événements par catégorie pour l'affichage
+        $groupedEvents = $this->groupEventsByCategory($events);
+        $categories = $this->eventRepository->findAllCategories();
+        $locations = $this->eventRepository->findAllCities();
+        $priceBounds = $this->eventRepository->findPriceBounds();
+
+        return $this->render('event/for_you.html.twig', [
+            'groupedEvents' => $groupedEvents,
+            'categories' => $categories,
+            'locations' => $locations,
+            'price_bounds' => $priceBounds,
+            'isAuthenticated' => $isAuthenticated,
+            'totalEvents' => count($events),
+            'is_fallback' => $isFallback,
         ]);
     }
 
@@ -294,31 +333,31 @@ class EventController extends AbstractController
 
             return true === $ticket['is_available'];
         }));
-        
+
         // Grouper les types de billets par nom pour gérer VIP/Gold/Silver avec prix adultes/enfants
         $groupedTicketTypes = $this->groupTicketTypesByName($ticketTypes);
-        
+
         // Détecter si l'événement a des billets adultes ET enfants disponibles (pour activer les deux inputs)
         $hasAnyAdultTickets = false;
         $hasAnyChildTickets = false;
         $hasOnlyAllCategory = true; // Vérifier si tous les billets sont de type 'all' (pas de distinction adulte/enfant)
-        
+
         foreach ($ticketTypes as $ticket) {
             $ageCategory = $ticket['age_category'] ?? 'all';
-            
+
             if ($ageCategory === 'adult' || $ageCategory === 'all') {
                 $hasAnyAdultTickets = true;
             }
             if ($ageCategory === 'child' || $ageCategory === 'all') {
                 $hasAnyChildTickets = true;
             }
-            
+
             // Si on trouve un billet qui n'est pas de type 'all', alors on n'a pas seulement des billets génériques
             if ($ageCategory !== 'all') {
                 $hasOnlyAllCategory = false;
             }
         }
-        
+
         // Si on a des billets avec 'adult' OU 'child' séparés, ce n'est pas seulement 'all'
         if ($hasAnyAdultTickets && $hasAnyChildTickets) {
             // Vérifier si on a des billets séparés (adult/child) en plus de 'all'
@@ -332,7 +371,7 @@ class EventController extends AbstractController
                 }
             }
         }
-        
+
         // Créer un mapping pour trouver les IDs adultes/enfants pour chaque type groupé
         // Cela permet de gérer les cas où "Billet Adulte" et "Billet Enfant" sont séparés
         // Le mapping contient toutes les infos nécessaires (id, base_price, available, currency)
@@ -341,7 +380,7 @@ class EventController extends AbstractController
             'child_ticket_ids' => [],
             'all_ticket_ids' => []
         ];
-        
+
         foreach ($ticketTypes as $ticket) {
             $ticketData = [
                 'id' => $ticket['id'],
@@ -350,16 +389,16 @@ class EventController extends AbstractController
                 'currency' => $ticket['currency'] ?? 'MGA',
                 'name' => $ticket['name']
             ];
-            
+
             if ($ticket['age_category'] === 'adult') {
-                $eventTicketMapping['adult_ticket_ids'][(string)$ticket['id']] = $ticketData;
+                $eventTicketMapping['adult_ticket_ids'][(string) $ticket['id']] = $ticketData;
             } elseif ($ticket['age_category'] === 'child') {
-                $eventTicketMapping['child_ticket_ids'][(string)$ticket['id']] = $ticketData;
+                $eventTicketMapping['child_ticket_ids'][(string) $ticket['id']] = $ticketData;
             } elseif ($ticket['age_category'] === 'all') {
-                $eventTicketMapping['all_ticket_ids'][(string)$ticket['id']] = $ticketData;
+                $eventTicketMapping['all_ticket_ids'][(string) $ticket['id']] = $ticketData;
             }
         }
-        
+
         $tags = $this->eventRepository->findEventTags($id);
 
         $priceMin = null;
@@ -526,7 +565,7 @@ class EventController extends AbstractController
         // ou s'ils sont génériques (Billet Adulte, Billet Enfant, Standard, etc.)
         $hasSpecificTypes = false;
         $genericNames = ['Billet Adulte', 'Billet Enfant', 'Billet', 'Standard', 'General', 'Général', 'Adulte', 'Enfant'];
-        
+
         foreach ($ticketTypes as $ticket) {
             $name = $ticket['name'];
             // Si le nom n'est pas dans la liste des noms génériques, c'est un type spécifique
@@ -540,7 +579,7 @@ class EventController extends AbstractController
         if (!$hasSpecificTypes) {
             $grouped = [];
             $firstTicket = $ticketTypes[0];
-            
+
             // Créer un groupe unique avec un nom générique
             $groupName = 'Billet';
             $grouped[$groupName] = [
@@ -555,7 +594,7 @@ class EventController extends AbstractController
             // Assigner tous les billets selon leur catégorie d'âge
             foreach ($ticketTypes as $ticket) {
                 $ageCategory = $ticket['age_category'] ?? 'all';
-                
+
                 if ($ageCategory === 'adult') {
                     $grouped[$groupName]['adult'] = $ticket;
                 } elseif ($ageCategory === 'child') {
@@ -573,7 +612,7 @@ class EventController extends AbstractController
 
         foreach ($ticketTypes as $ticket) {
             $name = $ticket['name'];
-            
+
             if (!isset($grouped[$name])) {
                 $grouped[$name] = [
                     'name' => $name,
@@ -587,7 +626,7 @@ class EventController extends AbstractController
 
             // Assigner selon la catégorie d'âge
             $ageCategory = $ticket['age_category'] ?? 'all';
-            
+
             if ($ageCategory === 'adult') {
                 $grouped[$name]['adult'] = $ticket;
             } elseif ($ageCategory === 'child') {

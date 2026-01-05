@@ -1,0 +1,156 @@
+{% extends 'base.html.twig' %}
+
+{% block title %}{{ 'events.for_you_page_title'|trans }}{% endblock %}
+
+{% block stylesheets %}
+        <link rel="stylesheet" type="text/css" href="{{ asset('vente-ticket/css/animate.min.css') }}">
+        <link rel="stylesheet" type="text/css" href="{{ asset('vente-ticket/css/slick.css') }}">
+        <link rel="stylesheet" type="text/css" href="{{ asset('vente-ticket/css/jquery-ui.css') }}">
+        <link rel="stylesheet" type="text/css" href="{{ asset('vente-ticket/css/main.css') }}">
+        <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+        <link rel="stylesheet" type="text/css" href="{{ asset('vente-ticket/css/events.css') }}">
+{% endblock %}
+
+{% block body %}
+    {% set isAuthenticated = isAuthenticated ?? false %}
+    <main>
+        <section class="sec-event all-event" style="padding-top: 100px;">
+            <div class="container">
+                <div class="search-results-header wow fadeIn" data-wow-delay="200ms" style="margin-bottom: 50px; text-align: center;">
+                    <h1 style="font-size: 2.5rem; font-weight: 700; color: #333;">{{ 'events.for_you_title'|trans }}</h1>
+                    <p style="color: #666; font-size: 1.1rem; margin-top: 10px;">{{ 'events.for_you_subtitle'|trans }}</p>
+                </div>
+                
+                {% if groupedEvents is defined and groupedEvents and totalEvents > 0 %}
+                    {% for categoryName, eventsByCategory in groupedEvents %}
+                        <h2 class="wow fadeIn" data-wow-delay="300ms" style="margin-top: 40px; border-bottom: 2px solid #f0f0f0; padding-bottom: 10px;">{{ categoryName }}</h2>
+                        <div class="lst-event">
+                            {% for event in eventsByCategory %}
+                            {% set startsAt = event.starts_at %}
+                            {% set imagePath = event.image_url
+                                ? (event.image_url starts with 'http' ? event.image_url : asset(event.image_url|trim('/')))
+                                : asset('vente-ticket/images/img1.png') %}
+                            <div class="item wow fadeInUp" data-wow-delay="300ms">
+                                <div class="inner">
+                                    {% if isAuthenticated %}
+                                    <button class="favorite-toggle {% if event.isFavorite is defined and event.isFavorite %}is-active{% endif %}" type="button" data-event-id="{{ event.id }}" title="Ajouter aux favoris">
+                                        <i class="fas fa-heart"></i>
+                                    </button>
+                                    {% endif %}
+                                    <div class="blc-col1">
+                                        <div class="col1">
+                                            <div class="date">
+                                                {% if startsAt %}
+                                                    <span>{{ startsAt|date('l')|capitalize }}</span>
+                                                    <strong>{{ startsAt|date('d') }}</strong>
+                                                    <span class="text-upper">{{ startsAt|date('M Y')|upper }}</span>
+                                                {% else %}
+                                                    <span>{{ 'events.date_coming_soon'|trans }}</span>
+                                                {% endif %}
+                                            </div>
+                                            <div class="hour">
+                                                {% if startsAt %}
+                                                    {{ 'events.time_prefix'|trans }} {{ startsAt|date('H\\hi') }}
+                                                {% else %}
+                                                    {{ 'events.time_unknown'|trans }}
+                                                {% endif %}
+                                            </div>
+                                        </div>
+                                        <div class="col2">
+                                            <span class="bandeau">{{ event.category_label ?? categoryName }}</span>
+                                            <h3>{{ event.title }}</h3>
+                                            {% set location_parts = [] %}
+                                            {% if event.venue_name %}
+                                                {% set location_parts = location_parts|merge([event.venue_name]) %}
+                                            {% endif %}
+                                            {% if event.city %}
+                                                {% set location_parts = location_parts|merge([event.city]) %}
+                                            {% endif %}
+                                            {% if location_parts is not empty %}
+                                                <div class="adresse">{{ location_parts|join(', ') }}</div>
+                                            {% endif %}
+                                            <div class="tarif">
+                                                {% if event.min_price is not null %}
+                                                    {% if event.max_price is not null and event.max_price > event.min_price %}
+                                                        {{ 'events.price_range'|trans({
+                                                            '{min}': event.min_price|number_format(0, '.', ' '),
+                                                            '{max}': event.max_price|number_format(0, '.', ' ')
+                                                        })|raw }}
+                                                    {% else %}
+                                                        {{ 'events.price_single'|trans({
+                                                            '{price}': event.min_price|number_format(0, '.', ' ')
+                                                        })|raw }}
+                                                    {% endif %}
+                                                {% else %}
+                                                    {{ 'events.price_not_set'|trans }}
+                                                {% endif %}
+                                            </div>
+                                            {% set event_url = path('event_details', { id: event.id }) %}
+                                            <div class="blcBtn">
+                                                <a href="{{ event_url }}" class="btn ticket">{{ 'events.buy_ticket'|trans }}</a>
+                                                <a href="{{ event_url }}" class="btn details">{{ 'events.details'|trans }}</a>
+                                            </div>
+                                        </div>
+                                    </div>
+                                    <div class="blc-col2">
+                                        <div class="img">
+                                            <img src="{{ imagePath }}" alt="{{ event.title }}">
+                                        </div>  
+                                    </div>
+                                </div>
+                            </div>
+                            {% endfor %}
+                        </div>
+                    {% endfor %}
+                {% else %}
+                    <div class="no-results wow fadeIn" data-wow-delay="200ms" style="text-align: center; padding: 100px 20px;">
+                        <i class="fas fa-sparkles" style="font-size: 64px; color: #FFD700; margin-bottom: 20px;"></i>
+                        <h3>{{ 'home.no_events'|trans }}</h3>
+                        <p style="color: #666; margin-top: 10px; max-width: 600px; margin-left: auto; margin-right: auto;">
+                            {{ 'profile_favorites.empty_desc'|trans }}
+                        </p>
+                        <a href="{{ path('events') }}" class="btn" style="margin-top: 30px; display: inline-block;">
+                            {{ 'events.no_results_button'|trans }}
+                        </a>
+                    </div>
+                {% endif %}
+            </div>
+        </section>
+    </main>
+{% endblock %}
+
+{% block javascripts %}
+    <script type="text/javascript" src="{{ asset('vente-ticket/js/jquery.min.js') }}"></script>
+    <script type="text/javascript" src="{{ asset('vente-ticket/js/wow.js') }}"></script>
+    <script type="text/javascript" src="{{ asset('vente-ticket/js/custom.js') }}"></script>
+    <script>
+        document.addEventListener('DOMContentLoaded', () => {
+            // Re-utiliser la logique de favoris de list.html.twig si nécessaire
+            document.querySelectorAll('.favorite-toggle').forEach(btn => {
+                btn.addEventListener('click', function(e) {
+                    e.preventDefault();
+                    e.stopPropagation();
+                    const eventId = this.dataset.eventId;
+                    const isActive = this.classList.contains('is-active');
+                    this.classList.toggle('is-active');
+                    const method = isActive ? 'DELETE' : 'POST';
+                    fetch(`/events/${eventId}/favorite`, {
+                        method: method,
+                        headers: { 'X-Requested-With': 'XMLHttpRequest', 'Content-Type': 'application/json' }
+                    })
+                    .then(r => r.json())
+                    .then(data => {
+                        if (data.status !== 'success') {
+                            this.classList.toggle('is-active');
+                            alert('Erreur: ' + (data.message || 'Erreur'));
+                        }
+                    })
+                    .catch(() => {
+                        this.classList.toggle('is-active');
+                        alert('Erreur réseau');
+                    });
+                });
+            });
+        });
+    </script>
+{% endblock %}

@@ -211,7 +211,7 @@ class EventRepository extends ServiceEntityRepository
             LIMIT :limit
         SQL;
 
-        $rows = $this->connection->executeQuery($sql, ['limit' => $limit])->fetchAllAssociative();
+        $rows = $this->connection->executeQuery($sql, ['limit' => $limit], ['limit' => \Doctrine\DBAL\ParameterType::INTEGER])->fetchAllAssociative();
 
         return array_map(static function (array $row): array {
             $startsAt = isset($row['starts_at']) ? new \DateTimeImmutable($row['starts_at']) : null;
@@ -312,7 +312,7 @@ class EventRepository extends ServiceEntityRepository
         $exactQuery = $query;
         $startQuery = $query . '%';
         $containsQuery = '%' . $query . '%';
-        
+
         $sql = <<<SQL
             SELECT DISTINCT
                 e.id,
@@ -621,7 +621,7 @@ class EventRepository extends ServiceEntityRepository
 
         $rows = $this->connection->executeQuery($sql)->fetchAllAssociative();
 
-        return array_map(static fn (array $row): array => [
+        return array_map(static fn(array $row): array => [
             'slug' => $row['slug'],
             'label' => $row['label'],
         ], $rows);
@@ -643,7 +643,7 @@ class EventRepository extends ServiceEntityRepository
 
         $rows = $this->connection->executeQuery($sql)->fetchFirstColumn();
 
-        return array_map(static fn ($city) => (string) $city, $rows);
+        return array_map(static fn($city) => (string) $city, $rows);
     }
 
     /**
@@ -1256,6 +1256,177 @@ class EventRepository extends ServiceEntityRepository
         SQL;
 
         return $this->connection->executeQuery($sql, ['hours' => $hours])->fetchAllAssociative();
+    }
+
+    /**
+     * Récupère des recommandations personnalisées pour un utilisateur.
+     * Basé sur ses favoris et ses achats passés.
+     */
+    /**
+     * Récupère des recommandations personnalisée avec des détails de débogage.
+     */
+    public function findRecommendationsForUserDetailed(int $userId, int $limit = 12): array
+    {
+        // 1. Récupérer les catégories d'intérêt (favoris + achats)
+        $sqlCategories = <<<SQL
+            (
+                SELECT DISTINCT cl.category_id
+                FROM aiolia.wishlist_items wi
+                JOIN aiolia.wishlists w ON w.id = wi.wishlist_id
+                JOIN aiolia.event_category_links cl ON cl.event_id = wi.event_id
+                WHERE w.user_id = :userId
+            )
+            UNION
+            (
+                SELECT DISTINCT cl.category_id
+                FROM aiolia.order_items oi
+                JOIN aiolia.orders o ON o.id = oi.order_id
+                JOIN aiolia.ticket_types tt ON tt.id = oi.ticket_type_id
+                JOIN aiolia.event_category_links cl ON cl.event_id = tt.event_id
+                WHERE o.user_id = :userId AND o.status = 'paid'
+            )
+        SQL;
+
+        $categoryIds = $this->connection->executeQuery($sqlCategories, ['userId' => $userId])->fetchFirstColumn();
+
+        // 2. Si aucune catégorie d'intérêt, retourner les événements à venir populaires/récents
+        if (empty($categoryIds)) {
+            $fallback = $this->findUpcomingEventsForHome($limit);
+            return [
+                'events' => $fallback,
+                'is_fallback' => true,
+                'category_ids' => []
+            ];
+        }
+
+        // 3. Récupérer les événements recommandés
+        // On exclut les événements déjà dans la wishlist ou déjà achetés
+        $placeholders = [];
+        $params = ['userId' => $userId, 'limit' => $limit];
+        $types = [
+            'userId' => \Doctrine\DBAL\ParameterType::INTEGER,
+            'limit' => \Doctrine\DBAL\ParameterType::INTEGER,
+        ];
+
+        foreach ($categoryIds as $i => $catId) {
+            $key = "cat_id_$i";
+            $placeholders[] = ":$key";
+            $params[$key] = $catId;
+            $types[$key] = \Doctrine\DBAL\ParameterType::INTEGER;
+        }
+        $placeholdersStr = implode(',', $placeholders);
+
+        $sql = <<<SQL
+            SELECT DISTINCT
+                e.id,
+                e.slug,
+                e.title,
+                e.subtitle,
+                e.summary,
+                COALESCE(e.location_override->>'venue_name', v.name) AS venue_name,
+                COALESCE(e.location_override->>'city', v.city) AS city,
+                e.starts_at,
+                COALESCE(primary_cat.label, cat.label) AS category_label,
+                COALESCE(media.url, e.cover_image_url) AS image_url,
+                pricing.min_price,
+                pricing.max_price
+            FROM aiolia.events e
+            LEFT JOIN aiolia.venues v ON v.id = e.venue_id
+            LEFT JOIN aiolia.event_categories primary_cat ON primary_cat.id = e.primary_category_id
+            LEFT JOIN LATERAL (
+                SELECT c.label
+                FROM aiolia.event_category_links cl
+                JOIN aiolia.event_categories c ON c.id = cl.category_id
+                WHERE cl.event_id = e.id
+                ORDER BY c.display_order ASC, c.label ASC
+                LIMIT 1
+            ) AS cat ON TRUE
+            LEFT JOIN LATERAL (
+                SELECT m.url
+                FROM aiolia.event_media m
+                WHERE m.event_id = e.id
+                  AND m.is_public IS TRUE
+                ORDER BY m.display_order ASC, m.id ASC
+                LIMIT 1
+            ) AS media ON TRUE
+            LEFT JOIN LATERAL (
+                SELECT
+                    MIN(tt.base_price) AS min_price,
+                    MAX(tt.base_price) AS max_price
+                FROM aiolia.ticket_types tt
+                WHERE tt.event_id = e.id
+            ) AS pricing ON TRUE
+            JOIN aiolia.event_category_links cl2 ON cl2.event_id = e.id
+            WHERE e.status = 'published'
+              AND e.visibility = 'public'
+              AND e.starts_at >= NOW()
+              AND cl2.category_id IN ($placeholdersStr)
+              AND e.id NOT IN (
+                  SELECT event_id FROM aiolia.wishlist_items wi 
+                  JOIN aiolia.wishlists w ON w.id = wi.wishlist_id WHERE w.user_id = :userId
+              )
+              AND e.id NOT IN (
+                  SELECT tt.event_id FROM aiolia.order_items oi
+                  JOIN aiolia.orders o ON o.id = oi.order_id
+                  JOIN aiolia.ticket_types tt ON tt.id = oi.ticket_type_id
+                  WHERE o.user_id = :userId AND o.status = 'paid'
+              )
+            ORDER BY e.starts_at ASC
+            LIMIT :limit
+        SQL;
+
+        try {
+            $rows = $this->connection->executeQuery($sql, $params, $types)->fetchAllAssociative();
+
+            // Si pas de résultats pour les catégories spécifiques, on peut aussi décider de fallback
+            if (empty($rows)) {
+                $fallback = $this->findUpcomingEventsForHome($limit);
+                return [
+                    'events' => $fallback,
+                    'is_fallback' => true,
+                    'category_ids' => $categoryIds,
+                    'note' => 'Personalized categories returned no future events'
+                ];
+            }
+
+            $events = array_map(static function (array $row): array {
+                $startsAt = isset($row['starts_at']) ? new \DateTimeImmutable($row['starts_at']) : null;
+
+                return [
+                    'id' => (int) $row['id'],
+                    'slug' => $row['slug'],
+                    'title' => $row['title'],
+                    'subtitle' => $row['subtitle'],
+                    'summary' => $row['summary'],
+                    'venue_name' => $row['venue_name'],
+                    'city' => $row['city'],
+                    'category_label' => $row['category_label'] ?? 'Événement',
+                    'image_url' => $row['image_url'],
+                    'starts_at' => $startsAt,
+                    'min_price' => null !== $row['min_price'] ? (float) $row['min_price'] : null,
+                    'max_price' => null !== $row['max_price'] ? (float) $row['max_price'] : null,
+                ];
+            }, $rows);
+
+            return [
+                'events' => $events,
+                'is_fallback' => false,
+                'category_ids' => $categoryIds
+            ];
+        } catch (\Exception $e) {
+            error_log('Error fetching recommendations for user: ' . $e->getMessage());
+            return [
+                'events' => [],
+                'is_fallback' => true,
+                'error' => $e->getMessage()
+            ];
+        }
+    }
+
+    public function findRecommendationsForUser(int $userId, int $limit = 12): array
+    {
+        $res = $this->findRecommendationsForUserDetailed($userId, $limit);
+        return $res['events'] ?? [];
     }
 }
 
