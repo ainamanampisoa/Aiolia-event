@@ -2,6 +2,7 @@
 
 namespace App\Service;
 
+use App\Service\Notification\UserMailer;
 use Doctrine\DBAL\Connection;
 use Doctrine\DBAL\Exception;
 use Symfony\Component\DependencyInjection\ParameterBag\ParameterBagInterface;
@@ -14,6 +15,7 @@ class PaymentService
         private readonly Connection $connection,
         private readonly CartSyncService $cartSyncService,
         private readonly ?MvolaPaymentClient $mvolaClient = null,
+        private readonly ?UserMailer $userMailer = null,
         ?ParameterBagInterface $parameterBag = null
     ) {
         // Définir le chemin du fichier de log
@@ -23,7 +25,7 @@ class PaymentService
             @mkdir($logDir, 0755, true);
         }
         $this->logFile = $logDir . '/mvola.log';
-        
+
         // Log de démarrage
         $this->logInfo('PaymentService initialisé', ['log_file' => $this->logFile]);
     }
@@ -36,9 +38,9 @@ class PaymentService
         $timestamp = date('Y-m-d H:i:s');
         $contextStr = !empty($context) ? ' | Context: ' . json_encode($context, JSON_UNESCAPED_UNICODE) : '';
         $logLine = "[{$timestamp}] [{$level}] {$message}{$contextStr}\n";
-        
+
         @file_put_contents($this->logFile, $logLine, FILE_APPEND);
-        
+
         // Également écrire dans error_log pour compatibilité
         error_log("MVola [{$level}]: {$message}");
     }
@@ -83,7 +85,7 @@ class PaymentService
             'cart_items_count' => count($cartItems),
             'payment_method' => $paymentData['payment_method'] ?? 'unknown'
         ]);
-        
+
         // Calculer le total de la commande (commun aux deux modes : simulé et réel)
         $totalAmount = 0;
         foreach ($cartItems as $item) {
@@ -91,7 +93,7 @@ class PaymentService
             $childTotal = ($item['childQuantity'] ?? 0) * ($item['childPrice'] ?? 0);
             $totalAmount += $adultTotal + $childTotal;
         }
-        
+
         $this->logDebug('Total calculé', ['total_amount' => $totalAmount]);
 
         // MODE SIMULATION (utilisateur non connecté) :
@@ -109,28 +111,28 @@ class PaymentService
             $this->logInfo('Résultat simulation', $result);
             return $result;
         }
-        
+
         $this->logInfo('Mode complet - utilisateur connecté');
 
         // MODE COMPLET (utilisateur connecté) :
         // On persiste la commande et les tickets en base
         $this->connection->beginTransaction();
-        
+
         try {
             // Récupérer ou créer le panier
             $dbCart = $this->cartSyncService->getOrCreateCart($userId, null);
             if (!$dbCart) {
                 throw new \RuntimeException('Impossible de récupérer le panier.');
             }
-            
+
             $cartId = (int) $dbCart['id'];
-            
+
             // Sauvegarder les cart_keys des items payés pour pouvoir les retirer après paiement
             $cartKeys = array_keys($cartItems);
-            
+
             // Créer la commande
             $orderId = $this->createOrder($userId, $cartId, $totalAmount, $paymentData, $cartKeys);
-            
+
             // Si méthode de paiement MVola, initier la transaction
             $paymentMethod = $paymentData['payment_method'] ?? 'mvola';
             if ($paymentMethod === 'mvola' && $this->mvolaClient !== null) {
@@ -155,21 +157,21 @@ class PaymentService
                         ];
                     }
                 }
-                
+
                 $this->logDebug('Items sauvegardés dans les notes de la commande', [
                     'order_id' => $orderId,
                     'cart_items_data_count' => count($cartItemsData),
                     'cart_items_data' => $cartItemsData
                 ]);
-                
+
                 // Mettre à jour les notes de la commande avec les items sauvegardés
                 $orderNotes = json_decode($this->connection->executeQuery(
                     'SELECT notes FROM aiolia.orders WHERE id = :order_id',
                     ['order_id' => $orderId]
                 )->fetchOne(), true) ?: [];
-                
+
                 $orderNotes['cart_items_data'] = $cartItemsData;
-                
+
                 $this->connection->update(
                     'aiolia.orders',
                     [
@@ -177,20 +179,20 @@ class PaymentService
                     ],
                     ['id' => $orderId]
                 );
-                
+
                 $mvolaResult = $this->initiateMvolaPayment($orderId, $totalAmount, $paymentData);
-                
+
                 if (!$mvolaResult['success']) {
                     throw new \RuntimeException('Erreur lors de l\'initiation du paiement MVola: ' . ($mvolaResult['error'] ?? 'Erreur inconnue'));
                 }
-                
+
                 // Retirer immédiatement les items payés du panier (avant le callback)
                 // Cela évite qu'ils réapparaissent si l'utilisateur revient sur la page du panier
                 $this->removeCartItems($cartId, $cartKeys);
-                
+
                 // La commande reste en "pending" jusqu'à confirmation du callback
                 $this->connection->commit();
-                
+
                 return [
                     'success' => true,
                     'order_id' => $orderId,
@@ -201,25 +203,25 @@ class PaymentService
                     'cart_keys_removed' => $cartKeys, // Retourner les cart_keys retirés
                 ];
             }
-            
+
             // Pour les autres méthodes de paiement ou si MVola n'est pas configuré, créer directement les tickets
             // Créer les order_items et les tickets
             $orderItems = [];
             $tickets = [];
-            
+
             foreach ($cartItems as $cartKey => $item) {
                 $eventId = (int) $item['eventId'];
                 $adultQuantity = (int) ($item['adultQuantity'] ?? 0);
                 $childQuantity = (int) ($item['childQuantity'] ?? 0);
-                $adultTicketTypeId = isset($item['adultTicketTypeId']) && $item['adultTicketTypeId'] > 0 
-                    ? (int) $item['adultTicketTypeId'] 
+                $adultTicketTypeId = isset($item['adultTicketTypeId']) && $item['adultTicketTypeId'] > 0
+                    ? (int) $item['adultTicketTypeId']
                     : null;
-                $childTicketTypeId = isset($item['childTicketTypeId']) && $item['childTicketTypeId'] > 0 
-                    ? (int) $item['childTicketTypeId'] 
+                $childTicketTypeId = isset($item['childTicketTypeId']) && $item['childTicketTypeId'] > 0
+                    ? (int) $item['childTicketTypeId']
                     : null;
                 $adultPrice = (float) ($item['adultPrice'] ?? 0);
                 $childPrice = (float) ($item['childPrice'] ?? 0);
-                
+
                 // Récupérer les prix depuis la base de données si nécessaire
                 if ($adultQuantity > 0 && $adultTicketTypeId && $adultPrice === 0) {
                     $adultPrice = $this->getTicketTypePrice($adultTicketTypeId) ?? 0;
@@ -227,7 +229,7 @@ class PaymentService
                 if ($childQuantity > 0 && $childTicketTypeId && $childPrice === 0) {
                     $childPrice = $this->getTicketTypePrice($childTicketTypeId) ?? 0;
                 }
-                
+
                 // Traiter les billets adultes
                 if ($adultQuantity > 0 && $adultTicketTypeId) {
                     $orderItemId = $this->createOrderItem(
@@ -237,14 +239,14 @@ class PaymentService
                         $adultPrice
                     );
                     $orderItems[] = $orderItemId;
-                    
+
                     // Créer les tickets adultes
                     for ($i = 0; $i < $adultQuantity; $i++) {
                         $ticketId = $this->createTicket($orderItemId, $adultTicketTypeId, $userId, $adultPrice);
                         $tickets[] = $ticketId;
                     }
                 }
-                
+
                 // Traiter les billets enfants
                 if ($childQuantity > 0 && $childTicketTypeId) {
                     $orderItemId = $this->createOrderItem(
@@ -254,28 +256,30 @@ class PaymentService
                         $childPrice
                     );
                     $orderItems[] = $orderItemId;
-                    
+
                     // Créer les tickets enfants
                     for ($i = 0; $i < $childQuantity; $i++) {
                         $ticketId = $this->createTicket($orderItemId, $childTicketTypeId, $userId, $childPrice);
                         $tickets[] = $ticketId;
                     }
                 }
-                
+
                 // Si on a un ticket_type_id principal mais pas de adult/child séparés
                 // et qu'on n'a pas encore traité de billets pour cet item
-                if (!isset($item['adultTicketTypeId']) && !isset($item['childTicketTypeId']) 
-                    && isset($item['ticketTypeId']) 
-                    && ($adultQuantity > 0 || $childQuantity > 0)) {
+                if (
+                    !isset($item['adultTicketTypeId']) && !isset($item['childTicketTypeId'])
+                    && isset($item['ticketTypeId'])
+                    && ($adultQuantity > 0 || $childQuantity > 0)
+                ) {
                     $ticketTypeId = (int) $item['ticketTypeId'];
                     $quantity = $adultQuantity + $childQuantity;
                     $price = $adultPrice > 0 ? $adultPrice : ($childPrice > 0 ? $childPrice : 0);
-                    
+
                     // Si le prix n'est pas disponible, le récupérer depuis la base de données
                     if ($price === 0) {
                         $price = $this->getTicketTypePrice($ticketTypeId) ?? 0;
                     }
-                    
+
                     if ($price > 0 && $quantity > 0) {
                         $orderItemId = $this->createOrderItem(
                             $orderId,
@@ -284,7 +288,7 @@ class PaymentService
                             $price
                         );
                         $orderItems[] = $orderItemId;
-                        
+
                         // Créer les tickets
                         for ($i = 0; $i < $quantity; $i++) {
                             $ticketId = $this->createTicket($orderItemId, $ticketTypeId, $userId, $price);
@@ -293,7 +297,7 @@ class PaymentService
                     }
                 }
             }
-            
+
             // Mettre à jour le statut de la commande à "paid"
             $this->connection->update(
                 'aiolia.orders',
@@ -303,10 +307,10 @@ class PaymentService
                 ],
                 ['id' => $orderId]
             );
-            
+
             // Retirer les items du panier
             $this->removeCartItems($cartId, array_keys($cartItems));
-            
+
             // Marquer le panier comme converti
             $this->connection->update(
                 'aiolia.carts',
@@ -316,9 +320,20 @@ class PaymentService
                 ],
                 ['id' => $cartId]
             );
-            
+
             $this->connection->commit();
-            
+
+            // Envoyer l'email de confirmation
+            if ($this->userMailer) {
+                $order = $this->connection->executeQuery(
+                    'SELECT * FROM aiolia.orders WHERE id = :order_id',
+                    ['order_id' => $orderId]
+                )->fetchAssociative();
+                if ($order) {
+                    $this->userMailer->sendPaymentConfirmation($order);
+                }
+            }
+
             return [
                 'success' => true,
                 'order_id' => $orderId,
@@ -344,7 +359,7 @@ class PaymentService
     {
         $paymentMethod = $paymentData['payment_method'] ?? 'mvola';
         $paymentDueAt = new \DateTimeImmutable('+15 minutes');
-        
+
         $this->connection->insert('aiolia.orders', [
             'user_id' => $userId,
             'cart_id' => $cartId,
@@ -363,7 +378,7 @@ class PaymentService
                 'cart_keys' => $cartKeys, // Sauvegarder les cart_keys des items payés
             ]),
         ]);
-        
+
         return (int) $this->connection->lastInsertId();
     }
 
@@ -373,7 +388,7 @@ class PaymentService
     private function createOrderItem(int $orderId, int $ticketTypeId, int $quantity, float $unitPrice): int
     {
         $totalAmount = $quantity * $unitPrice;
-        
+
         $this->connection->insert('aiolia.order_items', [
             'order_id' => $orderId,
             'ticket_type_id' => $ticketTypeId,
@@ -383,7 +398,7 @@ class PaymentService
             'vat_amount' => 0,
             'total_amount' => $totalAmount,
         ]);
-        
+
         return (int) $this->connection->lastInsertId();
     }
 
@@ -394,17 +409,17 @@ class PaymentService
     {
         // Générer un QR code unique
         $qrCode = 'TICKET_' . uniqid() . '_' . bin2hex(random_bytes(8));
-        
+
         // Récupérer l'event_id depuis le ticket_type
         $eventSql = 'SELECT event_id FROM aiolia.ticket_types WHERE id = :ticket_type_id LIMIT 1';
         $eventResult = $this->connection->executeQuery($eventSql, ['ticket_type_id' => $ticketTypeId])->fetchAssociative();
-        
+
         if (!$eventResult || !isset($eventResult['event_id'])) {
             throw new \RuntimeException("Impossible de trouver l'événement pour le ticket_type_id: {$ticketTypeId}");
         }
-        
+
         $eventId = (int) $eventResult['event_id'];
-        
+
         // Insérer le ticket
         $this->connection->insert('aiolia.tickets', [
             'order_item_id' => $orderItemId,
@@ -414,12 +429,12 @@ class PaymentService
             'qr_code' => $qrCode,
             'issued_at' => (new \DateTimeImmutable())->format('Y-m-d H:i:s'),
         ]);
-        
+
         $ticketId = (int) $this->connection->lastInsertId();
-        
+
         // Mettre à jour l'inventaire des tickets
         $this->updateTicketInventory($ticketTypeId);
-        
+
         return $ticketId;
     }
 
@@ -431,7 +446,7 @@ class PaymentService
         // Vérifier si l'inventaire existe
         $inventorySql = 'SELECT * FROM aiolia.ticket_inventory WHERE ticket_type_id = :ticket_type_id';
         $inventory = $this->connection->executeQuery($inventorySql, ['ticket_type_id' => $ticketTypeId])->fetchAssociative();
-        
+
         if ($inventory) {
             // Utiliser une requête SQL directe pour l'incrémentation
             $updateSql = 'UPDATE aiolia.ticket_inventory SET sold_quantity = sold_quantity + 1, updated_at = NOW() WHERE ticket_type_id = :ticket_type_id';
@@ -455,20 +470,20 @@ class PaymentService
         if (empty($cartKeys)) {
             return;
         }
-        
+
         // Construire la clause IN pour supprimer plusieurs items
         $placeholders = [];
         $params = ['cart_id' => $cartId];
-        
+
         foreach ($cartKeys as $index => $cartKey) {
             $placeholder = 'cart_key_' . $index;
             $placeholders[] = ':' . $placeholder;
             $params[$placeholder] = $cartKey;
         }
-        
+
         $sql = 'DELETE FROM aiolia.cart_items WHERE cart_id = :cart_id AND cart_key IN (' . implode(', ', $placeholders) . ')';
         $this->connection->executeStatement($sql, $params);
-        
+
         // Recalculer le total du panier
         $this->recalculateCartTotal($cartId);
     }
@@ -480,9 +495,9 @@ class PaymentService
     {
         $sql = 'SELECT SUM(total_price) as total FROM aiolia.cart_items WHERE cart_id = :cart_id';
         $result = $this->connection->executeQuery($sql, ['cart_id' => $cartId])->fetchAssociative();
-        
+
         $total = $result ? (float) ($result['total'] ?? 0) : 0;
-        
+
         $this->connection->update(
             'aiolia.carts',
             [
@@ -501,11 +516,11 @@ class PaymentService
         try {
             $sql = 'SELECT base_price FROM aiolia.ticket_types WHERE id = :ticket_type_id LIMIT 1';
             $result = $this->connection->executeQuery($sql, ['ticket_type_id' => $ticketTypeId])->fetchAssociative();
-            
+
             if ($result && isset($result['base_price'])) {
                 return (float) $result['base_price'];
             }
-            
+
             return null;
         } catch (Exception $e) {
             $this->logError('Erreur lors de la récupération du prix du type de billet', [
@@ -533,7 +548,7 @@ class PaymentService
         try {
             // Générer une référence unique pour la transaction
             $transactionReference = 'ORDER-' . $orderId . '-' . time();
-            
+
             // Récupérer le numéro de téléphone du client
             $customerMsisdn = trim($paymentData['payment_phone'] ?? '');
             if (empty($customerMsisdn)) {
@@ -590,30 +605,30 @@ class PaymentService
             // En production, on attendra le callback réel
             $baseUrl = $this->mvolaClient ? $this->mvolaClient->getBaseUrl() : '';
             $isSandbox = !empty($baseUrl) && strpos($baseUrl, 'devapi.mvola.mg') !== false;
-            
+
             $this->logDebug('Vérification mode sandbox', [
                 'base_url' => $baseUrl,
                 'is_sandbox' => $isSandbox,
                 'server_correlation_id' => $serverCorrelationId,
                 'mvola_client_null' => $this->mvolaClient === null
             ]);
-            
+
             if ($isSandbox && $serverCorrelationId) {
                 $this->logInfo('Mode sandbox détecté - Création automatique des tickets après délai', [
                     'order_id' => $orderId,
                     'server_correlation_id' => $serverCorrelationId
                 ]);
-                
+
                 // Créer les tickets après 2 secondes (simule le délai du callback)
                 // Utiliser un processus asynchrone ou un délai simple
                 // Pour l'instant, on crée directement les tickets
                 try {
                     // Attendre 1 seconde pour simuler le délai du callback
                     sleep(1);
-                    
+
                     // Créer les tickets automatiquement en sandbox
                     $ticketResult = $this->createTicketsAfterPayment($orderId);
-                    
+
                     if ($ticketResult['success']) {
                         $this->logInfo('Tickets créés automatiquement en sandbox', [
                             'order_id' => $orderId,
@@ -645,7 +660,7 @@ class PaymentService
                 'line' => $e->getLine(),
                 'trace' => $e->getTraceAsString()
             ]);
-            
+
             return [
                 'success' => false,
                 'error' => $errorMessage,
@@ -666,7 +681,7 @@ class PaymentService
     public function createTicketsAfterPayment(int $orderId): array
     {
         $this->connection->beginTransaction();
-        
+
         try {
             // Récupérer la commande
             $order = $this->connection->executeQuery(
@@ -679,14 +694,14 @@ class PaymentService
             }
 
             $userId = (int) $order['user_id'];
-            
+
             $orderItems = [];
             $tickets = [];
 
             // Récupérer les items sauvegardés depuis les notes de la commande
             $orderNotes = json_decode($order['notes'] ?? '{}', true);
             $savedCartItems = $orderNotes['cart_items_data'] ?? [];
-            
+
             // Log pour debug
             $this->logDebug('Début de la création des tickets après paiement', [
                 'order_id' => $orderId,
@@ -694,7 +709,7 @@ class PaymentService
                 'order_notes' => $order['notes'] ?? null,
                 'saved_cart_items' => $savedCartItems
             ]);
-            
+
             // Si on a des items sauvegardés, les utiliser
             // Sinon, essayer de récupérer depuis le panier (pour compatibilité avec les anciennes commandes)
             if (!empty($savedCartItems)) {
@@ -705,14 +720,14 @@ class PaymentService
                     $adultTicketTypeId = $savedItem['adult_ticket_type_id'] ?? null;
                     $childTicketTypeId = $savedItem['child_ticket_type_id'] ?? null;
                     $ticketTypeId = $savedItem['ticket_type_id'] ?? null;
-                    
+
                     // Si on n'a pas de adult/child séparés mais qu'on a un ticket_type_id principal
                     // et des quantités, utiliser le ticket_type_id principal
                     if (!$adultTicketTypeId && !$childTicketTypeId && $ticketTypeId) {
                         $adultQuantity = (int) ($savedItem['adult_quantity'] ?? 0);
                         $childQuantity = (int) ($savedItem['child_quantity'] ?? 0);
                         $totalQuantity = $adultQuantity + $childQuantity;
-                        
+
                         if ($totalQuantity > 0) {
                             // Si on a des quantités adultes et enfants, créer deux entrées
                             if ($adultQuantity > 0 && $childQuantity > 0) {
@@ -791,22 +806,22 @@ class PaymentService
                 // Fallback : récupérer depuis le panier (pour compatibilité)
                 $cartId = (int) $order['cart_id'];
                 $dbCartItems = $this->cartSyncService->getCartItems($cartId);
-                
+
                 if (empty($dbCartItems)) {
                     throw new \RuntimeException("Aucun item trouvé pour la commande: {$orderId}. Les items du panier ont peut-être été supprimés avant le callback.");
                 }
 
                 // Récupérer les cart_keys des items payés depuis les notes de la commande
                 $paidCartKeys = $orderNotes['cart_keys'] ?? [];
-                
+
                 // Si on a des cart_keys spécifiques, ne traiter que ces items
                 if (!empty($paidCartKeys)) {
                     // Filtrer les items pour ne garder que ceux qui ont été payés
-                    $dbCartItems = array_filter($dbCartItems, function($item) use ($paidCartKeys) {
+                    $dbCartItems = array_filter($dbCartItems, function ($item) use ($paidCartKeys) {
                         return in_array($item['cart_key'] ?? '', $paidCartKeys);
                     });
                 }
-                
+
                 // Convertir les items du panier au format attendu
                 $formattedCartItems = $this->cartSyncService->convertDbItemsToSessionFormat($dbCartItems);
             }
@@ -816,19 +831,19 @@ class PaymentService
                 'formatted_cart_items_count' => count($formattedCartItems),
                 'formatted_cart_items' => $formattedCartItems
             ]);
-            
+
             foreach ($formattedCartItems as $item) {
                 $adultQuantity = (int) ($item['adultQuantity'] ?? 0);
                 $childQuantity = (int) ($item['childQuantity'] ?? 0);
                 $totalQuantity = (int) ($item['quantity'] ?? 0);
-                $adultTicketTypeId = isset($item['adultTicketTypeId']) && $item['adultTicketTypeId'] > 0 
-                    ? (int) $item['adultTicketTypeId'] 
+                $adultTicketTypeId = isset($item['adultTicketTypeId']) && $item['adultTicketTypeId'] > 0
+                    ? (int) $item['adultTicketTypeId']
                     : null;
-                $childTicketTypeId = isset($item['childTicketTypeId']) && $item['childTicketTypeId'] > 0 
-                    ? (int) $item['childTicketTypeId'] 
+                $childTicketTypeId = isset($item['childTicketTypeId']) && $item['childTicketTypeId'] > 0
+                    ? (int) $item['childTicketTypeId']
                     : null;
-                $ticketTypeId = isset($item['ticketTypeId']) && $item['ticketTypeId'] > 0 
-                    ? (int) $item['ticketTypeId'] 
+                $ticketTypeId = isset($item['ticketTypeId']) && $item['ticketTypeId'] > 0
+                    ? (int) $item['ticketTypeId']
                     : null;
                 $adultPrice = (float) ($item['adultPrice'] ?? 0);
                 $childPrice = (float) ($item['childPrice'] ?? 0);
@@ -855,7 +870,7 @@ class PaymentService
                     if ($price === 0) {
                         $price = $this->getTicketTypePrice($adultTicketTypeId) ?? 0;
                     }
-                    
+
                     if ($price > 0) {
                         $orderItemId = $this->createOrderItem($orderId, $adultTicketTypeId, $adultQuantity, $price);
                         $orderItems[] = $orderItemId;
@@ -865,7 +880,7 @@ class PaymentService
                             'ticket_type_id' => $adultTicketTypeId,
                             'price' => $price
                         ]);
-                        
+
                         for ($i = 0; $i < $adultQuantity; $i++) {
                             $ticketId = $this->createTicket($orderItemId, $adultTicketTypeId, $userId, $price);
                             $tickets[] = $ticketId;
@@ -874,14 +889,14 @@ class PaymentService
                         $itemProcessed = true;
                     }
                 }
-                
+
                 // Traiter les billets enfants
                 if ($childQuantity > 0 && $childTicketTypeId) {
                     $price = $childPrice > 0 ? $childPrice : ($unitPrice > 0 ? $unitPrice : 0);
                     if ($price === 0) {
                         $price = $this->getTicketTypePrice($childTicketTypeId) ?? 0;
                     }
-                    
+
                     if ($price > 0) {
                         $orderItemId = $this->createOrderItem($orderId, $childTicketTypeId, $childQuantity, $price);
                         $orderItems[] = $orderItemId;
@@ -891,7 +906,7 @@ class PaymentService
                             'ticket_type_id' => $childTicketTypeId,
                             'price' => $price
                         ]);
-                        
+
                         for ($i = 0; $i < $childQuantity; $i++) {
                             $ticketId = $this->createTicket($orderItemId, $childTicketTypeId, $userId, $price);
                             $tickets[] = $ticketId;
@@ -900,24 +915,24 @@ class PaymentService
                         $itemProcessed = true;
                     }
                 }
-                
+
                 // Si on n'a pas encore traité cet item et qu'on a un ticket_type_id principal
                 if (!$itemProcessed && $ticketTypeId) {
                     $quantity = $adultQuantity + $childQuantity;
-                    
+
                     // Si on n'a pas de quantités dans adult/child, utiliser la quantité principale
                     if ($quantity === 0 && $totalQuantity > 0) {
                         $quantity = $totalQuantity;
                     }
-                    
+
                     if ($quantity > 0) {
                         $price = $adultPrice > 0 ? $adultPrice : ($childPrice > 0 ? $childPrice : ($unitPrice > 0 ? $unitPrice : 0));
-                        
+
                         // Si le prix n'est pas disponible, le récupérer depuis la base de données
                         if ($price === 0) {
                             $price = $this->getTicketTypePrice($ticketTypeId) ?? 0;
                         }
-                        
+
                         if ($price > 0) {
                             $orderItemId = $this->createOrderItem($orderId, $ticketTypeId, $quantity, $price);
                             $orderItems[] = $orderItemId;
@@ -927,7 +942,7 @@ class PaymentService
                                 'ticket_type_id' => $ticketTypeId,
                                 'price' => $price
                             ]);
-                            
+
                             // Créer les tickets
                             for ($i = 0; $i < $quantity; $i++) {
                                 $ticketId = $this->createTicket($orderItemId, $ticketTypeId, $userId, $price);
@@ -944,7 +959,7 @@ class PaymentService
                         }
                     }
                 }
-                
+
                 // Si l'item n'a toujours pas été traité, c'est une erreur
                 if (!$itemProcessed) {
                     $this->logError("Item non traité - données manquantes ou invalides", [
@@ -958,7 +973,7 @@ class PaymentService
                     ]);
                 }
             }
-            
+
             // Log final
             $this->logInfo('Création des tickets terminée', [
                 'total_order_items' => count($orderItems),
@@ -977,18 +992,18 @@ class PaymentService
                 ],
                 ['id' => $orderId]
             );
-            
+
             $this->logInfo('Statut de la commande mis à jour à paid', [
                 'order_id' => $orderId,
                 'total_order_items' => count($orderItems),
                 'total_tickets' => count($tickets)
             ]);
-            
+
             // Retirer uniquement les items payés du panier si le panier existe encore
             // Utiliser les cart_keys sauvegardés dans la commande si disponibles
             $paidCartKeys = $orderNotes['cart_keys'] ?? [];
             $cartKeysToRemove = !empty($paidCartKeys) ? $paidCartKeys : array_keys($formattedCartItems);
-            
+
             // Vérifier que le panier existe et que les items existent avant de les retirer
             // Note: Les items peuvent déjà avoir été retirés lors de l'initiation du paiement MVola
             $cartId = (int) ($order['cart_id'] ?? 0);
@@ -1001,10 +1016,10 @@ class PaymentService
                         'message' => $e->getMessage()
                     ]);
                 }
-                
+
                 // Vérifier qu'il ne reste plus d'items dans le panier
                 $remainingItems = $this->cartSyncService->getCartItems($cartId);
-                
+
                 // Si le panier est vide, le marquer comme converti
                 if (empty($remainingItems)) {
                     $this->connection->update(
@@ -1017,12 +1032,17 @@ class PaymentService
                     );
                 }
             }
-            
+
             // Vider aussi le panier de la session si l'utilisateur est connecté
             // Note: On ne peut pas accéder directement à la session ici, mais le panier DB est vidé
             // Le contrôleur videra la session lors de la confirmation
 
             $this->connection->commit();
+
+            // Envoyer l'email de confirmation
+            if ($this->userMailer) {
+                $this->userMailer->sendPaymentConfirmation($order);
+            }
 
             return [
                 'success' => true,

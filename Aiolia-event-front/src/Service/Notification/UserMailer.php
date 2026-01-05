@@ -96,5 +96,41 @@ class UserMailer
             throw $e;
         }
     }
+
+    public function sendPaymentConfirmation(array $order): void
+    {
+        try {
+            $orderNotes = json_decode($order['notes'] ?? '{}', true);
+            $userEmail = $orderNotes['payment_email'] ?? null;
+            $userName = $orderNotes['payment_name'] ?? 'Cher client';
+
+            if (!$userEmail) {
+                // Si pas d'email dans les notes, on ne peut pas envoyer le mail
+                return;
+            }
+
+            $subject = "Confirmation de votre commande #" . $order['id'];
+
+            $htmlBody = $this->twig->render('emails/payment_confirmation.html.twig', [
+                'user_name' => $userName,
+                'order' => $order,
+                'order_notes' => $orderNotes,
+            ]);
+
+            $fromName = $this->fromName ?: 'Aiolia Event';
+            $from = new Address($this->fromEmail, $fromName);
+
+            $email = (new Email())
+                ->from($from)
+                ->to($userEmail)
+                ->subject($subject)
+                ->html($htmlBody);
+
+            $this->mailer->send($email);
+        } catch (\Throwable $e) {
+            error_log(sprintf('Erreur envoi email confirmation paiement: %s', $e->getMessage()));
+            // On ne relance pas pour ne pas bloquer le flux de paiement si l'email échoue
+        }
+    }
 }
 

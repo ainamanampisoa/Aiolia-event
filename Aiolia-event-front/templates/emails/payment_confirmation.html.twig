@@ -1,0 +1,50 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+    <meta charset="UTF-8">
+    <style>
+        body { font-family: 'Helvetica Neue', Helvetica, Arial, sans-serif; color: #333; line-height: 1.6; margin: 0; padding: 0; }
+        .container { max-width: 600px; margin: 20px auto; padding: 20px; border: 1px solid #eee; border-radius: 8px; }
+        .header { text-align: center; padding-bottom: 20px; border-bottom: 2px solid #1049A0; }
+        .header h1 { color: #1049A0; margin: 0; }
+        .content { padding: 20px 0; }
+        .order-info { background: #f9f9f9; padding: 15px; border-radius: 4px; margin: 20px 0; }
+        .order-info h3 { margin-top: 0; color: #1049A0; }
+        .footer { text-align: center; font-size: 12px; color: #777; padding-top: 20px; border-top: 1px solid #eee; }
+        .button { display: inline-block; padding: 12px 24px; background-color: #1049A0; color: #ffffff; text-decoration: none; border-radius: 4px; font-weight: bold; margin-top: 20px; }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="header">
+            <h1>Confirmation de Commande</h1>
+        </div>
+        
+        <div class="content">
+            <p>Bonjour {{ user_name }},</p>
+            <p>Merci pour votre achat sur <strong>Aiolia Event</strong> ! Votre paiement a été confirmé avec succès.</p>
+            
+            <div class="order-info">
+                <h3>Récapitulatif de votre commande</h3>
+                <p><strong>Numéro de commande :</strong> #{{ order.id }}</p>
+                <p><strong>Montant total :</strong> {{ order.total_amount|number_format(0, '.', ' ') }} {{ order.currency }}</p>
+                <p><strong>Méthode de paiement :</strong> {{ order_notes.payment_method|upper }}</p>
+                <p><strong>Date :</strong> {{ "now"|date("d/m/Y H:i") }}</p>
+            </div>
+            
+            <p>Vos billets sont désormais disponibles dans votre espace personnel. Vous pouvez les consulter et les télécharger en cliquant sur le bouton ci-dessous :</p>
+            
+            <div style="text-align: center;">
+                <a href="{{ url('my_tickets') }}" class="button">Voir mes billets</a>
+            </div>
+            
+            <p>Si vous avez des questions, n'hésitez pas à répondre à cet email ou à nous contacter via notre support.</p>
+        </div>
+        
+        <div class="footer">
+            <p>Cordialement,<br>L'équipe Aiolia Event</p>
+            <p>&copy; {{ "now"|date("Y") }} Aiolia Event. Tous droits réservés.</p>
+        </div>
+    </div>
+</body>
+</html>
