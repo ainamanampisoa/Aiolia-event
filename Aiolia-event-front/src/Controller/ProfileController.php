@@ -1104,7 +1104,7 @@ class ProfileController extends AbstractController
         $month = $request->query->getInt('month', 0); // 0 = tous les mois
         $period = $request->query->get('period', 'year'); // year, month, all
         $monthlyRange = $request->query->get('monthly_range', 'last_6'); // last_6, first_6
-        
+
         // Nouveaux filtres avancés
         // Note: payment_method filtré sur 'mvola' par défaut car c'est la seule méthode
         $paymentMethodFilter = $request->query->get('payment_method', 'all');
