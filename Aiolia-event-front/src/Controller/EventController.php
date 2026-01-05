@@ -322,6 +322,14 @@ class EventController extends AbstractController
             throw $this->createNotFoundException('Évènement introuvable.');
         }
 
+        // Charger les favoris de l'utilisateur si connecté
+        $favoriteEventIds = [];
+        if ($isAuthenticated && isset($sessionUser['id'])) {
+            $favoriteEventIds = $this->wishlistRepository->findUserFavoriteEventIds((int) $sessionUser['id']);
+        }
+
+        $event['isFavorite'] = in_array($event['id'], $favoriteEventIds, true);
+
         // Accessibilité de l'événement
         $eventAccessibility = $this->eventRepository->findEventAccessibility($id);
 
@@ -425,6 +433,12 @@ class EventController extends AbstractController
         $event['accessibility'] = $eventAccessibility;
 
         $similarEvents = $this->eventRepository->findSimilarEvents($event['category_slug'], $event['id']);
+
+        // Ajouter la propriété isFavorite à chaque événement similaire
+        foreach ($similarEvents as &$similar) {
+            $similar['isFavorite'] = in_array($similar['id'], $favoriteEventIds, true);
+        }
+        unset($similar);
 
         return $this->render('event/details.html.twig', [
             'event' => $event,

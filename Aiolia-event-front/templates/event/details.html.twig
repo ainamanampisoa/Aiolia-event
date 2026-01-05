@@ -7,6 +7,8 @@
         <link rel="stylesheet" type="text/css" href="{{ asset('vente-ticket/css/slick.css') }}">
         <link rel="stylesheet" type="text/css" href="{{ asset('vente-ticket/css/jquery-ui.css') }}">
         <link rel="stylesheet" type="text/css" href="{{ asset('vente-ticket/css/main.css') }}">
+        <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+        <link rel="stylesheet" type="text/css" href="{{ asset('vente-ticket/css/events.css') }}">
 {% endblock %}
 
 {% block hero %}{% endblock %}
@@ -59,7 +61,14 @@
             <section class="sec-event-details">
                 <div class="container">
                     <div class="inner-details">
-                        <h2 class="wow fadeIn" data-wow-delay="300ms">{{ event.title }}</h2>
+                        <div class="event-title-header wow fadeIn" data-wow-delay="300ms" style="display: flex; justify-content: space-between; align-items: center; width: 100%; margin-bottom: 20px; flex-wrap: wrap;">
+                            <h2 style="margin-bottom: 0;">{{ event.title }}</h2>
+                            {% if isAuthenticated %}
+                            <button class="favorite-toggle {% if event.isFavorite is defined and event.isFavorite %}is-active{% endif %}" type="button" data-event-id="{{ event.id }}" title="Ajouter aux favoris" style="position: static; flex-shrink: 0; margin-left: auto;">
+                                <i class="fas fa-heart"></i>
+                            </button>
+                            {% endif %}
+                        </div>
                         {% if event.subtitle %}
                             <p class="event-subtitle wow fadeIn" data-wow-delay="350ms">{{ event.subtitle }}</p>
                         {% endif %}
@@ -364,6 +373,11 @@
                                     : asset('vente-ticket/images/img1.png') %}
                                 <div class="item wow fadeInUp" data-wow-delay="300ms">
                                     <div class="inner">
+                                        {% if isAuthenticated %}
+                                        <button class="favorite-toggle {% if similar.isFavorite is defined and similar.isFavorite %}is-active{% endif %}" type="button" data-event-id="{{ similar.id }}" title="Ajouter aux favoris">
+                                            <i class="fas fa-heart"></i>
+                                        </button>
+                                        {% endif %}
                                         <div class="blc-col1">
                                             <div class="col1">
                                                 <div class="date">
@@ -1696,6 +1710,61 @@
                 // Les inputs restent actifs jusqu'à ce qu'un type de billet soit sélectionné
                 // updateInputsState(); // Désactivé pour préserver l'affichage original
                 // updateButtonsState(); // Sera appelé après sélection
+
+                // Gestion des favoris
+                document.querySelectorAll('.favorite-toggle').forEach(btn => {
+                    btn.addEventListener('click', function(e) {
+                        e.preventDefault();
+                        e.stopPropagation();
+                        
+                        const eventId = this.dataset.eventId;
+                        const isActive = this.classList.contains('is-active');
+                        
+                        // Toggle visuel immédiat
+                        this.classList.toggle('is-active');
+                        this.setAttribute('aria-pressed', this.classList.contains('is-active'));
+                        
+                        // Appel API pour ajouter/retirer des favoris
+                        const method = isActive ? 'DELETE' : 'POST';
+                        const url = `/events/${eventId}/favorite`;
+                        
+                        fetch(url, {
+                            method: method,
+                            headers: {
+                                'X-Requested-With': 'XMLHttpRequest',
+                                'Content-Type': 'application/json',
+                            },
+                        })
+                        .then(response => {
+                            if (!response.ok) {
+                                throw new Error(`HTTP error! status: ${response.status}`);
+                            }
+                            const contentType = response.headers.get('content-type');
+                            if (!contentType || !contentType.includes('application/json')) {
+                                throw new Error('Response is not JSON');
+                            }
+                            return response.json();
+                        })
+                        .then(data => {
+                            if (data.status !== 'success') {
+                                // En cas d'erreur, annuler le toggle visuel
+                                this.classList.toggle('is-active');
+                                this.setAttribute('aria-pressed', this.classList.contains('is-active'));
+                                console.error('Erreur lors de la mise à jour des favoris:', data.message || 'Erreur inconnue');
+                                alert('Erreur: ' + (data.message || 'Impossible de mettre à jour les favoris'));
+                            } else {
+                                console.log('Favori mis à jour avec succès:', data.message);
+                            }
+                        })
+                        .catch(error => {
+                            // En cas d'erreur, annuler le toggle visuel
+                            this.classList.toggle('is-active');
+                            this.setAttribute('aria-pressed', this.classList.contains('is-active'));
+                            console.error('Erreur lors de la mise à jour des favoris:', error);
+                            alert('Erreur lors de la mise à jour des favoris. Veuillez réessayer.');
+                        });
+                    });
+                });
             });
         </script>
 {% endblock %}
