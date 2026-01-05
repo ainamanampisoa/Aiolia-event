@@ -699,6 +699,7 @@ class WaitlistRepository extends ServiceEntityRepository
         ];
     }
 
+    
     /**
      * Récupère les statistiques globales de la liste d'attente
      *
@@ -754,33 +755,63 @@ class WaitlistRepository extends ServiceEntityRepository
             }
         }
         
-        // Compter les billets achetés pour les événements en cours/à venir
-        $qb = $this->getEntityManager()->createQueryBuilder();
-        $qb->select('COUNT(DISTINCT b.id) as totalBillets')
-           ->from(Billet::class, 'b')
-           ->leftJoin(TypeBillet::class, 'tb', 'WITH', 'b.typeBillet = tb.id')
-           ->leftJoin(Event::class, 'e', 'WITH', 'tb.evenement = e.id')
-           ->where('e.statut = :statut')
-           ->setParameter('statut', Event::STATUS_PUBLISHED)
-           ->andWhere('((e.commenceLe <= :now AND (e.seTermineLe IS NULL OR e.seTermineLe >= :now)) OR e.commenceLe > :now)')
-           ->setParameter('now', $now);
+        // CORRIGÉ: Compter l'inventaire total (quantité totale) pour les événements en cours/à venir
+        $inventorySql = 'SELECT COALESCE(SUM(ib.quantite_totale), 0) as totalInventaire
+                        FROM aiolia.inventaire_billets ib
+                        INNER JOIN aiolia.types_billets tb ON ib.id_type_billet = tb.id
+                        INNER JOIN aiolia.evenements e ON tb.id_evenement = e.id
+                        WHERE e.statut = :statut
+                        AND ((e.commence_le <= :now AND (e.se_termine_le IS NULL OR e.se_termine_le >= :now)) OR e.commence_le > :now)';
+        
+        $inventoryParams = [
+            'statut' => Event::STATUS_PUBLISHED,
+            'now' => $now->format($dateFormat)
+        ];
         
         if ($organizerProfileId !== null) {
-            $qb->andWhere('e.profilOrganisateur = :organizerProfileId')
-               ->setParameter('organizerProfileId', $organizerProfileId);
+            $inventorySql .= ' AND e.id_profil_organisateur = :organizerProfileId';
+            $inventoryParams['organizerProfileId'] = $organizerProfileId;
         }
         
-        $totalBillets = (int) $qb->getQuery()->getSingleScalarResult();
+        try {
+            $totalInventaire = (int) $conn->executeQuery($inventorySql, $inventoryParams)->fetchOne();
+        } catch (\Exception $e) {
+            $totalInventaire = 0;
+        }
+        
+        // OPTIONNEL: Compter aussi les billets vendus (si vous en avez besoin)
+        $soldSql = 'SELECT COALESCE(SUM(ib.quantite_vendue), 0) as totalVendus
+                    FROM aiolia.inventaire_billets ib
+                    INNER JOIN aiolia.types_billets tb ON ib.id_type_billet = tb.id
+                    INNER JOIN aiolia.evenements e ON tb.id_evenement = e.id
+                    WHERE e.statut = :statut
+                    AND ((e.commence_le <= :now AND (e.se_termine_le IS NULL OR e.se_termine_le >= :now)) OR e.commence_le > :now)';
+        
+        $soldParams = [
+            'statut' => Event::STATUS_PUBLISHED,
+            'now' => $now->format($dateFormat)
+        ];
+        
+        if ($organizerProfileId !== null) {
+            $soldSql .= ' AND e.id_profil_organisateur = :organizerProfileId';
+            $soldParams['organizerProfileId'] = $organizerProfileId;
+        }
+        
+        try {
+            $totalVendus = (int) $conn->executeQuery($soldSql, $soldParams)->fetchOne();
+        } catch (\Exception $e) {
+            $totalVendus = 0;
+        }
         
         // Compter les événements DISTINCTS qui ont des listes d'attente
         $totalEvenements = 0;
         if ($tableExists) {
             $eventsSql = 'SELECT COUNT(DISTINCT e.id)
-                         FROM aiolia.listes_attente_billets lab
-                         INNER JOIN aiolia.types_billets tb ON lab.id_type_billet = tb.id
-                         INNER JOIN aiolia.evenements e ON tb.id_evenement = e.id
-                         WHERE e.statut = :statut
-                         AND ((e.commence_le <= :now AND (e.se_termine_le IS NULL OR e.se_termine_le >= :now)) OR e.commence_le > :now)';
+                        FROM aiolia.listes_attente_billets lab
+                        INNER JOIN aiolia.types_billets tb ON lab.id_type_billet = tb.id
+                        INNER JOIN aiolia.evenements e ON tb.id_evenement = e.id
+                        WHERE e.statut = :statut
+                        AND ((e.commence_le <= :now AND (e.se_termine_le IS NULL OR e.se_termine_le >= :now)) OR e.commence_le > :now)';
             
             $eventsParams = [
                 'statut' => Event::STATUS_PUBLISHED,
@@ -801,8 +832,10 @@ class WaitlistRepository extends ServiceEntityRepository
         
         return [
             'totalUtilisateurs' => $totalUtilisateurs,
-            'totalBillets' => $totalBillets,
+            'totalInventaire' => $totalInventaire,  // Inventaire total
+            'totalVendus' => $totalVendus,          // Billets vendus (optionnel)
             'totalEvenements' => $totalEvenements,
         ];
     }
+    
 }
