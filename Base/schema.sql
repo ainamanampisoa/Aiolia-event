@@ -609,7 +609,12 @@ CREATE TABLE IF NOT EXISTS ticket_chance_entries (
     event_id BIGINT REFERENCES events(id) ON DELETE SET NULL,
     prize_type promotion_type_enum NOT NULL,
     prize_value NUMERIC(12,2) NOT NULL DEFAULT 0,
-    status ticket_chance_status_enum NOT NULL DEFAULT 'pending',
+    prize_code VARCHAR(50),
+    promo_code VARCHAR(50),
+    play_type VARCHAR(20) NOT NULL DEFAULT 'free',
+    order_id BIGINT REFERENCES orders(id) ON DELETE SET NULL,
+    metadata JSONB DEFAULT '{}'::jsonb,
+    status ticket_chance_status_enum NOT NULL DEFAULT 'won',
     created_at TIMESTAMPTZ NOT NULL DEFAULT now(),
     claimed_at TIMESTAMPTZ
 );
@@ -750,6 +755,12 @@ CREATE INDEX IF NOT EXISTS idx_cart_items_event_id ON cart_items(event_id);
 CREATE INDEX IF NOT EXISTS idx_cart_items_ticket_type_id ON cart_items(ticket_type_id);
 CREATE INDEX IF NOT EXISTS idx_wallet_tx_wallet ON wallet_transactions(wallet_id);
 CREATE INDEX IF NOT EXISTS idx_notifications_user_status ON notifications(user_id, status);
+
+-- Index pour Ticket Chance
+CREATE INDEX IF NOT EXISTS idx_ticket_chance_entries_user_date ON ticket_chance_entries(user_id, created_at DESC);
+CREATE INDEX IF NOT EXISTS idx_ticket_chance_entries_play_type ON ticket_chance_entries(user_id, play_type);
+CREATE INDEX IF NOT EXISTS idx_ticket_chance_entries_order ON ticket_chance_entries(order_id) WHERE order_id IS NOT NULL;
+CREATE INDEX IF NOT EXISTS idx_ticket_chance_entries_status ON ticket_chance_entries(user_id, status);
 
 -- ------------------------------------------------------------
 -- Paiements billets (factures, règlements, historique)

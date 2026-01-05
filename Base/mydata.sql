@@ -817,7 +817,7 @@ event_data AS (
             FALSE,
             TRUE,
             'business',
-            'vente-ticket/images/business-connect-madagascar.png',
+            'vente-ticket/images/img2.png',
             'le-dome-smartone',
             'Espace conférence',
             '{"venue_name":"Le Dôme by SmartOne","address":"Immeuble Atrium, Galaxy Andraharo","city":"Antananarivo","region":"Antananarivo","country":"MG"}'::jsonb
@@ -889,7 +889,7 @@ event_data AS (
             TRUE,
             FALSE,
             'culture',
-            'vente-ticket/images/spectacle-culturel-toliara.png',
+            'vente-ticket/images/img1.png',
             'centre-culturel-toliara',
             'Salle principale',
             '{"venue_name":"Centre Culturel de Toliara","address":"Avenue de l''Indépendance, Centre-ville","city":"Toliara","region":"Toliara","country":"MG"}'::jsonb
@@ -913,7 +913,7 @@ event_data AS (
             TRUE,
             TRUE,
             'festival',
-            'vente-ticket/images/festival-plage-mahajanga.png',
+            'vente-ticket/images/img2.png',
             'plage-mahajanga',
             'Espace principal',
             '{"venue_name":"Espace Événementiel Plage de Mahajanga","address":"Avenue de France, Bord de mer","city":"Mahajanga","region":"Mahajanga","country":"MG"}'::jsonb
@@ -937,7 +937,7 @@ event_data AS (
             FALSE,
             FALSE,
             'business',
-            'vente-ticket/images/conference-academique-antananarivo.png',
+            'vente-ticket/images/img1.png',
             'centre-conferences-tana',
             'Salle principale',
             '{"venue_name":"Centre de Conférences d''Antananarivo","address":"Zone Galaxy Andraharo","city":"Antananarivo","region":"Antananarivo","country":"MG"}'::jsonb
@@ -961,7 +961,7 @@ event_data AS (
             TRUE,
             TRUE,
             'concert',
-            'vente-ticket/images/spectacle-culturel-toliara.png',
+            'vente-ticket/images/img1.png',
             'le-glacier',
             'Salle principale',
             '{"venue_name":"Le Glacier","address":"Avenue de l''Indépendance, Analakely","city":"Antananarivo","region":"Antananarivo","country":"MG","latitude":-18.9144,"longitude":47.5181}'::jsonb
@@ -985,7 +985,7 @@ event_data AS (
             FALSE,
             TRUE,
             'concert',
-            'vente-ticket/images/seminaire-tourisme-antsiranana.png',
+            'vente-ticket/images/img2.png',
             'restaurant-taxi-be',
             'Espace concert',
             '{"venue_name":"Restaurant Taxi Be","address":"Antanimena","city":"Antananarivo","region":"Antananarivo","country":"MG","latitude":-18.9200,"longitude":47.5300}'::jsonb
@@ -1009,7 +1009,7 @@ event_data AS (
             TRUE,
             FALSE,
             'festival',
-            'vente-ticket/images/festival-artisanat-mahajanga.png',
+            'vente-ticket/images/img1.png',
             'salle-culturelle-majunga',
             'Espace principal',
             '{"venue_name":"Salle Culturelle de Mahajanga","address":"Boulevard Poincaré, Quartier Centre","city":"Mahajanga","region":"Mahajanga","country":"MG"}'::jsonb
@@ -1033,7 +1033,7 @@ event_data AS (
             FALSE,
             TRUE,
             'business',
-            'vente-ticket/images/conference-agriculture-durable.png',
+            'vente-ticket/images/img2.png',
             'centre-conferences-tana',
             'Salle principale',
             '{"venue_name":"Centre de Conférences d''Antananarivo","address":"Zone Galaxy Andraharo","city":"Antananarivo","region":"Antananarivo","country":"MG"}'::jsonb
@@ -1057,7 +1057,7 @@ event_data AS (
             FALSE,
             FALSE,
             'concert',
-            'vente-ticket/images/concert-jazz-antananarivo.png',
+            'vente-ticket/images/img1.png',
             'le-louvre-hotel-spa',
             'Salle de réception',
             '{"venue_name":"Le Louvre Hotel & Spa","address":"4, Place P. Tsiranana, Antaninarenina","city":"Antananarivo","region":"Antananarivo","country":"MG","latitude":-18.8748,"longitude":47.54729}'::jsonb
@@ -1081,7 +1081,7 @@ event_data AS (
             FALSE,
             TRUE,
             'concert',
-            'vente-ticket/images/seminaire-sante-toliara.png',
+            'vente-ticket/images/img2.png',
             'kudeta-urban-club',
             'Club',
             '{"venue_name":"Kudeta Urban Club","address":"Carlton Hotel, Rue Stibbe, Anosy","city":"Antananarivo","region":"Antananarivo","country":"MG","latitude":-18.914398,"longitude":47.51806}'::jsonb
@@ -1105,7 +1105,7 @@ event_data AS (
             TRUE,
             TRUE,
             'festival',
-            'vente-ticket/images/festival-cinema-nosy-be.png',
+            'vente-ticket/images/img1.png',
             'complexe-culturel-nosy-be',
             'Salle principale',
             '{"venue_name":"Complexe Culturel d''Antsiranana","address":"Boulevard de la Mer","city":"Antsiranana","region":"Antsiranana","country":"MG"}'::jsonb
@@ -1129,7 +1129,7 @@ event_data AS (
             FALSE,
             TRUE,
             'concert',
-            'vente-ticket/images/workshop-tech-tamatave.png',
+            'vente-ticket/images/img2.png',
             'jaos-pub',
             'Scène cabaret',
             '{"venue_name":"Cabaret Jao''s Pub","address":"Ambohipo","city":"Antananarivo","region":"Antananarivo","country":"MG","latitude":-18.8720,"longitude":47.5570}'::jsonb
@@ -1153,7 +1153,7 @@ event_data AS (
             TRUE,
             FALSE,
             'culture',
-            'vente-ticket/images/spectacle-danse-toliara.png',
+            'vente-ticket/images/img1.png',
             'theatre-toliara',
             'Salle principale',
             '{"venue_name":"Théâtre de Toliara","address":"Avenue de la Mer, Quartier Centre","city":"Toliara","region":"Toliara","country":"MG"}'::jsonb
@@ -1201,7 +1201,7 @@ event_data AS (
             FALSE,
             TRUE,
             'concert',
-            'vente-ticket/images/conference-environnement-majunga.png',
+            'vente-ticket/images/img2.png',
             'le-louvre-hotel-spa',
             'Salle de réception',
             '{"venue_name":"Le Louvre Hotel & Spa","address":"4, Place P. Tsiranana, Antaninarenina","city":"Antananarivo","region":"Antananarivo","country":"MG","latitude":-18.8748,"longitude":47.54729}'::jsonb
@@ -1225,7 +1225,7 @@ event_data AS (
             TRUE,
             TRUE,
             'festival',
-            'vente-ticket/images/festival-gastronomie-antananarivo.png',
+            'vente-ticket/images/img1.png',
             'parc-des-familles',
             'Espace principal',
             '{"venue_name":"Parc des Familles","address":"Avenue de l''Indépendance, Quartier Analakely","city":"Antananarivo","region":"Antananarivo","country":"MG"}'::jsonb
@@ -1249,7 +1249,7 @@ event_data AS (
             FALSE,
             FALSE,
             'concert',
-            'vente-ticket/images/seminaire-education-antananarivo.png',
+            'vente-ticket/images/img2.png',
             'espace-nambinintsoa',
             'Espace plein air',
             '{"venue_name":"Espace Nambinintsoa","address":"Talatamaty","city":"Antananarivo","region":"Antananarivo","country":"MG","latitude":-18.8500,"longitude":47.4800}'::jsonb
@@ -1738,34 +1738,34 @@ SELECT evt.id,
        'image',
        CASE evt.slug
            WHEN 'concert-music-sunday' THEN 'vente-ticket/images/img1.png'
-           WHEN 'business-connect-mada' THEN 'vente-ticket/images/business-connect-madagascar.png'
+           WHEN 'business-connect-mada' THEN 'vente-ticket/images/img2.png'
            WHEN 'concert-reggae-tana' THEN 'vente-ticket/images/img1.png'
-           WHEN 'festival-plage-mahajanga' THEN 'vente-ticket/images/festival-plage-mahajanga.png'
-           WHEN 'conference-academique-tana' THEN 'vente-ticket/images/conference-academique-antananarivo.png'
-           WHEN 'concert-salegy-tana' THEN 'vente-ticket/images/spectacle-culturel-toliara.png'
-           WHEN 'concert-rock-tana' THEN 'vente-ticket/images/seminaire-tourisme-antsiranana.png'
-           WHEN 'conference-agriculture-tana' THEN 'vente-ticket/images/conference-agriculture-durable.png'
-           WHEN 'concert-jazz-tana' THEN 'vente-ticket/images/concert-jazz-antananarivo.png'
-           WHEN 'concert-electro-tana' THEN 'vente-ticket/images/seminaire-sante-toliara.png'
-           WHEN 'festival-cinema-nosy-be' THEN 'vente-ticket/images/festival-cinema-nosy-be.png'
-           WHEN 'concert-folk-tana' THEN 'vente-ticket/images/workshop-tech-tamatave.png'
-           WHEN 'concert-world-tana' THEN 'vente-ticket/images/spectacle-danse-toliara.png'
-           WHEN 'concert-blues-tana' THEN 'vente-ticket/images/conference-environnement-majunga.png'
-           WHEN 'festival-gastronomie-tana' THEN 'vente-ticket/images/festival-gastronomie-antananarivo.png'
-           WHEN 'concert-pop-tana' THEN 'vente-ticket/images/seminaire-education-antananarivo.png'
-           WHEN 'spectacle-culturel-toliara' THEN 'vente-ticket/images/spectacle-culturel-toliara.png'
-           WHEN 'spectacle-danse-toliara' THEN 'vente-ticket/images/spectacle-danse-toliara.png'
-           WHEN 'concert-kabosy-night-tana' THEN 'vente-ticket/images/concert-kabosy-night-tana.png'
-           WHEN 'concert-metal-mada-tana' THEN 'vente-ticket/images/concert-metal-mada-tana.png'
-           WHEN 'concert-afro-dancehall-tana' THEN 'vente-ticket/images/concert-afro-dancehall-tana.png'
-           WHEN 'concert-vako-drazana-tana' THEN 'vente-ticket/images/concert-vako-drazana-tana.png'
-           WHEN 'concert-rap-gasy-tana' THEN 'vente-ticket/images/concert-rap-gasy-tana.png'
-           WHEN 'concert-piano-bar-tana' THEN 'vente-ticket/images/concert-piano-bar-tana.png'
-           WHEN 'concert-tsapiky-fever-tana' THEN 'vente-ticket/images/concert-tsapiky-fever-tana.png'
-           WHEN 'theatre-contemporain-tana' THEN 'vente-ticket/images/theatre-contemporain-tana.png'
-           WHEN 'concert-cabaret-tana' THEN 'vente-ticket/images/concert-cabaret-tana.png'
-           WHEN 'concert-electro-night-tana' THEN 'vente-ticket/images/concert-electro-night-tana.png'
-           WHEN 'concert-acoustic-tana' THEN 'vente-ticket/images/concert-acoustic-tana.png'
+           WHEN 'festival-plage-mahajanga' THEN 'vente-ticket/images/img2.png'
+           WHEN 'conference-academique-tana' THEN 'vente-ticket/images/img1.png'
+           WHEN 'concert-salegy-tana' THEN 'vente-ticket/images/img2.png'
+           WHEN 'concert-rock-tana' THEN 'vente-ticket/images/img1.png'
+           WHEN 'conference-agriculture-tana' THEN 'vente-ticket/images/img2.png'
+           WHEN 'concert-jazz-tana' THEN 'vente-ticket/images/img1.png'
+           WHEN 'concert-electro-tana' THEN 'vente-ticket/images/img2.png'
+           WHEN 'festival-cinema-nosy-be' THEN 'vente-ticket/images/img1.png'
+           WHEN 'concert-folk-tana' THEN 'vente-ticket/images/img2.png'
+           WHEN 'concert-world-tana' THEN 'vente-ticket/images/img1.png'
+           WHEN 'concert-blues-tana' THEN 'vente-ticket/images/img2.png'
+           WHEN 'festival-gastronomie-tana' THEN 'vente-ticket/images/img1.png'
+           WHEN 'concert-pop-tana' THEN 'vente-ticket/images/img2.png'
+           WHEN 'spectacle-culturel-toliara' THEN 'vente-ticket/images/img1.png'
+           WHEN 'spectacle-danse-toliara' THEN 'vente-ticket/images/img2.png'
+           WHEN 'concert-kabosy-night-tana' THEN 'vente-ticket/images/img1.png'
+           WHEN 'concert-metal-mada-tana' THEN 'vente-ticket/images/img2.png'
+           WHEN 'concert-afro-dancehall-tana' THEN 'vente-ticket/images/img1.png'
+           WHEN 'concert-vako-drazana-tana' THEN 'vente-ticket/images/img2.png'
+           WHEN 'concert-rap-gasy-tana' THEN 'vente-ticket/images/img1.png'
+           WHEN 'concert-piano-bar-tana' THEN 'vente-ticket/images/img2.png'
+           WHEN 'concert-tsapiky-fever-tana' THEN 'vente-ticket/images/img1.png'
+           WHEN 'theatre-contemporain-tana' THEN 'vente-ticket/images/img2.png'
+           WHEN 'concert-cabaret-tana' THEN 'vente-ticket/images/img1.png'
+           WHEN 'concert-electro-night-tana' THEN 'vente-ticket/images/img2.png'
+           WHEN 'concert-acoustic-tana' THEN 'vente-ticket/images/img1.png'
            ELSE 'vente-ticket/images/img1.png'
        END,
        CASE evt.slug
@@ -2570,7 +2570,7 @@ event_famille AS (
         ('2026-01-15 00:00:00'::timestamp AT TIME ZONE 'Indian/Antananarivo')::timestamptz,
         ('2026-01-28 00:00:00'::timestamp AT TIME ZONE 'Indian/Antananarivo')::timestamptz,
         '{"venue_name":"Parc des Familles","address":"Avenue de l''Indépendance","city":"Antananarivo","region":"Antananarivo","country":"MG"}'::jsonb,
-        'vente-ticket/images/festival-famille-enfants.png'
+        'vente-ticket/images/img1.png'
     FROM organizer
     CROSS JOIN venue_famille vf
     CROSS JOIN space_famille sf
@@ -2632,7 +2632,7 @@ event_corporate AS (
         ('2026-01-20 00:00:00'::timestamp AT TIME ZONE 'Indian/Antananarivo')::timestamptz,
         ('2026-02-08 00:00:00'::timestamp AT TIME ZONE 'Indian/Antananarivo')::timestamptz,
         '{"venue_name":"Centre de Conférences","address":"Zone Galaxy Andraharo","city":"Antananarivo","region":"Antananarivo","country":"MG"}'::jsonb,
-        'vente-ticket/images/seminaire-professionnel-adultes.png'
+        'vente-ticket/images/img2.png'
     FROM organizer
     CROSS JOIN venue_corporate vc
     CROSS JOIN space_corporate sc
@@ -2661,8 +2661,8 @@ INSERT INTO event_media (event_id, media_type, url, alt_text, display_order, is_
 SELECT evt.id,
        'image',
        CASE evt.slug
-           WHEN 'seminaire-professionnel-adultes' THEN 'vente-ticket/images/seminaire-professionnel-adultes.png'
-           ELSE 'vente-ticket/images/festival-famille-enfants.png'
+           WHEN 'seminaire-professionnel-adultes' THEN 'vente-ticket/images/img2.png'
+           ELSE 'vente-ticket/images/img1.png'
        END,
        CASE evt.slug
            WHEN 'seminaire-professionnel-adultes' THEN 'Affiche Séminaire Professionnel'
@@ -2872,7 +2872,7 @@ event_premium AS (
         ('2026-01-20 00:00:00'::timestamp AT TIME ZONE 'Indian/Antananarivo')::timestamptz,
         ('2026-02-13 00:00:00'::timestamp AT TIME ZONE 'Indian/Antananarivo')::timestamptz,
         '{"venue_name":"Salle Premium","address":"Boulevard de l''Indépendance","city":"Antananarivo","region":"Antananarivo","country":"MG"}'::jsonb,
-        'vente-ticket/images/concert-premium-vip-types.png'
+        'vente-ticket/images/img1.png'
     FROM organizer
     CROSS JOIN venue_premium vp
     CROSS JOIN space_premium sp
@@ -3091,7 +3091,7 @@ event_sport AS (
         ('2026-02-15 00:00:00'::timestamp AT TIME ZONE 'Indian/Antananarivo')::timestamptz,
         ('2026-03-18 00:00:00'::timestamp AT TIME ZONE 'Indian/Antananarivo')::timestamptz,
         '{"venue_name":"Stade Municipal","address":"Avenue de la République","city":"Antananarivo","region":"Antananarivo","country":"MG"}'::jsonb,
-        'vente-ticket/images/festival-sportif-vip-standard.png'
+        'vente-ticket/images/img2.png'
     FROM organizer
     CROSS JOIN venue_sport vs
     CROSS JOIN space_sport ss
