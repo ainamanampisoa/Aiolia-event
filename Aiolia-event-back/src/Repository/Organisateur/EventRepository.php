@@ -25,6 +25,24 @@ class EventRepository extends ServiceEntityRepository
             ->getResult();
     }
 
+    public function countActiveEventsForOrganizer(User $organizer): int
+    {
+        $now = new \DateTime();
+        
+        $qb = $this->createQueryBuilder('e')
+            ->select('COUNT(DISTINCT e.id)')
+            ->leftJoin('e.profilOrganisateur', 'op')
+            ->leftJoin('App\Entity\OrganisateurEvenement', 'oe', 'WITH', 'oe.evenement = e')
+            ->leftJoin('oe.profilOrganisateur', 'op2')
+            ->where('(op.utilisateur = :organizer OR op2.utilisateur = :organizer)')
+            ->andWhere('e.statut = :statut')
+            ->andWhere('(e.seTermineLe >= :now OR (e.seTermineLe IS NULL AND e.commenceLe >= :now))')
+            ->setParameter('organizer', $organizer)
+            ->setParameter('statut', 'published')
+            ->setParameter('now', $now);
+        
+        return (int) $qb->getQuery()->getSingleScalarResult();
+    }
     
     public function getById(string $id): ?Event
     {

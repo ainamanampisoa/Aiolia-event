@@ -3,6 +3,8 @@
 namespace App\Entity;
 
 use App\Repository\Organisateur\TypeBilletRepository;
+use Doctrine\Common\Collections\ArrayCollection;
+use Doctrine\Common\Collections\Collection;
 use Doctrine\DBAL\Types\Types;
 use Doctrine\ORM\Mapping as ORM;
 
@@ -74,6 +76,9 @@ class TypeBillet
     #[ORM\OneToOne(targetEntity: InventaireBillet::class, mappedBy: 'typeBillet', cascade: ['persist', 'remove'])]
     private ?InventaireBillet $inventaire = null;
 
+    #[ORM\OneToMany(mappedBy: 'typeBillet', targetEntity: ListeAttenteBillet::class)]
+    private Collection $listesAttente;
+
     #[ORM\PrePersist]
     public function initializeTimestamps(): void
     {
@@ -86,6 +91,40 @@ class TypeBillet
     public function updateModifiedAt(): void
     {
         $this->modifieLe = new \DateTimeImmutable();
+    }
+    public function __construct()
+    {
+        $this->listesAttente = new ArrayCollection();
+    }
+
+    /**
+     * @return Collection<int, ListeAttenteBillet>
+    */
+    public function getListesAttente(): Collection
+    {
+        return $this->listesAttente;
+    }
+
+    public function addListesAttente(ListeAttenteBillet $listesAttente): static
+    {
+        if (!$this->listesAttente->contains($listesAttente)) {
+            $this->listesAttente->add($listesAttente);
+            $listesAttente->setTypeBillet($this);
+        }
+
+        return $this;
+    }
+
+    public function removeListesAttente(ListeAttenteBillet $listesAttente): static
+    {
+        if ($this->listesAttente->removeElement($listesAttente)) {
+            // set the owning side to null (unless already changed)
+            if ($listesAttente->getTypeBillet() === $this) {
+                $listesAttente->setTypeBillet(null);
+            }
+        }
+
+        return $this;
     }
 
     public function getId(): ?string

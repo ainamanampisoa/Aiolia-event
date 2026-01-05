@@ -155,7 +155,7 @@
                                 {% if promo.typePromotion == 'percent' %}
                                     -{{ promo.valeur }}%
                                 {% else %}
-                                    -{{ promo.valeur|number_format(2, ',', ' ') }}€
+                                    -{{ promo.valeur|number_format(2, ',', ' ') }} MGA
                                 {% endif %}
                             </div>
                             <p>{{ promo.metadonnees.description ?? 'Aucune description' }}</p>

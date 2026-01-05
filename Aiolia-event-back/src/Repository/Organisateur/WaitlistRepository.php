@@ -88,11 +88,9 @@ class WaitlistRepository extends ServiceEntityRepository
         $dateFormat = 'Y-m-d H:i:s';
         $organizerFilter = ' AND e.id_profil_organisateur = :organizerProfileId';
         
-        // Utiliser SQL natif pour récupérer uniquement les utilisateurs en liste d'attente
         $conn = $this->getEntityManager()->getConnection();
         
-        // Requête pour compter le total d'utilisateurs en liste d'attente
-        // Note: Vérifier d'abord si la table existe
+        // Vérifier si la table existe
         $tableExists = false;
         try {
             $checkTable = $conn->executeQuery("SELECT EXISTS (
@@ -115,23 +113,21 @@ class WaitlistRepository extends ServiceEntityRepository
             ];
         }
         
-        // Requête simplifiée pour compter - tester d'abord sans filtres stricts
+        // Compter les utilisateurs UNIQUES en liste d'attente
         $countSql = 'SELECT COUNT(DISTINCT lab.id_utilisateur)
                      FROM aiolia.listes_attente_billets lab
                      INNER JOIN aiolia.types_billets tb ON lab.id_type_billet = tb.id
                      INNER JOIN aiolia.evenements e ON tb.id_evenement = e.id
                      INNER JOIN aiolia.utilisateurs u ON lab.id_utilisateur = u.id
                      WHERE u.role = :role
-                     AND e.statut = :statut';
+                     AND e.statut = :statut
+                     AND ((e.commence_le <= :now AND (e.se_termine_le IS NULL OR e.se_termine_le >= :now)) OR e.commence_le > :now)';
         
         $countParams = [
             'role' => 'user',
-            'statut' => Event::STATUS_PUBLISHED
+            'statut' => Event::STATUS_PUBLISHED,
+            'now' => $now->format($dateFormat)
         ];
-        
-        // Ajouter le filtre de date seulement si nécessaire
-        $countSql .= ' AND ((e.commence_le <= :now AND (e.se_termine_le IS NULL OR e.se_termine_le >= :now)) OR e.commence_le > :now)';
-        $countParams['now'] = $now->format($dateFormat);
         
         if ($organizerProfileId !== null) {
             $countSql .= $organizerFilter;
@@ -144,42 +140,6 @@ class WaitlistRepository extends ServiceEntityRepository
             $total = 0;
         }
         
-        // Debug: Si total = 0 mais qu'il y a des données, tester sans filtres stricts
-        if ($total === 0) {
-            try {
-                $debugSql = 'SELECT COUNT(DISTINCT lab.id_utilisateur)
-                             FROM aiolia.listes_attente_billets lab
-                             INNER JOIN aiolia.types_billets tb ON lab.id_type_billet = tb.id
-                             INNER JOIN aiolia.evenements e ON tb.id_evenement = e.id
-                             INNER JOIN aiolia.utilisateurs u ON lab.id_utilisateur = u.id
-                             WHERE u.role = :role';
-                $debugParams = ['role' => 'user'];
-                
-                if ($organizerProfileId !== null) {
-                    $debugSql .= ' AND e.id_profil_organisateur = :organizerProfileId';
-                    $debugParams['organizerProfileId'] = $organizerProfileId;
-                }
-                
-                $debugTotal = (int) $conn->executeQuery($debugSql, $debugParams)->fetchOne();
-                
-                // Si on trouve des résultats sans le filtre de date/statut, utiliser cette requête
-                if ($debugTotal > 0) {
-                    $total = $debugTotal;
-                    // Utiliser la requête simplifiée sans filtre de date strict
-                    $countSql = $debugSql;
-                    $countParams = $debugParams;
-                    $useSimplifiedQuery = true;
-                } else {
-                    $useSimplifiedQuery = false;
-                }
-            } catch (\Exception $e2) {
-                $useSimplifiedQuery = false;
-            }
-        } else {
-            $useSimplifiedQuery = false;
-        }
-        
-        // Si aucun utilisateur en liste d'attente, retourner vide
         if ($total === 0) {
             return [
                 'items' => [],
@@ -190,63 +150,34 @@ class WaitlistRepository extends ServiceEntityRepository
             ];
         }
         
-        // Requête pour récupérer les utilisateurs en liste d'attente
-        if (isset($useSimplifiedQuery) && $useSimplifiedQuery) {
-            // Utiliser la requête simplifiée sans filtre de date/statut strict
-            $sql = 'SELECT DISTINCT
-                        u.id as userId,
-                        u.email,
-                        u.prenom,
-                        u.nom,
-                        u.telephone,
-                        u.url_avatar as urlAvatar,
-                        MAX(e.id) as eventId,
-                        MAX(tb.id) as typeBilletId
-                    FROM aiolia.listes_attente_billets lab
-                    INNER JOIN aiolia.types_billets tb ON lab.id_type_billet = tb.id
-                    INNER JOIN aiolia.evenements e ON tb.id_evenement = e.id
-                    INNER JOIN aiolia.utilisateurs u ON lab.id_utilisateur = u.id
-                    WHERE u.role = :role';
-            
-            $params = ['role' => 'user'];
-            
-            if ($organizerProfileId !== null) {
-                $sql .= ' AND e.id_profil_organisateur = :organizerProfileId';
-                $params['organizerProfileId'] = $organizerProfileId;
-            }
-        } else {
-            // Utiliser la requête avec tous les filtres
-            $sql = 'SELECT DISTINCT
-                        u.id as userId,
-                        u.email,
-                        u.prenom,
-                        u.nom,
-                        u.telephone,
-                        u.url_avatar as urlAvatar,
-                        MAX(e.id) as eventId,
-                        MAX(tb.id) as typeBilletId
-                    FROM aiolia.listes_attente_billets lab
-                    INNER JOIN aiolia.types_billets tb ON lab.id_type_billet = tb.id
-                    INNER JOIN aiolia.evenements e ON tb.id_evenement = e.id
-                    INNER JOIN aiolia.utilisateurs u ON lab.id_utilisateur = u.id
-                    WHERE u.role = :role
-                    AND e.statut = :statut
-                    AND (e.commence_le >= :now OR (e.commence_le < :now AND (e.se_termine_le IS NULL OR e.se_termine_le >= :now)))';
-            
-            $params = [
-                'role' => 'user',
-                'statut' => Event::STATUS_PUBLISHED,
-                'now' => $now->format($dateFormat)
-            ];
-            
-            if ($organizerProfileId !== null) {
-                $sql .= $organizerFilter;
-                $params['organizerProfileId'] = $organizerProfileId;
-            }
+        // Récupérer les utilisateurs UNIQUES en liste d'attente
+        $sql = 'SELECT DISTINCT
+                    u.id as userId,
+                    u.email,
+                    u.prenom,
+                    u.nom,
+                    u.telephone,
+                    u.url_avatar as urlAvatar
+                FROM aiolia.listes_attente_billets lab
+                INNER JOIN aiolia.types_billets tb ON lab.id_type_billet = tb.id
+                INNER JOIN aiolia.evenements e ON tb.id_evenement = e.id
+                INNER JOIN aiolia.utilisateurs u ON lab.id_utilisateur = u.id
+                WHERE u.role = :role
+                AND e.statut = :statut
+                AND ((e.commence_le <= :now AND (e.se_termine_le IS NULL OR e.se_termine_le >= :now)) OR e.commence_le > :now)';
+        
+        $params = [
+            'role' => 'user',
+            'statut' => Event::STATUS_PUBLISHED,
+            'now' => $now->format($dateFormat)
+        ];
+        
+        if ($organizerProfileId !== null) {
+            $sql .= $organizerFilter;
+            $params['organizerProfileId'] = $organizerProfileId;
         }
         
-        $sql .= ' GROUP BY u.id, u.email, u.prenom, u.nom, u.telephone, u.url_avatar
-                  ORDER BY u.nom ASC, u.prenom ASC
+        $sql .= ' ORDER BY u.nom ASC, u.prenom ASC
                   LIMIT :limit OFFSET :offset';
         
         $params['limit'] = $perPage;
@@ -258,7 +189,7 @@ class WaitlistRepository extends ServiceEntityRepository
             $items = [];
         }
         
-        // Calculer nombreBillets et nombreEvenements pour chaque utilisateur
+        // Enrichir chaque utilisateur avec ses données
         $formattedItems = [];
         foreach ($items as $item) {
             $userId = $item['userid'];
@@ -307,6 +238,28 @@ class WaitlistRepository extends ServiceEntityRepository
             
             $nombreEvenements = (int) $conn->executeQuery($eventsSql, $eventsParams)->fetchOne();
             
+            // Récupérer l'événement le plus récent pour cet utilisateur
+            $eventSql = 'SELECT MAX(e.id) as eventId
+                         FROM aiolia.listes_attente_billets lab
+                         INNER JOIN aiolia.types_billets tb ON lab.id_type_billet = tb.id
+                         INNER JOIN aiolia.evenements e ON tb.id_evenement = e.id
+                         WHERE lab.id_utilisateur = :userId
+                         AND e.statut = :statut
+                         AND ((e.commence_le <= :now AND (e.se_termine_le IS NULL OR e.se_termine_le >= :now)) OR e.commence_le > :now)';
+            
+            $eventParams = [
+                'userId' => $userId,
+                'statut' => Event::STATUS_PUBLISHED,
+                'now' => $now->format($dateFormat)
+            ];
+            
+            if ($organizerProfileId !== null) {
+                $eventSql .= $organizerFilter;
+                $eventParams['organizerProfileId'] = $organizerProfileId;
+            }
+            
+            $eventId = $conn->executeQuery($eventSql, $eventParams)->fetchOne();
+            
             $formattedItems[] = [
                 'userId' => $userId,
                 'email' => $item['email'],
@@ -316,28 +269,25 @@ class WaitlistRepository extends ServiceEntityRepository
                 'urlAvatar' => $item['urlavatar'],
                 'nombreBillets' => $nombreBillets,
                 'nombreEvenements' => $nombreEvenements,
-                'eventId' => $item['eventid'],
-                'typeBilletId' => $item['typebilletid'],
+                'eventId' => $eventId,
             ];
         }
         
-        $items = $formattedItems;
-        
         // Enrichir avec les catégories, segments et liste d'attente pour chaque utilisateur
-        foreach ($items as &$item) {
+        foreach ($formattedItems as &$item) {
             $userId = $item['userId'];
             
-            // Récupérer UNIQUEMENT les catégories et segments qui sont en liste d'attente pour cet utilisateur
+            // Récupérer les catégories/segments en liste d'attente, GROUPÉS pour éviter les doublons
             $conn = $this->getEntityManager()->getConnection();
             $sql = 'SELECT
+                        e.id as eventId,
+                        e.titre as eventTitre,
                         cat.nom as categorie,
                         seg.nom as segment,
                         seg.age_min as ageMin,
                         seg.age_max as ageMax,
                         tb.id as typeBilletId,
                         tb.prix_de_base as prixDeBase,
-                        e.id as eventId,
-                        e.titre as eventTitre,
                         COALESCE(ib.quantite_totale, 0) as quantiteTotale,
                         COALESCE(ib.quantite_vendue, 0) as quantiteVendue,
                         COALESCE(ib.quantite_reservee, 0) as quantiteReservee,
@@ -363,15 +313,25 @@ class WaitlistRepository extends ServiceEntityRepository
                 $params['organizerProfileId'] = $organizerProfileId;
             }
 
-            $sql .= ' GROUP BY cat.nom, seg.nom, seg.age_min, seg.age_max, tb.id, tb.prix_de_base, e.id, e.titre, ib.quantite_totale, ib.quantite_vendue, ib.quantite_reservee
-                      ORDER BY cat.nom, seg.nom';
+            $sql .= ' GROUP BY e.id, e.titre, cat.nom, seg.nom, seg.age_min, seg.age_max, tb.id, tb.prix_de_base, ib.quantite_totale, ib.quantite_vendue, ib.quantite_reservee
+                      ORDER BY e.commence_le ASC, cat.nom, seg.nom';
 
             $waitlistData = $conn->executeQuery($sql, $params)->fetchAllAssociative();
 
             // Formater les résultats et collecter les événements uniques
             $details = [];
             $eventTitres = [];
+            $seenCategories = []; // Pour éviter les doublons
+            
             foreach ($waitlistData as $wl) {
+                $categoryKey = $wl['eventid'] . '_' . $wl['categorie'] . '_' . $wl['segment'];
+                
+                // Éviter les doublons
+                if (isset($seenCategories[$categoryKey])) {
+                    continue;
+                }
+                $seenCategories[$categoryKey] = true;
+                
                 $details[] = [
                     'categorie' => $wl['categorie'] ?? '',
                     'segment' => $wl['segment'] ?? '',
@@ -383,6 +343,8 @@ class WaitlistRepository extends ServiceEntityRepository
                     'quantiteVendue' => (int)($wl['quantitevendue'] ?? 0),
                     'quantiteReservee' => (int)($wl['quantitereservee'] ?? 0),
                     'quantiteAttente' => (int)($wl['quantiteattente'] ?? 0),
+                    'eventId' => $wl['eventid'],
+                    'eventTitre' => $wl['eventtitre'] ?? '',
                 ];
                 
                 // Collecter les événements uniques
@@ -396,10 +358,11 @@ class WaitlistRepository extends ServiceEntityRepository
             $item['categoriesSegments'] = $details;
             $item['eventTitres'] = array_values($eventTitres);
         }
+        
         $pages = (int) ceil($total / $perPage);
         
         return [
-            'items' => $items,
+            'items' => $formattedItems,
             'total' => $total,
             'pages' => $pages,
             'currentPage' => $page,
@@ -585,7 +548,7 @@ class WaitlistRepository extends ServiceEntityRepository
         foreach ($normalizedEvents as &$event) {
             $eventId = $event['eventId'];
             
-            // Récupérer les utilisateurs en liste d'attente pour cet événement
+            // Récupérer les utilisateurs UNIQUES en liste d'attente pour cet événement
             $usersSql = 'SELECT DISTINCT
                             u.id as userId,
                             u.email,
@@ -623,9 +586,19 @@ class WaitlistRepository extends ServiceEntityRepository
             }
             
             // Enrichir chaque utilisateur avec ses catégories/segments en liste d'attente
-            foreach ($users as &$user) {
+            $normalizedUsers = [];
+            $seenUsers = []; // Pour éviter les doublons d'utilisateurs
+            
+            foreach ($users as $user) {
                 $userId = $user['userid'];
                 
+                // Éviter les doublons d'utilisateurs
+                if (isset($seenUsers[$userId])) {
+                    continue;
+                }
+                $seenUsers[$userId] = true;
+                
+                // Récupérer les catégories/segments pour cet utilisateur et cet événement
                 $categoriesSql = 'SELECT
                                     cat.nom as categorie,
                                     seg.nom as segment,
@@ -671,7 +644,17 @@ class WaitlistRepository extends ServiceEntityRepository
                 
                 $categoriesSegments = [];
                 $totalAttente = 0;
+                $seenCategories = []; // Pour éviter les doublons de catégories/segments
+                
                 foreach ($categoriesData as $cat) {
+                    $categoryKey = $cat['categorie'] . '_' . $cat['segment'];
+                    
+                    // Éviter les doublons de catégories
+                    if (isset($seenCategories[$categoryKey])) {
+                        continue;
+                    }
+                    $seenCategories[$categoryKey] = true;
+                    
                     $categoriesSegments[] = [
                         'categorie' => $cat['categorie'] ?? '',
                         'segment' => $cat['segment'] ?? '',
@@ -688,24 +671,15 @@ class WaitlistRepository extends ServiceEntityRepository
                 }
                 
                 // Normaliser les clés de l'utilisateur
-                $user['userId'] = $user['userid'] ?? null;
-                $user['urlAvatar'] = $user['urlavatar'] ?? null;
-                $user['categoriesSegments'] = $categoriesSegments;
-                $user['totalAttente'] = $totalAttente;
-            }
-            
-            // Normaliser toutes les clés des utilisateurs
-            $normalizedUsers = [];
-            foreach ($users as $user) {
                 $normalizedUser = [
-                    'userId' => $user['userId'] ?? $user['userid'] ?? null,
+                    'userId' => $userId,
                     'email' => $user['email'] ?? '',
                     'prenom' => $user['prenom'] ?? '',
                     'nom' => $user['nom'] ?? '',
                     'telephone' => $user['telephone'] ?? null,
-                    'urlAvatar' => $user['urlAvatar'] ?? $user['urlavatar'] ?? null,
-                    'categoriesSegments' => $user['categoriesSegments'] ?? [],
-                    'totalAttente' => $user['totalAttente'] ?? 0,
+                    'urlAvatar' => $user['urlavatar'] ?? null,
+                    'categoriesSegments' => $categoriesSegments,
+                    'totalAttente' => $totalAttente,
                 ];
                 $normalizedUsers[] = $normalizedUser;
             }
@@ -750,7 +724,7 @@ class WaitlistRepository extends ServiceEntityRepository
             $tableExists = false;
         }
         
-        // Compter les utilisateurs en liste d'attente
+        // Compter les utilisateurs UNIQUES en liste d'attente
         $totalUtilisateurs = 0;
         if ($tableExists) {
             $usersSql = 'SELECT COUNT(DISTINCT lab.id_utilisateur)
@@ -798,7 +772,7 @@ class WaitlistRepository extends ServiceEntityRepository
         
         $totalBillets = (int) $qb->getQuery()->getSingleScalarResult();
         
-        // Compter les événements distincts qui ont des listes d'attente
+        // Compter les événements DISTINCTS qui ont des listes d'attente
         $totalEvenements = 0;
         if ($tableExists) {
             $eventsSql = 'SELECT COUNT(DISTINCT e.id)
@@ -832,4 +806,3 @@ class WaitlistRepository extends ServiceEntityRepository
         ];
     }
 }
-

@@ -5,12 +5,16 @@ namespace App\Service\Organisateur;
 use App\Entity\Event;
 use App\Entity\TypeBillet;
 use App\Entity\User;
+use Doctrine\ORM\EntityManagerInterface;
 use Doctrine\ORM\Tools\Pagination\Paginator;
+use App\Repository\Organisateur\TypeBilletRepository;
 
 class TicketManagementService
 {
     public function __construct(
+        private EntityManagerInterface $entityManager,
         private TypeBilletService $typeBilletService,
+        private TypeBilletRepository $typeBilletRepository,
         private InventaireBilletService $inventaireBilletService,
         private HistoriquePrixBilletService $historiquePrixBilletService,
         private BilletService $billetService
@@ -26,111 +30,105 @@ class TicketManagementService
         ?string $categorieFilter = null,
         ?string $segmentFilter = null
     ): array {
-        $typesBillets = $this->typeBilletService->getByOrganizer($user);
-        $timezone = new \DateTimeZone('Indian/Antananarivo');
-        $now = new \DateTime('now', $timezone);
+        // Récupérer les alertes de stock via le repository
+        $alertesData = $this->typeBilletRepository->findStockAlertsForOrganizer($user);
         
+        $alertes = [];
         $alertesTotal = [];
         $eventsIds = [];
         $categories = [];
         $segments = [];
         $capaciteParCategorie = [];
         
-        foreach ($typesBillets as $typeBillet) {
-            $evenement = $typeBillet->getEvenement();
+        // Traiter les données des alertes
+        foreach ($alertesData as $data) {
+            $typeBillet = $this->entityManager->getRepository(TypeBillet::class)->find($data['type_billet_id']);
             
-            // Vérifier si l'événement est en cours ou à venir
-            if ($evenement && $evenement->getCommenceLe()) {
-                $commenceLe = clone $evenement->getCommenceLe();
-                if ($commenceLe->getTimezone()->getName() !== $timezone->getName()) {
-                    $commenceLe->setTimezone($timezone);
-                }
-                
-                $seTermineLe = $evenement->getSeTermineLe();
-                if ($seTermineLe) {
-                    $seTermineLe = clone $seTermineLe;
-                    if ($seTermineLe->getTimezone()->getName() !== $timezone->getName()) {
-                        $seTermineLe->setTimezone($timezone);
-                    }
-                }
-                
-                $isOngoing = $commenceLe <= $now && ($seTermineLe === null || $seTermineLe >= $now);
-                $isUpcoming = $commenceLe > $now;
-                
-                // Si l'événement est passé, on ne le considère pas pour les alertes
-                if (!$isOngoing && !$isUpcoming) {
-                    continue;
-                }
-                
-                // Collecter les informations pour les statistiques
-                $eventId = $evenement->getId();
-                if (!in_array($eventId, $eventsIds)) {
-                    $eventsIds[] = $eventId;
-                }
-            } else {
-                // Événement sans date de début, on passe
+            if (!$typeBillet) {
                 continue;
             }
             
             $inventaire = $typeBillet->getInventaire();
-            if ($inventaire) {
-                // CORRECTION IMPORTANTE : Calcul correct du stock restant
-                // Ne pas dépasser la quantité totale disponible
-                $quantiteDisponible = $inventaire->getQuantiteTotale() - $inventaire->getQuantiteReservee();
-                $quantiteRestante = max(0, $quantiteDisponible - $inventaire->getQuantiteVendue());
-                
-                $pourcentage = $inventaire->getQuantiteTotale() > 0
-                    ? ($quantiteRestante / $inventaire->getQuantiteTotale()) * 100
-                    : 0;
-
-                // Collecter les informations pour les filtres et statistiques
-                $categorieNom = $typeBillet->getConfigurationCategorie() ? $typeBillet->getConfigurationCategorie()->getNom() : null;
-                $segmentNom = $typeBillet->getConfigurationSegment() ? $typeBillet->getConfigurationSegment()->getNom() : null;
-                
-                if ($categorieNom && !isset($categories[$categorieNom])) {
-                    $categories[$categorieNom] = $categorieNom;
-                }
-                
-                if ($segmentNom && $segmentNom !== 'tous' && !isset($segments[$segmentNom])) {
-                    $segments[$segmentNom] = $segmentNom;
-                }
-                
-                // Calculer la capacité par catégorie pour les statistiques
-                $categorieId = $typeBillet->getConfigurationCategorie() ? $typeBillet->getConfigurationCategorie()->getId() : 'sans_categorie';
-                if (!isset($capaciteParCategorie[$eventId])) {
-                    $capaciteParCategorie[$eventId] = [];
-                }
-                if (!isset($capaciteParCategorie[$eventId][$categorieId])) {
-                    $capaciteParCategorie[$eventId][$categorieId] = 0;
-                }
-                $capaciteParCategorie[$eventId][$categorieId] += $inventaire->getQuantiteTotale();
-                
-                // Vérifier si c'est une alerte (seulement <= 10%)
-                if ($pourcentage <= 10 && $quantiteRestante > 0) { // Ajout de la condition quantiteRestante > 0
-                    $niveau = $pourcentage <= 5 ? 'critique' : 'attention';
-                    
-                    $alerte = [
-                        'typeBillet' => $typeBillet,
-                        'inventaire' => $inventaire,
-                        'quantiteRestante' => $quantiteRestante,
-                        'pourcentage' => $pourcentage,
-                        'niveau' => $niveau,
-                        'categorieNom' => $categorieNom,
-                        'segmentNom' => $segmentNom,
-                    ];
-                    
-                    $alertesTotal[] = $alerte;
-                }
-            }
-        }
-
-        // Filtrer les alertes selon les filtres
-        $alertes = [];
-        foreach ($alertesTotal as $alerte) {
-            $niveau = $alerte['niveau'];
-            $categorieNom = $alerte['categorieNom'];
-            $segmentNom = $alerte['segmentNom'];
+            $evenement = $typeBillet->getEvenement();
             
+            if (!$inventaire || !$evenement) {
+                continue;
+            }
+            
+            // Récupérer les valeurs directement des données SQL
+            $quantiteTotale = (int) $data['quantite_totale'];
+            $quantiteVendue = (int) $data['quantite_vendue'];
+            $quantiteReservee = (int) $data['quantite_reservee'];
+            
+            // CORRECTION : Calcul correct du stock restant
+            $quantiteRestante = max(0, $quantiteTotale - $quantiteVendue - $quantiteReservee);
+            
+            // Pourcentage restant
+            $pourcentage = $quantiteTotale > 0
+                ? ($quantiteRestante / $quantiteTotale) * 100
+                : 0;
+            
+            // Déterminer le niveau d'alerte - CORRECTION IMPORTANTE
+            $niveau = 'attention';
+            if ($quantiteRestante === 0) {
+                $niveau = 'critique'; // Stock épuisé
+            } elseif ($pourcentage <= 5) {
+                $niveau = 'critique'; // ≤ 5% de stock
+            } elseif ($pourcentage <= 10) {
+                $niveau = 'attention'; // ≤ 10% de stock
+            } else {
+                // Si > 10%, ce n'est pas une alerte (ne devrait pas arriver avec la requête)
+                continue;
+            }
+            
+            $categorieNom = $data['categorie_nom'] ?? null;
+            $segmentNom = $data['segment_nom'] ?? null;
+            
+            // Collecter les informations pour les filtres
+            if ($categorieNom && !isset($categories[$categorieNom])) {
+                $categories[$categorieNom] = $categorieNom;
+            }
+            
+            if ($segmentNom && $segmentNom !== 'tous' && !isset($segments[$segmentNom])) {
+                $segments[$segmentNom] = $segmentNom;
+            }
+            
+            // Capacité par catégorie
+            $eventId = $evenement->getId();
+            if (!in_array($eventId, $eventsIds)) {
+                $eventsIds[] = $eventId;
+            }
+            
+            $categorieId = $typeBillet->getConfigurationCategorie() ? 
+                $typeBillet->getConfigurationCategorie()->getId() : 'sans_categorie';
+                
+            if (!isset($capaciteParCategorie[$eventId])) {
+                $capaciteParCategorie[$eventId] = [];
+            }
+            if (!isset($capaciteParCategorie[$eventId][$categorieId])) {
+                $capaciteParCategorie[$eventId][$categorieId] = 0;
+            }
+            $capaciteParCategorie[$eventId][$categorieId] += $quantiteTotale;
+            
+            // Créer l'alerte avec toutes les données nécessaires
+            $alerte = [
+                'typeBillet' => $typeBillet,
+                'inventaire' => $inventaire,
+                'quantiteRestante' => $quantiteRestante,
+                'pourcentage' => round($pourcentage, 2),
+                'niveau' => $niveau,
+                'categorieNom' => $categorieNom,
+                'segmentNom' => $segmentNom,
+                'listeAttenteCount' => (int) $data['liste_attente_count'],
+                'evenementTitre' => $data['evenement_titre'] ?? '',
+                'quantiteTotale' => $quantiteTotale,
+                'quantiteVendue' => $quantiteVendue,
+                'quantiteReservee' => $quantiteReservee,
+            ];
+            
+            $alertesTotal[] = $alerte;
+            
+            // Appliquer les filtres
             if ($niveauFilter && $niveau !== $niveauFilter) {
                 continue;
             }
@@ -143,16 +141,34 @@ class TicketManagementService
             
             $alertes[] = $alerte;
         }
-
+        
+        // Récupérer toutes les catégories et segments pour les options de filtre
+        $allCategories = $this->typeBilletRepository->findCategoriesForOrganizer($user);
+        $allSegments = $this->typeBilletRepository->findSegmentsForOrganizer($user);
+        
+        foreach ($allCategories as $catData) {
+            $catNom = $catData['nom'];
+            if ($catNom && !isset($categories[$catNom])) {
+                $categories[$catNom] = $catNom;
+            }
+        }
+        
+        foreach ($allSegments as $segData) {
+            $segNom = $segData['nom'];
+            if ($segNom && $segNom !== 'tous' && !isset($segments[$segNom])) {
+                $segments[$segNom] = $segNom;
+            }
+        }
+        
         // Séparer les alertes par niveau pour les compteurs
-        $alertesCritiquesTotal = array_filter($alertesTotal, fn($a) => $a['niveau'] === 'critique');
-        $alertesAttentionTotal = array_filter($alertesTotal, fn($a) => $a['niveau'] === 'attention');
-
+        $alertesCritiques = array_filter($alertesTotal, fn($a) => $a['niveau'] === 'critique');
+        $alertesAttention = array_filter($alertesTotal, fn($a) => $a['niveau'] === 'attention');
+        
         return [
             'alertes' => $alertes, // Alertes filtrées
             'alertesTotal' => $alertesTotal, // Toutes les alertes (pour les compteurs)
-            'alertesCritiques' => array_values($alertesCritiquesTotal),
-            'alertesAttention' => array_values($alertesAttentionTotal),
+            'alertesCritiques' => array_values($alertesCritiques),
+            'alertesAttention' => array_values($alertesAttention),
             'categories' => $categories,
             'segments' => $segments,
             'eventsCount' => count($eventsIds),
