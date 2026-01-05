@@ -114,9 +114,6 @@
                                                     Lieu : {{ location_parts|join(', ') }}
                                                 </div>
                                             {% endif %}
-                                            {% if event.venue_address %}
-                                                <div class="adresseline">Adresse : {{ event.venue_address }}</div>
-                                            {% endif %}
                                             <div class="tarif">
                                                 {% if priceMin is not null %}
                                                     {% if priceMax is not null and priceMax > priceMin %}
@@ -270,12 +267,12 @@
                                             <li>
                                                 <a href="#"><img src="{{ asset('vente-ticket/images/m-vola.png') }}" alt="M-vola"></a>
                                             </li>
-                                            <li>
+                                            {# <li>
                                                 <a href="#"><img src="{{ asset('vente-ticket/images/orange-money.png') }}" alt="Orange money"></a>
                                             </li>
                                             <li>
                                                 <a href="#"><img src="{{ asset('vente-ticket/images/airtel.png') }}" alt="Airtel money"></a>
-                                            </li>
+                                            </li> #}
                                         </ul>
                                     </div>
                                 </div>
@@ -330,13 +327,12 @@
                                 </div>
                             </div>
                         {% elseif event.venue_name or event.city %}
-                            {# Fallback : utiliser l'adresse textuelle si pas de coordonnées #}
+                            {# Fallback : utiliser le lieu textuel si pas de coordonnées #}
                             <div class="blc-map wow fadeInUp" data-wow-delay="300ms">
                                 <h3>Lieu de l'évènement</h3>
                                 <div class="map">
                                     {% set addressParts = [] %}
                                     {% if event.venue_name %}{% set addressParts = addressParts|merge([event.venue_name]) %}{% endif %}
-                                    {% if event.venue_address %}{% set addressParts = addressParts|merge([event.venue_address]) %}{% endif %}
                                     {% if event.city %}{% set addressParts = addressParts|merge([event.city]) %}{% endif %}
                                     {% if event.region %}{% set addressParts = addressParts|merge([event.region]) %}{% endif %}
                                     {% set fullAddress = addressParts|join(', ') %}
@@ -386,22 +382,38 @@
                                                         Horaire à confirmer
                                                     {% endif %}
                                                 </div>
-                                                <div class="code-barre">
-                                                    <img src="{{ asset('vente-ticket/images/code1.png') }}" alt="Code barre">
-                                                </div>
                                             </div>
                                             <div class="col2">
                                                 <span class="bandeau">{{ similar.category_label|default('Évènement') }}</span>
                                                 <h3>{{ similar.title }}</h3>
-                                                {% set similar_location = [] %}
-                                                {% if similar.venue_name %}
-                                                    {% set similar_location = similar_location|merge([similar.venue_name]) %}
+                                                {% set location_parts = [] %}
+                                                {% if similar.venue_name is defined and similar.venue_name %}
+                                                    {% set location_parts = location_parts|merge([similar.venue_name]) %}
                                                 {% endif %}
-                                                {% if similar.city %}
-                                                    {% set similar_location = similar_location|merge([similar.city]) %}
+                                                {% if similar.city is defined and similar.city %}
+                                                    {% set location_parts = location_parts|merge([similar.city]) %}
                                                 {% endif %}
-                                                {% if similar_location is not empty %}
-                                                    <div class="adresse">{{ similar_location|join(', ') }}</div>
+                                                {% if similar.region is defined and similar.region %}
+                                                    {% set location_parts = location_parts|merge([similar.region]) %}
+                                                {% endif %}
+                                                {% if similar.country_code is defined and similar.country_code %}
+                                                    {% set location_parts = location_parts|merge([similar.country_code]) %}
+                                                {% endif %}
+                                                {% if location_parts is not empty %}
+                                                    <div class="adresse">{{ location_parts|join(', ') }}</div>
+                                                {% endif %}
+                                                {% if similar.min_price is defined or similar.max_price is defined %}
+                                                    <div class="tarif">
+                                                        {% if similar.min_price is defined and similar.min_price is not null %}
+                                                            {% if similar.max_price is defined and similar.max_price is not null and similar.max_price > similar.min_price %}
+                                                                {{ similar.min_price|number_format(0, '.', ' ') }} MGA - {{ similar.max_price|number_format(0, '.', ' ') }} MGA
+                                                            {% else %}
+                                                                {{ similar.min_price|number_format(0, '.', ' ') }} MGA
+                                                            {% endif %}
+                                                        {% else %}
+                                                            Prix à confirmer
+                                                        {% endif %}
+                                                    </div>
                                                 {% endif %}
                                                 <div class="blcBtn">
                                                     <a href="{{ path('event_details', { id: similar.id }) }}" class="btn ticket">Acheter un ticket</a>
@@ -412,40 +424,6 @@
                                         <div class="blc-col2">
                                             <div class="img">
                                                 <img src="{{ similarImage }}" alt="{{ similar.title }}">
-                                            </div>
-                                        </div>
-                                        <div class="blc-col3">
-                                            <h3>Option sur le ticket</h3>
-                                            <div class="type">
-                                                <form>
-                                                    <div class="blc-select">
-                                                        <label>Type de ticket</label>
-                                                        <select disabled>
-                                                            <option>Disponible prochainement</option>
-                                                        </select>
-                                                    </div>
-                                                    <div class="blc-nbr d-flex">
-                                                        <div class="col">
-                                                            <label>Adulte</label>
-                                                        <div class="numbers-row">
-                                                            <div class="dec button"><span>-</span></div>
-                                                            <input type="text" name="qtt" id="qtt" value="1" class="qtt">
-                                                            <div class="inc button"><span>+</span></div>
-                                                        </div>
-                                                    </div>
-                                                        <div class="col">
-                                                            <label>Enfant <span class="info"><img src="{{ asset('vente-ticket/images/info.png') }}"><div class="tooltip">Un ticket est requis pour les enfants de plus de 10 ans</div></span></label>
-                                                            <div class="numbers-row">
-                                                                <div class="dec button"><span>-</span></div>
-                                                                <input type="text" name="qtt" id="qtt" value="1" class="qtt">
-                                                                <div class="inc button"><span>+</span></div>
-                                                            </div>
-                                                        </div>
-                                                        <div class="col btn-ok">
-                                                            <button class="btn ok" type="button">OK</button>
-                                                        </div>
-                                                    </div>
-                                                </form>
                                             </div>
                                         </div>
                                     </div>

@@ -948,7 +948,9 @@ class EventRepository extends ServiceEntityRepository
                 COALESCE(e.location_override->>'city', v.city) AS city,
                 e.starts_at,
                 COALESCE(primary_cat.label, cat.label) AS category_label,
-                COALESCE(media.url, e.cover_image_url) AS image_url
+                COALESCE(media.url, e.cover_image_url) AS image_url,
+                prices.min_price,
+                prices.max_price
             FROM aiolia.events e
             LEFT JOIN aiolia.venues v ON v.id = e.venue_id
             LEFT JOIN aiolia.event_categories primary_cat ON primary_cat.id = e.primary_category_id
@@ -968,6 +970,13 @@ class EventRepository extends ServiceEntityRepository
                 ORDER BY m.display_order ASC, m.id ASC
                 LIMIT 1
             ) AS media ON TRUE
+            LEFT JOIN LATERAL (
+                SELECT 
+                    MIN(tt.base_price) AS min_price,
+                    MAX(tt.base_price) AS max_price
+                FROM aiolia.ticket_types tt
+                WHERE tt.event_id = e.id
+            ) AS prices ON TRUE
             WHERE e.status = 'published'
               AND e.visibility = 'public'
               AND e.id <> :exclude_id
@@ -999,6 +1008,8 @@ class EventRepository extends ServiceEntityRepository
                 'city' => $row['city'],
                 'starts_at' => $startsAt,
                 'image_url' => $row['image_url'],
+                'min_price' => isset($row['min_price']) ? (float) $row['min_price'] : null,
+                'max_price' => isset($row['max_price']) ? (float) $row['max_price'] : null,
             ];
         }, $rows);
     }
