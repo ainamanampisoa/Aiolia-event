@@ -22,8 +22,7 @@
                 {# <span class="badge-step">Étape 2 sur 3</span> #}
                 <h1>Paiement sécurisé</h1>
                 <p>
-                    Terminez votre paiement{% if paymentDeadline is defined %} avant <strong>{{ paymentDeadline|date('H\\hi') }}</strong>{% endif %}.
-                    {% if orderReference is defined %}Référence : <strong>{{ orderReference }}</strong>{% endif %}
+                    {% if orderReference is defined %}Référence de commande : <strong>{{ orderReference }}</strong>{% endif %}
                 </p>
             </header>
 
@@ -109,7 +108,7 @@
                         <div class="form-section">
                             <h2>Méthode de paiement</h2>
                             <div class="method-grid">
-                                <label class="method-option">
+                                <label class="method-option" data-method="mvola">
                                     <input type="radio" name="payment_method" value="mvola" checked>
                                     <span class="method-content">
                                         <span class="method-icon">
@@ -118,30 +117,6 @@
                                         <span class="method-text">
                                             <strong>M-Vola</strong>
                                             <small>Confirmation immédiate</small>
-                                        </span>
-                                    </span>
-                                </label>
-                                <label class="method-option">
-                                    <input type="radio" name="payment_method" value="orange-money">
-                                    <span class="method-content">
-                                        <span class="method-icon">
-                                            <img src="{{ asset('vente-ticket/images/orange-money.png') }}" alt="Orange Money">
-                                        </span>
-                                        <span class="method-text">
-                                            <strong>Orange Money</strong>
-                                            <small>Disponible 24h/24</small>
-                                        </span>
-                                    </span>
-                                </label>
-                                <label class="method-option">
-                                    <input type="radio" name="payment_method" value="airtel-money">
-                                    <span class="method-content">
-                                        <span class="method-icon">
-                                            <img src="{{ asset('vente-ticket/images/airtel.png') }}" alt="Airtel Money">
-                                        </span>
-                                        <span class="method-text">
-                                            <strong>Airtel Money</strong>
-                                            <small>Validation en quelques minutes</small>
                                         </span>
                                     </span>
                                 </label>
@@ -167,14 +142,9 @@
                                 <div class="form-group">
                                     <label for="payment-invoice">Souhaitez-vous une facture ?</label>
                                     <select id="payment-invoice" name="payment_invoice">
-                                        <option value="no" selected>Non, pas nécessaire</option>
-                                        <option value="personal">Oui, facture personnelle</option>
-                                        <option value="company">Oui, facture entreprise</option>
+                                        <option value="no">Non</option>
+                                        <option value="yes" selected>Oui</option>
                                     </select>
-                                </div>
-                                <div class="form-group form-group-full" id="invoice-details" style="display:none;">
-                                    <label for="invoice-info">Informations de facturation</label>
-                                    <textarea id="invoice-info" name="invoice_info" rows="3" placeholder="Nom de l'entreprise, NIF, STAT, adresse..."></textarea>
                                 </div>
                             </div>
                         </div>
@@ -219,7 +189,6 @@
         document.addEventListener('DOMContentLoaded', function () {
             const methodInputs = document.querySelectorAll('.method-option input[type="radio"]');
             const invoiceSelect = document.getElementById('payment-invoice');
-            const invoiceDetails = document.getElementById('invoice-details');
             const confirmButton = document.getElementById('btn-payment-confirm');
             const form = document.querySelector('.payment-form');
 
@@ -235,15 +204,6 @@
                 }
             });
 
-            if (invoiceSelect && invoiceDetails) {
-                invoiceSelect.addEventListener('change', function () {
-                    if (this.value === 'personal' || this.value === 'company') {
-                        invoiceDetails.style.display = 'block';
-                    } else {
-                        invoiceDetails.style.display = 'none';
-                    }
-                });
-            }
 
             if (confirmButton && form) {
                 form.addEventListener('submit', function (e) {
