@@ -35,7 +35,7 @@
         <div class="container">
             <header class="financial-header wow fadeIn" data-wow-delay="100ms">
                 <div>
-                    <h1 style="background: linear-gradient(135deg, #1F2D3D 0%, #4A90E2 100%); -webkit-background-clip: text; -webkit-text-fill-color: transparent; background-clip: text;">Historique financier détaillé</h1>
+                    <h1 style="color: #1F2D3D;">Historique financier détaillé</h1>
                     <p>Analysez vos dépenses et vos remboursements mois par mois.</p>
                 </div>
                 <div class="financial-actions">
@@ -221,8 +221,8 @@
             {% endif %}
 
             <section class="financial-summary wow fadeInUp" data-wow-delay="150ms">
-                <div class="financial-card primary">
-                    <div class="card-icon">
+                <div class="financial-card card-total">
+                    <div class="card-icon icon-total">
                         <i class="fas fa-chart-line"></i>
                     </div>
                     <div class="card-content">
@@ -255,8 +255,8 @@
                         </small>
                     </div>
                 </div>
-                <div class="financial-card card-blue">
-                    <div class="card-icon" style="background: linear-gradient(135deg, #4A90E2 0%, #357ABD 100%); color: #ffffff;">
+                <div class="financial-card card-monthly">
+                    <div class="card-icon icon-monthly">
                         <i class="fas fa-calendar-alt"></i>
                     </div>
                     <div class="card-content">
@@ -265,8 +265,8 @@
                         <small><i class="fas fa-calendar"></i> {{ "now"|date("F Y") }}</small>
                     </div>
                 </div>
-                <div class="financial-card card-green">
-                    <div class="card-icon" style="background: linear-gradient(135deg, #50C878 0%, #3FAF6B 100%); color: #ffffff;">
+                <div class="financial-card card-orders">
+                    <div class="card-icon icon-orders">
                         <i class="fas fa-shopping-cart"></i>
                     </div>
                     <div class="card-content">
@@ -275,8 +275,8 @@
                         <small><i class="fas fa-receipt"></i> Moyenne: {{ financialData.average_order }}</small>
                     </div>
                 </div>
-                <div class="financial-card card-orange">
-                    <div class="card-icon" style="background: linear-gradient(135deg, #FFA500 0%, #E6940A 100%); color: #ffffff;">
+                <div class="financial-card card-refunds">
+                    <div class="card-icon icon-refunds">
                         <i class="fas fa-undo"></i>
                     </div>
                     <div class="card-content">
@@ -349,7 +349,7 @@
                         
                         {# Couleurs pour chaque barre (flat design) #}
                         {% set barColors = [
-                            '#4A90E2', '#5BA3F5', '#6CB6FF', '#7DC9FF', '#8EDCFF', '#9FEDFF'
+                            '#4A90E2', '#50C878', '#FF6B6B', '#F1C40F', '#9B59B6', '#34495E'
                         ] %}
                         
                         {# Afficher tous les mois de la période #}
@@ -439,68 +439,7 @@
                 </div>
             </section>
 
-            {# Transactions récentes détaillées #}
-            <section class="transactions-detail wow fadeInUp" data-wow-delay="220ms">
-                <header class="transactions-header">
-                    <h2><i class="fas fa-list-alt"></i> Transactions récentes</h2>
-                    <a href="{{ path('profile_history') }}" class="btn-view-all">
-                        Voir tout <i class="fas fa-arrow-right"></i>
-                    </a>
-                </header>
-                
-                <div class="transactions-list">
-                    {% if monthly is defined and monthly|length > 0 %}
-                        {% set recentMonths = monthly|slice(0, 3) %}
-                        {% for item in recentMonths %}
-                            {% set monthName = {
-                                1: 'Janvier', 2: 'Février', 3: 'Mars', 4: 'Avril',
-                                5: 'Mai', 6: 'Juin', 7: 'Juillet', 8: 'Août',
-                                9: 'Septembre', 10: 'Octobre', 11: 'Novembre', 12: 'Décembre'
-                            }[item.month_number|default(1)] %}
-                            
-                            <div class="transaction-item">
-                                <div class="transaction-icon">
-                                    <i class="fas fa-calendar-check"></i>
-                                </div>
-                                <div class="transaction-info">
-                                    <div class="transaction-title">{{ monthName }} {{ currentYear }}</div>
-                                    <div class="transaction-meta">
-                                        <span><i class="fas fa-shopping-bag"></i> Dépenses mensuelles</span>
-                                    </div>
-                                </div>
-                                <div class="transaction-amount expense">
-                                    {{ item.total }}
-                                </div>
-                            </div>
-                        {% endfor %}
-                    {% else %}
-                        <div class="no-transactions">
-                            <div class="no-transactions-icon">
-                                <i class="fas fa-inbox"></i>
-                            </div>
-                            <p>Aucune transaction pour cette période</p>
-                            <a href="{{ path('home') }}" class="btn-browse-events">
-                                <i class="fas fa-ticket-alt"></i> Découvrir des événements
-                            </a>
-                        </div>
-                    {% endif %}
-                </div>
-                
-                <div class="transactions-summary">
-                    <div class="summary-item">
-                        <span class="summary-label">Total des dépenses</span>
-                        <span class="summary-value expense">{{ financialData.total_spent }}</span>
-                    </div>
-                    <div class="summary-item">
-                        <span class="summary-label">Remboursements</span>
-                        <span class="summary-value refund">{{ financialData.total_refunded }}</span>
-                    </div>
-                    <div class="summary-item">
-                        <span class="summary-label">Commandes</span>
-                        <span class="summary-value">{{ financialData.total_orders }}</span>
-                    </div>
-                </div>
-            </section>
+
         </div>
     </main>
 
@@ -602,9 +541,53 @@
             transition: border-color 0.3s;
         }
 
-        .filter-form-advanced input[type="number"]:focus {
-            outline: none;
-            border-color: #4A90E2;
+        /* Nouvelles variables de couleurs pour l'animation */
+        :root {
+            --color-total: #1F2D3D;
+            --color-monthly: #4A90E2;
+            --color-orders: #50C878;
+            --color-refunds: #E74C3C;
+        }
+
+        .financial-card {
+            border: 1px solid rgba(31, 45, 61, 0.05);
+        }
+
+        .financial-card.card-total { border-left: 4px solid var(--color-total); }
+        .financial-card.card-monthly { border-left: 4px solid var(--color-monthly); }
+        .financial-card.card-orders { border-left: 4px solid var(--color-orders); }
+        .financial-card.card-refunds { border-left: 4px solid var(--color-refunds); }
+
+        .icon-total { background: rgba(31, 45, 61, 0.1) !important; color: var(--color-total) !important; }
+        .icon-monthly { background: rgba(74, 144, 226, 0.1) !important; color: var(--color-monthly) !important; }
+        .icon-orders { background: rgba(80, 200, 120, 0.1) !important; color: var(--color-orders) !important; }
+        .icon-refunds { background: rgba(231, 76, 60, 0.1) !important; color: var(--color-refunds) !important; }
+
+        .financial-card:hover .icon-total { background: var(--color-total) !important; color: white !important; }
+        .financial-card:hover .icon-monthly { background: var(--color-monthly) !important; color: white !important; }
+        .financial-card:hover .icon-orders { background: var(--color-orders) !important; color: white !important; }
+        .financial-card:hover .icon-refunds { background: var(--color-refunds) !important; color: white !important; }
+
+        .financial-comparison {
+            background: linear-gradient(135deg, #ffffff 0%, #f0f4f8 100%);
+            border: 1px solid rgba(74, 144, 226, 0.15);
+        }
+
+        .mvola-logo-card {
+            box-shadow: 0 10px 30px rgba(31, 45, 61, 0.2);
+            position: relative;
+            overflow: hidden;
+        }
+
+        .mvola-logo-card::after {
+            content: '';
+            position: absolute;
+            top: -50%;
+            left: -50%;
+            width: 200%;
+            height: 200%;
+            background: radial-gradient(circle, rgba(255,255,255,0.1) 0%, transparent 70%);
+            pointer-events: none;
         }
 
         .financial-insights {
@@ -633,18 +616,18 @@
         }
 
         .insight-card.insight-success {
-            background: #f0f9f4;
+            background: rgba(80, 200, 120, 0.05);
             border-left-color: #50C878;
         }
 
         .insight-card.insight-warning {
-            background: #fff8e6;
-            border-left-color: #FFA500;
+            background: rgba(74, 144, 226, 0.05);
+            border-left-color: #4A90E2;
         }
 
         .insight-card.insight-info {
-            background: #f0f7ff;
-            border-left-color: #4A90E2;
+            background: rgba(31, 45, 61, 0.03);
+            border-left-color: #1F2D3D;
         }
 
         .insight-icon {
@@ -658,11 +641,11 @@
         }
 
         .insight-card.insight-warning .insight-icon {
-            color: #FFA500;
+            color: #4A90E2;
         }
 
         .insight-card.insight-info .insight-icon {
-            color: #4A90E2;
+            color: #1F2D3D;
         }
 
         .insight-content h4 {
@@ -680,11 +663,25 @@
         }
 
         .financial-comparison {
-            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            background: linear-gradient(135deg, #1F2D3D 0%, #34495E 100%);
             border-radius: 12px;
             padding: 30px;
             margin-bottom: 30px;
             color: white;
+            box-shadow: 0 10px 30px rgba(31, 45, 61, 0.15);
+            position: relative;
+            overflow: hidden;
+        }
+
+        .financial-comparison::after {
+            content: '';
+            position: absolute;
+            top: 0;
+            right: 0;
+            width: 300px;
+            height: 300px;
+            background: radial-gradient(circle, rgba(74, 144, 226, 0.1) 0%, transparent 70%);
+            pointer-events: none;
         }
 
         .financial-comparison h2 {
@@ -700,11 +697,12 @@
         }
 
         .comparison-card {
-            background: rgba(255, 255, 255, 0.15);
+            background: rgba(255, 255, 255, 0.1);
             backdrop-filter: blur(10px);
             border-radius: 10px;
             padding: 20px;
-            border: 1px solid rgba(255, 255, 255, 0.2);
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            color: white;
         }
 
         .comparison-label {
@@ -733,13 +731,13 @@
         }
 
         .change-badge.increase {
-            background: rgba(255, 87, 87, 0.2);
-            color: #ff5757;
+            background: rgba(231, 76, 60, 0.2);
+            color: #ff8a80;
         }
 
         .change-badge.decrease {
             background: rgba(80, 200, 120, 0.2);
-            color: #50C878;
+            color: #b9f6ca;
         }
 
         .previous-value {
@@ -763,10 +761,12 @@
             align-items: center;
             gap: 10px;
             padding: 15px 20px;
-            background: linear-gradient(135deg, #FF6B00 0%, #FF8C00 100%);
+            background: linear-gradient(135deg, #F39C12 0%, #D35400 100%);
             border-radius: 10px;
             color: white;
             font-size: 1rem;
+            border-bottom: 2px solid rgba(255, 255, 255, 0.3);
+            box-shadow: 0 4px 15px rgba(211, 84, 0, 0.2);
         }
 
         .mvola-badge i {
@@ -787,16 +787,18 @@
             align-items: center;
             gap: 20px;
             padding: 25px;
-            background: linear-gradient(135deg, #FF6B00 0%, #FF8C00 100%);
+            background: linear-gradient(135deg, #F1C40F 0%, #E67E22 100%);
             border-radius: 12px;
             color: white;
             margin-bottom: 20px;
+            border-right: 4px solid #D35400;
+            box-shadow: 0 10px 30px rgba(230, 126, 34, 0.15);
         }
 
         .mvola-icon {
             width: 60px;
             height: 60px;
-            background: rgba(255, 255, 255, 0.2);
+            background: rgba(255, 255, 255, 0.25);
             border-radius: 50%;
             display: flex;
             align-items: center;
@@ -849,188 +851,17 @@
         }
 
         .mvola-stats .stat-item i {
-            color: #FF6B00;
+            color: #E67E22;
             font-size: 1.2rem;
         }
 
         .financial-note.mvola-note {
-            background: #fff8f0;
-            border-left: 4px solid #FF6B00;
+            background: #FFF9F0;
+            border-left: 4px solid #F39C12;
             color: #1F2D3D;
         }
 
-        /* Transactions détaillées */
-        .transactions-detail {
-            background: white;
-            border-radius: 12px;
-            padding: 30px;
-            box-shadow: 0 2px 8px rgba(0, 0, 0, 0.05);
-        }
 
-        .transactions-header {
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-            margin-bottom: 25px;
-        }
-
-        .transactions-header h2 {
-            font-size: 1.3rem;
-            color: #1F2D3D;
-            margin: 0;
-        }
-
-        .btn-view-all {
-            color: #4A90E2;
-            text-decoration: none;
-            font-weight: 600;
-            transition: all 0.3s;
-        }
-
-        .btn-view-all:hover {
-            color: #357ABD;
-            transform: translateX(5px);
-        }
-
-        .transactions-list {
-            margin-bottom: 25px;
-        }
-
-        .transaction-item {
-            display: flex;
-            align-items: center;
-            gap: 15px;
-            padding: 20px;
-            border: 1px solid #f0f0f0;
-            border-radius: 10px;
-            margin-bottom: 12px;
-            transition: all 0.3s;
-        }
-
-        .transaction-item:hover {
-            border-color: #4A90E2;
-            background: #f8fbff;
-            transform: translateX(5px);
-        }
-
-        .transaction-icon {
-            width: 50px;
-            height: 50px;
-            background: linear-gradient(135deg, #4A90E2 0%, #357ABD 100%);
-            border-radius: 12px;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            color: white;
-            font-size: 1.3rem;
-            flex-shrink: 0;
-        }
-
-        .transaction-info {
-            flex: 1;
-        }
-
-        .transaction-title {
-            font-size: 1.05rem;
-            font-weight: 600;
-            color: #1F2D3D;
-            margin-bottom: 5px;
-        }
-
-        .transaction-meta {
-            font-size: 0.9rem;
-            color: #999;
-        }
-
-        .transaction-meta i {
-            margin-right: 5px;
-        }
-
-        .transaction-amount {
-            font-size: 1.2rem;
-            font-weight: 700;
-            flex-shrink: 0;
-        }
-
-        .transaction-amount.expense {
-            color: #ff5757;
-        }
-
-        .transaction-amount.refund {
-            color: #50C878;
-        }
-
-        .no-transactions {
-            text-align: center;
-            padding: 60px 20px;
-        }
-
-        .no-transactions-icon {
-            font-size: 4rem;
-            color: #ddd;
-            margin-bottom: 20px;
-        }
-
-        .no-transactions p {
-            color: #999;
-            font-size: 1.05rem;
-            margin-bottom: 25px;
-        }
-
-        .btn-browse-events {
-            display: inline-flex;
-            align-items: center;
-            gap: 10px;
-            padding: 12px 25px;
-            background: linear-gradient(135deg, #4A90E2 0%, #357ABD 100%);
-            color: white;
-            text-decoration: none;
-            border-radius: 8px;
-            font-weight: 600;
-            transition: all 0.3s;
-        }
-
-        .btn-browse-events:hover {
-            transform: translateY(-3px);
-            box-shadow: 0 6px 20px rgba(74, 144, 226, 0.4);
-        }
-
-        .transactions-summary {
-            display: grid;
-            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
-            gap: 20px;
-            padding-top: 25px;
-            border-top: 2px solid #f0f0f0;
-        }
-
-        .summary-item {
-            text-align: center;
-            padding: 15px;
-            background: #f8f9fa;
-            border-radius: 8px;
-        }
-
-        .summary-label {
-            display: block;
-            font-size: 0.9rem;
-            color: #666;
-            margin-bottom: 8px;
-        }
-
-        .summary-value {
-            display: block;
-            font-size: 1.3rem;
-            font-weight: 700;
-            color: #1F2D3D;
-        }
-
-        .summary-value.expense {
-            color: #ff5757;
-        }
-
-        .summary-value.refund {
-            color: #50C878;
-        }
 
         @media (max-width: 768px) {
             .insights-grid {
