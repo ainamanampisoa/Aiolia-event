@@ -80,13 +80,15 @@
         </div>
         <div class="qstat-content">
             <div class="qstat-value">
-                {% if event.capacite %}
+                {% if event.lieu and event.lieu.capacite %}
+                    {{ event.lieu.capacite }}
+                {% elseif event.capacite %}
                     {{ event.capacite }}
                 {% else %}
                     -
                 {% endif %}
             </div>
-            <div class="qstat-label">Capacité totale</div>
+            <div class="qstat-label">Capacité du lieu</div>
         </div>
     </div>
 

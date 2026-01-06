@@ -79,6 +79,7 @@ DECLARE
     v_vues_minimum INTEGER;
     v_participants_max INTEGER;
     v_participants_actuels INTEGER;
+    v_capacite_lieu INTEGER;
 BEGIN
     SET search_path TO aiolia;
     
@@ -217,6 +218,9 @@ BEGIN
     -- CRÉER 5 LIEUX DIFFÉRENTS AVEC COORDONNÉES GPS RÉALISTES
     -- ============================================================
     FOR i IN 1..5 LOOP
+        -- Définir la capacité pour chaque lieu
+        v_capacite_lieu := (ARRAY[800, 500, 2000, 300, 10000])[i];
+        
         INSERT INTO lieux (
             id_profil_organisateur, nom, slug, description,
             ligne_adresse_1, ville, code_postal, code_pays,
@@ -236,7 +240,7 @@ BEGIN
             'Indian/Antananarivo',
             'contact@lieu' || i || '.mg',
             '+26134000000' || i,
-            (ARRAY[800, 500, 2000, 300, 10000])[i]
+            v_capacite_lieu
         ) RETURNING id INTO v_id_lieu;
         
         v_lieux_ids := array_append(v_lieux_ids, v_id_lieu);
@@ -247,7 +251,7 @@ BEGIN
                 v_id_lieu,
                 'Espace ' || j,
                 'Espace ' || j || ' du lieu ' || i,
-                (ARRAY[300, 500, 800, 200, 5000])[i] / 2,
+                v_capacite_lieu / 2,
                 j = 1
             ) RETURNING id INTO v_id_espace;
             
@@ -297,9 +301,13 @@ BEGIN
         SELECT id INTO v_id_categorie FROM categories_evenements ORDER BY RANDOM() LIMIT 1;
         SELECT id INTO v_id_type_event FROM types_evenements ORDER BY RANDOM() LIMIT 1;
         v_id_lieu := v_lieux_ids[1 + (i % 5)];
+        
+        -- Récupérer la capacité du lieu pour l'utiliser pour l'événement
+        SELECT capacite INTO v_capacite_lieu FROM lieux WHERE id = v_id_lieu;
+        
         SELECT id INTO v_id_espace FROM espaces_lieux WHERE id_lieu = v_id_lieu ORDER BY RANDOM() LIMIT 1;
 
-        -- Créer l'événement
+        -- Créer l'événement avec la capacité du lieu
         INSERT INTO evenements (
             id_profil_organisateur, id_categorie_principale, id_type_evenement,
             id_lieu, id_espace_principal, slug, titre, sous_titre, resume, description,
@@ -323,7 +331,7 @@ BEGIN
             v_event_statut::event_status_enum,
             'public'::event_visibility_enum,
             (CASE WHEN i % 3 = 0 THEN 'online' WHEN i % 3 = 1 THEN 'hybrid' ELSE 'in_person' END)::event_format_enum,
-            (ARRAY[500, 800, 300, 1000, 150])[1 + (i % 5)],
+            v_capacite_lieu,
             v_date_debut,
             v_date_fin,
             v_date_debut_vente,
@@ -1553,6 +1561,8 @@ BEGIN
     RAISE NOTICE '✅ Données de test créées avec succès pour organisateur11@yopmail.com';
     RAISE NOTICE '   - 21 événements créés (5 passés, 4 archivés, 5 en cours, 7 à venir)';
     RAISE NOTICE '   - 5 lieux différents';
+    RAISE NOTICE '   - Capacité des événements basée sur celle du lieu';
+    RAISE NOTICE '   - Même lieu = même capacité pour tous les événements';
     RAISE NOTICE '   - 20-30 billets par catégorie (répartis équitablement entre adulte et enfant)';
     RAISE NOTICE '   - Prix variés par catégorie et par événement (variation ±20%%)';
     RAISE NOTICE '   - Pas de survente (quantité vendue ≤ quantité totale)';
