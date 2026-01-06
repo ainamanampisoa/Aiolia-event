@@ -33,7 +33,7 @@
             </header>
 
             {# Barre de progression pour atteindre le seuil #}
-            {% if not eligibility.can_play %}
+            {% if not eligibility.is_unlocked %}
             <section class="eligibility-progress wow fadeIn" data-wow-delay="120ms">
                 <div class="glass-card progress-card">
                     <div class="progress-header">
@@ -48,7 +48,7 @@
                     <div class="progress-bar-wrapper">
                         <div class="progress-info">
                             <span class="progress-label">Progression</span>
-                            <span class="progress-percentage">{{ ((eligibility.total_spent / eligibility.threshold) * 100)|round }}%</span>
+                            <span class="progress-percentage">{{ eligibility.progress|round }}%</span>
                         </div>
                         <div class="progress-bar">
                             <div class="progress-fill" style="width: {{ eligibility.progress }}%;"></div>
@@ -70,6 +70,8 @@
                             <h2>Roulette des récompenses</h2>
                             {% if eligibility.can_play %}
                                 <span class="status-badge active"><i class="fas fa-check-circle"></i> Disponible</span>
+                            {% elseif eligibility.is_unlocked %}
+                                <span class="status-badge" style="background: #fab1a0; color: #d63031;"><i class="fas fa-clock"></i> 0 Ticket</span>
                             {% else %}
                                 <span class="status-badge locked"><i class="fas fa-lock"></i> Verrouillé</span>
                             {% endif %}
@@ -126,6 +128,14 @@
                                     <span class="btn-shine"></span>
                                 </button>
                                 <p class="game-hint">Bonne chance ! 🍀</p>
+                            {% elseif eligibility.is_unlocked %}
+                                <button class="btn-play-large disabled" disabled style="opacity: 0.7; filter: grayscale(1);">
+                                    <i class="fas fa-hourglass-half"></i> Plus de tickets
+                                </button>
+                                <div class="game-hint-box" style="margin-top: 15px; font-size: 0.9em; color: #636e72;">
+                                    <p style="margin-bottom: 5px;">Vous avez utilisé vos tickets disponibles.</p>
+                                    <small><i class="fas fa-info-circle"></i> Prochain ticket gratuit : {{ eligibility.next_free_play|date('d/m/Y') }}</small>
+                                </div>
                             {% else %}
                                 <button class="btn-play-large disabled" disabled>
                                     <i class="fas fa-lock"></i> Verrouillé

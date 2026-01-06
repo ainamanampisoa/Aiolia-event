@@ -10,7 +10,7 @@ class TicketChanceService
     // Configuration
     private const MINIMUM_PURCHASE_THRESHOLD = 100_000.0; // 100 000 MGA pour débloquer
     private const BONUS_PURCHASE_THRESHOLD = 50_000.0;    // 50 000 MGA pour tirage bonus
-    private const MAX_PLAYS_PER_DAY = 3;                  // Maximum 3 tirages par jour
+    private const MAX_PLAYS_PER_DAY = 2;                  // Maximum 2 tirages par jour
     private const FREE_PLAY_INTERVAL_DAYS = 7;           // 1 tirage gratuit par semaine
 
     public function __construct(
@@ -34,7 +34,8 @@ class TicketChanceService
 
         return [
             'can_play' => $canPlay && $playsInfo['remaining'] > 0,
-            'total_spent' => $totalSpent,
+            'is_unlocked' => $canPlay,
+            'total_spent' => min($totalSpent, self::MINIMUM_PURCHASE_THRESHOLD),
             'threshold' => self::MINIMUM_PURCHASE_THRESHOLD,
             'remaining' => $remaining,
             'progress' => $progress,
@@ -55,10 +56,10 @@ class TicketChanceService
             WHERE o.user_id = :user_id
               AND o.status = 'paid'
         SQL;
-        
+
         $result = $this->connection->executeQuery($sql, ['user_id' => $userId]);
         $row = $result->fetchAssociative();
-        
+
         return (float) ($row['total_spent'] ?? 0);
     }
 
@@ -69,29 +70,29 @@ class TicketChanceService
     {
         // Tirages effectués aujourd'hui
         $todayPlays = $this->getPlaysToday($userId);
-        
+
         // Dernier tirage gratuit utilisé
         $lastFreePlay = $this->getLastFreePlayDate($userId);
-        $canUseFreePlay = $lastFreePlay === null || 
+        $canUseFreePlay = $lastFreePlay === null ||
             (new \DateTime($lastFreePlay))->diff(new \DateTime())->days >= self::FREE_PLAY_INTERVAL_DAYS;
-        
+
         // Tirages bonus disponibles (non utilisés)
         $bonusPlays = $this->getUnusedBonusPlays($userId);
-        
+
         // Calcul des tirages restants
         $maxToday = self::MAX_PLAYS_PER_DAY;
         $remainingToday = max(0, $maxToday - $todayPlays);
-        
+
         // Total disponible = tirage gratuit (si disponible) + bonus (si disponibles)
         $totalAvailable = 0;
         if ($canUseFreePlay) {
             $totalAvailable++;
         }
         $totalAvailable += $bonusPlays;
-        
+
         // Limité par le max journalier
         $remaining = min($totalAvailable, $remainingToday);
-        
+
         // Prochaine date de tirage gratuit
         $nextFreePlay = null;
         if (!$canUseFreePlay && $lastFreePlay) {
@@ -120,10 +121,10 @@ class TicketChanceService
             WHERE user_id = :user_id
               AND DATE(created_at) = CURRENT_DATE
         SQL;
-        
+
         $result = $this->connection->executeQuery($sql, ['user_id' => $userId]);
         $row = $result->fetchAssociative();
-        
+
         return (int) ($row['count'] ?? 0);
     }
 
@@ -140,10 +141,10 @@ class TicketChanceService
             ORDER BY created_at DESC
             LIMIT 1
         SQL;
-        
+
         $result = $this->connection->executeQuery($sql, ['user_id' => $userId]);
         $row = $result->fetchAssociative();
-        
+
         return $row['created_at'] ?? null;
     }
 
@@ -166,13 +167,13 @@ class TicketChanceService
                     AND tce.order_id = o.id
               )
         SQL;
-        
+
         $result = $this->connection->executeQuery($sql, [
             'user_id' => $userId,
             'threshold' => self::BONUS_PURCHASE_THRESHOLD,
         ]);
         $row = $result->fetchAssociative();
-        
+
         return (int) ($row['count'] ?? 0);
     }
 
@@ -326,7 +327,7 @@ class TicketChanceService
             'play_type' => 'free',
         ];
     }
-    
+
     /**
      * Enregistre une entrée de tirage (version simple compatible).
      */
@@ -338,10 +339,10 @@ class TicketChanceService
             'amount', 'free_ticket', 'upgrade', 'extra_play' => 'amount',
             default => 'amount',
         };
-        
+
         // Vérifier si les nouvelles colonnes existent
         $hasNewColumns = $this->checkNewColumnsExist();
-        
+
         if ($hasNewColumns) {
             $sql = <<<SQL
                 INSERT INTO aiolia.ticket_chance_entries 
@@ -349,7 +350,7 @@ class TicketChanceService
                 VALUES (:user_id, :prize_type::aiolia.promotion_type_enum, :prize_value, :prize_code, 'free', 'won', NOW())
                 RETURNING id
             SQL;
-            
+
             $result = $this->connection->executeQuery($sql, [
                 'user_id' => $userId,
                 'prize_type' => $dbPrizeType,
@@ -364,14 +365,14 @@ class TicketChanceService
                 VALUES (:user_id, :prize_type::aiolia.promotion_type_enum, :prize_value, 'won', NOW())
                 RETURNING id
             SQL;
-            
+
             $result = $this->connection->executeQuery($sql, [
                 'user_id' => $userId,
                 'prize_type' => $dbPrizeType,
                 'prize_value' => $prize['value'],
             ]);
         }
-        
+
         $row = $result->fetchAssociative();
         return (int) $row['id'];
     }
@@ -394,13 +395,13 @@ class TicketChanceService
             ORDER BY o.created_at ASC
             LIMIT 1
         SQL;
-        
+
         $result = $this->connection->executeQuery($sql, [
             'user_id' => $userId,
             'threshold' => self::BONUS_PURCHASE_THRESHOLD,
         ]);
         $row = $result->fetchAssociative();
-        
+
         return $row['id'] ?? null;
     }
 
@@ -415,7 +416,7 @@ class TicketChanceService
             VALUES (:user_id, :prize_type, :prize_value, :prize_code, :play_type, :order_id, 'won', NOW())
             RETURNING id
         SQL;
-        
+
         $result = $this->connection->executeQuery($sql, [
             'user_id' => $userId,
             'prize_type' => $prize['type'],
@@ -424,7 +425,7 @@ class TicketChanceService
             'play_type' => $playType,
             'order_id' => $orderId,
         ]);
-        
+
         $row = $result->fetchAssociative();
         return (int) $row['id'];
     }
@@ -436,24 +437,24 @@ class TicketChanceService
     {
         $validityDays = $prize['validity_days'] ?? 30;
         $expiresAt = (new \DateTime())->modify("+{$validityDays} days")->format('Y-m-d H:i:s');
-        
+
         switch ($prize['type']) {
             case 'percent':
             case 'amount':
                 // Créer un code promo pour l'utilisateur
                 $this->createPromoCode($userId, $prize, $entryId, $expiresAt);
                 break;
-                
+
             case 'free_ticket':
                 // Créer un bon pour billet gratuit
                 $this->createFreeTicketVoucher($userId, $entryId, $expiresAt);
                 break;
-                
+
             case 'upgrade':
                 // Créer un bon pour upgrade VIP
                 $this->createUpgradeVoucher($userId, $entryId, $expiresAt);
                 break;
-                
+
             case 'extra_play':
                 // Ajouter un tirage bonus immédiat
                 $this->addExtraPlay($userId, $entryId);
@@ -468,7 +469,7 @@ class TicketChanceService
     {
         $code = 'TC' . strtoupper(substr(md5($entryId . $userId . time()), 0, 8));
         $promotionType = $prize['type'] === 'percent' ? 'percent' : 'amount';
-        
+
         $sql = <<<SQL
             INSERT INTO aiolia.promo_codes 
             (code, promotion_type, value, max_usage_total, max_usage_per_user, 
@@ -476,7 +477,7 @@ class TicketChanceService
             VALUES (:code, :promotion_type, :value, 1, 1, 
                     NOW(), :expires_at, TRUE, NOW(), :entry_id)
         SQL;
-        
+
         $this->connection->executeQuery($sql, [
             'code' => $code,
             'promotion_type' => $promotionType,
@@ -484,7 +485,7 @@ class TicketChanceService
             'expires_at' => $expiresAt,
             'entry_id' => $entryId,
         ]);
-        
+
         // Mettre à jour l'entrée avec le code promo
         $this->connection->executeQuery(
             'UPDATE aiolia.ticket_chance_entries SET promo_code = :code WHERE id = :id',
@@ -498,7 +499,7 @@ class TicketChanceService
     private function createFreeTicketVoucher(int $userId, int $entryId, string $expiresAt): void
     {
         $code = 'TCFREE' . strtoupper(substr(md5($entryId . $userId . time()), 0, 6));
-        
+
         $sql = <<<SQL
             INSERT INTO aiolia.promo_codes 
             (code, promotion_type, value, max_usage_total, max_usage_per_user, 
@@ -508,13 +509,13 @@ class TicketChanceService
                     NOW(), :expires_at, TRUE, NOW(), :entry_id,
                     '{"type": "free_ticket", "max_ticket_price": 100000}'::jsonb)
         SQL;
-        
+
         $this->connection->executeQuery($sql, [
             'code' => $code,
             'expires_at' => $expiresAt,
             'entry_id' => $entryId,
         ]);
-        
+
         $this->connection->executeQuery(
             'UPDATE aiolia.ticket_chance_entries SET promo_code = :code WHERE id = :id',
             ['code' => $code, 'id' => $entryId]
@@ -527,7 +528,7 @@ class TicketChanceService
     private function createUpgradeVoucher(int $userId, int $entryId, string $expiresAt): void
     {
         $code = 'TCVIP' . strtoupper(substr(md5($entryId . $userId . time()), 0, 6));
-        
+
         $sql = <<<SQL
             INSERT INTO aiolia.promo_codes 
             (code, promotion_type, value, max_usage_total, max_usage_per_user, 
@@ -537,13 +538,13 @@ class TicketChanceService
                     NOW(), :expires_at, TRUE, NOW(), :entry_id,
                     '{"type": "upgrade_vip"}'::jsonb)
         SQL;
-        
+
         $this->connection->executeQuery($sql, [
             'code' => $code,
             'expires_at' => $expiresAt,
             'entry_id' => $entryId,
         ]);
-        
+
         $this->connection->executeQuery(
             'UPDATE aiolia.ticket_chance_entries SET promo_code = :code WHERE id = :id',
             ['code' => $code, 'id' => $entryId]
@@ -571,7 +572,7 @@ class TicketChanceService
         try {
             // Vérifier si les nouvelles colonnes existent
             $hasNewColumns = $this->checkNewColumnsExist();
-            
+
             if ($hasNewColumns) {
                 $sql = <<<SQL
                     SELECT 
@@ -606,12 +607,12 @@ class TicketChanceService
                     LIMIT :limit
                 SQL;
             }
-            
+
             $result = $this->connection->executeQuery($sql, [
                 'user_id' => $userId,
                 'limit' => $limit,
             ]);
-            
+
             $history = [];
             $prizes = $this->getAvailablePrizes();
             $prizesByCode = [];
@@ -620,7 +621,7 @@ class TicketChanceService
                 $prizesByCode[$p['code']] = $p;
                 $prizesByType[$p['type']] = $p;
             }
-            
+
             while ($row = $result->fetchAssociative()) {
                 // Trouver le prix correspondant
                 $prizeInfo = null;
@@ -630,10 +631,10 @@ class TicketChanceService
                 if (!$prizeInfo && !empty($row['type'])) {
                     $prizeInfo = $prizesByType[$row['type']] ?? null;
                 }
-                
+
                 // Construire le label du prix
                 $prizeLabel = $prizeInfo['label'] ?? $this->buildPrizeLabel($row['type'], $row['value']);
-                
+
                 $history[] = [
                     'id' => $row['id'],
                     'prize' => $prizeLabel,
@@ -647,15 +648,15 @@ class TicketChanceService
                     'icon' => $prizeInfo['icon'] ?? 'fa-gift',
                 ];
             }
-            
+
             return $history;
-            
+
         } catch (\Exception $e) {
             // En cas d'erreur, retourner un tableau vide
             return [];
         }
     }
-    
+
     /**
      * Vérifie si les nouvelles colonnes existent.
      */
@@ -669,16 +670,16 @@ class TicketChanceService
                 AND table_name = 'ticket_chance_entries' 
                 AND column_name = 'prize_code'
             SQL;
-            
+
             $result = $this->connection->executeQuery($sql);
             $row = $result->fetchAssociative();
-            
+
             return (int) ($row['cnt'] ?? 0) > 0;
         } catch (\Exception $e) {
             return false;
         }
     }
-    
+
     /**
      * Construit un label pour un prix basé sur son type et sa valeur.
      */
