@@ -43,6 +43,15 @@ class EventService
     ) {
     }
 
+    // Ajouter cette méthode à votre EventService existant
+    public function updateEventCoverImage(Event $event, string $imageUrl): Event
+    {
+        $event->setUrlImageCouverture($imageUrl);
+        $this->entityManager->persist($event);
+        $this->entityManager->flush();
+        
+        return $event;
+    }
     
     public function getAll(): array
     {

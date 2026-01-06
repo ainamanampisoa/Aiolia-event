@@ -34,7 +34,6 @@ class MediaService
             default => 'aiolia-event/events/' . $eventId . '/documents',
         };
 
-        
         $uploadResult = match($type) {
             'image' => $this->cloudinaryService->uploadImage($file, $folder),
             'video' => $this->cloudinaryService->uploadVideo($file, $folder),
@@ -45,7 +44,6 @@ class MediaService
             throw new \Exception('Erreur lors de l\'upload sur Cloudinary: ' . $uploadResult['error']);
         }
 
-        
         $media = new EventMedia();
         $media->setEvent($event);
         $media->setMediaType($type);
@@ -60,9 +58,13 @@ class MediaService
             $media->setDisplayOrder($displayOrder);
         }
 
-        
         if ($isPrimary) {
             $this->setPrimaryImage($event, $media);
+            // Mettre à jour urlImageCouverture dans l'événement
+            $event->setUrlImageCouverture($uploadResult['url']);
+            
+            // IMPORTANT: Persister la modification sur l'Event
+            $this->entityManager->persist($event);
         }
 
         $this->entityManager->persist($media);
@@ -158,20 +160,28 @@ class MediaService
     {
         $mediaRepository = $this->entityManager->getRepository(EventMedia::class);
         
+        $criteria = ['event' => $event];
         if ($type) {
-            return $mediaRepository->findBy(
-                ['event' => $event, 'mediaType' => $type],
-                ['displayOrder' => 'ASC']
-            );
+            $criteria['mediaType'] = $type;
         }
-
-        return $mediaRepository->findBy(
-            ['event' => $event],
-            ['displayOrder' => 'ASC']
-        );
+        
+        // Utiliser createQueryBuilder pour mieux contrôler l'ordre
+        $queryBuilder = $mediaRepository->createQueryBuilder('m')
+            ->where('m.event = :event')
+            ->setParameter('event', $event);
+        
+        if ($type) {
+            $queryBuilder->andWhere('m.mediaType = :type')
+                ->setParameter('type', $type);
+        }
+        
+        // Trier par isMainPoster DESC (les principaux d'abord) puis par displayOrder
+        return $queryBuilder->orderBy('m.isMainPoster', 'DESC')
+            ->addOrderBy('m.displayOrder', 'ASC')
+            ->getQuery()
+            ->getResult();
     }
 
-    
     public function getPrimaryImage(Event $event): ?EventMedia
     {
         $mediaRepository = $this->entityManager->getRepository(EventMedia::class);

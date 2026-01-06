@@ -332,7 +332,6 @@ class EventsController extends AbstractController
             throw $this->createAccessDeniedException('Vous devez être connecté pour accéder à cette page.');
         }
 
-        
         $organizerProfile = $organizerProfileRepository->findOneBy(['utilisateur' => $user]);
         if (!$organizerProfile) {
             throw $this->createAccessDeniedException('Profil organisateur non trouvé.');
@@ -378,7 +377,7 @@ class EventsController extends AbstractController
                     }
                 }
                 
-            $event->setProfilOrganisateur($organizerProfile);
+                $event->setProfilOrganisateur($organizerProfile);
                 
                 // Définir les dates de vente sur l'événement si elles sont fournies
                 $salesStartDate = $request->request->get('ticket_sales_start_date');
@@ -403,25 +402,16 @@ class EventsController extends AbstractController
                 $savedEvent = $eventService->saveFromForm($event);
                 
                 // Gérer l'accessibilité
-                // Les valeurs du formulaire correspondent directement aux codes de TypeAccessibilite
                 $accessibilityTypes = $request->request->all('accessibility') ?? [];
                 if (!empty($accessibilityTypes)) {
                     foreach ($accessibilityTypes as $accessibilityCode) {
-                        // Récupérer le type d'accessibilité via le service
                         $typeAccessibilite = $typeAccessibiliteService->getByCode($accessibilityCode);
                         
-                        // Vérifier si le type existe et si le lien n'existe pas déjà pour éviter la collision d'identité
                         if ($typeAccessibilite && !$lienAccessibiliteService->exists($savedEvent, $typeAccessibilite)) {
                             $lienAccessibiliteService->create([], $savedEvent, $typeAccessibilite);
                         }
                     }
                 }
-                
-                // Gérer les modes de paiement
-                // Note: Les modes de paiement sont associés aux factures lors de la création de commandes,
-                // pas directement aux événements. Cette section peut être étendue si nécessaire pour
-                // stocker les modes de paiement acceptés par événement.
-                // Les modes de paiement seront utilisés lors de la création des factures
                 
                 // Gérer l'upload de l'image principale
                 $mainImage = $request->files->get('image');
@@ -434,6 +424,15 @@ class EventsController extends AbstractController
                             true, // isPrimary
                             0 // displayOrder
                         );
+                        
+                        // Récupérer l'image principale pour vérification
+                        $primaryMedia = $mediaService->getPrimaryImage($savedEvent);
+                        if ($primaryMedia && !$savedEvent->getUrlImageCouverture()) {
+                            // Double vérification : mettre à jour l'URL si nécessaire
+                            $savedEvent->setUrlImageCouverture($primaryMedia->getUrl());
+                            $entityManager->persist($savedEvent);
+                            $entityManager->flush();
+                        }
                     } catch (\Exception $e) {
                         $this->addFlash('error', 'Erreur lors de l\'upload de l\'image principale: ' . $e->getMessage());
                     }
@@ -467,7 +466,6 @@ class EventsController extends AbstractController
                     'ticket_segment' => $request->request->all('ticket_segment') ?? [],
                     'ticket_price' => $request->request->all('ticket_price') ?? [],
                     'ticket_quantity' => $request->request->all('ticket_quantity') ?? [],
-                    // Paramètres de vente globaux
                     'ticket_sales_start_date' => $request->request->get('ticket_sales_start_date'),
                     'ticket_sales_start_time' => $request->request->get('ticket_sales_start_time'),
                     'ticket_sales_end_date' => $request->request->get('ticket_sales_end_date'),
@@ -481,7 +479,8 @@ class EventsController extends AbstractController
                     $eventService->createTicketsForEvent($savedEvent, $ticketsData);
                 }
 
-            return $this->redirectToRoute('organisateur_events_index');
+                $this->addFlash('success', 'Événement créé avec succès!');
+                return $this->redirectToRoute('organisateur_events_index');
             }
         }
 
