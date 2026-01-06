@@ -23,7 +23,7 @@
                     <h1>{{ 'profile_favorites.header_title'|trans }}</h1>
                     <p>{{ 'profile_favorites.header_desc'|trans }}</p>
                 </div>
-                <a href="{{ path('events') }}" class="btn-discover"><i class="fas fa-compass"></i> {{ 'profile_favorites.discover_cta'|trans }}</a>
+                <a href="{{ path('events_for_you') }}" class="btn-discover"><i class="fas fa-compass"></i> {{ 'profile_favorites.discover_cta'|trans }}</a>
             </header>
 
             {% if favorites|length == 0 %}
@@ -64,7 +64,6 @@
                                     <span class="favorite-price">{{ event.price }}</span>
                                     <div class="favorite-actions">
                                         <a href="{{ path('event_details', { id: event.id }) }}" class="btn-details"><i class="fas fa-info-circle"></i> {{ 'profile_favorites.btn_details'|trans }}</a>
-                                        <a href="{{ path('events_for_you') }}" class="btn-notify"><i class="fas fa-compass"></i> {{ 'profile_favorites.btn_for_you'|trans }}</a>
                                     </div>
                                 </div>
                             </div>

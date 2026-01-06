@@ -209,7 +209,7 @@ profile_favorites:
   page_title: "Favoris - Vente tickets"
   header_title: "Évènements favoris"
   header_desc: "Retrouvez vos coups de cœur et recevez des alertes dès que des billets sont disponibles."
-  discover_cta: "Découvrir de nouveaux évènements"
+  discover_cta: "Recommandé pour vous"
   empty_title: "Aucun favori enregistré"
   empty_desc: "Ajoutez des évènements à vos favoris pour les retrouver facilement et être prévenu des mises en vente."
   empty_cta: "Parcourir les évènements"

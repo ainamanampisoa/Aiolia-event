@@ -64,20 +64,25 @@
                         <h3>{{ 'profile.overview_title'|trans }}</h3>
                         <div class="profile-stats">
                             <div class="profile-stat">
-                                <span>{{ 'profile.stat_active_tickets'|trans }}</span>
-                                <strong>{{ stats.active_tickets|default(0)|number_format(0, ',', ' ') }}</strong>
+                                <div class="stat-icon"><i class="fas fa-ticket-alt"></i></div>
+                                <div class="stat-content">
+                                    <span>{{ 'profile.stat_active_tickets'|trans }}</span>
+                                    <strong>{{ stats.active_tickets|default(0)|number_format(0, ',', ' ') }}</strong>
+                                </div>
                             </div>
                             <div class="profile-stat">
-                                <span>{{ 'profile.stat_favorite_events'|trans }}</span>
-                                <strong>{{ stats.favorite_events|default(0)|number_format(0, ',', ' ') }}</strong>
+                                <div class="stat-icon"><i class="fas fa-heart"></i></div>
+                                <div class="stat-content">
+                                    <span>{{ 'profile.stat_favorite_events'|trans }}</span>
+                                    <strong>{{ stats.favorite_events|default(0)|number_format(0, ',', ' ') }}</strong>
+                                </div>
                             </div>
                             <div class="profile-stat">
-                                <span>{{ 'profile.stat_cart_items'|trans }}</span>
-                                <strong>{{ stats.cart_items|default(0)|number_format(0, ',', ' ') }}</strong>
-                            </div>
-                            <div class="profile-stat">
-                                <span>{{ 'profile.stat_loyalty_points'|trans }}</span>
-                                <strong>{{ stats.loyalty_points|default(0)|number_format(0, ',', ' ') }}</strong>
+                                <div class="stat-icon"><i class="fas fa-shopping-cart"></i></div>
+                                <div class="stat-content">
+                                    <span>{{ 'profile.stat_cart_items'|trans }}</span>
+                                    <strong>{{ stats.cart_items|default(0)|number_format(0, ',', ' ') }}</strong>
+                                </div>
                             </div>
                         </div>
                     </div>

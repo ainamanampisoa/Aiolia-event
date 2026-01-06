@@ -206,7 +206,7 @@ profile_favorites:
   page_title: "Favorites - Ticket sales"
   header_title: "Favorite events"
   header_desc: "Find your favorite events and receive alerts as soon as tickets become available."
-  discover_cta: "Discover new events"
+  discover_cta: "Recommended for you"
   empty_title: "No favorites saved"
   empty_desc: "Add events to your favorites to find them easily and be notified when tickets go on sale."
   empty_cta: "Browse events"
