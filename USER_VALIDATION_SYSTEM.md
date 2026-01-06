@@ -393,6 +393,9 @@ sudo chown postgres:postgres /tmp/data.sql
 sudo cp /home/fifah/Documents/GitHub/Aiolia-event/Base/Events.sql /tmp/Events.sql
 sudo chown postgres:postgres /tmp/Events.sql
 
+sudo cp /home/fifah/Documents/GitHub/Aiolia-event/Base/factures_janvier_2026.sql /tmp/factures_janvier_2026.sql
+sudo chown postgres:postgres /tmp/factures_janvier_2026.sql
+
 sudo -i -u postgres
 psql
 
@@ -400,6 +403,7 @@ psql
 \i /tmp/logic.sql
 \i /tmp/data.sql
 \i /tmp/Events.sql
+\i /tmp/factures_janvier_2026.sql
 
 comment est le Gestion quotas billets par catégorie 
 
@@ -477,6 +481,7 @@ redonne moi le @data.sql avec ces critere
 => 23 organisateurs actifs ,0 organisateur en pausse ,total 3 organisateur non valider 
 => 10 factures paye mensuelle (2 factures basic , 3 factures pro,5 factures entreprise)
 => 4 factures paye trimestre (1 factures basic , 1 factures pro,2 factures entreprise) 
+
 
 
 
