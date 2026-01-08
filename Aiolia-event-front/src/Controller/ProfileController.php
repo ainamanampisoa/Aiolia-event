@@ -1103,7 +1103,9 @@ class ProfileController extends AbstractController
         $year = $request->query->getInt('year', (int) date('Y'));
         $month = $request->query->getInt('month', 0); // 0 = tous les mois
         $period = $request->query->get('period', 'year'); // year, month, all
-        $monthlyRange = $request->query->get('monthly_range', 'last_6'); // last_6, first_6
+        $currentMonthNumerical = (int) date('n');
+        $defaultRange = $currentMonthNumerical <= 6 ? 'first_6' : 'last_6';
+        $monthlyRange = $request->query->get('monthly_range', $defaultRange); // first_6, last_6
 
         // Nouveaux filtres avancés
         // Note: payment_method filtré sur 'mvola' par défaut car c'est la seule méthode
@@ -1120,13 +1122,13 @@ class ProfileController extends AbstractController
 
         // Récupérer la répartition des méthodes de paiement avec filtres
         $paymentMethods = $this->userStatsRepository->findPaymentMethodDistribution($userId, $year, $month);
-        
+
         // Récupérer les catégories disponibles pour le filtre
         $availableCategories = $this->eventRepository->findAllCategories();
-        
+
         // Calculer les comparaisons avec période précédente
         $comparison = $this->calculatePeriodComparison($userId, $year, $month, $period);
-        
+
         // Récupérer les insights intelligents
         $financialInsights = $this->generateFinancialInsights($financialData, $monthly);
 
@@ -1185,13 +1187,13 @@ class ProfileController extends AbstractController
 
         // Générer le CSV
         $csvLines = [];
-        
+
         // En-tête du rapport
         $csvLines[] = "Rapport Financier Détaillé - " . date('d/m/Y H:i');
         $csvLines[] = "Utilisateur," . ($userInfo['first_name'] ?? '') . ' ' . ($userInfo['last_name'] ?? '');
         $csvLines[] = "Période," . $this->formatPeriodLabel($period, $year, $month);
         $csvLines[] = "";
-        
+
         // Résumé des statistiques
         $csvLines[] = "=== RÉSUMÉ FINANCIER ===";
         $csvLines[] = "Total dépensé," . ($financialData['total_spent'] ?? '0 MGA');
@@ -1201,7 +1203,7 @@ class ProfileController extends AbstractController
         $csvLines[] = "Panier moyen," . ($financialData['average_order'] ?? '0 MGA');
         $csvLines[] = "Dépenses ce mois," . ($financialData['monthly_spent'] ?? '0 MGA');
         $csvLines[] = "";
-        
+
         // Répartition mensuelle
         $csvLines[] = "=== RÉPARTITION MENSUELLE ===";
         $csvLines[] = "Mois,Montant dépensé";
@@ -1216,7 +1218,7 @@ class ProfileController extends AbstractController
             }
         }
         $csvLines[] = "";
-        
+
         // Méthodes de paiement
         $csvLines[] = "=== MÉTHODES DE PAIEMENT ===";
         $csvLines[] = "Méthode,Pourcentage";
@@ -1230,7 +1232,7 @@ class ProfileController extends AbstractController
             }
         }
         $csvLines[] = "";
-        
+
         // Note de bas de page
         $csvLines[] = "Généré le," . date('d/m/Y à H:i:s');
 
@@ -2008,7 +2010,7 @@ class ProfileController extends AbstractController
     {
         // Récupérer les données de la période actuelle
         $currentData = $this->orderRepository->findFinancialHistory($userId, $year, $month, $period);
-        
+
         // Calculer la période précédente
         if ($period === 'month' && $month > 0) {
             $prevMonth = $month - 1;
@@ -2024,18 +2026,18 @@ class ProfileController extends AbstractController
             // Pour 'all', pas de comparaison
             return ['has_comparison' => false];
         }
-        
+
         // Extraire les valeurs numériques
         $currentSpent = $this->extractNumericValue($currentData['total_spent'] ?? '0 MGA');
         $previousSpent = $this->extractNumericValue($previousData['total_spent'] ?? '0 MGA');
-        
+
         $currentOrders = (int) ($currentData['total_orders'] ?? 0);
         $previousOrders = (int) ($previousData['total_orders'] ?? 0);
-        
+
         // Calculer les variations en pourcentage
         $spentChange = $previousSpent > 0 ? (($currentSpent - $previousSpent) / $previousSpent) * 100 : 0;
         $ordersChange = $previousOrders > 0 ? (($currentOrders - $previousOrders) / $previousOrders) * 100 : 0;
-        
+
         return [
             'has_comparison' => true,
             'current_spent' => $currentSpent,
@@ -2055,32 +2057,35 @@ class ProfileController extends AbstractController
     private function generateFinancialInsights(array $financialData, array $monthly): array
     {
         $insights = [];
-        
+
         // Insight 1: Tendance de dépense
         if (count($monthly) >= 2) {
             $lastMonth = end($monthly);
             $previousMonth = prev($monthly);
-            
+
             if ($lastMonth && $previousMonth) {
                 $lastValue = $this->extractNumericValue($lastMonth['total'] ?? '0 MGA');
                 $prevValue = $this->extractNumericValue($previousMonth['total'] ?? '0 MGA');
-                
+
                 if ($prevValue > 0) {
                     $change = (($lastValue - $prevValue) / $prevValue) * 100;
-                    
+
                     if (abs($change) > 20) {
                         $insights[] = [
                             'type' => $change > 0 ? 'warning' : 'success',
                             'icon' => $change > 0 ? 'fas fa-arrow-up' : 'fas fa-arrow-down',
                             'title' => 'Tendance',
-                            'message' => sprintf('Vos dépenses ont %s de %.1f%% par rapport au mois précédent', 
-                                $change > 0 ? 'augmenté' : 'diminué', abs($change)),
+                            'message' => sprintf(
+                                'Vos dépenses ont %s de %.1f%% par rapport au mois précédent',
+                                $change > 0 ? 'augmenté' : 'diminué',
+                                abs($change)
+                            ),
                         ];
                     }
                 }
             }
         }
-        
+
         // Insight 3: Économies avec remboursements
         $totalRefunded = $this->extractNumericValue($financialData['total_refunded'] ?? '0 MGA');
         if ($totalRefunded > 0) {
@@ -2091,7 +2096,7 @@ class ProfileController extends AbstractController
                 'message' => sprintf('Vous avez reçu %s MGA en remboursements', number_format($totalRefunded, 0, ',', ' ')),
             ];
         }
-        
+
         // Insight 4: Panier moyen
         $totalOrders = (int) ($financialData['total_orders'] ?? 0);
         if ($totalOrders > 0) {
@@ -2100,11 +2105,14 @@ class ProfileController extends AbstractController
                 'type' => 'info',
                 'icon' => 'fas fa-shopping-cart',
                 'title' => 'Panier moyen',
-                'message' => sprintf('Votre panier moyen est de %s MGA sur %d commande(s)', 
-                    number_format($avgOrder, 0, ',', ' '), $totalOrders),
+                'message' => sprintf(
+                    'Votre panier moyen est de %s MGA sur %d commande(s)',
+                    number_format($avgOrder, 0, ',', ' '),
+                    $totalOrders
+                ),
             ];
         }
-        
+
         return $insights;
     }
 
@@ -2150,9 +2158,18 @@ class ProfileController extends AbstractController
     private function getMonthName(int $monthNumber): string
     {
         $months = [
-            1 => 'Janvier', 2 => 'Février', 3 => 'Mars', 4 => 'Avril',
-            5 => 'Mai', 6 => 'Juin', 7 => 'Juillet', 8 => 'Août',
-            9 => 'Septembre', 10 => 'Octobre', 11 => 'Novembre', 12 => 'Décembre'
+            1 => 'Janvier',
+            2 => 'Février',
+            3 => 'Mars',
+            4 => 'Avril',
+            5 => 'Mai',
+            6 => 'Juin',
+            7 => 'Juillet',
+            8 => 'Août',
+            9 => 'Septembre',
+            10 => 'Octobre',
+            11 => 'Novembre',
+            12 => 'Décembre'
         ];
         return $months[$monthNumber] ?? '';
     }

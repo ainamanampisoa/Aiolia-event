@@ -321,29 +321,30 @@
                         {% set monthlyData = {} %}
                         {% set monthlyRawData = {} %}
                         {% for item in monthly %}
-                            {% set monthNum = item.month_number|default(null) %}
-                            {% if monthNum %}
+                            {% set monthNum = item.month_number|default(0) + 0 %}
+                            {% if monthNum > 0 %}
                                 {% set monthlyData = monthlyData|merge({(monthNum): item.total}) %}
-                                {# Utiliser total_raw si disponible, sinon extraire de total #}
-                                {% set rawValue = item.total_raw|default(null) %}
-                                {% if rawValue is null %}
-                                    {% set valueStr = item.total|replace({' MGA': '', ' ': '', ',': ''})|trim %}
-                                    {% set rawValue = valueStr|number_format(0, '', '')|number_format(0, '', '') %}
+                                {# Utiliser total_raw (nombre) si disponible, sinon extraire de total (chaîne) #}
+                                {% set rVal = item.total_raw|default(0) %}
+                                {% if rVal == 0 and item.total is defined %}
+                                    {% set vStr = item.total|replace({' MGA': '', ' ': '', ',': ''})|trim %}
+                                    {% set rVal = vStr|default(0) %}
                                 {% endif %}
-                                {% set monthlyRawData = monthlyRawData|merge({(monthNum): rawValue}) %}
+                                {% set monthlyRawData = monthlyRawData|merge({(monthNum): rVal}) %}
                             {% endif %}
                         {% endfor %}
                         
                         {# Calculer le maximum parmi les données disponibles #}
                         {% set maxValue = 0 %}
-                        {% for monthNum, rawValue in monthlyRawData %}
-                            {% if rawValue > maxValue %}
-                                {% set maxValue = rawValue %}
+                        {% for mNum, rVal in monthlyRawData %}
+                            {% if rVal > maxValue %}
+                                {% set maxValue = rVal %}
                             {% endif %}
                         {% endfor %}
                         
-                        {# Si aucune donnée, maxValue reste à 0 #}
-                        {% if maxValue == 0 %}
+                        {# Si aucune donnée, maxValue reste à 1 pour éviter division par zéro #}
+                        {% set maxValue = maxValue|default(0) + 0 %}
+                        {% if maxValue <= 0 %}
                             {% set maxValue = 1 %}
                         {% endif %}
                         
@@ -361,25 +362,21 @@
                                 
                                 {# Calculer la valeur numérique correctement #}
                                 {% if hasData %}
-                                    {# Utiliser la valeur brute si disponible #}
-                                    {% set value = monthlyRawData[monthNum]|default(0) %}
-                                    {% if value == 0 %}
-                                        {# Fallback: extraire de monthData #}
-                                        {% set valueStr = monthData|replace({' MGA': '', ' ': '', ',': ''})|trim %}
-                                        {% set value = valueStr|number_format(0, '', '')|number_format(0, '', '') %}
-                                    {% endif %}
+                                    {% set valNum = monthlyRawData[monthNum]|default(0) + 0 %}
                                 {% else %}
-                                    {% set value = 0 %}
+                                    {% set valNum = 0 %}
                                 {% endif %}
                                 
+                                {% set maxNum = maxValue + 0 %}
+                                
                                 {# Calculer la hauteur proportionnelle #}
-                                {% if hasData and maxValue > 0 and value > 0 %}
-                                    {% set height = ((value / maxValue) * 200)|round %}
+                                {% if hasData and maxNum > 0 and valNum > 0 %}
+                                    {% set height = ((valNum / maxNum) * 200)|round %}
                                     {# S'assurer que la hauteur minimale est de 8px pour les barres avec données #}
                                     {% if height < 8 %}
                                         {% set height = 8 %}
                                     {% endif %}
-                                    {% set percentage = ((value / maxValue) * 100)|round(1) %}
+                                    {% set percentage = ((valNum / maxNum) * 100)|round(1) %}
                                 {% else %}
                                     {% set height = 8 %}
                                     {% set percentage = 0 %}
@@ -387,7 +384,7 @@
                                 
                                 {% set colorIndex = (loop.index0 % barColors|length) %}
                                 
-                                <div class="bar-item-modern {% if not hasData %}bar-empty{% endif %}" data-value="{{ value }}" data-has-data="{{ hasData ? '1' : '0' }}">
+                                <div class="bar-item-modern {% if not hasData %}bar-empty{% endif %}" data-value="{{ valNum }}" data-has-data="{{ hasData ? '1' : '0' }}">
                                     {% if hasData %}
                                     <div class="bar-value-display">
                                         <span class="bar-amount">{{ monthData }}</span>
