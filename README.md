@@ -1,2 +1,2 @@
 https://plan.tomsplanner.fr/#doc=oRykvZqyhkpfoJTOpVaq
-app:send-event-reminders
+php bin/console messenger:consume scheduler_default -vv

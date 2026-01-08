@@ -122,3 +122,5 @@ FROM aiolia.venues v
 JOIN aiolia.organizer_profiles op ON op.id = v.organizer_id
 JOIN aiolia.users u ON u.id = op.user_id
 WHERE u.email = 'fifalianavalea@gmail.com';
+
+PGPASSWORD=aiolia2025 psql -h localhost -U aiolia_user -d aiolia_event -c "SELECT id, status, payload->>'message' as msg FROM aiolia.notifications WHERE user_id = 2 ORDER BY created_at DESC LIMIT 1;"
