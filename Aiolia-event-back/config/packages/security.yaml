@@ -55,15 +55,19 @@ security:
         - { path: ^/api/auth/login$, roles: PUBLIC_ACCESS }
         - { path: ^/api/auth/refresh$, roles: PUBLIC_ACCESS }
         - { path: ^/api/auth/logout$, roles: IS_AUTHENTICATED_FULLY }
+        - { path: ^/api/mvola, roles: PUBLIC_ACCESS }
         
         # Routes de test MVola (accès public)
         - { path: ^/api/mvola/test/connection$, roles: PUBLIC_ACCESS }
         - { path: ^/api/mvola/test/env$, roles: PUBLIC_ACCESS }
-        - { path: ^/api/mvola/test/payment, roles: PUBLIC_ACCESS }
-        - { path: ^/api/mvola/test/status/, roles: PUBLIC_ACCESS }      # AJOUTÉ
-        - { path: ^/api/mvola/test/details/, roles: PUBLIC_ACCESS }     # AJOUTÉ
-        - { path: ^/api/mvola/test/full-flow, roles: PUBLIC_ACCESS }    # AJOUTÉ
-        - { path: ^/api/mvola/callback, roles: PUBLIC_ACCESS }
+        - { path: ^/api/mvola/test/payment$, roles: PUBLIC_ACCESS }
+        - { path: ^/api/mvola/test/status/, roles: PUBLIC_ACCESS }
+        - { path: ^/api/mvola/test/details/, roles: PUBLIC_ACCESS }
+        - { path: ^/api/mvola/test/full-flow$, roles: PUBLIC_ACCESS }
+        - { path: ^/api/mvola/test/debug-headers$, roles: PUBLIC_ACCESS }
+        - { path: ^/api/mvola/test/payment-with-retry$, roles: PUBLIC_ACCESS }
+        - { path: ^/api/mvola/test/verify-4002/, roles: PUBLIC_ACCESS }
+        - { path: ^/api/mvola/callback$, roles: PUBLIC_ACCESS }
         
         # Toutes les autres routes API nécessitent une authentification
         - { path: ^/api/, roles: IS_AUTHENTICATED_FULLY }
