@@ -1379,6 +1379,7 @@ class ProfileController extends AbstractController
                 'prize' => $result['prize'],
                 'entry_id' => $result['entry_id'],
                 'play_type' => $result['play_type'],
+                'promo_code' => $result['promo_code'] ?? null,
                 'message' => 'Félicitations ! Vous avez gagné : ' . $result['prize']['label'],
             ]);
 

@@ -317,14 +317,18 @@ class TicketChanceService
         // Sélectionner le prix
         $prize = $this->selectRandomPrize();
 
-        // Enregistrer l'entrée (compatible avec l'ancien et le nouveau schéma)
+        // Enregistrer l'entrée
         $entryId = $this->recordEntrySimple($userId, $prize);
+
+        // Appliquer le prix (générer le code promo, etc.)
+        $promoCode = $this->applyPrize($userId, $prize, $entryId);
 
         return [
             'success' => true,
             'prize' => $prize,
             'entry_id' => $entryId,
             'play_type' => 'free',
+            'promo_code' => $promoCode,
         ];
     }
 
@@ -433,7 +437,7 @@ class TicketChanceService
     /**
      * Applique le prix gagné (création de code promo, crédit, etc.).
      */
-    private function applyPrize(int $userId, array $prize, int $entryId): void
+    private function applyPrize(int $userId, array $prize, int $entryId): ?string
     {
         $validityDays = $prize['validity_days'] ?? 30;
         $expiresAt = (new \DateTime())->modify("+{$validityDays} days")->format('Y-m-d H:i:s');
@@ -442,40 +446,39 @@ class TicketChanceService
             case 'percent':
             case 'amount':
                 // Créer un code promo pour l'utilisateur
-                $this->createPromoCode($userId, $prize, $entryId, $expiresAt);
-                break;
+                return $this->createPromoCode($userId, $prize, $entryId, $expiresAt);
 
             case 'free_ticket':
                 // Créer un bon pour billet gratuit
-                $this->createFreeTicketVoucher($userId, $entryId, $expiresAt);
-                break;
+                return $this->createFreeTicketVoucher($userId, $entryId, $expiresAt);
 
             case 'upgrade':
                 // Créer un bon pour upgrade VIP
-                $this->createUpgradeVoucher($userId, $entryId, $expiresAt);
-                break;
+                return $this->createUpgradeVoucher($userId, $entryId, $expiresAt);
 
             case 'extra_play':
                 // Ajouter un tirage bonus immédiat
                 $this->addExtraPlay($userId, $entryId);
-                break;
+                return null;
         }
+
+        return null;
     }
 
     /**
      * Crée un code promo pour une réduction.
      */
-    private function createPromoCode(int $userId, array $prize, int $entryId, string $expiresAt): void
+    private function createPromoCode(int $userId, array $prize, int $entryId, string $expiresAt): string
     {
-        $code = 'TC' . strtoupper(substr(md5($entryId . $userId . time()), 0, 8));
+        $code = 'CHANCE-' . strtoupper(substr(md5($entryId . $userId . time()), 0, 6));
         $promotionType = $prize['type'] === 'percent' ? 'percent' : 'amount';
 
         $sql = <<<SQL
-            INSERT INTO aiolia.promo_codes 
+            INSERT INTO aiolia.promotion_codes 
             (code, promotion_type, value, max_usage_total, max_usage_per_user, 
-             valid_from, valid_until, is_active, created_at, ticket_chance_entry_id)
-            VALUES (:code, :promotion_type, :value, 1, 1, 
-                    NOW(), :expires_at, TRUE, NOW(), :entry_id)
+             starts_at, ends_at, created_at)
+            VALUES (:code, :promotion_type::aiolia.promotion_type_enum, :value, 1, 1, 
+                    NOW(), :expires_at, NOW())
         SQL;
 
         $this->connection->executeQuery($sql, [
@@ -483,7 +486,6 @@ class TicketChanceService
             'promotion_type' => $promotionType,
             'value' => $prize['value'],
             'expires_at' => $expiresAt,
-            'entry_id' => $entryId,
         ]);
 
         // Mettre à jour l'entrée avec le code promo
@@ -491,64 +493,66 @@ class TicketChanceService
             'UPDATE aiolia.ticket_chance_entries SET promo_code = :code WHERE id = :id',
             ['code' => $code, 'id' => $entryId]
         );
+
+        return $code;
     }
 
     /**
      * Crée un bon pour billet gratuit.
      */
-    private function createFreeTicketVoucher(int $userId, int $entryId, string $expiresAt): void
+    private function createFreeTicketVoucher(int $userId, int $entryId, string $expiresAt): string
     {
-        $code = 'TCFREE' . strtoupper(substr(md5($entryId . $userId . time()), 0, 6));
+        $code = 'CHANCE-FREE-' . strtoupper(substr(md5($entryId . $userId . time()), 0, 4));
 
         $sql = <<<SQL
-            INSERT INTO aiolia.promo_codes 
+            INSERT INTO aiolia.promotion_codes 
             (code, promotion_type, value, max_usage_total, max_usage_per_user, 
-             valid_from, valid_until, is_active, created_at, ticket_chance_entry_id, 
-             metadata)
-            VALUES (:code, 'amount', 999999, 1, 1, 
-                    NOW(), :expires_at, TRUE, NOW(), :entry_id,
+             starts_at, ends_at, created_at, metadata)
+            VALUES (:code, 'amount'::aiolia.promotion_type_enum, 999999, 1, 1, 
+                    NOW(), :expires_at, NOW(),
                     '{"type": "free_ticket", "max_ticket_price": 100000}'::jsonb)
         SQL;
 
         $this->connection->executeQuery($sql, [
             'code' => $code,
             'expires_at' => $expiresAt,
-            'entry_id' => $entryId,
         ]);
 
         $this->connection->executeQuery(
             'UPDATE aiolia.ticket_chance_entries SET promo_code = :code WHERE id = :id',
             ['code' => $code, 'id' => $entryId]
         );
+
+        return $code;
     }
 
     /**
      * Crée un bon pour upgrade VIP.
      */
-    private function createUpgradeVoucher(int $userId, int $entryId, string $expiresAt): void
+    private function createUpgradeVoucher(int $userId, int $entryId, string $expiresAt): string
     {
-        $code = 'TCVIP' . strtoupper(substr(md5($entryId . $userId . time()), 0, 6));
+        $code = 'CHANCE-VIP-' . strtoupper(substr(md5($entryId . $userId . time()), 0, 4));
 
         $sql = <<<SQL
-            INSERT INTO aiolia.promo_codes 
+            INSERT INTO aiolia.promotion_codes 
             (code, promotion_type, value, max_usage_total, max_usage_per_user, 
-             valid_from, valid_until, is_active, created_at, ticket_chance_entry_id,
-             metadata)
-            VALUES (:code, 'amount', 999999, 1, 1, 
-                    NOW(), :expires_at, TRUE, NOW(), :entry_id,
+             starts_at, ends_at, created_at, metadata)
+            VALUES (:code, 'amount'::aiolia.promotion_type_enum, 999999, 1, 1, 
+                    NOW(), :expires_at, NOW(),
                     '{"type": "upgrade_vip"}'::jsonb)
         SQL;
 
         $this->connection->executeQuery($sql, [
             'code' => $code,
             'expires_at' => $expiresAt,
-            'entry_id' => $entryId,
         ]);
 
         $this->connection->executeQuery(
             'UPDATE aiolia.ticket_chance_entries SET promo_code = :code WHERE id = :id',
             ['code' => $code, 'id' => $entryId]
         );
+
+        return $code;
     }
 
     /**

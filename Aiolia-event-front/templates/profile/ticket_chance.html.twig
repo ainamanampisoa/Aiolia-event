@@ -299,7 +299,7 @@
                         
                         // Afficher le résultat après l'animation
                         setTimeout(() => {
-                            showWinModal(wonPrize, data.play_type);
+                            showWinModal(wonPrize, data.play_type, data.promo_code);
                         }, 4200);
                         
                     } catch (error) {
@@ -312,17 +312,37 @@
             {% endif %}
             
             // Modal de victoire
-            function showWinModal(prize, playType) {
+            function showWinModal(prize, playType, promoCode) {
                 const modal = document.createElement('div');
                 modal.className = 'win-modal';
+                
+                let promoCodeHtml = '';
+                if (promoCode) {
+                    promoCodeHtml = `
+                        <div class="win-promo-wrapper">
+                            <p class="promo-label">Voici votre code unique :</p>
+                            <div class="promo-code-container">
+                                <span class="promo-code" id="winningCode">${promoCode}</span>
+                                <button class="btn-copy-code" onclick="copyToClipboard('${promoCode}', this)" title="Copier le code">
+                                    <i class="far fa-copy"></i>
+                                </button>
+                            </div>
+                        </div>
+                    `;
+                }
+
                 modal.innerHTML = `
                     <div class="win-modal-content">
+                        <div class="win-modal-confetti"></div>
                         <div class="win-icon" style="background: ${prize.color}">
                             <i class="fas ${prize.icon}"></i>
                         </div>
                         <h2>🎉 Félicitations !</h2>
                         <p class="win-prize">Vous avez gagné</p>
                         <div class="win-prize-name" style="color: ${prize.color}">${prize.label}</div>
+                        
+                        ${promoCodeHtml}
+
                         ${prize.type === 'extra_play' ? 
                             '<p class="win-info">Vous pouvez rejouer immédiatement !</p>' :
                             '<p class="win-info">Votre gain a été ajouté à votre compte.</p>'
@@ -337,6 +357,23 @@
                 // Animation d'entrée
                 setTimeout(() => modal.classList.add('show'), 10);
             }
+
+            // Fonction pour copier dans le presse-papier
+            window.copyToClipboard = function(text, btn) {
+                navigator.clipboard.writeText(text).then(() => {
+                    const icon = btn.querySelector('i');
+                    const originalClass = icon.className;
+                    icon.className = 'fas fa-check';
+                    btn.classList.add('copied');
+                    
+                    setTimeout(() => {
+                        icon.className = originalClass;
+                        btn.classList.remove('copied');
+                    }, 2000);
+                }).catch(err => {
+                    console.error('Erreur lors de la copie :', err);
+                });
+            };
             
             // Animation de la barre de progression
             const progressFill = document.querySelector('.progress-fill');
@@ -442,6 +479,112 @@
         .btn-close-modal:hover {
             transform: translateY(-2px);
             box-shadow: 0 10px 30px rgba(74, 144, 226, 0.4);
+        }
+
+        /* Styles pour le code promo */
+        .win-promo-wrapper {
+            background: #f8f9fa;
+            border-radius: 16px;
+            padding: 20px;
+            margin: 20px 0;
+            border: 1px dashed #dee2e6;
+            position: relative;
+        }
+
+        .promo-label {
+            font-size: 13px;
+            color: #6c757d;
+            margin-bottom: 8px;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+        }
+
+        .promo-code-container {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 12px;
+            background: white;
+            padding: 10px 15px;
+            border-radius: 12px;
+            box-shadow: 0 4px 12px rgba(0,0,0,0.05);
+            transition: transform 0.2s;
+        }
+
+        .promo-code-container:hover {
+            transform: scale(1.02);
+        }
+
+        .promo-code {
+            font-family: 'Monaco', 'Consolas', monospace;
+            font-size: 20px;
+            font-weight: 700;
+            color: #2d3436;
+            letter-spacing: 1px;
+        }
+
+        .btn-copy-code {
+            background: none;
+            border: none;
+            color: #4a90e2;
+            cursor: pointer;
+            padding: 8px;
+            border-radius: 8px;
+            transition: all 0.2s;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+
+        .btn-copy-code:hover {
+            background: rgba(74, 144, 226, 0.1);
+            color: #357abd;
+        }
+
+        .btn-copy-code.copied {
+            color: #27ae60;
+        }
+
+        /* Confetti Animation */
+        .win-modal-confetti {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            pointer-events: none;
+            z-index: -1;
+            overflow: hidden;
+            border-radius: 24px;
+        }
+
+        .win-modal.show .win-modal-confetti::before,
+        .win-modal.show .win-modal-confetti::after {
+            content: '';
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            width: 10px;
+            height: 10px;
+            border-radius: 50%;
+            box-shadow: 
+                -100px -100px #f2d74e, 100px -100px #95c3de, 
+                -150px 0px #ff4a91, 150px 0px #f2d74e,
+                -100px 100px #95c3de, 100px 100px #ff4a91,
+                0px -150px #ff4a91, 0px 150px #95c3de;
+            animation: confetti-burst 2s ease-out forwards;
+            opacity: 0;
+        }
+
+        @keyframes confetti-burst {
+            0% {
+                transform: translate(-50%, -50%) scale(0);
+                opacity: 1;
+            }
+            100% {
+                transform: translate(-50%, -50%) scale(4);
+                opacity: 0;
+            }
         }
     </style>
 {% endblock %}
