@@ -169,9 +169,9 @@ class OrderRepository
             SELECT unnest(enum_range(NULL::aiolia.order_status_enum))::text as status
             ORDER BY status
         SQL;
-        
+
         $enumStatuses = $this->connection->executeQuery($sqlEnum)->fetchAllAssociative();
-        
+
         // Récupérer le nombre de commandes par statut pour cet utilisateur
         $sqlCounts = <<<SQL
             SELECT o.status, COUNT(*) as count
@@ -179,9 +179,9 @@ class OrderRepository
             WHERE o.user_id = :user_id
             GROUP BY o.status
         SQL;
-        
+
         $counts = $this->connection->executeQuery($sqlCounts, ['user_id' => $userId])->fetchAllAssociative();
-        
+
         // Créer un tableau associatif pour les compteurs
         $countMap = [];
         foreach ($counts as $countRow) {
@@ -196,17 +196,17 @@ class OrderRepository
         ];
 
         $excludedStatuses = ['awaiting_payment', 'refunded'];
-        
+
         $availableStatuses = [];
         foreach ($enumStatuses as $enumRow) {
             $status = $enumRow['status'];
-            
+
             if (in_array($status, $excludedStatuses, true)) {
                 continue;
             }
-            
+
             $count = $countMap[$status] ?? 0;
-            
+
             $availableStatuses[] = [
                 'key' => $status,
                 'label' => $statusLabels[$status] ?? ucfirst($status),
@@ -231,16 +231,16 @@ class OrderRepository
             WHERE o.user_id = :user_id 
               AND o.status = 'paid'
         SQL;
-        
+
         $params = ['user_id' => $userId];
-        
+
         if ($dateFrom !== null) {
             $sql .= ' AND o.created_at >= :date_from';
             $params['date_from'] = $dateFrom->format('Y-m-d H:i:s');
         } else {
             $sql .= ' AND o.created_at >= NOW() - INTERVAL \'6 months\'';
         }
-        
+
         $sql .= <<<SQL
             GROUP BY TO_CHAR(o.created_at, 'Month YYYY'), TO_CHAR(o.created_at, 'YYYY-MM')
             ORDER BY month_key DESC
@@ -264,7 +264,7 @@ class OrderRepository
     public function findSpendingChartData(int $userId, int $months = 12): array
     {
         $startDate = (new \DateTimeImmutable())->modify("-{$months} months")->format('Y-m-01');
-        
+
         $sql = <<<SQL
             SELECT 
                 DATE_TRUNC('month', o.created_at) as month,
@@ -293,21 +293,31 @@ class OrderRepository
         $labels = [];
         $data = [];
         $monthNames = [
-            1 => 'Jan', 2 => 'Fév', 3 => 'Mar', 4 => 'Avr', 5 => 'Mai', 6 => 'Jun',
-            7 => 'Jul', 8 => 'Aoû', 9 => 'Sep', 10 => 'Oct', 11 => 'Nov', 12 => 'Déc'
+            1 => 'Jan',
+            2 => 'Fév',
+            3 => 'Mar',
+            4 => 'Avr',
+            5 => 'Mai',
+            6 => 'Jun',
+            7 => 'Jul',
+            8 => 'Aoû',
+            9 => 'Sep',
+            10 => 'Oct',
+            11 => 'Nov',
+            12 => 'Déc'
         ];
 
         $currentDate = new \DateTimeImmutable($startDate);
         $endDate = new \DateTimeImmutable();
-        
+
         while ($currentDate <= $endDate) {
             $monthKey = $currentDate->format('Y-m');
             $monthNum = (int) $currentDate->format('n');
             $year = $currentDate->format('Y');
-            
+
             $labels[] = $monthNames[$monthNum] . ' ' . $year;
             $data[] = $monthlyData[$monthKey] ?? 0;
-            
+
             $currentDate = $currentDate->modify('+1 month');
         }
 
@@ -324,7 +334,7 @@ class OrderRepository
     {
         $currentYear = (int) date('Y');
         $previousYear = $currentYear - 1;
-        
+
         $sql = <<<SQL
             SELECT 
                 TO_CHAR(o.created_at, 'MM') as month_num,
@@ -338,30 +348,48 @@ class OrderRepository
             GROUP BY TO_CHAR(o.created_at, 'MM'), TO_CHAR(o.created_at, 'Month'), EXTRACT(YEAR FROM o.created_at)
             ORDER BY month_num, year
         SQL;
-        
+
         $rows = $this->connection->executeQuery($sql, [
             'user_id' => $userId,
         ])->fetchAllAssociative();
-        
+
         // Organiser les données par mois
         $monthlyData = [];
         $monthNames = [
-            '01' => 'Janvier', '02' => 'Février', '03' => 'Mars', '04' => 'Avril',
-            '05' => 'Mai', '06' => 'Juin', '07' => 'Juillet', '08' => 'Août',
-            '09' => 'Septembre', '10' => 'Octobre', '11' => 'Novembre', '12' => 'Décembre'
+            '01' => 'Janvier',
+            '02' => 'Février',
+            '03' => 'Mars',
+            '04' => 'Avril',
+            '05' => 'Mai',
+            '06' => 'Juin',
+            '07' => 'Juillet',
+            '08' => 'Août',
+            '09' => 'Septembre',
+            '10' => 'Octobre',
+            '11' => 'Novembre',
+            '12' => 'Décembre'
         ];
-        
+
         $monthNamesShort = [
-            '01' => 'Jan', '02' => 'Fév', '03' => 'Mar', '04' => 'Avr',
-            '05' => 'Mai', '06' => 'Juin', '07' => 'Juil', '08' => 'Aoû',
-            '09' => 'Sep', '10' => 'Oct', '11' => 'Nov', '12' => 'Déc'
+            '01' => 'Jan',
+            '02' => 'Fév',
+            '03' => 'Mar',
+            '04' => 'Avr',
+            '05' => 'Mai',
+            '06' => 'Juin',
+            '07' => 'Juil',
+            '08' => 'Aoû',
+            '09' => 'Sep',
+            '10' => 'Oct',
+            '11' => 'Nov',
+            '12' => 'Déc'
         ];
-        
+
         foreach ($rows as $row) {
             $monthNum = $row['month_num'];
             $year = (int) $row['year'];
             $amount = (float) $row['total_amount'];
-            
+
             if (!isset($monthlyData[$monthNum])) {
                 $monthlyData[$monthNum] = [
                     'month' => trim($row['month_name']),
@@ -370,18 +398,18 @@ class OrderRepository
                     'previous_year' => 0,
                 ];
             }
-            
+
             if ($year === $currentYear) {
                 $monthlyData[$monthNum]['current_year'] = $amount;
             } elseif ($year === $previousYear) {
                 $monthlyData[$monthNum]['previous_year'] = $amount;
             }
         }
-        
+
         // Convertir en tableau indexé et formater
         $comparison = [];
         $maxValue = 0;
-        
+
         foreach ($monthlyData as $monthNum => $data) {
             if ($data['current_year'] > $maxValue) {
                 $maxValue = $data['current_year'];
@@ -389,7 +417,7 @@ class OrderRepository
             if ($data['previous_year'] > $maxValue) {
                 $maxValue = $data['previous_year'];
             }
-            
+
             $comparison[] = [
                 'month' => $data['month'],
                 'month_short' => $data['month_short'],
@@ -399,12 +427,12 @@ class OrderRepository
                 'previous_year_formatted' => number_format($data['previous_year'], 0, ',', ' ') . ' MGA',
                 'current_year_label' => (string) $currentYear,
                 'previous_year_label' => (string) $previousYear,
-                'growth' => $data['previous_year'] > 0 
+                'growth' => $data['previous_year'] > 0
                     ? round((($data['current_year'] - $data['previous_year']) / $data['previous_year']) * 100, 1)
                     : ($data['current_year'] > 0 ? 100 : 0),
             ];
         }
-        
+
         return [
             'data' => $comparison,
             'max_value' => $maxValue,
@@ -415,16 +443,15 @@ class OrderRepository
      * Récupère l'historique financier détaillé.
      */
     public function findFinancialHistory(
-        int $userId, 
-        int $year = null, 
-        int $month = 0, 
+        int $userId,
+        ?int $year = null,
+        int $month = 0,
         string $period = 'year',
         string $paymentMethodFilter = 'all',
         ?string $minAmount = null,
         ?string $maxAmount = null,
         string $categoryFilter = 'all'
-    ): array
-    {
+    ): array {
         if ($year === null) {
             $year = (int) date('Y');
         }
@@ -465,13 +492,15 @@ class OrderRepository
             $params['max_amount'] = (float) $maxAmount;
         }
 
-        // Filtre par catégorie d'événement (nécessite une jointure avec order_items et events)
+        // Filtre par catégorie d'événement (nécessite une jointure avec order_items, ticket_types, events et event_categories)
         if ($categoryFilter !== 'all') {
             $whereConditions[] = "EXISTS (
                 SELECT 1 FROM aiolia.order_items oi
-                INNER JOIN aiolia.events e ON oi.event_id = e.id
+                INNER JOIN aiolia.ticket_types tt ON tt.id = oi.ticket_type_id
+                INNER JOIN aiolia.events e ON e.id = tt.event_id
+                INNER JOIN aiolia.event_categories ec ON ec.id = e.primary_category_id
                 WHERE oi.order_id = o.id
-                AND e.category = :category
+                AND ec.slug = :category
             )";
             $params['category'] = $categoryFilter;
         }
@@ -519,7 +548,7 @@ class OrderRepository
         SQL;
 
         $refundRow = $this->connection->executeQuery($refundSql, $refundParams)->fetchAssociative();
-        
+
         // Si pas de commandes annulées, chercher via les tickets remboursés
         if ((float) ($refundRow['total_refunded'] ?? 0) == 0) {
             $ticketRefundSql = <<<SQL
@@ -531,7 +560,7 @@ class OrderRepository
                 WHERE t.owner_user_id = :user_id
                   AND t.status = 'refunded'
             SQL;
-            
+
             $ticketRefundRow = $this->connection->executeQuery($ticketRefundSql, ['user_id' => $userId])->fetchAssociative();
             if ((float) ($ticketRefundRow['total_refunded'] ?? 0) > 0) {
                 $refundRow = $ticketRefundRow;
@@ -556,7 +585,7 @@ class OrderRepository
         // Récupérer les dépenses de l'année précédente pour comparaison (seulement si période = année)
         $previousYearSpent = 0;
         $yearOverYearChange = 0;
-        
+
         if ($period === 'year') {
             $previousYearSql = <<<SQL
                 SELECT 
@@ -571,8 +600,8 @@ class OrderRepository
                 'previous_year' => $year - 1
             ])->fetchAssociative();
             $previousYearSpent = (float) ($previousRow['total_spent_previous'] ?? 0);
-            $yearOverYearChange = $previousYearSpent > 0 
-                ? (($totalSpent - $previousYearSpent) / $previousYearSpent) * 100 
+            $yearOverYearChange = $previousYearSpent > 0
+                ? (($totalSpent - $previousYearSpent) / $previousYearSpent) * 100
                 : ($totalSpent > 0 ? 100 : 0);
         }
 
@@ -592,7 +621,7 @@ class OrderRepository
     /**
      * Récupère les données financières mensuelles.
      */
-    public function findMonthlyFinancialData(int $userId, int $year = null, int $month = 0, string $period = 'year', string $monthlyRange = 'last_6'): array
+    public function findMonthlyFinancialData(int $userId, ?int $year = null, int $month = 0, string $period = 'year', string $monthlyRange = 'last_6'): array
     {
         if ($year === null) {
             $year = (int) date('Y');
@@ -618,7 +647,7 @@ class OrderRepository
         // Déterminer l'ordre et la limite selon monthlyRange
         $orderBy = 'month_key DESC';
         $limit = 12;
-        
+
         if ($monthlyRange === 'first_6' && $period === 'year') {
             // Pour les 6 premiers mois de l'année, on limite à janvier-juin
             $whereConditions[] = 'EXTRACT(MONTH FROM o.created_at) BETWEEN 1 AND 6';
@@ -626,7 +655,7 @@ class OrderRepository
             // Pour les 6 derniers mois de l'année, on limite à juillet-décembre
             $whereConditions[] = 'EXTRACT(MONTH FROM o.created_at) BETWEEN 7 AND 12';
         }
-        
+
         // Limiter à 6 mois si un filtre monthlyRange est appliqué
         if ($monthlyRange === 'first_6' || $monthlyRange === 'last_6') {
             $limit = 6;
@@ -653,11 +682,20 @@ class OrderRepository
         SQL;
 
         $rows = $this->connection->executeQuery($sql, $params)->fetchAllAssociative();
-        
+
         $monthNames = [
-            1 => 'Janvier', 2 => 'Février', 3 => 'Mars', 4 => 'Avril',
-            5 => 'Mai', 6 => 'Juin', 7 => 'Juillet', 8 => 'Août',
-            9 => 'Septembre', 10 => 'Octobre', 11 => 'Novembre', 12 => 'Décembre'
+            1 => 'Janvier',
+            2 => 'Février',
+            3 => 'Mars',
+            4 => 'Avril',
+            5 => 'Mai',
+            6 => 'Juin',
+            7 => 'Juillet',
+            8 => 'Août',
+            9 => 'Septembre',
+            10 => 'Octobre',
+            11 => 'Novembre',
+            12 => 'Décembre'
         ];
 
         return array_map(function (array $row) use ($monthNames): array {
@@ -682,30 +720,30 @@ class OrderRepository
     {
         // Vérifier que la commande appartient à l'utilisateur
         $order = $this->findOrderByIdAndUserId($orderId, $userId);
-        
+
         if (!$order) {
             return [
                 'success' => false,
                 'message' => 'Commande introuvable ou vous n\'avez pas la permission de la supprimer'
             ];
         }
-        
+
         try {
             // Démarrer une transaction
             $this->connection->beginTransaction();
-            
+
             // Supprimer l'historique des statuts de commande
             $this->connection->executeStatement(
                 'DELETE FROM aiolia.order_status_history WHERE order_id = :order_id',
                 ['order_id' => $orderId]
             );
-            
+
             // Supprimer les order_items liés (les tickets seront mis à NULL automatiquement grâce à ON DELETE SET NULL)
             $this->connection->executeStatement(
                 'DELETE FROM aiolia.order_items WHERE order_id = :order_id',
                 ['order_id' => $orderId]
             );
-            
+
             // Supprimer la commande
             $this->connection->executeStatement(
                 'DELETE FROM aiolia.orders WHERE id = :order_id AND user_id = :user_id',
@@ -714,10 +752,10 @@ class OrderRepository
                     'user_id' => $userId
                 ]
             );
-            
+
             // Valider la transaction
             $this->connection->commit();
-            
+
             return [
                 'success' => true,
                 'message' => 'Commande supprimée avec succès'
@@ -727,10 +765,10 @@ class OrderRepository
             if ($this->connection->isTransactionActive()) {
                 $this->connection->rollBack();
             }
-            
+
             // Retourner un message d'erreur détaillé
             $errorMessage = $e->getMessage();
-            
+
             // Messages d'erreur plus conviviaux
             if (strpos($errorMessage, 'foreign key') !== false) {
                 return [
@@ -738,7 +776,7 @@ class OrderRepository
                     'message' => 'Impossible de supprimer cette commande car elle est liée à d\'autres données (tickets, paiements, etc.)'
                 ];
             }
-            
+
             return [
                 'success' => false,
                 'message' => 'Erreur lors de la suppression : ' . $errorMessage
