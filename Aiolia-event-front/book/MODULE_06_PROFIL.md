@@ -300,7 +300,7 @@ private function fetchStatsInsights(int $userId, ?\DateTimeImmutable $dateFrom =
 | Cartes KPI | Total dépensé, billets, événements |
 | Graphique barres | Dépenses par mois |
 | Camembert | Répartition par catégorie |
-| Top 5 | Événements les plus achetés |
+| Top 3 | Événements les plus achetés |
 | Insights | Messages personnalisés |
 
 ---

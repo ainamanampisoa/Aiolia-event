@@ -128,7 +128,7 @@
 | **Statistiques globales** | `findUserStatistics()` | Total billets, dépenses, événements, commandes, panier moyen |
 | **Dépenses mensuelles** | `fetchMonthlyExpenses()` | Dépenses par mois avec graphique |
 | **Répartition par catégorie** | `findEventTypeDistribution()` | Distribution par type d'événement |
-| **Top événements** | `findTopPurchasedEvents()` | Top 5 événements achetés |
+| **Top événements** | `findTopPurchasedEvents()` | Top 3 événements achetés |
 | **Insights** | `fetchStatsInsights()` | Analyse intelligente du comportement |
 | **Comparaison annuelle** | `fetchYearComparison()` | Évolution année par année |
 
@@ -186,7 +186,7 @@
 | **Premier achat** | Date du premier achat | Date |
 | **Dernier achat** | Date du dernier achat | Date |
 
-*Limite : Top 5 (configurable jusqu'à 100)*
+*Limite : Top 3 (configurable jusqu'à 100)*
 
 *Source : `UserStatsRepository.php` lignes 178-231*
 

@@ -854,8 +854,8 @@ class ProfileController extends AbstractController
         // Récupérer la répartition par type d'événement avec filtre de période
         $eventTypeDistribution = $this->fetchEventTypeDistribution($userId, $dateFrom);
 
-        // Récupérer le Top 5 des événements achetés avec filtre de période
-        $topEvents = $this->fetchTopPurchasedEvents($userId, 5, $dateFrom);
+        // Récupérer le Top 3 des événements achetés avec filtre de période
+        $topEvents = $this->fetchTopPurchasedEvents($userId, 3, $dateFrom);
 
         // Récupérer les insights dynamiques
         $insights = $this->fetchStatsInsights($userId, $dateFrom);
