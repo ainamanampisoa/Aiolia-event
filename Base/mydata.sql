@@ -1682,7 +1682,9 @@ WITH evt AS (
         'theatre-contemporain-tana',
         'concert-cabaret-tana',
         'concert-electro-night-tana',
-        'concert-acoustic-tana'
+        'concert-acoustic-tana',
+        'festival-artisanat-majunga',
+        'festival-artisanat-morondava'
     )
 )
 INSERT INTO event_tag_links (event_id, tag_id)
@@ -1727,7 +1729,9 @@ WITH evt AS (
         'theatre-contemporain-tana',
         'concert-cabaret-tana',
         'concert-electro-night-tana',
-        'concert-acoustic-tana'
+        'concert-acoustic-tana',
+        'festival-artisanat-majunga',
+        'festival-artisanat-morondava'
     )
 )
 INSERT INTO event_media (
@@ -1828,7 +1832,9 @@ WITH evt AS (
         'theatre-contemporain-tana',
         'concert-cabaret-tana',
         'concert-electro-night-tana',
-        'concert-acoustic-tana'
+        'concert-acoustic-tana',
+        'festival-artisanat-majunga',
+        'festival-artisanat-morondava'
     )
 )
 INSERT INTO event_sessions (
@@ -1896,7 +1902,18 @@ WITH evt AS (
         'theatre-contemporain-tana',
         'concert-cabaret-tana',
         'concert-electro-night-tana',
-        'concert-acoustic-tana'
+        'concert-acoustic-tana',
+        'festival-artisanat-majunga',
+        'festival-artisanat-morondava',
+        'seminaire-entrepreneurs-antsirabe',
+        'conference-academique-fianarantsoa',
+        'conference-agriculture-ambositra',
+        'seminaire-education-ambalavao',
+        'seminaire-sante-manakara',
+        'seminaire-sante-toliara',
+        'festival-gastronomie-antsirabe',
+        'spectacle-danse-fort-dauphin',
+        'concert-jazz-ambatondrazaka'
     )
 )
 -- Types de billets variés pour démontrer toutes les fonctionnalités
@@ -2285,7 +2302,9 @@ WITH tt AS (
         'theatre-contemporain-tana',
         'concert-cabaret-tana',
         'concert-electro-night-tana',
-        'concert-acoustic-tana'
+        'concert-acoustic-tana',
+        'festival-artisanat-majunga',
+        'festival-artisanat-morondava'
     )
 )
 INSERT INTO ticket_inventory (
@@ -2348,7 +2367,9 @@ WITH tt AS (
         'theatre-contemporain-tana',
         'concert-cabaret-tana',
         'concert-electro-night-tana',
-        'concert-acoustic-tana'
+        'concert-acoustic-tana',
+        'festival-artisanat-majunga',
+        'festival-artisanat-morondava'
     )
 )
 INSERT INTO pricing_rules (
