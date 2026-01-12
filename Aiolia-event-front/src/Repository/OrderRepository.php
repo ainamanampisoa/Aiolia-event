@@ -642,43 +642,36 @@ class OrderRepository
         } else {
             // Pour 'all' ou mois = 0, on prend les 12 derniers mois
             $whereConditions[] = "o.created_at >= NOW() - INTERVAL '12 months'";
+            $year = null; // Désactiver le filtre d'année par défaut
         }
 
         // Déterminer l'ordre et la limite selon monthlyRange
-        $orderBy = 'month_key DESC';
+        $orderBy = 'month_key ASC';
         $limit = 12;
 
-        if ($monthlyRange === 'first_6' && $period === 'year') {
+        if ($period === 'year' && $monthlyRange === 'first_6') {
             // Pour les 6 premiers mois de l'année, on limite à janvier-juin
             $whereConditions[] = 'EXTRACT(MONTH FROM o.created_at) BETWEEN 1 AND 6';
-        } elseif ($monthlyRange === 'last_6' && $period === 'year') {
+            $limit = 6;
+        } elseif ($period === 'year' && $monthlyRange === 'last_6') {
             // Pour les 6 derniers mois de l'année, on limite à juillet-décembre
             $whereConditions[] = 'EXTRACT(MONTH FROM o.created_at) BETWEEN 7 AND 12';
-        }
-
-        // Limiter à 6 mois si un filtre monthlyRange est appliqué
-        if ($monthlyRange === 'first_6' || $monthlyRange === 'last_6') {
             $limit = 6;
-            if ($monthlyRange === 'first_6') {
-                $orderBy = 'month_key ASC';
-            } else {
-                $orderBy = 'month_key DESC';
-            }
         }
 
         $whereClause = implode(' AND ', $whereConditions);
 
-        // Ne pas limiter le nombre de résultats - on veut toutes les données disponibles
-        // Le template affichera tous les mois de la période même sans données
         $sql = <<<SQL
             SELECT 
                 EXTRACT(MONTH FROM o.created_at) as month_number,
+                EXTRACT(YEAR FROM o.created_at) as year_number,
                 TO_CHAR(o.created_at, 'YYYY-MM') as month_key,
                 SUM(o.total_amount) as total
             FROM aiolia.orders o
             WHERE {$whereClause}
-            GROUP BY EXTRACT(MONTH FROM o.created_at), TO_CHAR(o.created_at, 'YYYY-MM')
-            ORDER BY {$orderBy}
+            GROUP BY EXTRACT(MONTH FROM o.created_at), EXTRACT(YEAR FROM o.created_at), TO_CHAR(o.created_at, 'YYYY-MM')
+            ORDER BY month_key ASC
+            LIMIT {$limit}
         SQL;
 
         $rows = $this->connection->executeQuery($sql, $params)->fetchAllAssociative();
@@ -704,6 +697,7 @@ class OrderRepository
             return [
                 'month' => $monthNames[$monthNum] ?? 'Mois ' . $monthNum,
                 'month_number' => $monthNum,
+                'month_key' => $row['month_key'],
                 'total' => number_format($totalAmount, 0, ',', ' ') . ' MGA',
                 'total_raw' => $totalAmount, // Ajouter la valeur brute pour faciliter les calculs
             ];

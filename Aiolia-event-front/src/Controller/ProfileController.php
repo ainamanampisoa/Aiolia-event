@@ -1117,8 +1117,12 @@ class ProfileController extends AbstractController
         // Récupérer l'historique financier avec filtres
         $financialData = $this->orderRepository->findFinancialHistory($userId, $year, $month, $period, $paymentMethodFilter, $minAmount, $maxAmount, $categoryFilter);
 
-        // Récupérer les dépenses mensuelles avec filtres
+        // Récupérer les dépenses mensuelles avec filtres (pour d'autres usages si besoin)
         $monthly = $this->orderRepository->findMonthlyFinancialData($userId, $year, $month, $period, $monthlyRange);
+
+        // Récupérer les données pour le graphique : Toujours les 12 derniers mois (approche glissante)
+        // car l'utilisateur veut voir l'évolution même en début d'année
+        $monthlyRolling = $this->orderRepository->findMonthlyFinancialData($userId, null, 0, 'all', 'last_12');
 
         // Récupérer la répartition des méthodes de paiement avec filtres
         $paymentMethods = $this->userStatsRepository->findPaymentMethodDistribution($userId, $year, $month);
@@ -1135,6 +1139,7 @@ class ProfileController extends AbstractController
         return $this->render('profile/financial.html.twig', [
             'financialData' => $financialData,
             'monthly' => $monthly,
+            'monthlyRolling' => $monthlyRolling,
             'paymentMethods' => $paymentMethods,
             'currentYear' => $year,
             'currentMonth' => $month,

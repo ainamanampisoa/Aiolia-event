@@ -290,115 +290,67 @@
             <section class="financial-grid">
                 <div class="financial-chart wow fadeInUp" data-wow-delay="180ms">
                     <header>
-                        <h2>Répartition mensuelle</h2>
-                        <div class="monthly-filter">
-                            <span class="filter-label">Période :</span>
-                            <select name="monthly_range" id="monthly_range" onchange="updateMonthlyChart(this.value)" class="monthly-range-select">
-                                <option value="last_6" {{ monthlyRange|default('last_6') == 'last_6' ? 'selected' : '' }}>6 derniers mois</option>
-                                <option value="first_6" {{ monthlyRange|default('last_6') == 'first_6' ? 'selected' : '' }}>6 premiers mois</option>
-                            </select>
+                        <h2>Répartition mensuelle (12 derniers mois)</h2>
+                        <div class="chart-legend">
+                            <span class="legend-item"><i class="fas fa-circle" style="color: #4A90E2;"></i> Dépenses</span>
                         </div>
                     </header>
                     <div class="financial-bars">
-                        {% set monthlyRange = monthlyRange|default('last_6') %}
-                        {% set currentYear = currentYear|default("now"|date("Y")) %}
-                        {% set currentPeriod = currentPeriod|default('year') %}
+                        {% set monthlyRolling = monthlyRolling|default([]) %}
                         
-                        {# Générer tous les mois de la période selon le filtre #}
-                        {% if monthlyRange == 'first_6' %}
-                            {% set monthNumbers = [1, 2, 3, 4, 5, 6] %}
-                        {% else %}
-                            {% set monthNumbers = [7, 8, 9, 10, 11, 12] %}
-                        {% endif %}
-                        
-                        {% set monthNames = {
-                            1: 'Janvier', 2: 'Février', 3: 'Mars', 4: 'Avril',
-                            5: 'Mai', 6: 'Juin', 7: 'Juillet', 8: 'Août',
-                            9: 'Septembre', 10: 'Octobre', 11: 'Novembre', 12: 'Décembre'
-                        } %}
-                        
-                        {# Créer un tableau associatif des données existantes par numéro de mois #}
-                        {% set monthlyData = {} %}
-                        {% set monthlyRawData = {} %}
-                        {% for item in monthly %}
-                            {% set monthNum = item.month_number|default(0) + 0 %}
-                            {% if monthNum > 0 %}
-                                {% set monthlyData = monthlyData|merge({(monthNum): item.total}) %}
-                                {# Utiliser total_raw (nombre) si disponible, sinon extraire de total (chaîne) #}
-                                {% set rVal = item.total_raw|default(0) %}
-                                {% if rVal == 0 and item.total is defined %}
-                                    {% set vStr = item.total|replace({' MGA': '', ' ': '', ',': ''})|trim %}
-                                    {% set rVal = vStr|default(0) %}
-                                {% endif %}
-                                {% set monthlyRawData = monthlyRawData|merge({(monthNum): rVal}) %}
-                            {% endif %}
-                        {% endfor %}
-                        
-                        {# Calculer le maximum parmi les données disponibles #}
+                        {# Calculer le maximum parmi les données glissantes #}
                         {% set maxValue = 0 %}
-                        {% for mNum, rVal in monthlyRawData %}
+                        {% for item in monthlyRolling %}
+                            {% set rVal = item.total_raw|default(0) %}
                             {% if rVal > maxValue %}
                                 {% set maxValue = rVal %}
                             {% endif %}
                         {% endfor %}
                         
-                        {# Si aucune donnée, maxValue reste à 1 pour éviter division par zéro #}
-                        {% set maxValue = maxValue|default(0) + 0 %}
                         {% if maxValue <= 0 %}
                             {% set maxValue = 1 %}
                         {% endif %}
                         
-                        {# Couleurs pour chaque barre (flat design) #}
+                        {# Couleurs pour chaque barre (dégradé de bleu/indigo pour un look moderne) #}
                         {% set barColors = [
-                            '#4A90E2', '#50C878', '#FF6B6B', '#F1C40F', '#9B59B6', '#34495E'
+                            '#4A90E2', '#5B9DE7', '#6CA9EC', '#7DB6F1', '#8EC3F6', '#9FD0FB',
+                            '#3F78D3', '#3461C4', '#294AB5', '#1E33A6', '#131C97', '#080588'
                         ] %}
                         
-                        {# Afficher tous les mois de la période #}
-                        <div class="bars-container">
-                            {% for monthNum in monthNumbers %}
-                                {% set monthName = monthNames[monthNum] %}
-                                {% set monthData = monthlyData[monthNum]|default(null) %}
-                                {% set hasData = monthData is not null %}
-                                
-                                {# Calculer la valeur numérique correctement #}
-                                {% if hasData %}
-                                    {% set valNum = monthlyRawData[monthNum]|default(0) + 0 %}
-                                {% else %}
-                                    {% set valNum = 0 %}
-                                {% endif %}
-                                
-                                {% set maxNum = maxValue + 0 %}
-                                
-                                {# Calculer la hauteur proportionnelle #}
-                                {% if hasData and maxNum > 0 and valNum > 0 %}
-                                    {% set height = ((valNum / maxNum) * 200)|round %}
-                                    {# S'assurer que la hauteur minimale est de 8px pour les barres avec données #}
-                                    {% if height < 8 %}
+                        {# Afficher les 12 mois glissants #}
+                        <div class="bars-container sliding-mode">
+                            {% if monthlyRolling|length > 0 %}
+                                {% for item in monthlyRolling %}
+                                    {% set valNum = item.total_raw|default(0) + 0 %}
+                                    {% set height = ((valNum / maxValue) * 200)|round %}
+                                    {% if height < 8 and valNum > 0 %}
                                         {% set height = 8 %}
                                     {% endif %}
-                                    {% set percentage = ((valNum / maxNum) * 100)|round(1) %}
-                                {% else %}
-                                    {% set height = 8 %}
-                                    {% set percentage = 0 %}
-                                {% endif %}
-                                
-                                {% set colorIndex = (loop.index0 % barColors|length) %}
-                                
-                                <div class="bar-item-modern {% if not hasData %}bar-empty{% endif %}" data-value="{{ valNum }}" data-has-data="{{ hasData ? '1' : '0' }}">
-                                    {% if hasData %}
-                                    <div class="bar-value-display">
-                                        <span class="bar-amount">{{ monthData }}</span>
-                                    </div>
-                                    {% endif %}
-                                    <div class="bar-container">
-                                        <div class="bar-modern {% if not hasData %}bar-empty-bar{% endif %}" style="height: {{ height }}px; {% if hasData %}background-color: {{ barColors[colorIndex] }};{% endif %}" {% if hasData %}title="{{ monthData }} ({{ percentage }}%)"{% else %}title="Aucune donnée"{% endif %}>
+                                    
+                                    {% set percentage = ((valNum / maxValue) * 100)|round(1) %}
+                                    {% set colorIndex = (loop.index0 % barColors|length) %}
+                                    
+                                    <div class="bar-item-modern" data-value="{{ valNum }}">
+                                        {% if valNum > 0 %}
+                                        <div class="bar-value-display">
+                                            <span class="bar-amount">{{ item.total }}</span>
+                                        </div>
+                                        {% endif %}
+                                        <div class="bar-container">
+                                            <div class="bar-modern" style="height: {{ height }}px; background-color: {{ barColors[colorIndex] }};" title="{{ item.total }} ({{ percentage }}%)">
+                                            </div>
+                                        </div>
+                                        <div class="bar-label-double">
+                                            <span class="month-name">{{ item.month|slice(0, 3) }}.</span>
+                                            <span class="year-name">{{ item.month_key|slice(2, 2) }}</span>
                                         </div>
                                     </div>
-                                    <div class="bar-label {% if not hasData %}bar-label-empty{% endif %}" style="{% if hasData %}background-color: {{ barColors[colorIndex] }};{% endif %}">
-                                        {{ monthName }}
-                                    </div>
+                                {% endfor %}
+                            {% else %}
+                                <div class="no-data-message">
+                                    <p><i class="fas fa-info-circle"></i> Aucune donnée de dépense sur les 12 derniers mois.</p>
                                 </div>
-                            {% endfor %}
+                            {% endif %}
                         </div>
                     </div>
                 </div>
