@@ -489,7 +489,7 @@
 
 .event-category {
     background: var(--accent);
-    color: white;
+    color: var(--text-inverse);
     padding: 4px 12px;
     border-radius: 20px;
     font-size: 0.75rem;
@@ -550,8 +550,8 @@
     bottom: calc(100% + 8px);
     left: 50%;
     transform: translateX(-50%) translateY(4px);
-    background: rgba(0, 0, 0, 0.9);
-    color: white;
+    background: var(--gray-900);
+    color: var(--text-inverse);
     padding: 6px 12px;
     border-radius: 6px;
     font-size: 0.75rem;
@@ -560,7 +560,7 @@
     pointer-events: none;
     transition: all 0.3s ease;
     z-index: 1000;
-    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.2);
+    box-shadow: var(--shadow-md);
 }
 
 .event-action-btn[data-tooltip]::before {
@@ -570,7 +570,7 @@
     left: 50%;
     transform: translateX(-50%) translateY(4px);
     border: 6px solid transparent;
-    border-top-color: rgba(0, 0, 0, 0.9);
+    border-top-color: var(--gray-900);
     opacity: 0;
     pointer-events: none;
     transition: all 0.3s ease;
@@ -588,8 +588,17 @@
 }
 
 .event-action-danger:hover {
-    color: #fff;
+    color: var(--text-inverse);
     background: var(--danger);
+}
+
+.event-action-publish {
+    color: var(--success);
+}
+
+.event-action-publish:hover {
+    color: var(--text-inverse);
+    background: var(--success);
 }
 
 .dropdown-menu a,
@@ -657,20 +666,22 @@
 .btn-quick-view {
     width: 48px;
     height: 48px;
-    background: rgba(255, 255, 255, 0.9);
+    background: var(--bg-card);
     border: none;
     border-radius: 50%;
     display: flex;
     align-items: center;
     justify-content: center;
-    color: var(--dark);
+    color: var(--text-primary);
     cursor: pointer;
     transition: var(--transition);
+    opacity: 0.9;
 }
 
 .btn-quick-view:hover {
-    background: white;
+    background: var(--bg-card);
     transform: scale(1.1);
+    opacity: 1;
 }
 
 /* Corps de la carte */
@@ -947,7 +958,7 @@
 
 .btn-primary {
     background: var(--accent);
-    color: white;
+    color: var(--text-inverse);
 }
 
 .btn-primary:hover {
@@ -1021,15 +1032,15 @@
 .empty-state {
     text-align: center;
     padding: 80px 40px;
-    background: white;
+    background: var(--bg-card);
     border-radius: var(--border-radius);
-    box-shadow: var(--shadow);
+    box-shadow: var(--shadow-md);
 }
 
 .empty-state-icon {
     width: 80px;
     height: 80px;
-    background: var(--light);
+    background: var(--gray-100);
     border-radius: 50%;
     display: flex;
     align-items: center;
@@ -1039,17 +1050,17 @@
 
 .empty-state-icon i {
     font-size: 2rem;
-    color: var(--primary);
+    color: var(--accent);
 }
 
 .empty-state h3 {
     font-size: 1.5rem;
-    color: var(--dark);
+    color: var(--text-primary);
     margin-bottom: 12px;
 }
 
 .empty-state p {
-    color: var(--gray);
+    color: var(--text-secondary);
     margin-bottom: 24px;
     max-width: 400px;
     margin-left: auto;
@@ -1075,7 +1086,7 @@
 }
 
 .modal-content {
-    background: white;
+    background: var(--bg-card);
     border-radius: var(--border-radius);
     width: 90%;
     max-width: 500px;
@@ -1103,7 +1114,7 @@
 
 .modal-header h3 {
     margin: 0;
-    color: var(--dark);
+    color: var(--text-primary);
 }
 
 .modal-close {
@@ -1111,7 +1122,7 @@
     border: none;
     font-size: 1.5rem;
     cursor: pointer;
-    color: var(--gray);
+    color: var(--text-secondary);
 }
 
 .modal-body {
@@ -1127,9 +1138,9 @@
 
 .share-option {
     padding: 16px;
-    border: 1px solid var(--gray-light);
+    border: 1px solid var(--border-color);
     border-radius: 8px;
-    background: white;
+    background: var(--bg-card);
     cursor: pointer;
     transition: var(--transition);
     display: flex;
@@ -1179,8 +1190,8 @@
 
 .btn-copy {
     padding: 12px 20px;
-    background: var(--primary);
-    color: white;
+    background: var(--accent);
+    color: var(--text-inverse);
     border: none;
     border-radius: 8px;
     cursor: pointer;
@@ -1188,7 +1199,7 @@
 }
 
 .btn-copy:hover {
-    background: var(--primary-dark);
+    background: var(--accent-dark);
 }
 
 /* Responsive */
@@ -1332,9 +1343,9 @@
 }
 
 .modal-content {
-    background: var(--white);
+    background: var(--bg-card);
     border-radius: var(--border-radius-lg);
-    box-shadow: 0 14px 32px rgba(0, 0, 0, 0.2);
+    box-shadow: var(--shadow-xl);
     max-width: 460px;
     width: 100%;
     overflow: hidden;
@@ -1342,7 +1353,7 @@
 
 .modal-header {
     padding: 16px 20px;
-    border-bottom: 1px solid var(--gray-200);
+    border-bottom: 1px solid var(--border-color);
     display: flex;
     align-items: center;
     justify-content: space-between;
@@ -1354,7 +1365,7 @@
     align-items: center;
     gap: 10px;
     font-weight: var(--font-weight-bold);
-    color: var(--gray-900);
+    color: var(--text-primary);
     font-size: 1rem;
 }
 
@@ -1367,12 +1378,12 @@
     border: none;
     font-size: 1.4rem;
     cursor: pointer;
-    color: var(--gray-600);
+    color: var(--text-secondary);
 }
 
 .modal-body {
     padding: 18px 20px 6px;
-    color: var(--gray-800);
+    color: var(--text-primary);
     line-height: 1.5;
 }
 
@@ -1387,7 +1398,7 @@
     display: flex;
     gap: 12px;
     justify-content: flex-end;
-    border-top: 1px solid var(--gray-200);
+    border-top: 1px solid var(--border-color);
 }
 
 .btn-filter {
@@ -1408,20 +1419,20 @@
 }
 
 .btn-filter-primary {
-    background: linear-gradient(135deg, #e74c3c, #c0392b);
-    color: white;
-    box-shadow: 0 2px 8px rgba(231, 76, 60, 0.25);
+    background: var(--danger);
+    color: var(--text-inverse);
+    box-shadow: var(--shadow-sm);
 }
 
 .btn-filter-primary:hover {
-    background: linear-gradient(135deg, #c0392b, #a93226);
-    box-shadow: 0 4px 12px rgba(231, 76, 60, 0.35);
+    background: var(--danger-light);
+    box-shadow: var(--shadow-md);
 }
 
 .btn-filter-secondary {
     background: var(--gray-100);
-    color: var(--gray-800);
-    border: 1px solid var(--gray-300);
+    color: var(--text-primary);
+    border: 1px solid var(--border-color);
 }
 
 .btn-filter-secondary:hover {
@@ -1667,6 +1678,25 @@
                                     </a>
                                 {% endif %}
                                 {% if event.statut == 'draft' %}
+                                    {# Bouton Publier pour les événements en brouillon #}
+                                    <form
+                                        method="POST"
+                                        action="{{ path('organisateur_events_publish', {'id': event.id}) }}"
+                                        style="display: inline;"
+                                        class="event-publish-form"
+                                    >
+                                        <input type="hidden" name="_token" value="{{ csrf_token('publish_event_' ~ event.id) }}">
+                                        <button
+                                            type="submit"
+                                            class="event-action-btn event-action-publish"
+                                            data-tooltip="Publier l'événement"
+                                            title="Publier l'événement"
+                                            aria-label="Publier l'événement"
+                                        >
+                                            <i class="fas fa-rocket"></i>
+                                        </button>
+                                    </form>
+                                    {# Bouton Supprimer pour les événements en brouillon #}
                                     <form
                                         method="POST"
                                         action="{{ path('organisateur_events_delete', {'id': event.id}) }}"

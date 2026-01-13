@@ -83,7 +83,7 @@
                                 {% if event.lieu %}
                                     {{ event.lieu.nom }}
                                     {% if event.lieu.ville %}
-                                        <br><small style="color: var(--gray-600);">{{ event.lieu.ville }}, {{ event.lieu.codePays }}</small>
+                                        <br><small style="color: var(--text-secondary);">{{ event.lieu.ville }}, {{ event.lieu.codePays }}</small>
                                     {% endif %}
                                 {% elseif event.nomLieuTexte %}
                                     {{ event.nomLieuTexte }}
@@ -192,29 +192,29 @@
                     {% endif %}
 
                     {% if not primaryOrganizer and (coOrganizers is not defined or coOrganizers|length == 0) %}
-                        <p style="font-size: 0.85rem; color: var(--gray-600);">
+                        <p style="font-size: 0.85rem; color: var(--text-secondary);">
                             Aucun profil organisateur n'est encore associé à cet événement.
                         </p>
                     {% endif %}
                 </div>
-                <button class="btn-add-collaborator" style="width: 100%; padding: 10px; background: rgba(52, 152, 219, 0.1); color: #3498DB !important; border: none; border-radius: 8px; cursor: pointer; font-weight: 600; margin-top: 12px;">
+                <button class="btn-add-collaborator" style="width: 100%; padding: 10px; background: var(--gray-100); color: var(--accent) !important; border: 1px solid var(--border-color); border-radius: 8px; cursor: pointer; font-weight: 600; margin-top: 12px;">
                     <i class="fas fa-user-plus"></i> Ajouter un collaborateur
                 </button>
             </div>
 
             <!-- Publier l'événement (si brouillon) -->
             {% if event.statut == 'draft' %}
-                <div class="info-card" style="background: linear-gradient(135deg, rgba(46, 204, 113, 0.1), rgba(46, 204, 113, 0.05)); border: 2px solid rgba(46, 204, 113, 0.3);">
-                    <div class="info-card-title" style="color: #2ECC71;">
+                <div class="info-card" style="background: var(--gray-100); border: 2px solid var(--border-color);">
+                    <div class="info-card-title" style="color: var(--success);">
                         <i class="fas fa-rocket"></i>
                         Publier l'événement
                     </div>
-                    <p style="font-size: 0.85rem; color: var(--gray-600); margin-bottom: 16px;">
+                    <p style="font-size: 0.85rem; color: var(--text-secondary); margin-bottom: 16px;">
                         Votre événement est actuellement en brouillon. Publiez-le pour le rendre visible au public.
                     </p>
                     <form method="POST" action="{{ path('organisateur_events_publish', {'id': event.id}) }}" style="margin: 0;">
                         <input type="hidden" name="_token" value="{{ csrf_token('publish_event_' ~ event.id) }}">
-                        <button type="submit" class="action-btn" style="width: 100%; background: #2ECC71; color: white; border: none; padding: 12px; border-radius: 8px; font-weight: 600; cursor: pointer; transition: all 0.3s ease;">
+                        <button type="submit" class="action-btn" style="width: 100%; background: var(--success); color: var(--text-inverse); border: none; padding: 12px; border-radius: 8px; font-weight: 600; cursor: pointer; transition: all 0.3s ease;">
                             <i class="fas fa-check-circle"></i>
                             <span>Publier maintenant</span>
                         </button>
