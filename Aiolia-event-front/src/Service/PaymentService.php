@@ -546,8 +546,9 @@ class PaymentService
         }
 
         try {
-            // Générer une référence unique pour la transaction
-            $transactionReference = 'ORDER-' . $orderId . '-' . time();
+            // Générer une référence de base pour la transaction
+            // La fonction initiateTransactionWithRetry générera des références uniques à chaque retry
+            $baseTransactionReference = 'ORDER-' . $orderId;
 
             // Récupérer le numéro de téléphone du client
             $customerMsisdn = trim($paymentData['payment_phone'] ?? '');
@@ -566,12 +567,13 @@ class PaymentService
                 ];
             }
 
-            // Initier la transaction MVola
-            $result = $this->mvolaClient->initiateTransaction(
+            // Initier la transaction MVola avec retry automatique pour gérer l'erreur 4002
+            $result = $this->mvolaClient->initiateTransactionWithRetry(
                 $amount,
                 $customerMsisdn,
-                $transactionReference,
-                'Paiement de billets - Commande #' . $orderId
+                $baseTransactionReference,
+                'Paiement de billets - Commande #' . $orderId,
+                3 // maxRetries = 3 tentatives
             );
 
             if (!$result['success']) {
@@ -583,12 +585,15 @@ class PaymentService
 
             // Sauvegarder la transaction dans la base de données
             $serverCorrelationId = $result['serverCorrelationId'] ?? null;
+            // Utiliser la référence retournée (qui peut être différente après un retry)
+            $finalTransactionReference = $result['transactionReference'] ?? $baseTransactionReference;
+            
             if ($serverCorrelationId) {
                 $this->connection->insert('aiolia.payment_transactions', [
                     'order_id' => $orderId,
                     'mvola_correlation_id' => $serverCorrelationId,
                     'mvola_transaction_id' => $result['raw_response']['transactionReference'] ?? null,
-                    'transaction_reference' => $transactionReference,
+                    'transaction_reference' => $finalTransactionReference,
                     'status' => 'initiated', // Valeurs valides: 'initiated', 'processing', 'paid', 'failed', 'refunded'
                     'amount' => $amount,
                     'currency' => 'MGA',
