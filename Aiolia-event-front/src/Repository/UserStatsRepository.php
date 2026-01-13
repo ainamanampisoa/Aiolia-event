@@ -143,7 +143,7 @@ class UserStatsRepository
             JOIN aiolia.events e ON e.id = tt.event_id
             LEFT JOIN aiolia.event_categories ec ON ec.id = e.primary_category_id
             WHERE o.user_id = :user_id 
-              AND o.status = 'paid'
+              AND (o.status = 'paid' OR o.status = 'pending')
         SQL;
         
         $params = ['user_id' => $userId];
@@ -196,7 +196,7 @@ class UserStatsRepository
             JOIN aiolia.events e ON e.id = tt.event_id
             LEFT JOIN aiolia.event_categories ec ON ec.id = e.primary_category_id
             WHERE o.user_id = :user_id 
-              AND o.status = 'paid'
+              AND (o.status = 'paid' OR o.status = 'pending')
         SQL;
         
         $params = ['user_id' => $userId];
@@ -242,7 +242,7 @@ class UserStatsRepository
                 SUM(o.total_amount) as total_amount
             FROM aiolia.orders o
             WHERE o.user_id = :user_id 
-              AND o.status = 'paid'
+              AND (o.status = 'paid' OR o.status = 'pending')
         SQL;
         
         $params = ['user_id' => $userId];

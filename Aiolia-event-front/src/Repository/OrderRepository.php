@@ -229,7 +229,7 @@ class OrderRepository
                 SUM(o.total_amount) as total
             FROM aiolia.orders o
             WHERE o.user_id = :user_id 
-              AND o.status = 'paid'
+              AND (o.status = 'paid' OR o.status = 'pending')
         SQL;
 
         $params = ['user_id' => $userId];
@@ -237,14 +237,23 @@ class OrderRepository
         if ($dateFrom !== null) {
             $sql .= ' AND o.created_at >= :date_from';
             $params['date_from'] = $dateFrom->format('Y-m-d H:i:s');
+        }
+        // Si dateFrom est null (période = 'all'), on récupère toutes les données sans limite de temps
+
+        // Déterminer la limite selon la période
+        $limit = 12; // Par défaut, 12 mois pour l'affichage
+        if ($dateFrom === null) {
+            // Pour "Toutes périodes", on peut afficher plus de mois (par exemple 24)
+            $limit = 24;
         } else {
-            $sql .= ' AND o.created_at >= NOW() - INTERVAL \'6 months\'';
+            // Pour les périodes spécifiques (30, 90, 365 jours), limiter à 12 mois max
+            $limit = 12;
         }
 
         $sql .= <<<SQL
             GROUP BY TO_CHAR(o.created_at, 'Month YYYY'), TO_CHAR(o.created_at, 'YYYY-MM')
             ORDER BY month_key DESC
-            LIMIT 6
+            LIMIT {$limit}
         SQL;
 
         $rows = $this->connection->executeQuery($sql, $params)->fetchAllAssociative();
