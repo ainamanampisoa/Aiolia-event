@@ -1684,35 +1684,40 @@ function updateSalesDatesFromEventDates() {
     const eventEndDate = document.querySelector('input[name="date_end_date"]').value;
     const eventEndTime = document.querySelector('input[name="date_end_time"]').value;
     
-    // Si la date de début de l'événement est définie, on la copie dans la date de début des ventes
-    if (eventStartDate && eventStartTime) {
-        const salesStartDateInput = document.getElementById('ticketSalesStartDate');
-        const salesStartTimeInput = document.getElementById('ticketSalesStartTime');
+    const salesStartDateInput = document.querySelector('input[name="ticket_sales_start_date"]');
+    const salesStartTimeInput = document.querySelector('input[name="ticket_sales_start_time"]');
+    const salesEndDateInput = document.querySelector('input[name="ticket_sales_end_date"]');
+    const salesEndTimeInput = document.querySelector('input[name="ticket_sales_end_time"]');
+    
+    // Début des ventes = date de début de l'événement
+    if (eventStartDate && eventStartTime && salesStartDateInput && salesStartTimeInput) {
+        salesStartDateInput.value = eventStartDate;
+        salesStartTimeInput.value = eventStartTime;
         
-        if (salesStartDateInput && !salesStartDateInput.value) {
-            salesStartDateInput.value = eventStartDate;
+        // Déclencher flatpickr si disponible
+        if (salesStartDateInput._flatpickr) {
+            salesStartDateInput._flatpickr.setDate(eventStartDate, false, 'd/m/Y');
         }
-        if (salesStartTimeInput && !salesStartTimeInput.value) {
-            salesStartTimeInput.value = eventStartTime;
+        if (salesStartTimeInput._flatpickr) {
+            salesStartTimeInput._flatpickr.setDate(eventStartTime, false, 'H:i');
         }
         
-        // Mettre à jour le champ hidden
         updateHiddenField('ticket_sales_start_date', 'ticket_sales_start_time', 'ticket_sales_start');
     }
     
-    // Si la date de fin de l'événement est définie, on la copie dans la date de fin des ventes
-    if (eventEndDate && eventEndTime) {
-        const salesEndDateInput = document.getElementById('ticketSalesEndDate');
-        const salesEndTimeInput = document.getElementById('ticketSalesEndTime');
+    // Fin des ventes = date de fin de l'événement
+    if (eventEndDate && eventEndTime && salesEndDateInput && salesEndTimeInput) {
+        salesEndDateInput.value = eventEndDate;
+        salesEndTimeInput.value = eventEndTime;
         
-        if (salesEndDateInput && !salesEndDateInput.value) {
-            salesEndDateInput.value = eventEndDate;
+        // Déclencher flatpickr si disponible
+        if (salesEndDateInput._flatpickr) {
+            salesEndDateInput._flatpickr.setDate(eventEndDate, false, 'd/m/Y');
         }
-        if (salesEndTimeInput && !salesEndTimeInput.value) {
-            salesEndTimeInput.value = eventEndTime;
+        if (salesEndTimeInput._flatpickr) {
+            salesEndTimeInput._flatpickr.setDate(eventEndTime, false, 'H:i');
         }
         
-        // Mettre à jour le champ hidden
         updateHiddenField('ticket_sales_end_date', 'ticket_sales_end_time', 'ticket_sales_end');
     }
 }

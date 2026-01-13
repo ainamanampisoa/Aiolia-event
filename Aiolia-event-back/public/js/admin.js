@@ -22,6 +22,8 @@ class SidebarManager {
             return;
         }
         
+        // Afficher les labels normalement avec les icônes
+        
         // Restaurer l'état sauvegardé
         if (this.isCollapsed) {
             this.collapse();
@@ -41,6 +43,7 @@ class SidebarManager {
         
         console.log('✅ Sidebar Manager initialisé');
     }
+    
     
     toggle() {
         if (this.isCollapsed) {

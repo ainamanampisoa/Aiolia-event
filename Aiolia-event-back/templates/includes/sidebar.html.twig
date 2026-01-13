@@ -83,16 +83,116 @@
 </aside>
 
 <style>
-    /* Force la largeur de la sidebar */
+    /* Scroll vertical indépendant pour la sidebar */
     #adminSidebar.admin-sidebar {
-        width: 300px !important;
-        min-width: 300px !important;
-        max-width: 300px !important;
+        width: 350px !important;
+        min-width: 350px !important;
+        max-width: 350px !important;
+        display: flex !important;
+        flex-direction: column !important;
+        height: calc(100vh - var(--header-height)) !important;
+        max-height: calc(100vh - var(--header-height)) !important;
+        overflow: hidden !important;
+        position: fixed !important;
+        top: var(--header-height) !important;
+        border-top: none !important;
+        margin-top: 0 !important;
+        z-index: var(--z-sticky) !important;
     }
     
     /* Ajuste le contenu principal */
     .admin-main {
-        margin-left: 300px !important;
-        width: calc(100% - 300px) !important;
+        margin-left: 350px !important;
+        width: calc(100% - 350px) !important;
+        margin-top: var(--header-height) !important;
+    }
+    
+    #adminSidebar .sidebar-header {
+        flex-shrink: 0 !important;
+        flex-grow: 0 !important;
+        height: auto !important;
+        min-height: 100px !important;
+    }
+    
+    #adminSidebar .sidebar-nav {
+        flex: 1 1 auto !important;
+        overflow-y: auto !important;
+        overflow-x: hidden !important;
+        min-height: 0 !important;
+        -webkit-overflow-scrolling: touch !important;
+        position: relative !important;
+        padding: 2rem 0 !important;
+    }
+    
+    #adminSidebar .nav-menu {
+        min-height: 100% !important;
+    }
+    
+    /* Scrollbar visible et stylisée */
+    #adminSidebar .sidebar-nav::-webkit-scrollbar {
+        width: 10px !important;
+        display: block !important;
+    }
+    
+    #adminSidebar .sidebar-nav::-webkit-scrollbar-track {
+        background: rgba(255,255,255,0.03) !important;
+        border-radius: 8px !important;
+        margin: 8px 0 !important;
+    }
+    
+    #adminSidebar .sidebar-nav::-webkit-scrollbar-thumb {
+        background: linear-gradient(180deg, rgba(255,255,255,0.25), rgba(255,255,255,0.15)) !important;
+        border-radius: 8px !important;
+        border: 2px solid rgba(255,255,255,0.1) !important;
+        box-shadow: inset 0 1px 2px rgba(0,0,0,0.1) !important;
+    }
+    
+    #adminSidebar .sidebar-nav::-webkit-scrollbar-thumb:hover {
+        background: linear-gradient(180deg, rgba(255,255,255,0.35), rgba(255,255,255,0.25)) !important;
+        border-color: rgba(255,255,255,0.2) !important;
+    }
+    
+    /* Firefox */
+    #adminSidebar .sidebar-nav {
+        scrollbar-width: thin !important;
+        scrollbar-color: rgba(255,255,255,0.25) rgba(255,255,255,0.03) !important;
     }
 </style>
+
+<script>
+    // Ajuste dynamiquement la hauteur de la sidebar-nav
+    document.addEventListener('DOMContentLoaded', function() {
+        const sidebar = document.getElementById('adminSidebar');
+        const sidebarNav = sidebar?.querySelector('.sidebar-nav');
+        const sidebarHeader = sidebar?.querySelector('.sidebar-header');
+        
+        function adjustSidebarHeight() {
+            if (sidebar && sidebarNav && sidebarHeader) {
+                // La sidebar utilise flexbox, donc on s'assure juste que les hauteurs sont correctes
+                // Le flex: 1 1 auto sur sidebar-nav devrait automatiquement prendre l'espace restant
+                const headerHeight = parseInt(getComputedStyle(document.documentElement).getPropertyValue('--header-height')) || 145;
+                const sidebarHeight = window.innerHeight - headerHeight;
+                
+                // S'assurer que la sidebar a la bonne hauteur
+                sidebar.style.height = sidebarHeight + 'px';
+                sidebar.style.maxHeight = sidebarHeight + 'px';
+                
+                // La sidebar-nav avec flex: 1 1 auto prendra automatiquement l'espace restant
+                // On retire toute hauteur fixe pour laisser flexbox gérer
+                sidebarNav.style.maxHeight = 'none';
+                sidebarNav.style.height = 'auto';
+                sidebarNav.style.overflowY = 'auto';
+                sidebarNav.style.overflowX = 'hidden';
+            }
+        }
+        
+        // Ajuster au chargement
+        adjustSidebarHeight();
+        
+        // Recalculer lors du redimensionnement
+        window.addEventListener('resize', adjustSidebarHeight);
+        
+        // Ajuster après un court délai pour s'assurer que tout est chargé
+        setTimeout(adjustSidebarHeight, 100);
+    });
+</script>
