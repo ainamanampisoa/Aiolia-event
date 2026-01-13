@@ -18,7 +18,7 @@
             </p>
         </div>
         <div class="header-actions">
-            <a href="{{ path('organisateur_promotions_index') }}" class="btn" style="background: white; color: var(--gray-700); border: 2px solid var(--gray-300); padding: 12px 20px; border-radius: 8px; text-decoration: none; font-weight: 600; display: inline-flex; align-items: center; gap: 8px;">
+            <a href="{{ path('organisateur_promotions_index') }}" class="btn" style="background: var(--bg-card); color: var(--text-secondary); border: 2px solid var(--border-color); padding: 12px 20px; border-radius: 8px; text-decoration: none; font-weight: 600; display: inline-flex; align-items: center; gap: 8px;">
                 <i class="fas fa-arrow-left"></i> Retour
             </a>
         </div>
@@ -76,7 +76,7 @@
                 <label class="discount-card">
                     <input type="radio" name="discount_type" value="percentage" checked>
                     <div class="discount-card-content">
-                        <div class="discount-icon" style="background: linear-gradient(135deg, #3498DB, #2980B9); color: white;">
+                        <div class="discount-icon" style="background: var(--accent); color: var(--text-inverse);">
                             <i class="fas fa-percentage"></i>
                         </div>
                         <h3>Pourcentage</h3>
@@ -90,7 +90,7 @@
                 <label class="discount-card">
                     <input type="radio" name="discount_type" value="fixed">
                     <div class="discount-card-content">
-                        <div class="discount-icon" style="background: linear-gradient(135deg, #27AE60, #229954); color: white;">
+                        <div class="discount-icon" style="background: var(--success); color: var(--text-inverse);">
                             <i class="fas fa-euro-sign"></i>
                         </div>
                         <h3>Montant fixe</h3>
@@ -258,7 +258,7 @@
                                     {% endfor %}
                                 {% else %}
                                     <tr>
-                                        <td colspan="2" style="padding: 20px; text-align: center; color: var(--gray-600);">
+                                        <td colspan="2" style="padding: 20px; text-align: center; color: var(--text-secondary);">
                                             <i class="fas fa-calendar-times" style="font-size: 2rem; margin-bottom: 8px; opacity: 0.3; display: block;"></i>
                                             <p style="margin: 0;">Aucun événement en cours ou à venir</p>
                                         </td>
@@ -310,11 +310,11 @@
 
         <!-- Actions -->
         <div class="form-actions">
-            <button type="submit" class="btn btn-primary" style="background: linear-gradient(135deg, #3498DB, #5DADE2) !important; color: white; border: none; padding: 16px 36px; border-radius: 12px; font-weight: 600; font-size: 1.05rem; box-shadow: 0 4px 12px rgba(52, 152, 219, 0.3);">
+            <button type="submit" class="btn btn-primary" style="background: var(--accent) !important; color: var(--text-inverse); border: none; padding: 16px 36px; border-radius: 12px; font-weight: 600; font-size: 1.05rem; box-shadow: var(--shadow-md);">
                 <i class="fas fa-check"></i>
                 Créer le code promo
             </button>
-            <a href="{{ path('organisateur_promotions_index') }}" class="btn" style="color: var(--gray-600); text-decoration: none; padding: 16px 24px;">
+            <a href="{{ path('organisateur_promotions_index') }}" class="btn" style="color: var(--text-secondary); text-decoration: none; padding: 16px 24px;">
                 Annuler
             </a>
         </div>
@@ -621,12 +621,12 @@ document.addEventListener('DOMContentLoaded', function() {
 }
 
 .form-section {
-    background: var(--white);
+    background: var(--bg-card);
     border-radius: var(--border-radius-xl);
     padding: 32px;
     margin-bottom: 24px;
     box-shadow: var(--shadow-md);
-    border: 1px solid var(--gray-200);
+    border: 1px solid var(--border-color);
 }
 
 .section-header {
@@ -635,7 +635,7 @@ document.addEventListener('DOMContentLoaded', function() {
     gap: 16px;
     margin-bottom: 28px;
     padding-bottom: 20px;
-    border-bottom: 2px solid var(--gray-200);
+    border-bottom: 2px solid var(--border-color);
 }
 
 .section-icon {
@@ -690,18 +690,20 @@ document.addEventListener('DOMContentLoaded', function() {
 
 .form-control {
     padding: 14px 16px;
-    border: 2px solid var(--gray-200);
+    border: 2px solid var(--border-color);
     border-radius: var(--border-radius-md);
     font-size: 1rem;
     font-family: var(--font-family);
     transition: var(--transition-base);
-    background: var(--white);
+    background: var(--bg-card);
+    color: var(--text-primary);
 }
 
 .form-control:focus {
     outline: none;
     border-color: var(--accent);
     box-shadow: 0 0 0 4px rgba(52, 152, 219, 0.1);
+    background: var(--bg-card);
 }
 
 .form-help {
@@ -728,8 +730,8 @@ document.addEventListener('DOMContentLoaded', function() {
 
 .btn-generate {
     padding: 14px 24px;
-    background: linear-gradient(135deg, #9B59B6, #8E44AD);
-    color: white;
+    background: var(--accent);
+    color: var(--text-inverse);
     border: none;
     border-radius: var(--border-radius-md);
     cursor: pointer;
@@ -743,7 +745,7 @@ document.addEventListener('DOMContentLoaded', function() {
 
 .btn-generate:hover {
     transform: translateY(-2px);
-    box-shadow: 0 4px 12px rgba(155, 89, 182, 0.3);
+    box-shadow: var(--shadow-md);
 }
 
 .discount-type-selector {
@@ -764,8 +766,8 @@ document.addEventListener('DOMContentLoaded', function() {
 }
 
 .discount-card-content {
-    background: var(--white);
-    border: 3px solid var(--gray-200);
+    background: var(--bg-card);
+    border: 3px solid var(--border-color);
     border-radius: var(--border-radius-lg);
     padding: 28px;
     text-align: center;
@@ -781,8 +783,8 @@ document.addEventListener('DOMContentLoaded', function() {
 
 .discount-card input:checked + .discount-card-content {
     border-color: var(--accent);
-    background: linear-gradient(135deg, rgba(52, 152, 219, 0.05), rgba(52, 152, 219, 0.02));
-    box-shadow: 0 4px 16px rgba(52, 152, 219, 0.2);
+    background: var(--gray-100);
+    box-shadow: var(--shadow-md);
 }
 
 .discount-icon {
@@ -798,13 +800,13 @@ document.addEventListener('DOMContentLoaded', function() {
 
 .discount-card-content h3 {
     font-size: 1.3rem;
-    color: var(--primary);
+    color: var(--text-primary);
     margin: 0 0 8px 0;
 }
 
 .discount-card-content p {
     font-size: 0.9rem;
-    color: var(--gray-600);
+    color: var(--text-secondary);
     margin: 0;
 }
 
@@ -851,15 +853,15 @@ document.addEventListener('DOMContentLoaded', function() {
     align-items: center;
     gap: 12px;
     padding: 12px 16px;
-    background: var(--gray-50);
+    background: var(--gray-100);
     border-radius: var(--border-radius-md);
-    border: 1px solid var(--gray-200);
+    border: 1px solid var(--border-color);
     cursor: pointer;
     transition: var(--transition-base);
 }
 
 .checkbox-item:hover {
-    background: white;
+    background: var(--bg-card);
     border-color: var(--accent);
 }
 
@@ -871,7 +873,7 @@ document.addEventListener('DOMContentLoaded', function() {
 
 .checkbox-item span {
     font-size: 0.95rem;
-    color: var(--gray-700);
+    color: var(--text-secondary);
     font-weight: var(--font-weight-medium);
 }
 
@@ -880,10 +882,10 @@ document.addEventListener('DOMContentLoaded', function() {
     gap: 16px;
     align-items: center;
     padding: 28px;
-    background: var(--white);
+    background: var(--bg-card);
     border-radius: var(--border-radius-xl);
     box-shadow: var(--shadow-md);
-    border: 1px solid var(--gray-200);
+    border: 1px solid var(--border-color);
 }
 
 @media (max-width: 992px) {
@@ -942,9 +944,9 @@ document.addEventListener('DOMContentLoaded', function() {
     padding: 12px 40px 12px 16px;
     font-size: 15px;
     font-weight: 500;
-    color: #2c3e50;
-    background: #ffffff;
-    border: 1px solid #d1d5db;
+    color: var(--text-primary);
+    background: var(--bg-card);
+    border: 1px solid var(--border-color);
     border-radius: 8px;
     cursor: pointer;
     transition: all 0.2s ease;
@@ -952,19 +954,19 @@ document.addEventListener('DOMContentLoaded', function() {
 }
 
 .date-picker-input:hover {
-    border-color: #3498db;
-    background: #f8fafc;
+    border-color: var(--accent);
+    background: var(--gray-100);
 }
 
 .date-picker-input:focus {
     outline: none;
-    border-color: #3498db;
-    background: #ffffff;
+    border-color: var(--accent);
+    background: var(--bg-card);
     box-shadow: 0 0 0 3px rgba(52, 152, 219, 0.1);
 }
 
 .date-picker-input::placeholder {
-    color: #9ca3af;
+    color: var(--text-muted);
     font-weight: 400;
 }
 
@@ -980,15 +982,15 @@ document.addEventListener('DOMContentLoaded', function() {
     background: transparent;
     border: none;
     border-radius: 6px;
-    color: #6b7280;
+    color: var(--text-secondary);
     cursor: pointer;
     transition: all 0.2s ease;
     font-size: 14px;
 }
 
 .clear-date-btn:hover {
-    background: #fee2e2;
-    color: #dc2626;
+    background: var(--gray-200);
+    color: var(--danger);
 }
 
 .clear-date-btn:active {
@@ -1005,7 +1007,7 @@ document.addEventListener('DOMContentLoaded', function() {
 .time-label {
     font-size: 14px;
     font-weight: 500;
-    color: #4b5563;
+    color: var(--text-secondary);
     white-space: nowrap;
 }
 
@@ -1021,9 +1023,9 @@ document.addEventListener('DOMContentLoaded', function() {
     padding: 12px 12px;
     font-size: 15px;
     font-weight: 500;
-    color: #2c3e50;
-    background: #ffffff;
-    border: 1px solid #d1d5db;
+    color: var(--text-primary);
+    background: var(--bg-card);
+    border: 1px solid var(--border-color);
     border-radius: 8px;
     cursor: pointer;
     text-align: center;
@@ -1031,19 +1033,19 @@ document.addEventListener('DOMContentLoaded', function() {
 }
 
 .time-picker-input:hover {
-    border-color: #3498db;
-    background: #f8fafc;
+    border-color: var(--accent);
+    background: var(--gray-100);
 }
 
 .time-picker-input:focus {
     outline: none;
-    border-color: #3498db;
-    background: #ffffff;
+    border-color: var(--accent);
+    background: var(--bg-card);
     box-shadow: 0 0 0 3px rgba(52, 152, 219, 0.1);
 }
 
 .time-picker-input::placeholder {
-    color: #9ca3af;
+    color: var(--text-muted);
     font-weight: 400;
 }
 
@@ -1057,11 +1059,11 @@ document.addEventListener('DOMContentLoaded', function() {
     margin-bottom: 8px;
     font-size: 14px;
     font-weight: 600;
-    color: #374151;
+    color: var(--text-primary);
 }
 
 .required {
-    color: #dc2626;
+    color: var(--danger);
     margin-left: 2px;
 }
 
@@ -1069,7 +1071,7 @@ document.addEventListener('DOMContentLoaded', function() {
     display: block;
     margin-top: 6px;
     font-size: 13px;
-    color: #6b7280;
+    color: var(--text-muted);
     font-style: italic;
 }
 
@@ -1105,16 +1107,16 @@ document.addEventListener('DOMContentLoaded', function() {
 .custom-flatpickr {
     font-family: inherit;
     border-radius: 8px;
-    border: 1px solid #e0e0e0;
-    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
-    background: white;
+    border: 1px solid var(--border-color);
+    box-shadow: var(--shadow-md);
+    background: var(--bg-card);
     margin-top: 4px;
 }
 
 /* En-tête du calendrier */
 .custom-flatpickr .flatpickr-month {
-    background: #f8f9fa;
-    border-bottom: 1px solid #e0e0e0;
+    background: var(--gray-100);
+    border-bottom: 1px solid var(--border-color);
     padding: 16px;
     height: auto;
     min-height: 60px;
@@ -1123,44 +1125,44 @@ document.addEventListener('DOMContentLoaded', function() {
 .custom-flatpickr .flatpickr-current-month {
     font-size: 16px;
     font-weight: 600;
-    color: #333;
+    color: var(--text-primary);
 }
 
 .custom-flatpickr .flatpickr-monthDropdown-months {
     font-size: 16px;
     font-weight: 600;
-    color: #333;
+    color: var(--text-primary);
     padding: 4px 8px;
     border-radius: 4px;
-    border: 1px solid #ddd;
-    background: white;
+    border: 1px solid var(--border-color);
+    background: var(--bg-card);
 }
 
 .custom-flatpickr .flatpickr-monthDropdown-months:hover {
-    border-color: #3498db;
+    border-color: var(--accent);
 }
 
 /* Navigation */
 .custom-flatpickr .flatpickr-prev-month,
 .custom-flatpickr .flatpickr-next-month {
-    color: #3498db;
+    color: var(--accent);
     padding: 8px;
     border-radius: 4px;
 }
 
 .custom-flatpickr .flatpickr-prev-month:hover,
 .custom-flatpickr .flatpickr-next-month:hover {
-    background: #f0f8ff;
+    background: var(--gray-100);
 }
 
 /* Jours de la semaine */
 .custom-flatpickr .flatpickr-weekdays {
-    background: #f8f9fa;
-    border-bottom: 1px solid #e0e0e0;
+    background: var(--gray-100);
+    border-bottom: 1px solid var(--border-color);
 }
 
 .custom-flatpickr .flatpickr-weekday {
-    color: #666;
+    color: var(--text-secondary);
     font-weight: 600;
     font-size: 14px;
 }
@@ -1171,36 +1173,36 @@ document.addEventListener('DOMContentLoaded', function() {
     font-size: 14px;
     height: 36px;
     line-height: 36px;
-    color: #333;
+    color: var(--text-primary);
     border: 1px solid transparent;
 }
 
 .custom-flatpickr .flatpickr-day:hover {
-    background: #f0f8ff;
-    border-color: #3498db;
+    background: var(--gray-100);
+    border-color: var(--accent);
 }
 
 /* Jour sélectionné */
 .custom-flatpickr .flatpickr-day.selected {
-    background: #3498db;
-    color: white;
+    background: var(--accent);
+    color: var(--text-inverse);
     font-weight: 600;
 }
 
 .custom-flatpickr .flatpickr-day.selected:hover {
-    background: #2980b9;
+    background: var(--accent-dark);
 }
 
 /* Aujourd'hui */
 .custom-flatpickr .flatpickr-day.today {
-    border: 1px solid #3498db;
-    color: #3498db;
+    border: 1px solid var(--accent);
+    color: var(--accent);
 }
 
 /* Jours désactivés */
 .custom-flatpickr .flatpickr-day.flatpickr-disabled {
-    color: #ccc;
-    background: #f9f9f9;
+    color: var(--text-muted);
+    background: var(--gray-100);
 }
 
 /* ============================================
@@ -1209,9 +1211,9 @@ document.addEventListener('DOMContentLoaded', function() {
 
 .custom-flatpickr-time {
     border-radius: 8px;
-    border: 1px solid #e0e0e0;
-    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
-    background: white;
+    border: 1px solid var(--border-color);
+    box-shadow: var(--shadow-md);
+    background: var(--bg-card);
     margin-top: 4px;
     min-width: 160px;
 }
@@ -1219,7 +1221,7 @@ document.addEventListener('DOMContentLoaded', function() {
 .custom-flatpickr-time .flatpickr-time {
     border: none;
     padding: 16px;
-    background: white;
+    background: var(--bg-card);
     display: flex;
     align-items: center;
     justify-content: center;
@@ -1230,7 +1232,7 @@ document.addEventListener('DOMContentLoaded', function() {
 .custom-flatpickr-time .flatpickr-time-separator {
     font-size: 18px;
     font-weight: 600;
-    color: #666;
+    color: var(--text-secondary);
     margin: 0 4px;
 }
 
@@ -1241,22 +1243,22 @@ document.addEventListener('DOMContentLoaded', function() {
     padding: 8px;
     width: 60px;
     text-align: center;
-    border: 1px solid #ddd;
+    border: 1px solid var(--border-color);
     border-radius: 4px;
-    background: #f8f9fa;
-    color: #333;
+    background: var(--gray-100);
+    color: var(--text-primary);
 }
 
 .custom-flatpickr-time .flatpickr-time input:hover {
-    border-color: #3498db;
-    background: white;
+    border-color: var(--accent);
+    background: var(--bg-card);
 }
 
 .custom-flatpickr-time .flatpickr-time input:focus {
-    border-color: #3498db;
+    border-color: var(--accent);
     outline: none;
     box-shadow: 0 0 0 2px rgba(52, 152, 219, 0.1);
-    background: white;
+    background: var(--bg-card);
 }
 
 /* ============================================
@@ -1303,27 +1305,27 @@ document.addEventListener('DOMContentLoaded', function() {
 
 /* Styles pour le tableau des événements */
 .events-table-container {
-    background: var(--white);
-    border: 2px solid var(--gray-200);
+    background: var(--bg-card);
+    border: 2px solid var(--border-color);
     border-radius: var(--border-radius-md);
     overflow: hidden;
     max-height: 300px;
     overflow-y: auto;
-    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.05);
+    box-shadow: var(--shadow-sm);
 }
 
 .events-table {
     width: 100%;
     border-collapse: collapse;
-    background: var(--white);
+    background: var(--bg-card);
 }
 
 .events-table thead {
-    background: var(--gray-50);
+    background: var(--gray-100);
     position: sticky;
     top: 0;
     z-index: 10;
-    border-bottom: 2px solid var(--gray-200);
+    border-bottom: 2px solid var(--border-color);
 }
 
 .events-table th {
@@ -1331,7 +1333,7 @@ document.addEventListener('DOMContentLoaded', function() {
     text-align: left;
     font-weight: var(--font-weight-semibold);
     font-size: 0.85rem;
-    color: var(--gray-700);
+    color: var(--text-secondary);
     text-transform: uppercase;
     letter-spacing: 0.5px;
 }
@@ -1343,7 +1345,7 @@ document.addEventListener('DOMContentLoaded', function() {
 }
 
 .events-table tbody tr {
-    border-bottom: 1px solid var(--gray-200);
+    border-bottom: 1px solid var(--border-color);
     transition: var(--transition-base);
 }
 
@@ -1356,7 +1358,7 @@ document.addEventListener('DOMContentLoaded', function() {
 }
 
 .event-row:hover {
-    background: var(--gray-50);
+    background: var(--gray-100);
 }
 
 .event-row td {
@@ -1387,14 +1389,14 @@ document.addEventListener('DOMContentLoaded', function() {
 
 .event-name {
     font-size: 0.95rem;
-    color: var(--gray-700);
+    color: var(--text-secondary);
     font-weight: var(--font-weight-medium);
     flex: 1;
 }
 
 .event-date {
     font-size: 0.85rem;
-    color: var(--gray-500);
+    color: var(--text-muted);
     font-weight: var(--font-weight-normal);
     margin-left: auto;
 }
