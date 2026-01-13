@@ -3,313 +3,44 @@
    Corrections pour la visibilité et l'harmonie
    ============================================ */
 
-/* Ce fichier doit être chargé APRÈS dark-variables.css et les autres fichiers dark mode */
+/*
+   Ce fichier est chargé APRÈS les CSS spécifiques aux pages.
+   Il ne doit PAS utiliser !important sur des sélecteurs génériques 
+   comme div, span, p car cela écrase les designs spécifiques.
+*/
 
-/* ========== SIDEBAR - ICÔNES ET TEXTES AMÉLIORÉS ========== */
+/* ========== SIDEBAR - CORRECTIONS GÉNÉRALES ========== */
 html[data-theme="dark"] .sidebar i,
-html.theme-dark .sidebar i,
-body.theme-dark .sidebar i,
-html[data-theme="dark"] .sidebar .material-symbols-rounded,
-html.theme-dark .sidebar .material-symbols-rounded,
-body.theme-dark .sidebar .material-symbols-rounded {
-    color: #c5cdd6 !important;
-    opacity: 1 !important;
-    font-weight: 400 !important;
+html.theme-dark .sidebar i {
+    opacity: 1;
 }
 
-html[data-theme="dark"] .sidebar a,
-html.theme-dark .sidebar a,
-body.theme-dark .sidebar a {
-    color: #c5cdd6 !important;
-}
-
-html[data-theme="dark"] .sidebar a:hover,
-html.theme-dark .sidebar a:hover,
-body.theme-dark .sidebar a:hover,
-html[data-theme="dark"] .sidebar a:hover i,
-html.theme-dark .sidebar a:hover i,
-body.theme-dark .sidebar a:hover i {
-    color: #e6e8eb !important;
-}
-
-html[data-theme="dark"] .sidebar .active,
-html.theme-dark .sidebar .active,
-body.theme-dark .sidebar .active,
-html[data-theme="dark"] .sidebar .active i,
-html.theme-dark .sidebar .active i,
-body.theme-dark .sidebar .active i {
-    color: #84c0f4 !important;
-}
-
-/* ========== TEXTES - VISIBILITÉ MAXIMALE ========== */
+/* ========== TITRES - COHÉRENCE ========== */
 html[data-theme="dark"] h1,
 html.theme-dark h1,
-body.theme-dark h1,
 html[data-theme="dark"] h2,
 html.theme-dark h2,
-body.theme-dark h2,
 html[data-theme="dark"] h3,
-html.theme-dark h3,
-body.theme-dark h3,
-html[data-theme="dark"] h4,
-html.theme-dark h4,
-body.theme-dark h4 {
-    color: #e6e8eb !important;
-    font-weight: 600 !important;
+html.theme-dark h3 {
+    color: var(--dark-text-primary);
 }
 
-html[data-theme="dark"] p,
-html.theme-dark p,
-body.theme-dark p,
-html[data-theme="dark"] span:not(.material-symbols-rounded),
-html.theme-dark span:not(.material-symbols-rounded),
-body.theme-dark span:not(.material-symbols-rounded),
-html[data-theme="dark"] div,
-html.theme-dark div,
-body.theme-dark div {
-    color: #c5cdd6 !important;
-}
-
-html[data-theme="dark"] label,
-html.theme-dark label,
-body.theme-dark label,
-html[data-theme="dark"] .form-label,
-html.theme-dark .form-label,
-body.theme-dark .form-label {
-    color: #e6e8eb !important;
-    font-weight: 500 !important;
-}
-
-/* ========== LIENS ET ICÔNES - VISIBILITÉ AMÉLIORÉE ========== */
-html[data-theme="dark"] a,
-html.theme-dark a,
-body.theme-dark a {
-    color: #84c0f4 !important;
-    text-decoration: none;
-}
-
-html[data-theme="dark"] a:hover,
-html.theme-dark a:hover,
-body.theme-dark a:hover {
-    color: #a8d4f7 !important;
-}
-
-html[data-theme="dark"] i,
-html.theme-dark i,
-body.theme-dark i,
-html[data-theme="dark"] .material-symbols-rounded,
-html.theme-dark .material-symbols-rounded,
-body.theme-dark .material-symbols-rounded {
-    color: #c5cdd6 !important;
-    opacity: 1 !important;
-}
-
-/* ========== BOUTONS - SANS BRILLANCE (FLAT) ========== */
-/* Boutons primaires - flat et cohérents */
-html[data-theme="dark"] .btn-primary,
-html.theme-dark .btn-primary,
-body.theme-dark .btn-primary,
-html[data-theme="dark"] .btn-submit,
-html.theme-dark .btn-submit,
-body.theme-dark .btn-submit,
-html[data-theme="dark"] button[type="submit"],
-html.theme-dark button[type="submit"],
-body.theme-dark button[type="submit"] {
-    background: #5a9fd9 !important;
-    color: #e6e8eb !important;
-    border: 1px solid rgba(97, 175, 239, 0.3) !important;
-    box-shadow: none !important;
-    background-image: none !important;
-}
-
-html[data-theme="dark"] .btn-primary:hover,
-html.theme-dark .btn-primary:hover,
-body.theme-dark .btn-primary:hover,
-html[data-theme="dark"] .btn-submit:hover,
-html.theme-dark .btn-submit:hover,
-body.theme-dark .btn-submit:hover {
-    background: #6aafef !important;
-    box-shadow: none !important;
-}
-
-/* Boutons secondaires - flat */
-html[data-theme="dark"] .btn-secondary,
-html.theme-dark .btn-secondary,
-body.theme-dark .btn-secondary,
-html[data-theme="dark"] .btn-outline,
-html.theme-dark .btn-outline,
-body.theme-dark .btn-outline {
-    background: rgba(255, 255, 255, 0.08) !important;
-    color: #c5cdd6 !important;
-    border: 1px solid rgba(255, 255, 255, 0.2) !important;
-    box-shadow: none !important;
-    background-image: none !important;
-}
-
-html[data-theme="dark"] .btn-secondary:hover,
-html.theme-dark .btn-secondary:hover,
-body.theme-dark .btn-secondary:hover,
-html[data-theme="dark"] .btn-outline:hover,
-html.theme-dark .btn-outline:hover,
-body.theme-dark .btn-outline:hover {
-    background: rgba(255, 255, 255, 0.12) !important;
-    color: #e6e8eb !important;
-    box-shadow: none !important;
-}
-
-/* Boutons de succès - flat */
-html[data-theme="dark"] .btn-success,
-html.theme-dark .btn-success,
-body.theme-dark .btn-success,
-html[data-theme="dark"] .btn-validate,
-html.theme-dark .btn-validate,
-body.theme-dark .btn-validate {
-    background: #88b369 !important;
-    color: #e6e8eb !important;
-    border: 1px solid rgba(152, 195, 121, 0.3) !important;
-    box-shadow: none !important;
-    background-image: none !important;
-}
-
-html[data-theme="dark"] .btn-success:hover,
-html.theme-dark .btn-success:hover,
-body.theme-dark .btn-success:hover {
-    background: #98c379 !important;
-    box-shadow: none !important;
-}
-
-/* Boutons de danger - flat */
-html[data-theme="dark"] .btn-danger,
-html.theme-dark .btn-danger,
-body.theme-dark .btn-danger,
-html[data-theme="dark"] .btn-remove,
-html.theme-dark .btn-remove,
-body.theme-dark .btn-remove,
-html[data-theme="dark"] .btn-delete,
-html.theme-dark .btn-delete,
-body.theme-dark .btn-delete {
-    background: #d05c65 !important;
-    color: #e6e8eb !important;
-    border: 1px solid rgba(224, 108, 117, 0.3) !important;
-    box-shadow: none !important;
-    background-image: none !important;
-}
-
-html[data-theme="dark"] .btn-danger:hover,
-html.theme-dark .btn-danger:hover,
-body.theme-dark .btn-danger:hover {
-    background: #e06c75 !important;
-    box-shadow: none !important;
-}
-
-/* Enlever TOUS les gradients et brillances */
-html[data-theme="dark"] button,
-html.theme-dark button,
-body.theme-dark button,
-html[data-theme="dark"] .btn,
-html.theme-dark .btn,
-body.theme-dark .btn,
-html[data-theme="dark"] input[type="button"],
-html.theme-dark input[type="button"],
-body.theme-dark input[type="button"] {
-    background-image: none !important;
-    box-shadow: none !important;
-}
-
-/* ========== PAGES SPÉCIFIQUES ========== */
-/* Page événements */
-html[data-theme="dark"] .event-card,
-html.theme-dark .event-card,
-body.theme-dark .event-card,
-html[data-theme="dark"] .event-item,
-html.theme-dark .event-item,
-body.theme-dark .event-item {
-    background: #21252b !important;
-    color: #c5cdd6 !important;
-}
-
-html[data-theme="dark"] .event-card h3,
-html.theme-dark .event-card h3,
-body.theme-dark .event-card h3,
-html[data-theme="dark"] .event-title,
-html.theme-dark .event-title,
-body.theme-dark .event-title {
-    color: #e6e8eb !important;
-}
-
-/* Page profil */
-html[data-theme="dark"] .profile-card,
-html.theme-dark .profile-card,
-body.theme-dark .profile-card,
-html[data-theme="dark"] .profile-section,
-html.theme-dark .profile-section,
-body.theme-dark .profile-section {
-    background: #21252b !important;
-    color: #c5cdd6 !important;
-}
-
-/* Page paramètres */
-html[data-theme="dark"] .settings-card,
-html.theme-dark .settings-card,
-body.theme-dark .settings-card,
-html[data-theme="dark"] .settings-section,
-html.theme-dark .settings-section,
-body.theme-dark .settings-section {
-    background: #21252b !important;
-    color: #c5cdd6 !important;
-}
-
-/* ========== FORMULAIRES ========== */
+/* ========== FORMULAIRES - FIXES ========== */
 html[data-theme="dark"] input,
-html.theme-dark input,
-body.theme-dark input,
-html[data-theme="dark"] textarea,
-html.theme-dark textarea,
-body.theme-dark textarea,
 html[data-theme="dark"] select,
-html.theme-dark select,
-body.theme-dark select {
-    background: rgba(255, 255, 255, 0.08) !important;
-    color: #e6e8eb !important;
-    border: 1px solid rgba(255, 255, 255, 0.2) !important;
+html[data-theme="dark"] textarea {
+    border-radius: 8px;
 }
 
-html[data-theme="dark"] input::placeholder,
-html.theme-dark input::placeholder,
-body.theme-dark input::placeholder,
-html[data-theme="dark"] textarea::placeholder,
-html.theme-dark textarea::placeholder,
-body.theme-dark textarea::placeholder {
-    color: rgba(197, 205, 214, 0.6) !important;
+/* ========== FIX POUR LES ÉLÉMENTS INVISIBLES ========== */
+/* Si un texte est vraiment trop sombre sur fond sombre, on le rattrape ici sans !important */
+html[data-theme="dark"] .text-black,
+html[data-theme="dark"] .text-dark {
+    color: var(--dark-text-primary);
 }
 
-/* ========== BADGES ET TAGS ========== */
-html[data-theme="dark"] .badge,
-html.theme-dark .badge,
-body.theme-dark .badge,
-html[data-theme="dark"] .tag,
-html.theme-dark .tag,
-body.theme-dark .tag {
-    background: rgba(97, 175, 239, 0.2) !important;
-    color: #84c0f4 !important;
-    border: 1px solid rgba(97, 175, 239, 0.3) !important;
-}
-
-/* ========== NAVIGATION ========== */
-html[data-theme="dark"] nav a,
-html.theme-dark nav a,
-body.theme-dark nav a,
-html[data-theme="dark"] .menu a,
-html.theme-dark .menu a,
-body.theme-dark .menu a {
-    color: #c5cdd6 !important;
-}
-
-html[data-theme="dark"] nav a:hover,
-html.theme-dark nav a:hover,
-body.theme-dark nav a:hover,
-html[data-theme="dark"] .menu a:hover,
-html.theme-dark .menu a:hover,
-body.theme-dark .menu a:hover {
-    color: #e6e8eb !important;
+/* ========== COHÉRENCE DES COMPOSANTS COMMUNS ========== */
+html[data-theme="dark"] .badge {
+    background: rgba(255, 255, 255, 0.1);
+    border: 1px solid var(--dark-border-primary);
 }

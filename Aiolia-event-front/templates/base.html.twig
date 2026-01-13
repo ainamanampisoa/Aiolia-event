@@ -287,6 +287,25 @@
             margin-right: 0;
         }
 
+        /* Logo switching logic */
+        .logo img, .logo-ftr img {
+            max-height: 60px;
+            width: auto;
+            transition: all 0.3s ease;
+        }
+
+        .logo-dark {
+            display: none !important;
+        }
+
+        .theme-dark .logo-light {
+            display: none !important;
+        }
+
+        .theme-dark .logo-dark {
+            display: block !important;
+        }
+
         header .head .container {
             display: flex;
             flex-direction: column;
@@ -688,7 +707,10 @@
                 <div class="container">
                     {% if isAuthenticated %}
                         <div class="head-top">
-                            <a href="{{ path('home') }}" class="logo"><img src="{{ asset('vente-ticket/images/aiolia_event.png') }}" alt="Powered by"></a>
+                            <a href="{{ path('home') }}" class="logo">
+                                <img src="{{ asset('vente-ticket/images/aiolia_event.png') }}" alt="Powered by" class="logo-light">
+                                <img src="{{ asset('vente-ticket/images/Aiolia-event-black.png') }}" alt="Powered by" class="logo-dark">
+                            </a>
                             <form method="get" action="{{ path('events') }}" class="user-connected-search">
                                 <input type="search" name="q" placeholder="{{ 'common.search_event'|trans }}">
                                 <button type="submit" title="{{ 'common.search'|trans }}" aria-label="{{ 'common.search'|trans }}">
@@ -754,7 +776,10 @@
                         </div>
                     {% else %}
                         <div class="head-guest">
-                            <a href="{{ path('home') }}" class="logo"><img src="{{ asset('vente-ticket/images/aiolia_event.png') }}" alt="Powered by"></a>
+                            <a href="{{ path('home') }}" class="logo">
+                                <img src="{{ asset('vente-ticket/images/aiolia_event.png') }}" alt="Powered by" class="logo-light">
+                                <img src="{{ asset('vente-ticket/images/Aiolia-event-black.png') }}" alt="Powered by" class="logo-dark">
+                            </a>
                             <div class="guest-nav">
                                 <nav class="menu">
                                     <ul>
@@ -904,7 +929,10 @@
              <div class="container">
                     <div class="ftr-top d-flex justify-content-between">
                         <div class="logo-ftr">
-                            <a href="{{ path('home') }}"><img src="{{ asset('vente-ticket/images/aiolia_event.png') }}" alt="VenteTicket.mg"></a>
+                            <a href="{{ path('home') }}">
+                                <img src="{{ asset('vente-ticket/images/aiolia_event.png') }}" alt="VenteTicket.mg" class="logo-light">
+                                <img src="{{ asset('vente-ticket/images/Aiolia-event-black.png') }}" alt="VenteTicket.mg" class="logo-dark">
+                            </a>
                         </div>
                         <div class="menu-ftr">
                             <ul>

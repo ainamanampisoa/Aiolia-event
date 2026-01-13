@@ -1,5 +1,6 @@
 /* ============================================
    MODE SOMBRE - Paramètres de profil
+   Enhanced & Premium Version
    ============================================ */
 
 /* 
@@ -11,56 +12,76 @@
 html[data-theme="dark"] .profile-settings-wrapper,
 html.theme-dark .profile-settings-wrapper,
 body.theme-dark .profile-settings-wrapper {
-    background: var(--dark-bg-primary);
+    background: var(--dark-bg-primary) !important;
+    background-image:
+        radial-gradient(at 0% 0%, rgba(97, 175, 239, 0.05) 0px, transparent 50%),
+        radial-gradient(at 100% 0%, rgba(152, 195, 121, 0.05) 0px, transparent 50%) !important;
+}
+
+/* ========== EN-TÊTE ========== */
+html[data-theme="dark"] .settings-header h1,
+html.theme-dark .settings-header h1,
+body.theme-dark .settings-header h1 {
+    background: none !important;
+    -webkit-text-fill-color: var(--dark-text-primary) !important;
+    color: var(--dark-text-primary) !important;
+    text-shadow: 0 2px 4px rgba(0, 0, 0, 0.3);
+}
+
+html[data-theme="dark"] .settings-header p,
+html.theme-dark .settings-header p,
+body.theme-dark .settings-header p {
+    color: var(--dark-text-secondary) !important;
+    opacity: 0.9;
 }
 
 /* ========== CARTES ========== */
 html[data-theme="dark"] .settings-card,
 html.theme-dark .settings-card,
 body.theme-dark .settings-card {
-    background: var(--dark-gradient-card);
-    border-color: var(--dark-border-primary);
+    background: var(--dark-bg-secondary) !important;
+    background: linear-gradient(145deg, rgba(40, 44, 52, 0.95) 0%, rgba(33, 37, 43, 0.95) 100%) !important;
+    border: 1px solid var(--dark-border-primary) !important;
+    box-shadow: var(--dark-shadow-lg) !important;
+    backdrop-filter: blur(10px);
 }
 
-/* ========== TEXTES ========== */
-html[data-theme="dark"] .settings-header p,
-html.theme-dark .settings-header p,
-body.theme-dark .settings-header p,
-html[data-theme="dark"] .settings-toggle span,
-html.theme-dark .settings-toggle span,
-body.theme-dark .settings-toggle span,
-html[data-theme="dark"] .settings-security span,
-html.theme-dark .settings-security span,
-body.theme-dark .settings-security span,
-html[data-theme="dark"] .appearance-card small,
-html.theme-dark .appearance-card small,
-body.theme-dark .appearance-card small {
-    color: var(--dark-text-muted);
+html[data-theme="dark"] .settings-card::before,
+html.theme-dark .settings-card::before,
+body.theme-dark .settings-card::before {
+    background: var(--dark-gradient-primary) !important;
+    opacity: 0.8;
 }
 
-html[data-theme="dark"] .settings-header h1,
-html.theme-dark .settings-header h1,
-body.theme-dark .settings-header h1,
 html[data-theme="dark"] .settings-card h2,
 html.theme-dark .settings-card h2,
-body.theme-dark .settings-card h2,
-html[data-theme="dark"] .settings-toggle strong,
-html.theme-dark .settings-toggle strong,
-body.theme-dark .settings-toggle strong,
-html[data-theme="dark"] .settings-security strong,
-html.theme-dark .settings-security strong,
-body.theme-dark .settings-security strong,
-html[data-theme="dark"] .appearance-card strong,
-html.theme-dark .appearance-card strong,
-body.theme-dark .appearance-card strong {
-    color: var(--dark-text-primary);
+body.theme-dark .settings-card h2 {
+    background: none !important;
+    -webkit-text-fill-color: var(--dark-text-primary) !important;
+    color: var(--dark-text-primary) !important;
+    border-bottom: 1px solid var(--dark-border-secondary);
+    padding-bottom: 15px;
+    margin-bottom: 10px;
+}
+
+html[data-theme="dark"] .settings-card h2 i,
+html.theme-dark .settings-card h2 i,
+body.theme-dark .settings-card h2 i {
+    color: var(--dark-accent-primary) !important;
+}
+
+html[data-theme="dark"] .settings-card h2::before,
+html.theme-dark .settings-card h2::before,
+body.theme-dark .settings-card h2::before {
+    background: var(--dark-accent-primary) !important;
 }
 
 /* ========== FORMULAIRES ========== */
 html[data-theme="dark"] .form-group label,
 html.theme-dark .form-group label,
 body.theme-dark .form-group label {
-    color: var(--dark-text-primary);
+    color: var(--dark-text-primary) !important;
+    font-weight: 500;
 }
 
 html[data-theme="dark"] .form-group input,
@@ -69,69 +90,164 @@ body.theme-dark .form-group input,
 html[data-theme="dark"] .form-group select,
 html.theme-dark .form-group select,
 body.theme-dark .form-group select {
-    background: var(--dark-input-bg);
-    border-color: var(--dark-input-border);
-    color: var(--dark-text-primary);
+    background: var(--dark-bg-input) !important;
+    border: 1px solid var(--dark-border-primary) !important;
+    color: var(--dark-text-primary) !important;
+    box-shadow: var(--dark-shadow-sm) !important;
 }
 
-/* ========== SECTIONS ========== */
+html[data-theme="dark"] .form-group input:focus,
+html.theme-dark .form-group input:focus,
+body.theme-dark .form-group input:focus,
+html[data-theme="dark"] .form-group select:focus,
+html.theme-dark .form-group select:focus,
+body.theme-dark .form-group select:focus {
+    border-color: var(--dark-accent-primary) !important;
+    background: var(--dark-bg-tertiary) !important;
+    box-shadow: 0 0 0 3px rgba(97, 175, 239, 0.2) !important;
+}
+
+html[data-theme="dark"] .form-group input:disabled,
+html.theme-dark .form-group input:disabled,
+body.theme-dark .form-group input:disabled {
+    opacity: 0.6;
+    cursor: not-allowed;
+    background: rgba(0, 0, 0, 0.2) !important;
+}
+
+/* ========== SECTIONS INTERNES (TOGGLES & SECURITY) ========== */
 html[data-theme="dark"] .settings-toggle,
 html.theme-dark .settings-toggle,
 body.theme-dark .settings-toggle,
 html[data-theme="dark"] .settings-security,
 html.theme-dark .settings-security,
-body.theme-dark .settings-security,
+body.theme-dark .settings-security {
+    background: rgba(255, 255, 255, 0.03) !important;
+    border: 1px solid var(--dark-border-secondary) !important;
+}
+
+html[data-theme="dark"] .settings-toggle:hover,
+html.theme-dark .settings-toggle:hover,
+body.theme-dark .settings-toggle:hover,
+html[data-theme="dark"] .settings-security:hover,
+html.theme-dark .settings-security:hover,
+body.theme-dark .settings-security:hover {
+    background: rgba(255, 255, 255, 0.06) !important;
+    border-color: var(--dark-border-primary) !important;
+}
+
+html[data-theme="dark"] .settings-toggle strong,
+html.theme-dark .settings-toggle strong,
+body.theme-dark .settings-toggle strong,
+html[data-theme="dark"] .settings-security strong,
+html.theme-dark .settings-security strong,
+body.theme-dark .settings-security strong {
+    color: var(--dark-text-primary) !important;
+}
+
+html[data-theme="dark"] .settings-toggle span,
+html.theme-dark .settings-toggle span,
+body.theme-dark .settings-toggle span,
+html[data-theme="dark"] .settings-security span,
+html.theme-dark .settings-security span,
+body.theme-dark .settings-security span {
+    color: var(--dark-text-secondary) !important;
+    opacity: 0.8;
+}
+
+/* ========== INDICATEURS DE STATUT ========== */
+html[data-theme="dark"] .status-active,
+html.theme-dark .status-active,
+body.theme-dark .status-active {
+    background: rgba(152, 195, 121, 0.2) !important;
+    color: var(--dark-success) !important;
+}
+
+html[data-theme="dark"] .status-inactive,
+html.theme-dark .status-inactive,
+body.theme-dark .status-inactive {
+    background: rgba(224, 108, 117, 0.2) !important;
+    color: var(--dark-danger) !important;
+}
+
+/* ========== SWITCHES ========== */
+html[data-theme="dark"] .slider,
+html.theme-dark .slider,
+body.theme-dark .slider {
+    background: rgba(255, 255, 255, 0.1) !important;
+}
+
+html[data-theme="dark"] .switch input:checked+.slider,
+html.theme-dark .switch input:checked+.slider,
+body.theme-dark .switch input:checked+.slider {
+    background: var(--dark-gradient-success) !important;
+}
+
+/* ========== APPARENCE ========== */
 html[data-theme="dark"] .appearance-card,
 html.theme-dark .appearance-card,
 body.theme-dark .appearance-card {
-    background: linear-gradient(135deg, rgba(255, 255, 255, 0.08) 0%, rgba(255, 255, 255, 0.04) 100%);
-    border-color: var(--dark-border-primary);
+    background: rgba(255, 255, 255, 0.03) !important;
+    border-color: var(--dark-border-secondary) !important;
+}
+
+html[data-theme="dark"] .appearance-card:hover,
+html.theme-dark .appearance-card:hover,
+body.theme-dark .appearance-card:hover {
+    background: rgba(255, 255, 255, 0.06) !important;
+    border-color: var(--dark-accent-primary) !important;
+}
+
+html[data-theme="dark"] .appearance-card strong,
+html.theme-dark .appearance-card strong,
+body.theme-dark .appearance-card strong {
+    color: var(--dark-text-primary) !important;
+}
+
+html[data-theme="dark"] .appearance-card small,
+html.theme-dark .appearance-card small,
+body.theme-dark .appearance-card small {
+    color: var(--dark-text-secondary) !important;
+}
+
+html[data-theme="dark"] .appearance-card input:checked~span strong,
+html.theme-dark .appearance-card input:checked~span strong,
+body.theme-dark .appearance-card input:checked~span strong {
+    background: none !important;
+    -webkit-text-fill-color: var(--dark-accent-primary) !important;
+    color: var(--dark-accent-primary) !important;
 }
 
 /* ========== BOUTONS ========== */
+html[data-theme="dark"] #saveSettingsBtn,
+html.theme-dark #saveSettingsBtn,
+body.theme-dark #saveSettingsBtn {
+    background: linear-gradient(135deg, #3d7fb8 0%, #1e4d7d 100%) !important;
+    color: #ffffff !important;
+    border: 1px solid rgba(255, 255, 255, 0.1) !important;
+    box-shadow: 0 4px 15px rgba(0, 0, 0, 0.3) !important;
+    font-weight: 600 !important;
+}
+
+html[data-theme="dark"] #saveSettingsBtn:hover,
+html.theme-dark #saveSettingsBtn:hover,
+body.theme-dark #saveSettingsBtn:hover {
+    background: linear-gradient(135deg, #4a90d9 0%, #2a5a8a 100%) !important;
+    transform: translateY(-2px) !important;
+    box-shadow: 0 6px 20px rgba(0, 0, 0, 0.4) !important;
+}
+
 html[data-theme="dark"] .btn-outline,
 html.theme-dark .btn-outline,
 body.theme-dark .btn-outline {
-    border-color: var(--dark-border-accent);
-    color: var(--dark-accent-primary);
-    background: rgba(74, 158, 255, 0.05);
-    font-weight: 600;
+    border-color: var(--dark-border-accent) !important;
+    color: var(--dark-accent-primary) !important;
+    background: rgba(97, 175, 239, 0.05) !important;
 }
 
 html[data-theme="dark"] .btn-outline:hover,
 html.theme-dark .btn-outline:hover,
 body.theme-dark .btn-outline:hover {
-    background: rgba(74, 158, 255, 0.15);
-    border-color: var(--dark-accent-primary);
-    color: var(--dark-accent-primary-hover);
-}
-
-html[data-theme="dark"] .btn-solid,
-html.theme-dark .btn-solid,
-body.theme-dark .btn-solid,
-html[data-theme="dark"] #saveSettingsBtn,
-html.theme-dark #saveSettingsBtn,
-body.theme-dark #saveSettingsBtn {
-    background: var(--dark-gradient-primary);
-    color: var(--dark-text-primary);
-    border: none;
-    font-weight: 600;
-    box-shadow: var(--dark-shadow-accent);
-}
-
-html[data-theme="dark"] .btn-solid:hover,
-html.theme-dark .btn-solid:hover,
-body.theme-dark .btn-solid:hover,
-html[data-theme="dark"] #saveSettingsBtn:hover,
-html.theme-dark #saveSettingsBtn:hover,
-body.theme-dark #saveSettingsBtn:hover {
-    background: var(--dark-gradient-primary-hover);
-    box-shadow: var(--dark-shadow-accent-hover);
-    transform: translateY(-1px);
-}
-
-html[data-theme="dark"] .link-btn,
-html.theme-dark .link-btn,
-body.theme-dark .link-btn {
-    color: var(--dark-text-primary);
+    background: rgba(97, 175, 239, 0.15) !important;
+    border-color: var(--dark-accent-primary) !important;
 }

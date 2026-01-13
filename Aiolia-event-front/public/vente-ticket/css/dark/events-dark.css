@@ -1,48 +1,29 @@
 /* ============================================
    MODE SOMBRE - Événements
+   Enhanced & Premium Version
    ============================================ */
 
-/* 
-   IMPORTANT: Ce fichier utilise les variables définies dans dark-variables.css
-   Assurez-vous que dark-variables.css est chargé en premier.
-*/
-
-/* ========== FILTRES ET FORMULAIRES ========== */
+/* ========== SECTION FILTRES ========== */
 html[data-theme="dark"] .sec-filtre,
 html.theme-dark .sec-filtre,
 body.theme-dark .sec-filtre {
-  background-color: var(--dark-bg-primary);
+  background-color: var(--dark-bg-primary) !important;
 }
 
 html[data-theme="dark"] .cont-filtre,
 html.theme-dark .cont-filtre,
 body.theme-dark .cont-filtre {
-  background-color: var(--dark-bg-secondary);
-  border: 1px solid var(--dark-border-primary);
+  background-color: var(--dark-bg-secondary) !important;
+  border: 1px solid var(--dark-border-primary) !important;
+  box-shadow: var(--dark-shadow-lg) !important;
+  border-radius: 20px !important;
 }
 
-html[data-theme="dark"] .sec-filtre .blc-chp,
-html.theme-dark .sec-filtre .blc-chp,
-body.theme-dark .sec-filtre .blc-chp {
-  background-color: rgba(255, 255, 255, 0.05);
-  border: 1px solid var(--dark-border-primary);
-}
-
-/* Labels et textes */
+/* Formulaire de filtres - Labels */
 html[data-theme="dark"] .sec-filtre label,
 html.theme-dark .sec-filtre label,
-body.theme-dark .sec-filtre label,
-html[data-theme="dark"] .form-label,
-html.theme-dark .form-label,
-body.theme-dark .form-label {
-  color: var(--dark-text-primary);
-  font-weight: 600;
-}
-
-html[data-theme="dark"] .sec-filtre small,
-html.theme-dark .sec-filtre small,
-body.theme-dark .sec-filtre small {
-  color: var(--dark-text-muted);
+body.theme-dark .sec-filtre label {
+  color: var(--dark-text-primary) !important;
 }
 
 /* Champs de formulaire */
@@ -55,10 +36,10 @@ body.theme-dark .sec-filtre input,
 html[data-theme="dark"] .sec-filtre .chp,
 html.theme-dark .sec-filtre .chp,
 body.theme-dark .sec-filtre .chp {
-  background-color: var(--dark-input-bg);
-  border: 1px solid var(--dark-input-border);
-  color: var(--dark-text-primary);
-  transition: var(--dark-transition-normal);
+  background-color: var(--dark-bg-input) !important;
+  border: 1px solid var(--dark-border-primary) !important;
+  color: var(--dark-text-primary) !important;
+  border-radius: 12px !important;
 }
 
 html[data-theme="dark"] .sec-filtre select:focus,
@@ -66,520 +47,139 @@ html.theme-dark .sec-filtre select:focus,
 body.theme-dark .sec-filtre select:focus,
 html[data-theme="dark"] .sec-filtre input:focus,
 html.theme-dark .sec-filtre input:focus,
-body.theme-dark .sec-filtre input:focus,
-html[data-theme="dark"] .sec-filtre .chp:focus,
-html.theme-dark .sec-filtre .chp:focus,
-body.theme-dark .sec-filtre .chp:focus {
-  border-color: var(--dark-input-border-focus);
-  background-color: var(--dark-input-bg-focus);
-  box-shadow: 0 0 0 3px rgba(74, 158, 255, 0.25);
-  outline: none;
-}
-
-/* Placeholders */
-html[data-theme="dark"] .chp::placeholder,
-html.theme-dark .chp::placeholder,
-body.theme-dark .chp::placeholder {
-  color: var(--dark-input-placeholder) !important;
-}
-
-/* Options de formulaire */
-html[data-theme="dark"] .sec-filtre .blc-option,
-html.theme-dark .sec-filtre .blc-option,
-body.theme-dark .sec-filtre .blc-option {
-  background-color: rgba(255, 255, 255, 0.05);
-  border: 1px solid var(--dark-border-primary);
-}
-
-html[data-theme="dark"] .blc-option [type="radio"]+label,
-html.theme-dark .blc-option [type="radio"]+label,
-body.theme-dark .blc-option [type="radio"]+label {
-  color: var(--dark-text-secondary);
-}
-
-html[data-theme="dark"] .blc-option [type="radio"]:checked+label,
-html.theme-dark .blc-option [type="radio"]:checked+label,
-body.theme-dark .blc-option [type="radio"]:checked+label {
-  color: var(--dark-accent-primary);
-  font-weight: 600;
-}
-
-/* ========== SECTION ÉVÉNEMENTS ========== */
-html[data-theme="dark"] .sec-event,
-html.theme-dark .sec-event,
-body.theme-dark .sec-event {
-  background-color: var(--dark-bg-primary);
-}
-
-html[data-theme="dark"] .sec-event h2,
-html.theme-dark .sec-event h2,
-body.theme-dark .sec-event h2,
-html[data-theme="dark"] .search-results-header h2,
-html.theme-dark .search-results-header h2,
-body.theme-dark .search-results-header h2 {
-  color: var(--dark-text-primary);
-}
-
-html[data-theme="dark"] .search-results-header p,
-html.theme-dark .search-results-header p,
-body.theme-dark .search-results-header p {
-  color: var(--dark-text-secondary);
+body.theme-dark .sec-filtre input:focus {
+  border-color: var(--dark-accent-primary) !important;
+  box-shadow: 0 0 0 3px rgba(97, 175, 239, 0.2) !important;
 }
 
 /* ========== CARTES D'ÉVÉNEMENTS ========== */
 html[data-theme="dark"] .lst-event .item,
 html.theme-dark .lst-event .item,
 body.theme-dark .lst-event .item {
-  background-color: var(--dark-bg-card);
-  border: 1px solid var(--dark-border-primary);
-  box-shadow: var(--dark-shadow-md);
-  transition: var(--dark-transition-slow);
+  background-color: var(--dark-bg-secondary) !important;
+  border: 1px solid var(--dark-border-primary) !important;
+  box-shadow: var(--dark-shadow-md) !important;
+  border-radius: 20px !important;
+  overflow: hidden;
 }
 
 html[data-theme="dark"] .lst-event .item:hover,
 html.theme-dark .lst-event .item:hover,
 body.theme-dark .lst-event .item:hover {
-  box-shadow: var(--dark-shadow-lg);
-  transform: translateY(-2px);
-  border-color: var(--dark-border-hover);
+  border-color: var(--dark-accent-primary) !important;
+  box-shadow: var(--dark-shadow-lg) !important;
+  transform: translateY(-4px);
 }
 
-/* Colonnes des événements */
-html[data-theme="dark"] .lst-event .item .blc-col1 .col1,
-html.theme-dark .lst-event .item .blc-col1 .col1,
-body.theme-dark .lst-event .item .blc-col1 .col1,
+/* Contenu des colonnes */
 html[data-theme="dark"] .lst-event .item .blc-col1 .col2,
 html.theme-dark .lst-event .item .blc-col1 .col2,
 body.theme-dark .lst-event .item .blc-col1 .col2 {
-  background-color: var(--dark-bg-elevated);
-  border: 1px solid var(--dark-border-primary);
+  background-color: transparent !important;
 }
 
-/* Textes dans les événements */
+/* Titres des événements */
 html[data-theme="dark"] .lst-event .item .blc-col1 .col2 h3,
 html.theme-dark .lst-event .item .blc-col1 .col2 h3,
 body.theme-dark .lst-event .item .blc-col1 .col2 h3 {
-  color: var(--dark-text-primary);
+  color: var(--dark-text-primary) !important;
+  font-size: 1.4rem !important;
+  margin-bottom: 10px !important;
 }
 
+/* Infos : adresse, tarif, etc. */
 html[data-theme="dark"] .lst-event .item .blc-col1 .col2 .adresse,
 html.theme-dark .lst-event .item .blc-col1 .col2 .adresse,
 body.theme-dark .lst-event .item .blc-col1 .col2 .adresse,
 html[data-theme="dark"] .lst-event .item .blc-col1 .col2 .tarif,
 html.theme-dark .lst-event .item .blc-col1 .col2 .tarif,
-body.theme-dark .lst-event .item .blc-col1 .col2 .tarif,
-html[data-theme="dark"] .lst-event .item .blc-col1 .col2 .capacite,
-html.theme-dark .lst-event .item .blc-col1 .col2 .capacite,
-body.theme-dark .lst-event .item .blc-col1 .col2 .capacite {
-  color: var(--dark-text-secondary);
+body.theme-dark .lst-event .item .blc-col1 .col2 .tarif {
+  color: var(--dark-text-secondary) !important;
 }
 
-/* Dates et heures */
-html[data-theme="dark"] .lst-event .item .blc-col1 .col1 .date span,
-html.theme-dark .lst-event .item .blc-col1 .col1 .date span,
-body.theme-dark .lst-event .item .blc-col1 .col1 .date span,
-html[data-theme="dark"] .lst-event .item .blc-col1 .col1 .hour,
-html.theme-dark .lst-event .item .blc-col1 .col1 .hour,
-body.theme-dark .lst-event .item .blc-col1 .col1 .hour {
-  color: var(--dark-text-secondary);
+/* Section Date (col1) */
+html[data-theme="dark"] .lst-event .item .blc-col1 .col1,
+html.theme-dark .lst-event .item .blc-col1 .col1,
+body.theme-dark .lst-event .item .blc-col1 .col1 {
+  background-color: rgba(255, 255, 255, 0.02) !important;
+  border-right: 1px solid var(--dark-border-primary) !important;
 }
 
 html[data-theme="dark"] .lst-event .item .blc-col1 .col1 .date strong,
 html.theme-dark .lst-event .item .blc-col1 .col1 .date strong,
 body.theme-dark .lst-event .item .blc-col1 .col1 .date strong {
-  color: var(--dark-success);
+  color: var(--dark-accent-primary) !important;
+  font-size: 2rem !important;
 }
 
-/* Bandeaux */
+/* Bandeau (Prix, Type, etc.) */
 html[data-theme="dark"] .lst-event .item .blc-col1 .col2 .bandeau,
 html.theme-dark .lst-event .item .blc-col1 .col2 .bandeau,
 body.theme-dark .lst-event .item .blc-col1 .col2 .bandeau {
-  background-color: var(--dark-beige);
-  color: var(--dark-text-primary);
+  background-color: var(--dark-bg-tertiary) !important;
+  color: var(--dark-text-primary) !important;
+  border-radius: 8px !important;
 }
 
 /* ========== BOUTONS ========== */
-/* Boutons principaux */
-html[data-theme="dark"] .btn.submit,
-html.theme-dark .btn.submit,
-body.theme-dark .btn.submit,
-html[data-theme="dark"] .lst-event .item .blc-col1 .col2 .blcBtn .btn.ticket,
-html.theme-dark .lst-event .item .blc-col1 .col2 .blcBtn .btn.ticket,
-body.theme-dark .lst-event .item .blc-col1 .col2 .blcBtn .btn.ticket {
-  background: var(--dark-gradient-primary);
-  color: var(--dark-text-primary);
-  border: none;
-  font-weight: 600;
-  box-shadow: var(--dark-shadow-accent);
-  transition: var(--dark-transition-slow);
+/* Bouton Ticket */
+html[data-theme="dark"] .btn.ticket,
+html.theme-dark .btn.ticket,
+body.theme-dark .btn.ticket {
+  background: var(--dark-gradient-primary) !important;
+  color: #ffffff !important;
+  border-radius: 12px !important;
 }
 
-html[data-theme="dark"] .btn.submit:hover,
-html.theme-dark .btn.submit:hover,
-body.theme-dark .btn.submit:hover,
-html[data-theme="dark"] .lst-event .item .blc-col1 .col2 .blcBtn .btn.ticket:hover,
-html.theme-dark .lst-event .item .blc-col1 .col2 .blcBtn .btn.ticket:hover,
-body.theme-dark .lst-event .item .blc-col1 .col2 .blcBtn .btn.ticket:hover {
-  background: var(--dark-gradient-primary-hover);
-  box-shadow: var(--dark-shadow-accent-hover);
-  transform: translateY(-1px);
+/* Bouton Détails */
+html[data-theme="dark"] .btn.details,
+html.theme-dark .btn.details,
+body.theme-dark .btn.details {
+  background: rgba(255, 255, 255, 0.05) !important;
+  color: var(--dark-text-primary) !important;
+  border: 1px solid var(--dark-border-primary) !important;
+  border-radius: 12px !important;
 }
 
-/* Boutons secondaires */
-html[data-theme="dark"] .lst-event .item .blc-col1 .col2 .blcBtn .btn.details,
-html.theme-dark .lst-event .item .blc-col1 .col2 .blcBtn .btn.details,
-body.theme-dark .lst-event .item .blc-col1 .col2 .blcBtn .btn.details {
-  background: var(--dark-gradient-success);
-  color: var(--dark-text-primary);
-  border: none;
-  font-weight: 600;
-  transition: var(--dark-transition-slow);
-}
-
-html[data-theme="dark"] .lst-event .item .blc-col1 .col2 .blcBtn .btn.details:hover,
-html.theme-dark .lst-event .item .blc-col1 .col2 .blcBtn .btn.details:hover,
-body.theme-dark .lst-event .item .blc-col1 .col2 .blcBtn .btn.details:hover {
-  background: var(--dark-gradient-success-hover);
-  transform: translateY(-1px);
-}
-
-/* ========== BOUTON FAVORIS ========== */
-html[data-theme="dark"] .favorite-toggle,
-html.theme-dark .favorite-toggle,
-body.theme-dark .favorite-toggle {
-  background: rgba(255, 255, 255, 0.15);
-  color: rgba(255, 255, 255, 0.8);
-  border: 1px solid var(--dark-border-hover);
-  box-shadow: var(--dark-shadow-sm);
-  transition: var(--dark-transition-slow);
-}
-
-html[data-theme="dark"] .favorite-toggle:hover,
-html.theme-dark .favorite-toggle:hover,
-body.theme-dark .favorite-toggle:hover {
-  background: rgba(255, 255, 255, 0.25);
-  color: var(--dark-accent-primary);
-  border-color: var(--dark-border-accent);
-  transform: scale(1.05);
-}
-
-html[data-theme="dark"] .favorite-toggle.is-active,
-html.theme-dark .favorite-toggle.is-active,
-body.theme-dark .favorite-toggle.is-active {
-  background: linear-gradient(135deg, var(--dark-danger), #e84118);
-  color: var(--dark-text-primary);
-  box-shadow: var(--dark-shadow-danger);
-}
-
-/* ========== MESSAGES ET ÉTATS ========== */
-html[data-theme="dark"] .no-results,
-html.theme-dark .no-results,
-body.theme-dark .no-results {
-  color: var(--dark-text-secondary);
-}
-
-html[data-theme="dark"] .no-results h3,
-html.theme-dark .no-results h3,
-body.theme-dark .no-results h3 {
-  color: var(--dark-text-primary);
-}
-
-html[data-theme="dark"] .no-results i,
-html.theme-dark .no-results i,
-body.theme-dark .no-results i {
-  color: rgba(255, 255, 255, 0.5);
+html[data-theme="dark"] .btn.details:hover,
+html.theme-dark .btn.details:hover,
+body.theme-dark .btn.details:hover {
+  background: rgba(255, 255, 255, 0.1) !important;
+  border-color: var(--dark-accent-primary) !important;
 }
 
 /* ========== PAGINATION ========== */
-html[data-theme="dark"] .pagination li,
-html.theme-dark .pagination li,
-body.theme-dark .pagination li {
-  background-color: var(--dark-input-bg);
-  border: 1px solid var(--dark-input-border);
-  transition: var(--dark-transition-normal);
+html[data-theme="dark"] .pagination ul li a,
+html.theme-dark .pagination ul li a,
+body.theme-dark .pagination ul li a {
+  color: var(--dark-text-secondary) !important;
 }
 
-html[data-theme="dark"] .pagination li a,
-html.theme-dark .pagination li a,
-body.theme-dark .pagination li a {
-  color: var(--dark-text-secondary);
+html[data-theme="dark"] .pagination ul li.selected a,
+html.theme-dark .pagination ul li.selected a,
+body.theme-dark .pagination ul li.selected a {
+  color: var(--dark-accent-primary) !important;
 }
 
-html[data-theme="dark"] .pagination li:hover,
-html.theme-dark .pagination li:hover,
-body.theme-dark .pagination li:hover {
-  background-color: rgba(74, 158, 255, 0.2);
-  border-color: var(--dark-accent-primary);
-}
-
-html[data-theme="dark"] .pagination li:hover a,
-html.theme-dark .pagination li:hover a,
-body.theme-dark .pagination li:hover a {
-  color: var(--dark-accent-primary);
-}
-
-html[data-theme="dark"] .pagination li.selected,
-html.theme-dark .pagination li.selected,
-body.theme-dark .pagination li.selected {
-  background: var(--dark-gradient-primary);
-  border-color: var(--dark-accent-primary);
-}
-
-html[data-theme="dark"] .pagination li.selected a,
-html.theme-dark .pagination li.selected a,
-body.theme-dark .pagination li.selected a {
-  color: var(--dark-text-primary);
-}
-
-/* ========== CORRECTIONS SPÉCIFIQUES ========== */
-html[data-theme="dark"] .sep,
-html.theme-dark .sep,
-body.theme-dark .sep {
-  border-color: var(--dark-border-primary) !important;
-}
-
-html[data-theme="dark"] .text-muted,
-html.theme-dark .text-muted,
-body.theme-dark .text-muted {
-  color: var(--dark-text-muted) !important;
-}
-
-html[data-theme="dark"] .badge,
-html.theme-dark .badge,
-body.theme-dark .badge {
-  color: var(--dark-text-primary);
-}
-
-/* Icônes et pseudo-éléments */
-html[data-theme="dark"] .lst-event .item .blc-col1 .col2 .adresse:before,
-html.theme-dark .lst-event .item .blc-col1 .col2 .adresse:before,
-body.theme-dark .lst-event .item .blc-col1 .col2 .adresse:before,
-html[data-theme="dark"] .lst-event .item .blc-col1 .col2 .tarif:before,
-html.theme-dark .lst-event .item .blc-col1 .col2 .tarif:before,
-body.theme-dark .lst-event .item .blc-col1 .col2 .tarif:before,
-html[data-theme="dark"] .lst-event .item .blc-col1 .col2 .capacite:before,
-html.theme-dark .lst-event .item .blc-col1 .col2 .capacite:before,
-body.theme-dark .lst-event .item .blc-col1 .col2 .capacite:before {
-  filter: brightness(0) invert(1) opacity(0.8);
-}
-
-/* Code barre */
-html[data-theme="dark"] .lst-event .item .blc-col1 .col1 .code-barre,
-html.theme-dark .lst-event .item .blc-col1 .col1 .code-barre,
-body.theme-dark .lst-event .item .blc-col1 .col1 .code-barre {
-  filter: brightness(0.8) invert(1);
-}
-
-/* ========== SLIDER DE PRIX ========== */
-html[data-theme="dark"] #slider-range,
-html.theme-dark #slider-range,
-body.theme-dark #slider-range {
-  background: rgba(255, 255, 255, 0.2);
-}
-
-html[data-theme="dark"] .ui-slider-range.ui-corner-all.ui-widget-header,
-html.theme-dark .ui-slider-range.ui-corner-all.ui-widget-header,
-body.theme-dark .ui-slider-range.ui-corner-all.ui-widget-header {
-  background: var(--dark-accent-primary);
-}
-
-html[data-theme="dark"] .ui-slider-handle.ui-corner-all.ui-state-default,
-html.theme-dark .ui-slider-handle.ui-corner-all.ui-state-default,
-body.theme-dark .ui-slider-handle.ui-corner-all.ui-state-default {
-  background: var(--dark-accent-primary);
-  border-color: var(--dark-bg-secondary);
-}
-
-html[data-theme="dark"] #amount,
-html.theme-dark #amount,
-body.theme-dark #amount {
-  color: var(--dark-accent-primary);
-  font-weight: 600;
-}
-
-/* ========== SECTION CALENDRIER ========== */
-html[data-theme="dark"] .sec-calendar,
-html.theme-dark .sec-calendar,
-body.theme-dark .sec-calendar {
-  background-color: var(--dark-bg-secondary);
-}
-
-html[data-theme="dark"] .sec-calendar h2,
-html.theme-dark .sec-calendar h2,
-body.theme-dark .sec-calendar h2 {
-  color: var(--dark-text-primary);
-}
-
-html[data-theme="dark"] .sec-calendar .txt,
-html.theme-dark .sec-calendar .txt,
-body.theme-dark .sec-calendar .txt,
-html[data-theme="dark"] .sec-calendar .txt p,
-html.theme-dark .sec-calendar .txt p,
-body.theme-dark .sec-calendar .txt p {
-  color: var(--dark-text-secondary);
-}
-
+/* ========== CALENDRIER ========== */
 html[data-theme="dark"] .calendar .blcLeft,
 html.theme-dark .calendar .blcLeft,
 body.theme-dark .calendar .blcLeft,
 html[data-theme="dark"] .calendar .blcRight,
 html.theme-dark .calendar .blcRight,
 body.theme-dark .calendar .blcRight {
-  background-color: var(--dark-bg-card);
-  border: 1px solid var(--dark-border-primary);
+  background-color: var(--dark-bg-secondary) !important;
+  border: 1px solid var(--dark-border-primary) !important;
 }
 
-html[data-theme="dark"] .calendar .blcRight h3,
-html.theme-dark .calendar .blcRight h3,
-body.theme-dark .calendar .blcRight h3 {
-  color: var(--dark-text-primary);
-}
-
-/* Liste des prochains événements */
 html[data-theme="dark"] .lst-pro-event .item,
 html.theme-dark .lst-pro-event .item,
 body.theme-dark .lst-pro-event .item {
-  background-color: rgba(255, 255, 255, 0.05);
-  border: 1px solid var(--dark-border-primary);
-  transition: var(--dark-transition-normal);
+  background-color: rgba(255, 255, 255, 0.03) !important;
 }
 
 html[data-theme="dark"] .lst-pro-event .item:hover,
 html.theme-dark .lst-pro-event .item:hover,
 body.theme-dark .lst-pro-event .item:hover {
-  background-color: var(--dark-bg-hover);
-  border-color: var(--dark-accent-primary);
-}
-
-html[data-theme="dark"] .lst-pro-event .item h4,
-html.theme-dark .lst-pro-event .item h4,
-body.theme-dark .lst-pro-event .item h4 {
-  color: var(--dark-text-primary);
-}
-
-html[data-theme="dark"] .lst-pro-event .item .date,
-html.theme-dark .lst-pro-event .item .date,
-body.theme-dark .lst-pro-event .item .date,
-html[data-theme="dark"] .lst-pro-event .item .hour,
-html.theme-dark .lst-pro-event .item .hour,
-body.theme-dark .lst-pro-event .item .hour {
-  color: var(--dark-text-secondary);
-}
-
-html[data-theme="dark"] .lst-pro-event .item .link,
-html.theme-dark .lst-pro-event .item .link,
-body.theme-dark .lst-pro-event .item .link {
-  color: var(--dark-accent-primary);
-}
-
-/* ========== DATEPICKER JQUERY UI ========== */
-html[data-theme="dark"] .ui-datepicker,
-html.theme-dark .ui-datepicker,
-body.theme-dark .ui-datepicker {
-  background-color: var(--dark-bg-card);
-  border: 1px solid var(--dark-border-primary);
-  color: var(--dark-text-primary);
-}
-
-html[data-theme="dark"] .ui-datepicker-header,
-html.theme-dark .ui-datepicker-header,
-body.theme-dark .ui-datepicker-header {
-  background-color: var(--dark-bg-elevated);
-  border-bottom: 1px solid var(--dark-border-primary);
-}
-
-html[data-theme="dark"] .ui-datepicker-title,
-html.theme-dark .ui-datepicker-title,
-body.theme-dark .ui-datepicker-title {
-  color: var(--dark-text-primary);
-}
-
-html[data-theme="dark"] .ui-datepicker-prev,
-html.theme-dark .ui-datepicker-prev,
-body.theme-dark .ui-datepicker-prev,
-html[data-theme="dark"] .ui-datepicker-next,
-html.theme-dark .ui-datepicker-next,
-body.theme-dark .ui-datepicker-next {
-  background-color: transparent;
-  border: none;
-  color: var(--dark-text-primary);
-}
-
-html[data-theme="dark"] .ui-datepicker-prev:hover,
-html.theme-dark .ui-datepicker-prev:hover,
-body.theme-dark .ui-datepicker-prev:hover,
-html[data-theme="dark"] .ui-datepicker-next:hover,
-html.theme-dark .ui-datepicker-next:hover,
-body.theme-dark .ui-datepicker-next:hover {
-  background-color: var(--dark-bg-hover);
-  color: var(--dark-accent-primary);
-}
-
-html[data-theme="dark"] .ui-datepicker-calendar th,
-html.theme-dark .ui-datepicker-calendar th,
-body.theme-dark .ui-datepicker-calendar th {
-  color: var(--dark-text-secondary);
-  border-color: var(--dark-border-primary);
-}
-
-html[data-theme="dark"] .ui-datepicker-calendar td,
-html.theme-dark .ui-datepicker-calendar td,
-body.theme-dark .ui-datepicker-calendar td {
-  border-color: var(--dark-border-primary);
-}
-
-html[data-theme="dark"] .ui-datepicker-calendar td a,
-html.theme-dark .ui-datepicker-calendar td a,
-body.theme-dark .ui-datepicker-calendar td a {
-  color: var(--dark-text-primary);
-  background-color: transparent;
-}
-
-html[data-theme="dark"] .ui-datepicker-calendar td a:hover,
-html.theme-dark .ui-datepicker-calendar td a:hover,
-body.theme-dark .ui-datepicker-calendar td a:hover {
-  background-color: rgba(74, 158, 255, 0.2);
-  color: var(--dark-accent-primary);
-}
-
-html[data-theme="dark"] .ui-datepicker-calendar td.ui-datepicker-today a,
-html.theme-dark .ui-datepicker-calendar td.ui-datepicker-today a,
-body.theme-dark .ui-datepicker-calendar td.ui-datepicker-today a {
-  background-color: rgba(74, 158, 255, 0.3);
-  color: var(--dark-accent-primary);
-  font-weight: 600;
-}
-
-html[data-theme="dark"] .ui-datepicker-calendar td.ui-datepicker-current-day a,
-html.theme-dark .ui-datepicker-calendar td.ui-datepicker-current-day a,
-body.theme-dark .ui-datepicker-calendar td.ui-datepicker-current-day a {
-  background-color: var(--dark-accent-primary);
-  color: var(--dark-text-primary);
-  font-weight: 600;
-}
-
-html[data-theme="dark"] .ui-datepicker-calendar td.has-event a,
-html.theme-dark .ui-datepicker-calendar td.has-event a,
-body.theme-dark .ui-datepicker-calendar td.has-event a {
-  background-color: var(--dark-success);
-  color: var(--dark-text-primary);
-}
-
-html[data-theme="dark"] .ui-datepicker-calendar td.has-event a:hover,
-html.theme-dark .ui-datepicker-calendar td.has-event a:hover,
-body.theme-dark .ui-datepicker-calendar td.has-event a:hover {
-  background-color: var(--dark-success-dark);
-  color: var(--dark-text-primary);
-}
-
-html[data-theme="dark"] .ui-datepicker-calendar td.ui-state-disabled,
-html.theme-dark .ui-datepicker-calendar td.ui-state-disabled,
-body.theme-dark .ui-datepicker-calendar td.ui-state-disabled {
-  opacity: var(--dark-opacity-disabled);
-}
-
-html[data-theme="dark"] .ui-datepicker-calendar td.ui-state-disabled a,
-html.theme-dark .ui-datepicker-calendar td.ui-state-disabled a,
-body.theme-dark .ui-datepicker-calendar td.ui-state-disabled a {
-  color: var(--dark-text-muted);
+  background-color: rgba(255, 255, 255, 0.06) !important;
 }

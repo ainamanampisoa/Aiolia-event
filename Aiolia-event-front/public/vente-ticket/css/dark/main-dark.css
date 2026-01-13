@@ -1,18 +1,27 @@
 /* ============================================
    MODE SOMBRE (DARK MODE) - Main Styles
+   Premium, Balanced & Readable Version
    ============================================ */
 
 /* 
    IMPORTANT: Ce fichier utilise les variables définies dans dark-variables.css
-   Assurez-vous que dark-variables.css est chargé en premier.
 */
 
 /* ========== STYLES DE BASE ========== */
 html[data-theme="dark"] body,
 html.theme-dark body,
 body.theme-dark {
-    background-color: var(--dark-bg-primary);
+    background-color: var(--dark-bg-primary) !important;
     color: var(--dark-text-secondary);
+}
+
+/* Logo Fix & Size */
+html[data-theme="dark"] .logo img,
+html.theme-dark .logo img {
+    filter: none !important;
+    opacity: 1 !important;
+    max-height: 55px !important;
+    width: auto !important;
 }
 
 /* ========== HEADER ET NAVIGATION ========== */
@@ -22,467 +31,140 @@ body.theme-dark header,
 html[data-theme="dark"] .head,
 html.theme-dark .head,
 body.theme-dark .head {
-    background-color: var(--dark-bg-secondary);
-    border-bottom: 1px solid var(--dark-border-secondary);
+    background: var(--dark-bg-secondary) !important;
+    border-bottom: 1px solid var(--dark-border-primary) !important;
+    box-shadow: 0 4px 20px rgba(0, 0, 0, 0.4) !important;
+}
+
+/* Menu de navigation (Événements, Contact, etc.) */
+html[data-theme="dark"] .menu ul li a,
+html.theme-dark .menu ul li a {
+    color: var(--dark-text-primary) !important;
+    /* Brighter for top-level nav */
+    font-weight: 600 !important;
+    font-size: 14px !important;
+    letter-spacing: 0.5px !important;
+    text-transform: uppercase !important;
+}
+
+html[data-theme="dark"] .menu ul li a:hover,
+html.theme-dark .menu ul li a:hover {
+    color: var(--dark-accent-primary) !important;
 }
 
 /* Barre de recherche */
+html[data-theme="dark"] .user-connected-search,
+html.theme-dark .user-connected-search {
+    border-bottom-color: var(--dark-border-primary) !important;
+}
+
 html[data-theme="dark"] .user-connected-search input[type="search"],
-html.theme-dark .user-connected-search input[type="search"],
-body.theme-dark .user-connected-search input[type="search"] {
-    color: var(--dark-text-secondary);
-    background-color: var(--dark-input-bg);
-    border-bottom-color: var(--dark-border-accent);
+html.theme-dark .user-connected-search input[type="search"] {
+    color: var(--dark-text-primary) !important;
+    background: transparent !important;
 }
 
 html[data-theme="dark"] .user-connected-search input[type="search"]::placeholder,
-html.theme-dark .user-connected-search input[type="search"]::placeholder,
-body.theme-dark .user-connected-search input[type="search"]::placeholder {
-    color: var(--dark-input-placeholder);
+html.theme-dark .user-connected-search input[type="search"]::placeholder {
+    color: var(--dark-text-muted) !important;
 }
 
-/* Liens utilisateur et menu */
+html[data-theme="dark"] .user-connected-search button svg,
+html.theme-dark .user-connected-search button svg {
+    stroke: var(--dark-accent-primary) !important;
+}
+
+/* ========== ICONES ET LIENS UTILISATEUR ========== */
+/* On rend les fonds très subtils pour éviter l'effet "bloc disitngué" */
 html[data-theme="dark"] .user-connected-link,
 html.theme-dark .user-connected-link,
-body.theme-dark .user-connected-link,
 html[data-theme="dark"] .user-connected-menu,
 html.theme-dark .user-connected-menu,
-body.theme-dark .user-connected-menu {
-    background: var(--dark-gradient-card);
-    border-color: var(--dark-border-primary);
-    color: var(--dark-text-secondary);
+html[data-theme="dark"] .panier a,
+html.theme-dark .panier a {
+    background: rgba(255, 255, 255, 0.02) !important;
+    border: 1px solid rgba(255, 255, 255, 0.08) !important;
+    color: var(--dark-text-primary) !important;
+    box-shadow: none !important;
+    transition: all 0.3s ease !important;
 }
 
 html[data-theme="dark"] .user-connected-link:hover,
 html.theme-dark .user-connected-link:hover,
-body.theme-dark .user-connected-link:hover,
 html[data-theme="dark"] .user-connected-menu:hover,
 html.theme-dark .user-connected-menu:hover,
-body.theme-dark .user-connected-menu:hover {
-    background: var(--dark-gradient-primary);
-    color: var(--dark-text-primary);
-}
-
-/* Panier */
-html[data-theme="dark"] .panier a,
-html.theme-dark .panier a,
-body.theme-dark .panier a {
-    background: var(--dark-gradient-card);
-    border-color: var(--dark-border-secondary);
-}
-
 html[data-theme="dark"] .panier a:hover,
-html.theme-dark .panier a:hover,
-body.theme-dark .panier a:hover {
-    background: var(--dark-gradient-primary);
+html.theme-dark .panier a:hover {
+    background: var(--dark-accent-primary) !important;
+    border-color: var(--dark-accent-primary) !important;
+    color: #ffffff !important;
+}
+
+/* Pilule de Profil */
+html[data-theme="dark"] .profile-link,
+html.theme-dark .profile-link {
+    background: rgba(255, 255, 255, 0.04) !important;
+}
+
+/* Correction des icônes SVG (DATA URIS) pour le mode sombre */
+html[data-theme="dark"] .icon-notifications,
+html.theme-dark .icon-notifications {
+    background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%23e6e8eb' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9'/%3E%3Cpath d='M13.73 21a2 2 0 0 1-3.46 0'/%3E%3C/svg%3E") !important;
+}
+
+html[data-theme="dark"] .icon-profile,
+html.theme-dark .icon-profile {
+    background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%23e6e8eb' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2'/%3E%3Ccircle cx='12' cy='7' r='4'/%3E%3C/svg%3E") !important;
+}
+
+html[data-theme="dark"] .icon-menu,
+html.theme-dark .icon-menu {
+    background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%23e6e8eb' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3E%3Cline x1='3' y1='12' x2='21' y2='12'/%3E%3Cline x1='3' y1='6' x2='21' y2='6'/%3E%3Cline x1='3' y1='18' x2='21' y2='18'/%3E%3C/svg%3E") !important;
+}
+
+html[data-theme="dark"] .panier a::before,
+html.theme-dark .panier a::before {
+    background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%23e6e8eb' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3E%3Ccircle cx='9' cy='21' r='1'/%3E%3Ccircle cx='20' cy='21' r='1'/%3E%3Cpath d='M1 1h4l2.68 13.39a2 2 0 0 0 2 1.61h9.72a2 2 0 0 0 2-1.61L23 6H6'/%3E%3C/svg%3E") !important;
+}
+
+/* Hover icons (Switch to white) */
+html[data-theme="dark"] .user-connected-link:hover .icon-notifications,
+html[data-theme="dark"] .user-connected-link:hover .icon-profile,
+html[data-theme="dark"] .user-connected-menu:hover .icon-menu,
+html[data-theme="dark"] .panier a:hover::before {
+    filter: brightness(0) invert(1) !important;
+}
+
+/* ========== GUEST HEADER ========== */
+html[data-theme="dark"] .guest-quick-settings,
+html.theme-dark .guest-quick-settings {
+    background: rgba(255, 255, 255, 0.05) !important;
+    border: 1px solid var(--dark-border-primary) !important;
 }
 
 /* ========== FOOTER ========== */
 html[data-theme="dark"] .footer,
 html.theme-dark .footer,
 body.theme-dark .footer {
-    background-color: var(--dark-bg-secondary);
-    color: var(--dark-text-secondary);
-    border-top: 1px solid var(--dark-border-secondary);
+    background-color: var(--dark-bg-secondary) !important;
+    border-top: 1px solid var(--dark-border-primary) !important;
 }
 
-html[data-theme="dark"] .footer a,
-html.theme-dark .footer a,
-body.theme-dark .footer a {
-    color: var(--dark-accent-primary);
-}
-
-html[data-theme="dark"] .footer a:hover,
-html.theme-dark .footer a:hover,
-body.theme-dark .footer a:hover {
-    color: var(--dark-accent-primary-hover);
-}
-
-/* ========== LIENS GÉNÉRAUX ========== */
-html[data-theme="dark"] a,
-html.theme-dark a,
-body.theme-dark a {
-    color: var(--dark-accent-primary);
-}
-
-html[data-theme="dark"] a:hover,
-html.theme-dark a:hover,
-body.theme-dark a:hover {
-    color: var(--dark-accent-primary-hover);
-}
-
-/* ========== CARTES ET CONTENEURS ========== */
+/* ========== COMPOSANTS ========== */
 html[data-theme="dark"] .bg-beige,
-html.theme-dark .bg-beige,
-body.theme-dark .bg-beige {
-    background-color: var(--dark-bg-tertiary);
-    color: var(--dark-text-secondary);
+html.theme-dark .bg-beige {
+    background-color: var(--dark-bg-tertiary) !important;
 }
 
-html[data-theme="dark"] .settings-card,
-html.theme-dark .settings-card,
-body.theme-dark .settings-card {
-    background: var(--dark-gradient-card);
-    border-color: var(--dark-border-primary);
-    color: var(--dark-text-secondary);
-}
-
-html[data-theme="dark"] .settings-card h2,
-html.theme-dark .settings-card h2,
-body.theme-dark .settings-card h2,
-html[data-theme="dark"] .settings-card h3,
-html.theme-dark .settings-card h3,
-body.theme-dark .settings-card h3 {
-    color: var(--dark-text-primary);
-}
-
-/* ========== FORMULAIRES ========== */
-html[data-theme="dark"] input,
-html.theme-dark input,
-body.theme-dark input,
-html[data-theme="dark"] textarea,
-html.theme-dark textarea,
-body.theme-dark textarea,
-html[data-theme="dark"] select,
-html.theme-dark select,
-body.theme-dark select {
-    background-color: var(--dark-input-bg);
-    color: var(--dark-text-primary);
-    border-color: var(--dark-input-border);
-}
-
-html[data-theme="dark"] input::placeholder,
-html.theme-dark input::placeholder,
-body.theme-dark input::placeholder,
-html[data-theme="dark"] textarea::placeholder,
-html.theme-dark textarea::placeholder,
-body.theme-dark textarea::placeholder {
-    color: var(--dark-input-placeholder);
-}
-
-html[data-theme="dark"] input:focus,
-html.theme-dark input:focus,
-body.theme-dark input:focus,
-html[data-theme="dark"] textarea:focus,
-html.theme-dark textarea:focus,
-body.theme-dark textarea:focus,
-html[data-theme="dark"] select:focus,
-html.theme-dark select:focus,
-body.theme-dark select:focus {
-    border-color: var(--dark-input-border-focus);
-    background-color: var(--dark-input-bg-focus);
-    box-shadow: 0 0 0 3px rgba(74, 158, 255, 0.2);
-}
-
-/* ========== BOUTONS ========== */
-html[data-theme="dark"] .btn,
-html.theme-dark .btn,
-body.theme-dark .btn,
-html[data-theme="dark"] button,
-html.theme-dark button,
-body.theme-dark button {
-    color: var(--dark-text-primary);
-}
-
-/* Boutons primaires */
+/* ========== BOUTONS GLOBAUX ========== */
 html[data-theme="dark"] .btn-solid,
-html.theme-dark .btn-solid,
-body.theme-dark .btn-solid,
-html[data-theme="dark"] .btn-primary,
-html.theme-dark .btn-primary,
-body.theme-dark .btn-primary {
-    background: var(--dark-gradient-primary);
-    color: var(--dark-text-primary);
-    border: none;
-    font-weight: 600;
-    box-shadow: var(--dark-shadow-accent);
+html.theme-dark .btn-solid {
+    background: linear-gradient(135deg, #3d7fb8 0%, #1e4d7d 100%) !important;
+    color: #ffffff !important;
+    box-shadow: 0 4px 15px rgba(0, 0, 0, 0.3) !important;
 }
 
 html[data-theme="dark"] .btn-solid:hover,
-html.theme-dark .btn-solid:hover,
-body.theme-dark .btn-solid:hover,
-html[data-theme="dark"] .btn-primary:hover,
-html.theme-dark .btn-primary:hover,
-body.theme-dark .btn-primary:hover {
-    background: var(--dark-gradient-primary-hover);
-    box-shadow: var(--dark-shadow-accent-hover);
-    transform: translateY(-1px);
-}
-
-/* Boutons secondaires */
-html[data-theme="dark"] .btn-outline,
-html.theme-dark .btn-outline,
-body.theme-dark .btn-outline,
-html[data-theme="dark"] .btn-secondary,
-html.theme-dark .btn-secondary,
-body.theme-dark .btn-secondary {
-    border-color: var(--dark-border-accent);
-    color: var(--dark-accent-primary);
-    background: rgba(74, 158, 255, 0.05);
-    font-weight: 600;
-}
-
-html[data-theme="dark"] .btn-outline:hover,
-html.theme-dark .btn-outline:hover,
-body.theme-dark .btn-outline:hover,
-html[data-theme="dark"] .btn-secondary:hover,
-html.theme-dark .btn-secondary:hover,
-body.theme-dark .btn-secondary:hover {
-    background-color: rgba(74, 158, 255, 0.15);
-    border-color: var(--dark-accent-primary);
-    color: var(--dark-accent-primary-hover);
-}
-
-/* Boutons danger */
-html[data-theme="dark"] .btn-danger,
-html.theme-dark .btn-danger,
-body.theme-dark .btn-danger {
-    background: var(--dark-gradient-danger);
-    color: var(--dark-text-primary);
-    border: none;
-    font-weight: 600;
-}
-
-html[data-theme="dark"] .btn-danger:hover,
-html.theme-dark .btn-danger:hover,
-body.theme-dark .btn-danger:hover {
-    background: var(--dark-gradient-danger-hover);
-}
-
-/* Boutons succès */
-html[data-theme="dark"] .btn-success,
-html.theme-dark .btn-success,
-body.theme-dark .btn-success {
-    background: var(--dark-gradient-success);
-    color: var(--dark-text-primary);
-    border: none;
-    font-weight: 600;
-}
-
-html[data-theme="dark"] .btn-success:hover,
-html.theme-dark .btn-success:hover,
-body.theme-dark .btn-success:hover {
-    background: var(--dark-gradient-success-hover);
-}
-
-/* ========== SIDEBAR ========== */
-html[data-theme="dark"] .user-secondary-sidebar,
-html.theme-dark .user-secondary-sidebar,
-body.theme-dark .user-secondary-sidebar {
-    background-color: var(--dark-bg-secondary);
-    border-left: 1px solid var(--dark-border-secondary);
-}
-
-html[data-theme="dark"] .user-sidebar-nav a,
-html.theme-dark .user-sidebar-nav a,
-body.theme-dark .user-sidebar-nav a {
-    color: var(--dark-text-secondary);
-}
-
-html[data-theme="dark"] .user-sidebar-nav a:hover,
-html.theme-dark .user-sidebar-nav a:hover,
-body.theme-dark .user-sidebar-nav a:hover {
-    background-color: rgba(74, 158, 255, 0.15);
-    color: var(--dark-accent-primary-hover);
-}
-
-/* Overlay */
-html[data-theme="dark"] .user-sidebar-overlay,
-html.theme-dark .user-sidebar-overlay,
-body.theme-dark .user-sidebar-overlay {
-    background-color: var(--dark-bg-overlay);
-}
-
-/* ========== TEXTES ========== */
-html[data-theme="dark"] h1,
-html.theme-dark h1,
-body.theme-dark h1,
-html[data-theme="dark"] h2,
-html.theme-dark h2,
-body.theme-dark h2,
-html[data-theme="dark"] h3,
-html.theme-dark h3,
-body.theme-dark h3,
-html[data-theme="dark"] h4,
-html.theme-dark h4,
-body.theme-dark h4,
-html[data-theme="dark"] h5,
-html.theme-dark h5,
-body.theme-dark h5,
-html[data-theme="dark"] h6,
-html.theme-dark h6,
-body.theme-dark h6 {
-    color: var(--dark-text-primary);
-}
-
-html[data-theme="dark"] p,
-html.theme-dark p,
-body.theme-dark p {
-    color: var(--dark-text-secondary);
-}
-
-/* Textes secondaires */
-html[data-theme="dark"] small,
-html.theme-dark small,
-body.theme-dark small,
-html[data-theme="dark"] .text-muted,
-html.theme-dark .text-muted,
-body.theme-dark .text-muted {
-    color: var(--dark-text-muted);
-}
-
-html[data-theme="dark"] span:not(.notification-title span),
-html.theme-dark span:not(.notification-title span),
-body.theme-dark span:not(.notification-title span) {
-    color: var(--dark-text-secondary);
-}
-
-/* ========== TABLES ========== */
-html[data-theme="dark"] table,
-html.theme-dark table,
-body.theme-dark table {
-    background-color: var(--dark-bg-tertiary);
-    color: var(--dark-text-secondary);
-}
-
-html[data-theme="dark"] table th,
-html.theme-dark table th,
-body.theme-dark table th {
-    background-color: var(--dark-bg-secondary);
-    color: var(--dark-text-primary);
-}
-
-html[data-theme="dark"] table td,
-html.theme-dark table td,
-body.theme-dark table td {
-    border-color: var(--dark-border-secondary);
-}
-
-/* ========== PAGE DE CONTACT ========== */
-html[data-theme="dark"] .sec-contact,
-html.theme-dark .sec-contact,
-body.theme-dark .sec-contact {
-    background-color: var(--dark-bg-primary);
-}
-
-html[data-theme="dark"] .sec-contact h2,
-html.theme-dark .sec-contact h2,
-body.theme-dark .sec-contact h2 {
-    color: var(--dark-text-primary);
-}
-
-html[data-theme="dark"] .sec-contact p,
-html.theme-dark .sec-contact p,
-body.theme-dark .sec-contact p,
-html[data-theme="dark"] .blc-contact .col.blc-left,
-html.theme-dark .blc-contact .col.blc-left,
-body.theme-dark .blc-contact .col.blc-left {
-    color: var(--dark-text-secondary);
-}
-
-html[data-theme="dark"] .blc-btn-whatspp,
-html.theme-dark .blc-btn-whatspp,
-body.theme-dark .blc-btn-whatspp {
-    background-color: rgba(74, 158, 255, 0.2);
-    border-color: var(--dark-border-accent);
-}
-
-html[data-theme="dark"] .blc-btn-whatspp .inner,
-html.theme-dark .blc-btn-whatspp .inner,
-body.theme-dark .blc-btn-whatspp .inner {
-    color: var(--dark-text-primary);
-}
-
-html[data-theme="dark"] .blc-btn-whatspp .inner a,
-html.theme-dark .blc-btn-whatspp .inner a,
-body.theme-dark .blc-btn-whatspp .inner a {
-    color: var(--dark-accent-primary);
-}
-
-/* Formulaire de contact */
-html[data-theme="dark"] .blc-formulaire,
-html.theme-dark .blc-formulaire,
-body.theme-dark .blc-formulaire {
-    background: var(--dark-gradient-card);
-    border-color: var(--dark-border-secondary);
-}
-
-html[data-theme="dark"] .blc-formulaire h3,
-html.theme-dark .blc-formulaire h3,
-body.theme-dark .blc-formulaire h3 {
-    color: var(--dark-accent-primary);
-}
-
-html[data-theme="dark"] .blc-formulaire .blc-option>label,
-html.theme-dark .blc-formulaire .blc-option>label,
-body.theme-dark .blc-formulaire .blc-option>label,
-html[data-theme="dark"] .blc-formulaire .blc-chp label,
-html.theme-dark .blc-formulaire .blc-chp label,
-body.theme-dark .blc-formulaire .blc-chp label {
-    color: var(--dark-text-primary);
-}
-
-html[data-theme="dark"] .blc-formulaire .blc-option .option .check label,
-html.theme-dark .blc-formulaire .blc-option .option .check label,
-body.theme-dark .blc-formulaire .blc-option .option .check label {
-    color: var(--dark-text-secondary);
-}
-
-html[data-theme="dark"] .blc-formulaire .blc-option [type="radio"]:checked+label,
-html.theme-dark .blc-formulaire .blc-option [type="radio"]:checked+label,
-body.theme-dark .blc-formulaire .blc-option [type="radio"]:checked+label {
-    color: var(--dark-accent-primary);
-}
-
-html[data-theme="dark"] .blc-formulaire .blc-chp label span,
-html.theme-dark .blc-formulaire .blc-chp label span,
-body.theme-dark .blc-formulaire .blc-chp label span {
-    color: var(--dark-danger);
-}
-
-html[data-theme="dark"] .blc-formulaire .blc-chp .form-control,
-html.theme-dark .blc-formulaire .blc-chp .form-control,
-body.theme-dark .blc-formulaire .blc-chp .form-control,
-html[data-theme="dark"] .blc-formulaire .blc-chp select,
-html.theme-dark .blc-formulaire .blc-chp select,
-body.theme-dark .blc-formulaire .blc-chp select,
-html[data-theme="dark"] .blc-formulaire .blc-chp textarea.form-control,
-html.theme-dark .blc-formulaire .blc-chp textarea.form-control,
-body.theme-dark .blc-formulaire .blc-chp textarea.form-control {
-    background-color: var(--dark-input-bg);
-    border-color: var(--dark-input-border);
-    color: var(--dark-text-primary);
-}
-
-html[data-theme="dark"] .blc-formulaire .blc-chp .form-control:focus,
-html.theme-dark .blc-formulaire .blc-chp .form-control:focus,
-body.theme-dark .blc-formulaire .blc-chp .form-control:focus,
-html[data-theme="dark"] .blc-formulaire .blc-chp select:focus,
-html.theme-dark .blc-formulaire .blc-chp select:focus,
-body.theme-dark .blc-formulaire .blc-chp select:focus,
-html[data-theme="dark"] .blc-formulaire .blc-chp textarea.form-control:focus,
-html.theme-dark .blc-formulaire .blc-chp textarea.form-control:focus,
-body.theme-dark .blc-formulaire .blc-chp textarea.form-control:focus {
-    border-color: var(--dark-input-border-focus);
-    background-color: var(--dark-input-bg-focus);
-    box-shadow: 0 0 0 3px rgba(74, 158, 255, 0.2);
-}
-
-html[data-theme="dark"] .blc-formulaire .blc-chp .form-control::placeholder,
-html.theme-dark .blc-formulaire .blc-chp .form-control::placeholder,
-body.theme-dark .blc-formulaire .blc-chp .form-control::placeholder {
-    color: var(--dark-input-placeholder);
-}
-
-html[data-theme="dark"] .btn-submit,
-html.theme-dark .btn-submit,
-body.theme-dark .btn-submit {
-    background: var(--dark-gradient-primary);
-    color: var(--dark-text-primary);
-}
-
-html[data-theme="dark"] .btn-submit:hover,
-html.theme-dark .btn-submit:hover,
-body.theme-dark .btn-submit:hover {
-    background: var(--dark-gradient-primary-hover);
+html.theme-dark .btn-solid:hover {
+    background: linear-gradient(135deg, #4a90d9 0%, #2a5a8a 100%) !important;
 }
