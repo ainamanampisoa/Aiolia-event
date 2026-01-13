@@ -261,9 +261,26 @@ class OrderRepository
     /**
      * Récupère les données de dépenses par mois pour le graphique.
      */
+    /**
+     * Récupère les données de dépenses par mois pour le graphique.
+     * 
+     * @param int $userId ID de l'utilisateur
+     * @param int $months Nombre de mois à récupérer (6, 12, ou 24)
+     * @return array Tableau avec 'labels' (mois) et 'data' (montants)
+     */
     public function findSpendingChartData(int $userId, int $months = 12): array
     {
-        $startDate = (new \DateTimeImmutable())->modify("-{$months} months")->format('Y-m-01');
+        // Calculer la date de début : exactement N mois en arrière depuis le premier jour du mois actuel
+        // Exemple : si on est le 15 janvier 2025 et qu'on demande 6 mois :
+        //   - On va au 1er janvier 2025
+        //   - On soustrait 6 mois → 1er juillet 2024
+        //   - On génère exactement 6 mois : Jul 2024, Aug 2024, Sep 2024, Oct 2024, Nov 2024, Dec 2024
+        $now = new \DateTimeImmutable();
+        $firstDayOfCurrentMonth = $now->modify('first day of this month')->setTime(0, 0, 0);
+        $startDate = $firstDayOfCurrentMonth->modify("-{$months} months");
+        
+        // Date de fin : dernier jour du mois actuel
+        $endDate = $now->modify('last day of this month')->setTime(23, 59, 59);
 
         $sql = <<<SQL
             SELECT 
@@ -271,15 +288,17 @@ class OrderRepository
                 SUM(o.total_amount) as total_amount
             FROM aiolia.orders o
             WHERE o.user_id = :user_id
-            AND o.status = 'paid'
+            AND (o.status = 'paid' OR o.status = 'pending')
             AND o.created_at >= :start_date
+            AND o.created_at <= :end_date
             GROUP BY DATE_TRUNC('month', o.created_at)
             ORDER BY month ASC
         SQL;
 
         $rows = $this->connection->executeQuery($sql, [
             'user_id' => $userId,
-            'start_date' => $startDate,
+            'start_date' => $startDate->format('Y-m-d H:i:s'),
+            'end_date' => $endDate->format('Y-m-d H:i:s'),
         ])->fetchAllAssociative();
 
         // Créer un tableau associatif mois => montant
@@ -289,7 +308,7 @@ class OrderRepository
             $monthlyData[$monthKey] = (float) $row['total_amount'];
         }
 
-        // Générer tous les mois de la période avec leurs labels français
+        // Générer exactement N mois avec leurs labels français
         $labels = [];
         $data = [];
         $monthNames = [
@@ -307,10 +326,9 @@ class OrderRepository
             12 => 'Déc'
         ];
 
-        $currentDate = new \DateTimeImmutable($startDate);
-        $endDate = new \DateTimeImmutable();
-
-        while ($currentDate <= $endDate) {
+        // Générer exactement le nombre de mois demandé
+        $currentDate = clone $startDate;
+        for ($i = 0; $i < $months; $i++) {
             $monthKey = $currentDate->format('Y-m');
             $monthNum = (int) $currentDate->format('n');
             $year = $currentDate->format('Y');
@@ -318,6 +336,7 @@ class OrderRepository
             $labels[] = $monthNames[$monthNum] . ' ' . $year;
             $data[] = $monthlyData[$monthKey] ?? 0;
 
+            // Passer au mois suivant
             $currentDate = $currentDate->modify('+1 month');
         }
 
