@@ -70,13 +70,20 @@ class TypeBilletRepository extends ServiceEntityRepository
     
     public function findByOrganizer(User $organizer): array
     {
+        $now = new \DateTimeImmutable('now', new \DateTimeZone('Indian/Antananarivo'));
         return $this->createQueryBuilder('t')
             ->innerJoin('t.evenement', 'e')
             ->leftJoin('e.profilOrganisateur', 'op')
             ->leftJoin('App\Entity\OrganisateurEvenement', 'oe', 'WITH', 'oe.evenement = e')
             ->leftJoin('oe.profilOrganisateur', 'op2')
             ->where('op.utilisateur = :organizer OR op2.utilisateur = :organizer')
+            // Filtrer par les événements publiés en cours et à venir
+            ->andWhere('e.statut = :statutPublished')
+            // Événements qui ne sont pas encore terminés (en cours ou à venir)
+            ->andWhere('(e.seTermineLe IS NULL OR e.seTermineLe >= :nowDate)')
             ->setParameter('organizer', $organizer)
+            ->setParameter('statutPublished', Event::STATUS_PUBLISHED)
+            ->setParameter('nowDate', $now)
             ->orderBy('t.creeLe', 'DESC')
             ->getQuery()
             ->getResult();
@@ -94,8 +101,23 @@ class TypeBilletRepository extends ServiceEntityRepository
             ->setParameter('organizer', $organizer);
 
         if ($event !== null) {
+            // Si un événement spécifique est sélectionné, filtrer par cet événement
             $qb->andWhere('e.id = :eventId')
                 ->setParameter('eventId', $event->getId());
+        } else {
+            // Sinon, filtrer par les événements publiés en cours et à venir
+            // Un événement est "en cours ou à venir" s'il n'est pas encore terminé
+            // C'est-à-dire : seTermineLe IS NULL OU seTermineLe >= maintenant
+            // Cela inclut :
+            // - Les événements en cours (commencés mais pas terminés)
+            // - Les événements à venir (pas encore commencés)
+            // - Les événements sans date de fin (seTermineLe IS NULL)
+            $now = new \DateTimeImmutable('now', new \DateTimeZone('Indian/Antananarivo'));
+            $qb->andWhere('e.statut = :statutPublished')
+                // Événements qui ne sont pas encore terminés (en cours ou à venir)
+                ->andWhere('(e.seTermineLe IS NULL OR e.seTermineLe >= :nowDate)')
+                ->setParameter('statutPublished', Event::STATUS_PUBLISHED)
+                ->setParameter('nowDate', $now);
         }
 
         if ($categorieFilter) {

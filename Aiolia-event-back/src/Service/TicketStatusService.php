@@ -30,7 +30,6 @@ class TicketStatusService
             'dispo' => 'Disponible',
             'valid' => 'En attente',
             'used' => 'Utilisé',
-            'cancelled' => 'Annulé',
             'refunded' => 'Remboursé',
             'transferred' => 'Transféré',
         ];

@@ -103,135 +103,151 @@ class SubscriptionPaymentService
             // 7. Générer tous les numéros de facture
             $invoiceNumbers = $this->invoiceNumberService->generateMultipleSubscriptionInvoiceNumbers($numberOfMonths);
 
-            // 8. Créer les NOUVELLES factures
-            $invoices = [];
-            $firstInvoice = null;
-            $allEmailsSent = true;
+            // 8. Démarrer une transaction pour pouvoir annuler en cas d'erreur
+            $this->entityManager->beginTransaction();
+            
+            try {
+                // 9. Créer les NOUVELLES factures
+                $invoices = [];
+                $firstInvoice = null;
+                $allEmailsSent = true;
 
-            for ($i = 0; $i < $numberOfMonths; $i++) {
-                // Calculer le mois de facturation pour cette facture
-                $billingMonth = clone $startBillingMonth;
-                $billingMonth->modify("+{$i} months");
-                $billingMonthFormatted = $billingMonth->format('Y-m-01');
-                
-                // Vérifier à nouveau qu'il n'y a pas déjà une facture pour ce mois
-                $existingInvoice = $this->subscriptionRepository->findInvoiceForMonth(
-                    $subscription->getId(),
-                    $billingMonthFormatted
-                );
-                
-                if ($existingInvoice) {
-                    error_log('[SubscriptionPaymentService] Facture déjà existante pour ' . $billingMonthFormatted . ' - Skipping');
-                    continue; // Passer au mois suivant
+                for ($i = 0; $i < $numberOfMonths; $i++) {
+                    // Calculer le mois de facturation pour cette facture
+                    $billingMonth = clone $startBillingMonth;
+                    $billingMonth->modify("+{$i} months");
+                    $billingMonthFormatted = $billingMonth->format('Y-m-01');
+                    
+                    // Vérifier à nouveau qu'il n'y a pas déjà une facture pour ce mois
+                    $existingInvoice = $this->subscriptionRepository->findInvoiceForMonth(
+                        $subscription->getId(),
+                        $billingMonthFormatted
+                    );
+                    
+                    if ($existingInvoice) {
+                        error_log('[SubscriptionPaymentService] Facture déjà existante pour ' . $billingMonthFormatted . ' - Skipping');
+                        continue; // Passer au mois suivant
+                    }
+
+                    // Utiliser le numéro de facture pré-généré
+                    $invoiceNumber = $invoiceNumbers[$i];
+
+                    // Calculer les montants finaux (avec ajustement pour la dernière facture)
+                    $finalAmount = $amountPerMonth;
+                    $finalSubtotal = $subtotalPerMonth;
+                    $finalTax = $taxAmountPerMonth;
+                    
+                    if ($i === $numberOfMonths - 1) {
+                        $finalAmount += $amountDifference;
+                        $finalSubtotal += $subtotalDifference;
+                        $finalTax += $taxDifference;
+                    }
+
+                    // Créer la facture
+                    $invoice = $this->createInvoice(
+                        $subscription,
+                        $user,
+                        $plan,
+                        $finalAmount,
+                        $finalSubtotal,
+                        $finalTax,
+                        $paymentMethod,
+                        $transactionReference,
+                        $serverCorrelationId,
+                        $invoiceNumber,
+                        $billingMonth
+                    );
+
+                    // Marquer comme payée
+                    $invoice->markAsPaid();
+                    $paidAt = \DateTime::createFromImmutable(new \DateTimeImmutable());
+                    $invoice->setPaidAt($paidAt);
+                    $invoice->setStatus(SubscriptionInvoice::STATUS_PAID);
+
+                    // Sauvegarder la facture
+                    $this->entityManager->persist($invoice);
+                    $invoices[] = $invoice;
+
+                    if ($i === 0) {
+                        $firstInvoice = $invoice;
+                    }
+                    
+                    error_log('[SubscriptionPaymentService] Facture créée pour ' . $billingMonthFormatted . ' - Numéro: ' . $invoiceNumber);
                 }
 
-                // Utiliser le numéro de facture pré-généré
-                $invoiceNumber = $invoiceNumbers[$i];
-
-                // Calculer les montants finaux (avec ajustement pour la dernière facture)
-                $finalAmount = $amountPerMonth;
-                $finalSubtotal = $subtotalPerMonth;
-                $finalTax = $taxAmountPerMonth;
-                
-                if ($i === $numberOfMonths - 1) {
-                    $finalAmount += $amountDifference;
-                    $finalSubtotal += $subtotalDifference;
-                    $finalTax += $taxDifference;
+                if (empty($invoices)) {
+                    $this->entityManager->rollback();
+                    return [
+                        'success' => false,
+                        'email_sent' => false,
+                        'error' => 'Aucune nouvelle facture créée. Tous les mois avaient déjà des factures.',
+                    ];
                 }
 
-                // Créer la facture
-                $invoice = $this->createInvoice(
-                    $subscription,
-                    $user,
-                    $plan,
-                    $finalAmount,
-                    $finalSubtotal,
-                    $finalTax,
-                    $paymentMethod,
-                    $transactionReference,
-                    $serverCorrelationId,
-                    $invoiceNumber,
-                    $billingMonth
-                );
+                // 10. Flush toutes les nouvelles factures (sans commit)
+                $this->entityManager->flush();
 
-                // Pour la première facture, envoyer l'email
-                if ($i === 0) {
-                    $emailSent = $this->invoiceEmailService->sendSubscriptionInvoice($invoice);
+                // 11. Mettre à jour les dates de l'abonnement
+                $this->updateSubscriptionDates($subscription, $startBillingMonth, $numberOfMonths);
+
+                // 12. Envoyer l'email pour la première facture AVANT de committer
+                if ($firstInvoice) {
+                    $emailSent = $this->invoiceEmailService->sendSubscriptionInvoice($firstInvoice);
                     if (!$emailSent) {
                         if ($this->logger) {
                             $this->logger->error('Échec de l\'envoi de l\'email de facture', [
-                                'invoice_number' => $invoiceNumber,
+                                'invoice_number' => $firstInvoice->getInvoiceNumber(),
                                 'user_id' => $user->getId(),
                                 'plan_id' => $plan->getId(),
                             ]);
                         }
-                        $allEmailsSent = false;
+                        // Annuler la transaction si l'email n'a pas pu être envoyé
+                        $this->entityManager->rollback();
+                        return [
+                            'success' => false,
+                            'email_sent' => false,
+                            'error' => 'L\'email n\'a pas pu être envoyé. La transaction a été annulée.',
+                        ];
                     }
+                    $allEmailsSent = true;
                 }
 
-                // Marquer comme payée
-                $invoice->markAsPaid();
-                $paidAt = \DateTime::createFromImmutable(new \DateTimeImmutable());
-                $invoice->setPaidAt($paidAt);
-                $invoice->setStatus(SubscriptionInvoice::STATUS_PAID);
+                    // 13. Committer la transaction seulement si tout s'est bien passé
+                $this->entityManager->commit();
 
-                // Sauvegarder la facture
-                $this->entityManager->persist($invoice);
-                $invoices[] = $invoice;
+                if ($this->logger) {
+                    $this->logger->info('Nouvelles factures d\'abonnement créées', [
+                        'invoice_count' => count($invoices),
+                        'first_invoice_id' => $firstInvoice ? $firstInvoice->getId() : null,
+                        'first_invoice_number' => $firstInvoice ? $firstInvoice->getInvoiceNumber() : null,
+                        'subscription_id' => $subscription->getId(),
+                        'total_amount' => $amount,
+                        'billing_period' => $billingPeriod,
+                        'start_billing_month' => $startBillingMonth->format('Y-m-d'),
+                        'user_id' => $user->getId(),
+                        'email_sent' => true,
+                    ]);
+                }
 
-                if ($i === 0) {
-                    $firstInvoice = $invoice;
+                return [
+                    'success' => true,
+                    'email_sent' => true,
+                    'subscription' => $subscription,
+                    'invoice' => $firstInvoice,
+                    'invoices' => $invoices,
+                    'invoice_number' => $firstInvoice ? $firstInvoice->getInvoiceNumber() : null,
+                    'start_billing_month' => $startBillingMonth->format('Y-m-d'),
+                ];
+
+            } catch (\Exception $e) {
+                // Annuler la transaction en cas d'erreur
+                if ($this->entityManager->getConnection()->isTransactionActive()) {
+                    $this->entityManager->rollback();
                 }
                 
-                error_log('[SubscriptionPaymentService] Facture créée pour ' . $billingMonthFormatted . ' - Numéro: ' . $invoiceNumber);
+                // Re-lancer l'exception pour qu'elle soit gérée par le catch principal
+                throw $e;
             }
-
-            // 9. Flush toutes les nouvelles factures
-            $this->entityManager->flush();
-
-            // 10. Mettre à jour les dates de l'abonnement
-            $this->updateSubscriptionDates($subscription, $startBillingMonth, $numberOfMonths);
-
-            if (empty($invoices)) {
-                return [
-                    'success' => false,
-                    'email_sent' => false,
-                    'error' => 'Aucune nouvelle facture créée. Tous les mois avaient déjà des factures.',
-                ];
-            }
-
-            if (!$allEmailsSent) {
-                return [
-                    'success' => false,
-                    'email_sent' => false,
-                    'error' => 'L\'email n\'a pas pu être envoyé. Les factures ont été créées.',
-                    'invoice_number' => $firstInvoice ? $firstInvoice->getInvoiceNumber() : null,
-                ];
-            }
-
-            if ($this->logger) {
-                $this->logger->info('Nouvelles factures d\'abonnement créées', [
-                    'invoice_count' => count($invoices),
-                    'first_invoice_id' => $firstInvoice ? $firstInvoice->getId() : null,
-                    'first_invoice_number' => $firstInvoice ? $firstInvoice->getInvoiceNumber() : null,
-                    'subscription_id' => $subscription->getId(),
-                    'total_amount' => $amount,
-                    'billing_period' => $billingPeriod,
-                    'start_billing_month' => $startBillingMonth->format('Y-m-d'),
-                    'user_id' => $user->getId(),
-                    'email_sent' => true,
-                ]);
-            }
-
-            return [
-                'success' => true,
-                'email_sent' => true,
-                'subscription' => $subscription,
-                'invoice' => $firstInvoice,
-                'invoices' => $invoices,
-                'invoice_number' => $firstInvoice ? $firstInvoice->getInvoiceNumber() : null,
-                'start_billing_month' => $startBillingMonth->format('Y-m-d'),
-            ];
 
         } catch (\Exception $e) {
             if ($this->logger) {
@@ -457,7 +473,7 @@ class SubscriptionPaymentService
         $subscription->setDebutPeriodeCourante($debutPeriode);
         $subscription->setFinPeriodeCourante($finPeriode);
         
-        $this->entityManager->flush();
+        // Ne pas faire de flush ici, il sera fait dans la transaction principale
         
         error_log('[updateSubscriptionDates] Abonnement mis à jour:');
         error_log('  - Début période: ' . $debutPeriode->format('Y-m-d H:i:s'));

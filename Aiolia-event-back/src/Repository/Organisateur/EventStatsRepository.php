@@ -342,6 +342,7 @@ class EventStatsRepository
     /**
      * Taux de remplissage (occupation) par événement
      * Retourne pour chaque événement : capacité totale, billets vendus, et taux de remplissage
+     * Utilise la table billets pour être cohérent avec la page de gestion des billets
      *
      * @param array $eventIds IDs des événements
      * @return array [['event_id' => int, 'event_title' => string, 'total_capacity' => int, 'sold_tickets' => int, 'occupation_rate' => float], ...]
@@ -354,20 +355,31 @@ class EventStatsRepository
 
         $placeholders = implode(',', array_fill(0, count($eventIds), '?'));
         
+        // Utiliser la table billets au lieu de inventaire_billets pour être cohérent avec la page de gestion
+        // total_capacity = tous les billets créés (tous statuts)
+        // sold_tickets = billets avec elementCommande et statut valid/used (même logique que BilletRepository)
         $sql = "
             SELECT
                 e.id AS event_id,
                 e.titre AS event_title,
-                COALESCE(SUM(ib.quantite_totale), 0) AS total_capacity,
-                COALESCE(SUM(ib.quantite_vendue), 0) AS sold_tickets,
+                COUNT(b.id) AS total_capacity,
+                COUNT(CASE 
+                    WHEN b.id_element_commande IS NOT NULL 
+                    AND b.statut IN ('valid', 'used') 
+                    THEN 1 
+                END) AS sold_tickets,
                 CASE 
-                    WHEN COALESCE(SUM(ib.quantite_totale), 0) > 0 
-                    THEN ROUND((COALESCE(SUM(ib.quantite_vendue), 0)::numeric / SUM(ib.quantite_totale)::numeric) * 100, 2)
+                    WHEN COUNT(b.id) > 0 
+                    THEN ROUND((COUNT(CASE 
+                        WHEN b.id_element_commande IS NOT NULL 
+                        AND b.statut IN ('valid', 'used') 
+                        THEN 1 
+                    END)::numeric / COUNT(b.id)::numeric) * 100, 2)
                     ELSE 0
                 END AS occupation_rate
             FROM aiolia.evenements e
             LEFT JOIN aiolia.types_billets tb ON tb.id_evenement = e.id
-            LEFT JOIN aiolia.inventaire_billets ib ON ib.id_type_billet = tb.id
+            LEFT JOIN aiolia.billets b ON b.id_type_billet = tb.id
             WHERE e.id IN ({$placeholders})
             GROUP BY e.id, e.titre
             ORDER BY occupation_rate DESC, sold_tickets DESC

@@ -6,6 +6,7 @@ use App\Entity\Event;
 use App\Repository\Organisateur\EventRepository;
 use App\Service\Organisateur\BilletService;
 use App\Service\Organisateur\SalesHistoryService;
+use App\Service\TicketStatusService;
 use Symfony\Bundle\FrameworkBundle\Controller\AbstractController;
 use Symfony\Component\HttpFoundation\Request;
 use Symfony\Component\HttpFoundation\Response;
@@ -19,7 +20,8 @@ class TicketsController extends AbstractController
     public function __construct(
         private BilletService $billetService,
         private EventRepository $eventRepository,
-        private SalesHistoryService $salesHistoryService
+        private SalesHistoryService $salesHistoryService,
+        private TicketStatusService $ticketStatusService
     ) {
     }
 
@@ -65,17 +67,14 @@ class TicketsController extends AbstractController
         $totalItems = $history['total'] ?? 0;
         $totalPages = (int) ceil($totalItems / $limit);
 
-        // Stats globales
-        $stats = $this->billetService->getStatsByOrganizer($user, $event);
+        // Stats globales avec les filtres appliqués
+        $stats = $this->billetService->getStatsByOrganizer($user, $event, $filters);
 
         // Filtres disponibles depuis la base de données (toutes les valeurs possibles)
         $availableFilters = $this->billetService->getFilterOptionsByOrganizer($user, $event);
         
-        // Exclure le statut 'dispo' car les billets dispo ne sont pas achetés et n'ont pas de facture
-        // Cette page affiche l'historique des ventes (factures)
-        $availableFilters['statuts'] = array_filter($availableFilters['statuts'], function($statut) {
-            return $statut !== 'dispo';
-        });
+        // Inclure le statut 'dispo' pour afficher les billets disponibles sans facture
+        // Ces billets sont maintenant inclus dans l'affichage avec leur QR code
 
         return $this->render('Organisateur/ticket/index.html.twig', [
             'ventes' => $rows,
@@ -87,6 +86,7 @@ class TicketsController extends AbstractController
             'event' => $event,
             'filters' => $filters,
             'availableFilters' => $availableFilters,
+            'statusLabels' => $this->ticketStatusService->getStatusLabels(),
         ]);
     }
 }

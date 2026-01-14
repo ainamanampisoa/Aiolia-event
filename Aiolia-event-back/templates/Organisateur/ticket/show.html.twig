@@ -53,9 +53,21 @@
     {% endif %}
     <div class="dashboard-header">
         <div>
-            <h1><i class="fas fa-ticket-alt"></i> Détails du billet #TKT-{{ billet.id|slice(-6) }}</h1>
+            <h1>
+                <i class="fas fa-ticket-alt"></i> 
+                Détails du billet #TKT-{{ billet.id|slice(-6) }}
+                {% if billet.statut == 'dispo' %}
+                    <span class="header-status-badge">
+                        <i class="fas fa-ticket-alt"></i> Disponible
+                    </span>
+                {% endif %}
+            </h1>
             <p style="color: var(--gray-600); margin-top: 8px; font-size: 1rem;">
-                Informations complètes et QR code du billet
+                {% if billet.statut == 'dispo' %}
+                    Billet disponible - Prêt à être vendu ou attribué
+                {% else %}
+                    Informations complètes et QR code du billet
+                {% endif %}
             </p>
         </div>
     </div>
@@ -84,19 +96,43 @@
                             Statut
                         </div>
                         <div class="detail-value">
-                            {% if billet.statut == 'valid' %}
-                                <span class="badge status-badge status-pending">En attente</span>
-                            {% elseif billet.statut == 'used' %}
-                                <span class="badge status-badge status-active">Utilisé</span>
-                            {% elseif billet.statut == 'cancelled' %}
-                                <span class="badge status-badge status-inactive">Annulé</span>
-                            {% elseif billet.statut == 'refunded' %}
-                                <span class="badge status-badge status-refunded">Remboursé</span>
-                            {% elseif billet.statut == 'transferred' %}
-                                <span class="badge status-badge status-active">Transféré</span>
-                            {% else %}
-                                <span class="badge status-badge status-inactive">{{ billet.statut }}</span>
-                            {% endif %}
+                            {% set statusLabels = statusLabels ?? {
+                                'dispo': 'Disponible',
+                                'valid': 'En attente',
+                                'used': 'Utilisé',
+                                'refunded': 'Remboursé',
+                                'transferred': 'Transféré'
+                            } %}
+                            {% macro statusBadge(statut, statusLabels) %}
+                                {% set statutLabel = statusLabels[statut]|default(statut|capitalize) %}
+                                {% if statut == 'dispo' %}
+                                    <span class="badge status-badge status-dispo">
+                                        <i class="fas fa-ticket-alt"></i> {{ statutLabel }}
+                                    </span>
+                                {% elseif statut == 'valid' %}
+                                    <span class="badge status-badge status-pending">
+                                        <i class="fas fa-clock"></i> {{ statutLabel }}
+                                    </span>
+                                {% elseif statut == 'used' %}
+                                    <span class="badge status-badge status-active">
+                                        <i class="fas fa-check-circle"></i> {{ statutLabel }}
+                                    </span>
+                                {% elseif statut == 'refunded' %}
+                                    <span class="badge status-badge status-refunded">
+                                        <i class="fas fa-undo"></i> {{ statutLabel }}
+                                    </span>
+                                {% elseif statut == 'transferred' %}
+                                    <span class="badge status-badge status-transferred">
+                                        <i class="fas fa-exchange-alt"></i> {{ statutLabel }}
+                                    </span>
+                                {% else %}
+                                    <span class="badge status-badge status-inactive">
+                                        {{ statutLabel }}
+                                    </span>
+                                {% endif %}
+                            {% endmacro %}
+                            {% import _self as macros %}
+                            {{ macros.statusBadge(billet.statut, statusLabels) }}
                         </div>
                     </div>
                     
@@ -140,7 +176,17 @@
                         </div>
                     {% endif %}
                     
-                    {% if billet.utilisateurProprietaire %}
+                    {% if billet.statut == 'dispo' %}
+                        <div class="detail-row available-ticket-notice">
+                            <div class="available-ticket-banner">
+                                <i class="fas fa-info-circle"></i>
+                                <div>
+                                    <strong>Billet disponible</strong>
+                                    <p>Ce billet n'est pas encore attribué à un client. Il peut être vendu ou attribué manuellement.</p>
+                                </div>
+                            </div>
+                        </div>
+                    {% elseif billet.utilisateurProprietaire %}
                         <div class="detail-row">
                             <div class="detail-label">
                                 <i class="fas fa-user"></i>
@@ -158,6 +204,16 @@
                             </div>
                             <div class="detail-value">
                                 {{ billet.utilisateurProprietaire.email }}
+                            </div>
+                        </div>
+                    {% else %}
+                        <div class="detail-row">
+                            <div class="detail-label">
+                                <i class="fas fa-user"></i>
+                                Client
+                            </div>
+                            <div class="detail-value">
+                                <span class="text-muted">Non attribué</span>
                             </div>
                         </div>
                     {% endif %}
@@ -316,23 +372,65 @@
             {% endif %}
 
             <!-- QR Code -->
-            <div class="card validation-card">
-                <div class="card-header">
-                    <h3><i class="fas fa-qrcode"></i> QR Code du billet</h3>
+            <div class="card validation-card {% if billet.statut == 'dispo' %}available-ticket-card{% endif %}">
+                <div class="card-header {% if billet.statut == 'dispo' %}available-ticket-header{% endif %}">
+                    <h3>
+                        <i class="fas fa-qrcode"></i> 
+                        QR Code du billet
+                        {% if billet.statut == 'dispo' %}
+                            <span class="available-badge-inline">
+                                <i class="fas fa-ticket-alt"></i> Disponible
+                            </span>
+                        {% endif %}
+                    </h3>
                 </div>
                 <div class="card-body">
-                    <div class="qr-code-container">
-                        <div class="qr-code-image-wrapper">
-                            <img src="{{ qrCodeUrl }}" alt="QR Code #TKT-{{ billet.id|slice(-6) }}" class="qr-code-image">
+                    {% if billet.codeQr %}
+                        <div class="qr-code-container">
+                            {% if billet.statut == 'dispo' %}
+                                <div class="available-ticket-qr-notice">
+                                    <i class="fas fa-info-circle"></i>
+                                    <p>Ce QR code peut être scanné pour valider le billet lors de l'événement.</p>
+                                </div>
+                            {% endif %}
+                            <div class="qr-code-image-wrapper {% if billet.statut == 'dispo' %}available-qr-wrapper{% endif %}">
+                                <img 
+                                    src="{{ qrCodeUrl }}" 
+                                    alt="QR Code #TKT-{{ billet.id|slice(-6) }}" 
+                                    class="qr-code-image" 
+                                    loading="lazy"
+                                    onload="console.log('QR Code chargé avec succès'); this.style.border='';"
+                                    onerror="console.error('Erreur chargement QR Code:', '{{ qrCodeUrl }}'); this.onerror=null; this.src='data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iMzAwIiBoZWlnaHQ9IjMwMCIgeG1sbnM9Imh0dHA6Ly93d3cudzMub3JnLzIwMDAvc3ZnIj48cmVjdCB3aWR0aD0iMzAwIiBoZWlnaHQ9IjMwMCIgZmlsbD0iI2Y1ZjVmNSIvPjx0ZXh0IHg9IjUwJSIgeT0iNTAlIiBmb250LWZhbWlseT0iQXJpYWwiIGZvbnQtc2l6ZT0iMTYiIGZpbGw9IiM5OTk5OTkiIHRleHQtYW5jaG9yPSJtaWRkbGUiIGR5PSIuM2VtIj5FcnJldXIgY2hhcmdlbWVudCBRUkNvZGU8L3RleHQ+PC9zdmc+'; this.style.border='2px solid #dc3545';">
+                            </div>
+                            <p class="qr-code-label">
+                                #TKT-{{ billet.id|slice(-6) }}
+                                {% if billet.statut == 'dispo' %}
+                                    <span class="qr-code-status-badge">Disponible</span>
+                                {% endif %}
+                            </p>
+                            <div class="qr-code-info">
+                                <p class="qr-code-code-text">
+                                    <i class="fas fa-key"></i>
+                                    Code: <code>{{ billet.codeQr|slice(0, 20) }}...</code>
+                                </p>
+                            </div>
+                            <div class="qr-code-actions">
+                                <a href="{{ qrCodeUrl }}" download="qrcode-TKT-{{ billet.id|slice(-6) }}.png" class="btn-download-qr">
+                                    <i class="fas fa-download"></i>
+                                    Télécharger le QR code
+                                </a>
+                                <button type="button" class="btn-print-qr" onclick="window.print()">
+                                    <i class="fas fa-print"></i>
+                                    Imprimer
+                                </button>
+                            </div>
                         </div>
-                        <p class="qr-code-label">#TKT-{{ billet.id|slice(-6) }}</p>
-                        <div class="qr-code-actions">
-                            <a href="{{ qrCodeUrl }}" download="qrcode-TKT-{{ billet.id|slice(-6) }}.png" class="btn-download-qr">
-                                <i class="fas fa-download"></i>
-                                Télécharger le QR code
-                            </a>
+                    {% else %}
+                        <div class="qr-code-error">
+                            <i class="fas fa-exclamation-triangle"></i>
+                            <p>QR Code non disponible pour ce billet</p>
                         </div>
-                    </div>
+                    {% endif %}
                 </div>
             </div>
         </div>
@@ -381,6 +479,21 @@
 h1 i {
     margin-right: 10px;
     color: var(--accent);
+}
+
+.header-status-badge {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    margin-left: 16px;
+    padding: 6px 16px;
+    background: linear-gradient(135deg, #d4edda, #c3e6cb);
+    color: #155724;
+    border: 1px solid #28a745;
+    border-radius: 20px;
+    font-size: 0.9rem;
+    font-weight: var(--font-weight-semibold);
+    vertical-align: middle;
 }
 
 .ticket-details-container {
@@ -535,33 +648,250 @@ h1 i {
     white-space: nowrap;
 }
 
+/* Styles harmonisés pour les badges de statut */
+.status-dispo {
+    background: linear-gradient(135deg, #d4edda, #c3e6cb);
+    color: #155724;
+    border: 1px solid #28a745;
+    font-weight: var(--font-weight-semibold);
+}
+
+.status-dispo i {
+    color: #28a745;
+}
+
 .status-active {
-    background: var(--bg-secondary);
-    color: var(--success);
-    border: 1px solid var(--border-color);
+    background: linear-gradient(135deg, rgba(39, 174, 96, 0.15), rgba(39, 174, 96, 0.08));
+    color: #27ae60;
+    border: 1px solid rgba(39, 174, 96, 0.3);
+    font-weight: var(--font-weight-medium);
+}
+
+.status-active i {
+    color: #27ae60;
 }
 
 .status-pending {
-    background: var(--bg-secondary);
-    color: var(--warning);
-    border: 1px solid var(--border-color);
+    background: linear-gradient(135deg, rgba(243, 156, 18, 0.15), rgba(243, 156, 18, 0.08));
+    color: #d68910;
+    border: 1px solid rgba(243, 156, 18, 0.3);
+    font-weight: var(--font-weight-medium);
+}
+
+.status-pending i {
+    color: #f39c12;
+}
+
+.status-transferred {
+    background: linear-gradient(135deg, rgba(52, 152, 219, 0.15), rgba(52, 152, 219, 0.08));
+    color: #2980b9;
+    border: 1px solid rgba(52, 152, 219, 0.3);
+    font-weight: var(--font-weight-medium);
+}
+
+.status-transferred i {
+    color: #3498db;
+}
+
+.status-refunded {
+    background: linear-gradient(135deg, rgba(192, 57, 43, 0.15), rgba(192, 57, 43, 0.08));
+    color: #c0392b;
+    border: 1px solid rgba(192, 57, 43, 0.3);
+    font-weight: var(--font-weight-medium);
+}
+
+.status-refunded i {
+    color: #c0392b;
 }
 
 .status-inactive {
     background: var(--bg-secondary);
     color: var(--text-muted);
     border: 1px solid var(--border-color);
-}
-
-.status-refunded {
-    background: linear-gradient(135deg, rgba(139, 69, 19, 0.1), rgba(160, 82, 45, 0.05));
-    color: #8B4513;
-    border: 1px solid rgba(139, 69, 19, 0.3);
-    font-weight: var(--font-weight-semibold);
+    font-weight: var(--font-weight-medium);
 }
 
 .text-muted {
     color: var(--text-muted);
+}
+
+/* Styles pour les billets disponibles */
+.available-ticket-notice {
+    padding: 0 !important;
+    border-bottom: none !important;
+    margin-bottom: 16px;
+}
+
+.available-ticket-banner {
+    display: flex;
+    align-items: flex-start;
+    gap: 12px;
+    padding: 16px;
+    background: linear-gradient(135deg, rgba(40, 167, 69, 0.1), rgba(40, 167, 69, 0.05));
+    border: 2px solid rgba(40, 167, 69, 0.3);
+    border-radius: var(--border-radius-md);
+    color: #155724;
+}
+
+.available-ticket-banner i {
+    font-size: 1.5rem;
+    color: #28a745;
+    margin-top: 2px;
+}
+
+.available-ticket-banner strong {
+    display: block;
+    font-size: 1rem;
+    margin-bottom: 4px;
+    color: #155724;
+}
+
+.available-ticket-banner p {
+    margin: 0;
+    font-size: 0.9rem;
+    color: #155724;
+    opacity: 0.9;
+}
+
+.available-ticket-card {
+    border: 2px solid rgba(40, 167, 69, 0.3);
+    box-shadow: 0 4px 16px rgba(40, 167, 69, 0.15);
+}
+
+.available-ticket-header {
+    background: linear-gradient(135deg, rgba(40, 167, 69, 0.15), rgba(40, 167, 69, 0.08));
+}
+
+.available-badge-inline {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    margin-left: 12px;
+    padding: 4px 12px;
+    background: linear-gradient(135deg, #d4edda, #c3e6cb);
+    color: #155724;
+    border: 1px solid #28a745;
+    border-radius: 20px;
+    font-size: 0.85rem;
+    font-weight: var(--font-weight-semibold);
+}
+
+.available-ticket-qr-notice {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    padding: 12px 16px;
+    background: rgba(40, 167, 69, 0.1);
+    border-left: 4px solid #28a745;
+    border-radius: var(--border-radius-sm);
+    margin-bottom: 20px;
+    color: #155724;
+}
+
+.available-ticket-qr-notice i {
+    font-size: 1.2rem;
+    color: #28a745;
+}
+
+.available-ticket-qr-notice p {
+    margin: 0;
+    font-size: 0.9rem;
+    line-height: 1.5;
+}
+
+.available-qr-wrapper {
+    border: 3px solid rgba(40, 167, 69, 0.4);
+    box-shadow: 0 6px 20px rgba(40, 167, 69, 0.2);
+}
+
+.qr-code-info {
+    margin: 16px 0;
+    padding: 12px;
+    background: var(--bg-secondary);
+    border-radius: var(--border-radius-sm);
+}
+
+.qr-code-code-text {
+    margin: 0;
+    font-size: 0.85rem;
+    color: var(--text-secondary);
+    display: flex;
+    align-items: center;
+    gap: 8px;
+}
+
+.qr-code-code-text i {
+    color: var(--accent);
+}
+
+.qr-code-code-text code {
+    background: var(--bg-card);
+    padding: 4px 8px;
+    border-radius: 4px;
+    font-family: 'Courier New', monospace;
+    font-size: 0.8rem;
+    color: var(--text-primary);
+    border: 1px solid var(--border-color);
+}
+
+.qr-code-status-badge {
+    display: inline-block;
+    margin-left: 8px;
+    padding: 4px 10px;
+    background: linear-gradient(135deg, #d4edda, #c3e6cb);
+    color: #155724;
+    border: 1px solid #28a745;
+    border-radius: 12px;
+    font-size: 0.75rem;
+    font-weight: var(--font-weight-semibold);
+}
+
+.qr-code-actions {
+    display: flex;
+    gap: 12px;
+    justify-content: center;
+    flex-wrap: wrap;
+}
+
+.btn-print-qr {
+    display: inline-flex;
+    align-items: center;
+    gap: 10px;
+    padding: 12px 24px;
+    background: linear-gradient(135deg, #95a5a6 0%, #7f8c8d 100%);
+    color: white;
+    border: none;
+    border-radius: var(--border-radius-md);
+    text-decoration: none;
+    font-weight: var(--font-weight-semibold);
+    font-size: 1rem;
+    transition: all 0.3s ease;
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+    cursor: pointer;
+}
+
+.btn-print-qr:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+    background: linear-gradient(135deg, #7f8c8d 0%, #6c7a7b 100%);
+    color: white;
+}
+
+.qr-code-error {
+    text-align: center;
+    padding: 40px 20px;
+    color: var(--text-muted);
+}
+
+.qr-code-error i {
+    font-size: 3rem;
+    color: var(--warning);
+    margin-bottom: 16px;
+}
+
+.qr-code-error p {
+    margin: 0;
+    font-size: 1.1rem;
 }
 
 /* Responsive */

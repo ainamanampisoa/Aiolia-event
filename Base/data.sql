@@ -283,36 +283,56 @@ BEGIN
     v_total := v_prix + v_tva;
     
     -- Créer la facture
-    INSERT INTO factures_abonnements (
-        id_abonnement, id_client, id_mode_paiement, devise,
-        montant_sous_total, montant_tva, montant_total,
-        montant_ht, montant_tva_detail, montant_ttc,
-        mois_facturation, est_prepayee, statut,
-        emise_le, echeance_le, payee_le
-    ) VALUES (
-        p_abonnement_id, v_user_id, v_mode_paiement_id, 'MGA',
-        v_prix, v_tva, v_total,
-        v_prix, v_tva, v_total,
-        p_mois_facturation, p_est_prepayee, p_statut,
-        p_mois_facturation::TIMESTAMPTZ,
-        p_mois_facturation::TIMESTAMPTZ + INTERVAL '30 days',
-        COALESCE(p_date_paiement, p_mois_facturation::TIMESTAMPTZ + INTERVAL '1 day')
-    )
-    RETURNING id INTO v_facture_id;
+    -- La contrainte unique uq_factures_abonnements_abonnement_mois garantit qu'il n'y a pas de doublon
+    -- Si une erreur de contrainte unique se produit (race condition), on retourne la facture existante
+    BEGIN
+        INSERT INTO factures_abonnements (
+            id_abonnement, id_client, id_mode_paiement, devise,
+            montant_sous_total, montant_tva, montant_total,
+            montant_ht, montant_tva_detail, montant_ttc,
+            mois_facturation, est_prepayee, statut,
+            emise_le, echeance_le, payee_le
+        ) VALUES (
+            p_abonnement_id, v_user_id, v_mode_paiement_id, 'MGA',
+            v_prix, v_tva, v_total,
+            v_prix, v_tva, v_total,
+            p_mois_facturation, p_est_prepayee, p_statut,
+            p_mois_facturation::TIMESTAMPTZ,
+            p_mois_facturation::TIMESTAMPTZ + INTERVAL '30 days',
+            COALESCE(p_date_paiement, p_mois_facturation::TIMESTAMPTZ + INTERVAL '1 day')
+        )
+        RETURNING id INTO v_facture_id;
+    EXCEPTION
+        WHEN unique_violation THEN
+            -- Si une contrainte unique est violée (doublon détecté), récupérer la facture existante
+            SELECT id INTO v_facture_id
+            FROM factures_abonnements
+            WHERE id_abonnement = p_abonnement_id
+            AND mois_facturation = p_mois_facturation
+            LIMIT 1;
+            -- La facture existante a déjà ses éléments, on peut retourner directement
+            RETURN v_facture_id;
+    END;
     
-    -- Ajouter l'élément de facture
-    INSERT INTO elements_factures_abonnements (
-        id_facture, id_plan, description,
-        quantite, prix_unitaire, montant_total
-    ) VALUES (
-        v_facture_id, v_plan_id, 
-        CASE 
-            WHEN v_periode_facturation = 'quarterly' THEN 'Abonnement trimestriel (mensuel)'
-            WHEN v_periode_facturation = 'yearly' THEN 'Abonnement annuel (mensuel)'
-            ELSE 'Abonnement mensuel'
-        END,
-        1, v_prix, v_prix
-    );
+    -- Ajouter l'élément de facture (seulement si la facture a été créée avec succès)
+    -- Vérifier d'abord si un élément existe déjà pour éviter les doublons
+    IF NOT EXISTS (
+        SELECT 1 FROM elements_factures_abonnements 
+        WHERE id_facture = v_facture_id
+    ) THEN
+        INSERT INTO elements_factures_abonnements (
+            id_facture, id_plan, description,
+            quantite, prix_unitaire, montant_total
+        ) VALUES (
+            v_facture_id, v_plan_id, 
+            CASE 
+                WHEN v_periode_facturation = 'quarterly' THEN 'Abonnement trimestriel (mensuel)'
+                WHEN v_periode_facturation = 'yearly' THEN 'Abonnement annuel (mensuel)'
+                ELSE 'Abonnement mensuel'
+            END,
+            1, v_prix, v_prix
+        );
+    END IF;
     
     RETURN v_facture_id;
 END;
@@ -374,36 +394,56 @@ BEGIN
     v_total := p_montant + v_tva;
     
     -- Créer la facture
-    INSERT INTO factures_abonnements (
-        id_abonnement, id_client, id_mode_paiement, devise,
-        montant_sous_total, montant_tva, montant_total,
-        montant_ht, montant_tva_detail, montant_ttc,
-        mois_facturation, est_prepayee, est_mois_pause, statut,
-        emise_le, echeance_le, payee_le
-    ) VALUES (
-        p_abonnement_id, v_user_id, v_mode_paiement_id, 'MGA',
-        p_montant, v_tva, v_total,
-        p_montant, v_tva, v_total,
-        p_mois_facturation, p_est_prepayee, true, p_statut,
-        p_mois_facturation::TIMESTAMPTZ,
-        p_mois_facturation::TIMESTAMPTZ + INTERVAL '30 days',
-        COALESCE(p_date_paiement, p_mois_facturation::TIMESTAMPTZ + INTERVAL '1 day')
-    )
-    RETURNING id INTO v_facture_id;
+    -- La contrainte unique uq_factures_abonnements_abonnement_mois garantit qu'il n'y a pas de doublon
+    -- Si une erreur de contrainte unique se produit (race condition), on retourne la facture existante
+    BEGIN
+        INSERT INTO factures_abonnements (
+            id_abonnement, id_client, id_mode_paiement, devise,
+            montant_sous_total, montant_tva, montant_total,
+            montant_ht, montant_tva_detail, montant_ttc,
+            mois_facturation, est_prepayee, est_mois_pause, statut,
+            emise_le, echeance_le, payee_le
+        ) VALUES (
+            p_abonnement_id, v_user_id, v_mode_paiement_id, 'MGA',
+            p_montant, v_tva, v_total,
+            p_montant, v_tva, v_total,
+            p_mois_facturation, p_est_prepayee, true, p_statut,
+            p_mois_facturation::TIMESTAMPTZ,
+            p_mois_facturation::TIMESTAMPTZ + INTERVAL '30 days',
+            COALESCE(p_date_paiement, p_mois_facturation::TIMESTAMPTZ + INTERVAL '1 day')
+        )
+        RETURNING id INTO v_facture_id;
+    EXCEPTION
+        WHEN unique_violation THEN
+            -- Si une contrainte unique est violée (doublon détecté), récupérer la facture existante
+            SELECT id INTO v_facture_id
+            FROM factures_abonnements
+            WHERE id_abonnement = p_abonnement_id
+            AND mois_facturation = p_mois_facturation
+            LIMIT 1;
+            -- La facture existante a déjà ses éléments, on peut retourner directement
+            RETURN v_facture_id;
+    END;
     
-    -- Ajouter l'élément de facture
-    INSERT INTO elements_factures_abonnements (
-        id_facture, id_plan, description,
-        quantite, prix_unitaire, montant_total
-    ) VALUES (
-        v_facture_id, v_plan_id, 
-        CASE 
-            WHEN v_periode_facturation = 'quarterly' THEN 'Abonnement trimestriel (mensuel) - Mois en pause'
-            WHEN v_periode_facturation = 'yearly' THEN 'Abonnement annuel (mensuel) - Mois en pause'
-            ELSE 'Abonnement mensuel - Mois en pause'
-        END,
-        1, p_montant, p_montant
-    );
+    -- Ajouter l'élément de facture (seulement si la facture a été créée avec succès)
+    -- Vérifier d'abord si un élément existe déjà pour éviter les doublons
+    IF NOT EXISTS (
+        SELECT 1 FROM elements_factures_abonnements 
+        WHERE id_facture = v_facture_id
+    ) THEN
+        INSERT INTO elements_factures_abonnements (
+            id_facture, id_plan, description,
+            quantite, prix_unitaire, montant_total
+        ) VALUES (
+            v_facture_id, v_plan_id, 
+            CASE 
+                WHEN v_periode_facturation = 'quarterly' THEN 'Abonnement trimestriel (mensuel) - Mois en pause'
+                WHEN v_periode_facturation = 'yearly' THEN 'Abonnement annuel (mensuel) - Mois en pause'
+                ELSE 'Abonnement mensuel - Mois en pause'
+            END,
+            1, p_montant, p_montant
+        );
+    END IF;
     
     RETURN v_facture_id;
 END;
@@ -897,6 +937,163 @@ SELECT * FROM generer_factures_organisateurs_actifs('2025-12-01'::DATE);
 --   * Si janvier est le début d'un trimestre → crée 3 factures (janvier + février et mars prépayées)
 --   * Si une facture prépayée existe déjà (créée en nov/déc) → passe au suivant
 SELECT * FROM generer_factures_organisateurs_actifs('2026-01-01'::DATE);
+
+-- Vérification rapide des factures de janvier 2026
+SELECT 
+    'Organisateurs actifs' as type,
+    COUNT(DISTINCT ao.id_profil_organisateur) as nombre
+FROM abonnements_organisateurs ao
+JOIN profils_organisateurs po ON ao.id_profil_organisateur = po.id
+WHERE ao.statut IN ('active', 'paused')
+AND po.statut_verification = 'verified'
+
+UNION ALL
+
+SELECT 
+    'Factures janvier 2026' as type,
+    COUNT(*) as nombre
+FROM factures_abonnements fa
+JOIN abonnements_organisateurs ao ON fa.id_abonnement = ao.id
+JOIN profils_organisateurs po ON ao.id_profil_organisateur = po.id
+WHERE fa.mois_facturation = '2026-01-01'::DATE
+AND po.statut_verification = 'verified';
+
+-- Message de confirmation pour janvier 2026
+DO $$
+DECLARE
+    v_organisateurs INTEGER;
+    v_factures INTEGER;
+BEGIN
+    SELECT COUNT(DISTINCT ao.id_profil_organisateur) INTO v_organisateurs
+    FROM abonnements_organisateurs ao
+    JOIN profils_organisateurs po ON ao.id_profil_organisateur = po.id
+    WHERE ao.statut IN ('active', 'paused')
+    AND po.statut_verification = 'verified';
+    
+    SELECT COUNT(*) INTO v_factures
+    FROM factures_abonnements fa
+    JOIN abonnements_organisateurs ao ON fa.id_abonnement = ao.id
+    JOIN profils_organisateurs po ON ao.id_profil_organisateur = po.id
+    WHERE fa.mois_facturation = '2026-01-01'::DATE
+    AND po.statut_verification = 'verified';
+    
+    IF v_organisateurs = v_factures THEN
+        RAISE NOTICE '✅ Janvier 2026 : % organisateurs facturés avec succès!', v_factures;
+    ELSE
+        RAISE WARNING '⚠️  Janvier 2026 : % organisateurs, % factures (différence: %)', 
+            v_organisateurs, v_factures, (v_organisateurs - v_factures);
+    END IF;
+END $$;
+
+-- ============================================================
+-- CONFIGURATION ORGANISATEUR 11 : Prochain paiement = Février 2026
+-- ============================================================
+-- Supprimer la facture de mars 2026 pour l'organisateur 11 si elle existe
+-- (car le prochain paiement doit être en février 2026)
+DO $$
+DECLARE
+    v_facture_mars_id BIGINT;
+    v_abonnement_id BIGINT;
+BEGIN
+    -- Récupérer l'ID de l'abonnement de l'organisateur 11
+    SELECT ao.id INTO v_abonnement_id
+    FROM abonnements_organisateurs ao
+    JOIN profils_organisateurs po ON ao.id_profil_organisateur = po.id
+    JOIN utilisateurs u ON po.id_utilisateur = u.id
+    WHERE u.email = 'organisateur11@yopmail.com'
+    LIMIT 1;
+    
+    -- Chercher la facture de mars 2026 pour cet abonnement
+    SELECT id INTO v_facture_mars_id
+    FROM factures_abonnements
+    WHERE id_abonnement = v_abonnement_id
+    AND mois_facturation = '2026-03-01'::DATE
+    LIMIT 1;
+    
+    -- Si une facture de mars existe, supprimer d'abord les éléments de facture, puis la facture
+    IF v_facture_mars_id IS NOT NULL THEN
+        -- Supprimer les éléments de facture associés
+        DELETE FROM elements_factures_abonnements
+        WHERE id_facture = v_facture_mars_id;
+        
+        -- Supprimer la facture
+        DELETE FROM factures_abonnements
+        WHERE id = v_facture_mars_id;
+        
+        RAISE NOTICE '✅ Facture de mars 2026 supprimée pour l''organisateur 11 (ID facture: %)', v_facture_mars_id;
+    ELSE
+        RAISE NOTICE 'ℹ️  Aucune facture de mars 2026 trouvée pour l''organisateur 11';
+    END IF;
+END $$;
+
+-- Mise à jour de l'organisateur 11 : prochain mois de paiement = février 2026
+-- Cette mise à jour garantit que l'organisateur 11 aura son prochain paiement en février 2026
+-- et que mars 2026 ne sera pas facturé
+UPDATE abonnements_organisateurs ao
+SET renouvellement_le = '2026-02-01 00:00:00'::TIMESTAMPTZ,
+    debut_periode_courante = '2026-01-01 00:00:00'::TIMESTAMPTZ,
+    fin_periode_courante = CASE 
+        WHEN pa.periode_facturation = 'monthly' THEN '2026-02-01 00:00:00'::TIMESTAMPTZ
+        WHEN pa.periode_facturation = 'quarterly' THEN '2026-04-01 00:00:00'::TIMESTAMPTZ
+        WHEN pa.periode_facturation = 'yearly' THEN '2027-01-01 00:00:00'::TIMESTAMPTZ
+        ELSE '2026-02-01 00:00:00'::TIMESTAMPTZ
+    END,
+    modifie_le = NOW()
+FROM profils_organisateurs po
+JOIN utilisateurs u ON po.id_utilisateur = u.id
+JOIN plans_abonnements pa ON ao.id_plan = pa.id
+WHERE ao.id_profil_organisateur = po.id
+AND u.email = 'organisateur11@yopmail.com';
+
+-- Vérification complète de la configuration de l'organisateur 11
+DO $$
+DECLARE
+    v_renouvellement TIMESTAMPTZ;
+    v_organisateur_email TEXT;
+    v_facture_fevrier_id BIGINT;
+    v_facture_mars_id BIGINT;
+    v_abonnement_id BIGINT;
+BEGIN
+    -- Récupérer les informations de l'abonnement
+    SELECT ao.id, ao.renouvellement_le, u.email INTO v_abonnement_id, v_renouvellement, v_organisateur_email
+    FROM abonnements_organisateurs ao
+    JOIN profils_organisateurs po ON ao.id_profil_organisateur = po.id
+    JOIN utilisateurs u ON po.id_utilisateur = u.id
+    WHERE u.email = 'organisateur11@yopmail.com'
+    LIMIT 1;
+    
+    -- Vérifier les factures existantes
+    SELECT id INTO v_facture_fevrier_id
+    FROM factures_abonnements
+    WHERE id_abonnement = v_abonnement_id
+    AND mois_facturation = '2026-02-01'::DATE
+    LIMIT 1;
+    
+    SELECT id INTO v_facture_mars_id
+    FROM factures_abonnements
+    WHERE id_abonnement = v_abonnement_id
+    AND mois_facturation = '2026-03-01'::DATE
+    LIMIT 1;
+    
+    -- Vérifications
+    IF v_renouvellement = '2026-02-01 00:00:00'::TIMESTAMPTZ THEN
+        RAISE NOTICE '✅ Organisateur 11 : Prochain paiement configuré pour février 2026 (renouvellement_le = %)', v_renouvellement;
+    ELSE
+        RAISE WARNING '⚠️  Organisateur 11 : Prochain paiement = % (attendu: 2026-02-01)', v_renouvellement;
+    END IF;
+    
+    IF v_facture_fevrier_id IS NOT NULL THEN
+        RAISE NOTICE '✅ Organisateur 11 : Facture de février 2026 existe (ID: %)', v_facture_fevrier_id;
+    ELSE
+        RAISE NOTICE 'ℹ️  Organisateur 11 : Aucune facture de février 2026 (sera générée au prochain cycle)';
+    END IF;
+    
+    IF v_facture_mars_id IS NULL THEN
+        RAISE NOTICE '✅ Organisateur 11 : Aucune facture de mars 2026 (correct, prochain paiement = février)';
+    ELSE
+        RAISE WARNING '⚠️  Organisateur 11 : Facture de mars 2026 existe encore (ID: %) - devrait être supprimée', v_facture_mars_id;
+    END IF;
+END $$;
 
 -- ============================================================
 -- 14. ABONNEMENTS FÉVRIER 2026

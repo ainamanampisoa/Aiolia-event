@@ -446,7 +446,7 @@ redonne moi le @data.sql avec ces critere
 -novembre 2025: + plus 3 new organisateur (2 non valider)
 ! offre populaire (le plus utiliser): pro trimestre (mensuelle < trimenstre < annulle)
 
--juin 2025 : 
+sql-juin 2025 : 
 => 10 organisateurs actifs ,0 organisateur en pausse ,0 organisateur non valider 
 => 10 factures paye mensuelle mensuelle (5 factures basic , 2 factures pro,3 factures entreprise)
 

@@ -154,25 +154,62 @@ class BilletRepository extends ServiceEntityRepository
     }
 
     
-    public function getStatsByOrganizer(User $organizer, ?Event $event = null): array
+    public function getStatsByOrganizer(User $organizer, ?Event $event = null, array $filters = []): array
     {
         $countSelect = 'COUNT(b.id)';
 
+        // Fonction helper pour appliquer le scope et les filtres
+        $applyScopeAndFilters = function(QueryBuilder $qb) use ($organizer, $event, $filters) {
+            // Appliquer le scope organisateur (qui fait déjà les joins nécessaires)
+            $this->applyOrganizerScope($qb, $organizer, $event);
+            
+            // Joindre les tables nécessaires pour les filtres (tb est déjà joint dans applyOrganizerScope)
+            if (!empty($filters['categorie']) || !empty($filters['segment'])) {
+                // Vérifier si les joins existent déjà
+                $aliases = $qb->getAllAliases();
+                if (!in_array('cc', $aliases)) {
+                    $qb->leftJoin('tb.configurationCategorie', 'cc');
+                }
+                if (!in_array('cs', $aliases)) {
+                    $qb->leftJoin('tb.configurationSegment', 'cs');
+                }
+            }
+            
+            // Appliquer les filtres de catégorie et de segment
+            if (!empty($filters['categorie'])) {
+                $qb->andWhere('cc.nom = :categorie')
+                   ->setParameter('categorie', $filters['categorie']);
+            }
+            
+            if (!empty($filters['segment'])) {
+                $qb->andWhere('cs.nom = :segment')
+                   ->setParameter('segment', $filters['segment']);
+            }
+            
+            // Appliquer le filtre de statut si spécifié
+            if (!empty($filters['statut'])) {
+                $qb->andWhere('b.statut = :statutFilter')
+                   ->setParameter('statutFilter', $filters['statut']);
+            }
+            
+            return $qb;
+        };
+
         // Total général : tous les billets (vendus + non vendus)
-        $total = (int) $this->applyOrganizerScope($this->createQueryBuilder('b'), $organizer, $event)
+        $total = (int) $applyScopeAndFilters($this->createQueryBuilder('b'))
             ->select($countSelect)
             ->getQuery()
             ->getSingleScalarResult();
 
         // Billets non vendus (disponibles à la vente) : sans elementCommande
-        $nonUtilises = (int) $this->applyOrganizerScope($this->createQueryBuilder('b'), $organizer, $event)
+        $nonUtilises = (int) $applyScopeAndFilters($this->createQueryBuilder('b'))
             ->select($countSelect)
             ->andWhere('b.elementCommande IS NULL')
             ->getQuery()
             ->getSingleScalarResult();
 
         // Billets vendus : avec elementCommande
-        $vendus = (int) $this->applyOrganizerScope($this->createQueryBuilder('b'), $organizer, $event)
+        $vendus = (int) $applyScopeAndFilters($this->createQueryBuilder('b'))
             ->select($countSelect)
             ->andWhere('b.statut IN (:statuses)')
             ->andWhere(self::SOLD_TICKET_CONDITION)
@@ -181,7 +218,7 @@ class BilletRepository extends ServiceEntityRepository
             ->getSingleScalarResult();
 
         // Billets utilisés : vendus et utilisés
-        $utilises = (int) $this->applyOrganizerScope($this->createQueryBuilder('b'), $organizer, $event)
+        $utilises = (int) $applyScopeAndFilters($this->createQueryBuilder('b'))
             ->select($countSelect)
             ->andWhere(self::STATUS_CONDITION)
             ->andWhere(self::SOLD_TICKET_CONDITION)
@@ -189,21 +226,25 @@ class BilletRepository extends ServiceEntityRepository
             ->getQuery()
             ->getSingleScalarResult();
 
-        // Billets annulés : vendus puis annulés
-        $annules = (int) $this->applyOrganizerScope($this->createQueryBuilder('b'), $organizer, $event)
+        // Billets en attente : vendus mais pas encore utilisés (statut 'valid')
+        $enAttente = (int) $applyScopeAndFilters($this->createQueryBuilder('b'))
             ->select($countSelect)
             ->andWhere(self::STATUS_CONDITION)
             ->andWhere(self::SOLD_TICKET_CONDITION)
-            ->setParameter('status', Billet::STATUT_CANCELLED)
+            ->setParameter('status', Billet::STATUT_VALID)
             ->getQuery()
             ->getSingleScalarResult();
+
+        // Note: Les billets annulés n'existent plus (statut 'cancelled' supprimé)
+        // Les billets peuvent être remboursés (statut 'refunded') mais pas annulés
 
         return [
             'total' => $total,
             'vendus' => $vendus,
             'nonUtilises' => $nonUtilises,
-            'annules' => $annules,
+            'annules' => 0, // Toujours 0 car le statut 'cancelled' n'existe plus
             'utilises' => $utilises,
+            'enAttente' => $enAttente,
         ];
     }
 
@@ -256,8 +297,23 @@ class BilletRepository extends ServiceEntityRepository
             ->setParameter('organizer', $organizer);
 
         if ($event !== null) {
+            // Si un événement spécifique est sélectionné, filtrer par cet événement
             $qb->andWhere('e.id = :eventId')
                 ->setParameter('eventId', $event->getId());
+        } else {
+            // Sinon, filtrer par les événements publiés en cours et à venir
+            // Un événement est "en cours ou à venir" s'il n'est pas encore terminé
+            // C'est-à-dire : seTermineLe IS NULL OU seTermineLe >= maintenant
+            // Cela inclut :
+            // - Les événements en cours (commencés mais pas terminés)
+            // - Les événements à venir (pas encore commencés)
+            // - Les événements sans date de fin (seTermineLe IS NULL)
+            $now = new \DateTimeImmutable('now', new \DateTimeZone('Indian/Antananarivo'));
+            $qb->andWhere('e.statut = :statutPublished')
+                // Événements qui ne sont pas encore terminés (en cours ou à venir)
+                ->andWhere('(e.seTermineLe IS NULL OR e.seTermineLe >= :nowDate)')
+                ->setParameter('statutPublished', Event::STATUS_PUBLISHED)
+                ->setParameter('nowDate', $now);
         }
 
         return $qb;

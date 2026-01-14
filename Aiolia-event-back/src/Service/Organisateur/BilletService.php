@@ -132,9 +132,9 @@ class BilletService
     }
 
     
-    public function getStatsByOrganizer(User $organizer, ?\App\Entity\Event $event = null): array
+    public function getStatsByOrganizer(User $organizer, ?\App\Entity\Event $event = null, array $filters = []): array
     {
-        return $this->repository->getStatsByOrganizer($organizer, $event);
+        return $this->repository->getStatsByOrganizer($organizer, $event, $filters);
     }
 
     
@@ -149,17 +149,41 @@ class BilletService
     
     public function getSalesStatsByTypeBillet(TypeBillet $typeBillet): array
     {
-        $inventaire = $typeBillet->getInventaire();
+        // Utiliser les billets réels au lieu de l'inventaire pour être cohérent avec l'historique
+        // Utiliser la même logique que getStatsByOrganizer
+        $billets = $this->repository->findByTypeBillet($typeBillet);
         
-        $stockTotal = $inventaire ? $inventaire->getQuantiteTotale() : 0;
-        $vendus = $inventaire ? $inventaire->getQuantiteVendue() : 0;
-        // Calculer les disponibles : stock total - vendus (sans soustraire les réservés)
-        $disponibles = max(0, $stockTotal - $vendus);
+        // Total : tous les billets de ce type (comme dans getStatsByOrganizer)
+        $stockTotal = count($billets);
         
-        // Calculer les revenus : prix unitaire × quantité vendue
+        // Vendus : billets avec elementCommande et statut valid ou used (même logique que getStatsByOrganizer)
+        // Exclure les billets remboursés (refunded) et transférés (transferred)
+        $vendus = 0;
+        $revenus = 0;
         $prixUnitaire = (float) $typeBillet->getPrixDeBase();
-        $revenus = $prixUnitaire * $vendus;
         
+        foreach ($billets as $billet) {
+            if ($billet->getElementCommande() !== null) {
+                $statut = $billet->getStatut();
+                // Même condition que dans getStatsByOrganizer : seulement valid et used
+                if (in_array($statut, [Billet::STATUT_VALID, Billet::STATUT_USED], true)) {
+                    $vendus++;
+                    $revenus += $prixUnitaire;
+                }
+            }
+        }
+        
+        // Disponibles : billets sans elementCommande (même logique que getStatsByOrganizer pour nonUtilises)
+        // Cela inclut les billets "dispo" qui n'ont pas de elementCommande
+        $disponibles = 0;
+        foreach ($billets as $billet) {
+            if ($billet->getElementCommande() === null) {
+                $disponibles++;
+            }
+        }
+        
+        // Vérification de cohérence : total devrait être égal à vendus + disponibles + autres (refunded, transferred)
+        // Mais pour l'affichage, on montre seulement vendus et disponibles
         $tauxVente = $stockTotal > 0 ? ($vendus / $stockTotal) * 100 : 0;
         
         return [

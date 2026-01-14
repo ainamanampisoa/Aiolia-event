@@ -11,6 +11,7 @@ use App\Service\Organisateur\TicketManagementService;
 use App\Service\Organisateur\TypeBilletService;
 use App\Service\Organisateur\WaitlistService;
 use App\Service\QrCodeService;
+use App\Service\TicketStatusService;
 use Symfony\Bundle\FrameworkBundle\Controller\AbstractController;
 use Symfony\Component\HttpFoundation\JsonResponse;
 use Symfony\Component\HttpFoundation\Request;
@@ -28,6 +29,7 @@ class TicketController extends AbstractController
         private EventRepository $eventRepository,
         private TicketInvoiceRepository $ticketInvoiceRepository,
         private WaitlistService $waitlistService, // Service pour la liste d'attente
+        private TicketStatusService $ticketStatusService,
     ) {
     }
 
@@ -39,7 +41,7 @@ class TicketController extends AbstractController
         $user = $this->getUser();
         
         $billets = $this->billetService->getByOrganizer($user);
-        $stats = $this->billetService->getStatsByOrganizer($user);
+        $stats = $this->billetService->getStatsByOrganizer($user, null, []);
         
         return $this->render('Organisateur/ticket/index.html.twig', [
             'billets' => $billets,
@@ -326,7 +328,13 @@ class TicketController extends AbstractController
             throw $this->createAccessDeniedException('Vous n\'avez pas accès à ce billet');
         }
         
-        $qrCodeUrl = $this->qrCodeService->generateQrCodeForBillet($billet->getCodeQr());
+        // Vérifier que le billet a un code QR
+        $codeQr = $billet->getCodeQr();
+        if (!$codeQr || trim($codeQr) === '') {
+            // Si pas de code QR, utiliser l'ID du billet comme fallback
+            $codeQr = 'TKT-' . $billet->getId();
+        }
+        $qrCodeUrl = $this->qrCodeService->generateQrCodeForBillet($codeQr);
 
         // Récupérer la facture si le billet est lié à une commande
         $facture = null;
@@ -339,6 +347,7 @@ class TicketController extends AbstractController
             'billet' => $billet,
             'qrCodeUrl' => $qrCodeUrl,
             'facture' => $facture,
+            'statusLabels' => $this->ticketStatusService->getStatusLabels(),
         ]);
     }
 

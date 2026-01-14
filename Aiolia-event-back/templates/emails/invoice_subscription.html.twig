@@ -254,6 +254,7 @@
             letter-spacing: 0.3px;
             box-shadow: 0 4px 15px rgba(52, 152, 219, 0.3);
             transition: transform 0.2s, box-shadow 0.2s;
+            margin: 8px;
         }
         .cta a:hover {
             transform: translateY(-2px);
@@ -266,6 +267,13 @@
         .cta a.paid {
             background: linear-gradient(135deg, #28a745 0%, #1f8a5b 100%);
             box-shadow: 0 4px 15px rgba(40, 167, 69, 0.3);
+        }
+        .cta a.pdf-download {
+            background: linear-gradient(135deg, #6c757d 0%, #495057 100%);
+            box-shadow: 0 4px 15px rgba(108, 117, 125, 0.3);
+        }
+        .cta a.pdf-download:hover {
+            box-shadow: 0 6px 20px rgba(108, 117, 125, 0.4);
         }
         .support-info {
             text-align: center;
@@ -496,20 +504,36 @@
                         <p style="color: #495057;">
                             Votre facture a été payée avec succès. Nous vous remercions pour votre confiance. Votre abonnement organisateur reste actif et vous pouvez continuer à utiliser tous les services inclus dans votre plan.
                         </p>
+                        {% if invoice.dueAt and invoice.paidAt %}
+                            {% set paidDate = invoice.paidAt|date('U') %}
+                            {% set dueDate = invoice.dueAt|date('U') %}
+                            {% if paidDate < dueDate %}
+                                {% set daysBefore = ((dueDate - paidDate) / 86400)|round %}
+                                <p style="color: #155724; margin-top: 12px; font-weight: 600;">
+                                    ✨ Excellent ! Vous avez réglé votre facture avec {{ daysBefore }} jour{{ daysBefore > 1 ? 's' : '' }} d'avance sur la date d'échéance. 
+                                    Nous apprécions votre ponctualité et votre professionnalisme.
+                                </p>
+                            {% endif %}
+                        {% endif %}
                         <p style="color: #495057; margin-top: 12px;">
-                            Vous pouvez consulter et télécharger votre facture au format PDF depuis votre espace organisateur.
+                            Vous pouvez consulter et télécharger votre facture au format PDF depuis votre espace organisateur ou en cliquant sur le lien ci-dessous.
                         </p>
                     </div>
                 {% else %}
                     <div class="info-section">
                         <p style="color: #495057;">
-                            Vous pouvez consulter et télécharger votre facture détaillée au format PDF depuis votre espace organisateur. 
+                            Vous pouvez consulter et télécharger votre facture détaillée au format PDF depuis votre espace organisateur ou en cliquant sur le lien de téléchargement ci-dessous. 
                             N'hésitez pas à nous contacter si vous avez des questions concernant cette facture.
                         </p>
                     </div>
                 {% endif %}
 
                 <div class="cta">
+                    {% if pdf_download_url is defined and pdf_download_url %}
+                        <a href="{{ pdf_download_url }}" class="pdf-download" target="_blank" rel="noopener noreferrer">
+                            📥 Télécharger la facture en PDF
+                        </a>
+                    {% endif %}
                     <a href="{{ absolute_url(path('app_profile_index')) }}" class="{% if isOverdueNotification %}overdue{% elseif invoice.status == 'paid' %}paid{% endif %}">
                         {% if isOverdueNotification %}
                             Régler ma facture maintenant

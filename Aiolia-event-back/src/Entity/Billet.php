@@ -13,7 +13,6 @@ class Billet
 {
     public const STATUT_VALID = 'valid';
     public const STATUT_USED = 'used';
-    public const STATUT_CANCELLED = 'cancelled';
     public const STATUT_REFUNDED = 'refunded';
     public const STATUT_TRANSFERRED = 'transferred';
 

@@ -75,17 +75,46 @@
     </div>
 
     <!-- Stats rapides des billets -->
-    {% set stats = stats ?? {'total': 0, 'vendus': 0, 'nonUtilises': 0, 'annules': 0} %}
+    {% set stats = stats ?? {'total': 0, 'vendus': 0, 'nonUtilises': 0, 'enAttente': 0, 'utilises': 0} %}
     {% set filters = filters ?? {'statut': null, 'categorie': null, 'segment': null} %}
     {% set availableFilters = availableFilters ?? {'statuts': [], 'categories': [], 'segments': []} %}
-    {% set statusLabels = {
+    {% set statusLabels = statusLabels ?? {
         'dispo': 'Disponible',
         'valid': 'En attente',
         'used': 'Utilisé',
-        'cancelled': 'Annulé',
         'refunded': 'Remboursé',
         'transferred': 'Transféré'
     } %}
+    
+    {# Macro pour afficher un badge de statut harmonisé #}
+    {% macro statusBadge(statut, statusLabels) %}
+        {% set statutLabel = statusLabels[statut]|default(statut|capitalize) %}
+        {% if statut == 'dispo' %}
+            <span class="badge status-badge status-dispo">
+                <i class="fas fa-ticket-alt"></i> {{ statutLabel }}
+            </span>
+        {% elseif statut == 'valid' %}
+            <span class="badge status-badge status-pending">
+                <i class="fas fa-clock"></i> {{ statutLabel }}
+            </span>
+        {% elseif statut == 'used' %}
+            <span class="badge status-badge status-active">
+                <i class="fas fa-check-circle"></i> {{ statutLabel }}
+            </span>
+        {% elseif statut == 'refunded' %}
+            <span class="badge status-badge status-refunded">
+                <i class="fas fa-undo"></i> {{ statutLabel }}
+            </span>
+        {% elseif statut == 'transferred' %}
+            <span class="badge status-badge status-transferred">
+                <i class="fas fa-exchange-alt"></i> {{ statutLabel }}
+            </span>
+        {% else %}
+            <span class="badge status-badge status-inactive">
+                {{ statutLabel }}
+            </span>
+        {% endif %}
+    {% endmacro %}
     <div class="stats-grid stats-grid-compact">
         <div class="stat-card stat-card-compact">
             <div class="stat-icon stat-icon-compact" style="background: linear-gradient(135deg, rgba(52, 152, 219, 0.1), rgba(52, 152, 219, 0.05)); color: var(--accent);">
@@ -108,6 +137,16 @@
         </div>
 
         <div class="stat-card stat-card-compact">
+            <div class="stat-icon stat-icon-compact" style="background: linear-gradient(135deg, rgba(243, 156, 18, 0.1), rgba(243, 156, 18, 0.05)); color: #f39c12;">
+                <i class="fas fa-clock"></i>
+            </div>
+            <div class="stat-content">
+                <h3>{{ stats.enAttente|default(0)|number_format(0, ',', ' ') }}</h3>
+                <p>En attente</p>
+            </div>
+        </div>
+
+        <div class="stat-card stat-card-compact">
             <div class="stat-icon stat-icon-compact" style="background: linear-gradient(135deg, rgba(243, 156, 18, 0.1), rgba(243, 156, 18, 0.05)); color: var(--warning);">
                 <i class="fas fa-clock"></i>
             </div>
@@ -117,15 +156,6 @@
             </div>
         </div>
 
-        <div class="stat-card stat-card-compact">
-            <div class="stat-icon stat-icon-compact" style="background: linear-gradient(135deg, rgba(231, 76, 60, 0.1), rgba(231, 76, 60, 0.05)); color: var(--danger);">
-                <i class="fas fa-ban"></i>
-            </div>
-            <div class="stat-content">
-                <h3>{{ stats.annules|default(0)|number_format(0, ',', ' ') }}</h3>
-                <p>Billets annulés</p>
-            </div>
-        </div>
     </div>
 
     <!-- Filtres -->
@@ -202,15 +232,26 @@
                             <th class="col-left" style="min-width: 90px;">Code promo</th>
                             <th class="col-center" style="min-width: 100px;">Date</th>
                             <th class="col-center" style="min-width: 90px;">Statut</th>
+                            <th class="col-center" style="min-width: 80px;">QR Code</th>
                             <th class="col-center" style="min-width: 60px;">Actions</th>
                     </tr>
                 </thead>
                 <tbody>
                         {% if totalItems is defined and totalItems > 0 %}
                             {% for vente in ventes %}
-                                <tr>
+                                <tr class="{% if vente.statut_facture == 'dispo' %}dispo-ticket-row{% endif %}">
                                     <td class="col-left">
-                                        <span style="color: var(--text-primary); font-size: 0.85rem; font-weight: var(--font-weight-medium);">#FAC-{{ vente.numero_facture }}</span>
+                                        {% if vente.statut_facture == 'dispo' %}
+                                            <div class="dispo-ticket-number">
+                                                <i class="fas fa-box-open" style="color: #28a745; margin-right: 6px; font-size: 1rem;"></i>
+                                                <div>
+                                                    <span style="color: #28a745; font-size: 0.85rem; font-weight: var(--font-weight-semibold); display: block;">{{ vente.numero_facture }}</span>
+                                                    <small style="color: var(--text-muted); font-size: 0.7rem;">Billet disponible</small>
+                                                </div>
+                                            </div>
+                                        {% else %}
+                                            <span style="color: var(--text-primary); font-size: 0.85rem; font-weight: var(--font-weight-medium);">#FAC-{{ vente.numero_facture }}</span>
+                                        {% endif %}
                                     </td>
                                     {% if event is not defined or not event %}
                                         <td class="col-left">
@@ -222,7 +263,15 @@
                                     <td class="col-left" style="white-space: normal;">
                                         <div class="user-info">
                                             <div class="user-details">
-                                                {% if vente.client_email %}
+                                                {% if vente.statut_facture == 'dispo' %}
+                                                    <div class="dispo-client-info">
+                                                        <div class="dispo-client-badge">
+                                                            <i class="fas fa-user-slash"></i>
+                                                            <span>Non attribué</span>
+                                                        </div>
+                                                        <small style="color: var(--text-muted); font-size: 0.75rem; display: block; margin-top: 4px;">Prêt à être vendu</small>
+                                                    </div>
+                                                {% elseif vente.client_email %}
                                                     <span class="user-name">{{ vente.client_email }}</span>
                                                 {% else %}
                                                     <span class="text-muted">N/A</span>
@@ -237,7 +286,11 @@
                                         <span style="color: var(--text-primary); font-size: 0.85rem; font-weight: var(--font-weight-medium);">{{ vente.prix_normal|default(0)|number_format(0, ',', ' ') }} {{ vente.devise|default('MGA') }}</span>
                                     </td>
                                     <td class="col-right">
-                                        <span style="color: var(--text-primary); font-size: 0.85rem; font-weight: var(--font-weight-medium);">{{ vente.montant_facture_total|default(0)|number_format(0, ',', ' ') }} {{ vente.devise|default('MGA') }}</span>
+                                        {% if vente.statut_facture == 'dispo' %}
+                                            <span class="text-muted" style="font-size: 0.85rem;">—</span>
+                                        {% else %}
+                                            <span style="color: var(--text-primary); font-size: 0.85rem; font-weight: var(--font-weight-medium);">{{ vente.montant_facture_total|default(0)|number_format(0, ',', ' ') }} {{ vente.devise|default('MGA') }}</span>
+                                        {% endif %}
                                     </td>
                                     <td class="col-left">
                                         {% if vente.code_promo %}
@@ -255,27 +308,29 @@
                                     </td>
                                     <td class="col-center">
                                         {% set statutBillet = vente.billet_statut|default('dispo') %}
-                                        {% set statutLabel = statusLabels[statutBillet]|default(statutBillet|capitalize) %}
-                                        {% if statutBillet == 'dispo' %}
-                                            <span class="badge status-badge status-active">Disponible</span>
-                                        {% elseif statutBillet == 'valid' %}
-                                            <span class="badge status-badge status-pending">En attente</span>
-                                        {% elseif statutBillet == 'used' %}
-                                            <span class="badge status-badge status-active">Utilisé</span>
-                                        {% elseif statutBillet == 'cancelled' %}
-                                            <span class="badge status-badge status-cancelled">Annulé</span>
-                                        {% elseif statutBillet == 'refunded' %}
-                                            <span class="badge status-badge status-refunded">Remboursé</span>
-                                        {% elseif statutBillet == 'transferred' %}
-                                            <span class="badge status-badge status-active">Transféré</span>
+                                        {% import _self as macros %}
+                                        {{ macros.statusBadge(statutBillet, statusLabels) }}
+                                    </td>
+                                    <td class="col-center">
+                                        {% if vente.billet_id %}
+                                            <button 
+                                                type="button" 
+                                                class="btn-qr-preview {% if vente.statut_facture == 'dispo' %}btn-qr-preview-dispo{% endif %}" 
+                                                data-billet-id="{{ vente.billet_id }}"
+                                                data-qr-code="{{ vente.billet_code_qr|default('')|e('js') }}"
+                                                data-statut="{{ vente.billet_statut|default('dispo') }}"
+                                                title="{% if vente.statut_facture == 'dispo' %}Aperçu du QR code - Billet disponible{% else %}Aperçu du QR code{% endif %}"
+                                                onclick="showQrCodeModal({{ vente.billet_id }}, '{{ vente.numero_facture|e('js') }}', '{{ vente.billet_code_qr|default('')|e('js') }}', '{{ vente.billet_statut|default('dispo') }}')">
+                                                <i class="fas fa-qrcode"></i>
+                                            </button>
                                         {% else %}
-                                            <span class="badge status-badge status-inactive">{{ statutLabel }}</span>
+                                            <span class="text-muted" style="font-size: 0.75rem;">—</span>
                                         {% endif %}
                                     </td>
                                     <td class="col-center">
                                         <div class="action-buttons">
                                             {% if vente.billet_id %}
-                                                <a href="{{ path('app_ticket_show', {id: vente.billet_id}) }}" class="btn-action btn-view" title="Voir les détails du billet et de la facture">
+                                                <a href="{{ path('app_ticket_show', {id: vente.billet_id}) }}" class="btn-action btn-view" title="{% if vente.statut_facture == 'dispo' %}Voir les détails du billet disponible{% else %}Voir les détails du billet et de la facture{% endif %}">
                                                     <i class="fas fa-eye"></i>
                                                 </a>
                                             {% else %}
@@ -705,16 +760,49 @@
     box-shadow: var(--shadow-sm);
 }
 
+/* Styles harmonisés pour les badges de statut */
+.status-dispo {
+    background: linear-gradient(135deg, #d4edda, #c3e6cb);
+    color: #155724;
+    border: 1px solid #28a745;
+    font-weight: var(--font-weight-semibold);
+}
+
+.status-dispo i {
+    color: #28a745;
+}
+
 .status-active {
-    background: var(--bg-secondary);
-    color: var(--success);
-    border: 1px solid var(--border-color);
+    background: linear-gradient(135deg, rgba(39, 174, 96, 0.15), rgba(39, 174, 96, 0.08));
+    color: #27ae60;
+    border: 1px solid rgba(39, 174, 96, 0.3);
+    font-weight: var(--font-weight-medium);
+}
+
+.status-active i {
+    color: #27ae60;
 }
 
 .status-pending {
-    background: var(--bg-secondary);
-    color: var(--warning);
-    border: 1px solid var(--border-color);
+    background: linear-gradient(135deg, rgba(243, 156, 18, 0.15), rgba(243, 156, 18, 0.08));
+    color: #d68910;
+    border: 1px solid rgba(243, 156, 18, 0.3);
+    font-weight: var(--font-weight-medium);
+}
+
+.status-pending i {
+    color: #f39c12;
+}
+
+.status-transferred {
+    background: linear-gradient(135deg, rgba(52, 152, 219, 0.15), rgba(52, 152, 219, 0.08));
+    color: #2980b9;
+    border: 1px solid rgba(52, 152, 219, 0.3);
+    font-weight: var(--font-weight-medium);
+}
+
+.status-transferred i {
+    color: #3498db;
 }
 
 .status-inactive {
@@ -723,18 +811,23 @@
     border: 1px solid var(--border-color);
 }
 
-.status-cancelled {
-    background: var(--bg-secondary);
-    color: #E74C3C;
-    border: 1px solid var(--border-color);
-    font-weight: var(--font-weight-semibold);
-}
 
 .status-refunded {
-    background: linear-gradient(135deg, rgba(139, 69, 19, 0.1), rgba(160, 82, 45, 0.05));
-    color: #8B4513;
-    border: 1px solid rgba(139, 69, 19, 0.3);
-    font-weight: var(--font-weight-semibold);
+    background: linear-gradient(135deg, rgba(192, 57, 43, 0.15), rgba(192, 57, 43, 0.08));
+    color: #c0392b;
+    border: 1px solid rgba(192, 57, 43, 0.3);
+    font-weight: var(--font-weight-medium);
+}
+
+.status-refunded i {
+    color: #c0392b;
+}
+
+.status-inactive {
+    background: var(--bg-secondary);
+    color: var(--text-muted);
+    border: 1px solid var(--border-color);
+    font-weight: var(--font-weight-medium);
 }
 
 .date-info {
@@ -1126,6 +1219,332 @@
 .price-info strong {
     color: var(--text-primary);
 }
+
+/* Styles pour les billets disponibles dans le tableau */
+.dispo-ticket-number {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    padding: 6px 10px;
+    background: linear-gradient(135deg, rgba(40, 167, 69, 0.1), rgba(40, 167, 69, 0.05));
+    border: 1px solid rgba(40, 167, 69, 0.3);
+    border-radius: var(--border-radius-sm);
+}
+
+.dispo-client-info {
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+}
+
+.dispo-client-badge {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    padding: 4px 10px;
+    background: rgba(40, 167, 69, 0.1);
+    color: #155724;
+    border: 1px solid rgba(40, 167, 69, 0.3);
+    border-radius: 12px;
+    font-size: 0.8rem;
+    font-weight: var(--font-weight-medium);
+}
+
+.dispo-client-badge i {
+    font-size: 0.85rem;
+    color: #28a745;
+}
+
+/* Bouton QR code amélioré */
+.btn-qr-preview {
+    width: 36px;
+    height: 36px;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    border: none;
+    border-radius: var(--border-radius-sm);
+    cursor: pointer;
+    transition: all 0.3s ease;
+    background: linear-gradient(135deg, #5DADE2 0%, #3498DB 100%);
+    color: white;
+    box-shadow: 0 2px 6px rgba(52, 152, 219, 0.3);
+    font-size: 0.9rem;
+}
+
+.btn-qr-preview:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 4px 12px rgba(52, 152, 219, 0.4);
+    background: linear-gradient(135deg, #3498DB 0%, #2980B9 100%);
+}
+
+.btn-qr-preview-dispo {
+    background: linear-gradient(135deg, #28a745 0%, #20c997 100%);
+    box-shadow: 0 2px 6px rgba(40, 167, 69, 0.3);
+}
+
+.btn-qr-preview-dispo:hover {
+    background: linear-gradient(135deg, #20c997 0%, #28a745 100%);
+    box-shadow: 0 4px 12px rgba(40, 167, 69, 0.4);
+}
+
+/* Modal QR code */
+.qr-code-modal {
+    display: none;
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    background: rgba(0, 0, 0, 0.6);
+    z-index: 10000;
+    justify-content: center;
+    align-items: center;
+    backdrop-filter: blur(4px);
+}
+
+.qr-code-modal.active {
+    display: flex;
+}
+
+.qr-code-modal-content {
+    background: var(--bg-card);
+    border-radius: var(--border-radius-lg);
+    box-shadow: 0 20px 60px rgba(0, 0, 0, 0.3);
+    max-width: 500px;
+    width: 90%;
+    max-height: 90vh;
+    overflow-y: auto;
+    animation: modalFadeIn 0.3s ease;
+}
+
+@keyframes modalFadeIn {
+    from {
+        opacity: 0;
+        transform: scale(0.9) translateY(-20px);
+    }
+    to {
+        opacity: 1;
+        transform: scale(1) translateY(0);
+    }
+}
+
+.qr-code-modal-header {
+    padding: 20px 24px;
+    border-bottom: 1px solid var(--border-color);
+    background: var(--bg-secondary);
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    border-radius: var(--border-radius-lg) var(--border-radius-lg) 0 0;
+}
+
+.qr-code-modal-header h3 {
+    margin: 0;
+    font-size: 1.3rem;
+    font-weight: var(--font-weight-semibold);
+    color: var(--text-primary);
+    display: flex;
+    align-items: center;
+    gap: 10px;
+}
+
+.qr-code-modal-header h3 i {
+    color: var(--accent);
+}
+
+.qr-code-modal-close {
+    width: 32px;
+    height: 32px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    border: none;
+    background: transparent;
+    color: var(--text-secondary);
+    cursor: pointer;
+    border-radius: var(--border-radius-sm);
+    transition: all 0.3s ease;
+    font-size: 1.2rem;
+}
+
+.qr-code-modal-close:hover {
+    background: var(--bg-secondary);
+    color: var(--text-primary);
+}
+
+.qr-code-modal-body {
+    padding: 24px;
+}
+
+.qr-code-preview-container {
+    text-align: center;
+}
+
+.qr-code-dispo-notice {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 10px;
+    padding: 12px 16px;
+    background: linear-gradient(135deg, rgba(40, 167, 69, 0.15), rgba(40, 167, 69, 0.08));
+    border: 2px solid rgba(40, 167, 69, 0.3);
+    border-radius: var(--border-radius-md);
+    margin-bottom: 20px;
+    color: #155724;
+    font-size: 0.9rem;
+    font-weight: var(--font-weight-medium);
+}
+
+.qr-code-dispo-notice i {
+    font-size: 1.1rem;
+    color: #28a745;
+}
+
+.qr-code-preview-image {
+    width: 300px;
+    height: 300px;
+    max-width: 100%;
+    border: 3px solid var(--border-color);
+    border-radius: var(--border-radius-md);
+    padding: 15px;
+    background: white;
+    box-shadow: 0 4px 16px rgba(0, 0, 0, 0.1);
+    margin: 0 auto 20px;
+    display: block;
+    object-fit: contain;
+    min-height: 200px;
+}
+
+.qr-code-preview-label {
+    font-size: 1.1rem;
+    font-weight: var(--font-weight-semibold);
+    color: var(--text-primary);
+    margin: 0 0 16px 0;
+}
+
+.qr-code-preview-code {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 8px;
+    padding: 10px 16px;
+    background: var(--bg-secondary);
+    border-radius: var(--border-radius-sm);
+    margin-bottom: 20px;
+    font-size: 0.85rem;
+    color: var(--text-secondary);
+}
+
+.qr-code-preview-code i {
+    color: var(--accent);
+}
+
+.qr-code-preview-code code {
+    background: var(--bg-card);
+    padding: 4px 8px;
+    border-radius: 4px;
+    font-family: 'Courier New', monospace;
+    font-size: 0.8rem;
+    color: var(--text-primary);
+    border: 1px solid var(--border-color);
+    word-break: break-all;
+}
+
+.qr-code-preview-actions {
+    display: flex;
+    gap: 12px;
+    justify-content: center;
+    flex-wrap: wrap;
+}
+
+.btn-download-qr-preview {
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+    padding: 12px 24px;
+    background: linear-gradient(135deg, #5DADE2 0%, #3498DB 100%);
+    color: white;
+    border: none;
+    border-radius: var(--border-radius-md);
+    text-decoration: none;
+    font-weight: var(--font-weight-semibold);
+    font-size: 0.95rem;
+    transition: all 0.3s ease;
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+    cursor: pointer;
+}
+
+.btn-download-qr-preview:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+    background: linear-gradient(135deg, #3498DB 0%, #2980B9 100%);
+    color: white;
+}
+
+.btn-print-qr-preview {
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+    padding: 12px 24px;
+    background: linear-gradient(135deg, #95a5a6 0%, #7f8c8d 100%);
+    color: white;
+    border: none;
+    border-radius: var(--border-radius-md);
+    text-decoration: none;
+    font-weight: var(--font-weight-semibold);
+    font-size: 0.95rem;
+    transition: all 0.3s ease;
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+    cursor: pointer;
+}
+
+.btn-print-qr-preview:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+    background: linear-gradient(135deg, #7f8c8d 0%, #6c7a7b 100%);
+    color: white;
+}
+
+.qr-code-warning-notice {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 10px;
+    padding: 12px 16px;
+    background: linear-gradient(135deg, rgba(243, 156, 18, 0.15), rgba(243, 156, 18, 0.08));
+    border: 2px solid rgba(243, 156, 18, 0.3);
+    border-radius: var(--border-radius-md);
+    margin-bottom: 20px;
+    color: #856404;
+    font-size: 0.9rem;
+    font-weight: var(--font-weight-medium);
+}
+
+.qr-code-warning-notice i {
+    font-size: 1.1rem;
+    color: #f39c12;
+}
+
+.type-billet-badge {
+    padding: 4px 10px;
+    background: rgba(155, 89, 182, 0.12);
+    color: #9B59B6;
+    border-radius: 6px;
+    font-weight: var(--font-weight-medium);
+    display: inline-block;
+}
+
+/* Ligne de tableau pour les billets disponibles */
+.dispo-ticket-row {
+    background: linear-gradient(135deg, rgba(40, 167, 69, 0.03), rgba(40, 167, 69, 0.01)) !important;
+    border-left: 3px solid #28a745;
+}
+
+.dispo-ticket-row:hover {
+    background: linear-gradient(135deg, rgba(40, 167, 69, 0.08), rgba(40, 167, 69, 0.03)) !important;
+    box-shadow: 0 2px 8px rgba(40, 167, 69, 0.15);
+}
 </style>
 
 <!-- Modal pour modifier le prix -->
@@ -1232,6 +1651,153 @@ document.addEventListener('DOMContentLoaded', function() {
             modal.classList.remove('active');
         }
     });
+});
+
+// Fonction pour afficher le QR code dans un modal
+function showQrCodeModal(billetId, numeroFacture, qrCodeData, statut) {
+    // Utiliser le vrai code QR du billet depuis la base de données
+    // Si le code QR n'est pas fourni, utiliser l'ID comme fallback
+    let hasValidQrCode = true;
+    if (!qrCodeData || qrCodeData === '' || qrCodeData === 'null' || qrCodeData === 'undefined') {
+        qrCodeData = 'TKT-' + billetId;
+        hasValidQrCode = false;
+    }
+    
+    // Nettoyer le code QR (supprimer les espaces et caractères spéciaux)
+    qrCodeData = String(qrCodeData).trim();
+    
+    // Générer l'URL du QR code avec l'API QR Server
+    const qrCodeUrl = 'https://api.qrserver.com/v1/create-qr-code/?size=300x300&data=' + encodeURIComponent(qrCodeData);
+    
+    // Debug: afficher l'URL dans la console
+    console.log('QR Code URL:', qrCodeUrl);
+    console.log('QR Code Data:', qrCodeData);
+    
+    // Créer ou récupérer le modal QR code
+    let qrModal = document.getElementById('qr-code-modal');
+    if (!qrModal) {
+        qrModal = document.createElement('div');
+        qrModal.id = 'qr-code-modal';
+        qrModal.className = 'qr-code-modal';
+        qrModal.innerHTML = `
+            <div class="qr-code-modal-content">
+                <div class="qr-code-modal-header">
+                    <h3><i class="fas fa-qrcode"></i> QR Code du billet</h3>
+                    <button class="qr-code-modal-close" onclick="closeQrCodeModal()">
+                        <i class="fas fa-times"></i>
+                    </button>
+                </div>
+                <div class="qr-code-modal-body">
+                    <div class="qr-code-preview-container">
+                        <div id="qr-code-dispo-notice" class="qr-code-dispo-notice" style="display: none;">
+                            <i class="fas fa-info-circle"></i>
+                            <span>Billet disponible - QR code prêt à être scanné</span>
+                        </div>
+                        <img id="qr-code-preview-image" src="" alt="QR Code" class="qr-code-preview-image">
+                        <p class="qr-code-preview-label" id="qr-code-preview-label"></p>
+                        <div class="qr-code-preview-code" id="qr-code-preview-code" style="display: none;">
+                            <i class="fas fa-key"></i>
+                            <code id="qr-code-preview-code-text"></code>
+                        </div>
+                        <div class="qr-code-preview-actions">
+                            <a id="qr-code-download-link" href="" download class="btn-download-qr-preview">
+                                <i class="fas fa-download"></i> Télécharger
+                            </a>
+                            <button type="button" id="qr-code-print-btn" class="btn-print-qr-preview" onclick="window.print()">
+                                <i class="fas fa-print"></i> Imprimer
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        `;
+        document.body.appendChild(qrModal);
+    }
+    
+    // Mettre à jour le contenu du modal
+    const qrImage = document.getElementById('qr-code-preview-image');
+    const qrLabel = document.getElementById('qr-code-preview-label');
+    const qrDownloadLink = document.getElementById('qr-code-download-link');
+    const qrDispoNotice = document.getElementById('qr-code-dispo-notice');
+    const qrCodePreview = document.getElementById('qr-code-preview-code');
+    const qrCodeText = document.getElementById('qr-code-preview-code-text');
+    const qrPrintBtn = document.getElementById('qr-code-print-btn');
+    
+    // Afficher/masquer la notice pour les billets disponibles
+    if (statut === 'dispo') {
+        qrDispoNotice.style.display = 'flex';
+        qrCodePreview.style.display = 'block';
+        qrCodeText.textContent = qrCodeData.length > 30 ? qrCodeData.substring(0, 30) + '...' : qrCodeData;
+    } else {
+        qrDispoNotice.style.display = 'none';
+        qrCodePreview.style.display = 'none';
+    }
+    
+    // Le bouton imprimer est toujours visible pour tous les statuts
+    qrPrintBtn.style.display = 'inline-flex';
+    
+    // Réinitialiser l'image avant de charger
+    qrImage.style.border = '';
+    qrImage.style.display = 'block';
+    
+    // Charger l'image avec gestion d'erreur améliorée
+    qrImage.onload = function() {
+        console.log('QR Code image chargée avec succès');
+        this.style.border = '';
+        this.style.display = 'block';
+    };
+    
+    qrImage.onerror = function() {
+        console.error('Erreur lors du chargement du QR code:', qrCodeUrl);
+        this.src = 'data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iMzAwIiBoZWlnaHQ9IjMwMCIgeG1sbnM9Imh0dHA6Ly93d3cudzMub3JnLzIwMDAvc3ZnIj48cmVjdCB3aWR0aD0iMzAwIiBoZWlnaHQ9IjMwMCIgZmlsbD0iI2Y1ZjVmNSIvPjx0ZXh0IHg9IjUwJSIgeT0iNTAlIiBmb250LWZhbWlseT0iQXJpYWwiIGZvbnQtc2l6ZT0iMTYiIGZpbGw9IiM5OTk5OTkiIHRleHQtYW5jaG9yPSJtaWRkbGUiIGR5PSIuM2VtIj5FcnJldXIgY2hhcmdlbWVudCBRUkNvZGU8L3RleHQ+PC9zdmc+';
+        this.style.border = '2px solid #dc3545';
+        this.style.display = 'block';
+    };
+    
+    // Définir la source de l'image
+    qrImage.src = qrCodeUrl;
+    
+    // Afficher un avertissement si le code QR n'est pas valide
+    if (!hasValidQrCode) {
+        const warningNotice = document.createElement('div');
+        warningNotice.className = 'qr-code-warning-notice';
+        warningNotice.innerHTML = '<i class="fas fa-exclamation-triangle"></i><span>Code QR non disponible - Utilisation de l\'ID du billet</span>';
+        qrModal.querySelector('.qr-code-modal-body').insertBefore(warningNotice, qrModal.querySelector('.qr-code-preview-container'));
+    }
+    
+    qrLabel.textContent = numeroFacture || 'Billet #' + billetId;
+    qrDownloadLink.href = qrCodeUrl;
+    qrDownloadLink.download = 'qrcode-' + (numeroFacture || 'billet-' + billetId).replace(/[^a-zA-Z0-9]/g, '-') + '.png';
+    
+    // Afficher le modal
+    qrModal.classList.add('active');
+}
+
+function closeQrCodeModal() {
+    const qrModal = document.getElementById('qr-code-modal');
+    if (qrModal) {
+        qrModal.classList.remove('active');
+        // Nettoyer les notices d'avertissement
+        const warningNotice = qrModal.querySelector('.qr-code-warning-notice');
+        if (warningNotice) {
+            warningNotice.remove();
+        }
+    }
+}
+
+// Fermer le modal QR code en cliquant à l'extérieur
+document.addEventListener('click', function(e) {
+    const qrModal = document.getElementById('qr-code-modal');
+    if (qrModal && e.target === qrModal) {
+        closeQrCodeModal();
+    }
+});
+
+// Fermer avec Escape
+document.addEventListener('keydown', function(e) {
+    if (e.key === 'Escape') {
+        closeQrCodeModal();
+    }
 });
 </script>
 {% endblock %}

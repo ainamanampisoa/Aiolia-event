@@ -37,7 +37,7 @@ CREATE TYPE auth_provider_enum           AS ENUM ('password', 'google', 'faceboo
 CREATE TYPE event_status_enum            AS ENUM ('draft', 'published', 'cancelled', 'archived');
 CREATE TYPE event_visibility_enum        AS ENUM ('public', 'private', 'unlisted');
 CREATE TYPE event_format_enum            AS ENUM ('in_person', 'online', 'hybrid');
-CREATE TYPE ticket_status_enum           AS ENUM ('dispo','valid', 'used', 'cancelled', 'refunded', 'transferred');
+CREATE TYPE ticket_status_enum           AS ENUM ('dispo','valid', 'used', 'refunded', 'transferred');
 CREATE TYPE ticket_transfer_status_enum  AS ENUM ('pending', 'accepted', 'declined', 'cancelled');
 CREATE TYPE order_status_enum            AS ENUM ('pending', 'awaiting_payment', 'paid', 'cancelled', 'refunded', 'failed');
 CREATE TYPE payment_status_enum          AS ENUM ('initiated', 'processing', 'paid', 'failed', 'refunded');
@@ -927,7 +927,9 @@ CREATE TABLE IF NOT EXISTS factures_abonnements (
     payee_le TIMESTAMPTZ,
     metadonnees JSONB,
     cree_le TIMESTAMPTZ NOT NULL DEFAULT now(),
-    modifie_le TIMESTAMPTZ NOT NULL DEFAULT now()
+    modifie_le TIMESTAMPTZ NOT NULL DEFAULT now(),
+    -- Contrainte unique pour éviter les doublons : une seule facture par abonnement et par mois
+    CONSTRAINT uq_factures_abonnements_abonnement_mois UNIQUE (id_abonnement, mois_facturation)
 );
 
 
@@ -958,7 +960,9 @@ CREATE INDEX IF NOT EXISTS idx_factures_billets_statut ON factures_billets(statu
 CREATE INDEX IF NOT EXISTS idx_factures_billets_mode_paiement ON factures_billets(id_mode_paiement);
 CREATE INDEX IF NOT EXISTS idx_factures_abonnements_statut ON factures_abonnements(statut);
 CREATE INDEX IF NOT EXISTS idx_factures_abonnements_mode_paiement ON factures_abonnements(id_mode_paiement);
-CREATE INDEX IF NOT EXISTS idx_factures_abonnements_mois_facturation ON factures_abonnements(id_abonnement, mois_facturation);
+-- Note: L'index idx_factures_abonnements_mois_facturation n'est plus nécessaire car la contrainte unique
+-- uq_factures_abonnements_abonnement_mois crée automatiquement un index unique sur (id_abonnement, mois_facturation)
+-- CREATE INDEX IF NOT EXISTS idx_factures_abonnements_mois_facturation ON factures_abonnements(id_abonnement, mois_facturation);
 CREATE INDEX IF NOT EXISTS idx_factures_abonnements_abonnement ON factures_abonnements(id_abonnement, statut);
 CREATE INDEX IF NOT EXISTS idx_abonnements_organisateurs_actifs ON abonnements_organisateurs(id_profil_organisateur, statut) WHERE statut IN ('active', 'paused');
 

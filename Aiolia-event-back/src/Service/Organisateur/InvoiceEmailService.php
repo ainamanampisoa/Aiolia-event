@@ -8,6 +8,7 @@ use App\Entity\User;
 use Symfony\Bridge\Twig\Mime\TemplatedEmail;
 use Symfony\Component\Mailer\MailerInterface;
 use Symfony\Component\Mime\Address;
+use Symfony\Component\Routing\Generator\UrlGeneratorInterface;
 use Psr\Log\LoggerInterface;
 use Symfony\Component\DependencyInjection\Attribute\Autowire;
 
@@ -16,6 +17,7 @@ class InvoiceEmailService
     public function __construct(
         private MailerInterface $mailer,
         private InvoicePdfService $pdfService,
+        private UrlGeneratorInterface $router,
         #[Autowire(env: 'MAIL_FROM_ADDRESS')]
         private string $fromAddress,
         #[Autowire(env: 'MAIL_FROM_NAME')]
@@ -76,6 +78,13 @@ class InvoiceEmailService
                 ? sprintf('URGENT - Facture d\'abonnement %s en retard de paiement - Aiolia Event', $invoice->getInvoiceNumber())
                 : sprintf('Facture d\'abonnement %s - Aiolia Event', $invoice->getInvoiceNumber());
             
+            // Générer l'URL de téléchargement du PDF
+            $pdfDownloadUrl = $this->router->generate(
+                'organisateur_subscription_invoice_pdf',
+                ['id' => $invoice->getId()],
+                UrlGeneratorInterface::ABSOLUTE_URL
+            );
+
             $email = (new TemplatedEmail())
                 ->from(new Address($this->fromAddress, $this->fromName ?? 'Aiolia Event'))
                 ->to($customer->getEmail())
@@ -85,6 +94,7 @@ class InvoiceEmailService
                     'invoice' => $invoice,
                     'customer' => $customer,
                     'isOverdueNotification' => $isOverdueNotification,
+                    'pdf_download_url' => $pdfDownloadUrl,
                 ]);
 
             

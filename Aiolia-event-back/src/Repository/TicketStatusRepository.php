@@ -15,7 +15,6 @@ class TicketStatusRepository
             'dispo',
             'valid',
             'used',
-            'cancelled',
             'refunded',
             'transferred',
         ];

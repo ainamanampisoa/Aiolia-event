@@ -11,3 +11,7 @@ description:
 
 
 login : admin1@yopmail.com  organisateur11@yopmail.com
+
+php bin/console app:sync:event-images
+php bin/console app:fix-passwords
+php bin/console app:update-event-status

@@ -5,7 +5,10 @@ namespace App\Controller\Organisateur;
 use App\Service\Organisateur\PaiementAbonnementService;
 use App\Service\Organisateur\MvolaPaymentClientService;
 use App\Service\Organisateur\SubscriptionPaymentService;
+use App\Service\Organisateur\InvoicePdfService;
 use App\Repository\Organisateur\OrganizerProfileRepository;
+use App\Repository\Admin\SubscriptionInvoiceRepository;
+use App\Entity\SubscriptionInvoice;
 use App\Entity\User;
 use Symfony\Bundle\FrameworkBundle\Controller\AbstractController;
 use Symfony\Component\HttpFoundation\Request;
@@ -22,7 +25,9 @@ class PaiementAbonnementController extends AbstractController
         private PaiementAbonnementService $paiementAbonnementService,
         private MvolaPaymentClientService $mvolaClient,
         private SubscriptionPaymentService $subscriptionPaymentService,
-        private OrganizerProfileRepository $organizerProfileRepository
+        private OrganizerProfileRepository $organizerProfileRepository,
+        private InvoicePdfService $pdfService,
+        private SubscriptionInvoiceRepository $subscriptionInvoiceRepository
     ) {
     }
     
@@ -431,11 +436,39 @@ class PaiementAbonnementController extends AbstractController
 
                     if ($paymentResult['success'] && $paymentResult['email_sent']) {
                         $invoice = $paymentResult['invoice'];
-                        $this->addFlash('success', 
-                            'Transaction initiée avec succès ! ' .
-                            'Votre facture ' . $invoice->getInvoiceNumber() . 
-                            ' a été générée et envoyée par email.'
-                        );
+                        
+                        // Vérifier si le paiement est fait avant l'échéance
+                        $isEarlyPayment = false;
+                        $daysBeforeDue = null;
+                        if ($invoice->getDueAt() && $invoice->getPaidAt()) {
+                            $now = new \DateTime();
+                            $dueDate = $invoice->getDueAt();
+                            if ($now < $dueDate) {
+                                $isEarlyPayment = true;
+                                $interval = $now->diff($dueDate);
+                                $daysBeforeDue = $interval->days;
+                            }
+                        }
+                        
+                        // Message professionnel selon le cas
+                        if ($isEarlyPayment && $daysBeforeDue !== null) {
+                            $message = sprintf(
+                                '✅ Paiement confirmé avec succès ! Votre facture %s a été réglée avec %d jour%s d\'avance sur la date d\'échéance. ' .
+                                'Nous vous remercions pour votre ponctualité et votre confiance. ' .
+                                'Votre facture détaillée a été envoyée par email avec un lien de téléchargement PDF.',
+                                $invoice->getInvoiceNumber(),
+                                $daysBeforeDue,
+                                $daysBeforeDue > 1 ? 's' : ''
+                            );
+                        } else {
+                            $message = sprintf(
+                                '✅ Transaction initiée avec succès ! Votre facture %s a été générée et envoyée par email avec un lien de téléchargement PDF. ' .
+                                'Merci pour votre confiance.',
+                                $invoice->getInvoiceNumber()
+                            );
+                        }
+                        
+                        $this->addFlash('success', $message);
                     } else {
                         $errorMsg = $paymentResult['error'] ?? 'Erreur inconnue';
                         $this->addFlash('warning', 
@@ -562,17 +595,48 @@ class PaiementAbonnementController extends AbstractController
                 $invoice = $paymentResult['invoice'];
                 $customer = $invoice->getCustomer();
                 
+                // Vérifier si le paiement est fait avant l'échéance
+                $isEarlyPayment = false;
+                $daysBeforeDue = null;
+                if ($invoice->getDueAt() && $invoice->getPaidAt()) {
+                    $now = new \DateTime();
+                    $dueDate = $invoice->getDueAt();
+                    if ($now < $dueDate) {
+                        $isEarlyPayment = true;
+                        $interval = $now->diff($dueDate);
+                        $daysBeforeDue = $interval->days;
+                    }
+                }
+                
+                $message = $isEarlyPayment && $daysBeforeDue !== null
+                    ? sprintf(
+                        '✅ Paiement confirmé avec succès ! Votre facture %s a été réglée avec %d jour%s d\'avance. ' .
+                        'Nous vous remercions pour votre ponctualité. Votre facture détaillée a été envoyée par email.',
+                        $invoice->getInvoiceNumber(),
+                        $daysBeforeDue,
+                        $daysBeforeDue > 1 ? 's' : ''
+                    )
+                    : sprintf(
+                        '✅ Transaction initiée avec succès ! Votre facture %s a été générée et envoyée par email. ' .
+                        'Merci pour votre confiance.',
+                        $invoice->getInvoiceNumber()
+                    );
+                
                 return $this->json([
                     'success' => true,
                     'email_sent' => true,
                     'invoice_number' => $invoice->getInvoiceNumber(),
                     'invoice_id' => $invoice->getId(),
                     'customer_email' => $customer->getEmail(),
+                    'is_early_payment' => $isEarlyPayment,
+                    'days_before_due' => $daysBeforeDue,
+                    'message' => $message,
                     'console_logs' => [
                         'email_sent' => '✅ Email envoyé avec succès à ' . $customer->getEmail(),
                         'invoice_created' => '✅ Facture créée et enregistrée dans la base de données',
                         'invoice_number' => $invoice->getInvoiceNumber(),
-                        'invoice_id' => $invoice->getId()
+                        'invoice_id' => $invoice->getId(),
+                        'is_early_payment' => $isEarlyPayment ? 'Oui' : 'Non',
                     ]
                 ]);
             } else {
@@ -658,5 +722,30 @@ class PaiementAbonnementController extends AbstractController
                 'error' => $e->getMessage(),
             ], Response::HTTP_INTERNAL_SERVER_ERROR);
         }
+    }
+
+    /**
+     * Télécharger le PDF de la facture d'abonnement
+     */
+    #[Route('/invoice/{id}/pdf', name: 'organisateur_subscription_invoice_pdf', requirements: ['id' => '\d+'], methods: ['GET'])]
+    public function downloadInvoicePdf(string $id): Response
+    {
+        $user = $this->getUser();
+        if (!$user) {
+            throw $this->createAccessDeniedException('Vous devez être connecté pour télécharger la facture.');
+        }
+
+        $invoice = $this->subscriptionInvoiceRepository->find($id);
+
+        if (!$invoice instanceof SubscriptionInvoice) {
+            throw $this->createNotFoundException('Facture introuvable');
+        }
+
+        // Vérifier que la facture appartient à l'utilisateur connecté
+        if ($invoice->getCustomer()->getId() !== $user->getId()) {
+            throw $this->createAccessDeniedException('Vous n\'avez pas accès à cette facture.');
+        }
+
+        return $this->pdfService->generateSubscriptionInvoicePdf($invoice, $user);
     }
 }
