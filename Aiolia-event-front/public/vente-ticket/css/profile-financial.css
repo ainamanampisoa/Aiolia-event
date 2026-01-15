@@ -282,58 +282,138 @@
     box-shadow: 0 0 0 4px rgba(74, 144, 226, 0.1);
 }
 
-.financial-bars {
-    min-height: 320px;
-    background: #ffffff;
-    border-radius: 16px;
-    padding: 32px 24px 24px;
+.financial-bars-wrapper {
+    display: flex;
+    gap: 15px;
+    align-items: flex-end;
+    margin-top: 20px;
+}
+
+.chart-y-axis {
     position: relative;
+    height: 300px;
+    text-align: right;
+    min-width: 50px;
+    margin-right: 15px;
+    margin-bottom: 60px;
+    /* Aligné avec la zone de graphe */
+}
+
+.y-label {
+    position: absolute;
+    right: 0;
+    font-size: 11px;
+    font-weight: 700;
+    color: rgba(31, 45, 61, 0.6);
+    line-height: 1;
+    transform: translateY(50%);
+    /* Centres the label on its 'bottom' coordinate */
+}
+
+.financial-bars {
+    position: relative;
+    flex: 1;
+    height: 300px;
+    background: transparent;
+    margin-bottom: 60px;
+    border-left: 2px solid #1F2D3D;
+    border-bottom: 2px solid #1F2D3D;
+    /* Axe X */
+}
+
+.chart-grid {
+    position: absolute;
+    inset: 0;
+    pointer-events: none;
+    z-index: 1;
+}
+
+.grid-line {
+    position: absolute;
+    left: 0;
+    right: 0;
+    height: 1px;
+    background: rgba(31, 45, 61, 0.05);
 }
 
 .bars-container {
+    position: absolute;
+    inset: 0;
     display: flex;
     align-items: flex-end;
-    justify-content: space-between;
-    gap: 12px;
-    min-height: 240px;
-    height: 240px;
-    position: relative;
-    padding-bottom: 8px;
+    justify-content: flex-start;
+    padding-left: 0;
+    gap: 40px;
+    z-index: 2;
 }
 
 .bar-item-modern {
-    flex: 1;
+    flex: 0 0 40px;
     display: flex;
     flex-direction: column;
     align-items: center;
     justify-content: flex-end;
     position: relative;
-    min-width: 0;
     height: 100%;
 }
 
-.bar-value-display {
+.bar-container {
+    width: 100%;
+    height: 100%;
+    display: flex;
+    align-items: flex-end;
+    justify-content: center;
+    position: relative;
+}
+
+.bar-modern {
+    width: 24px;
+    /* Un peu plus fin pour plus d'élégance */
+    min-height: 2px;
+    border-radius: 4px 4px 0 0;
+    transition: all 0.3s ease;
+    cursor: pointer;
+    box-shadow: 2px -2px 10px rgba(0, 0, 0, 0.1);
+}
+
+.bar-label-double {
     position: absolute;
-    top: -24px;
+    top: calc(100% + 10px);
+    /* Juste sous l'axe X */
     left: 50%;
     transform: translateX(-50%);
-    white-space: nowrap;
-    opacity: 0;
-    transition: opacity 0.3s ease;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 2px;
+    width: auto;
+    min-height: auto;
 }
 
-.bar-item-modern:hover .bar-value-display {
-    opacity: 1;
-}
-
-.bar-amount {
-    font-size: 12px;
-    font-weight: 700;
+.bar-label-double .month-name {
+    font-size: 11px;
+    font-weight: 800;
     color: #1F2D3D;
-    background: rgba(255, 255, 255, 0.95);
-    padding: 4px 8px;
+    text-transform: uppercase;
+}
+
+.bar-label-double .year-name {
+    font-size: 10px;
+    font-weight: 500;
+    color: rgba(31, 45, 61, 0.6);
+}
+
+.bar-value-top {
+    position: absolute;
+    left: 50%;
+    transform: translateX(-50%);
+    font-size: 10px;
+    font-weight: 800;
+    color: #1F2D3D;
+    white-space: nowrap;
+    background: rgba(255, 255, 255, 0.8);
+    padding: 2px 4px;
     border-radius: 4px;
-    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
 }
 
 .bar-amount-empty {
@@ -343,26 +423,27 @@
 
 .bar-container {
     width: 100%;
-    height: 200px;
-    min-height: 200px;
+    height: 100%;
     display: flex;
     align-items: flex-end;
     justify-content: center;
     position: relative;
-    margin-bottom: 8px;
 }
 
 .bar-modern {
-    width: 100%;
+    width: 32px;
+    max-width: 80%;
     min-height: 4px;
     height: auto;
-    border-radius: 4px 4px 0 0;
+    border-radius: 6px 6px 0 0;
     transition: all 0.3s ease;
     cursor: pointer;
     position: relative;
     display: block;
     visibility: visible;
     opacity: 1;
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+    border: 1px solid rgba(255, 255, 255, 0.2);
 }
 
 .bar-item-modern:not(.bar-empty):hover .bar-modern {
@@ -421,13 +502,13 @@
 }
 
 .bar-label-double {
-    width: 100%;
+    width: 48px;
+    max-width: calc(100% - 4px);
     padding: 6px 2px;
     display: flex;
     flex-direction: column;
     align-items: center;
     justify-content: center;
-    background: rgba(31, 45, 61, 0.05);
     border-radius: 8px;
     margin-top: 8px;
     min-height: 42px;

@@ -295,62 +295,84 @@
                             <span class="legend-item"><i class="fas fa-circle" style="color: #4A90E2;"></i> Dépenses</span>
                         </div>
                     </header>
-                    <div class="financial-bars">
-                        {% set monthlyRolling = monthlyRolling|default([]) %}
+                    {% set monthlyRolling = monthlyRolling|default([]) %}
+                    
+                    {# Calculer le maximum pour déterminer l'échelle #}
+                    {% set rawMax = 0 %}
+                    {% for item in monthlyRolling %}
+                        {% set rVal = item.total_raw|default(0) %}
+                        {% if rVal > rawMax %}{% set rawMax = rVal %}{% endif %}
+                    {% endfor %}
+                    
+                    {# Échelle fixe de 10000 par pas #}
+                    {% set step = 10000 %}
+                    
+                    {# Calculer le maxValue comme le prochain multiple de 10000 au-dessus de rawMax #}
+                    {% if rawMax > 0 %}
+                        {% set maxValue = ((rawMax / step)|round(0, 'ceil')) * step %}
+                    {% else %}
+                        {% set maxValue = step %}
+                    {% endif %}
+                    
+                    {# Nombre de lignes de grille = nombre de pas de 10000 de 0 à maxValue #}
+                    {% set gridLines = (maxValue / step)|round(0, 'ceil') %}
+                    
+                    {# Couleurs distinctes #}
+                    {% set barColors = ['linear-gradient(180deg, #FF8C42 0%, #FF6B1A 100%)', 'linear-gradient(180deg, #FFD93D 0%, #FFC107 100%)', 'linear-gradient(180deg, #6BCB77 0%, #4CAF50 100%)', 'linear-gradient(180deg, #4D96FF 0%, #2563EB 100%)', 'linear-gradient(180deg, #9B59B6 0%, #7B2CBF 100%)', 'linear-gradient(180deg, #FF6B6B 0%, #E63946 100%)', 'linear-gradient(180deg, #74B9FF 0%, #0984E3 100%)', 'linear-gradient(180deg, #FFA07A 0%, #FF7F50 100%)', 'linear-gradient(180deg, #20BF6B 0%, #01A368 100%)', 'linear-gradient(180deg, #A29BFE 0%, #6C5CE7 100%)', 'linear-gradient(180deg, #FD79A8 0%, #E84393 100%)', 'linear-gradient(180deg, #FDCB6E 0%, #F39C12 100%)'] %}
+
+                    <div class="financial-bars-wrapper">
+                        {# Axe Y #}
+                        <div class="chart-y-axis">
+                            {% for i in range(0, gridLines) %}
+                                {% set labelVal = step * i %}
+                                {% set positionPercent = (i * 100 / gridLines)|round(2) %}
+                                <div class="y-label" style="bottom: {{ positionPercent }}%;">
+                                    {{ (labelVal >= 1000) ? (labelVal/1000)|round ~ 'k' : labelVal }}
+                                </div>
+                            {% endfor %}
+                        </div>
                         
-                        {# Calculer le maximum parmi les données glissantes #}
-                        {% set maxValue = 0 %}
-                        {% for item in monthlyRolling %}
-                            {% set rVal = item.total_raw|default(0) %}
-                            {% if rVal > maxValue %}
-                                {% set maxValue = rVal %}
-                            {% endif %}
-                        {% endfor %}
-                        
-                        {% if maxValue <= 0 %}
-                            {% set maxValue = 1 %}
-                        {% endif %}
-                        
-                        {# Couleurs pour chaque barre (dégradé de bleu/indigo pour un look moderne) #}
-                        {% set barColors = [
-                            '#4A90E2', '#5B9DE7', '#6CA9EC', '#7DB6F1', '#8EC3F6', '#9FD0FB',
-                            '#3F78D3', '#3461C4', '#294AB5', '#1E33A6', '#131C97', '#080588'
-                        ] %}
-                        
-                        {# Afficher les 12 mois glissants #}
-                        <div class="bars-container sliding-mode">
-                            {% if monthlyRolling|length > 0 %}
-                                {% for item in monthlyRolling %}
-                                    {% set valNum = item.total_raw|default(0) + 0 %}
-                                    {% set height = ((valNum / maxValue) * 200)|round %}
-                                    {% if height < 8 and valNum > 0 %}
-                                        {% set height = 8 %}
-                                    {% endif %}
-                                    
-                                    {% set percentage = ((valNum / maxValue) * 100)|round(1) %}
-                                    {% set colorIndex = (loop.index0 % barColors|length) %}
-                                    
-                                    <div class="bar-item-modern" data-value="{{ valNum }}">
-                                        {% if valNum > 0 %}
-                                        <div class="bar-value-display">
-                                            <span class="bar-amount">{{ item.total }}</span>
-                                        </div>
-                                        {% endif %}
-                                        <div class="bar-container">
-                                            <div class="bar-modern" style="height: {{ height }}px; background-color: {{ barColors[colorIndex] }};" title="{{ item.total }} ({{ percentage }}%)">
+                        {# Zone du graphique #}
+                        <div class="financial-bars">
+                            <div class="chart-grid">
+                                {% for i in range(0, gridLines) %}
+                                    {% set positionPercent = (i * 100 / gridLines)|round(2) %}
+                                    <div class="grid-line" style="bottom: {{ positionPercent }}%;"></div>
+                                {% endfor %}
+                            </div>
+                            
+                            <div class="bars-container sliding-mode">
+                                {% if monthlyRolling|length > 0 %}
+                                    {% for item in monthlyRolling %}
+                                        {% set valNum = item.total_raw|default(0) + 0 %}
+                                        {% set height = ((valNum / maxValue) * 300)|round %}
+                                        {% if height > 300 %}{% set height = 300 %}{% endif %}
+                                        {% if height < 4 and valNum > 0 %}{% set height = 4 %}{% endif %}
+                                        
+                                        {% set colorIndex = (loop.index0 % barColors|length) %}
+                                        
+                                        <div class="bar-item-modern">
+                                            {% if valNum > 0 %}
+                                            <div class="bar-value-top" style="bottom: {{ height + 5 }}px;">
+                                                {{ (valNum >= 1000) ? (valNum/1000)|round ~ 'k' : valNum }}
+                                            </div>
+                                            {% endif %}
+                                            <div class="bar-container">
+                                                <div class="bar-modern" style="height: {{ height }}px; background: {{ barColors[colorIndex] }};" title="{{ item.total }}">
+                                                </div>
+                                            </div>
+                                            <div class="bar-label-double">
+                                                <span class="month-name">{{ item.month|slice(0, 3) }}.</span>
+                                                <span class="year-name">{{ item.month_key|slice(2, 2) }}</span>
                                             </div>
                                         </div>
-                                        <div class="bar-label-double">
-                                            <span class="month-name">{{ item.month|slice(0, 3) }}.</span>
-                                            <span class="year-name">{{ item.month_key|slice(2, 2) }}</span>
-                                        </div>
+                                    {% endfor %}
+                                {% else %}
+                                    <div class="no-data-message">
+                                        <p><i class="fas fa-info-circle"></i> Aucune donnée de dépense.</p>
                                     </div>
-                                {% endfor %}
-                            {% else %}
-                                <div class="no-data-message">
-                                    <p><i class="fas fa-info-circle"></i> Aucune donnée de dépense sur les 12 derniers mois.</p>
-                                </div>
-                            {% endif %}
+                                {% endif %}
+                            </div>
                         </div>
                     </div>
                 </div>
