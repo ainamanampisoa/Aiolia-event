@@ -1,0 +1,50 @@
+Génère un diagramme d'architecture pour le projet Aiolia Event en suivant cette description :
+
+ARCHITECTURE N-TIER - AIOLIA EVENT
+
+Deux applications distinctes partagent la même base de données PostgreSQL :
+
+1. FRONTOFFICE (Aiolia-event-front) - Application publique
+   - Couche Présentation : Controllers + Templates Twig
+   - Couche Métier : Services (PaymentService, CacheService, CloudinaryService, etc.)
+   - Couche Persistance : Repositories + Entities (Doctrine ORM)
+   - Utilisateurs : Desktop/Tablet/Mobile → Requêtes HTTP → Controllers
+
+2. BACKOFFICE (Aiolia-event-back) - Application d'administration
+   - Couche Présentation :  Controllers +  Templates Twig
+   - Couche Métier : Services (EventService, MediaService, CloudinaryService, etc.)
+   - Couche Persistance : Repositories + Entities (Doctrine ORM)
+   - Administrateurs : Desktop → Requêtes HTTP → Controllers
+
+SERVICES EXTERNES :
+- PostgreSQL : Base de données partagée (schéma 'aiolia', 54 tables)
+  → Connexions : FrontOffice Persistance → PostgreSQL (SQL/Doctrine ORM)
+  → Connexions : BackOffice Persistance → PostgreSQL (SQL/Doctrine ORM)
+
+- Redis Cache : Uniquement FrontOffice
+  → Connexion : FrontOffice Métier → Redis (TCP/IP via Predis)
+  → Cache : Événements (TTL 1h), Recherche (TTL 30min), Statistiques (TTL 30min), Sessions (TTL 24h)
+
+- MVola API : Paiement Mobile Money (uniquement FrontOffice)
+  → Connexion : FrontOffice Métier → MVola API (HTTPS/REST)
+  → Callback : MVola → FrontOffice Présentation (Webhook HTTPS)
+
+- Cloudinary : Gestion d'images CDN (FrontOffice ET BackOffice)
+  → Connexion : FrontOffice Métier → Cloudinary (HTTPS/REST)
+  → Connexion : BackOffice Métier → Cloudinary (HTTPS/REST)
+
+FLUX DE DONNÉES :
+- Utilisateur → FrontOffice Présentation → FrontOffice Métier → FrontOffice Persistance → PostgreSQL
+- Admin → BackOffice Présentation → BackOffice Métier → BackOffice Persistance → PostgreSQL
+- FrontOffice Métier → Redis (cache) → FrontOffice Persistance (si cache miss)
+- FrontOffice Métier → MVola API → Callback vers FrontOffice
+- FrontOffice/BackOffice Métier → Cloudinary API
+
+Génère un diagramme visuel clair montrant :
+- Les deux applications (FrontOffice et BackOffice) avec leurs 3 couches chacune
+- Les connexions entre les couches (Présentation → Métier → Persistance)
+- Les services externes (PostgreSQL, Redis, MVola, Cloudinary)
+- Utilise des couleurs différentes pour chaque application et service
+
+
+Format de sortie : Image PNG ou diagramme Mermaid/Graphviz
