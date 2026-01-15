@@ -1,0 +1,71 @@
+graph TB
+    %% Styles
+    classDef frontend fill:#4A90E2,stroke:#2E5C8A,stroke-width:2px,color:#fff
+    classDef backend fill:#E74C3C,stroke:#A93226,stroke-width:2px,color:#fff
+    classDef database fill:#27AE60,stroke:#1E8449,stroke-width:2px,color:#fff
+    classDef cache fill:#F39C12,stroke:#B9770E,stroke-width:2px,color:#fff
+    classDef external fill:#9B59B6,stroke:#6C3483,stroke-width:2px,color:#fff
+    classDef layer fill:#34495E,stroke:#1B2631,stroke-width:2px,color:#fff
+    
+    %% Utilisateurs
+    User[👤 Utilisateur<br/>Desktop/Tablet/Mobile]
+    Admin[👤 Administrateur<br/>Desktop]
+    
+    %% FrontOffice - Couche Présentation
+    subgraph FrontOffice["🎨 FrontOffice (Aiolia-event-front)"]
+        direction TB
+        FO_Presentation["📱 Couche Présentation<br/>13 Controllers<br/>37 Templates Twig"]
+        FO_Metier["⚙️ Couche Métier<br/>14 Services<br/>- PaymentService<br/>- CacheService<br/>- CloudinaryService<br/>- NotificationService"]
+        FO_Persistance["💾 Couche Persistance<br/>17 Repositories<br/>9 Entities (Doctrine)"]
+        
+        FO_Presentation -->|Appels| FO_Metier
+        FO_Metier -->|Requêtes| FO_Persistance
+    end
+    
+    %% BackOffice - Couche Présentation
+    subgraph BackOffice["🔧 BackOffice (Aiolia-event-back)"]
+        direction TB
+        BO_Presentation["📱 Couche Présentation<br/>14 Controllers<br/>42 Templates Twig"]
+        BO_Metier["⚙️ Couche Métier<br/>7 Services<br/>- EventService<br/>- MediaService<br/>- CloudinaryService<br/>- AuditLogService"]
+        BO_Persistance["💾 Couche Persistance<br/>7 Repositories<br/>7 Entities (Doctrine)"]
+        
+        BO_Presentation -->|Appels| BO_Metier
+        BO_Metier -->|Requêtes| BO_Persistance
+    end
+    
+    %% Base de données
+    PostgreSQL[("🗄️ PostgreSQL<br/>Base de données 'aiolia'<br/>54 tables")]
+    
+    %% Redis Cache (uniquement FrontOffice)
+    Redis[("🔴 Redis Cache<br/>- Événements (TTL: 1h)<br/>- Recherche (TTL: 30min)<br/>- Statistiques (TTL: 30min)<br/>- Sessions (TTL: 24h)")]
+    
+    %% Services externes
+    MVola[("💳 MVola API<br/>Paiement Mobile Money<br/>HTTPS")]
+    Cloudinary[("☁️ Cloudinary<br/>Gestion d'images<br/>CDN & Optimisation<br/>HTTPS")]
+    
+    %% Connexions Utilisateurs
+    User -->|Requêtes HTTP| FO_Presentation
+    Admin -->|Requêtes HTTP| BO_Presentation
+    
+    %% Connexions Base de données
+    FO_Persistance -->|SQL<br/>Doctrine ORM| PostgreSQL
+    BO_Persistance -->|SQL<br/>Doctrine ORM| PostgreSQL
+    
+    %% Connexions Redis (uniquement FrontOffice)
+    FO_Metier -->|TCP/IP<br/>Predis| Redis
+    Redis -.->|Cache miss| FO_Persistance
+    
+    %% Connexions Services externes
+    FO_Metier -->|HTTPS<br/>API REST| MVola
+    MVola -.->|Callback/Webhook<br/>HTTPS| FO_Presentation
+    
+    FO_Metier -->|HTTPS<br/>API REST| Cloudinary
+    BO_Metier -->|HTTPS<br/>API REST| Cloudinary
+    
+    %% Application des styles
+    class FO_Presentation,FO_Metier,FO_Persistance frontend
+    class BO_Presentation,BO_Metier,BO_Persistance backend
+    class PostgreSQL database
+    class Redis cache
+    class MVola,Cloudinary external
+    class User,Admin layer

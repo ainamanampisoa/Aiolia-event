@@ -626,7 +626,7 @@ class MvolaPaymentClient
                 'error' => 'Configuration MVola incomplète.',
             ];
         }
-        
+
         // ========== VALIDATION ET NETTOYAGE DES DONNÉES ENTRANTES ==========
         
         // 1. Valider et nettoyer partnerName AVANT toute utilisation
@@ -640,7 +640,7 @@ class MvolaPaymentClient
         // 2. Valider et nettoyer les MSISDN
         $customerMsisdn = preg_replace('/\s+/', '', $this->normalizeMsisdn($customerMsisdn));
         $partnerMsisdn = preg_replace('/\s+/', '', $this->normalizeMsisdn($this->partnerMsisdn));
-        
+
         if (empty($customerMsisdn) || strlen($customerMsisdn) < 10) {
             return [
                 'success' => false,
@@ -706,13 +706,13 @@ class MvolaPaymentClient
             $endpoint = rtrim($this->baseUrl, '/') . '/mvola/mm/transactions/type/merchantpay/1.0.0';
 
             // ========== CONSTRUCTION DU PAYLOAD - TOUS LES CHAMPS VALIDÉS ==========
-            
+
             // Date au format exact MVola (ISO 8601 avec millisecondes)
             $microtime = microtime(true);
             $seconds = floor($microtime);
             $milliseconds = str_pad((int) (($microtime - $seconds) * 1000), 3, '0', STR_PAD_LEFT);
             $requestDate = gmdate('Y-m-d\TH:i:s.', $seconds) . $milliseconds . 'Z';
-            
+
             // Vérifier que la date est valide
             if (empty($requestDate) || strlen($requestDate) < 20) {
                 return [
@@ -720,28 +720,28 @@ class MvolaPaymentClient
                     'error' => 'Erreur lors de la génération de la date de requête',
                 ];
             }
-            
+
             // Construire debitParty - VALIDÉ
             $debitParty = [
-                [
-                    'key' => 'msisdn',
-                    'value' => $customerMsisdn
-                ]
+                    [
+                        'key' => 'msisdn',
+                        'value' => $customerMsisdn
+                    ]
             ];
             
             // Construire creditParty - VALIDÉ
             $creditParty = [
-                [
-                    'key' => 'msisdn',
-                    'value' => $partnerMsisdn
-                ]
+                    [
+                        'key' => 'msisdn',
+                        'value' => $partnerMsisdn
+                    ]
             ];
             
             // Construire metadata - VALIDÉ
             // IMPORTANT: MVola requiert les champs 'fc' et 'amountFc' dans metadata selon la documentation
             $metadata = [
-                [
-                    'key' => 'partnerName',
+                    [
+                        'key' => 'partnerName',
                     'value' => $partnerName
                 ],
                 [
@@ -753,7 +753,7 @@ class MvolaPaymentClient
                     'value' => '1'
                 ]
             ];
-            
+
             // Construire le payload final avec TOUS les champs validés
             // NOTE: Format basé sur le code fonctionnel de référence
             $payload = [
@@ -766,7 +766,7 @@ class MvolaPaymentClient
                 'creditParty' => $creditParty,
                 'metadata' => $metadata,
             ];
-            
+
             // Log pour vérifier que amount est bien présent
             $this->log('debug', 'Payload construit', [
                 'amount_type' => gettype($payload['amount']),
@@ -1069,7 +1069,7 @@ class MvolaPaymentClient
                 
                 if ($transactionLikelyCreated) {
                     $this->log('info', 'Status 500 avec erreur 4002 - Transaction probablement créée', [
-                        'transaction_reference' => $transactionReference,
+                    'transaction_reference' => $transactionReference,
                         'server_correlation_id' => $serverCorrelationId,
                         'client_correlation_id' => $clientCorrelationId
                     ]);
@@ -1210,19 +1210,19 @@ class MvolaPaymentClient
 
             // Détecter le champ manquant depuis plusieurs sources
             $missingField = $missingFieldFromParams; // Priorité aux errorParameters
-            
+
             if (!$missingField) {
                 $missingFieldKeys = ['fault.detail', 'detail', 'missingField', 'missing_field', 'field', 'fieldName', 'field_name'];
-                foreach ($missingFieldKeys as $key) {
-                    if (strpos($key, '.') !== false) {
-                        $parts = explode('.', $key);
-                        if (isset($data[$parts[0]][$parts[1]])) {
-                            $missingField = $data[$parts[0]][$parts[1]];
-                            break;
-                        }
-                    } elseif (isset($data[$key])) {
-                        $missingField = $data[$key];
+            foreach ($missingFieldKeys as $key) {
+                if (strpos($key, '.') !== false) {
+                    $parts = explode('.', $key);
+                    if (isset($data[$parts[0]][$parts[1]])) {
+                        $missingField = $data[$parts[0]][$parts[1]];
                         break;
+                    }
+                } elseif (isset($data[$key])) {
+                    $missingField = $data[$key];
+                    break;
                     }
                 }
             }

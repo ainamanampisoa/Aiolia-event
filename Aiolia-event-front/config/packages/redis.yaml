@@ -1,0 +1,18 @@
+# Configuration Redis pour Symfony Cache
+# Note: REDIS_URL doit être défini dans .env
+# Format: redis://localhost:6379 ou redis://localhost:6379/0
+
+services:
+    # Configuration Redis avec Predis (si besoin d'accès direct)
+    Predis\Client:
+        arguments:
+            - '%env(REDIS_URL)%'
+            - { 'prefix': 'aiolia_front:' }
+    
+    # Service de cache personnalisé
+    App\Service\CacheService:
+        arguments:
+            $cache: '@cache.app'
+            $cacheEvents: '@cache.events'
+            $cacheSearch: '@cache.search'
+            $cacheStats: '@cache.stats'

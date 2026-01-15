@@ -4,6 +4,7 @@ namespace App\Controller;
 
 use App\Repository\EventRepository;
 use App\Repository\WishlistRepository;
+use App\Service\CacheService;
 use Symfony\Bundle\FrameworkBundle\Controller\AbstractController;
 use Symfony\Component\HttpFoundation\Request;
 use Symfony\Component\HttpFoundation\Response;
@@ -13,7 +14,8 @@ class HomeController extends AbstractController
 {
     public function __construct(
         private readonly EventRepository $eventRepository,
-        private readonly WishlistRepository $wishlistRepository
+        private readonly WishlistRepository $wishlistRepository,
+        private readonly CacheService $cacheService
     ) {
     }
 
@@ -36,8 +38,20 @@ class HomeController extends AbstractController
             $session->remove('just_logged_in');
         }
 
-        $events = $this->eventRepository->findUpcomingEventsForHome(6);
-        $stats = $this->eventRepository->findHeadlineStats();
+        // Récupérer les événements avec cache Redis (1 heure de cache)
+        $events = $this->cacheService->getCachedUpcomingEvents(
+            fn() => $this->eventRepository->findUpcomingEventsForHome(6),
+            6,
+            3600 // 1 heure
+        );
+        
+        // Récupérer les statistiques avec cache Redis (30 minutes de cache)
+        $stats = $this->cacheService->getCachedStats(
+            'home',
+            'headline',
+            fn() => $this->eventRepository->findHeadlineStats(),
+            1800 // 30 minutes
+        );
 
         // Charger les favoris de l'utilisateur si connecté
         $favoriteEventIds = [];
