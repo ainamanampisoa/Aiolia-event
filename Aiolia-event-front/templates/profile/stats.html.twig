@@ -205,7 +205,23 @@
                 <div class="chart-card wow fadeInUp" data-wow-delay="280ms" style="grid-column: 1 / -1;">
                     <header>
                         <h2>Comparaison annuelle</h2>
-                        <span class="chart-period">Année en cours vs année précédente</span>
+                        {% set totalCurrentYear = 0 %}
+                        {% set totalPreviousYear = 0 %}
+                        {% for comp in yearComparison.data %}
+                            {% set totalCurrentYear = totalCurrentYear + comp.current_year %}
+                            {% set totalPreviousYear = totalPreviousYear + comp.previous_year %}
+                        {% endfor %}
+                        {% set totalGrowth = totalPreviousYear > 0 ? ((totalCurrentYear - totalPreviousYear) / totalPreviousYear * 100)|round(1) : (totalCurrentYear > 0 ? 100 : 0) %}
+                        
+                        <div class="comparison-summary">
+                            <span class="chart-period">Année en cours vs année précédente</span>
+                            {% if totalGrowth != 0 %}
+                            <span class="global-trend {{ totalGrowth > 0 ? 'trend-up' : 'trend-down' }}">
+                                <i class="fas fa-chart-{{ totalGrowth > 0 ? 'line' : 'arrow-down' }}"></i>
+                                {{ totalGrowth > 0 ? 'Croissance' : 'Baisse' }} globale : <strong>{{ totalGrowth|abs }}%</strong>
+                            </span>
+                            {% endif %}
+                        </div>
                     </header>
                     <div class="chart-placeholder comparison-chart">
                         {% set maxValue = yearComparison.max_value|default(1) %}
@@ -221,9 +237,16 @@
                                 {% set currentHeight = maxValue > 0 ? ((comparison.current_year / maxValue) * 200)|round : 0 %}
                                 {% set previousHeight = maxValue > 0 ? ((comparison.previous_year / maxValue) * 200)|round : 0 %}
                                 <div class="comparison-bar-group">
+                                    {% if comparison.growth != 0 %}
+                                        <div class="growth-indicator {{ comparison.growth > 0 ? 'positive' : 'negative' }}" 
+                                             title="Variation: {{ comparison.growth > 0 ? '+' : '' }}{{ comparison.growth }}%">
+                                            <i class="fas fa-caret-{{ comparison.growth > 0 ? 'up' : 'down' }}"></i>
+                                            {{ comparison.growth|abs|round }}%
+                                        </div>
+                                    {% endif %}
                                     <div class="bar-wrapper">
                                         <div class="bar-current" style="height: {{ currentHeight }}px;" 
-                                             title="{{ comparison.month }} {{ comparison.current_year_label }}: {{ comparison.current_year_formatted }}">
+                                             title="{{ comparison.month }} {{ comparison.current_year_label }}: {{ comparison.current_year_formatted }} ({{ comparison.growth > 0 ? '+' : '' }}{{ comparison.growth }}% vs {{ comparison.previous_year_label }})">
                                             <span class="bar-value">{{ comparison.current_year_formatted }}</span>
                                         </div>
                                         <div class="bar-previous" style="height: {{ previousHeight }}px;" 
