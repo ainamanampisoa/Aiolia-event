@@ -138,7 +138,7 @@
 </aside>
 
 <style>
-    /* Scroll vertical indépendant pour la sidebar */
+    /* Sidebar moderne et professionnelle avec effets premium */
     #adminSidebar.admin-sidebar {
         width: 350px !important;
         min-width: 350px !important;
@@ -150,9 +150,14 @@
         overflow: hidden !important;
         position: fixed !important;
         top: var(--header-height) !important;
+        left: 0 !important;
         border-top: none !important;
         margin-top: 0 !important;
         z-index: var(--z-sticky) !important;
+        background: linear-gradient(180deg, #1a2332 0%, #1e2838 50%, #1a2332 100%) !important;
+        box-shadow: 4px 0 40px rgba(0, 0, 0, 0.3), 2px 0 20px rgba(0, 0, 0, 0.25), inset -1px 0 0 rgba(255,255,255,0.08), 0 0 60px rgba(0, 0, 0, 0.15) !important;
+        border-right: 1px solid rgba(255,255,255,0.12) !important;
+        backdrop-filter: blur(20px) saturate(180%) !important;
     }
     
     /* Ajuste le contenu principal */
@@ -160,13 +165,22 @@
         margin-left: 350px !important;
         width: calc(100% - 350px) !important;
         margin-top: var(--header-height) !important;
+        min-height: calc(100vh - var(--header-height)) !important;
     }
     
     #adminSidebar .sidebar-header {
         flex-shrink: 0 !important;
         flex-grow: 0 !important;
-        height: auto !important;
-        min-height: 100px !important;
+        height: 56px !important;
+        min-height: 56px !important;
+        max-height: 56px !important;
+        padding: 0.75rem 1.5rem !important;
+        border-bottom: 1px solid rgba(255,255,255,0.12) !important;
+        background: linear-gradient(135deg, rgba(255,255,255,0.12), rgba(255,255,255,0.06)) !important;
+        backdrop-filter: blur(15px) saturate(180%) !important;
+        z-index: 10 !important;
+        position: relative !important;
+        box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1), inset 0 1px 0 rgba(255,255,255,0.1) !important;
     }
     
     #adminSidebar .sidebar-nav {
@@ -176,41 +190,270 @@
         min-height: 0 !important;
         -webkit-overflow-scrolling: touch !important;
         position: relative !important;
-        padding: 2rem 0 !important;
+        padding: 2.75rem 0 1rem !important;
+        height: calc(100% - 56px) !important;
+        max-height: calc(100vh - var(--header-height) - 56px) !important;
     }
     
     #adminSidebar .nav-menu {
-        min-height: 100% !important;
+        min-height: auto !important;
+        padding-bottom: 1.5rem !important;
     }
     
-    /* Scrollbar visible et stylisée */
+    /* Scrollbar moderne et élégante */
     #adminSidebar .sidebar-nav::-webkit-scrollbar {
-        width: 10px !important;
+        width: 6px !important;
         display: block !important;
     }
     
     #adminSidebar .sidebar-nav::-webkit-scrollbar-track {
         background: rgba(255,255,255,0.03) !important;
-        border-radius: 8px !important;
-        margin: 8px 0 !important;
+        border-radius: 10px !important;
+        margin: 8px 4px !important;
     }
     
     #adminSidebar .sidebar-nav::-webkit-scrollbar-thumb {
-        background: linear-gradient(180deg, rgba(255,255,255,0.25), rgba(255,255,255,0.15)) !important;
-        border-radius: 8px !important;
-        border: 2px solid rgba(255,255,255,0.1) !important;
-        box-shadow: inset 0 1px 2px rgba(0,0,0,0.1) !important;
+        background: linear-gradient(180deg, rgba(255,255,255,0.3), rgba(255,255,255,0.2)) !important;
+        border-radius: 10px !important;
+        border: 1px solid rgba(255,255,255,0.1) !important;
+        box-shadow: inset 0 1px 2px rgba(0,0,0,0.2) !important;
+        transition: none !important;
     }
     
     #adminSidebar .sidebar-nav::-webkit-scrollbar-thumb:hover {
-        background: linear-gradient(180deg, rgba(255,255,255,0.35), rgba(255,255,255,0.25)) !important;
+        background: linear-gradient(180deg, rgba(255,255,255,0.45), rgba(255,255,255,0.3)) !important;
         border-color: rgba(255,255,255,0.2) !important;
+        box-shadow: inset 0 1px 2px rgba(0,0,0,0.3) !important;
+    }
+    
+    #adminSidebar .sidebar-nav::-webkit-scrollbar-thumb:active {
+        background: linear-gradient(180deg, rgba(255,255,255,0.55), rgba(255,255,255,0.4)) !important;
     }
     
     /* Firefox */
     #adminSidebar .sidebar-nav {
         scrollbar-width: thin !important;
-        scrollbar-color: rgba(255,255,255,0.25) rgba(255,255,255,0.03) !important;
+        scrollbar-color: rgba(255,255,255,0.3) rgba(255,255,255,0.03) !important;
+    }
+    
+    /* Amélioration de l'affichage général - Style moderne et professionnel */
+    #adminSidebar .nav-section {
+        padding: 1.25rem 1.5rem 0.75rem !important;
+        margin-top: 1.5rem !important;
+    }
+    
+    #adminSidebar .nav-section:first-child {
+        margin-top: 0 !important;
+        padding-top: 0.25rem !important;
+    }
+    
+    #adminSidebar .nav-section-title {
+        font-size: 0.85rem !important;
+        font-weight: 800 !important;
+        letter-spacing: 0.12em !important;
+        text-transform: uppercase !important;
+        opacity: 1 !important;
+        color: rgba(255,255,255,0.95) !important;
+        padding-left: 0.875rem !important;
+        padding-top: 0.75rem !important;
+        padding-bottom: 0.75rem !important;
+        position: relative !important;
+        background: linear-gradient(135deg, rgba(255,255,255,0.08), rgba(255,255,255,0.04)) !important;
+        border-radius: 10px !important;
+        margin-bottom: 0.875rem !important;
+        margin-top: 0.375rem !important;
+        display: block !important;
+        box-shadow: 0 2px 6px rgba(0, 0, 0, 0.1), inset 0 1px 0 rgba(255,255,255,0.1) !important;
+        transition: none !important;
+    }
+    
+    #adminSidebar .nav-section-title:hover {
+        background: linear-gradient(135deg, rgba(255,255,255,0.12), rgba(255,255,255,0.06)) !important;
+        box-shadow: 0 3px 8px rgba(0, 0, 0, 0.15), inset 0 1px 0 rgba(255,255,255,0.15) !important;
+    }
+    
+    #adminSidebar .nav-section-title::before {
+        content: '' !important;
+        position: absolute !important;
+        left: 0 !important;
+        top: 50% !important;
+        transform: translateY(-50%) !important;
+        width: 4px !important;
+        height: 18px !important;
+        background: linear-gradient(180deg, rgba(255,255,255,0.7), rgba(255,255,255,0.5)) !important;
+        border-radius: 2px !important;
+        box-shadow: 0 0 8px rgba(255,255,255,0.3) !important;
+    }
+    
+    #adminSidebar .nav-item {
+        margin: 0.375rem 1rem !important;
+    }
+    
+    #adminSidebar .nav-link {
+        border-radius: 16px !important;
+        padding: 1.125rem 1.375rem !important;
+        transition: none !important;
+        min-height: 54px !important;
+        border: 1.5px solid transparent !important;
+        position: relative !important;
+        overflow: hidden !important;
+        gap: 1.25rem !important;
+        backdrop-filter: blur(10px) !important;
+    }
+    
+    #adminSidebar .nav-link::before {
+        content: '' !important;
+        position: absolute !important;
+        left: 0 !important;
+        top: 0 !important;
+        bottom: 0 !important;
+        width: 0 !important;
+        background: linear-gradient(180deg, rgba(255,255,255,0.2), rgba(255,255,255,0.1)) !important;
+        transition: none !important;
+        border-radius: 14px 0 0 14px !important;
+    }
+    
+    #adminSidebar .nav-link::after {
+        content: '' !important;
+        position: absolute !important;
+        inset: 0 !important;
+        background: linear-gradient(135deg, rgba(255,255,255,0.08), rgba(255,255,255,0.03)) !important;
+        opacity: 0 !important;
+        transition: none !important;
+        border-radius: 14px !important;
+    }
+    
+    #adminSidebar .nav-link:hover {
+        transform: translateX(10px) scale(1.02) !important;
+        background: linear-gradient(135deg, rgba(255,255,255,0.16), rgba(255,255,255,0.08)) !important;
+        border-color: rgba(255,255,255,0.22) !important;
+        box-shadow: 0 6px 24px rgba(0, 0, 0, 0.2), inset 0 1px 0 rgba(255,255,255,0.2), 0 0 0 1px rgba(255,255,255,0.08), 0 0 20px rgba(255,255,255,0.05) !important;
+    }
+    
+    #adminSidebar .nav-link:hover::before {
+        width: 4px !important;
+    }
+    
+    #adminSidebar .nav-link:hover::after {
+        opacity: 1 !important;
+    }
+    
+    #adminSidebar .nav-item.active .nav-link {
+        background: linear-gradient(135deg, rgba(255,255,255,0.24), rgba(255,255,255,0.14)) !important;
+        border-color: rgba(255,255,255,0.3) !important;
+        box-shadow: 0 6px 28px rgba(0, 0, 0, 0.25), inset 0 1px 0 rgba(255,255,255,0.25), 0 0 0 1px rgba(255,255,255,0.12), 0 0 30px rgba(255,255,255,0.08) !important;
+        transform: translateX(8px) scale(1.01) !important;
+    }
+    
+    #adminSidebar .nav-item.active .nav-link::before {
+        width: 4px !important;
+        background: linear-gradient(180deg, rgba(255,255,255,0.4), rgba(255,255,255,0.25)) !important;
+    }
+    
+    #adminSidebar .nav-item.active .nav-link::after {
+        opacity: 1 !important;
+    }
+    
+    #adminSidebar .nav-icon {
+        width: 30px !important;
+        height: 30px !important;
+        font-size: 1.35rem !important;
+        padding: 0.65rem !important;
+        background: linear-gradient(135deg, rgba(255,255,255,0.18), rgba(255,255,255,0.1)) !important;
+        border-radius: 14px !important;
+        transition: none !important;
+        display: flex !important;
+        align-items: center !important;
+        justify-content: center !important;
+        box-shadow: 0 3px 8px rgba(0, 0, 0, 0.15), inset 0 1px 0 rgba(255,255,255,0.18), 0 0 10px rgba(255,255,255,0.05) !important;
+        flex-shrink: 0 !important;
+        position: relative !important;
+    }
+    
+    #adminSidebar .nav-icon::before {
+        content: '' !important;
+        position: absolute !important;
+        inset: 0 !important;
+        border-radius: 14px !important;
+        padding: 1px !important;
+        background: linear-gradient(135deg, rgba(255,255,255,0.3), rgba(255,255,255,0.1)) !important;
+        -webkit-mask: linear-gradient(#fff 0 0) content-box, linear-gradient(#fff 0 0) !important;
+        -webkit-mask-composite: xor !important;
+        mask-composite: exclude !important;
+        opacity: 0 !important;
+        transition: none !important;
+    }
+    
+    #adminSidebar .nav-icon i {
+        font-size: 1.35rem !important;
+        position: relative !important;
+        z-index: 1 !important;
+    }
+    
+    #adminSidebar .nav-link:hover .nav-icon {
+        background: linear-gradient(135deg, rgba(255,255,255,0.25), rgba(255,255,255,0.15)) !important;
+        transform: scale(1.18) rotate(8deg) !important;
+        box-shadow: 0 6px 16px rgba(0, 0, 0, 0.25), inset 0 1px 0 rgba(255,255,255,0.25), 0 0 20px rgba(255,255,255,0.1) !important;
+    }
+    
+    #adminSidebar .nav-link:hover .nav-icon::before {
+        opacity: 1 !important;
+    }
+    
+    #adminSidebar .nav-item.active .nav-icon {
+        background: linear-gradient(135deg, rgba(255,255,255,0.3), rgba(255,255,255,0.18)) !important;
+        box-shadow: 0 6px 18px rgba(0, 0, 0, 0.3), inset 0 1px 0 rgba(255,255,255,0.3), 0 0 25px rgba(255,255,255,0.12) !important;
+        transform: scale(1.12) !important;
+    }
+    
+    #adminSidebar .nav-item.active .nav-icon::before {
+        opacity: 1 !important;
+    }
+    
+    #adminSidebar .nav-text {
+        font-size: 1.05rem !important;
+        font-weight: 500 !important;
+        letter-spacing: 0.01em !important;
+        line-height: 1.5 !important;
+        transition: none !important;
+        position: relative !important;
+        z-index: 1 !important;
+    }
+    
+    #adminSidebar .nav-link:hover .nav-text {
+        color: rgba(255,255,255,1) !important;
+        font-weight: 600 !important;
+    }
+    
+    #adminSidebar .nav-item.active .nav-text {
+        font-weight: 700 !important;
+        color: rgba(255,255,255,1) !important;
+        font-size: 1.05rem !important;
+        text-shadow: 0 1px 3px rgba(0, 0, 0, 0.2) !important;
+    }
+    
+    /* Amélioration du logo */
+    #adminSidebar .logo-image {
+        max-width: 160px !important;
+        max-height: 40px !important;
+        height: auto !important;
+        object-fit: contain !important;
+        filter: brightness(1.35) drop-shadow(0 4px 16px rgba(255,255,255,0.25)) !important;
+        transition: none !important;
+    }
+    
+    #adminSidebar .sidebar-header:hover .logo-image {
+        transform: scale(1.08) !important;
+        filter: brightness(1.5) drop-shadow(0 6px 24px rgba(255,255,255,0.4)) !important;
+    }
+    
+    /* Amélioration du header sidebar */
+    #adminSidebar .sidebar-header {
+        transition: none !important;
+    }
+    
+    #adminSidebar .sidebar-header:hover {
+        background: linear-gradient(135deg, rgba(255,255,255,0.12), rgba(255,255,255,0.06)) !important;
     }
 </style>
 
@@ -219,25 +462,23 @@
     document.addEventListener('DOMContentLoaded', function() {
         const sidebar = document.getElementById('adminSidebar');
         const sidebarNav = sidebar?.querySelector('.sidebar-nav');
-        const sidebarHeader = sidebar?.querySelector('.sidebar-header');
         
         function adjustSidebarHeight() {
-            if (sidebar && sidebarNav && sidebarHeader) {
-                // La sidebar utilise flexbox, donc on s'assure juste que les hauteurs sont correctes
-                // Le flex: 1 1 auto sur sidebar-nav devrait automatiquement prendre l'espace restant
-                const headerHeight = parseInt(getComputedStyle(document.documentElement).getPropertyValue('--header-height')) || 145;
+            if (sidebar && sidebarNav) {
+                const headerHeight = parseInt(getComputedStyle(document.documentElement).getPropertyValue('--header-height')) || 50;
                 const sidebarHeight = window.innerHeight - headerHeight;
                 
                 // S'assurer que la sidebar a la bonne hauteur
                 sidebar.style.height = sidebarHeight + 'px';
                 sidebar.style.maxHeight = sidebarHeight + 'px';
                 
-                // La sidebar-nav avec flex: 1 1 auto prendra automatiquement l'espace restant
-                // On retire toute hauteur fixe pour laisser flexbox gérer
-                sidebarNav.style.maxHeight = 'none';
-                sidebarNav.style.height = 'auto';
+                // Calculer la hauteur pour le nav (moins le header de la sidebar)
+                const sidebarHeaderHeight = 56; // Hauteur fixe du header de la sidebar
+                const navHeight = sidebarHeight - sidebarHeaderHeight;
+                
+                sidebarNav.style.height = navHeight + 'px';
+                sidebarNav.style.maxHeight = navHeight + 'px';
                 sidebarNav.style.overflowY = 'auto';
-                sidebarNav.style.overflowX = 'hidden';
             }
         }
         
@@ -249,7 +490,8 @@
         
         // Ajuster après un court délai pour s'assurer que tout est chargé
         setTimeout(adjustSidebarHeight, 100);
+        
+        // Ajuster après chaque changement de route ou chargement de contenu
+        setTimeout(adjustSidebarHeight, 500);
     });
 </script>
-
-
