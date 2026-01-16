@@ -8,7 +8,7 @@
 <aside class="admin-sidebar" id="adminSidebar">
     <div class="sidebar-header">
         <div class="sidebar-logo">
-            <img src="{{ asset('images/aiolia-logo.svg') }}" alt="Aiolia Event" class="logo-image">
+            <img src="{{ asset('images/aiolia-logo.svg') }}" alt="Aiolia Event" class="logo-image" style="display: block !important; visibility: visible !important; opacity: 1 !important;" onerror="console.error('Logo not found:', this.src); this.style.border='2px solid red'; this.style.padding='10px';">
         </div>
     </div>
     
@@ -84,22 +84,22 @@
 
 <style>
     /* Ajustement de la hauteur de la sidebar avec le nouveau header */
-    /* Sidebar moderne et professionnelle avec effets premium */
+    /* Sidebar moderne et professionnelle avec effets premium - Plein écran */
     #adminSidebar.admin-sidebar {
         width: 350px !important;
         min-width: 350px !important;
         max-width: 350px !important;
         display: flex !important;
         flex-direction: column !important;
-        height: calc(100vh - var(--header-height)) !important;
-        max-height: calc(100vh - var(--header-height)) !important;
+        height: 100vh !important;
+        max-height: 100vh !important;
         overflow: hidden !important;
         position: fixed !important;
-        top: var(--header-height) !important;
+        top: 0 !important;
         left: 0 !important;
         border-top: none !important;
         margin-top: 0 !important;
-        z-index: var(--z-sticky) !important;
+        z-index: 1040 !important;
         background: linear-gradient(180deg, #1a2332 0%, #1e2838 50%, #1a2332 100%) !important;
         box-shadow: 4px 0 40px rgba(0, 0, 0, 0.3), 2px 0 20px rgba(0, 0, 0, 0.25), inset -1px 0 0 rgba(255,255,255,0.08), 0 0 60px rgba(0, 0, 0, 0.15) !important;
         border-right: 1px solid rgba(255,255,255,0.12) !important;
@@ -110,20 +110,29 @@
     .admin-main {
         margin-left: 350px !important;
         width: calc(100% - 350px) !important;
-        margin-top: var(--header-height) !important;
-        min-height: calc(100vh - var(--header-height)) !important;
+        margin-top: 120px !important;
+        min-height: calc(100vh - 120px) !important;
     }
     
     #adminSidebar .sidebar-header {
         flex-shrink: 0 !important;
         flex-grow: 0 !important;
-        height: 56px !important;
-        min-height: 56px !important;
-        max-height: 56px !important;
-        padding: 0.75rem 1.5rem !important;
+        height: 120px !important;
+        min-height: 120px !important;
+        max-height: 120px !important;
+        padding: 1.5rem 1.75rem !important;
+        margin: 0 !important;
         border-bottom: 1px solid rgba(255,255,255,0.1) !important;
         background: linear-gradient(135deg, rgba(255,255,255,0.1), rgba(255,255,255,0.05)) !important;
         backdrop-filter: blur(10px) !important;
+        z-index: 1000 !important;
+        position: relative !important;
+        display: flex !important;
+        align-items: center !important;
+        justify-content: center !important;
+        overflow: visible !important;
+        visibility: visible !important;
+        opacity: 1 !important;
     }
     
     #adminSidebar .sidebar-nav {
@@ -134,8 +143,8 @@
         -webkit-overflow-scrolling: touch !important;
         position: relative !important;
         padding: 2.75rem 0 1rem !important;
-        height: calc(100% - 56px) !important;
-        max-height: calc(100vh - var(--header-height) - 56px) !important;
+        height: calc(100vh - 120px) !important;
+        max-height: calc(100vh - 120px) !important;
     }
     
     #adminSidebar .nav-menu {
@@ -376,13 +385,35 @@
     }
     
     /* Amélioration du logo */
+    #adminSidebar .sidebar-logo {
+        display: flex !important;
+        align-items: center !important;
+        justify-content: center !important;
+        width: 100% !important;
+        height: 100% !important;
+        overflow: visible !important;
+        visibility: visible !important;
+        opacity: 1 !important;
+        position: relative !important;
+        z-index: 1001 !important;
+        padding: 0 !important;
+        margin: 0 !important;
+    }
+    
     #adminSidebar .logo-image {
-        max-width: 160px !important;
-        max-height: 40px !important;
+        max-width: 320px !important;
+        max-height: 96px !important;
+        width: auto !important;
         height: auto !important;
         object-fit: contain !important;
-        filter: brightness(1.35) drop-shadow(0 4px 16px rgba(255,255,255,0.25)) !important;
+        display: block !important;
+        visibility: visible !important;
+        opacity: 1 !important;
+        filter: brightness(1.5) drop-shadow(0 4px 16px rgba(255,255,255,0.3)) !important;
         transition: none !important;
+        margin: 0 auto !important;
+        position: relative !important;
+        z-index: 1002 !important;
     }
     
     #adminSidebar .sidebar-header:hover .logo-image {
@@ -408,15 +439,15 @@
         
         function adjustSidebarHeight() {
             if (sidebar && sidebarNav) {
-                const headerHeight = parseInt(getComputedStyle(document.documentElement).getPropertyValue('--header-height')) || 50;
-                const sidebarHeight = window.innerHeight - headerHeight;
+                // Sidebar en plein écran
+                const sidebarHeight = window.innerHeight;
                 
                 // S'assurer que la sidebar a la bonne hauteur
                 sidebar.style.height = sidebarHeight + 'px';
                 sidebar.style.maxHeight = sidebarHeight + 'px';
                 
                 // Calculer la hauteur pour le nav (moins le header de la sidebar)
-                const sidebarHeaderHeight = 56; // Hauteur fixe du header de la sidebar
+                const sidebarHeaderHeight = 120; // Hauteur fixe du header de la sidebar
                 const navHeight = sidebarHeight - sidebarHeaderHeight;
                 
                 sidebarNav.style.height = navHeight + 'px';

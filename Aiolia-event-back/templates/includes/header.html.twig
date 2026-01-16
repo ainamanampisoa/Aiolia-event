@@ -1,9 +1,5 @@
 <header class="admin-header">
     <div class="header-left">
-        <button class="sidebar-toggle" id="sidebarToggle" aria-label="Toggle sidebar">
-            <i class="fas fa-bars"></i>
-        </button>
-        
         {# <form class="header-search" role="search" aria-label="Recherche">
             <label class="sr-only" for="headerSearchInput" id="headerSearchLabel">Rechercher</label>
             <i class="fas fa-search"></i>
@@ -100,9 +96,9 @@
 </header>
 
 <style>
-    /* Header ultra-compact avec contenu agrandi */
+    /* Header ultra-compact avec contenu agrandi - Aligné avec le header de la sidebar */
     :root {
-        --header-height: 50px !important;
+        --header-height: 120px !important;
     }
     
     .admin-header {
@@ -110,10 +106,20 @@
         height: var(--header-height) !important;
         max-height: var(--header-height) !important;
         padding: 0 1rem !important;
+        margin: 0 !important;
         background: linear-gradient(135deg, var(--bg-secondary) 0%, rgba(var(--bg-secondary-rgb), 0.98) 100%) !important;
         backdrop-filter: blur(20px) saturate(180%) !important;
         border-bottom: 1px solid rgba(var(--border-color-rgb), 0.1) !important;
         box-shadow: 0 1px 3px rgba(0, 0, 0, 0.05), 0 4px 12px rgba(0, 0, 0, 0.03) !important;
+        display: flex !important;
+        align-items: center !important;
+        position: fixed !important;
+        top: 0 !important;
+        left: 350px !important;
+        right: 0 !important;
+        z-index: 1030 !important;
+        border-left: none !important;
+        box-sizing: border-box !important;
     }
     
     .header-left {
@@ -280,6 +286,84 @@
     
     .admin-header .dropdown-divider {
         margin: 1rem 0 !important;
+    }
+    
+    /* Styles pour le mode sombre */
+    [data-theme="dark"] .admin-header,
+    .dark-mode .admin-header {
+        background: linear-gradient(135deg, rgba(26, 35, 50, 0.98), rgba(30, 40, 56, 0.98)) !important;
+        border-bottom-color: rgba(255, 255, 255, 0.1) !important;
+    }
+    
+    [data-theme="dark"] .admin-header .user-name,
+    .dark-mode .admin-header .user-name {
+        color: rgba(255, 255, 255, 0.95) !important;
+    }
+    
+    [data-theme="dark"] .admin-header .user-role,
+    .dark-mode .admin-header .user-role {
+        color: rgba(255, 255, 255, 0.7) !important;
+        background: rgba(255, 255, 255, 0.1) !important;
+    }
+    
+    [data-theme="dark"] .admin-header .theme-toggle,
+    .dark-mode .admin-header .theme-toggle {
+        color: var(--text-primary) !important;
+    }
+    
+    [data-theme="dark"] .admin-header .theme-toggle i,
+    .dark-mode .admin-header .theme-toggle i {
+        color: var(--text-primary) !important;
+    }
+    
+    [data-theme="dark"] .admin-header .dropdown-arrow,
+    .dark-mode .admin-header .dropdown-arrow {
+        color: rgba(255, 255, 255, 0.7) !important;
+    }
+    
+    [data-theme="dark"] .admin-header .user-trigger,
+    .dark-mode .admin-header .user-trigger {
+        background: linear-gradient(135deg, rgba(255, 255, 255, 0.15), rgba(255, 255, 255, 0.1)) !important;
+        border-color: rgba(255, 255, 255, 0.2) !important;
+    }
+    
+    [data-theme="dark"] .admin-header .header-actions .theme-toggle,
+    .dark-mode .admin-header .header-actions .theme-toggle {
+        background: linear-gradient(135deg, rgba(255, 255, 255, 0.15), rgba(255, 255, 255, 0.1)) !important;
+        border-color: rgba(255, 255, 255, 0.2) !important;
+        color: rgba(255, 255, 255, 0.9) !important;
+    }
+    
+    [data-theme="dark"] .admin-header .dropdown-menu,
+    .dark-mode .admin-header .dropdown-menu {
+        background: rgba(26, 35, 50, 0.98) !important;
+        border-color: rgba(255, 255, 255, 0.15) !important;
+    }
+    
+    [data-theme="dark"] .admin-header .dropdown-item,
+    .dark-mode .admin-header .dropdown-item {
+        color: rgba(255, 255, 255, 0.9) !important;
+    }
+    
+    [data-theme="dark"] .admin-header .dropdown-item:hover,
+    .dark-mode .admin-header .dropdown-item:hover {
+        background: rgba(255, 255, 255, 0.1) !important;
+        color: rgba(255, 255, 255, 1) !important;
+    }
+    
+    [data-theme="dark"] .admin-header .dropdown-item i,
+    .dark-mode .admin-header .dropdown-item i {
+        color: rgba(255, 255, 255, 0.8) !important;
+    }
+    
+    [data-theme="dark"] .admin-header .user-name-sm,
+    .dark-mode .admin-header .user-name-sm {
+        color: rgba(255, 255, 255, 0.95) !important;
+    }
+    
+    [data-theme="dark"] .admin-header .user-email-sm,
+    .dark-mode .admin-header .user-email-sm {
+        color: rgba(255, 255, 255, 0.7) !important;
     }
 </style>
 

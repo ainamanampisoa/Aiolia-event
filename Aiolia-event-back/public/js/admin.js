@@ -17,8 +17,8 @@ class SidebarManager {
     init() {
         console.log('📋 Initialisation Sidebar Manager');
         
-        if (!this.sidebar || !this.sidebarToggle) {
-            console.warn('Sidebar ou toggle button non trouvé');
+        if (!this.sidebar) {
+            console.warn('Sidebar non trouvé');
             return;
         }
         
@@ -31,10 +31,12 @@ class SidebarManager {
             this.expand();
         }
         
-        // Event listener sur le bouton toggle
-        this.sidebarToggle.addEventListener('click', () => {
-            this.toggle();
-        });
+        // Event listener sur le bouton toggle (si présent)
+        if (this.sidebarToggle) {
+            this.sidebarToggle.addEventListener('click', () => {
+                this.toggle();
+            });
+        }
         
         // Gérer le redimensionnement de la fenêtre
         window.addEventListener('resize', () => {

@@ -372,11 +372,11 @@
     // Gérer le cas où il n'y a pas de données
     const salesEvolutionLabels = salesEvolution && salesEvolution.length > 0 
         ? salesEvolution.map(item => {
-            const date = new Date(item.date);
-            // Format: jour/mois (dd/MM)
-            const day = String(date.getDate()).padStart(2, '0');
-            const month = String(date.getMonth() + 1).padStart(2, '0');
-            return `${day}/${month}`;
+        const date = new Date(item.date);
+        // Format: jour/mois (dd/MM)
+        const day = String(date.getDate()).padStart(2, '0');
+        const month = String(date.getMonth() + 1).padStart(2, '0');
+        return `${day}/${month}`;
         })
         : ['Aucune donnée'];
     const salesEvolutionCounts = salesEvolution && salesEvolution.length > 0 
