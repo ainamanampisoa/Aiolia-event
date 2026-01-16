@@ -137,7 +137,7 @@ La génération mensuelle des factures pour tous les organisateurs actifs repose
 L'admin consulte ses informations personnelles et peut modifier sa photo de profil, ses coordonnées ou son mot de passe.
 
 
- le module de paramètres utilisateur permet à chacun d'adapter l'interface à ses préférences. On peut basculer instantanément entre le mode clair et le mode sombre, choisir une couleur d'accent pour personnaliser l'interface, et sélectionner sa langue — français ou anglais. Tous ces réglages sont appliqués en temps réel et sauvegardés automatiquement dans le local storage.
+Cette interface permet à chacun d'adapter l'interface à ses préférences. On peut basculer instantanément entre le mode clair et le mode sombre, choisir une couleur d'accent pour personnaliser l'interface, et sélectionner sa langue — français ou anglais. Tous ces réglages sont appliqués en temps réel et sauvegardés automatiquement dans le local storage.
 
 ---
 
