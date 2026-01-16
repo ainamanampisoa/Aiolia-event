@@ -10,7 +10,7 @@ use Doctrine\ORM\QueryBuilder;
 
 class TicketInvoiceRepository extends ServiceEntityRepository
 {
-    private const PAID_STATUSES = ['paid', 'partially_paid'];
+    private const PAID_STATUSES = ['paid', 'partially_paid', 'issued'];
     private const SCHEMA = 'aiolia';
     private const INVOICE_TABLE = 'factures_billets';
     private const ORDER_ITEM_TABLE = 'elements_commandes';
@@ -51,15 +51,6 @@ class TicketInvoiceRepository extends ServiceEntityRepository
     {
         $params = ['eventId' => $event->getId()];
         $conditions = ['tb.id_evenement = :eventId'];
-        
-        // Condition de statut
-        $placeholders = [];
-        foreach (self::PAID_STATUSES as $index => $status) {
-            $paramName = 'status' . $index;
-            $placeholders[] = ':' . $paramName;
-            $params[$paramName] = $status;
-        }
-        $conditions[] = 'fb.statut IN (' . implode(', ', $placeholders) . ')';
 
         // Conditions de date si fournies
         if ($dateFrom !== null) {
@@ -68,7 +59,7 @@ class TicketInvoiceRepository extends ServiceEntityRepository
                 ? $dateFrom 
                 : \DateTimeImmutable::createFromMutable($dateFrom);
             $utcDateFrom = $dateFromImmutable->setTimezone(new \DateTimeZone('UTC'));
-            $conditions[] = 'fb.emise_le >= :dateFrom';
+            $conditions[] = 'COALESCE(fb.emise_le, c.cree_le) >= :dateFrom';
             $params['dateFrom'] = $utcDateFrom->format('Y-m-d H:i:s');
         }
         
@@ -78,25 +69,29 @@ class TicketInvoiceRepository extends ServiceEntityRepository
                 ? $dateTo 
                 : \DateTimeImmutable::createFromMutable($dateTo);
             $utcDateTo = $dateToImmutable->setTimezone(new \DateTimeZone('UTC'));
-            $conditions[] = 'fb.emise_le <= :dateTo';
+            $conditions[] = 'COALESCE(fb.emise_le, c.cree_le) <= :dateTo';
             $params['dateTo'] = $utcDateTo->format('Y-m-d H:i:s');
         }
 
         $sql = sprintf(
             "SELECT
                 ec.id_type_billet AS type_id,
-                SUM(fb.montant_total::numeric) AS revenue
-            FROM %s.%s fb
-            INNER JOIN %s.%s ec ON ec.id_commande = fb.id_commande
+                COALESCE(SUM(COALESCE(fb.montant_ttc::numeric, ec.montant_total::numeric)), 0) AS revenue
+            FROM %s.%s c
+            INNER JOIN %s.%s ec ON ec.id_commande = c.id
             INNER JOIN %s.%s tb ON tb.id = ec.id_type_billet
+            LEFT JOIN %s.%s fb ON fb.id_commande = c.id AND fb.statut IN ('paid', 'partially_paid', 'issued')
             WHERE %s
+              AND c.statut = 'paid'
             GROUP BY ec.id_type_billet",
             self::SCHEMA,
-            self::INVOICE_TABLE,
+            'commandes',
             self::SCHEMA,
             self::ORDER_ITEM_TABLE,
             self::SCHEMA,
             self::TICKET_TYPE_TABLE,
+            self::SCHEMA,
+            self::INVOICE_TABLE,
             implode(' AND ', $conditions)
         );
 

@@ -32,8 +32,8 @@
     }
     
     /* Cacher l'input original et afficher seulement l'input alternatif */
-    #date_from.flatpickr-input,
-    #date_to.flatpickr-input {
+    #date_from.flatpickr-input:not(.flatpickr-mobile),
+    #date_to.flatpickr-input:not(.flatpickr-mobile) {
         position: absolute;
         opacity: 0;
         pointer-events: none;
@@ -41,12 +41,32 @@
         height: 0;
         padding: 0;
         border: 0;
+        margin: 0;
     }
     
     /* Style pour l'input alternatif */
-    .flatpickr-input.form-control {
+    .flatpickr-input.form-control,
+    input.flatpickr-input.form-control {
         background: var(--bg-secondary);
         cursor: pointer;
+        width: 100%;
+        padding: 12px;
+        border: 1px solid var(--border-color);
+        border-radius: var(--border-radius-sm);
+        color: var(--text-primary);
+        font-size: 1rem;
+        transition: all 0.3s ease;
+    }
+    
+    .flatpickr-input.form-control:focus {
+        outline: none;
+        border-color: var(--accent);
+        box-shadow: 0 0 0 3px rgba(52, 152, 219, 0.1);
+    }
+    
+    /* S'assurer que le wrapper contient bien les deux inputs */
+    .filter-field {
+        position: relative;
     }
 </style>
 {% endblock %}
@@ -348,15 +368,23 @@
 
     // Graphique 1 : Évolution des ventes dans le temps
     const salesEvolutionCtx = document.getElementById('salesEvolutionChart').getContext('2d');
-    const salesEvolutionLabels = salesEvolution.map(item => {
-        const date = new Date(item.date);
-        // Format: jour/mois (dd/MM)
-        const day = String(date.getDate()).padStart(2, '0');
-        const month = String(date.getMonth() + 1).padStart(2, '0');
-        return `${day}/${month}`;
-    });
-    const salesEvolutionCounts = salesEvolution.map(item => item.count);
-    const salesEvolutionRevenues = salesEvolution.map(item => item.revenue);
+    
+    // Gérer le cas où il n'y a pas de données
+    const salesEvolutionLabels = salesEvolution && salesEvolution.length > 0 
+        ? salesEvolution.map(item => {
+            const date = new Date(item.date);
+            // Format: jour/mois (dd/MM)
+            const day = String(date.getDate()).padStart(2, '0');
+            const month = String(date.getMonth() + 1).padStart(2, '0');
+            return `${day}/${month}`;
+        })
+        : ['Aucune donnée'];
+    const salesEvolutionCounts = salesEvolution && salesEvolution.length > 0 
+        ? salesEvolution.map(item => item.count || 0)
+        : [0];
+    const salesEvolutionRevenues = salesEvolution && salesEvolution.length > 0 
+        ? salesEvolution.map(item => item.revenue || 0)
+        : [0];
 
     new Chart(salesEvolutionCtx, {
         type: 'line',
@@ -418,8 +446,12 @@
 
     // Graphique 2 : Répartition des ventes par type (camembert)
     const salesDistributionCtx = document.getElementById('salesDistributionChart').getContext('2d');
-    const distributionLabels = salesDistribution.map(item => item.category);
-    const distributionRevenues = salesDistribution.map(item => item.revenue);
+    const distributionLabels = salesDistribution && salesDistribution.length > 0
+        ? salesDistribution.map(item => item.category || 'Non défini')
+        : ['Aucune donnée'];
+    const distributionRevenues = salesDistribution && salesDistribution.length > 0
+        ? salesDistribution.map(item => item.revenue || 0)
+        : [0];
 
     new Chart(salesDistributionCtx, {
         type: 'pie',
@@ -462,9 +494,15 @@
 
     // Graphique 3 : Comparaison des ventes par type de billet
     const salesComparisonCtx = document.getElementById('salesComparisonChart').getContext('2d');
-    const comparisonLabels = salesComparison.map(item => item.ticket_type);
-    const comparisonCounts = salesComparison.map(item => item.count);
-    const comparisonRevenues = salesComparison.map(item => item.revenue);
+    const comparisonLabels = salesComparison && salesComparison.length > 0
+        ? salesComparison.map(item => item.ticket_type || 'Non défini')
+        : ['Aucune donnée'];
+    const comparisonCounts = salesComparison && salesComparison.length > 0
+        ? salesComparison.map(item => item.count || 0)
+        : [0];
+    const comparisonRevenues = salesComparison && salesComparison.length > 0
+        ? salesComparison.map(item => item.revenue || 0)
+        : [0];
 
     new Chart(salesComparisonCtx, {
         type: 'bar',
@@ -603,16 +641,33 @@
     
     // Initialiser le calendrier pour la date de début
     const dateFromInput = document.getElementById('date_from');
+    let dateFromPicker = null;
     if (dateFromInput) {
-        flatpickr(dateFromInput, {
-            dateFormat: 'Y-m-d', // Format pour la soumission (caché)
+        // Récupérer la valeur initiale (format Y-m-d)
+        const initialValue = dateFromInput.value;
+        
+        dateFromPicker = flatpickr(dateFromInput, {
+            dateFormat: 'Y-m-d', // Format pour la soumission (input original)
             altInput: true,
-            altFormat: 'd/m/Y', // Format d'affichage jj/mm/aaaa
+            altFormat: 'd/m/Y', // Format d'affichage jj/mm/aaaa (input alternatif)
             altInputClass: 'form-control',
             locale: 'fr',
             allowInput: false,
             clickOpens: true,
+            defaultDate: initialValue || null,
+            parseDate: function(datestr, format) {
+                // Parser les dates au format Y-m-d
+                if (format === 'Y-m-d' && datestr.match(/^\d{4}-\d{2}-\d{2}$/)) {
+                    const parts = datestr.split('-');
+                    return new Date(parseInt(parts[0]), parseInt(parts[1]) - 1, parseInt(parts[2]));
+                }
+                return null;
+            },
             onChange: function(selectedDates, dateStr, instance) {
+                // Mettre à jour la valeur de l'input original avec le format Y-m-d
+                // dateStr est déjà au format Y-m-d grâce à dateFormat
+                dateFromInput.value = dateStr;
+                
                 // Si une date de fin existe, s'assurer que la date de début n'est pas après
                 const dateToInput = document.getElementById('date_to');
                 if (dateToInput && dateToInput._flatpickr) {
@@ -628,16 +683,33 @@
     
     // Initialiser le calendrier pour la date de fin
     const dateToInput = document.getElementById('date_to');
+    let dateToPicker = null;
     if (dateToInput) {
-        const dateToPicker = flatpickr(dateToInput, {
-            dateFormat: 'Y-m-d', // Format pour la soumission (caché)
+        // Récupérer la valeur initiale (format Y-m-d)
+        const initialValue = dateToInput.value;
+        
+        dateToPicker = flatpickr(dateToInput, {
+            dateFormat: 'Y-m-d', // Format pour la soumission (input original)
             altInput: true,
-            altFormat: 'd/m/Y', // Format d'affichage jj/mm/aaaa
+            altFormat: 'd/m/Y', // Format d'affichage jj/mm/aaaa (input alternatif)
             altInputClass: 'form-control',
             locale: 'fr',
             allowInput: false,
             clickOpens: true,
+            defaultDate: initialValue || null,
+            parseDate: function(datestr, format) {
+                // Parser les dates au format Y-m-d
+                if (format === 'Y-m-d' && datestr.match(/^\d{4}-\d{2}-\d{2}$/)) {
+                    const parts = datestr.split('-');
+                    return new Date(parseInt(parts[0]), parseInt(parts[1]) - 1, parseInt(parts[2]));
+                }
+                return null;
+            },
             onChange: function(selectedDates, dateStr, instance) {
+                // Mettre à jour la valeur de l'input original avec le format Y-m-d
+                // dateStr est déjà au format Y-m-d grâce à dateFormat
+                dateToInput.value = dateStr;
+                
                 // Si une date de début existe, s'assurer que la date de fin n'est pas avant
                 if (dateFromInput && dateFromInput._flatpickr) {
                     const dateFrom = dateFromInput._flatpickr.selectedDates[0];
@@ -655,6 +727,47 @@
                 dateToPicker.set('minDate', dateFrom);
             }
         }
+    }
+    
+    // S'assurer que les valeurs sont correctement formatées avant soumission
+    const filtersForm = document.querySelector('.filters-grid');
+    if (filtersForm) {
+        filtersForm.addEventListener('submit', function(e) {
+            // S'assurer que les inputs originaux contiennent le bon format Y-m-d
+            if (dateFromInput && dateFromInput._flatpickr) {
+                const selectedDate = dateFromInput._flatpickr.selectedDates[0];
+                if (selectedDate) {
+                    // Flatpickr devrait déjà mettre à jour avec dateFormat: 'Y-m-d'
+                    // Mais on s'assure que c'est bien le cas
+                    const year = selectedDate.getFullYear();
+                    const month = String(selectedDate.getMonth() + 1).padStart(2, '0');
+                    const day = String(selectedDate.getDate()).padStart(2, '0');
+                    dateFromInput.value = `${year}-${month}-${day}`;
+                } else {
+                    dateFromInput.value = '';
+                }
+            }
+            
+            if (dateToInput && dateToInput._flatpickr) {
+                const selectedDate = dateToInput._flatpickr.selectedDates[0];
+                if (selectedDate) {
+                    // Flatpickr devrait déjà mettre à jour avec dateFormat: 'Y-m-d'
+                    // Mais on s'assure que c'est bien le cas
+                    const year = selectedDate.getFullYear();
+                    const month = String(selectedDate.getMonth() + 1).padStart(2, '0');
+                    const day = String(selectedDate.getDate()).padStart(2, '0');
+                    dateToInput.value = `${year}-${month}-${day}`;
+                } else {
+                    dateToInput.value = '';
+                }
+            }
+            
+            // Debug: vérifier les valeurs avant soumission (à retirer en production)
+            console.log('Soumission du formulaire avec:', {
+                date_from: dateFromInput?.value,
+                date_to: dateToInput?.value
+            });
+        });
     }
 </script>
 {% endblock %}

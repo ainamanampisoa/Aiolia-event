@@ -120,7 +120,7 @@ class EventStatsRepository
             FROM aiolia.factures_abonnements fa
             INNER JOIN aiolia.abonnements_organisateurs ao ON ao.id = fa.id_abonnement
             WHERE ao.id_profil_organisateur = :organizerProfileId
-              AND fa.statut IN ('paid', 'partially_paid')
+              AND fa.statut IN ('paid', 'partially_paid', 'issued')
         ";
 
         $row = $this->connection->fetchAssociative($sql, [
@@ -155,7 +155,7 @@ class EventStatsRepository
                 ? $dateFrom 
                 : \DateTimeImmutable::createFromMutable($dateFrom);
             $utcDateFrom = $dateFromImmutable->setTimezone(new \DateTimeZone('UTC'));
-            $conditions[] = "fb.emise_le >= ?";
+            $conditions[] = "COALESCE(fb.emise_le, c.cree_le) >= ?";
             $params[] = $utcDateFrom->format('Y-m-d H:i:s');
         }
 
@@ -165,7 +165,7 @@ class EventStatsRepository
                 ? $dateTo 
                 : \DateTimeImmutable::createFromMutable($dateTo);
             $utcDateTo = $dateToImmutable->setTimezone(new \DateTimeZone('UTC'));
-            $conditions[] = "fb.emise_le <= ?";
+            $conditions[] = "COALESCE(fb.emise_le, c.cree_le) <= ?";
             $params[] = $utcDateTo->format('Y-m-d H:i:s');
         }
 
@@ -173,15 +173,16 @@ class EventStatsRepository
 
         $sql = "
             SELECT
-                DATE(fb.emise_le) AS sale_date,
-                COUNT(DISTINCT fb.id) AS ticket_count,
-                COALESCE(SUM(fb.montant_ttc::numeric), 0) AS revenue
-            FROM aiolia.factures_billets fb
-            INNER JOIN aiolia.elements_commandes ec ON ec.id_commande = fb.id_commande
+                DATE(COALESCE(fb.emise_le, c.cree_le)) AS sale_date,
+                COUNT(DISTINCT ec.id) AS ticket_count,
+                COALESCE(SUM(COALESCE(fb.montant_ttc::numeric, ec.montant_total::numeric)), 0) AS revenue
+            FROM aiolia.commandes c
+            INNER JOIN aiolia.elements_commandes ec ON ec.id_commande = c.id
             INNER JOIN aiolia.types_billets tb ON tb.id = ec.id_type_billet
+            LEFT JOIN aiolia.factures_billets fb ON fb.id_commande = c.id AND fb.statut IN ('paid', 'partially_paid', 'issued')
             WHERE {$whereClause}
-              AND fb.statut IN ('paid', 'partially_paid')
-            GROUP BY DATE(fb.emise_le)
+              AND c.statut = 'paid'
+            GROUP BY DATE(COALESCE(fb.emise_le, c.cree_le))
             ORDER BY sale_date ASC
         ";
 
@@ -224,7 +225,7 @@ class EventStatsRepository
                 ? $dateFrom 
                 : \DateTimeImmutable::createFromMutable($dateFrom);
             $utcDateFrom = $dateFromImmutable->setTimezone(new \DateTimeZone('UTC'));
-            $conditions[] = "fb.emise_le >= ?";
+            $conditions[] = "COALESCE(fb.emise_le, c.cree_le) >= ?";
             $params[] = $utcDateFrom->format('Y-m-d H:i:s');
         }
 
@@ -234,7 +235,7 @@ class EventStatsRepository
                 ? $dateTo 
                 : \DateTimeImmutable::createFromMutable($dateTo);
             $utcDateTo = $dateToImmutable->setTimezone(new \DateTimeZone('UTC'));
-            $conditions[] = "fb.emise_le <= ?";
+            $conditions[] = "COALESCE(fb.emise_le, c.cree_le) <= ?";
             $params[] = $utcDateTo->format('Y-m-d H:i:s');
         }
 
@@ -243,14 +244,15 @@ class EventStatsRepository
         $sql = "
             SELECT
                 COALESCE(ccb.nom::text, 'Non défini') AS category,
-                COUNT(DISTINCT fb.id) AS ticket_count,
-                COALESCE(SUM(fb.montant_ttc::numeric), 0) AS revenue
-            FROM aiolia.factures_billets fb
-            INNER JOIN aiolia.elements_commandes ec ON ec.id_commande = fb.id_commande
+                COUNT(DISTINCT ec.id) AS ticket_count,
+                COALESCE(SUM(COALESCE(fb.montant_ttc::numeric, ec.montant_total::numeric)), 0) AS revenue
+            FROM aiolia.commandes c
+            INNER JOIN aiolia.elements_commandes ec ON ec.id_commande = c.id
             INNER JOIN aiolia.types_billets tb ON tb.id = ec.id_type_billet
+            LEFT JOIN aiolia.factures_billets fb ON fb.id_commande = c.id AND fb.statut IN ('paid', 'partially_paid', 'issued')
             LEFT JOIN aiolia.configuration_categories_billets ccb ON ccb.id = tb.id_configuration_categorie
             WHERE {$whereClause}
-              AND fb.statut IN ('paid', 'partially_paid')
+              AND c.statut = 'paid'
             GROUP BY ccb.nom
             ORDER BY revenue DESC
         ";
@@ -294,7 +296,7 @@ class EventStatsRepository
                 ? $dateFrom 
                 : \DateTimeImmutable::createFromMutable($dateFrom);
             $utcDateFrom = $dateFromImmutable->setTimezone(new \DateTimeZone('UTC'));
-            $conditions[] = "fb.emise_le >= ?";
+            $conditions[] = "COALESCE(fb.emise_le, c.cree_le) >= ?";
             $params[] = $utcDateFrom->format('Y-m-d H:i:s');
         }
 
@@ -304,7 +306,7 @@ class EventStatsRepository
                 ? $dateTo 
                 : \DateTimeImmutable::createFromMutable($dateTo);
             $utcDateTo = $dateToImmutable->setTimezone(new \DateTimeZone('UTC'));
-            $conditions[] = "fb.emise_le <= ?";
+            $conditions[] = "COALESCE(fb.emise_le, c.cree_le) <= ?";
             $params[] = $utcDateTo->format('Y-m-d H:i:s');
         }
 
@@ -313,13 +315,14 @@ class EventStatsRepository
         $sql = "
             SELECT
                 tb.nom AS ticket_type,
-                COUNT(DISTINCT fb.id) AS ticket_count,
-                COALESCE(SUM(fb.montant_ttc::numeric), 0) AS revenue
-            FROM aiolia.factures_billets fb
-            INNER JOIN aiolia.elements_commandes ec ON ec.id_commande = fb.id_commande
+                COUNT(DISTINCT ec.id) AS ticket_count,
+                COALESCE(SUM(COALESCE(fb.montant_ttc::numeric, ec.montant_total::numeric)), 0) AS revenue
+            FROM aiolia.commandes c
+            INNER JOIN aiolia.elements_commandes ec ON ec.id_commande = c.id
             INNER JOIN aiolia.types_billets tb ON tb.id = ec.id_type_billet
+            LEFT JOIN aiolia.factures_billets fb ON fb.id_commande = c.id AND fb.statut IN ('paid', 'partially_paid', 'issued')
             WHERE {$whereClause}
-              AND fb.statut IN ('paid', 'partially_paid')
+              AND c.statut = 'paid'
             GROUP BY tb.nom, tb.id
             ORDER BY revenue DESC
             LIMIT 10

@@ -68,7 +68,7 @@ Dans cette section, on consulte l'ensemble des listes d'attente. En cliquant sur
 
 **[2:30 - 3:30]**
 
-Pour le module Codes Promo. Il permet de créer des promotions flexibles : on définit un pourcentage ou un montant fixe, on choisit les dates de validité, on limite le nombre d'utilisations, et on l'applique à des événements ou des catégories de billets spécifiques. 
+Dans cette interface, vous retrouvez un tableau de bord sous forme de widgets, affichant la liste des codes promotionnels avec possibilité de filtrage. Vous pouvez également créer une nouvelle promotion en définissant tous les paramètres nécessaires : type de réduction, dates de validité, limites d'utilisation et événements éligibles.
 
 L'organisateur peut également consulter l'historique détaillé de l'utilisation de chaque promotion, permettant ainsi de mesurer en temps réel l'efficacité de ses campagnes promotionnelles et d'ajuster sa stratégie marketing en conséquence.
 
@@ -80,18 +80,14 @@ L'organisateur peut également consulter l'historique détaillé de l'utilisatio
 
 Pour utiliser pleinement la plateforme, les organisateurs doivent souscrire à un abonnement. 
 
-La plateforme propose différents plans — Basic, Pro, Enterprise — avec paiement local intégré via MVola. Après un paiement réussi, la facture est générée automatiquement et envoyée par e-mail. 
-
 
 ---
 
 ## 📊 MODULE 5 : RAPPORTS ET STATISTIQUES (1 minute)
 
 **[5:00 - 6:00]**
-le module Rapports et Statistiques. C'est le centre de pilotage.
 
-Statistiques
-Dans cette section, l'organisateur accède à un tableau de bord de suivi de performance présentant les statistiques de ventes globales. Il peut filtrer dynamiquement les résultats par période pour analyser l'évolution de ses indicateurs clés.
+Dans Statistiques, l'organisateur accède à un tableau de bord de suivi de performance présentant les statistiques de ventes globales. Il peut filtrer dynamiquement les résultats par période pour analyser l'évolution de ses indicateurs clés.
 
 Dans cette page, l'organisateur consulte un rapport détaillé de tous ses événements présentés sous forme de tableaux synthétiques. Les données peuvent être filtrées par période pour une analyse temporelle ciblée.
 
