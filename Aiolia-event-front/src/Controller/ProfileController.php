@@ -359,8 +359,11 @@ class ProfileController extends AbstractController
         // Calculer les statistiques avec toutes les commandes
         $stats = $this->calculatePurchaseStats($userId, $allOrders);
 
-        // Récupérer les données pour le graphique (12 mois par défaut)
-        $chartPeriod = max(6, min(24, (int) $request->query->get('chart_period', 12)));
+        // Récupérer les données pour le graphique (6 mois par défaut)
+        $chartPeriod = (int) $request->query->get('chart_period', 6);
+        if (!in_array($chartPeriod, [6, 12])) {
+            $chartPeriod = 6;
+        }
         $chartData = $this->fetchSpendingChartData($userId, $chartPeriod);
 
         return $this->render('profile/history.html.twig', [
@@ -1843,7 +1846,7 @@ class ProfileController extends AbstractController
      * @param int $months Nombre de mois à récupérer (6, 12, ou 24)
      * @return array Tableau avec 'labels' (mois) et 'data' (montants)
      */
-    private function fetchSpendingChartData(int $userId, int $months = 12): array
+    private function fetchSpendingChartData(int $userId, int $months = 6): array
     {
         return $this->orderRepository->findSpendingChartData($userId, $months);
     }

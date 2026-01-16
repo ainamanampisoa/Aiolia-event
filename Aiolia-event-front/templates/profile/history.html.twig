@@ -104,7 +104,6 @@
                         <select id="chart-period" class="chart-select">
                             <option value="6">6 mois</option>
                             <option value="12">12 mois</option>
-                            <option value="24">24 mois</option>
                         </select>
                     </div>
                 </div>
@@ -116,6 +115,7 @@
             <section id="history-table" class="profile-history-table wow fadeInUp" data-wow-delay="200ms">
                 <div class="history-filters-section">
                     <form method="get" action="{{ path('profile_history') }}" class="history-search-form" id="history-filter-form">
+                        <input type="hidden" name="chart_period" value="{{ chartPeriod|default(6) }}">
                         <div class="filters-container">
                             <div class="history-search-wrapper">
                                 <div class="history-search">
@@ -695,7 +695,7 @@
             
             // Récupérer les données depuis le template Twig
             const chartDataFromServer = {{ chartData|default({labels: [], data: []})|json_encode|raw }};
-            const currentPeriod = {{ chartPeriod|default(12) }};
+            const currentPeriod = {{ chartPeriod|default(6) }};
             
             const chartData = {
                 labels: chartDataFromServer.labels || [],
@@ -713,6 +713,9 @@
                     pointRadius: 4
                 }]
             };
+
+            const maxSpending = Math.max(...chartData.datasets[0].data);
+            const yAxisMax = maxSpending > 0 ? maxSpending * 1.15 : 10000;
 
             spendingChart = new Chart(ctx2d, {
                 type: 'line',
@@ -740,10 +743,12 @@
                     scales: {
                         y: {
                             beginAtZero: true,
+                            suggestedMax: yAxisMax,
                             grid: {
                                 color: 'rgba(31, 45, 61, 0.1)'
                             },
                             ticks: {
+                                stepSize: Math.ceil(yAxisMax / 5 / 1000) * 1000,
                                 callback: function(value) {
                                     return value.toLocaleString('fr-FR') + ' MGA';
                                 }

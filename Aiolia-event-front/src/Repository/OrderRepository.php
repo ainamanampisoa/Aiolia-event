@@ -277,31 +277,29 @@ class OrderRepository
      * @param int $months Nombre de mois à récupérer (6, 12, ou 24)
      * @return array Tableau avec 'labels' (mois) et 'data' (montants)
      */
-    public function findSpendingChartData(int $userId, int $months = 12): array
+    public function findSpendingChartData(int $userId, int $months = 6): array
     {
-        // Calculer la date de début : exactement N mois en arrière depuis le premier jour du mois actuel
-        // Exemple : si on est le 15 janvier 2025 et qu'on demande 6 mois :
-        //   - On va au 1er janvier 2025
-        //   - On soustrait 6 mois → 1er juillet 2024
-        //   - On génère exactement 6 mois : Jul 2024, Aug 2024, Sep 2024, Oct 2024, Nov 2024, Dec 2024
-        $now = new \DateTimeImmutable();
-        $firstDayOfCurrentMonth = $now->modify('first day of this month')->setTime(0, 0, 0);
-        $startDate = $firstDayOfCurrentMonth->modify("-{$months} months");
-        
-        // Date de fin : dernier jour du mois actuel
+        // Sanitize months value
+        if ($months < 1)
+            $months = 6;
+        if ($months > 60)
+            $months = 60;
+
+        $now = new \DateTimeImmutable('now');
+        $startDate = $now->modify('first day of this month')->modify("-" . ($months - 1) . " months")->setTime(0, 0, 0);
         $endDate = $now->modify('last day of this month')->setTime(23, 59, 59);
 
         $sql = <<<SQL
             SELECT 
-                DATE_TRUNC('month', o.created_at) as month,
+                TO_CHAR(o.created_at, 'YYYY-MM') as month_key,
                 SUM(o.total_amount) as total_amount
             FROM aiolia.orders o
             WHERE o.user_id = :user_id
             AND (o.status = 'paid' OR o.status = 'pending')
             AND o.created_at >= :start_date
             AND o.created_at <= :end_date
-            GROUP BY DATE_TRUNC('month', o.created_at)
-            ORDER BY month ASC
+            GROUP BY month_key
+            ORDER BY month_key ASC
         SQL;
 
         $rows = $this->connection->executeQuery($sql, [
@@ -310,14 +308,11 @@ class OrderRepository
             'end_date' => $endDate->format('Y-m-d H:i:s'),
         ])->fetchAllAssociative();
 
-        // Créer un tableau associatif mois => montant
         $monthlyData = [];
         foreach ($rows as $row) {
-            $monthKey = (new \DateTimeImmutable($row['month']))->format('Y-m');
-            $monthlyData[$monthKey] = (float) $row['total_amount'];
+            $monthlyData[$row['month_key']] = (float) $row['total_amount'];
         }
 
-        // Générer exactement N mois avec leurs labels français
         $labels = [];
         $data = [];
         $monthNames = [
@@ -335,18 +330,14 @@ class OrderRepository
             12 => 'Déc'
         ];
 
-        // Générer exactement le nombre de mois demandé
-        $currentDate = clone $startDate;
         for ($i = 0; $i < $months; $i++) {
-            $monthKey = $currentDate->format('Y-m');
-            $monthNum = (int) $currentDate->format('n');
-            $year = $currentDate->format('Y');
+            $currentMonth = $startDate->modify("+$i months");
+            $monthKey = $currentMonth->format('Y-m');
+            $monthNum = (int) $currentMonth->format('n');
+            $year = $currentMonth->format('Y');
 
             $labels[] = $monthNames[$monthNum] . ' ' . $year;
             $data[] = $monthlyData[$monthKey] ?? 0;
-
-            // Passer au mois suivant
-            $currentDate = $currentDate->modify('+1 month');
         }
 
         return [
@@ -718,9 +709,18 @@ class OrderRepository
         }
 
         $monthNames = [
-            1 => 'Janvier', 2 => 'Février', 3 => 'Mars', 4 => 'Avril',
-            5 => 'Mai', 6 => 'Juin', 7 => 'Juillet', 8 => 'Août',
-            9 => 'Septembre', 10 => 'Octobre', 11 => 'Novembre', 12 => 'Décembre'
+            1 => 'Janvier',
+            2 => 'Février',
+            3 => 'Mars',
+            4 => 'Avril',
+            5 => 'Mai',
+            6 => 'Juin',
+            7 => 'Juillet',
+            8 => 'Août',
+            9 => 'Septembre',
+            10 => 'Octobre',
+            11 => 'Novembre',
+            12 => 'Décembre'
         ];
 
         // Générer la séquence complète des mois
