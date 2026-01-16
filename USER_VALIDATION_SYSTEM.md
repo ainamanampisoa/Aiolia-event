@@ -393,8 +393,6 @@ sudo chown postgres:postgres /tmp/data.sql
 sudo cp /home/fifah/Documents/GitHub/Aiolia-event/Base/Events.sql /tmp/Events.sql
 sudo chown postgres:postgres /tmp/Events.sql
 
-sudo cp /home/fifah/Documents/GitHub/Aiolia-event/Base/factures_janvier_2026.sql /tmp/factures_janvier_2026.sql
-sudo chown postgres:postgres /tmp/factures_janvier_2026.sql
 
 sudo -i -u postgres
 psql
@@ -403,7 +401,6 @@ psql
 \i /tmp/logic.sql
 \i /tmp/data.sql
 \i /tmp/Events.sql
-\i /tmp/factures_janvier_2026.sql
 
 comment est le Gestion quotas billets par catégorie 
 
