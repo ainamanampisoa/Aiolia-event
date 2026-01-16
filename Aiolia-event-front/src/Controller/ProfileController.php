@@ -863,8 +863,8 @@ class ProfileController extends AbstractController
         // Récupérer les insights dynamiques
         $insights = $this->fetchStatsInsights($userId, $dateFrom);
 
-        // Récupérer la comparaison annuelle (seulement si période = all)
-        $yearComparison = $period === 'all' ? $this->fetchYearComparison($userId) : [];
+        // Récupérer les données pour le nouveau graphique Radar (Profil Passion)
+        $passionProfile = $this->fetchPassionProfileData($userId, $dateFrom);
 
         return $this->render('profile/stats.html.twig', [
             'stats' => $stats,
@@ -874,7 +874,7 @@ class ProfileController extends AbstractController
             'topEvents' => $topEvents,
             'insights' => $insights,
             'currentPeriod' => $period,
-            'yearComparison' => $yearComparison,
+            'passionProfile' => $passionProfile,
         ]);
     }
 
@@ -1839,6 +1839,49 @@ class ProfileController extends AbstractController
     }
 
 
+    #[Route('/api/profile/history/chart-data', name: 'api_profile_history_chart_data', methods: ['GET'])]
+    public function getChartData(Request $request): JsonResponse
+    {
+        $session = $request->getSession();
+        if (!$session->isStarted()) {
+            $session->start();
+        }
+
+        $sessionUser = $session->get('user');
+        
+        // Debug: logger pour voir ce qui se passe
+        error_log('Chart Data API - Session ID: ' . $session->getId());
+        error_log('Chart Data API - Session user: ' . json_encode($sessionUser));
+        error_log('Chart Data API - Cookies: ' . json_encode($request->cookies->all()));
+        
+        if (!is_array($sessionUser) || !isset($sessionUser['id'])) {
+            return new JsonResponse([
+                'status' => 'error',
+                'message' => 'Vous devez être connecté',
+                'debug' => [
+                    'session_id' => $session->getId(),
+                    'session_started' => $session->isStarted(),
+                    'has_user' => isset($sessionUser)
+                ]
+            ], 401);
+        }
+
+        $userId = (int) $sessionUser['id'];
+        $chartPeriod = (int) $request->query->get('period', 6);
+        
+        if (!in_array($chartPeriod, [6, 12])) {
+            $chartPeriod = 6;
+        }
+
+        $chartData = $this->fetchSpendingChartData($userId, $chartPeriod);
+
+        return new JsonResponse([
+            'status' => 'success',
+            'data' => $chartData,
+            'period' => $chartPeriod
+        ]);
+    }
+
     /**
      * Récupère les données de dépenses par mois pour le graphique.
      * 
@@ -1996,6 +2039,31 @@ class ProfileController extends AbstractController
     private function getRecommendedCategories(int $userId, ?\DateTimeImmutable $dateFrom = null): array
     {
         return $this->userStatsRepository->findRecommendedCategories($userId);
+    }
+
+    /**
+     * Récupère les données pour le graphique Profil Passion (Radar).
+     */
+    private function fetchPassionProfileData(int $userId, ?\DateTimeImmutable $dateFrom = null): array
+    {
+        $distribution = $this->userStatsRepository->findEventTypeDistribution($userId, $dateFrom);
+
+        $labels = [];
+        $data = [];
+
+        // On prend les 6 catégories les plus importantes pour un beau Radar
+        foreach (array_slice($distribution, 0, 6) as $item) {
+            $labels[] = $item['category'];
+            $data[] = $item['percentage'];
+        }
+
+        // Si moins de 3 catégories, le radar ne ressemble à rien, on complète avec des labels vides si besoin
+        // mais normalement l'utilisateur en aura au moins quelques-uns.
+
+        return [
+            'labels' => $labels,
+            'data' => $data,
+        ];
     }
 
     /**

@@ -304,17 +304,30 @@
                         {% if rVal > rawMax %}{% set rawMax = rVal %}{% endif %}
                     {% endfor %}
                     
-                    {# Échelle fixe de 10000 par pas #}
-                    {% set step = 10000 %}
-                    
-                    {# Calculer le maxValue comme le prochain multiple de 10000 au-dessus de rawMax #}
+                    {# Calculer un pas adaptatif pour avoir environ 6-8 labels maximum #}
                     {% if rawMax > 0 %}
+                        {# Calculer un pas qui donnera environ 6-8 divisions #}
+                        {% set targetDivisions = 7 %}
+                        {% set calculatedStep = (rawMax / targetDivisions)|round(0, 'ceil') %}
+                        {# Arrondir le pas à un multiple de 5000 ou 10000 pour des valeurs propres #}
+                        {% if calculatedStep <= 5000 %}
+                            {% set step = 5000 %}
+                        {% elseif calculatedStep <= 10000 %}
+                            {% set step = 10000 %}
+                        {% elseif calculatedStep <= 20000 %}
+                            {% set step = 20000 %}
+                        {% elseif calculatedStep <= 50000 %}
+                            {% set step = 50000 %}
+                        {% else %}
+                            {% set step = ((calculatedStep / 10000)|round(0, 'ceil')) * 10000 %}
+                        {% endif %}
                         {% set maxValue = ((rawMax / step)|round(0, 'ceil')) * step %}
                     {% else %}
+                        {% set step = 10000 %}
                         {% set maxValue = step %}
                     {% endif %}
                     
-                    {# Nombre de lignes de grille = nombre de pas de 10000 de 0 à maxValue #}
+                    {# Nombre de lignes de grille = nombre de pas de 0 à maxValue #}
                     {% set gridLines = (maxValue / step)|round(0, 'ceil') %}
                     
                     {# Couleurs distinctes #}
@@ -327,7 +340,7 @@
                                 {% set labelVal = step * i %}
                                 {% set positionPercent = (i * 100 / gridLines)|round(2) %}
                                 <div class="y-label" style="bottom: {{ positionPercent }}%;">
-                                    {{ (labelVal >= 1000) ? (labelVal/1000)|round ~ 'k' : labelVal }}
+                                    {{ labelVal|number_format(0, ',', ' ') ~ ' MGA' }}
                                 </div>
                             {% endfor %}
                         </div>

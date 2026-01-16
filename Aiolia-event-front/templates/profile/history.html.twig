@@ -102,8 +102,8 @@
                     <h3>Évolution de vos dépenses</h3>
                     <div class="chart-actions">
                         <select id="chart-period" class="chart-select">
-                            <option value="6">6 mois</option>
-                            <option value="12">12 mois</option>
+                            <option value="6" {{ chartPeriod|default(6) == 6 ? 'selected' : '' }}>6 mois</option>
+                            <option value="12" {{ chartPeriod|default(6) == 12 ? 'selected' : '' }}>12 mois</option>
                         </select>
                     </div>
                 </div>
@@ -679,13 +679,13 @@
                     openDeleteModal(orderId, orderRow, this);
                 });
             });
-
-            // Initialisation du graphique
-            initializeSpendingChart();
         })();
 
         // Graphique d'évolution des dépenses
         let spendingChart = null;
+        
+        // URL de l'API pour récupérer les données du graphique
+        const chartDataApiUrl = '{{ path('api_profile_history_chart_data') }}';
         
         function initializeSpendingChart() {
             const ctx = document.getElementById('spendingChart');
@@ -714,8 +714,16 @@
                 }]
             };
 
-            const maxSpending = Math.max(...chartData.datasets[0].data);
-            const yAxisMax = maxSpending > 0 ? maxSpending * 1.15 : 10000;
+            // Calculer le maximum des dépenses pour l'axe Y
+            const dataArray = chartData.datasets[0].data || [];
+            const maxSpending = dataArray.length > 0 ? Math.max(...dataArray) : 0;
+            // Ajouter 15% d'espace en haut pour une meilleure lisibilité
+            const yAxisMax = maxSpending > 0 ? Math.ceil(maxSpending * 1.15) : 10000;
+            
+            console.log('Données du graphique:', dataArray);
+            console.log('Maximum des dépenses:', maxSpending);
+            console.log('Maximum de l\'axe Y (avec 15% d\'espace):', yAxisMax);
+            console.log('Nombre de mois:', currentPeriod);
 
             spendingChart = new Chart(ctx2d, {
                 type: 'line',
@@ -763,19 +771,149 @@
                 }
             });
 
-            // Changer la période du graphique
+            // Changer la période du graphique dynamiquement
             const periodSelect = document.getElementById('chart-period');
             if (periodSelect) {
-                periodSelect.value = currentPeriod;
+                // Définir la valeur actuelle du select
+                periodSelect.value = currentPeriod.toString();
                 
+                // Ajouter l'event listener directement (pas besoin de cloner si on n'a qu'un seul listener)
                 periodSelect.addEventListener('change', function(e) {
-                    const newPeriod = e.target.value;
-                    // Recharger la page avec le nouveau paramètre de période
+                    const newPeriod = parseInt(e.target.value, 10);
+                    console.log('Changement de période détecté:', newPeriod);
+                    
+                    // Recharger la page avec le nouveau paramètre
                     const url = new URL(window.location.href);
                     url.searchParams.set('chart_period', newPeriod);
                     window.location.href = url.toString();
                 });
+            } else {
+                console.error('Select chart-period non trouvé');
             }
+        }
+
+        // Fonction pour mettre à jour les données du graphique
+        function updateChartData(period) {
+            if (!spendingChart) {
+                console.error('Graphique non initialisé');
+                return;
+            }
+            
+            // Afficher un indicateur de chargement
+            const periodSelect = document.getElementById('chart-period');
+            if (periodSelect) {
+                periodSelect.disabled = true;
+            }
+            
+            console.log('Mise à jour du graphique pour', period, 'mois');
+            console.log('URL API:', chartDataApiUrl);
+            
+            // Récupérer les nouvelles données via l'API
+            fetch(`${chartDataApiUrl}?period=${period}`, {
+                method: 'GET',
+                headers: {
+                    'Accept': 'application/json',
+                    'X-Requested-With': 'XMLHttpRequest'
+                },
+                credentials: 'same-origin',
+                cache: 'no-cache'
+            })
+                .then(response => {
+                    console.log('Réponse reçue, status:', response.status);
+                    if (!response.ok) {
+                        if (response.status === 401) {
+                            // Si 401, essayer de recharger la page pour rafraîchir la session
+                            console.warn('Session expirée, rechargement de la page...');
+                            window.location.reload();
+                            // Lancer une erreur pour arrêter la chaîne de promesses
+                            throw new Error('SESSION_EXPIRED');
+                        }
+                        throw new Error(`HTTP error! status: ${response.status}`);
+                    }
+                    return response.json();
+                })
+                .then(result => {
+                    // Vérifier que result existe (ne devrait pas arriver si 401 car on a lancé une erreur)
+                    if (!result) {
+                        console.error('Aucune donnée reçue');
+                        return;
+                    }
+                    
+                    console.log('Données reçues:', result);
+                    if (result.status === 'success' && result.data) {
+                        const chartData = result.data;
+                        
+                        // Mettre à jour les labels et les données
+                        spendingChart.data.labels = chartData.labels || [];
+                        spendingChart.data.datasets[0].data = chartData.data || [];
+                        
+                        // Calculer le nouveau maximum pour l'axe Y
+                        const maxSpending = chartData.data && chartData.data.length > 0 
+                            ? Math.max(...chartData.data) 
+                            : 0;
+                        const yAxisMax = maxSpending > 0 ? maxSpending * 1.15 : 10000;
+                        
+                        console.log('Max dépenses:', maxSpending, 'Y Axis Max:', yAxisMax);
+                        console.log('Labels:', chartData.labels);
+                        console.log('Data:', chartData.data);
+                        
+                        // Mettre à jour l'axe Y - recréer complètement les options pour forcer la mise à jour
+                        spendingChart.options.scales.y = {
+                            beginAtZero: true,
+                            suggestedMax: yAxisMax,
+                            grid: {
+                                color: 'rgba(31, 45, 61, 0.1)'
+                            },
+                            ticks: {
+                                stepSize: Math.ceil(yAxisMax / 5 / 1000) * 1000,
+                                callback: function(value) {
+                                    return value.toLocaleString('fr-FR') + ' MGA';
+                                }
+                            }
+                        };
+                        
+                        // Mettre à jour le graphique avec animation désactivée pour un changement immédiat
+                        spendingChart.update('none');
+                        
+                        // Mettre à jour l'URL sans recharger la page
+                        const url = new URL(window.location.href);
+                        url.searchParams.set('chart_period', period);
+                        window.history.pushState({}, '', url.toString());
+                        
+                        console.log('Graphique mis à jour avec succès');
+                    } else {
+                        console.error('Erreur lors de la récupération des données:', result.message || 'Données invalides');
+                        alert('Erreur lors de la récupération des données du graphique');
+                    }
+                })
+                .catch(error => {
+                    console.error('Erreur lors de la mise à jour du graphique:', error);
+                    // Ne pas afficher d'alerte si c'est une erreur de session expirée car on recharge déjà la page
+                    if (error.message === 'SESSION_EXPIRED') {
+                        // La page va être rechargée, pas besoin de faire autre chose
+                        return;
+                    }
+                    // Ne pas afficher d'alerte si c'est une erreur 401 car on recharge déjà la page
+                    if (!error.message.includes('401') && !error.message.includes('connecté') && !error.message.includes('SESSION_EXPIRED')) {
+                        alert('Erreur lors de la mise à jour du graphique: ' + error.message);
+                    }
+                })
+                .finally(() => {
+                    // Réactiver le select
+                    if (periodSelect) {
+                        periodSelect.disabled = false;
+                    }
+                });
+        }
+
+        // Initialiser le graphique une fois que le DOM est prêt
+        if (document.readyState === 'loading') {
+            document.addEventListener('DOMContentLoaded', function() {
+                initializeSpendingChart();
+            });
+        } else {
+            // DOM déjà chargé
+            initializeSpendingChart();
         }
     </script>
 {% endblock %}

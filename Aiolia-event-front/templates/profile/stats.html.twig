@@ -9,6 +9,26 @@
     <link rel="stylesheet" type="text/css" href="{{ asset('vente-ticket/css/main.css') }}">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
     <link rel="stylesheet" type="text/css" href="{{ asset('vente-ticket/css/profile-stats.css') }}">
+    <style>
+        @media (max-width: 992px) {
+            .passion-container {
+                grid-template-columns: 1fr !important;
+                gap: 20px !important;
+            }
+            .passion-chart-wrapper {
+                order: -1;
+                height: 300px !important;
+            }
+            .p-cat-item:hover {
+                transform: translateX(5px);
+            }
+        }
+        .p-cat-item:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 6px 15px rgba(0,0,0,0.06) !important;
+            border-color: #4A90E2 !important;
+        }
+    </style>
 {% endblock %}
 
 {% block hero %}{% endblock %}
@@ -78,7 +98,7 @@
                 {# Graphique 1: Catégories préférées (Donut) #}
                 <div class="chart-card wow fadeInUp" data-wow-delay="200ms">
                     <header>
-                        <h2>Catégories préférées</h2>
+                        <h2>Répartition des achats par catégorie</h2>
                         <span class="chart-period">Répartition de vos achats</span>
                     </header>
                     <div class="chart-placeholder donut" data-categories='{{ eventTypeDistribution|slice(0, 5)|map(d => {"category": d.category, "percentage": d.percentage})|json_encode|raw }}'>
@@ -199,73 +219,61 @@
                 </div>
             </section>
             
-            {# Graphique de comparaison année en cours vs année précédente #}
-            {% if yearComparison is defined and yearComparison.data is defined and yearComparison.data|length > 0 %}
+            {# Nouveau graphique: Profil Passion (Radar) #}
             <section class="stats-charts" style="margin-top: 32px;">
-                <div class="chart-card wow fadeInUp" data-wow-delay="280ms" style="grid-column: 1 / -1;">
+                <div class="chart-card wow fadeInUp" data-wow-delay="280ms" style="grid-column: 1 / -1; background: linear-gradient(135deg, #ffffff 0%, #f8faff 100%); overflow: hidden; position: relative;">
+                    <div style="position: absolute; top: -50px; right: -50px; width: 200px; height: 200px; background: radial-gradient(circle, rgba(74, 144, 226, 0.05) 0%, transparent 70%); border-radius: 50%;"></div>
                     <header>
-                        <h2>Comparaison annuelle</h2>
-                        {% set totalCurrentYear = 0 %}
-                        {% set totalPreviousYear = 0 %}
-                        {% for comp in yearComparison.data %}
-                            {% set totalCurrentYear = totalCurrentYear + comp.current_year %}
-                            {% set totalPreviousYear = totalPreviousYear + comp.previous_year %}
-                        {% endfor %}
-                        {% set totalGrowth = totalPreviousYear > 0 ? ((totalCurrentYear - totalPreviousYear) / totalPreviousYear * 100)|round(1) : (totalCurrentYear > 0 ? 100 : 0) %}
-                        
-                        <div class="comparison-summary">
-                            <span class="chart-period">Année en cours vs année précédente</span>
-                            {% if totalGrowth != 0 %}
-                            <span class="global-trend {{ totalGrowth > 0 ? 'trend-up' : 'trend-down' }}">
-                                <i class="fas fa-chart-{{ totalGrowth > 0 ? 'line' : 'arrow-down' }}"></i>
-                                {{ totalGrowth > 0 ? 'Croissance' : 'Baisse' }} globale : <strong>{{ totalGrowth|abs }}%</strong>
-                            </span>
-                            {% endif %}
+                        <div>
+                            <h2 style="font-size: 22px; color: #1F2D3D; margin-bottom: 4px;">Votre Profil Passion</h2>
+                            <span class="chart-period">Découvrez l'équilibre de vos centres d'intérêt</span>
+                        </div>
+                        <div class="passion-badge" style="background: rgba(74, 144, 226, 0.1); color: #4A90E2; padding: 6px 16px; border-radius: 999px; font-weight: 700; font-size: 13px;">
+                            <i class="fas fa-star" style="margin-right: 6px;"></i>Analyse personnalisée
                         </div>
                     </header>
-                    <div class="chart-placeholder comparison-chart">
-                        {% set maxValue = yearComparison.max_value|default(1) %}
-                        {% if maxValue < 1 %} {% set maxValue = 1 %} {% endif %}
-                        <div class="comparison-grid">
-                            {% set gridLevels = [1, 0.75, 0.5, 0.25, 0] %}
-                            {% for level in gridLevels %}
-                                <div class="grid-line" data-value="{{ (maxValue * level)|number_format(0, ',', ' ') }}"></div>
-                            {% endfor %}
-                        </div>
-                        <div class="comparison-bars">
-                            {% for comparison in yearComparison.data %}
-                                {% set currentHeight = maxValue > 0 ? ((comparison.current_year / maxValue) * 200)|round : 0 %}
-                                {% set previousHeight = maxValue > 0 ? ((comparison.previous_year / maxValue) * 200)|round : 0 %}
-                                <div class="comparison-bar-group">
-                                    {% if comparison.growth != 0 %}
-                                        <div class="growth-indicator {{ comparison.growth > 0 ? 'positive' : 'negative' }}" 
-                                             title="Variation: {{ comparison.growth > 0 ? '+' : '' }}{{ comparison.growth }}%">
-                                            <i class="fas fa-caret-{{ comparison.growth > 0 ? 'up' : 'down' }}"></i>
-                                            {{ comparison.growth|abs|round }}%
-                                        </div>
-                                    {% endif %}
-                                    <div class="bar-wrapper">
-                                        <div class="bar-current" style="height: {{ currentHeight }}px;" 
-                                             title="{{ comparison.month }} {{ comparison.current_year_label }}: {{ comparison.current_year_formatted }} ({{ comparison.growth > 0 ? '+' : '' }}{{ comparison.growth }}% vs {{ comparison.previous_year_label }})">
-                                            <span class="bar-value">{{ comparison.current_year_formatted }}</span>
-                                        </div>
-                                        <div class="bar-previous" style="height: {{ previousHeight }}px;" 
-                                             title="{{ comparison.month }} {{ comparison.previous_year_label }}: {{ comparison.previous_year_formatted }}">
-                                            <span class="bar-value">{{ comparison.previous_year_formatted }}</span>
-                                        </div>
+                    
+                    <div class="passion-container" style="display: grid; grid-template-columns: 1fr 1.5fr; gap: 40px; align-items: center; min-height: 400px; padding: 20px 0;">
+                        <div class="passion-info" style="display: flex; flex-direction: column; gap: 24px;">
+                            <div class="passion-text">
+                                <p style="font-size: 15px; line-height: 1.6; color: rgba(31, 45, 61, 0.8);">
+                                    Ce graphique illustre la répartition de vos activités sur l'ensemble de vos participations. 
+                                    Il révèle quel type d'ambassadeur de la culture vous êtes !
+                                </p>
+                            </div>
+                            
+                            <div class="passion-categories" style="display: grid; grid-template-columns: 1fr; gap: 12px;">
+                                {% for label in passionProfile.labels %}
+                                    <div class="p-cat-item" style="display: flex; align-items: center; gap: 12px; padding: 10px 16px; background: #ffffff; border-radius: 12px; box-shadow: 0 4px 12px rgba(0,0,0,0.03); border: 1px solid rgba(0,0,0,0.02); transition: transform 0.2s ease;">
+                                        <div style="width: 10px; height: 10px; border-radius: 50%; background: #4A90E2;"></div>
+                                        <span style="font-size: 14px; font-weight: 600; color: #1F2D3D;">{{ label }}</span>
+                                        <span style="margin-left: auto; font-size: 13px; color: rgba(31, 45, 61, 0.6);">{{ passionProfile.data[loop.index0] }}%</span>
                                     </div>
-                                    <div class="bar-label">{{ comparison.month_short }}</div>
-                                </div>
-                            {% endfor %}
+                                {% endfor %}
+                            </div>
+                            
+                            {% if passionProfile.labels|length > 0 %}
+                            <div style="margin-top: 10px;">
+                                <span style="font-size: 13px; color: rgba(31, 45, 61, 0.5); font-style: italic;">
+                                    * Basé sur vos {{ stats.total_tickets|default(0) }} billets réservés.
+                                </span>
+                            </div>
+                            {% endif %}
                         </div>
-                        <div class="chart-legend comparison-legend">
-                            <span class="legend-item"><i class="legend-dot current"></i> {{ "now"|date("Y") }}</span>
-                            <span class="legend-item"><i class="legend-dot previous"></i> {{ ("now"|date("Y")) - 1 }}</span>
+                        
+                        <div class="passion-chart-wrapper" style="position: relative; height: 100%; width: 100%;">
+                            {% if passionProfile.labels|length >= 3 %}
+                                <canvas id="passionRadarChart" style="max-height: 450px;"></canvas>
+                            {% else %}
+                                <div class="no-data-radar" style="height: 300px; display: flex; flex-direction: column; align-items: center; justify-content: center; background: rgba(0,0,0,0.02); border-radius: 20px; text-align: center; padding: 30px;">
+                                    <i class="fas fa-chart-pie" style="font-size: 40px; color: rgba(0,0,0,0.1); margin-bottom: 16px;"></i>
+                                    <p style="color: rgba(0,0,0,0.4); font-size: 14px;">Continuez à explorer pour débloquer votre radar de passion (min. 3 catégories)</p>
+                                </div>
+                            {% endif %}
                         </div>
                     </div>
                 </div>
             </section>
-            {% endif %}
         </div>
     </main>
 {% endblock %}
@@ -273,8 +281,80 @@
 {% block javascripts %}
     <script type="text/javascript" src="{{ asset('vente-ticket/js/jquery.min.js') }}"></script>
     <script type="text/javascript" src="{{ asset('vente-ticket/js/wow.js') }}"></script>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
     <script>
         document.addEventListener('DOMContentLoaded', function() {
+            // Initialisation du Radar Chart (Profil Passion)
+            const radarCtx = document.getElementById('passionRadarChart');
+            if (radarCtx) {
+                const passionData = {{ passionProfile|json_encode|raw }};
+                
+                new Chart(radarCtx, {
+                    type: 'radar',
+                    data: {
+                        labels: passionData.labels,
+                        datasets: [{
+                            label: 'Intensité Passion',
+                            data: passionData.data,
+                            fill: true,
+                            backgroundColor: 'rgba(74, 144, 226, 0.2)',
+                            borderColor: '#4A90E2',
+                            pointBackgroundColor: '#4A90E2',
+                            pointBorderColor: '#fff',
+                            pointHoverBackgroundColor: '#fff',
+                            pointHoverBorderColor: '#4A90E2',
+                            borderWidth: 3,
+                            tension: 0.1
+                        }]
+                    },
+                    options: {
+                        responsive: true,
+                        maintainAspectRatio: false,
+                        plugins: {
+                            legend: {
+                                display: false
+                            },
+                            tooltip: {
+                                backgroundColor: '#1F2D3D',
+                                padding: 12,
+                                titleFont: { size: 14, weight: 'bold' },
+                                bodyFont: { size: 13 },
+                                callbacks: {
+                                    label: function(context) {
+                                        return ` Engagement: ${context.raw}%`;
+                                    }
+                                }
+                            }
+                        },
+                        scales: {
+                            r: {
+                                angleLines: {
+                                    display: true,
+                                    color: 'rgba(31, 45, 61, 0.1)'
+                                },
+                                grid: {
+                                    color: 'rgba(31, 45, 61, 0.1)'
+                                },
+                                ticks: {
+                                    display: false,
+                                    stepSize: 20
+                                },
+                                pointLabels: {
+                                    font: {
+                                        size: 13,
+                                        weight: '600',
+                                        family: "'Inter', sans-serif"
+                                    },
+                                    color: '#1F2D3D'
+                                },
+                                suggestedMin: 0,
+                                suggestedMax: 100
+                            }
+                        }
+                    }
+                });
+            }
+
             // Générer le graphique donut
             const donutContainer = document.querySelector('.chart-placeholder.donut[data-categories]');
             if (donutContainer) {
