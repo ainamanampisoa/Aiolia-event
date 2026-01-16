@@ -659,77 +659,90 @@ class OrderRepository
         $whereConditions = ['o.user_id = :user_id', "(o.status = 'paid' OR o.status = 'pending')"];
         $params = ['user_id' => $userId];
 
-        if ($period === 'year') {
-            $whereConditions[] = 'EXTRACT(YEAR FROM o.created_at) = :year';
-            $params['year'] = $year;
-        } elseif ($period === 'month' && $month > 0) {
-            $whereConditions[] = 'EXTRACT(YEAR FROM o.created_at) = :year';
-            $whereConditions[] = 'EXTRACT(MONTH FROM o.created_at) = :month';
-            $params['year'] = $year;
-            $params['month'] = $month;
-        } else {
-            // Pour 'all' ou mois = 0, on prend les 12 derniers mois
-            $whereConditions[] = "o.created_at >= NOW() - INTERVAL '12 months'";
-            $year = null; // Désactiver le filtre d'année par défaut
-        }
-
-        // Déterminer l'ordre et la limite selon monthlyRange
-        $orderBy = 'month_key ASC';
+        // Déterminer les dates de début et de fin pour la génération des mois
+        $startDate = null;
+        $endDate = null;
         $limit = 12;
 
-        if ($period === 'year' && $monthlyRange === 'first_6') {
-            // Pour les 6 premiers mois de l'année, on limite à janvier-juin
-            $whereConditions[] = 'EXTRACT(MONTH FROM o.created_at) BETWEEN 1 AND 6';
-            $limit = 6;
-        } elseif ($period === 'year' && $monthlyRange === 'last_6') {
-            // Pour les 6 derniers mois de l'année, on limite à juillet-décembre
-            $whereConditions[] = 'EXTRACT(MONTH FROM o.created_at) BETWEEN 7 AND 12';
-            $limit = 6;
+        if ($period === 'year') {
+            if ($monthlyRange === 'first_6') {
+                $startDate = new \DateTimeImmutable("$year-01-01 00:00:00");
+                $endDate = new \DateTimeImmutable("$year-06-30 23:59:59");
+                $limit = 6;
+            } elseif ($monthlyRange === 'last_6') {
+                $startDate = new \DateTimeImmutable("$year-07-01 00:00:00");
+                $endDate = new \DateTimeImmutable("$year-12-31 23:59:59");
+                $limit = 6;
+            } else {
+                $startDate = new \DateTimeImmutable("$year-01-01 00:00:00");
+                $endDate = new \DateTimeImmutable("$year-12-31 23:59:59");
+                $limit = 12;
+            }
+            $whereConditions[] = 'o.created_at BETWEEN :start_date AND :end_date';
+            $params['start_date'] = $startDate->format('Y-m-d H:i:s');
+            $params['end_date'] = $endDate->format('Y-m-d H:i:s');
+        } elseif ($period === 'month' && $month > 0) {
+            $startDate = new \DateTimeImmutable("$year-$month-01 00:00:00");
+            $endDate = $startDate->modify('last day of this month')->setTime(23, 59, 59);
+            $limit = 1;
+            $whereConditions[] = 'o.created_at BETWEEN :start_date AND :end_date';
+            $params['start_date'] = $startDate->format('Y-m-d H:i:s');
+            $params['end_date'] = $endDate->format('Y-m-d H:i:s');
+        } else {
+            // Pour 'all' ou mois = 0, on prend les 12 derniers mois glissants
+            $endDate = new \DateTimeImmutable();
+            $startDate = $endDate->modify('-11 months')->modify('first day of this month')->setTime(0, 0, 0);
+            $limit = 12;
+            $whereConditions[] = 'o.created_at >= :start_date';
+            $params['start_date'] = $startDate->format('Y-m-d H:i:s');
         }
 
         $whereClause = implode(' AND ', $whereConditions);
 
         $sql = <<<SQL
             SELECT 
-                EXTRACT(MONTH FROM o.created_at) as month_number,
-                EXTRACT(YEAR FROM o.created_at) as year_number,
                 TO_CHAR(o.created_at, 'YYYY-MM') as month_key,
                 SUM(o.total_amount) as total
             FROM aiolia.orders o
             WHERE {$whereClause}
-            GROUP BY EXTRACT(MONTH FROM o.created_at), EXTRACT(YEAR FROM o.created_at), TO_CHAR(o.created_at, 'YYYY-MM')
+            GROUP BY month_key
             ORDER BY month_key ASC
-            LIMIT {$limit}
         SQL;
 
         $rows = $this->connection->executeQuery($sql, $params)->fetchAllAssociative();
 
+        // Indexer les résultats par month_key
+        $indexedData = [];
+        foreach ($rows as $row) {
+            $indexedData[$row['month_key']] = (float) $row['total'];
+        }
+
         $monthNames = [
-            1 => 'Janvier',
-            2 => 'Février',
-            3 => 'Mars',
-            4 => 'Avril',
-            5 => 'Mai',
-            6 => 'Juin',
-            7 => 'Juillet',
-            8 => 'Août',
-            9 => 'Septembre',
-            10 => 'Octobre',
-            11 => 'Novembre',
-            12 => 'Décembre'
+            1 => 'Janvier', 2 => 'Février', 3 => 'Mars', 4 => 'Avril',
+            5 => 'Mai', 6 => 'Juin', 7 => 'Juillet', 8 => 'Août',
+            9 => 'Septembre', 10 => 'Octobre', 11 => 'Novembre', 12 => 'Décembre'
         ];
 
-        return array_map(function (array $row) use ($monthNames): array {
-            $monthNum = (int) $row['month_number'];
-            $totalAmount = (float) $row['total'];
-            return [
+        // Générer la séquence complète des mois
+        $result = [];
+        $currentDate = $startDate;
+        for ($i = 0; $i < $limit; $i++) {
+            $monthKey = $currentDate->format('Y-m');
+            $monthNum = (int) $currentDate->format('n');
+            $totalAmount = $indexedData[$monthKey] ?? 0.0;
+
+            $result[] = [
                 'month' => $monthNames[$monthNum] ?? 'Mois ' . $monthNum,
                 'month_number' => $monthNum,
-                'month_key' => $row['month_key'],
+                'month_key' => $monthKey,
                 'total' => number_format($totalAmount, 0, ',', ' ') . ' MGA',
-                'total_raw' => $totalAmount, // Ajouter la valeur brute pour faciliter les calculs
+                'total_raw' => $totalAmount,
             ];
-        }, $rows);
+
+            $currentDate = $currentDate->modify('+1 month');
+        }
+
+        return $result;
     }
 
     /**

@@ -351,14 +351,14 @@
                                         
                                         {% set colorIndex = (loop.index0 % barColors|length) %}
                                         
-                                        <div class="bar-item-modern">
+                                        <div class="bar-item-modern {{ valNum == 0 ? 'bar-empty' : '' }}">
                                             {% if valNum > 0 %}
                                             <div class="bar-value-top" style="bottom: {{ height + 5 }}px;">
                                                 {{ (valNum >= 1000) ? (valNum/1000)|round ~ 'k' : valNum }}
                                             </div>
                                             {% endif %}
                                             <div class="bar-container">
-                                                <div class="bar-modern" style="height: {{ height }}px; background: {{ barColors[colorIndex] }};" title="{{ item.total }}">
+                                                <div class="bar-modern" style="height: {{ height }}px; {{ valNum > 0 ? 'background: ' ~ barColors[colorIndex] ~ ';' : '' }}" title="{{ item.total }}">
                                                 </div>
                                             </div>
                                             <div class="bar-label-double">
