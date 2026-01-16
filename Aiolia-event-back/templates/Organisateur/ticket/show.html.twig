@@ -56,18 +56,9 @@
             <h1>
                 <i class="fas fa-ticket-alt"></i> 
                 Détails du billet #TKT-{{ billet.id|slice(-6) }}
-                {% if billet.statut == 'dispo' %}
-                    <span class="header-status-badge">
-                        <i class="fas fa-ticket-alt"></i> Disponible
-                    </span>
-                {% endif %}
             </h1>
             <p style="color: var(--gray-600); margin-top: 8px; font-size: 1rem;">
-                {% if billet.statut == 'dispo' %}
-                    Billet disponible - Prêt à être vendu ou attribué
-                {% else %}
-                    Informations complètes et QR code du billet
-                {% endif %}
+                Informations complètes et QR code du billet
             </p>
         </div>
     </div>
@@ -176,17 +167,7 @@
                         </div>
                     {% endif %}
                     
-                    {% if billet.statut == 'dispo' %}
-                        <div class="detail-row available-ticket-notice">
-                            <div class="available-ticket-banner">
-                                <i class="fas fa-info-circle"></i>
-                                <div>
-                                    <strong>Billet disponible</strong>
-                                    <p>Ce billet n'est pas encore attribué à un client. Il peut être vendu ou attribué manuellement.</p>
-                                </div>
-                            </div>
-                        </div>
-                    {% elseif billet.utilisateurProprietaire %}
+                    {% if billet.utilisateurProprietaire %}
                         <div class="detail-row">
                             <div class="detail-label">
                                 <i class="fas fa-user"></i>
@@ -372,28 +353,17 @@
             {% endif %}
 
             <!-- QR Code -->
-            <div class="card validation-card {% if billet.statut == 'dispo' %}available-ticket-card{% endif %}">
-                <div class="card-header {% if billet.statut == 'dispo' %}available-ticket-header{% endif %}">
+            <div class="card validation-card">
+                <div class="card-header">
                     <h3>
                         <i class="fas fa-qrcode"></i> 
                         QR Code du billet
-                        {% if billet.statut == 'dispo' %}
-                            <span class="available-badge-inline">
-                                <i class="fas fa-ticket-alt"></i> Disponible
-                            </span>
-                        {% endif %}
                     </h3>
                 </div>
                 <div class="card-body">
                     {% if billet.codeQr %}
                         <div class="qr-code-container">
-                            {% if billet.statut == 'dispo' %}
-                                <div class="available-ticket-qr-notice">
-                                    <i class="fas fa-info-circle"></i>
-                                    <p>Ce QR code peut être scanné pour valider le billet lors de l'événement.</p>
-                                </div>
-                            {% endif %}
-                            <div class="qr-code-image-wrapper {% if billet.statut == 'dispo' %}available-qr-wrapper{% endif %}">
+                            <div class="qr-code-image-wrapper">
                                 <img 
                                     src="{{ qrCodeUrl }}" 
                                     alt="QR Code #TKT-{{ billet.id|slice(-6) }}" 
@@ -404,9 +374,6 @@
                             </div>
                             <p class="qr-code-label">
                                 #TKT-{{ billet.id|slice(-6) }}
-                                {% if billet.statut == 'dispo' %}
-                                    <span class="qr-code-status-badge">Disponible</span>
-                                {% endif %}
                             </p>
                             <div class="qr-code-info">
                                 <p class="qr-code-code-text">
@@ -481,20 +448,6 @@ h1 i {
     color: var(--accent);
 }
 
-.header-status-badge {
-    display: inline-flex;
-    align-items: center;
-    gap: 6px;
-    margin-left: 16px;
-    padding: 6px 16px;
-    background: linear-gradient(135deg, #d4edda, #c3e6cb);
-    color: #155724;
-    border: 1px solid #28a745;
-    border-radius: 20px;
-    font-size: 0.9rem;
-    font-weight: var(--font-weight-semibold);
-    vertical-align: middle;
-}
 
 .ticket-details-container {
     margin-top: 24px;
@@ -715,95 +668,6 @@ h1 i {
     color: var(--text-muted);
 }
 
-/* Styles pour les billets disponibles */
-.available-ticket-notice {
-    padding: 0 !important;
-    border-bottom: none !important;
-    margin-bottom: 16px;
-}
-
-.available-ticket-banner {
-    display: flex;
-    align-items: flex-start;
-    gap: 12px;
-    padding: 16px;
-    background: linear-gradient(135deg, rgba(40, 167, 69, 0.1), rgba(40, 167, 69, 0.05));
-    border: 2px solid rgba(40, 167, 69, 0.3);
-    border-radius: var(--border-radius-md);
-    color: #155724;
-}
-
-.available-ticket-banner i {
-    font-size: 1.5rem;
-    color: #28a745;
-    margin-top: 2px;
-}
-
-.available-ticket-banner strong {
-    display: block;
-    font-size: 1rem;
-    margin-bottom: 4px;
-    color: #155724;
-}
-
-.available-ticket-banner p {
-    margin: 0;
-    font-size: 0.9rem;
-    color: #155724;
-    opacity: 0.9;
-}
-
-.available-ticket-card {
-    border: 2px solid rgba(40, 167, 69, 0.3);
-    box-shadow: 0 4px 16px rgba(40, 167, 69, 0.15);
-}
-
-.available-ticket-header {
-    background: linear-gradient(135deg, rgba(40, 167, 69, 0.15), rgba(40, 167, 69, 0.08));
-}
-
-.available-badge-inline {
-    display: inline-flex;
-    align-items: center;
-    gap: 6px;
-    margin-left: 12px;
-    padding: 4px 12px;
-    background: linear-gradient(135deg, #d4edda, #c3e6cb);
-    color: #155724;
-    border: 1px solid #28a745;
-    border-radius: 20px;
-    font-size: 0.85rem;
-    font-weight: var(--font-weight-semibold);
-}
-
-.available-ticket-qr-notice {
-    display: flex;
-    align-items: center;
-    gap: 10px;
-    padding: 12px 16px;
-    background: rgba(40, 167, 69, 0.1);
-    border-left: 4px solid #28a745;
-    border-radius: var(--border-radius-sm);
-    margin-bottom: 20px;
-    color: #155724;
-}
-
-.available-ticket-qr-notice i {
-    font-size: 1.2rem;
-    color: #28a745;
-}
-
-.available-ticket-qr-notice p {
-    margin: 0;
-    font-size: 0.9rem;
-    line-height: 1.5;
-}
-
-.available-qr-wrapper {
-    border: 3px solid rgba(40, 167, 69, 0.4);
-    box-shadow: 0 6px 20px rgba(40, 167, 69, 0.2);
-}
-
 .qr-code-info {
     margin: 16px 0;
     padding: 12px;
@@ -832,18 +696,6 @@ h1 i {
     font-size: 0.8rem;
     color: var(--text-primary);
     border: 1px solid var(--border-color);
-}
-
-.qr-code-status-badge {
-    display: inline-block;
-    margin-left: 8px;
-    padding: 4px 10px;
-    background: linear-gradient(135deg, #d4edda, #c3e6cb);
-    color: #155724;
-    border: 1px solid #28a745;
-    border-radius: 12px;
-    font-size: 0.75rem;
-    font-weight: var(--font-weight-semibold);
 }
 
 .qr-code-actions {
