@@ -66,26 +66,6 @@
                 </a>
             </li>
             
-            <li class="nav-item {{ isPromotions ? 'active' }}">
-                <a href="{{ path('organisateur_promotions_index') }}" class="nav-link {{ isPromotions ? 'active' }}" {% if isPromotions %}aria-current="page"{% endif %}>
-                    <div class="nav-icon">
-                        <i class="fas fa-tags"></i>
-                    </div>
-                    <span class="nav-text" data-i18n="layout.sidebar.organisateur.promotions">Promotions</span>
-                    <span class="nav-tooltip" data-i18n="layout.sidebar.organisateur.promotions">Promotions</span>
-                </a>
-            </li>
-            
-            <li class="nav-item {{ isWaitlist ? 'active' }}">
-                <a href="{{ path('organisateur_waitlist_index') }}" class="nav-link {{ isWaitlist ? 'active' }}" {% if isWaitlist %}aria-current="page"{% endif %}>
-                    <div class="nav-icon">
-                        <i class="fas fa-list-alt"></i>
-                    </div>
-                    <span class="nav-text" data-i18n="layout.sidebar.organisateur.waitlist">Liste d'attente</span>
-                    <span class="nav-tooltip" data-i18n="layout.sidebar.organisateur.waitlist">Liste d'attente</span>
-                </a>
-            </li>
-            
             {% set isStockAlerts = currentRoute == 'app_ticket_stock_alerts' %}
             {% if has_stock_alerts_for_active_events() %}
             <li class="nav-item {{ isStockAlerts ? 'active' }}">
@@ -98,6 +78,26 @@
                 </a>
             </li>
             {% endif %}
+            
+            <li class="nav-item {{ isWaitlist ? 'active' }}">
+                <a href="{{ path('organisateur_waitlist_index') }}" class="nav-link {{ isWaitlist ? 'active' }}" {% if isWaitlist %}aria-current="page"{% endif %}>
+                    <div class="nav-icon">
+                        <i class="fas fa-list-alt"></i>
+                    </div>
+                    <span class="nav-text" data-i18n="layout.sidebar.organisateur.waitlist">Liste d'attente</span>
+                    <span class="nav-tooltip" data-i18n="layout.sidebar.organisateur.waitlist">Liste d'attente</span>
+                </a>
+            </li>
+            
+            <li class="nav-item {{ isPromotions ? 'active' }}">
+                <a href="{{ path('organisateur_promotions_index') }}" class="nav-link {{ isPromotions ? 'active' }}" {% if isPromotions %}aria-current="page"{% endif %}>
+                    <div class="nav-icon">
+                        <i class="fas fa-tags"></i>
+                    </div>
+                    <span class="nav-text" data-i18n="layout.sidebar.organisateur.promotions">Promotions</span>
+                    <span class="nav-tooltip" data-i18n="layout.sidebar.organisateur.promotions">Promotions</span>
+                </a>
+            </li>
             
             <li class="nav-item {{ isPaiementAbonnement ? 'active' }}">
                 <a href="{{ path('organisateur_paiement_abonnement_index') }}" class="nav-link {{ isPaiementAbonnement ? 'active' }}" {% if isPaiementAbonnement %}aria-current="page"{% endif %}>

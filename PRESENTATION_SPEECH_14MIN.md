@@ -52,13 +52,15 @@ En cliquant sur cette boutton ,on retrouve historique complet de vente
 
 et on peut les filtrer par date, par statut ou par type de billet.
 
-pour accèder à son détail complet : informations de l’acheteur, date d’achat, prix, et surtout, le QR code unique qui lui est attaché.
+pour accèder à la détail complet du billet : informations de l’acheteur, date d’achat, prix, et surtout, le QR code unique qui lui est attaché.
 
 En parallèle, on gère les catégories de tickets sur cette interface. On peut ajuster les stocks et les tarifs à tout moment, même après la mise en vente.
 
 Pour la validation à l’entrée, on utilise la fonction scan du QR code. L’organisateur scanne le code, et le système affiche instantanément l’info du billet, avec un message coloré selon le status du billet.
 
-On surveille aussi les alertes de stock : la plateforme nous prévient automatiquement quand une catégorie de billets est sur le point de s’épuiser, pour qu’on puisse réagir vite.
+On surveille aussi les alertes de stock : la plateforme nous prévient automatiquement quand une catégorie de billets des evenement en cours est sur le point de s’épuiser, pour qu’on puisse réagir vite.
+
+Dans cette section, on consulte l'ensemble des listes d'attente. En cliquant sur un bouton dédié, on peut traiter chaque demande utilisateur : soit l'accepter, soit la rejeter. Chaque action déclenche automatiquement l'envoi d'un email de notification à l'utilisateur concerné.
 
 ---
 
@@ -67,7 +69,6 @@ On surveille aussi les alertes de stock : la plateforme nous prévient automatiq
 **[2:30 - 3:30]**
 
 Pour le module Codes Promo. Il permet de créer des promotions flexibles : on définit un pourcentage ou un montant fixe, on choisit les dates de validité, on limite le nombre d'utilisations, et on l'applique à des événements ou des catégories de billets spécifiques. 
-On suit ensuite en temps réel qui a utilisé le code et quand, depuis un historique détaillé.
 
 L'organisateur peut également consulter l'historique détaillé de l'utilisation de chaque promotion, permettant ainsi de mesurer en temps réel l'efficacité de ses campagnes promotionnelles et d'ajuster sa stratégie marketing en conséquence.
 
@@ -90,14 +91,15 @@ La plateforme propose différents plans — Basic, Pro, Enterprise — avec paie
 le module Rapports et Statistiques. C'est le centre de pilotage.
 
 Statistiques
-Dans cette section, les données sont visualisées au travers de représentations graphiques interactives (courbes, diagrammes, camemberts). L'organisateur peut filtrer dynamiquement les résultats par période afin d'analyser l'évolution de ses indicateurs clés . Cette vue offre la lecture instantanée et le visuelle de la performance.
+Dans cette section, l'organisateur accède à un tableau de bord de suivi de performance présentant les statistiques de ventes globales. Il peut filtrer dynamiquement les résultats par période pour analyser l'évolution de ses indicateurs clés.
 
-Rapports
-Cette partie présente les données sous forme de tableaux synthétiques, également filtrables par période. Elle est conçue pour le traitement et l'export des données, avec deux options principales :
+Dans cette page, l'organisateur consulte un rapport détaillé de tous ses événements présentés sous forme de tableaux synthétiques. Les données peuvent être filtrées par période pour une analyse temporelle ciblée.
 
-Export CSV : permet une analyse approfondie, un traitement statistique avancé ou l'intégration dans d'autres outils métier (Excel, logiciels BI, etc.).
+Cette interface intègre également des fonctionnalités d'export de données avec deux options principales :
 
-Export PDF : génère un rapport structuré et professionnel, directement utilisable pour des présentations, des bilans ou une communication interne ou externe.
+Export CSV : permet une analyse approfondie et un traitement externe des données
+
+Export PDF : génère un rapport structuré et professionnel pour diffusion et archivage
 
 
 
@@ -107,23 +109,13 @@ Export PDF : génère un rapport structuré et professionnel, directement utilis
 ## 👥 MODULE 6 : GESTION DES UTILISATEURS (1 minute)
 
 **[6:00 - 7:00]**
-Après la connexion, l'administrateur accède à un tableau de bord analytique qui offre une vision complète des performances globales de la plateforme.
+Après la connexion, L'admin accède à un tableau de bord présentant les performances globales de la plateforme.
 
-L'interface présente des indicateurs clés sous forme de widgets synthétiques :
+Les indicateurs clés sont synthétisés en widgets pour une vue d'ensemble rapide, tandis que des graphiques interactifs permettent d'analyser les données. Ces visualisations sont filtrables par période pour une analyse temporelle précise.
 
-Nombre d'organisateurs actifs
+Cette interface permet à l'admin de valider les nouveaux organisateurs inscrits via le front-office. Après vérification du profil, il approuve ou rejette la demande,qui déclenche un envoye email automatique a l'organisateur.
 
-Nouveaux organisateurs inscrits
-
-Offre d'abonnement la plus utilisée
-
-Chiffre d'affaires généré (HT, TVA, TTC)
-
-Les données sont visualisées à travers des représentations graphiques interactives permettant d'analyser les performances de la plateforme. Ces graphiques peuvent être filtrés par période pour affiner l'analyse temporelle.
-
-Dans cette section, l'administrateur gère la validation des nouveaux comptes organisateurs. Il peut examiner les profils en attente, puis les approuver ou les rejeter. Pour les comptes actifs, il peut consulter les événements créés par chaque organisateur, ainsi que suivre son historique de paiements d'abonnements, en accédant directement à ces informations via les boutons dédiés de cette interface.
-
-Les nouveaux organisateurs s'inscrivent depuis le front-office de la plateforme. Après soumission de leur inscription, leur compte passe en statut "en attente de validation". Une fois que l'administrateur examine et approuve leur demande, un email de confirmation leur est automatiquement envoyé.
+Pour les comptes actifs, des boutons dédiés permettent d'accéder directement aux événements créés par l'organisateur et à son historique de paiements d'abonnement.
 
 ---
 
@@ -131,33 +123,21 @@ Les nouveaux organisateurs s'inscrivent depuis le front-office de la plateforme.
 
 **[7:00 - 8:00]**
 
-Ce module automatise et centralise toute la gestion financière de la plateforme. Il gère à la fois les factures d'abonnement des organisateurs et les factures liées aux ventes de billets.
+Cet page de facturation centralise toute la gestion financière de la plateforme.
 
-Pour l'administrateur :
-Une interface intuitive permet de consulter toutes les factures avec des filtres avancés — par statut, période ou recherche textuelle. Des indicateurs clés en temps réel donnent une vision globale de la santé financière. Chaque facture peut être examinée en détail et exportée en PDF pour archivage ou partage.
+dans cette section l'admin peut  consulter toutes les factures avec des filtres avancés. Chaque facture peut être examinée en détail et exportée en PDF pour archivage ou partage.
 
-L'automatisation :
-Le cœur du module repose sur une tâche CRON planifiée qui s'exécute chaque mois entre le 27 et le 31 à 2h du matin. Ce processus automatique :
 
-Génère les factures mensuelles pour tous les abonnements actifs
-
-Calcule les montants et applique la TVA à 20%
-
-Vérifie l'absence de doublons
-
-Marque les factures en retard
-
-Suspend automatiquement les abonnements impayés
-
-Crée des factures à 0 Ariary pour les abonnements en pause
-
+La génération mensuelle des factures pour tous les organisateurs actifs repose sur une tâche CRON planifiée.
 ---
 
 ## ⚙️ MODULE 8 : PARAMÈTRES UTILISATEUR (30 secondes)
 
 **[8:00 - 8:30]**
+L'admin consulte ses informations personnelles et peut modifier sa photo de profil, ses coordonnées ou son mot de passe.
 
- le module de paramètres utilisateur permet à chacun d'adapter l'interface à ses préférences. On peut basculer instantanément entre le mode clair et le mode sombre, choisir une couleur d'accent pour personnaliser l'interface, et sélectionner sa langue — français ou anglais. Tous ces réglages sont appliqués en temps réel et sauvegardés automatiquement, offrant une expérience aussi confortable que personnalisée.
+
+ le module de paramètres utilisateur permet à chacun d'adapter l'interface à ses préférences. On peut basculer instantanément entre le mode clair et le mode sombre, choisir une couleur d'accent pour personnaliser l'interface, et sélectionner sa langue — français ou anglais. Tous ces réglages sont appliqués en temps réel et sauvegardés automatiquement dans le local storage.
 
 ---
 
