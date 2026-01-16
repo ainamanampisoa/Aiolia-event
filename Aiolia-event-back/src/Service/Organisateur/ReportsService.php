@@ -197,7 +197,26 @@ class ReportsService
         // Widgets
         $totalPublishedEvents = count(array_filter($events, fn(Event $event) => $event->getStatut() === Event::STATUS_PUBLISHED));
         $totalParticipants = array_sum($participantsSeries);
-        $totalRevenue = array_sum($revenueSeries);
+        
+        // Calculer le revenu total directement depuis les commandes pour tous les événements de l'organisateur
+        // (pas seulement ceux filtrés par date) pour être cohérent avec les graphiques
+        $allEventIds = $this->eventRepository->searchMultiCriteria(
+            $organizerProfile->getId(),
+            null,
+            null, // Pas de filtre de date pour les événements
+            null,
+            null,
+            null,
+            null,
+            null,
+            null,
+            null,
+            Event::STATUS_PUBLISHED
+        );
+        $allEventIds = array_map(static fn (Event $event) => (int) $event->getId(), $allEventIds);
+        
+        // Calculer le revenu total depuis les commandes pour tous les événements
+        $totalRevenue = $this->calculateTotalRevenueForEvents($allEventIds, $dateFrom, $dateTo);
 
         return [
             'widgets' => [
@@ -234,6 +253,39 @@ class ReportsService
         }
         
         return array_sum($revenuesByType);
+    }
+
+    /**
+     * Calcule le revenu total pour une liste d'événements
+     * 
+     * @param array $eventIds
+     * @param \DateTimeImmutable|null $dateFrom
+     * @param \DateTimeImmutable|null $dateTo
+     * @return float
+     */
+    private function calculateTotalRevenueForEvents(
+        array $eventIds,
+        ?\DateTimeImmutable $dateFrom = null,
+        ?\DateTimeImmutable $dateTo = null
+    ): float {
+        if (empty($eventIds)) {
+            return 0.0;
+        }
+
+        $totalRevenue = 0.0;
+        foreach ($eventIds as $eventId) {
+            $event = $this->eventRepository->getById($eventId);
+            if ($event) {
+                if ($dateFrom && $dateTo) {
+                    $revenuesByType = $this->ticketInvoiceRepository->getRevenueByEventAndPeriod($event, $dateFrom, $dateTo);
+                } else {
+                    $revenuesByType = $this->ticketInvoiceRepository->getRevenueByEvent($event);
+                }
+                $totalRevenue += array_sum($revenuesByType);
+            }
+        }
+
+        return $totalRevenue;
     }
 
     /**
