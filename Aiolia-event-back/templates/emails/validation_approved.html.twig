@@ -4,112 +4,27 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Demande approuvée - Aiolia Event</title>
+    {% include 'emails/_base_email_style.html.twig' %}
     <style>
-        body {
-            margin: 0;
-            padding: 0;
-            background: #f4f6f8;
-            font-family: 'Segoe UI', Arial, sans-serif;
-            color: #232c33;
-        }
-        .email-wrapper {
-            width: 100%;
-            padding: 24px 12px;
-            box-sizing: border-box;
-        }
-        .email-card {
-            max-width: 640px;
-            margin: 0 auto;
-            background: #ffffff;
-            border-radius: 16px;
-            overflow: hidden;
-            box-shadow: 0 12px 32px rgba(20, 57, 49, 0.08);
-        }
-        .email-header {
-            background: linear-gradient(135deg, #1F2D3D, #2C3E50 50%, #3498DB);
-            padding: 36px 32px;
-            text-align: center;
-            color: #ffffff;
-        }
-        .email-header h1 {
-            margin: 0;
-            font-size: 26px;
-            letter-spacing: 0.4px;
-        }
-        .email-body {
-            padding: 36px 32px;
-            background: #f9fbfa;
-        }
-        .emoji-badge {
-            font-size: 48px;
-            margin: 24px 0;
-        }
-        .intro-text {
-            font-size: 16px;
-            margin: 24px 0;
-            line-height: 1.7;
-        }
         .highlight-card {
-            background: #ffffff;
-            border-radius: 14px;
+            background: #F1F3F5;
             padding: 24px;
-            text-align: center;
             margin: 32px 0;
-            border: 1px solid rgba(31, 138, 91, 0.15);
-            box-shadow: 0 8px 22px rgba(31, 138, 91, 0.08);
         }
+        
         .highlight-card h2 {
-            margin: 0 0 12px;
+            margin: 0 0 16px;
             font-size: 18px;
             color: #1F2D3D;
+            font-weight: 600;
         }
+        
         .role-badge {
-            display: inline-block;
-            padding: 10px 26px;
-            border-radius: 999px;
+            display: inline;
             font-weight: 600;
-            letter-spacing: 0.4px;
-            color: #ffffff;
-            background: linear-gradient(135deg, #1F2D3D, #34495E);
-            box-shadow: 0 6px 18px rgba(31, 45, 61, 0.2);
-        }
-        .cta {
-            text-align: center;
-            margin: 40px 0 16px;
-        }
-        .cta a {
-            display: inline-block;
-            padding: 14px 40px;
-            background: linear-gradient(135deg, #1F2D3D, #3498DB);
-            color: #ffffff;
-            text-decoration: none;
-            font-weight: 600;
-            border-radius: 999px;
-            letter-spacing: 0.3px;
-            box-shadow: 0 14px 24px rgba(52, 152, 219, 0.25);
-        }
-        .cta a:hover {
-            filter: brightness(1.05);
-        }
-        .footer {
-            padding: 28px 32px;
-            text-align: center;
-            font-size: 13px;
-            color: #5c6b73;
-            background: #ffffff;
-        }
-        .footer p {
-            margin: 6px 0;
-        }
-        @media only screen and (max-width: 600px) {
-            .email-card {
-                border-radius: 0;
-            }
-            .email-header,
-            .email-body,
-            .footer {
-                padding: 28px 20px;
-            }
+            letter-spacing: 0;
+            color: #3498DB;
+            font-size: 15px;
         }
     </style>
 </head>
@@ -117,20 +32,15 @@
     <div class="email-wrapper">
         <div class="email-card">
             <div class="email-header">
-                <h1>✓ Demande approuvée</h1>
-                <p style="margin-top: 10px; opacity: 0.9; font-size: 15px;">
-                    Votre compte Aiolia Event est prêt à être utilisé
-                </p>
+                <h1>Demande approuvée</h1>
+                <p>Votre compte Aiolia Event est prêt à être utilisé</p>
             </div>
 
             <div class="email-body">
-                <div class="emoji-badge">🎉</div>
-
-                <p class="intro-text">
-                    Bonjour {{ user.prenom }},<br>
-                    Nous avons le plaisir de vous annoncer que votre demande de validation a été
-                    <strong>approuvée</strong>. Merci pour votre confiance.
-                </p>
+                <div class="greeting">
+                    <p>Bonjour {{ user.prenom }},</p>
+                    <p>Nous avons le plaisir de vous annoncer que votre demande de validation a été <strong>approuvée</strong>. Merci pour votre confiance.</p>
+                </div>
 
                 <div class="highlight-card">
                     <h2>Votre nouveau rôle</h2>
@@ -138,22 +48,22 @@
                 </div>
 
                 {% if comment %}
-                    <div style="background: rgba(31, 45, 61, 0.08); border-radius: 12px; padding: 18px 22px; border-left: 4px solid #1F2D3D; margin-bottom: 32px;">
-                        <strong style="display: block; margin-bottom: 8px; color: #1F2D3D;">Message de l'équipe :</strong>
-                        <span style="font-size: 15px; line-height: 1.6; color: #2C3E50;">{{ comment }}</span>
+                    <div class="content-section">
+                        <h2>Message de l'équipe</h2>
+                        <p>{{ comment }}</p>
                     </div>
                 {% endif %}
 
-                <p style="font-size: 15px; line-height: 1.7; color: #304047;">
-                    Vous pouvez dès à présent accéder à l’espace réservé à votre rôle et découvrir les fonctionnalités qui vous sont dédiées.
+                <p style="font-size: 15px; line-height: 1.7; color: #495057; margin: 24px 0;">
+                    Vous pouvez dès à présent accéder à l'espace réservé à votre rôle et découvrir les fonctionnalités qui vous sont dédiées.
                 </p>
 
                 <div class="cta">
-                    <a href="{{ absolute_url(path('app_login')) }}">Se connecter</a>
+                    <a href="{{ absolute_url(path('app_login')) }}" style="background: #3498DB; color: #ffffff;">Se connecter</a>
                 </div>
 
-                <p style="font-size: 14px; color: #5c6b73; text-align: center;">
-                    Besoin d’aide ? Contactez notre support à <a href="mailto:support@aiolia-event.com" style="color: #1f8a5b; text-decoration: none;">support@aiolia-event.com</a>.
+                <p style="font-size: 14px; color: #6C757D; margin-top: 24px;">
+                    Besoin d'aide ? Contactez notre support à <a href="mailto:support@aiolia-event.com" style="color: #3498DB;">support@aiolia-event.com</a>.
                 </p>
             </div>
 

@@ -4,84 +4,77 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Changement de statut - Aiolia Event</title>
+    {% include 'emails/_base_email_style.html.twig' %}
     <style>
-        body {
-            font-family: Arial, sans-serif;
-            line-height: 1.6;
-            color: #333;
-            max-width: 600px;
-            margin: 0 auto;
-            padding: 20px;
+        .status-change {
+            margin: 32px 0;
+            padding: 24px;
+            background: #F1F3F5;
         }
-        .header {
-            background: linear-gradient(135deg, #3498db, #2980b9);
-            color: white;
-            padding: 30px;
-            text-align: center;
-            border-radius: 8px 8px 0 0;
-        }
-        .content {
-            background: #f9f9f9;
-            padding: 30px;
-            border-radius: 0 0 8px 8px;
-        }
+        
         .status-badge {
-            display: inline-block;
-            padding: 8px 16px;
-            border-radius: 20px;
-            font-weight: bold;
-            margin: 10px 5px;
+            display: inline;
+            font-weight: 600;
+            margin: 0 4px;
+            font-size: 15px;
         }
+        
         .status-old {
-            background: #e74c3c;
-            color: white;
+            color: #6C757D;
         }
+        
         .status-new {
-            background: #2ecc71;
-            color: white;
+            color: #3498DB;
         }
-        .footer {
-            text-align: center;
-            margin-top: 30px;
-            padding-top: 20px;
-            border-top: 1px solid #ddd;
-            color: #777;
-            font-size: 12px;
+        
+        .arrow {
+            font-size: 20px;
+            margin: 0 12px;
+            color: #6C757D;
         }
     </style>
 </head>
 <body>
-    <div class="header">
-        <h1>Aiolia Event</h1>
-        <p>Changement de statut de compte</p>
-    </div>
-    
-    <div class="content">
-        <p>Bonjour {{ user.prenom }},</p>
-        
-        <p>Le statut de votre compte Aiolia Event a été modifié.</p>
-        
-        <div style="text-align: center; margin: 30px 0;">
-            <span class="status-badge status-old">{{ oldStatus|capitalize }}</span>
-            <span style="font-size: 24px; margin: 0 10px;">→</span>
-            <span class="status-badge status-new">{{ newStatus|capitalize }}</span>
+    <div class="email-wrapper">
+        <div class="email-card">
+            <div class="email-header">
+                <h1>Changement de statut de compte</h1>
+                <p>Modification de votre compte Aiolia Event</p>
+            </div>
+            
+            <div class="email-body">
+                <div class="greeting">
+                    <p>Bonjour {{ user.prenom }},</p>
+                    <p>Le statut de votre compte Aiolia Event a été modifié.</p>
+                </div>
+                
+                <div class="status-change">
+                    <span class="status-badge status-old">{{ oldStatus|capitalize }}</span>
+                    <span class="arrow">→</span>
+                    <span class="status-badge status-new">{{ newStatus|capitalize }}</span>
+                </div>
+                
+                {% if comment %}
+                <div class="content-section">
+                    <h2>Commentaire de l'administrateur</h2>
+                    <p>{{ comment }}</p>
+                </div>
+                {% endif %}
+                
+                <p style="font-size: 15px; line-height: 1.7; color: #495057; margin: 24px 0;">
+                    Si vous avez des questions concernant ce changement, n'hésitez pas à nous contacter.
+                </p>
+                
+                <p style="font-size: 14px; color: #6C757D; margin-top: 24px;">
+                    Cordialement,<br>L'équipe Aiolia Event
+                </p>
+            </div>
+            
+            <div class="footer">
+                <p>Cet email a été envoyé automatiquement. Merci de ne pas y répondre.</p>
+                <p>&copy; {{ "now"|date("Y") }} Aiolia Event. Tous droits réservés.</p>
+            </div>
         </div>
-        
-        {% if comment %}
-        <div style="background: #fff; padding: 15px; border-left: 4px solid #3498db; margin: 20px 0;">
-            <strong>Commentaire de l'administrateur :</strong>
-            <p>{{ comment }}</p>
-        </div>
-        {% endif %}
-        
-        <p>Si vous avez des questions concernant ce changement, n'hésitez pas à nous contacter.</p>
-        
-        <p>Cordialement,<br>L'équipe Aiolia Event</p>
-    </div>
-    
-    <div class="footer">
-        <p>Cet email a été envoyé automatiquement. Merci de ne pas y répondre.</p>
-        <p>&copy; {{ "now"|date("Y") }} Aiolia Event. Tous droits réservés.</p>
     </div>
 </body>
 </html>

@@ -3,55 +3,16 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>🚨 Action requise : Paiement en retard - Aiolia Event</title>
+    <title>Action requise : Paiement en retard - Aiolia Event</title>
+    {% include 'emails/_base_email_style.html.twig' %}
     <style>
-        * { margin: 0; padding: 0; box-sizing: border-box; }
-        body {
-            margin: 0; padding: 0; background: #f4f6f8;
-            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
-            color: #232c33; line-height: 1.6; font-size: 15px;
-        }
-        .email-wrapper { width: 100%; padding: 40px 12px; }
-        .email-card { max-width: 680px; margin: 0 auto; background: #ffffff; border-radius: 12px; overflow: hidden; box-shadow: 0 4px 20px rgba(0, 0, 0, 0.08); }
-        .email-header {
-            background: linear-gradient(135deg, #dc3545 0%, #c82333 100%);
-            padding: 40px 32px; text-align: center; color: #ffffff;
-        }
-        .email-header h1 { margin: 0 0 12px; font-size: 28px; font-weight: 700; }
-        .email-body { padding: 40px 36px; }
-        .greeting { font-size: 16px; color: #2c3e50; margin-bottom: 24px; }
-        .alert-danger {
-            background: linear-gradient(135deg, #f8d7da 0%, #f5c6cb 100%);
-            border: 2px solid #dc3545; border-left: 6px solid #dc3545;
-            padding: 20px 24px; margin: 24px 0; border-radius: 10px;
-        }
-        .alert-danger strong { color: #721c24; display: block; margin-bottom: 10px; font-size: 18px; }
-        .alert-danger p { color: #721c24; margin: 8px 0; }
-        .invoice-details {
-            background: #f8f9fa; border: 1px solid #e9ecef; border-radius: 12px;
-            padding: 28px; margin: 28px 0;
-        }
-        .invoice-details h2 { margin: 0 0 24px; font-size: 22px; font-weight: 700; color: #1F2D3D; border-bottom: 2px solid #dc3545; padding-bottom: 12px; }
-        .info-row { display: flex; justify-content: space-between; padding: 12px 0; border-bottom: 1px solid #e9ecef; }
-        .info-row:last-child { border-bottom: none; }
-        .info-label { color: #5c6b73; font-weight: 500; }
-        .info-value { color: #2c3e50; font-weight: 600; }
         .days-overdue {
-            display: inline-block; background: #dc3545; color: white;
-            padding: 4px 10px; border-radius: 6px; font-size: 12px; font-weight: 700; margin-left: 8px;
-        }
-        .cta { text-align: center; margin: 36px 0 24px; }
-        .cta a {
-            display: inline-block; padding: 16px 48px;
-            background: linear-gradient(135deg, #dc3545 0%, #c82333 100%);
-            color: #ffffff; text-decoration: none; font-weight: 700;
-            font-size: 16px; border-radius: 8px;
-            box-shadow: 0 4px 15px rgba(220, 53, 69, 0.3);
-        }
-        .footer { padding: 32px 36px; text-align: center; font-size: 12px; color: #6c757d; background: #f8f9fa; border-top: 1px solid #dee2e6; }
-        @media only screen and (max-width: 600px) {
-            .email-body { padding: 28px 24px; }
-            .invoice-details { padding: 20px; }
+            display: inline;
+            color: #E74C3C;
+            font-size: 13px;
+            font-weight: 600;
+            margin-left: 8px;
+            text-transform: uppercase;
         }
     </style>
 </head>
@@ -59,46 +20,49 @@
     <div class="email-wrapper">
         <div class="email-card">
             <div class="email-header">
-                <h1>🚨 Action requise : Paiement en retard</h1>
+                <h1>Action requise : Paiement en retard</h1>
+                <p>Dernier rappel avant suspension</p>
             </div>
             <div class="email-body">
-                <p class="greeting">Bonjour {{ customer.prenom ?? customer.nom ?? 'Cher client' }},</p>
-                
-                <div class="alert-danger">
-                    <strong>DERNIER RAPPEL AVANT SUSPENSION</strong>
+                <div class="greeting">
+                    <p>Bonjour {{ customer.prenom ?? customer.nom ?? 'Cher client' }},</p>
                     <p>Votre facture d'abonnement est en retard de {{ daysOverdue }} jour(s).</p>
-                    <p style="margin-top: 12px; font-weight: 600;">Si le paiement n'est pas effectué dans les 3 prochains jours, votre compte sera automatiquement suspendu.</p>
+                    <p><strong>Si le paiement n'est pas effectué dans les 3 prochains jours, votre compte sera automatiquement suspendu.</strong></p>
+                </div>
+                
+                <div class="content-section">
+                    <p><strong>Si le paiement n'est pas effectué dans les 3 prochains jours, votre compte sera automatiquement suspendu.</strong></p>
+                    <p>Pour éviter la suspension de votre compte, veuillez régulariser votre paiement immédiatement.</p>
                 </div>
                 
                 <div class="invoice-details">
                     <h2>Détails de la facture</h2>
                     <div class="info-row">
-                        <span class="info-label">Numéro de facture :</span>
+                        <span class="info-label">Numéro de facture</span>
                         <span class="info-value">{{ invoice.invoiceNumber }}</span>
                     </div>
                     <div class="info-row">
-                        <span class="info-label">Date d'échéance :</span>
+                        <span class="info-label">Date d'échéance</span>
                         <span class="info-value">{{ invoice.dueAt ? invoice.dueAt|date('d/m/Y') : 'N/A' }}</span>
                     </div>
                     <div class="info-row">
-                        <span class="info-label">Jours de retard :</span>
+                        <span class="info-label">Jours de retard</span>
                         <span class="info-value">{{ daysOverdue }} jour(s)<span class="days-overdue">URGENT</span></span>
                     </div>
                     <div class="info-row">
-                        <span class="info-label">Montant dû :</span>
-                        <span class="info-value" style="font-size: 20px; color: #dc3545; font-weight: 700;">{{ invoice.totalAmount|number_format(0, ',', ' ') }} {{ invoice.currency }}</span>
+                        <span class="info-label">Montant dû</span>
+                        <span class="info-value" style="font-size: 20px; font-weight: 600;">{{ invoice.totalAmount|number_format(0, ',', ' ') }} {{ invoice.currency }}</span>
                     </div>
                 </div>
                 
-                <p style="margin-top: 24px; color: #495057; font-weight: 600;">Pour éviter la suspension de votre compte, veuillez régulariser votre paiement immédiatement.</p>
-                
                 <div class="cta">
-                    <a href="#">Payer immédiatement</a>
+                    <a href="#" style="background: #3498DB; color: #ffffff;">Payer immédiatement</a>
                 </div>
             </div>
             <div class="footer">
                 <p><strong>Aiolia Event</strong></p>
                 <p>Cet email a été envoyé automatiquement. Merci de ne pas y répondre.</p>
+                <p>&copy; {{ "now"|date("Y") }} Aiolia Event – Tous droits réservés.</p>
             </div>
         </div>
     </div>

@@ -4,118 +4,19 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Liste d'attente acceptée - Aiolia Event</title>
+    {% include 'emails/_base_email_style.html.twig' %}
     <style>
-        body {
-            margin: 0;
-            padding: 0;
-            background: #f4f6f8;
-            font-family: 'Segoe UI', Arial, sans-serif;
-            color: #232c33;
-        }
-        .email-wrapper {
-            width: 100%;
-            padding: 24px 12px;
-            box-sizing: border-box;
-        }
-        .email-card {
-            max-width: 640px;
-            margin: 0 auto;
-            background: #ffffff;
-            border-radius: 16px;
-            overflow: hidden;
-            box-shadow: 0 12px 32px rgba(20, 57, 49, 0.08);
-        }
-        .email-header {
-            background: linear-gradient(135deg, #27AE60, #2ECC71);
-            padding: 36px 32px;
-            text-align: center;
-            color: #ffffff;
-        }
-        .email-header h1 {
-            margin: 0;
-            font-size: 26px;
-            letter-spacing: 0.4px;
-        }
-        .email-body {
-            padding: 36px 32px;
-            background: #f9fbfa;
-        }
-        .emoji-badge {
-            font-size: 48px;
-            margin: 24px 0;
-        }
-        .intro-text {
-            font-size: 16px;
-            margin: 24px 0;
-            line-height: 1.7;
-        }
         .highlight-card {
-            background: #ffffff;
-            border-radius: 14px;
+            background: #F1F3F5;
             padding: 24px;
             margin: 32px 0;
-            border: 1px solid rgba(39, 174, 96, 0.15);
-            box-shadow: 0 8px 22px rgba(39, 174, 96, 0.08);
         }
+        
         .highlight-card h2 {
-            margin: 0 0 16px;
+            margin: 0 0 20px;
             font-size: 18px;
             color: #1F2D3D;
-        }
-        .info-row {
-            display: flex;
-            justify-content: space-between;
-            padding: 12px 0;
-            border-bottom: 1px solid #e8ecef;
-        }
-        .info-row:last-child {
-            border-bottom: none;
-        }
-        .info-label {
             font-weight: 600;
-            color: #5c6b73;
-        }
-        .info-value {
-            color: #1F2D3D;
-            font-weight: 500;
-        }
-        .cta {
-            text-align: center;
-            margin: 40px 0 16px;
-        }
-        .cta a {
-            display: inline-block;
-            padding: 14px 40px;
-            background: linear-gradient(135deg, #27AE60, #2ECC71);
-            color: #ffffff;
-            text-decoration: none;
-            font-weight: 600;
-            border-radius: 999px;
-            letter-spacing: 0.3px;
-            box-shadow: 0 14px 24px rgba(39, 174, 96, 0.25);
-        }
-        .cta a:hover {
-            filter: brightness(1.05);
-        }
-        .footer {
-            padding: 28px 32px;
-            text-align: center;
-            font-size: 13px;
-            color: #5c6b73;
-            background: #ffffff;
-        }
-        .footer p {
-            margin: 6px 0;
-        }
-        @media only screen and (max-width: 600px) {
-            .email-card {
-                border-radius: 0;
-            }
-            .email-header,
-            .email-body,
-            .footer {
-                padding: 28px 20px;
-            }
         }
     </style>
 </head>
@@ -123,19 +24,15 @@
     <div class="email-wrapper">
         <div class="email-card">
             <div class="email-header">
-                <h1>✓ Liste d'attente acceptée</h1>
-                <p style="margin-top: 10px; opacity: 0.9; font-size: 15px;">
-                    Votre demande a été validée avec succès
-                </p>
+                <h1>Liste d'attente acceptée</h1>
+                <p>Votre demande a été validée avec succès</p>
             </div>
 
             <div class="email-body">
-                <div class="emoji-badge">🎫</div>
-
-                <p class="intro-text">
-                    Bonjour {{ user.prenom }},<br>
-                    Nous avons le plaisir de vous informer que votre demande de liste d'attente pour l'événement <strong>{{ event.titre }}</strong> a été <strong>acceptée</strong>.
-                </p>
+                <div class="greeting">
+                    <p>Bonjour {{ user.prenom }},</p>
+                    <p>Nous avons le plaisir de vous informer que votre demande de liste d'attente pour l'événement <strong>{{ event.titre }}</strong> a été <strong>acceptée</strong>.</p>
+                </div>
 
                 <div class="highlight-card">
                     <h2>Détails de votre réservation</h2>
@@ -161,16 +58,16 @@
                     </div>
                 </div>
 
-                <p style="font-size: 15px; line-height: 1.7; color: #304047;">
+                <p style="font-size: 15px; line-height: 1.7; color: #495057; margin: 24px 0;">
                     Vous pouvez maintenant procéder à l'achat de vos billets. Les billets sont disponibles et vous pouvez les réserver dès maintenant.
                 </p>
 
                 <div class="cta">
-                    <a href="{{ absolute_url(path('app_login')) }}">Accéder à mes billets</a>
+                    <a href="{{ absolute_url(path('app_login')) }}" style="background: #3498DB; color: #ffffff;">Accéder à mes billets</a>
                 </div>
 
-                <p style="font-size: 14px; color: #5c6b73; text-align: center;">
-                    Besoin d'aide ? Contactez notre support à <a href="mailto:support@aiolia-event.com" style="color: #27AE60; text-decoration: none;">support@aiolia-event.com</a>.
+                <p style="font-size: 14px; color: #6C757D; margin-top: 24px;">
+                    Besoin d'aide ? Contactez notre support à <a href="mailto:support@aiolia-event.com" style="color: #3498DB;">support@aiolia-event.com</a>.
                 </p>
             </div>
 

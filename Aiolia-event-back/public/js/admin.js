@@ -103,6 +103,86 @@ class SidebarManager {
 }
 
 // ============================================
+// MOBILE SIDEBAR TOGGLE
+// ============================================
+
+class MobileSidebarManager {
+    constructor() {
+        this.sidebar = document.getElementById('adminSidebar');
+        this.toggleButton = document.getElementById('sidebarToggleMobile');
+        this.overlay = document.getElementById('sidebarOverlay');
+        this.isOpen = false;
+        
+        this.init();
+    }
+    
+    init() {
+        if (!this.sidebar || !this.toggleButton) {
+            return;
+        }
+        
+        // Event listeners
+        this.toggleButton.addEventListener('click', () => this.toggle());
+        
+        if (this.overlay) {
+            this.overlay.addEventListener('click', () => this.close());
+        }
+        
+        // Fermer au redimensionnement si on passe en desktop
+        window.addEventListener('resize', () => {
+            if (window.innerWidth > 992 && this.isOpen) {
+                this.close();
+            }
+        });
+        
+        // Fermer avec Escape
+        document.addEventListener('keydown', (e) => {
+            if (e.key === 'Escape' && this.isOpen) {
+                this.close();
+            }
+        });
+    }
+    
+    toggle() {
+        if (this.isOpen) {
+            this.close();
+        } else {
+            this.open();
+        }
+    }
+    
+    open() {
+        if (!this.sidebar) return;
+        
+        this.sidebar.classList.add('sidebar-open');
+        if (this.overlay) {
+            this.overlay.classList.add('active');
+        }
+        if (this.toggleButton) {
+            this.toggleButton.setAttribute('aria-expanded', 'true');
+            this.toggleButton.setAttribute('aria-label', 'Fermer le menu');
+        }
+        document.body.style.overflow = 'hidden';
+        this.isOpen = true;
+    }
+    
+    close() {
+        if (!this.sidebar) return;
+        
+        this.sidebar.classList.remove('sidebar-open');
+        if (this.overlay) {
+            this.overlay.classList.remove('active');
+        }
+        if (this.toggleButton) {
+            this.toggleButton.setAttribute('aria-expanded', 'false');
+            this.toggleButton.setAttribute('aria-label', 'Ouvrir le menu');
+        }
+        document.body.style.overflow = '';
+        this.isOpen = false;
+    }
+}
+
+// ============================================
 // INITIALISATION
 // ============================================
 
@@ -121,9 +201,24 @@ function initSidebarManager() {
 // Initialiser
 initSidebarManager();
 
+// Initialiser le gestionnaire mobile
+let mobileSidebarManager;
+function initMobileSidebarManager() {
+    if (document.readyState === 'loading') {
+        document.addEventListener('DOMContentLoaded', () => {
+            mobileSidebarManager = new MobileSidebarManager();
+        });
+    } else {
+        mobileSidebarManager = new MobileSidebarManager();
+    }
+}
+initMobileSidebarManager();
+
 // Exposer globalement
 window.SidebarManager = SidebarManager;
 window.sidebarManager = sidebarManager;
+window.MobileSidebarManager = MobileSidebarManager;
+window.mobileSidebarManager = mobileSidebarManager;
 
 // Export pour modules
 if (typeof module !== 'undefined' && module.exports) {
