@@ -1614,6 +1614,37 @@ input[type="button"].btn:not(.btn-secondary):not(.btn-success):not(.btn-danger):
     align-items: start;
 }
 
+@media (max-width: 992px) {
+    .footer-content {
+        grid-template-columns: 1fr 1fr;
+        gap: 2rem;
+        padding: 0 1.5rem;
+    }
+    
+    .footer-center {
+        grid-column: 1 / -1;
+    }
+}
+
+@media (max-width: 768px) {
+    .footer-content {
+        grid-template-columns: 1fr;
+        gap: 1.5rem;
+        text-align: center;
+        padding: 0 1rem;
+    }
+    
+    .footer-links {
+        flex-direction: column;
+        gap: 0.75rem;
+        justify-content: center;
+    }
+    
+    .footer-main {
+        padding: 1.5rem 0;
+    }
+}
+
 .footer-brand {
     display: flex;
     flex-direction: column;
@@ -1697,6 +1728,16 @@ input[type="button"].btn:not(.btn-secondary):not(.btn-success):not(.btn-danger):
     .header-search {
         max-width: 300px;
     }
+    
+    .stats-grid {
+        grid-template-columns: repeat(auto-fit, minmax(240px, 1fr));
+        gap: 1.25rem;
+    }
+    
+    .footer-content {
+        grid-template-columns: 1fr 1fr;
+        gap: 2rem;
+    }
 }
 
 @media (max-width: 992px) {
@@ -1709,6 +1750,7 @@ input[type="button"].btn:not(.btn-secondary):not(.btn-success):not(.btn-danger):
     .admin-main {
         margin-left: 75px;
         width: calc(100% - 75px);
+        padding: 1rem 0.75rem;
     }
     
     .logo-image,
@@ -1728,6 +1770,29 @@ input[type="button"].btn:not(.btn-secondary):not(.btn-success):not(.btn-danger):
         justify-content: center;
         padding: 1rem;
     }
+    
+    .stats-grid {
+        grid-template-columns: repeat(2, 1fr);
+        gap: 1rem;
+    }
+    
+    .card {
+        margin-bottom: 1rem;
+    }
+    
+    .table-responsive {
+        overflow-x: auto;
+        -webkit-overflow-scrolling: touch;
+    }
+    
+    .table {
+        font-size: 0.85rem;
+    }
+    
+    .table thead th,
+    .table td {
+        padding: 0.625rem 0.5rem;
+    }
 }
 
 @media (max-width: 768px) {
@@ -1737,6 +1802,8 @@ input[type="button"].btn:not(.btn-secondary):not(.btn-success):not(.btn-danger):
     
     .admin-main {
         padding: 1rem 0.5rem;
+        margin-left: 0;
+        width: 100%;
     }
     
     .header-search {
@@ -1749,6 +1816,21 @@ input[type="button"].btn:not(.btn-secondary):not(.btn-success):not(.btn-danger):
     
     .stats-grid {
         grid-template-columns: 1fr;
+        gap: 1rem;
+    }
+    
+    .stat-card {
+        padding: 1.25rem;
+    }
+    
+    .stat-icon {
+        width: 48px;
+        height: 48px;
+        font-size: 1.4rem;
+    }
+    
+    .stat-content h3 {
+        font-size: 1.75rem;
     }
     
     .dashboard-header {
@@ -1757,14 +1839,49 @@ input[type="button"].btn:not(.btn-secondary):not(.btn-success):not(.btn-danger):
         align-items: flex-start;
     }
     
+    .dashboard-header h1 {
+        font-size: 1.75rem;
+    }
+    
     .footer-content {
         grid-template-columns: 1fr;
-        gap: 2rem;
+        gap: 1.5rem;
         text-align: center;
     }
     
     .footer-links {
+        flex-direction: column;
+        gap: 0.75rem;
         justify-content: center;
+    }
+    
+    .table-responsive {
+        font-size: 0.8rem;
+    }
+    
+    .table thead th,
+    .table td {
+        padding: 0.5rem 0.375rem;
+        font-size: 0.8rem;
+    }
+    
+    .btn {
+        padding: 0.625rem 1rem;
+        font-size: 0.875rem;
+    }
+    
+    .form-control,
+    .form-select {
+        font-size: 0.875rem;
+        padding: 0.625rem 0.875rem;
+    }
+    
+    .card-body {
+        padding: 1rem;
+    }
+    
+    .card-header {
+        padding: 0.875rem 1rem;
     }
 }
 
@@ -1779,7 +1896,48 @@ input[type="button"].btn:not(.btn-secondary):not(.btn-success):not(.btn-danger):
     }
     
     .dashboard-header h1 {
-        font-size: 1.75rem;
+        font-size: 1.5rem;
+    }
+    
+    .admin-main {
+        padding: 0.75rem 0.5rem;
+    }
+    
+    .stat-card {
+        padding: 1rem;
+    }
+    
+    .stat-content h3 {
+        font-size: 1.5rem;
+    }
+    
+    .stat-content p {
+        font-size: 0.875rem;
+    }
+    
+    .table thead th,
+    .table td {
+        padding: 0.375rem 0.25rem;
+        font-size: 0.75rem;
+    }
+    
+    .btn {
+        padding: 0.5rem 0.875rem;
+        font-size: 0.8rem;
+    }
+    
+    .btn-sm {
+        padding: 0.375rem 0.625rem;
+        font-size: 0.75rem;
+    }
+    
+    .card-body {
+        padding: 0.875rem;
+    }
+    
+    .card-header {
+        padding: 0.75rem 0.875rem;
+        font-size: 0.9rem;
     }
 }
 
