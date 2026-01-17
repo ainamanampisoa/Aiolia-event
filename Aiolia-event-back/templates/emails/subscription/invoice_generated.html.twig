@@ -4,97 +4,54 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Nouvelle facture disponible - Aiolia Event</title>
-    <style>
-        * { margin: 0; padding: 0; box-sizing: border-box; }
-        body {
-            margin: 0; padding: 0; background: #f4f6f8;
-            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
-            color: #232c33; line-height: 1.6; font-size: 15px;
-        }
-        .email-wrapper { width: 100%; padding: 40px 12px; }
-        .email-card { max-width: 680px; margin: 0 auto; background: #ffffff; border-radius: 12px; overflow: hidden; box-shadow: 0 4px 20px rgba(0, 0, 0, 0.08); }
-        .email-header {
-            background: linear-gradient(135deg, #1F2D3D 0%, #2C3E50 50%, #3498DB 100%);
-            padding: 40px 32px; text-align: center; color: #ffffff;
-        }
-        .email-header h1 { margin: 0 0 12px; font-size: 28px; font-weight: 700; }
-        .email-body { padding: 40px 36px; }
-        .greeting { font-size: 16px; color: #2c3e50; margin-bottom: 24px; }
-        .alert-success {
-            background: linear-gradient(135deg, #d4edda 0%, #c3e6cb 100%);
-            border: 2px solid #28a745; border-left: 6px solid #28a745;
-            padding: 20px 24px; margin: 24px 0; border-radius: 10px;
-        }
-        .invoice-details {
-            background: #f8f9fa; border: 1px solid #e9ecef; border-radius: 12px;
-            padding: 28px; margin: 28px 0;
-        }
-        .invoice-details h2 { margin: 0 0 24px; font-size: 22px; font-weight: 700; color: #1F2D3D; border-bottom: 2px solid #3498DB; padding-bottom: 12px; }
-        .info-row { display: flex; justify-content: space-between; padding: 12px 0; border-bottom: 1px solid #e9ecef; }
-        .info-row:last-child { border-bottom: none; }
-        .info-label { color: #5c6b73; font-weight: 500; }
-        .info-value { color: #2c3e50; font-weight: 600; }
-        .amount-row { display: flex; justify-content: space-between; padding: 12px 0; font-size: 15px; border-bottom: 1px solid #e9ecef; }
-        .amount-row.total { font-size: 20px; font-weight: 700; padding: 16px 0; border-top: 3px solid #1F2D3D; margin-top: 8px; }
-        .cta { text-align: center; margin: 36px 0 24px; }
-        .cta a {
-            display: inline-block; padding: 16px 48px;
-            background: linear-gradient(135deg, #1F2D3D 0%, #3498DB 100%);
-            color: #ffffff; text-decoration: none; font-weight: 700;
-            font-size: 16px; border-radius: 8px;
-            box-shadow: 0 4px 15px rgba(52, 152, 219, 0.3);
-            margin: 8px;
-        }
-        .footer { padding: 32px 36px; text-align: center; font-size: 12px; color: #6c757d; background: #f8f9fa; border-top: 1px solid #dee2e6; }
-        @media only screen and (max-width: 600px) {
-            .email-body { padding: 28px 24px; }
-            .invoice-details { padding: 20px; }
-        }
-    </style>
+    {% include 'emails/_base_email_style.html.twig' %}
 </head>
 <body>
     <div class="email-wrapper">
         <div class="email-card">
             <div class="email-header">
                 <h1>Nouvelle facture disponible</h1>
-                <div style="font-size: 16px; opacity: 0.95;">{{ invoice.invoiceNumber }}</div>
+                <p>Facture N° {{ invoice.invoiceNumber }}</p>
             </div>
             <div class="email-body">
-                <p class="greeting">Bonjour {{ customer.prenom ?? customer.nom ?? 'Cher client' }},</p>
+                <div class="greeting">
+                    <p>Bonjour {{ customer.prenom ?? customer.nom ?? 'Cher client' }},</p>
+                    <p>Une nouvelle facture est disponible pour votre abonnement. Vous trouverez le PDF en pièce jointe.</p>
+                </div>
                 
-                <div class="alert-success">
-                    <strong>✓ Votre facture d'abonnement a été générée</strong>
-                    <p style="margin-top: 8px;">Une nouvelle facture est disponible pour votre abonnement. Vous trouverez le PDF en pièce jointe.</p>
+                <div class="content-section">
+                    <p>Votre facture d'abonnement a été générée. Vous pouvez consulter et télécharger votre facture ci-dessous.</p>
                 </div>
                 
                 <div class="invoice-details">
                     <h2>Détails de la facture</h2>
                     <div class="info-row">
-                        <span class="info-label">Numéro de facture :</span>
+                        <span class="info-label">Numéro de facture</span>
                         <span class="info-value">{{ invoice.invoiceNumber }}</span>
                     </div>
                     <div class="info-row">
-                        <span class="info-label">Date d'émission :</span>
+                        <span class="info-label">Date d'émission</span>
                         <span class="info-value">{{ invoice.issuedAt|date('d/m/Y') }}</span>
                     </div>
                     <div class="info-row">
-                        <span class="info-label">Date limite de paiement :</span>
+                        <span class="info-label">Date limite de paiement</span>
                         <span class="info-value">{{ invoice.dueAt ? invoice.dueAt|date('d/m/Y') : 'N/A' }}</span>
                     </div>
                     <div class="amount-row total">
-                        <span class="info-label">Montant total :</span>
-                        <span class="info-value">{{ invoice.totalAmount|number_format(0, ',', ' ') }} {{ invoice.currency }}</span>
+                        <span class="amount-label">Montant total</span>
+                        <span class="amount-value total">{{ invoice.totalAmount|number_format(0, ',', ' ') }} {{ invoice.currency }}</span>
                     </div>
                 </div>
                 
                 <div class="cta">
-                    <a href="#">Voir la facture</a>
-                    <a href="#" style="background: linear-gradient(135deg, #28a745 0%, #1f8a5b 100%);">Payer maintenant</a>
+                    <a href="#" style="background: #3498DB; color: #ffffff;">Voir la facture</a>
+                    <a href="#" style="background: #3498DB; color: #ffffff;">Payer maintenant</a>
                 </div>
             </div>
             <div class="footer">
                 <p><strong>Aiolia Event</strong></p>
                 <p>Cet email a été envoyé automatiquement. Merci de ne pas y répondre.</p>
+                <p>&copy; {{ "now"|date("Y") }} Aiolia Event – Tous droits réservés.</p>
             </div>
         </div>
     </div>

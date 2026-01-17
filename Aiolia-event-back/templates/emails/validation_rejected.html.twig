@@ -4,73 +4,45 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Demande rejetée - Aiolia Event</title>
-    <style>
-        body {
-            font-family: Arial, sans-serif;
-            line-height: 1.6;
-            color: #333;
-            max-width: 600px;
-            margin: 0 auto;
-            padding: 20px;
-        }
-        .header {
-            background: linear-gradient(135deg, #e74c3c, #c0392b);
-            color: white;
-            padding: 30px;
-            text-align: center;
-            border-radius: 8px 8px 0 0;
-        }
-        .content {
-            background: #f9f9f9;
-            padding: 30px;
-            border-radius: 0 0 8px 8px;
-        }
-        .reason-box {
-            background: #fff;
-            padding: 20px;
-            border-left: 4px solid #e74c3c;
-            margin: 20px 0;
-            border-radius: 4px;
-        }
-        .footer {
-            text-align: center;
-            margin-top: 30px;
-            padding-top: 20px;
-            border-top: 1px solid #ddd;
-            color: #777;
-            font-size: 12px;
-        }
-    </style>
+    {% include 'emails/_base_email_style.html.twig' %}
 </head>
 <body>
-    <div class="header">
-        <h1>Demande rejetée</h1>
-    </div>
-    
-    <div class="content">
-        <p>Bonjour {{ user.prenom }},</p>
-        
-        <p>Nous regrettons de vous informer que votre demande pour le rôle de <strong>{{ requestedRole }}</strong> a été rejetée.</p>
-        
-        <div class="reason-box">
-            <strong>Raison du rejet :</strong>
-            <p>{{ reason }}</p>
+    <div class="email-wrapper">
+        <div class="email-card">
+            <div class="email-header">
+                <h1>Demande rejetée</h1>
+                <p>Modification de votre compte Aiolia Event</p>
+            </div>
+            
+            <div class="email-body">
+                <div class="greeting">
+                    <p>Bonjour {{ user.prenom }},</p>
+                    <p>Nous regrettons de vous informer que votre demande pour le rôle de <strong>{{ requestedRole }}</strong> a été rejetée.</p>
+                </div>
+                
+                <div class="content-section error">
+                    <h2>Raison du rejet</h2>
+                    <p>{{ reason }}</p>
+                </div>
+                
+                <p style="font-size: 15px; line-height: 1.7; color: #555555; margin: 20px 0;">
+                    Si vous souhaitez obtenir plus d'informations ou contester cette décision, vous pouvez nous contacter via notre support.
+                </p>
+                
+                <div class="cta">
+                    <a href="{{ absolute_url(path('app_home')) }}" style="background: #3498DB; color: #ffffff;">Retour à l'accueil</a>
+                </div>
+                
+                <p style="font-size: 14px; color: #666666; margin-top: 24px;">
+                    Cordialement,<br>L'équipe Aiolia Event
+                </p>
+            </div>
+            
+            <div class="footer">
+                <p>Cet email a été envoyé automatiquement. Merci de ne pas y répondre.</p>
+                <p>&copy; {{ "now"|date("Y") }} Aiolia Event. Tous droits réservés.</p>
+            </div>
         </div>
-        
-        <p>Si vous souhaitez obtenir plus d'informations ou contester cette décision, vous pouvez nous contacter via notre support.</p>
-        
-        <p style="text-align: center; margin: 30px 0;">
-            <a href="{{ absolute_url(path('app_home')) }}" style="background: #3498db; color: white; padding: 12px 30px; text-decoration: none; border-radius: 5px; display: inline-block;">
-                Retour à l'accueil
-            </a>
-        </p>
-        
-        <p>Cordialement,<br>L'équipe Aiolia Event</p>
-    </div>
-    
-    <div class="footer">
-        <p>Cet email a été envoyé automatiquement. Merci de ne pas y répondre.</p>
-        <p>&copy; {{ "now"|date("Y") }} Aiolia Event. Tous droits réservés.</p>
     </div>
 </body>
 </html>

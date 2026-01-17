@@ -4,82 +4,49 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Votre prochain paiement approche - Aiolia Event</title>
-    <style>
-        * { margin: 0; padding: 0; box-sizing: border-box; }
-        body {
-            margin: 0; padding: 0; background: #f4f6f8;
-            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
-            color: #232c33; line-height: 1.6; font-size: 15px;
-        }
-        .email-wrapper { width: 100%; padding: 40px 12px; }
-        .email-card { max-width: 680px; margin: 0 auto; background: #ffffff; border-radius: 12px; overflow: hidden; box-shadow: 0 4px 20px rgba(0, 0, 0, 0.08); }
-        .email-header {
-            background: linear-gradient(135deg, #3498DB 0%, #2980b9 100%);
-            padding: 40px 32px; text-align: center; color: #ffffff;
-        }
-        .email-header h1 { margin: 0 0 12px; font-size: 28px; font-weight: 700; }
-        .email-body { padding: 40px 36px; }
-        .greeting { font-size: 16px; color: #2c3e50; margin-bottom: 24px; }
-        .info-box {
-            background: #f8f9fa; border: 1px solid #e9ecef; border-radius: 12px;
-            padding: 28px; margin: 28px 0; border-left: 4px solid #3498DB;
-        }
-        .info-box h2 { margin: 0 0 20px; font-size: 20px; color: #1F2D3D; }
-        .info-row { display: flex; justify-content: space-between; padding: 12px 0; border-bottom: 1px solid #e9ecef; }
-        .info-row:last-child { border-bottom: none; }
-        .info-label { color: #5c6b73; font-weight: 500; }
-        .info-value { color: #2c3e50; font-weight: 600; font-size: 16px; }
-        .cta { text-align: center; margin: 36px 0 24px; }
-        .cta a {
-            display: inline-block; padding: 16px 48px;
-            background: linear-gradient(135deg, #1F2D3D 0%, #3498DB 100%);
-            color: #ffffff; text-decoration: none; font-weight: 700;
-            font-size: 16px; border-radius: 8px;
-            box-shadow: 0 4px 15px rgba(52, 152, 219, 0.3);
-        }
-        .footer { padding: 32px 36px; text-align: center; font-size: 12px; color: #6c757d; background: #f8f9fa; border-top: 1px solid #dee2e6; }
-        @media only screen and (max-width: 600px) {
-            .email-body { padding: 28px 24px; }
-            .info-box { padding: 20px; }
-        }
-    </style>
+    {% include 'emails/_base_email_style.html.twig' %}
 </head>
 <body>
     <div class="email-wrapper">
         <div class="email-card">
             <div class="email-header">
                 <h1>Votre prochain paiement approche</h1>
+                <p>Rappel de facturation</p>
             </div>
             <div class="email-body">
-                <p class="greeting">Bonjour {{ customer.prenom ?? customer.nom ?? 'Cher client' }},</p>
-                
-                <p>Nous vous informons que votre prochain paiement d'abonnement approche.</p>
+                <div class="greeting">
+                    <p>Bonjour {{ customer.prenom ?? customer.nom ?? 'Cher client' }},</p>
+                    <p>Nous vous informons que votre prochain paiement d'abonnement approche.</p>
+                </div>
                 
                 <div class="info-box">
                     <h2>Détails du prochain paiement</h2>
                     <div class="info-row">
-                        <span class="info-label">Date de facturation :</span>
+                        <span class="info-label">Date de facturation</span>
                         <span class="info-value">{{ billingDate|date('d/m/Y') }}</span>
                     </div>
                     <div class="info-row">
-                        <span class="info-label">Montant :</span>
-                        <span class="info-value">{{ amount|number_format(0, ',', ' ') }} {{ currency }}</span>
+                        <span class="info-label">Montant</span>
+                        <span class="info-value" style="font-size: 16px;">{{ amount|number_format(0, ',', ' ') }} {{ currency }}</span>
                     </div>
                 </div>
                 
-                <p>Veuillez vous assurer que votre moyen de paiement enregistré est à jour et dispose de fonds suffisants.</p>
+                <p style="font-size: 15px; line-height: 1.7; color: #495057; margin: 24px 0;">
+                    Veuillez vous assurer que votre moyen de paiement enregistré est à jour et dispose de fonds suffisants.
+                </p>
                 
                 <div class="cta">
-                    <a href="#">Vérifier mes informations de paiement</a>
+                    <a href="#" style="background: #3498DB; color: #ffffff;">Vérifier mes informations de paiement</a>
                 </div>
                 
-                <p style="margin-top: 24px; font-size: 14px; color: #6c757d;">
+                <p style="margin-top: 24px; font-size: 14px; color: #6C757D;">
                     Si vous avez des questions, n'hésitez pas à nous contacter.
                 </p>
             </div>
             <div class="footer">
                 <p><strong>Aiolia Event</strong></p>
                 <p>Cet email a été envoyé automatiquement. Merci de ne pas y répondre.</p>
+                <p>&copy; {{ "now"|date("Y") }} Aiolia Event – Tous droits réservés.</p>
             </div>
         </div>
     </div>
