@@ -911,9 +911,6 @@ class ProfileController extends AbstractController
         // Récupérer les insights dynamiques
         $insights = $this->fetchStatsInsights($userId, $dateFrom);
 
-        // Récupérer les données pour le graphique de répartition par catégorie
-        $passionProfile = $this->fetchPassionProfileData($userId, $dateFrom);
-
         return $this->render('profile/stats.html.twig', [
             'stats' => $stats,
             'monthlyExpenses' => $monthlyExpenses,
@@ -922,7 +919,6 @@ class ProfileController extends AbstractController
             'topEvents' => $topEvents,
             'insights' => $insights,
             'currentPeriod' => $period,
-            'passionProfile' => $passionProfile,
         ]);
     }
 

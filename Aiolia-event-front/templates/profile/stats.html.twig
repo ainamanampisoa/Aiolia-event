@@ -10,24 +10,6 @@
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
     <link rel="stylesheet" type="text/css" href="{{ asset('vente-ticket/css/profile-stats.css') }}">
     <style>
-        @media (max-width: 992px) {
-            .passion-container {
-                grid-template-columns: 1fr !important;
-                gap: 20px !important;
-            }
-            .passion-chart-wrapper {
-                order: -1;
-                height: 300px !important;
-            }
-            .p-cat-item:hover {
-                transform: translateX(5px);
-            }
-        }
-        .p-cat-item:hover {
-            transform: translateY(-2px);
-            box-shadow: 0 6px 15px rgba(0,0,0,0.06) !important;
-            border-color: #4A90E2 !important;
-        }
         /* Styles pour les cartes Top 3 événements */
         .top-event-item {
             transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
@@ -123,7 +105,7 @@
                         <h2>Budget par catégorie</h2>
                         <span class="chart-period">Répartition de vos dépenses par type d'événement</span>
                     </header>
-                    <div class="chart-placeholder donut" data-categories='{{ eventTypeDistribution|slice(0, 5)|map(d => {"category": d.category, "percentage": d.percentage})|json_encode|raw }}'>
+                    <div class="chart-placeholder donut" data-categories='{{ eventTypeDistribution|slice(0, 8)|map(d => {"category": d.category, "percentage": d.percentage, "total_amount": d.total_amount, "order_count": d.order_count})|json_encode|raw }}'>
                         {% if eventTypeDistribution|length > 0 %}
                             <canvas id="categoryDonutChart" style="max-height: 300px;"></canvas>
                         {% else %}
@@ -232,72 +214,6 @@
                     {% endif %}
                 </div>
             </section>
-            
-            {# Graphique: Répartition par catégorie (Barres Horizontales avec Budgets) #}
-            <section class="stats-charts" style="margin-top: 32px;">
-                <div class="chart-card wow fadeInUp" data-wow-delay="280ms" style="grid-column: 1 / -1; background: linear-gradient(135deg, #ffffff 0%, #f8faff 100%); overflow: hidden; position: relative;">
-                    <div style="position: absolute; top: -50px; right: -50px; width: 200px; height: 200px; background: radial-gradient(circle, rgba(74, 144, 226, 0.05) 0%, transparent 70%); border-radius: 50%;"></div>
-                    <header>
-                        <div>
-                            <h2 style="font-size: 22px; color: #1F2D3D; margin-bottom: 4px;">Répartition par catégorie</h2>
-                            <span class="chart-period">Découvrez l'équilibre de vos centres d'intérêt</span>
-                        </div>
-                        <div class="passion-badge" style="background: rgba(74, 144, 226, 0.1); color: #4A90E2; padding: 6px 16px; border-radius: 999px; font-weight: 700; font-size: 13px;">
-                            <i class="fas fa-star" style="margin-right: 6px;"></i>Analyse personnalisée
-                        </div>
-                    </header>
-                    
-                    <div class="passion-container" style="display: grid; grid-template-columns: 1fr 1.5fr; gap: 40px; align-items: center; min-height: 400px; padding: 20px 0;">
-                        <div class="passion-info" style="display: flex; flex-direction: column; gap: 24px;">
-                            <div class="passion-text">
-                                <p style="font-size: 15px; line-height: 1.6; color: rgba(31, 45, 61, 0.8);">
-                                    Ce graphique illustre la répartition de vos activités sur l'ensemble de vos participations. 
-                                    Il révèle quel type d'ambassadeur de la culture vous êtes !
-                                </p>
-                            </div>
-                            
-                            <div class="passion-categories" style="display: grid; grid-template-columns: 1fr; gap: 12px;">
-                                {% for label in passionProfile.labels %}
-                                    {% set percentage = passionProfile.data[loop.index0] %}
-                                    {% set amount = passionProfile.amounts[loop.index0]|default(0) %}
-                                    <div class="p-cat-item" style="display: flex; flex-direction: column; gap: 8px; padding: 14px 16px; background: #ffffff; border-radius: 12px; box-shadow: 0 4px 12px rgba(0,0,0,0.03); border: 1px solid rgba(0,0,0,0.02); transition: transform 0.2s ease;">
-                                        <div style="display: flex; align-items: center; gap: 12px;">
-                                            <div style="width: 10px; height: 10px; border-radius: 50%; background: #4A90E2;"></div>
-                                            <span style="font-size: 14px; font-weight: 600; color: #1F2D3D; flex: 1;">{{ label }}</span>
-                                            <span style="font-size: 13px; color: rgba(31, 45, 61, 0.6);">{{ percentage }}%</span>
-                                        </div>
-                                        <div style="display: flex; align-items: center; gap: 8px; margin-left: 22px;">
-                                            <i class="fas fa-wallet" style="font-size: 11px; color: rgba(31, 45, 61, 0.5);"></i>
-                                            <span style="font-size: 12px; color: rgba(31, 45, 61, 0.7); font-weight: 600;">
-                                                {{ amount|number_format(0, ',', ' ') }} MGA
-                                            </span>
-                                        </div>
-                                    </div>
-                                {% endfor %}
-                            </div>
-                            
-                            {% if passionProfile.labels|length > 0 %}
-                            <div style="margin-top: 10px;">
-                                <span style="font-size: 13px; color: rgba(31, 45, 61, 0.5); font-style: italic;">
-                                    * Basé sur vos {{ stats.total_tickets|default(0) }} billets réservés.
-                                </span>
-                            </div>
-                            {% endif %}
-                        </div>
-                        
-                        <div class="passion-chart-wrapper" style="position: relative; height: 100%; width: 100%;">
-                            {% if passionProfile.labels|length > 0 %}
-                                <canvas id="passionBarChart" style="max-height: 450px;"></canvas>
-                            {% else %}
-                                <div class="no-data-radar" style="height: 300px; display: flex; flex-direction: column; align-items: center; justify-content: center; background: rgba(0,0,0,0.02); border-radius: 20px; text-align: center; padding: 30px;">
-                                    <i class="fas fa-chart-bar" style="font-size: 40px; color: rgba(0,0,0,0.1); margin-bottom: 16px;"></i>
-                                    <p style="color: rgba(0,0,0,0.4); font-size: 14px;">Continuez à explorer pour débloquer votre répartition</p>
-                                </div>
-                            {% endif %}
-                        </div>
-                    </div>
-                </div>
-            </section>
         </div>
     </main>
 {% endblock %}
@@ -315,7 +231,7 @@
                 primaryLight: ['rgba(74, 144, 226, 0.2)', 'rgba(80, 200, 120, 0.2)', 'rgba(255, 107, 107, 0.2)', 'rgba(255, 165, 0, 0.2)', 'rgba(155, 89, 182, 0.2)', 'rgba(116, 185, 255, 0.2)']
             };
 
-            // 1. Graphique Donut - Répartition par catégorie (Chart.js)
+            // 1. Graphique Donut - Budget par catégorie (Chart.js)
             const donutCtx = document.getElementById('categoryDonutChart');
             if (donutCtx) {
                 const donutContainer = document.querySelector('.chart-placeholder.donut[data-categories]');
@@ -325,6 +241,31 @@
                         if (categoriesData && categoriesData.length > 0) {
                             const labels = categoriesData.map(item => item.category);
                             const data = categoriesData.map(item => parseFloat(item.percentage) || 0);
+                            const amounts = categoriesData.map(item => parseFloat(item.total_amount) || 0);
+                            const orderCounts = categoriesData.map(item => parseInt(item.order_count) || 0);
+                            
+                            // Couleurs étendues pour jusqu'à 8 catégories
+                            const extendedColors = [
+                                'rgba(74, 144, 226, 0.85)',   // Bleu
+                                'rgba(80, 200, 120, 0.85)',  // Vert
+                                'rgba(255, 107, 107, 0.85)',  // Rouge
+                                'rgba(255, 165, 0, 0.85)',    // Orange
+                                'rgba(155, 89, 182, 0.85)',   // Violet
+                                'rgba(116, 185, 255, 0.85)',  // Bleu clair
+                                'rgba(243, 156, 18, 0.85)',   // Jaune-orange
+                                'rgba(231, 76, 60, 0.85)'     // Rouge foncé
+                            ];
+                            
+                            const borderColors = [
+                                '#4A90E2',
+                                '#50C878',
+                                '#FF6B6B',
+                                '#FFA500',
+                                '#9B59B6',
+                                '#74B9FF',
+                                '#F39C12',
+                                '#E74C3C'
+                            ];
                             
                             new Chart(donutCtx, {
                                 type: 'doughnut',
@@ -332,9 +273,10 @@
                                     labels: labels,
                                     datasets: [{
                                         data: data,
-                                        backgroundColor: chartColors.primaryAlpha.slice(0, categoriesData.length),
-                                        borderColor: chartColors.primary.slice(0, categoriesData.length),
-                                        borderWidth: 2
+                                        backgroundColor: extendedColors.slice(0, categoriesData.length),
+                                        borderColor: borderColors.slice(0, categoriesData.length),
+                                        borderWidth: 2,
+                                        hoverOffset: 6
                                     }]
                                 },
                                 options: {
@@ -354,18 +296,58 @@
                                             }
                                         },
                                         tooltip: {
-                                            backgroundColor: '#1F2D3D',
-                                            padding: 12,
-                                            titleFont: { size: 14, weight: 'bold' },
-                                            bodyFont: { size: 13 },
+                                            backgroundColor: 'rgba(31, 45, 61, 0.95)',
+                                            padding: 14,
+                                            titleFont: { 
+                                                size: 15, 
+                                                weight: 'bold',
+                                                family: "'Inter', sans-serif"
+                                            },
+                                            bodyFont: { 
+                                                size: 13,
+                                                family: "'Inter', sans-serif"
+                                            },
+                                            borderColor: '#4A90E2',
+                                            borderWidth: 1,
+                                            cornerRadius: 8,
                                             callbacks: {
+                                                title: function(context) {
+                                                    return context[0].label;
+                                                },
                                                 label: function(context) {
-                                                    const label = context.label || '';
-                                                    const value = context.parsed || 0;
-                                                    return `${label}: ${value}%`;
+                                                    const index = context.dataIndex;
+                                                    const percentage = context.parsed || 0;
+                                                    const amount = amounts[index] || 0;
+                                                    const orderCount = orderCounts[index] || 0;
+                                                    
+                                                    // Formater le montant
+                                                    let formattedAmount;
+                                                    if (amount >= 1000000) {
+                                                        formattedAmount = (amount / 1000000).toFixed(2) + 'M MGA';
+                                                    } else if (amount >= 1000) {
+                                                        formattedAmount = (amount / 1000).toFixed(1) + 'k MGA';
+                                                    } else {
+                                                        formattedAmount = new Intl.NumberFormat('fr-FR').format(amount) + ' MGA';
+                                                    }
+                                                    
+                                                    return [
+                                                        `📊 ${percentage}%`,
+                                                        `💰 ${formattedAmount}`,
+                                                        `🛒 ${orderCount} commande${orderCount > 1 ? 's' : ''}`
+                                                    ];
                                                 }
                                             }
                                         }
+                                    },
+                                    animation: {
+                                        animateRotate: true,
+                                        animateScale: true,
+                                        duration: 1200,
+                                        easing: 'easeOutQuart'
+                                    },
+                                    interaction: {
+                                        intersect: false,
+                                        mode: 'point'
                                     }
                                 }
                             });
@@ -373,158 +355,6 @@
                     } catch (e) {
                         console.error('Erreur lors de la génération du graphique donut:', e);
                     }
-                }
-            }
-            
-
-            // 2. Graphique Bar Horizontal - Répartition par catégorie avec Budgets
-            const passionBarCtx = document.getElementById('passionBarChart');
-            if (passionBarCtx) {
-                const passionData = {{ passionProfile|json_encode|raw }};
-                
-                if (passionData.labels && passionData.labels.length > 0) {
-                    // Couleurs pour chaque barre
-                    const colors = [
-                        'rgba(74, 144, 226, 0.85)',   // Bleu
-                        'rgba(80, 200, 120, 0.85)',  // Vert
-                        'rgba(255, 107, 107, 0.85)',  // Rouge
-                        'rgba(255, 165, 0, 0.85)',    // Orange
-                        'rgba(155, 89, 182, 0.85)',   // Violet
-                        'rgba(116, 185, 255, 0.85)'   // Bleu clair
-                    ];
-                    
-                    const borderColors = [
-                        '#4A90E2',
-                        '#50C878',
-                        '#FF6B6B',
-                        '#FFA500',
-                        '#9B59B6',
-                        '#74B9FF'
-                    ];
-                    
-                    // Utiliser les montants (budgets) pour les barres au lieu des pourcentages
-                    const amounts = passionData.amounts || passionData.data.map(p => {
-                        // Si pas de montants, estimer à partir du pourcentage et du total
-                        const totalSpent = {{ stats.total_spent_raw|default(0) }};
-                        return (p / 100) * totalSpent;
-                    });
-                    
-                    new Chart(passionBarCtx, {
-                        type: 'bar',
-                        data: {
-                            labels: passionData.labels,
-                            datasets: [{
-                                label: 'Budget dépensé (MGA)',
-                                data: amounts,
-                                backgroundColor: colors.slice(0, passionData.labels.length),
-                                borderColor: borderColors.slice(0, passionData.labels.length),
-                                borderWidth: 2,
-                                borderRadius: 8,
-                                borderSkipped: false
-                            }]
-                        },
-                        options: {
-                            indexAxis: 'y', // Barres horizontales
-                            responsive: true,
-                            maintainAspectRatio: false,
-                            plugins: {
-                                legend: {
-                                    display: false
-                                },
-                                tooltip: {
-                                    backgroundColor: 'rgba(31, 45, 61, 0.95)',
-                                    padding: 14,
-                                    titleFont: { 
-                                        size: 15, 
-                                        weight: 'bold',
-                                        family: "'Inter', sans-serif"
-                                    },
-                                    bodyFont: { 
-                                        size: 13,
-                                        family: "'Inter', sans-serif"
-                                    },
-                                    borderColor: '#4A90E2',
-                                    borderWidth: 1,
-                                    cornerRadius: 8,
-                                    callbacks: {
-                                        title: function(context) {
-                                            return context[0].label;
-                                        },
-                                        label: function(context) {
-                                            const index = context.dataIndex;
-                                            const amount = context.parsed.x;
-                                            const percentage = passionData.data[index];
-                                            
-                                            // Formater le montant
-                                            let formattedAmount;
-                                            if (amount >= 1000000) {
-                                                formattedAmount = (amount / 1000000).toFixed(2) + 'M MGA';
-                                            } else if (amount >= 1000) {
-                                                formattedAmount = (amount / 1000).toFixed(1) + 'k MGA';
-                                            } else {
-                                                formattedAmount = new Intl.NumberFormat('fr-FR').format(amount) + ' MGA';
-                                            }
-                                            
-                                            return [
-                                                `💰 Budget: ${formattedAmount}`,
-                                                `📊 Part: ${percentage}%`
-                                            ];
-                                        }
-                                    }
-                                }
-                            },
-                            scales: {
-                                x: {
-                                    beginAtZero: true,
-                                    ticks: {
-                                        callback: function(value) {
-                                            if (value >= 1000000) {
-                                                return (value / 1000000).toFixed(1) + 'M MGA';
-                                            } else if (value >= 1000) {
-                                                return (value / 1000).toFixed(0) + 'k MGA';
-                                            }
-                                            return new Intl.NumberFormat('fr-FR').format(value) + ' MGA';
-                                        },
-                                        color: 'rgba(31, 45, 61, 0.7)',
-                                        font: { 
-                                            size: 12,
-                                            weight: '600',
-                                            family: "'Inter', sans-serif"
-                                        },
-                                        padding: 8
-                                    },
-                                    grid: {
-                                        color: 'rgba(31, 45, 61, 0.1)',
-                                        drawBorder: false,
-                                        lineWidth: 1
-                                    }
-                                },
-                                y: {
-                                    ticks: {
-                                        color: '#1F2D3D',
-                                        font: {
-                                            size: 13,
-                                            weight: '600',
-                                            family: "'Inter', sans-serif"
-                                        },
-                                        padding: 12
-                                    },
-                                    grid: {
-                                        display: false,
-                                        drawBorder: false
-                                    }
-                                }
-                            },
-                            animation: {
-                                duration: 1200,
-                                easing: 'easeOutQuart'
-                            },
-                            interaction: {
-                                intersect: false,
-                                mode: 'index'
-                            }
-                        }
-                    });
                 }
             }
 
