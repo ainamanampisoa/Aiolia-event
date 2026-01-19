@@ -297,96 +297,19 @@
                     </header>
                     {% set monthlyRolling = monthlyRolling|default([]) %}
                     
-                    {# Calculer le maximum pour déterminer l'échelle #}
-                    {% set rawMax = 0 %}
-                    {% for item in monthlyRolling %}
-                        {% set rVal = item.total_raw|default(0) %}
-                        {% if rVal > rawMax %}{% set rawMax = rVal %}{% endif %}
-                    {% endfor %}
-                    
-                    {# Calculer un pas adaptatif pour avoir environ 6-8 labels maximum #}
-                    {% if rawMax > 0 %}
-                        {# Calculer un pas qui donnera environ 6-8 divisions #}
-                        {% set targetDivisions = 7 %}
-                        {% set calculatedStep = (rawMax / targetDivisions)|round(0, 'ceil') %}
-                        {# Arrondir le pas à un multiple de 5000 ou 10000 pour des valeurs propres #}
-                        {% if calculatedStep <= 5000 %}
-                            {% set step = 5000 %}
-                        {% elseif calculatedStep <= 10000 %}
-                            {% set step = 10000 %}
-                        {% elseif calculatedStep <= 20000 %}
-                            {% set step = 20000 %}
-                        {% elseif calculatedStep <= 50000 %}
-                            {% set step = 50000 %}
+                    {# Graphique Chart.js en barres #}
+                    <div class="financial-chart-wrapper" style="position: relative; height: 400px; margin-top: 20px;">
+                        {% if monthlyRolling|length > 0 %}
+                            <canvas id="financialBarChart"></canvas>
+                            <div id="financialChartData" style="display: none;">{{ monthlyRolling|map(m => {"month": m.month, "month_key": m.month_key, "total": m.total, "total_raw": m.total_raw})|json_encode|raw }}</div>
                         {% else %}
-                            {% set step = ((calculatedStep / 10000)|round(0, 'ceil')) * 10000 %}
-                        {% endif %}
-                        {% set maxValue = ((rawMax / step)|round(0, 'ceil')) * step %}
-                    {% else %}
-                        {% set step = 10000 %}
-                        {% set maxValue = step %}
-                    {% endif %}
-                    
-                    {# Nombre de lignes de grille = nombre de pas de 0 à maxValue #}
-                    {% set gridLines = (maxValue / step)|round(0, 'ceil') %}
-                    
-                    {# Couleurs distinctes #}
-                    {% set barColors = ['linear-gradient(180deg, #FF8C42 0%, #FF6B1A 100%)', 'linear-gradient(180deg, #FFD93D 0%, #FFC107 100%)', 'linear-gradient(180deg, #6BCB77 0%, #4CAF50 100%)', 'linear-gradient(180deg, #4D96FF 0%, #2563EB 100%)', 'linear-gradient(180deg, #9B59B6 0%, #7B2CBF 100%)', 'linear-gradient(180deg, #FF6B6B 0%, #E63946 100%)', 'linear-gradient(180deg, #74B9FF 0%, #0984E3 100%)', 'linear-gradient(180deg, #FFA07A 0%, #FF7F50 100%)', 'linear-gradient(180deg, #20BF6B 0%, #01A368 100%)', 'linear-gradient(180deg, #A29BFE 0%, #6C5CE7 100%)', 'linear-gradient(180deg, #FD79A8 0%, #E84393 100%)', 'linear-gradient(180deg, #FDCB6E 0%, #F39C12 100%)'] %}
-
-                    <div class="financial-bars-wrapper">
-                        {# Axe Y #}
-                        <div class="chart-y-axis">
-                            {% for i in range(0, gridLines) %}
-                                {% set labelVal = step * i %}
-                                {% set positionPercent = (i * 100 / gridLines)|round(2) %}
-                                <div class="y-label" style="bottom: {{ positionPercent }}%;">
-                                    {{ labelVal|number_format(0, ',', ' ') ~ ' MGA' }}
+                            <div class="no-data-message" style="height: 100%; display: flex; align-items: center; justify-content: center; text-align: center; padding: 30px;">
+                                <div>
+                                    <i class="fas fa-info-circle" style="font-size: 48px; color: rgba(0,0,0,0.2); margin-bottom: 16px;"></i>
+                                    <p style="color: rgba(0,0,0,0.5); font-size: 14px; margin: 0;">Aucune donnée de dépense.</p>
                                 </div>
-                            {% endfor %}
-                        </div>
-                        
-                        {# Zone du graphique #}
-                        <div class="financial-bars">
-                            <div class="chart-grid">
-                                {% for i in range(0, gridLines) %}
-                                    {% set positionPercent = (i * 100 / gridLines)|round(2) %}
-                                    <div class="grid-line" style="bottom: {{ positionPercent }}%;"></div>
-                                {% endfor %}
                             </div>
-                            
-                            <div class="bars-container sliding-mode">
-                                {% if monthlyRolling|length > 0 %}
-                                    {% for item in monthlyRolling %}
-                                        {% set valNum = item.total_raw|default(0) + 0 %}
-                                        {% set height = ((valNum / maxValue) * 300)|round %}
-                                        {% if height > 300 %}{% set height = 300 %}{% endif %}
-                                        {% if height < 4 and valNum > 0 %}{% set height = 4 %}{% endif %}
-                                        
-                                        {% set colorIndex = (loop.index0 % barColors|length) %}
-                                        
-                                        <div class="bar-item-modern {{ valNum == 0 ? 'bar-empty' : '' }}">
-                                            {% if valNum > 0 %}
-                                            <div class="bar-value-top" style="bottom: {{ height + 5 }}px;">
-                                                {{ (valNum >= 1000) ? (valNum/1000)|round ~ 'k' : valNum }}
-                                            </div>
-                                            {% endif %}
-                                            <div class="bar-container">
-                                                <div class="bar-modern" style="height: {{ height }}px; {{ valNum > 0 ? 'background: ' ~ barColors[colorIndex] ~ ';' : '' }}" title="{{ item.total }}">
-                                                </div>
-                                            </div>
-                                            <div class="bar-label-double">
-                                                <span class="month-name">{{ item.month|slice(0, 3) }}.</span>
-                                                <span class="year-name">{{ item.month_key|slice(2, 2) }}</span>
-                                            </div>
-                                        </div>
-                                    {% endfor %}
-                                {% else %}
-                                    <div class="no-data-message">
-                                        <p><i class="fas fa-info-circle"></i> Aucune donnée de dépense.</p>
-                                    </div>
-                                {% endif %}
-                            </div>
-                        </div>
+                        {% endif %}
                     </div>
                 </div>
                 <div class="financial-breakdown wow fadeInUp" data-wow-delay="210ms">
@@ -427,6 +350,7 @@
         </div>
     </main>
 
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
     <script>
         function updateMonthlyChart(range) {
             const url = new URL(window.location.href);
@@ -457,6 +381,162 @@
                 if (button) {
                     button.classList.remove('fa-chevron-down');
                     button.classList.add('fa-chevron-up');
+                }
+            }
+
+            // Initialiser le graphique Chart.js pour l'historique financier
+            const financialChartCtx = document.getElementById('financialBarChart');
+            if (financialChartCtx) {
+                const financialDataElement = document.getElementById('financialChartData');
+                if (financialDataElement) {
+                    try {
+                        const monthlyData = JSON.parse(financialDataElement.textContent);
+                        if (monthlyData && Array.isArray(monthlyData) && monthlyData.length > 0) {
+                            // Préparer les données
+                            const labels = monthlyData.map(item => {
+                                const monthShort = item.month ? item.month.substring(0, 3) : '';
+                                const yearShort = item.month_key ? item.month_key.substring(2, 4) : '';
+                                return monthShort + '.' + yearShort;
+                            });
+                            
+                            const data = monthlyData.map(item => item.total_raw || 0);
+                            
+                            // Couleurs dégradées pour chaque barre
+                            const barColors = [
+                                'rgba(255, 140, 66, 0.8)',   // Orange
+                                'rgba(255, 217, 61, 0.8)',   // Jaune
+                                'rgba(107, 203, 119, 0.8)',  // Vert
+                                'rgba(77, 150, 255, 0.8)',   // Bleu
+                                'rgba(155, 89, 182, 0.8)',   // Violet
+                                'rgba(255, 107, 107, 0.8)',  // Rouge
+                                'rgba(116, 185, 255, 0.8)',  // Bleu clair
+                                'rgba(255, 160, 122, 0.8)',  // Saumon
+                                'rgba(32, 191, 107, 0.8)',   // Vert foncé
+                                'rgba(162, 155, 254, 0.8)',  // Lavande
+                                'rgba(253, 121, 168, 0.8)',  // Rose
+                                'rgba(253, 203, 110, 0.8)'   // Jaune foncé
+                            ];
+                            
+                            const borderColors = [
+                                '#FF8C42', '#FFD93D', '#6BCB77', '#4D96FF',
+                                '#9B59B6', '#FF6B6B', '#74B9FF', '#FFA07A',
+                                '#20BF6B', '#A29BFE', '#FD79A8', '#FDCB6E'
+                            ];
+                            
+                            new Chart(financialChartCtx, {
+                                type: 'bar',
+                                data: {
+                                    labels: labels,
+                                    datasets: [{
+                                        label: 'Dépenses (MGA)',
+                                        data: data,
+                                        backgroundColor: monthlyData.map((_, index) => barColors[index % barColors.length]),
+                                        borderColor: monthlyData.map((_, index) => borderColors[index % borderColors.length]),
+                                        borderWidth: 2,
+                                        borderRadius: {
+                                            topLeft: 8,
+                                            topRight: 8,
+                                            bottomLeft: 0,
+                                            bottomRight: 0
+                                        },
+                                        borderSkipped: false
+                                    }]
+                                },
+                                options: {
+                                    responsive: true,
+                                    maintainAspectRatio: false,
+                                    plugins: {
+                                        legend: {
+                                            display: false
+                                        },
+                                        tooltip: {
+                                            backgroundColor: 'rgba(31, 45, 61, 0.95)',
+                                            padding: 12,
+                                            titleFont: { 
+                                                size: 14, 
+                                                weight: 'bold',
+                                                family: "'Inter', sans-serif"
+                                            },
+                                            bodyFont: { 
+                                                size: 13,
+                                                family: "'Inter', sans-serif"
+                                            },
+                                            borderColor: '#4A90E2',
+                                            borderWidth: 1,
+                                            cornerRadius: 8,
+                                            callbacks: {
+                                                title: function(context) {
+                                                    const index = context[0].dataIndex;
+                                                    return monthlyData[index].month || 'Mois';
+                                                },
+                                                label: function(context) {
+                                                    const value = context.parsed.y;
+                                                    const formatted = value >= 1000000 
+                                                        ? (value / 1000000).toFixed(2) + 'M MGA'
+                                                        : value >= 1000 
+                                                        ? (value / 1000).toFixed(1) + 'k MGA'
+                                                        : new Intl.NumberFormat('fr-FR').format(value) + ' MGA';
+                                                    return 'Montant: ' + formatted;
+                                                }
+                                            }
+                                        }
+                                    },
+                                    scales: {
+                                        y: {
+                                            beginAtZero: true,
+                                            ticks: {
+                                                callback: function(value) {
+                                                    if (value >= 1000000) {
+                                                        return (value / 1000000).toFixed(1) + 'M MGA';
+                                                    } else if (value >= 1000) {
+                                                        return (value / 1000).toFixed(0) + 'k MGA';
+                                                    }
+                                                    return new Intl.NumberFormat('fr-FR').format(value) + ' MGA';
+                                                },
+                                                color: 'rgba(31, 45, 61, 0.7)',
+                                                font: { 
+                                                    size: 11,
+                                                    weight: '600',
+                                                    family: "'Inter', sans-serif"
+                                                },
+                                                padding: 8
+                                            },
+                                            grid: {
+                                                color: 'rgba(31, 45, 61, 0.08)',
+                                                drawBorder: false,
+                                                lineWidth: 1
+                                            }
+                                        },
+                                        x: {
+                                            ticks: {
+                                                color: '#1F2D3D',
+                                                font: {
+                                                    size: 11,
+                                                    weight: '600',
+                                                    family: "'Inter', sans-serif"
+                                                },
+                                                padding: 8
+                                            },
+                                            grid: {
+                                                display: false,
+                                                drawBorder: false
+                                            }
+                                        }
+                                    },
+                                    animation: {
+                                        duration: 1000,
+                                        easing: 'easeOutQuart'
+                                    },
+                                    interaction: {
+                                        intersect: false,
+                                        mode: 'index'
+                                    }
+                                }
+                            });
+                        }
+                    } catch (e) {
+                        console.error('Erreur lors de la génération du graphique financier:', e);
+                    }
                 }
             }
         });

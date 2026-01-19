@@ -168,6 +168,7 @@ class UserStatsRepository
                 'category' => $row['category'],
                 'percentage' => $percentage,
                 'order_count' => (int) $row['order_count'],
+                'total_amount' => (float) $row['total_amount'], // Inclure le montant total
             ];
         }, $rows);
     }

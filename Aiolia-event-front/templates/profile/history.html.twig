@@ -225,9 +225,13 @@
                                 {% for order in orders %}
                                     <tr class="history-row {% if order.is_refunded %}is-refunded{% elseif order.status_key == 'paid' %}is-confirmed{% elseif order.status_key == 'cancelled' %}is-cancelled{% elseif order.status_key == 'failed' %}is-failed{% else %}is-pending{% endif %}">
                                         <td>
-                                            <div class="order-code">{{ order.code }}</div>
+                                            <div class="order-code">{{ order.code }}{% if order.is_cart is defined and order.is_cart %}<i class="fas fa-shopping-cart" style="margin-left: 5px; color: #4A90E2;" title="Dans le panier"></i>{% endif %}</div>
                                             <span class="order-status">{{ order.status }}</span>
-                                            {% if order.is_refunded and order.refund_reason %}
+                                            {% if order.is_cart is defined and order.is_cart %}
+                                                <small style="display: block; margin-top: 4px; color: #4A90E2; font-size: 11px;">
+                                                    <i class="fas fa-info-circle"></i> En attente de paiement
+                                                </small>
+                                            {% elseif order.is_refunded and order.refund_reason %}
                                                 <small class="refund-reason" style="display: block; margin-top: 4px; color: #e74c3c; font-size: 11px;">
                                                     <i class="fas fa-undo"></i> {{ order.refund_reason }}
                                                 </small>
@@ -258,18 +262,24 @@
                                         </td>
                                         <td class="align-right">
                                             <div class="action-icons">
-                                            <a href="{{ path('profile_history_invoice', {id: order.id}) }}" 
-                                                   class="btn-icon btn-icon-pdf" 
-                                               target="_blank"
-                                               title="Télécharger la facture PDF">
-                                                <i class="fas fa-file-pdf"></i>
-                                            </a>
+                                            {% if order.id > 0 %}
+                                                <a href="{{ path('profile_history_invoice', {id: order.id}) }}" 
+                                                       class="btn-icon btn-icon-pdf" 
+                                                   target="_blank"
+                                                   title="Télécharger la facture PDF">
+                                                    <i class="fas fa-file-pdf"></i>
+                                                </a>
                                                 <button type="button" 
                                                         class="btn-icon btn-icon-delete" 
                                                         data-order-id="{{ order.id }}"
                                                         title="Supprimer cette commande">
                                                     <i class="fas fa-trash"></i>
                                                 </button>
+                                            {% else %}
+                                                <span class="btn-icon" style="opacity: 0.5; cursor: default;" title="Cette commande est dans votre panier">
+                                                    <i class="fas fa-shopping-cart"></i>
+                                                </span>
+                                            {% endif %}
                                             </div>
                                         </td>
                                     </tr>

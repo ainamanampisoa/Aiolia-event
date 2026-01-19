@@ -332,8 +332,49 @@ class ProfileController extends AbstractController
         $page = max(1, (int) $request->query->get('page', 1));
         $perPage = 10; // Nombre d'éléments par page
 
-        // Compter le nombre total de résultats pour la pagination
-        $totalResults = $this->orderRepository->countUserOrders($userId, $searchQuery, $statusFilter, $paymentMethodFilter);
+        // Récupérer les items du panier en session et les formater comme des commandes en attente
+        $sessionCartItems = $session->get('cart_items', []);
+        
+        // Debug: logger pour voir ce qui est dans le panier
+        error_log('History - Cart items count: ' . count($sessionCartItems));
+        error_log('History - Cart items: ' . json_encode($sessionCartItems));
+        
+        $cartOrders = $this->formatCartItemsAsOrders($sessionCartItems);
+        
+        // Debug: logger pour voir les commandes formatées
+        error_log('History - Cart orders count: ' . count($cartOrders));
+        error_log('History - Cart orders: ' . json_encode($cartOrders));
+
+        // Filtrer les commandes du panier selon les filtres actifs
+        $filteredCartOrders = $this->filterCartOrders($cartOrders, $searchQuery, $statusFilter, $paymentMethodFilter);
+        $cartItemsCount = count($filteredCartOrders);
+        
+        // Debug: logger pour voir les commandes filtrées
+        error_log('History - Filtered cart orders count: ' . $cartItemsCount);
+        error_log('History - Page: ' . $page);
+
+        // Compter le nombre total de résultats pour la pagination (commandes DB uniquement)
+        $dbOrdersCount = $this->orderRepository->countUserOrders($userId, $searchQuery, $statusFilter, $paymentMethodFilter);
+        
+        // Les items du panier sont toujours affichés sur la première page s'ils correspondent aux filtres
+        // Calculer le total en incluant les items du panier
+        $totalResults = $dbOrdersCount + $cartItemsCount;
+
+        // Calculer la pagination : si on est sur la page 1 et qu'on a des items du panier,
+        // réduire le nombre de commandes DB à afficher pour laisser la place au panier
+        $dbOrdersPerPage = $perPage;
+        $dbOffset = ($page - 1) * $perPage;
+        
+        if ($page === 1 && $cartItemsCount > 0) {
+            // Réduire le nombre de commandes DB à afficher pour laisser la place au panier
+            $dbOrdersPerPage = max(1, $perPage - $cartItemsCount);
+        } else {
+            // Pour les autres pages, ajuster l'offset si nécessaire
+            // (pas nécessaire car les items du panier ne sont que sur la page 1)
+            $dbOffset = ($page - 1) * $perPage - $cartItemsCount;
+            $dbOffset = max(0, $dbOffset);
+        }
+
         $totalPages = max(1, (int) ceil($totalResults / $perPage));
 
         // S'assurer que la page demandée n'est pas hors limites
@@ -341,12 +382,19 @@ class ProfileController extends AbstractController
             $page = $totalPages;
         }
 
-        $offset = ($page - 1) * $perPage;
-
         // Récupérer les commandes paginées (pour l'affichage)
-        $paginatedOrders = $this->fetchUserOrders($userId, $searchQuery, $statusFilter, $paymentMethodFilter, $perPage, $offset);
+        $paginatedOrders = $this->fetchUserOrders($userId, $searchQuery, $statusFilter, $paymentMethodFilter, $dbOrdersPerPage, $dbOffset);
 
-        $startResult = $totalResults > 0 ? $offset + 1 : 0;
+        // Si on est sur la première page et qu'il y a des items du panier, les ajouter au début
+        if ($page === 1 && $cartItemsCount > 0) {
+            $paginatedOrders = array_merge($filteredCartOrders, $paginatedOrders);
+            error_log('History - Merged cart orders with paginated orders. Total orders: ' . count($paginatedOrders));
+        }
+
+        error_log('History - Final paginatedOrders count: ' . count($paginatedOrders));
+        error_log('History - Cart items count in final array: ' . count(array_filter($paginatedOrders, fn($o) => isset($o['is_cart']) && $o['is_cart'])));
+
+        $startResult = $totalResults > 0 ? (($page - 1) * $perPage) + 1 : 0;
         $endResult = min($page * $perPage, $totalResults);
 
         // Récupérer toutes les commandes pour les statistiques (sans filtres)
@@ -863,7 +911,7 @@ class ProfileController extends AbstractController
         // Récupérer les insights dynamiques
         $insights = $this->fetchStatsInsights($userId, $dateFrom);
 
-        // Récupérer les données pour le nouveau graphique Radar (Profil Passion)
+        // Récupérer les données pour le graphique de répartition par catégorie
         $passionProfile = $this->fetchPassionProfileData($userId, $dateFrom);
 
         return $this->render('profile/stats.html.twig', [
@@ -2050,19 +2098,20 @@ class ProfileController extends AbstractController
 
         $labels = [];
         $data = [];
+        $amounts = [];
 
-        // On prend les 6 catégories les plus importantes pour un beau Radar
+        // On prend les 6 catégories les plus importantes
         foreach (array_slice($distribution, 0, 6) as $item) {
             $labels[] = $item['category'];
             $data[] = $item['percentage'];
+            // Récupérer le montant total pour cette catégorie
+            $amounts[] = $item['total_amount'] ?? 0;
         }
-
-        // Si moins de 3 catégories, le radar ne ressemble à rien, on complète avec des labels vides si besoin
-        // mais normalement l'utilisateur en aura au moins quelques-uns.
 
         return [
             'labels' => $labels,
-            'data' => $data,
+            'data' => $data, // Pourcentages
+            'amounts' => $amounts, // Montants en MGA
         ];
     }
 
@@ -2249,5 +2298,202 @@ class ProfileController extends AbstractController
             12 => 'Décembre'
         ];
         return $months[$monthNumber] ?? '';
+    }
+
+    /**
+     * Formate les items du panier en session comme des commandes avec le statut "En attente"
+     *
+     * @param array<int, array<string, mixed>> $cartItems Items du panier en session
+     * @return array<int, array<string, mixed>> Tableau de commandes formatées
+     */
+    private function formatCartItemsAsOrders(array $cartItems): array
+    {
+        if (empty($cartItems)) {
+            error_log('formatCartItemsAsOrders: Cart items is empty');
+            return [];
+        }
+
+        error_log('formatCartItemsAsOrders: Processing ' . count($cartItems) . ' cart items');
+
+        $orders = [];
+        $now = new \DateTimeImmutable();
+
+        // Grouper les items par événement
+        $itemsByEvent = [];
+        $totalAmount = 0;
+        $totalTickets = 0;
+        $eventIds = [];
+
+        foreach ($cartItems as $index => $item) {
+            error_log('formatCartItemsAsOrders: Processing item ' . $index . ': ' . json_encode($item));
+            
+            // Essayer différentes clés possibles pour eventId
+            $eventId = $item['eventId'] ?? $item['event_id'] ?? null;
+            
+            // Si pas d'eventId direct, essayer de le récupérer depuis ticketTypeId ou adultTicketTypeId
+            if (!$eventId) {
+                $ticketTypeId = $item['ticketTypeId'] ?? $item['ticket_type_id'] ?? 
+                               $item['adultTicketTypeId'] ?? $item['adult_ticket_type_id'] ?? null;
+                
+                if ($ticketTypeId) {
+                    $eventId = $this->getEventIdFromTicketTypeId((int) $ticketTypeId);
+                    error_log('formatCartItemsAsOrders: Item ' . $index . ' - got eventId ' . $eventId . ' from ticketTypeId ' . $ticketTypeId);
+                }
+            }
+            
+            if (!$eventId) {
+                error_log('formatCartItemsAsOrders: Item ' . $index . ' has no eventId after all attempts, skipping');
+                continue;
+            }
+
+            error_log('formatCartItemsAsOrders: Item ' . $index . ' has eventId: ' . $eventId);
+
+            $eventIds[] = (int) $eventId;
+            
+            // Calculer la quantité totale
+            $quantity = 0;
+            if (isset($item['adultQuantity'])) {
+                $quantity += (int) $item['adultQuantity'];
+            }
+            if (isset($item['adult_quantity'])) {
+                $quantity += (int) $item['adult_quantity'];
+            }
+            if (isset($item['childQuantity'])) {
+                $quantity += (int) $item['childQuantity'];
+            }
+            if (isset($item['child_quantity'])) {
+                $quantity += (int) $item['child_quantity'];
+            }
+            
+            if ($quantity === 0 && isset($item['quantity'])) {
+                $quantity = (int) $item['quantity'];
+            }
+
+            // Calculer le prix total
+            $totalPrice = 0;
+            if (isset($item['totalPrice'])) {
+                $totalPrice = (float) $item['totalPrice'];
+            } elseif (isset($item['total_price'])) {
+                $totalPrice = (float) $item['total_price'];
+            } elseif (isset($item['unitPrice']) && $quantity > 0) {
+                $totalPrice = (float) $item['unitPrice'] * $quantity;
+            } elseif (isset($item['unit_price']) && $quantity > 0) {
+                $totalPrice = (float) $item['unit_price'] * $quantity;
+            }
+
+            error_log('formatCartItemsAsOrders: Item ' . $index . ' - quantity: ' . $quantity . ', totalPrice: ' . $totalPrice);
+
+            if (!isset($itemsByEvent[$eventId])) {
+                $itemsByEvent[$eventId] = [
+                    'quantity' => 0,
+                    'total_price' => 0,
+                ];
+            }
+
+            $itemsByEvent[$eventId]['quantity'] += $quantity;
+            $itemsByEvent[$eventId]['total_price'] += $totalPrice;
+            $totalTickets += $quantity;
+            $totalAmount += $totalPrice;
+        }
+
+        error_log('formatCartItemsAsOrders: Total amount: ' . $totalAmount . ', Total tickets: ' . $totalTickets);
+
+        // Si on a des items, créer une commande fictive pour le panier
+        if (!empty($itemsByEvent) && $totalAmount > 0) {
+            // Récupérer les titres des événements
+            $eventTitles = [];
+            if (!empty($eventIds)) {
+                $eventTitles = $this->getEventTitlesByIds(array_unique($eventIds));
+            }
+
+            $eventTitleStr = !empty($eventTitles) ? implode(', ', array_values($eventTitles)) : 'Événement';
+
+            $orders[] = [
+                'id' => 0, // ID 0 pour indiquer que c'est du panier
+                'code' => 'PANIER',
+                'title' => $eventTitleStr,
+                'date' => $now->format('d F Y'),
+                'hour' => $now->format('H:i'),
+                'status' => 'En attente',
+                'status_key' => 'pending',
+                'amount' => number_format($totalAmount, 0, ',', ' ') . ' MGA',
+                'amount_raw' => $totalAmount,
+                'method' => 'Non spécifié',
+                'tickets' => $totalTickets,
+                'items_count' => count($itemsByEvent),
+                'created_at' => $now,
+                'is_refunded' => false,
+                'refund_reason' => null,
+                'is_cart' => true, // Flag pour identifier les items du panier
+            ];
+        }
+
+        return $orders;
+    }
+
+    /**
+     * Filtre les commandes du panier selon les critères de recherche
+     *
+     * @param array<int, array<string, mixed>> $cartOrders Commandes du panier formatées
+     * @param string $searchQuery Recherche textuelle
+     * @param string $statusFilter Filtre de statut
+     * @param string $paymentMethodFilter Filtre de méthode de paiement
+     * @return array<int, array<string, mixed>> Commandes filtrées
+     */
+    private function filterCartOrders(array $cartOrders, string $searchQuery, string $statusFilter, string $paymentMethodFilter): array
+    {
+        if (empty($cartOrders)) {
+            return [];
+        }
+
+        $filtered = [];
+
+        foreach ($cartOrders as $order) {
+            // Filtrer par statut (les commandes du panier sont toujours "pending")
+            if ($statusFilter !== 'all' && $statusFilter !== 'pending') {
+                continue;
+            }
+
+            // Filtrer par recherche textuelle
+            if (!empty($searchQuery)) {
+                $searchLower = mb_strtolower($searchQuery);
+                $orderText = mb_strtolower($order['code'] . ' ' . $order['title'] . ' ' . $order['status']);
+                if (strpos($orderText, $searchLower) === false) {
+                    continue;
+                }
+            }
+
+            // Filtrer par méthode de paiement (les commandes du panier n'ont pas de méthode)
+            if ($paymentMethodFilter !== 'all') {
+                continue;
+            }
+
+            $filtered[] = $order;
+        }
+
+        return $filtered;
+    }
+
+    /**
+     * Récupère l'eventId depuis un ticketTypeId
+     *
+     * @param int $ticketTypeId ID du type de billet
+     * @return int|null ID de l'événement ou null si non trouvé
+     */
+    private function getEventIdFromTicketTypeId(int $ticketTypeId): ?int
+    {
+        try {
+            $connection = $this->eventRepository->getEntityManager()->getConnection();
+            $sql = 'SELECT event_id FROM aiolia.ticket_types WHERE id = :ticket_type_id LIMIT 1';
+            $result = $connection->executeQuery($sql, ['ticket_type_id' => $ticketTypeId])->fetchAssociative();
+            
+            if ($result && isset($result['event_id'])) {
+                return (int) $result['event_id'];
+            }
+        } catch (\Exception $e) {
+            error_log('Error getting eventId from ticketTypeId: ' . $e->getMessage());
+        }
+        
+        return null;
     }
 }
