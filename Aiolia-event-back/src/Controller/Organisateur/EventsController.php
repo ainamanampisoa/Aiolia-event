@@ -351,18 +351,35 @@ class EventsController extends AbstractController
                 $form->get('commenceLe')->addError(new \Symfony\Component\Form\FormError('La date de début est obligatoire'));
             } else {
                 try {
-                    $event->setCommenceLe(new \DateTime($dateStart));
+                    $commenceLe = new \DateTime($dateStart);
+                    $event->setCommenceLe($commenceLe);
+                    
+                    // Définir la date de fin (obligatoire dans la base de données)
+                    // Si non fournie, utiliser la date de début + 2 heures par défaut
+                    if ($dateEnd) {
+                        try {
+                            $seTermineLe = new \DateTime($dateEnd);
+                            // Vérifier que la date de fin est strictement supérieure à la date de début
+                            if ($seTermineLe <= $commenceLe) {
+                                // Si la date de fin est égale ou antérieure à la date de début, ajouter 2 heures
+                                $seTermineLe = clone $commenceLe;
+                                $seTermineLe->modify('+2 hours');
+                            }
+                            $event->setSeTermineLe($seTermineLe);
+                        } catch (\Exception $e) {
+                            // Si la date de fin est invalide, utiliser la date de début + 2 heures
+                            $seTermineLe = clone $commenceLe;
+                            $seTermineLe->modify('+2 hours');
+                            $event->setSeTermineLe($seTermineLe);
+                        }
+                    } else {
+                        // Si aucune date de fin n'est fournie, utiliser la date de début + 2 heures par défaut
+                        $seTermineLe = clone $commenceLe;
+                        $seTermineLe->modify('+2 hours');
+                        $event->setSeTermineLe($seTermineLe);
+                    }
                 } catch (\Exception $e) {
                     $form->get('commenceLe')->addError(new \Symfony\Component\Form\FormError('Format de date invalide'));
-                }
-            }
-            
-            // Définir la date de fin (optionnelle)
-            if ($dateEnd) {
-                try {
-                    $event->setSeTermineLe(new \DateTime($dateEnd));
-                } catch (\Exception $e) {
-                    // Ignorer l'erreur si la date de fin est invalide
                 }
             }
             
@@ -389,12 +406,34 @@ class EventsController extends AbstractController
                     $salesStart = $eventService->parseDateTime($salesStartDate, $salesStartTime);
                     if ($salesStart) {
                         $event->setVentesCommencentLe($salesStart);
+                        
+                        // Si une date de fin de vente est fournie, vérifier qu'elle est >= date de début
+                        if ($salesEndDate && $salesEndTime) {
+                            $salesEnd = $eventService->parseDateTime($salesEndDate, $salesEndTime);
+                            if ($salesEnd) {
+                                // Si la date de fin est antérieure à la date de début, utiliser la date de début
+                                if ($salesEnd < $salesStart) {
+                                    $salesEnd = clone $salesStart;
+                                    $salesEnd->modify('+1 day');
+                                }
+                                $event->setVentesSeTerminentLe($salesEnd);
+                            }
+                        }
                     }
-                }
-                
-                if ($salesEndDate && $salesEndTime) {
+                } elseif ($salesEndDate && $salesEndTime) {
+                    // Si seule la date de fin est fournie, ne pas la définir (contrainte de la base)
+                    // ou définir une date de début par défaut
                     $salesEnd = $eventService->parseDateTime($salesEndDate, $salesEndTime);
                     if ($salesEnd) {
+                        // Utiliser la date de début de l'événement comme date de début de vente
+                        $salesStart = clone $event->getCommenceLe();
+                        $event->setVentesCommencentLe($salesStart);
+                        
+                        // Vérifier que la date de fin est >= date de début
+                        if ($salesEnd < $salesStart) {
+                            $salesEnd = clone $salesStart;
+                            $salesEnd->modify('+1 day');
+                        }
                         $event->setVentesSeTerminentLe($salesEnd);
                     }
                 }

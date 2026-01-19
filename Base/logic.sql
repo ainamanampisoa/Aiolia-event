@@ -46,7 +46,7 @@ BEGIN
     v_type_billet_id := NEW.id_type_billet;
     
     -- Réserver les billets dans l'inventaire
-    UPDATE inventaire_billets
+    UPDATE aiolia.inventaire_billets
     SET 
         quantite_reservee = quantite_reservee + NEW.quantite,
         modifie_le = NOW()
@@ -68,14 +68,14 @@ DECLARE
 BEGIN
     -- Récupérer l'ID de l'événement depuis le type de billet
     SELECT tb.id_evenement, e.commence_le INTO v_id_evenement, v_commence_le
-    FROM types_billets tb
-    LEFT JOIN evenements e ON e.id = tb.id_evenement
+    FROM aiolia.types_billets tb
+    LEFT JOIN aiolia.evenements e ON e.id = tb.id_evenement
     WHERE tb.id = NEW.id_type_billet;
     
     -- Si l'utilisateur propriétaire existe, mettre à jour ses statistiques
     IF NEW.id_utilisateur_proprietaire IS NOT NULL THEN
         -- Insérer ou mettre à jour les statistiques utilisateur
-        INSERT INTO statistiques_evenements_utilisateurs (
+        INSERT INTO aiolia.statistiques_evenements_utilisateurs (
             id_utilisateur,
             evenements_auxquels_a_participe,
             evenements_a_venir,
@@ -91,12 +91,12 @@ BEGIN
         )
         ON CONFLICT (id_utilisateur) DO UPDATE
         SET 
-            evenements_auxquels_a_participe = statistiques_evenements_utilisateurs.evenements_auxquels_a_participe + 
+            evenements_auxquels_a_participe = aiolia.statistiques_evenements_utilisateurs.evenements_auxquels_a_participe + 
                 CASE WHEN NEW.statut = 'used' THEN 1 ELSE 0 END,
-            evenements_a_venir = statistiques_evenements_utilisateurs.evenements_a_venir + 
+            evenements_a_venir = aiolia.statistiques_evenements_utilisateurs.evenements_a_venir + 
                 CASE WHEN v_commence_le IS NOT NULL AND v_commence_le > NOW() THEN 1 ELSE 0 END,
             dernier_evenement_le = GREATEST(
-                COALESCE(statistiques_evenements_utilisateurs.dernier_evenement_le, '1970-01-01'::TIMESTAMPTZ), 
+                COALESCE(aiolia.statistiques_evenements_utilisateurs.dernier_evenement_le, '1970-01-01'::TIMESTAMPTZ), 
                 COALESCE(v_commence_le, NOW())
             ),
             modifie_le = NOW();
@@ -112,28 +112,28 @@ COMMENT ON FUNCTION tickets_record_stats() IS
 -- ------------------------------------------------------------
 -- 3. Triggers
 -- ------------------------------------------------------------
-DROP TRIGGER IF EXISTS trg_wallet_transactions_apply ON transactions_portefeuilles;
+DROP TRIGGER IF EXISTS trg_wallet_transactions_apply ON aiolia.transactions_portefeuilles;
 CREATE TRIGGER trg_wallet_transactions_apply
-BEFORE INSERT ON transactions_portefeuilles
+BEFORE INSERT ON aiolia.transactions_portefeuilles
 FOR EACH ROW EXECUTE FUNCTION wallet_transactions_apply();
 
-COMMENT ON TRIGGER trg_wallet_transactions_apply ON transactions_portefeuilles IS
+COMMENT ON TRIGGER trg_wallet_transactions_apply ON aiolia.transactions_portefeuilles IS
     'Avant insertion : applique immédiatement les effets des transactions de portefeuille.';
 
-DROP TRIGGER IF EXISTS trg_order_items_adjust_inventory ON elements_commandes;
+DROP TRIGGER IF EXISTS trg_order_items_adjust_inventory ON aiolia.elements_commandes;
 CREATE TRIGGER trg_order_items_adjust_inventory
-AFTER INSERT ON elements_commandes
+AFTER INSERT ON aiolia.elements_commandes
 FOR EACH ROW EXECUTE FUNCTION order_items_adjust_inventory();
 
-COMMENT ON TRIGGER trg_order_items_adjust_inventory ON elements_commandes IS
+COMMENT ON TRIGGER trg_order_items_adjust_inventory ON aiolia.elements_commandes IS
     'Après insertion : réserve le stock correspondant pour le type de billet ciblé.';
 
-DROP TRIGGER IF EXISTS trg_tickets_record_stats ON billets;
+DROP TRIGGER IF EXISTS trg_tickets_record_stats ON aiolia.billets;
 CREATE TRIGGER trg_tickets_record_stats
-AFTER INSERT ON billets
+AFTER INSERT ON aiolia.billets
 FOR EACH ROW EXECUTE FUNCTION tickets_record_stats();
 
-COMMENT ON TRIGGER trg_tickets_record_stats ON billets IS
+COMMENT ON TRIGGER trg_tickets_record_stats ON aiolia.billets IS
     'Après insertion : met à jour les statistiques utilisateur liées aux billets.';
 
 -- ------------------------------------------------------------

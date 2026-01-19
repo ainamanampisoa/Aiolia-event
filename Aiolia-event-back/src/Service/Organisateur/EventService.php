@@ -21,6 +21,7 @@ use App\Service\Organisateur\InventaireBilletService;
 use App\Service\Organisateur\ConfigurationCategorieBilletService;
 use App\Service\Organisateur\ConfigurationSegmentBilletService;
 use App\Service\Organisateur\MediaService;
+use App\Service\Organisateur\BilletService;
 use App\Repository\Organisateur\TicketInvoiceRepository;
 use Doctrine\ORM\EntityManagerInterface;
 use Symfony\Component\String\Slugger\SluggerInterface;
@@ -39,6 +40,7 @@ class EventService
         private ConfigurationCategorieBilletService $categorieBilletService,
         private ConfigurationSegmentBilletService $segmentBilletService,
         private MediaService $mediaService,
+        private BilletService $billetService,
         private TicketInvoiceRepository $ticketInvoiceRepository
     ) {
     }
@@ -395,9 +397,76 @@ class EventService
             'quantiteVendue' => 0,
         ];
         
-        $this->inventaireBilletService->create($inventaireData, $typeBillet);
+        $inventaire = $this->inventaireBilletService->create($inventaireData, $typeBillet);
+        
+        // Créer les billets "dispo" (disponibles) pour ce type de billet
+        $this->createDispoBillets($typeBillet, (int) $quantity, $event);
         
         $createdTickets[] = $typeBillet;
+    }
+
+    /**
+     * Crée les billets "dispo" (disponibles) pour un type de billet
+     */
+    private function createDispoBillets($typeBillet, int $quantity, Event $event): void
+    {
+        $now = new \DateTimeImmutable();
+        $categorieId = $typeBillet->getConfigurationCategorie()?->getId() ?? '0';
+        $segmentId = $typeBillet->getConfigurationSegment()?->getId() ?? '0';
+        $eventId = $event->getId();
+        
+        // Créer les billets en batch pour optimiser les performances
+        $batchSize = 100;
+        $batches = ceil($quantity / $batchSize);
+        
+        for ($batch = 0; $batch < $batches; $batch++) {
+            $start = $batch * $batchSize + 1;
+            $end = min(($batch + 1) * $batchSize, $quantity);
+            
+            for ($i = $start; $i <= $end; $i++) {
+                // Générer un code QR unique avec timestamp et random pour garantir l'unicité
+                $codeQr = sprintf(
+                    'QR-%s-%s-%s-%d-%d-%d',
+                    $eventId,
+                    $categorieId,
+                    $segmentId,
+                    $i,
+                    $now->getTimestamp(),
+                    random_int(100000, 999999)
+                );
+                
+                // Générer le checksum
+                $checksumQr = md5($codeQr);
+                
+                // Créer les métadonnées
+                $metadonnees = [
+                    'evenement_id' => $eventId,
+                    'categorie' => $categorieId,
+                    'segment' => $segmentId,
+                    'numero_billet' => $i,
+                    'statut' => 'dispo',
+                    'date_emission' => $now->format('Y-m-d H:i:s'),
+                ];
+                
+                // Créer le billet avec statut "dispo"
+                $billetData = [
+                    'statut' => \App\Entity\Billet::STATUT_DISPO,
+                    'codeQr' => $codeQr,
+                    'checksumQr' => $checksumQr,
+                    'metadonnees' => $metadonnees,
+                ];
+                
+                $this->billetService->create($billetData, $typeBillet, null, null);
+            }
+            
+            // Flush par batch pour optimiser les performances
+            if ($batch < $batches - 1) {
+                $this->entityManager->flush();
+            }
+        }
+        
+        // Flush final pour s'assurer que tous les billets sont persistés
+        $this->entityManager->flush();
     }
 
     /**

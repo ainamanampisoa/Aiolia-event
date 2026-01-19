@@ -11,6 +11,7 @@ use Doctrine\ORM\Mapping as ORM;
 #[ORM\HasLifecycleCallbacks]
 class Billet
 {
+    public const STATUT_DISPO = 'dispo';
     public const STATUT_VALID = 'valid';
     public const STATUT_USED = 'used';
     public const STATUT_REFUNDED = 'refunded';
