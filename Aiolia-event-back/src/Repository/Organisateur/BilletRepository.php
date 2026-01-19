@@ -360,5 +360,59 @@ class BilletRepository extends ServiceEntityRepository
             ];
         }, $results);
     }
+
+    /**
+     * Obtient les statistiques de billets par événement (même logique que getStatsByOrganizer)
+     * Utilise la table billets au lieu de l'inventaire pour être cohérent avec la page de gestion
+     */
+    public function getStatsByEventIds(array $eventIds): array
+    {
+        if (empty($eventIds)) {
+            return [];
+        }
+
+        $placeholders = implode(',', array_fill(0, count($eventIds), '?'));
+        
+        // Utiliser la même logique que getStatsByOrganizer
+        // Total : tous les billets créés pour ces événements
+        // Vendus : billets avec elementCommande et statut valid/used
+        $sql = "
+            SELECT
+                e.id AS event_id,
+                COUNT(b.id) AS total,
+                COUNT(CASE 
+                    WHEN b.id_element_commande IS NOT NULL 
+                    AND b.statut IN ('valid', 'used') 
+                    THEN 1 
+                END) AS vendus
+            FROM aiolia.evenements e
+            LEFT JOIN aiolia.types_billets tb ON tb.id_evenement = e.id
+            LEFT JOIN aiolia.billets b ON b.id_type_billet = tb.id
+            WHERE e.id IN ({$placeholders})
+            GROUP BY e.id
+        ";
+
+        $rows = $this->getEntityManager()->getConnection()->fetchAllAssociative($sql, $eventIds);
+
+        $result = [];
+        foreach ($rows as $row) {
+            $result[(int) $row['event_id']] = [
+                'total' => (int) $row['total'],
+                'vendus' => (int) $row['vendus'],
+            ];
+        }
+
+        // Ajouter les événements sans billets avec des valeurs par défaut
+        foreach ($eventIds as $eventId) {
+            if (!isset($result[$eventId])) {
+                $result[$eventId] = [
+                    'total' => 0,
+                    'vendus' => 0,
+                ];
+            }
+        }
+
+        return $result;
+    }
 }
 

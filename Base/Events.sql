@@ -79,6 +79,7 @@ DECLARE
     v_participants_max INTEGER;
     v_participants_actuels INTEGER;
     v_capacite_lieu INTEGER;
+    v_compteur_events_epuises INTEGER := 0;
 BEGIN
     SET search_path TO aiolia;
     
@@ -261,6 +262,7 @@ BEGIN
     -- ============================================================
     -- CRÉER 21 ÉVÉNEMENTS
     -- 5 passés (juillet-août 2025), 4 archivés (septembre-octobre 2025), 5 en cours (novembre-décembre 2025), 7 à venir (janvier-février 2026)
+    -- Seulement 4 événements en cours/à venir seront complètement épuisés
     -- ============================================================
     FOR i IN 1..21 LOOP
         -- Réinitialiser les tableaux pour chaque événement
@@ -463,26 +465,26 @@ BEGIN
                         ) RETURNING id INTO v_id_type_billet;
                         
                         -- Définir quantité vendue selon le statut de l'événement
+                        -- Pour les événements passés/archivés : vendre 70-90% (pas 100%, pas de billets dispo)
+                        -- Pour les événements en cours/à venir : vendre 20-60% (reste disponible)
                         IF v_event_statut = 'archived' THEN
+                            -- Événements archivés : 70-90% vendus, 0% dispo
                             v_quantite_vendue := floor(v_billets_par_categorie * (0.7 + random() * 0.2))::INTEGER;
                         ELSIF v_event_statut = 'published' AND v_date_debut < NOW() THEN
-                            v_quantite_vendue := floor(v_billets_par_categorie * (0.6 + random() * 0.25))::INTEGER;
+                            -- Événements passés : 70-90% vendus, 0% dispo
+                            v_quantite_vendue := floor(v_billets_par_categorie * (0.7 + random() * 0.2))::INTEGER;
                         ELSIF v_event_statut = 'published' AND v_date_debut >= NOW() AND v_date_debut <= NOW() + INTERVAL '90 days' THEN
-                            v_quantite_vendue := floor(v_billets_par_categorie * (0.3 + random() * 0.3))::INTEGER;
+                            -- Événements à venir proches : 30-50% vendus, reste dispo
+                            v_quantite_vendue := floor(v_billets_par_categorie * (0.3 + random() * 0.2))::INTEGER;
                         ELSE
+                            -- Événements à venir lointains : 10-30% vendus, reste dispo
                             v_quantite_vendue := floor(v_billets_par_categorie * (0.1 + random() * 0.2))::INTEGER;
                         END IF;
-
-                        -- Forcer 4 à 8 billets disponibles par catégorie/segment
-                        DECLARE
-                            v_quantite_dispo_cible INTEGER;
-                        BEGIN
-                            v_quantite_dispo_cible := 4 + floor(random() * 5)::INTEGER;
-                            IF v_quantite_dispo_cible > v_billets_par_categorie THEN
-                                v_quantite_dispo_cible := LEAST(v_billets_par_categorie, 4);
-                            END IF;
-                            v_quantite_vendue := GREATEST(0, v_billets_par_categorie - v_quantite_dispo_cible);
-                        END;
+                        
+                        -- S'assurer qu'on ne vend pas 100% (garder au moins 1 billet non vendu pour événements passés)
+                        IF (v_event_statut = 'archived' OR (v_event_statut = 'published' AND v_date_debut < NOW())) THEN
+                            v_quantite_vendue := LEAST(v_quantite_vendue, v_billets_par_categorie - 1);
+                        END IF;
 
                         INSERT INTO inventaire_billets (id_type_billet, quantite_totale, quantite_reservee, quantite_vendue)
                         VALUES (
@@ -815,224 +817,99 @@ BEGIN
                         
                         -- ============================================================
                         -- CRÉER DES BILLETS RESTANTS (disponibles)
+                        -- Pour les événements passés/archivés : ne PAS créer de billets restants
+                        -- Les billets non vendus restent simplement non créés
                         -- ============================================================
-                        IF v_quantite_vendue < v_billets_par_categorie THEN
-                            DECLARE
-                                v_billets_restants INTEGER;
-                                v_billets_dispo_a_creer INTEGER;
-                                v_billets_valid_a_creer INTEGER;
-                            BEGIN
-                                v_billets_restants := v_billets_par_categorie - v_quantite_vendue;
-                                
-                                IF v_event_statut = 'archived' OR (v_event_statut = 'published' AND v_date_debut < NOW()) THEN
-                                    v_billets_valid_a_creer := LEAST(
-                                        floor(v_billets_restants * (0.05 + random() * 0.15))::INTEGER,
-                                        v_billets_restants,
-                                        v_participants_max - COALESCE(array_length(v_utilisateurs_ayant_achete, 1), 0)
-                                    );
-                                    v_billets_dispo_a_creer := v_billets_restants - v_billets_valid_a_creer;
-                                ELSE
-                                    v_billets_valid_a_creer := 0;
+                        -- Ne créer des billets restants QUE pour les événements en cours/à venir
+                        -- Les événements passés/archivés n'ont pas de billets disponibles
+                        IF (v_event_statut = 'published' AND v_date_debut >= NOW()) 
+                           OR (v_event_statut = 'published' AND v_date_debut < NOW() AND v_date_debut >= NOW() - INTERVAL '15 days') THEN
+                            IF v_quantite_vendue < v_billets_par_categorie THEN
+                                DECLARE
+                                    v_billets_restants INTEGER;
+                                    v_billets_dispo_a_creer INTEGER;
+                                BEGIN
+                                    v_billets_restants := v_billets_par_categorie - v_quantite_vendue;
                                     v_billets_dispo_a_creer := v_billets_restants;
-                                END IF;
-                                
-                                -- Créer les billets 'valid' (achetés mais non utilisés) pour événements passés
-                                IF v_billets_valid_a_creer > 0 THEN
-                                    FOR k IN 1..v_billets_valid_a_creer LOOP
-                                        SELECT id INTO v_id_utilisateur 
-                                        FROM utilisateurs 
-                                        WHERE role = 'user'
-                                        ORDER BY RANDOM() 
-                                        LIMIT 1;
-                                        
-                                        IF v_id_utilisateur IS NOT NULL THEN
-                                            v_participants_actuels := COALESCE(array_length(v_utilisateurs_ayant_achete, 1), 0);
-                                            IF NOT (v_id_utilisateur = ANY(v_utilisateurs_ayant_achete)) AND v_participants_actuels < v_participants_max THEN
-                                                v_utilisateurs_ayant_achete := array_append(v_utilisateurs_ayant_achete, v_id_utilisateur);
-                                            END IF;
-                                            
-                                            DECLARE
-                                                v_date_achat_valid_final TIMESTAMPTZ;
-                                                v_duree_vente_valid_final INTERVAL;
-                                            BEGIN
-                                                v_duree_vente_valid_final := v_date_fin_vente - v_date_debut_vente;
-                                                v_date_achat_valid_final := v_date_debut_vente + (v_duree_vente_valid_final * random());
-                                                
-                                                INSERT INTO paniers (
-                                                    id_utilisateur, statut, devise, montant_total, expire_le, cree_le
-                                                ) VALUES (
-                                                    v_id_utilisateur,
-                                                    'converted'::cart_status_enum,
-                                                    'MGA',
-                                                    0,
-                                                    v_date_fin_vente,
-                                                    v_date_achat_valid_final
-                                                ) RETURNING id INTO v_id_panier;
-
-                                                INSERT INTO commandes (
-                                                    id_utilisateur, id_panier, statut, montant_total, devise, cree_le
-                                                ) VALUES (
-                                                    v_id_utilisateur,
-                                                    v_id_panier,
-                                                    'paid'::order_status_enum,
-                                                    v_prix,
-                                                    'MGA',
-                                                    v_date_achat_valid_final
-                                                ) RETURNING id INTO v_id_commande;
-
-                                                INSERT INTO elements_commandes (
-                                                    id_commande, id_type_billet, quantite,
-                                                    prix_unitaire, frais_service, montant_tva, montant_total
-                                                ) VALUES (
-                                                    v_id_commande,
-                                                    v_id_type_billet,
-                                                    1,
-                                                    v_prix,
-                                                    v_prix * 0.1,
-                                                    v_prix * 0.2,
-                                                    v_prix * 1.3
-                                                ) RETURNING id INTO v_id_element_commande;
-
-                                                -- Créer le billet avec tous les détails
-                                                DECLARE
-                                                    v_code_qr_valid TEXT;
-                                                    v_checksum_qr_valid TEXT;
-                                                BEGIN
-                                                    v_code_qr_valid := 'QR-' || v_id_event || '-' || j || '-' || segment_idx || '-V' || k || '-' || EXTRACT(EPOCH FROM NOW())::TEXT || '-' || floor(random() * 1000000)::TEXT;
-                                                    v_checksum_qr_valid := md5(v_code_qr_valid);
-                                                    
-                                                    INSERT INTO billets (
-                                                        id_element_commande, id_type_billet,
-                                                        id_utilisateur_proprietaire, statut,
-                                                        code_qr, checksum_qr, emis_le, metadonnees
-                                                    ) VALUES (
-                                                        v_id_element_commande,
-                                                        v_id_type_billet,
-                                                        v_id_utilisateur,
-                                                        'valid'::ticket_status_enum,
-                                                        v_code_qr_valid,
-                                                        v_checksum_qr_valid,
-                                                        v_date_achat_valid_final,
-                                                        jsonb_build_object(
-                                                            'evenement_id', v_id_event,
-                                                            'categorie', j,
-                                                            'segment', segment_idx,
-                                                            'numero_billet', k,
-                                                            'statut', 'valid',
-                                                            'date_emission', v_date_achat_valid_final::TEXT
-                                                        )
-                                                    );
-                                                END;
-                                                
-                                                -- Mettre à jour l'inventaire (incrémenter quantite_vendue)
-                                                UPDATE inventaire_billets
-                                                SET quantite_vendue = quantite_vendue + 1
-                                                WHERE id_type_billet = v_id_type_billet;
-
-                                                INSERT INTO factures_billets (
-                                                    id_commande, id_client, id_mode_paiement, devise,
-                                                    montant_sous_total, montant_tva, montant_total,
-                                                    montant_ht, montant_tva_detail, montant_ttc,
-                                                    statut, emise_le, payee_le
-                                                ) VALUES (
-                                                    v_id_commande,
-                                                    v_id_utilisateur,
-                                                    (ARRAY[v_id_mode_paiement_mvola, v_id_mode_paiement_orange, v_id_mode_paiement_airtel, v_id_mode_paiement_visa])[1 + (k % 4)],
-                                                    'MGA',
-                                                    v_prix,
-                                                    0, 
-                                                    v_prix, 
-                                                    v_prix, 
-                                                    0, 
-                                                    v_prix, 
-                                                    'paid',
-                                                    v_date_achat_valid_final,
-                                                    v_date_achat_valid_final + INTERVAL '2 hours'
-                                                ) RETURNING id INTO v_id_facture;
-
-                                                INSERT INTO historique_paiements_billets (
-                                                    id_facture, statut_de, statut_vers, modifie_le, metadonnees
-                                                ) VALUES (
-                                                    v_id_facture,
-                                                    NULL,
-                                                    'paid'::payment_status_enum,
-                                                    v_date_achat_valid_final + INTERVAL '2 hours',
-                                                    jsonb_build_object(
-                                                        'reference', 'REF-' || v_id_event || '-' || j || '-' || segment_idx || '-V' || k || '-' || EXTRACT(EPOCH FROM NOW())::TEXT,
-                                                        'montant', v_prix * 1.3,
-                                                        'devise', 'MGA'
-                                                    )
-                                                );
-                                            END;
-                                        END IF;
-                                    END LOOP;
-                                END IF;
-                            END;
+                                    
+                                    -- Note: Les billets "dispo" seront créés dans la section suivante
+                                    -- Cette section est maintenant vide pour les événements en cours/à venir
+                                END;
+                            END IF;
                         END IF;
+                        
+                        -- Ancienne logique supprimée : ne plus créer de billets "valid" pour événements passés
+                        -- Les événements passés n'ont que des billets "used" (vendus et utilisés)
+                        -- Code désactivé - ne plus créer de billets restants pour événements passés
+                        -- (Section supprimée - les événements passés n'ont pas de billets disponibles)
                     END IF; -- Fin de la condition pour événements passés/archivés uniquement
                         
                         -- ============================================================
-                        -- CRÉER TOUS LES BILLETS 'DISPO' POUR CE TYPE DE BILLET
+                        -- CRÉER LES BILLETS 'DISPO' UNIQUEMENT POUR ÉVÉNEMENTS EN COURS/À VENIR
+                        -- Ne PAS créer de billets dispo pour événements passés/archivés
                         -- Basé sur l'inventaire réel : quantite_totale - quantite_vendue - quantite_reservee
-                        -- S'applique à TOUS les événements et TOUS les types de billets
                         -- ============================================================
-                        DECLARE
-                            v_billets_dispo_restants INTEGER;
-                            v_billets_dispo_existants INTEGER;
-                        BEGIN
-                            -- Vérifier le nombre de billets disponibles dans l'inventaire
-                            SELECT (quantite_totale - quantite_vendue - quantite_reservee) INTO v_billets_dispo_restants
-                            FROM inventaire_billets
-                            WHERE id_type_billet = v_id_type_billet;
-                            
-                            -- Compter les billets 'dispo' déjà créés pour ce type de billet
-                            SELECT COUNT(*) INTO v_billets_dispo_existants
-                            FROM billets
-                            WHERE id_type_billet = v_id_type_billet
-                                AND statut = 'dispo'
-                                AND id_utilisateur_proprietaire IS NULL;
-                            
-                            -- Calculer le nombre de billets 'dispo' à créer
-                            v_billets_dispo_restants := GREATEST(0, v_billets_dispo_restants - COALESCE(v_billets_dispo_existants, 0));
-                            
-                            -- Créer exactement le nombre de billets disponibles selon l'inventaire avec tous les détails
-                            IF v_billets_dispo_restants > 0 THEN
-                                FOR k IN 1..v_billets_dispo_restants LOOP
-                                    DECLARE
-                                        v_code_qr_dispo TEXT;
-                                        v_checksum_qr_dispo TEXT;
-                                    BEGIN
-                                        v_code_qr_dispo := 'QR-' || v_id_event || '-' || j || '-' || segment_idx || '-D' || k || '-' || EXTRACT(EPOCH FROM NOW())::TEXT || '-' || floor(random() * 1000000)::TEXT;
-                                        v_checksum_qr_dispo := md5(v_code_qr_dispo);
-                                        
-                                        INSERT INTO billets (
-                                            id_element_commande, id_type_billet,
-                                            id_utilisateur_proprietaire, statut,
-                                            code_qr, checksum_qr, emis_le, metadonnees
-                                        ) VALUES (
-                                            NULL,
-                                            v_id_type_billet,
-                                            NULL,
-                                            'dispo'::ticket_status_enum,
-                                            v_code_qr_dispo,
-                                            v_checksum_qr_dispo,
-                                            v_date_creation,
-                                            jsonb_build_object(
-                                                'evenement_id', v_id_event,
-                                                'categorie', j,
-                                                'segment', segment_idx,
-                                                'numero_billet', k,
-                                                'statut', 'dispo',
-                                                'date_emission', v_date_creation::TEXT
-                                            )
-                                        );
-                                    END;
-                                END LOOP;
+                        -- Ne créer des billets "dispo" QUE pour les événements en cours ou à venir
+                        IF (v_event_statut = 'published' AND v_date_debut >= NOW()) 
+                           OR (v_event_statut = 'published' AND v_date_debut < NOW() AND v_date_debut >= NOW() - INTERVAL '15 days') THEN
+                            DECLARE
+                                v_billets_dispo_restants INTEGER;
+                                v_billets_dispo_existants INTEGER;
+                            BEGIN
+                                -- Vérifier le nombre de billets disponibles dans l'inventaire
+                                SELECT (quantite_totale - quantite_vendue - quantite_reservee) INTO v_billets_dispo_restants
+                                FROM inventaire_billets
+                                WHERE id_type_billet = v_id_type_billet;
                                 
-                                RAISE NOTICE 'Billets "dispo" créés pour événement % - catégorie % - segment % : % billets', 
-                                    v_id_event, j, segment_idx, v_billets_dispo_restants;
-                            END IF;
-                        END;
+                                -- Compter les billets 'dispo' déjà créés pour ce type de billet
+                                SELECT COUNT(*) INTO v_billets_dispo_existants
+                                FROM billets
+                                WHERE id_type_billet = v_id_type_billet
+                                    AND statut = 'dispo'
+                                    AND id_utilisateur_proprietaire IS NULL;
+                                
+                                -- Calculer le nombre de billets 'dispo' à créer
+                                v_billets_dispo_restants := GREATEST(0, v_billets_dispo_restants - COALESCE(v_billets_dispo_existants, 0));
+                                
+                                -- Créer exactement le nombre de billets disponibles selon l'inventaire avec tous les détails
+                                IF v_billets_dispo_restants > 0 THEN
+                                    FOR k IN 1..v_billets_dispo_restants LOOP
+                                        DECLARE
+                                            v_code_qr_dispo TEXT;
+                                            v_checksum_qr_dispo TEXT;
+                                        BEGIN
+                                            v_code_qr_dispo := 'QR-' || v_id_event || '-' || j || '-' || segment_idx || '-D' || k || '-' || EXTRACT(EPOCH FROM NOW())::TEXT || '-' || floor(random() * 1000000)::TEXT;
+                                            v_checksum_qr_dispo := md5(v_code_qr_dispo);
+                                            
+                                            INSERT INTO billets (
+                                                id_element_commande, id_type_billet,
+                                                id_utilisateur_proprietaire, statut,
+                                                code_qr, checksum_qr, emis_le, metadonnees
+                                            ) VALUES (
+                                                NULL,
+                                                v_id_type_billet,
+                                                NULL,
+                                                'dispo'::ticket_status_enum,
+                                                v_code_qr_dispo,
+                                                v_checksum_qr_dispo,
+                                                v_date_creation,
+                                                jsonb_build_object(
+                                                    'evenement_id', v_id_event,
+                                                    'categorie', j,
+                                                    'segment', segment_idx,
+                                                    'numero_billet', k,
+                                                    'statut', 'dispo',
+                                                    'date_emission', v_date_creation::TEXT
+                                                )
+                                            );
+                                        END;
+                                    END LOOP;
+                                    
+                                    RAISE NOTICE 'Billets "dispo" créés pour événement % - catégorie % - segment % : % billets', 
+                                        v_id_event, j, segment_idx, v_billets_dispo_restants;
+                                END IF;
+                            END;
+                        END IF;
                     END;
                 END LOOP;
             END;
@@ -1041,9 +918,13 @@ BEGIN
         -- ============================================================
         -- CRÉER LES BILLETS POUR ÉVÉNEMENTS EN COURS ET À VENIR
         -- 50-80 billets avec tous les détails (QR, checksum, métadonnées)
+        -- Seulement 4 événements seront complètement épuisés
         -- ============================================================
         IF (v_event_statut = 'published' AND v_date_debut < NOW() AND v_date_debut >= NOW() - INTERVAL '15 days') 
            OR (v_event_statut = 'published' AND v_date_debut >= NOW()) THEN
+            -- Déterminer si cet événement doit être complètement épuisé (seulement les 4 premiers)
+            -- Utiliser le compteur global pour identifier les 4 premiers événements en cours/à venir
+            v_compteur_events_epuises := v_compteur_events_epuises + 1;
             DECLARE
                 v_nb_billets_total INTEGER;
                 v_nb_billets_valid INTEGER;
@@ -1061,7 +942,13 @@ BEGIN
                 v_current_seg_id BIGINT;
                 v_billets_par_type INTEGER;
                 v_compteur_billet INTEGER := 0;
+                v_event_epuise BOOLEAN := FALSE;
             BEGIN
+                -- Seulement les 4 premiers événements en cours/à venir seront épuisés
+                IF v_compteur_events_epuises <= 4 THEN
+                    v_event_epuise := TRUE;
+                END IF;
+                
                 -- Nombre total de billets pour cet événement (50-80)
                 v_nb_billets_total := 50 + floor(random() * 31)::INTEGER; -- 50 à 80
                 
@@ -1076,17 +963,33 @@ BEGIN
                     v_billets_par_type := 0;
                 END IF;
                 
-                -- Répartition selon le type d'événement
-                IF v_date_debut < NOW() THEN
-                    -- Événement en cours : valid, used, dispo
-                    v_nb_billets_valid := floor(v_nb_billets_total * (0.3 + random() * 0.2))::INTEGER; -- 30-50%
-                    v_nb_billets_used := floor(v_nb_billets_total * (0.2 + random() * 0.2))::INTEGER; -- 20-40%
-                    v_nb_billets_dispo := v_nb_billets_total - v_nb_billets_valid - v_nb_billets_used;
+                -- Répartition selon le type d'événement et si l'événement est épuisé
+                IF v_event_epuise THEN
+                    -- Événement épuisé : 100% vendu, 0% dispo
+                    IF v_date_debut < NOW() THEN
+                        -- Événement en cours épuisé : 50% valid, 50% used, 0% dispo
+                        v_nb_billets_valid := floor(v_nb_billets_total * 0.5)::INTEGER;
+                        v_nb_billets_used := v_nb_billets_total - v_nb_billets_valid;
+                        v_nb_billets_dispo := 0;
+                    ELSE
+                        -- Événement à venir épuisé : 100% valid, 0% dispo
+                        v_nb_billets_valid := v_nb_billets_total;
+                        v_nb_billets_used := 0;
+                        v_nb_billets_dispo := 0;
+                    END IF;
                 ELSE
-                    -- Événement à venir : valid, dispo (pas de used)
-                    v_nb_billets_valid := floor(v_nb_billets_total * (0.2 + random() * 0.3))::INTEGER; -- 20-50%
-                    v_nb_billets_used := 0;
-                    v_nb_billets_dispo := v_nb_billets_total - v_nb_billets_valid;
+                    -- Événement non épuisé : mixte normal
+                    IF v_date_debut < NOW() THEN
+                        -- Événement en cours : valid, used, dispo
+                        v_nb_billets_valid := floor(v_nb_billets_total * (0.3 + random() * 0.2))::INTEGER; -- 30-50%
+                        v_nb_billets_used := floor(v_nb_billets_total * (0.2 + random() * 0.2))::INTEGER; -- 20-40%
+                        v_nb_billets_dispo := v_nb_billets_total - v_nb_billets_valid - v_nb_billets_used;
+                    ELSE
+                        -- Événement à venir : valid, dispo (pas de used)
+                        v_nb_billets_valid := floor(v_nb_billets_total * (0.2 + random() * 0.3))::INTEGER; -- 20-50%
+                        v_nb_billets_used := 0;
+                        v_nb_billets_dispo := v_nb_billets_total - v_nb_billets_valid;
+                    END IF;
                 END IF;
                 
                 -- Parcourir tous les types de billets et créer les billets
@@ -1109,23 +1012,27 @@ BEGIN
                         v_nb_billets_type := GREATEST(1, floor(v_nb_billets_total / v_nb_types_billets)::INTEGER);
                         
                         -- Calculer la répartition pour ce type
-                        IF v_date_debut < NOW() THEN
-                            -- Événement en cours
-                            -- Pour la catégorie VIP, épuiser complètement (100% vendu) pour créer des listes d'attente
-                            -- Pour les autres catégories, garder un mixte
-                            IF v_current_cat_id = (SELECT id FROM configuration_categories_billets WHERE nom = 'vip' LIMIT 1) THEN
-                                -- Catégorie VIP : 100% vendu (50% valid, 50% used, 0% dispo)
+                        -- Si l'événement est épuisé, tous les types de billets sont épuisés
+                        IF v_event_epuise THEN
+                            -- Événement épuisé : 100% vendu pour tous les types
+                            IF v_date_debut < NOW() THEN
+                                -- Événement en cours épuisé : 50% valid, 50% used, 0% dispo
                                 v_nb_valid_type := floor(v_nb_billets_type * 0.5)::INTEGER;
                                 v_nb_used_type := v_nb_billets_type - v_nb_valid_type;
                                 v_nb_dispo_type := 0;
                             ELSE
-                                -- Autres catégories : mixte normal
-                                v_nb_valid_type := floor(v_nb_billets_type * (0.3 + random() * 0.2))::INTEGER;
-                                v_nb_used_type := floor(v_nb_billets_type * (0.2 + random() * 0.2))::INTEGER;
-                                v_nb_dispo_type := v_nb_billets_type - v_nb_valid_type - v_nb_used_type;
+                                -- Événement à venir épuisé : 100% valid, 0% dispo
+                                v_nb_valid_type := v_nb_billets_type;
+                                v_nb_used_type := 0;
+                                v_nb_dispo_type := 0;
                             END IF;
+                        ELSIF v_date_debut < NOW() THEN
+                            -- Événement en cours non épuisé : mixte normal
+                            v_nb_valid_type := floor(v_nb_billets_type * (0.3 + random() * 0.2))::INTEGER;
+                            v_nb_used_type := floor(v_nb_billets_type * (0.2 + random() * 0.2))::INTEGER;
+                            v_nb_dispo_type := v_nb_billets_type - v_nb_valid_type - v_nb_used_type;
                         ELSE
-                            -- Événement à venir
+                            -- Événement à venir non épuisé : mixte normal
                             v_nb_valid_type := floor(v_nb_billets_type * (0.2 + random() * 0.3))::INTEGER;
                             v_nb_used_type := 0;
                             v_nb_dispo_type := v_nb_billets_type - v_nb_valid_type;
@@ -1321,11 +1228,16 @@ BEGIN
                                 END;
                             END LOOP;
                         END;
-                END LOOP;
+                    END LOOP;
                 CLOSE v_type_billet_cursor;
                 
-                RAISE NOTICE 'Billets créés pour événement % (en cours/à venir): % billets (valid: %, used: %, dispo: %)', 
-                    v_id_event, v_nb_billets_total, v_nb_billets_valid, v_nb_billets_used, v_nb_billets_dispo;
+                IF v_event_epuise THEN
+                    RAISE NOTICE 'Billets créés pour événement % (ÉPUISÉ - en cours/à venir): % billets (valid: %, used: %, dispo: %)', 
+                        v_id_event, v_nb_billets_total, v_nb_billets_valid, v_nb_billets_used, v_nb_billets_dispo;
+                ELSE
+                    RAISE NOTICE 'Billets créés pour événement % (en cours/à venir): % billets (valid: %, used: %, dispo: %)', 
+                        v_id_event, v_nb_billets_total, v_nb_billets_valid, v_nb_billets_used, v_nb_billets_dispo;
+                END IF;
             END;
         END IF;
 

@@ -3,6 +3,7 @@
 namespace App\Service\Organisateur;
 
 use App\Entity\Event;
+use App\Repository\Organisateur\BilletRepository;
 use DateTime;
 use DateTimeZone;
 use Symfony\Component\HttpFoundation\Request;
@@ -14,7 +15,8 @@ class EventListService
     public function __construct(
         private EventService $eventService,
         private TypeBilletService $typeBilletService,
-        private EventStatsService $eventStatsService
+        private EventStatsService $eventStatsService,
+        private BilletRepository $billetRepository
     ) {
     }
 
@@ -103,25 +105,22 @@ class EventListService
     {
         $eventsStats = [];
 
+        // Récupérer les IDs des événements
+        $eventIds = array_map(fn(Event $event) => $event->getId(), $events);
+        
+        // Obtenir les stats de billets par événement (même logique que la page de gestion)
+        $ticketStatsByEvent = $this->billetRepository->getStatsByEventIds($eventIds);
+
         foreach ($events as $event) {
             $ticketTypes = $this->typeBilletService->getByEvenement($event);
-            $totalTickets = 0;
-            $soldTickets = 0;
             $minPrice = null;
             $adultTicketTypes = [];
 
             foreach ($ticketTypes as $ticketType) {
-                $inventaire = $ticketType->getInventaire();
-                if ($inventaire) {
-                    $totalTickets += $inventaire->getQuantiteTotale() ?? 0;
-                    $soldTickets += $inventaire->getQuantiteVendue() ?? 0;
-                }
-
                 $price = (float) $ticketType->getPrixDeBase();
                 if ($minPrice === null || $price < $minPrice) {
                     $minPrice = $price;
                 }
-
 
                 $segment = $ticketType->getConfigurationSegment();
                 if ($segment && in_array($segment->getNom(), ['adulte', 'tous'], true)) {
@@ -133,19 +132,20 @@ class EventListService
                 }
             }
 
-
             usort($adultTicketTypes, function($a, $b) {
                 return $a['prix'] <=> $b['prix'];
             });
 
             $eventId = $event->getId();
 
+            // Utiliser les stats de billets réels au lieu de l'inventaire
+            $ticketStats = $ticketStatsByEvent[$eventId] ?? ['total' => 0, 'vendus' => 0];
+            $totalTickets = $ticketStats['total'];
+            $soldTickets = $ticketStats['vendus'];
 
             $participantsCount = (int) ($participantsByEvent[$eventId] ?? 0);
 
             $viewsCount = (int) ($viewsByEvent[$eventId] ?? 0);
-
-
 
             if ($viewsCount < $participantsCount) {
                 $viewsCount = $participantsCount;
