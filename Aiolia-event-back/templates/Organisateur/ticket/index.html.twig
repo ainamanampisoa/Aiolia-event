@@ -232,7 +232,6 @@
                             <th class="col-left" style="min-width: 90px;">Code promo</th>
                             <th class="col-center" style="min-width: 100px;">Date</th>
                             <th class="col-center" style="min-width: 90px;">Statut</th>
-                            <th class="col-center" style="min-width: 80px;">QR Code</th>
                             <th class="col-center" style="min-width: 60px;">Actions</th>
                     </tr>
                 </thead>
@@ -312,22 +311,6 @@
                                         {{ macros.statusBadge(statutBillet, statusLabels) }}
                                     </td>
                                     <td class="col-center">
-                                        {% if vente.billet_id %}
-                                            <button 
-                                                type="button" 
-                                                class="btn-qr-preview {% if vente.statut_facture == 'dispo' %}btn-qr-preview-dispo{% endif %}" 
-                                                data-billet-id="{{ vente.billet_id }}"
-                                                data-qr-code="{{ vente.billet_code_qr|default('')|e('js') }}"
-                                                data-statut="{{ vente.billet_statut|default('dispo') }}"
-                                                title="{% if vente.statut_facture == 'dispo' %}Aperçu du QR code - Billet disponible{% else %}Aperçu du QR code{% endif %}"
-                                                onclick="showQrCodeModal({{ vente.billet_id }}, '{{ vente.numero_facture|e('js') }}', '{{ vente.billet_code_qr|default('')|e('js') }}', '{{ vente.billet_statut|default('dispo') }}')">
-                                                <i class="fas fa-qrcode"></i>
-                                            </button>
-                                        {% else %}
-                                            <span class="text-muted" style="font-size: 0.75rem;">—</span>
-                                        {% endif %}
-                                    </td>
-                                    <td class="col-center">
                                         <div class="action-buttons">
                                             {% if vente.billet_id %}
                                                 <a href="{{ path('app_ticket_show', {id: vente.billet_id}) }}" class="btn-action btn-view" title="{% if vente.statut_facture == 'dispo' %}Voir les détails du billet disponible{% else %}Voir les détails du billet et de la facture{% endif %}">
@@ -342,7 +325,7 @@
                             {% endfor %}
                         {% else %}
                             <tr>
-                                <td colspan="{{ (event is defined and event) ? '9' : '10' }}" class="text-center" style="padding: 40px;">
+                                <td colspan="{{ (event is defined and event) ? '8' : '9' }}" class="text-center" style="padding: 40px;">
                                     <i class="fas fa-ticket-alt" style="font-size: 3rem; color: var(--text-secondary); margin-bottom: 1rem;"></i>
                                     <p style="color: var(--text-secondary);">Aucun billet trouvé</p>
                         </td>
