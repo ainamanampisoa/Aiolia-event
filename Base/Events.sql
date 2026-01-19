@@ -260,7 +260,7 @@ BEGIN
 
     -- ============================================================
     -- CRÉER 21 ÉVÉNEMENTS
-    -- 5 passés (juin 2025), 4 archivés, 5 en cours, 7 à venir
+    -- 5 passés (juillet-août 2025), 4 archivés (septembre-octobre 2025), 5 en cours (novembre-décembre 2025), 7 à venir (janvier-février 2026)
     -- ============================================================
     FOR i IN 1..21 LOOP
         -- Réinitialiser les tableaux pour chaque événement
@@ -271,30 +271,30 @@ BEGIN
         -- Initialiser la limite de participants (85% du nombre total d'utilisateurs)
         v_participants_max := floor(v_nb_utilisateurs_user * 0.85)::INTEGER;
         
-        -- Définir les dates selon la catégorie
+        -- Définir les dates selon la catégorie (juillet 2025 - février 2026)
         IF i <= 5 THEN
-            -- Événements passés (juin 2025 - les plus anciens)
-            v_date_debut := '2025-06-01'::TIMESTAMPTZ + (INTERVAL '5 days' * (i - 1));
+            -- Événements passés (juillet-août 2025 - les plus anciens)
+            v_date_debut := '2025-07-01'::TIMESTAMPTZ + (INTERVAL '10 days' * (i - 1));
             v_event_statut := 'published';
         ELSIF i <= 9 THEN
-            -- Événements archivés (juillet 2025)
-            v_date_debut := '2025-07-01'::TIMESTAMPTZ + (INTERVAL '5 days' * (i - 5));
+            -- Événements archivés (septembre-octobre 2025)
+            v_date_debut := '2025-09-01'::TIMESTAMPTZ + (INTERVAL '8 days' * (i - 5));
             v_event_statut := 'archived';
         ELSIF i <= 14 THEN
-            -- Événements en cours : démarrent autour d'aujourd'hui et durent 15 jours
-            v_date_debut := v_now - INTERVAL '2 days' + (INTERVAL '1 day' * (i - 9));
+            -- Événements en cours (novembre-décembre 2025)
+            v_date_debut := '2025-11-01'::TIMESTAMPTZ + (INTERVAL '10 days' * (i - 9));
             v_event_statut := 'published';
         ELSE
-            -- Événements à venir : à partir de dans 15 jours
-            v_date_debut := v_now + INTERVAL '15 days' + (INTERVAL '5 days' * (i - 14));
+            -- Événements à venir (janvier-février 2026)
+            v_date_debut := '2026-01-01'::TIMESTAMPTZ + (INTERVAL '8 days' * (i - 14));
             v_event_statut := 'published';
         END IF;
 
-        v_date_creation := GREATEST('2025-05-01'::TIMESTAMPTZ, v_date_debut - (INTERVAL '45 days'));
+        v_date_creation := GREATEST('2025-06-01'::TIMESTAMPTZ, v_date_debut - (INTERVAL '45 days'));
         v_date_fin := v_date_debut + INTERVAL '15 days';
 
         -- Dates de ventes : début 30 jours avant l'événement, fin 1 heure avant la fin de l'événement
-        v_date_debut_vente := GREATEST('2025-05-01'::TIMESTAMPTZ, v_date_debut - INTERVAL '30 days');
+        v_date_debut_vente := GREATEST('2025-06-01'::TIMESTAMPTZ, v_date_debut - INTERVAL '30 days');
         v_date_fin_vente := GREATEST(v_date_debut_vente + INTERVAL '1 day', v_date_fin - INTERVAL '1 hour');
 
         SELECT id INTO v_id_categorie FROM categories_evenements ORDER BY RANDOM() LIMIT 1;
@@ -1983,7 +1983,11 @@ BEGIN
     END;
 
     RAISE NOTICE '✅ Données de test créées avec succès pour organisateur11@yopmail.com';
-    RAISE NOTICE '   - 21 événements créés (5 passés, 4 archivés, 5 en cours, 7 à venir)';
+    RAISE NOTICE '   - 21 événements créés (juillet 2025 - février 2026)';
+    RAISE NOTICE '     * 5 passés (juillet-août 2025)';
+    RAISE NOTICE '     * 4 archivés (septembre-octobre 2025)';
+    RAISE NOTICE '     * 5 en cours (novembre-décembre 2025)';
+    RAISE NOTICE '     * 7 à venir (janvier-février 2026)';
     RAISE NOTICE '   - 5 lieux différents';
     RAISE NOTICE '   - Capacité des événements basée sur celle du lieu';
     RAISE NOTICE '   - Même lieu = même capacité pour tous les événements';

@@ -1095,6 +1095,55 @@ BEGIN
     END IF;
 END $$;
 
+-- Créer explicitement la facture de février 2026 pour l'organisateur 11 si elle n'existe pas
+DO $$
+DECLARE
+    v_abonnement_id BIGINT;
+    v_facture_fevrier_id BIGINT;
+    v_facture_id BIGINT;
+    v_mode_paiement_code TEXT := 'mvola';
+BEGIN
+    -- Récupérer l'ID de l'abonnement de l'organisateur 11
+    SELECT ao.id INTO v_abonnement_id
+    FROM abonnements_organisateurs ao
+    JOIN profils_organisateurs po ON ao.id_profil_organisateur = po.id
+    JOIN utilisateurs u ON po.id_utilisateur = u.id
+    WHERE u.email = 'organisateur11@yopmail.com'
+    LIMIT 1;
+    
+    IF v_abonnement_id IS NULL THEN
+        RAISE WARNING '⚠️  Organisateur 11 : Abonnement non trouvé';
+        RETURN;
+    END IF;
+    
+    -- Vérifier si la facture de février 2026 existe déjà
+    SELECT id INTO v_facture_fevrier_id
+    FROM factures_abonnements
+    WHERE id_abonnement = v_abonnement_id
+    AND mois_facturation = '2026-02-01'::DATE
+    LIMIT 1;
+    
+    -- Si la facture n'existe pas, la créer
+    IF v_facture_fevrier_id IS NULL THEN
+        SELECT creer_facture_abonnement(
+            v_abonnement_id, 
+            '2026-02-01'::DATE, 
+            'paid', 
+            false, 
+            NULL, 
+            v_mode_paiement_code
+        ) INTO v_facture_id;
+        
+        IF v_facture_id IS NOT NULL THEN
+            RAISE NOTICE '✅ Organisateur 11 : Facture de février 2026 créée avec succès (ID: %)', v_facture_id;
+        ELSE
+            RAISE WARNING '⚠️  Organisateur 11 : Échec de la création de la facture de février 2026';
+        END IF;
+    ELSE
+        RAISE NOTICE 'ℹ️  Organisateur 11 : Facture de février 2026 existe déjà (ID: %)', v_facture_fevrier_id;
+    END IF;
+END $$;
+
 -- ============================================================
 -- 14. ABONNEMENTS FÉVRIER 2026
 -- ============================================================
