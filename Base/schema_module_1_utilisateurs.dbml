@@ -1,0 +1,155 @@
+// ============================================================
+// AIOLIA - MODULE 1 : UTILISATEURS, AUTHENTIFICATION, PROFILS & NOTIFICATIONS
+// Génération : 2025-12-17
+// Compatible avec dbdiagram.io
+// ============================================================
+
+Project aiolia_module_1 {
+  database_type: 'PostgreSQL'
+  
+  Note: '''
+    # MODULE 1 : Utilisateurs, Authentification, Profils & Notifications
+    
+    ## Modules inclus :
+    - Module 1 : UTILISATEURS & SESSIONS
+    - Module 2 : AUDIT
+    - Module 3 : PROFILS
+    - Module 14 : NOTIFICATIONS
+  '''
+}
+
+// ============================================================
+// MODULE 1 : UTILISATEURS & SESSIONS
+// ============================================================
+
+Table utilisateurs {
+  id bigint [pk, increment]
+  email text [not null, unique]
+  identifiant_connexion varchar(255) [not null]
+  methode_connexion varchar(20) [not null, default: 'password']
+  hash_mot_de_passe text [not null]
+  prenom text [not null]
+  nom text
+  telephone text
+  code_langue varchar(10) [not null, default: 'fr-FR']
+  url_avatar text
+  role varchar(20) [not null, default: 'user']
+  statut smallint [not null, default: 0]
+  email_verifie boolean [not null, default: false]
+  telephone_verifie boolean [not null, default: false]
+  cree_le timestamptz [not null, default: `now()`]
+  modifie_le timestamptz [not null, default: `now()`]
+  derniere_connexion_le timestamptz
+  
+  indexes {
+    email
+    (identifiant_connexion, methode_connexion) [unique]
+  }
+}
+
+Table jetons_rafraichissement {
+  id bigint [pk, increment]
+  id_utilisateur bigint [not null, ref: > utilisateurs.id]
+  hash_jeton text [not null, unique]
+  id_session uuid
+  adresse_ip inet
+  emis_le timestamptz [not null, default: `now()`]
+  expire_le timestamptz [not null]
+  revoque_le timestamptz
+  
+  indexes {
+    id_utilisateur
+  }
+}
+
+// ============================================================
+// MODULE 2 : AUDIT
+// ============================================================
+
+Table journaux_audit {
+  id bigint [pk, increment]
+  id_utilisateur_acteur bigint [ref: > utilisateurs.id]
+  portee varchar(120) [not null]
+  action varchar(120) [not null]
+  type_entite varchar(120)
+  id_entite bigint
+  modifications jsonb
+  adresse_ip inet
+  cree_le timestamptz [not null, default: `now()`]
+  
+  indexes {
+    portee
+    cree_le
+    (type_entite, id_entite)
+  }
+}
+
+// ============================================================
+// MODULE 3 : PROFILS
+// ============================================================
+
+Table profils_admin {
+  id bigint [pk, increment]
+  id_utilisateur bigint [not null, unique, ref: - utilisateurs.id]
+  nom_affichage text [not null]
+  nom_legal text
+  numero_tva text
+  email_support text
+  telephone_support varchar(20)
+  cree_le timestamptz [not null, default: `now()`]
+  modifie_le timestamptz [not null, default: `now()`]
+}
+
+Table profils_organisateurs {
+  id bigint [pk, increment]
+  id_utilisateur bigint [not null, unique, ref: - utilisateurs.id]
+  nom_affichage text [not null]
+  nom_legal text
+  numero_tva text
+  email_support text
+  telephone_support varchar(20)
+  url_site_web text
+  type_organisation varchar(20) [not null, default: 'individual']
+  statut_verification varchar(20) [not null, default: 'pending']
+  cree_le timestamptz [not null, default: `now()`]
+  modifie_le timestamptz [not null, default: `now()`]
+}
+
+// ============================================================
+// MODULE 14 : NOTIFICATIONS
+// ============================================================
+
+Table modeles_notifications {
+  id bigint [pk, increment]
+  code text [not null, unique]
+  canal varchar(20) [not null]
+  sujet text
+  corps text [not null]
+  cree_le timestamptz [not null, default: `now()`]
+}
+
+Table notifications {
+  id bigint [pk, increment]
+  id_utilisateur bigint [not null, ref: > utilisateurs.id]
+  id_modele bigint [ref: > modeles_notifications.id]
+  canal varchar(20) [not null]
+  statut varchar(20) [not null, default: 'pending']
+  charge_utile jsonb
+  programme_le timestamptz
+  envoye_le timestamptz
+  lu_le timestamptz
+  cree_le timestamptz [not null, default: `now()`]
+  
+  indexes {
+    (id_utilisateur, statut)
+  }
+}
+
+Table historique_notifications {
+  id bigint [pk, increment]
+  id_notification bigint [not null, ref: > notifications.id]
+  statut varchar(20) [not null]
+  message text
+  cree_le timestamptz [not null, default: `now()`]
+}
+

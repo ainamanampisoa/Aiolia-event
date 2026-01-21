@@ -1,19 +1,21 @@
 ## 🎪 MODULE 1 : GESTION DES ÉVÉNEMENTS (1 minute 30)
 
-commencons par le processus de la création d'un événement.dans cette interface , nous verrons comment un organisateur définit progressivement tous les paramètres de son événement.
+Commençons par le processus de création d'un événement. Dans cette interface, nous allons voir comment un organisateur définit, étape par étape, tous les paramètres de son événement.
 
-C'est là qu'on retrouve tous nos événements, y compris l'événement qu'on vient de créer avec le statut "brouillon".
-On peut visualiser les événements sous deux formes : soit en grille visuelle, soit en liste détaillée. On peut également utiliser des filtres ou les trier.
+C’est ici que l’on retrouve la liste de tous les événements, y compris celui que l’on vient de créer, dont le statut est « brouillon ».
+Les événements peuvent être visualisés sous deux formes : en grille visuelle ou en liste détaillée. Il est également possible de les filtrer et de les trier selon différents critères.
 
-Et si l'on souhaite une vue encore plus globale, on bascule sur le calendrier. Tous les événements s'affichent avec un code couleur selon leur statut. En cliquant sur un événement dans le calendrier, on accède directement à sa page de détail.
+Pour une vue globale, vous pouvez basculer sur l'affichage Calendrier. Tous les événements y sont affichés avec un code couleur qui indique leur statut. Un simple clic sur un événement permet d'accéder directement à sa page de détail.
 
-En haut, on a un aperçu global avec l'image, la capacité, le lieu et le statut, ainsi que ces trois onglets.
+La page de détail présente en haut un aperçu global avec l'image, la capacité, le lieu et le statut, ainsi que ces trois onglets :
 
-• Vue d’ensemble : on y trouve la description complète ainsi que la liste des options d’accessibilité activées.
-• Statistiques : cette section présente un résumé des ventes et des graphiques de performance.
-• Informations : elle regroupe tous les détails techniques.
+Vue d’ensemble : contient la description complète de l'événement et la liste des options d'accessibilité activées.
 
-on peut exporter les ventes en CSV pour analyser les données dans Excel, ou générer un rapport PDF complet de l'événement, très pratique pour un bilan ou une communication interne."
+Statistiques : présente un résumé des ventes et des graphiques de performance.
+
+Informations : regroupe tous les détails techniques.
+
+Puis, il est possible d'exporter les données : le rapport des ventes au format CSV pour une analyse dans Excel, ou un rapport PDF complet de l'événement, idéal pour un bilan ou une communication interne.
 
 
 
@@ -21,19 +23,19 @@ on peut exporter les ventes en CSV pour analyser les données dans Excel, ou gé
 
 ## 🎫 MODULE 2 : GESTION DES BILLETS (1 minute)
 
-En cliquant sur cette boutton ,on retrouve historique complet de vente
-
+En cliquant sur ce bouton, on accède à l'historique complet des ventes.
 et on peut les filtrer par date, par statut ou par type de billet.
 
-pour accèder à la détail complet du billet : informations,et surtout  le QR code unique qui lui est attaché.
+Depuis cette vue, il est possible d'accéder au détail complet de chaque billet : ses informations générales et, surtout, le QR code unique qui lui est associé.
 
-En parallèle, on gère les catégories de tickets sur cette interface. On peut ajuster les stocks et les tarifs.
+En parallèle, la gestion des catégories de billets s'effectue sur cette même interface. Il est possible d'y ajuster en temps réel les stocks disponibles et les tarifs.
 
-Pour la validation à l’entrée, on utilise la fonction scan du QR code. L’organisateur scanne le code, et le système affiche instantanément l’info du billet, avec un message coloré selon le status du billet.
+La validation à l'entrée se fait via la fonction de scan du QR code. Lorsque l'organisateur scanne un code, le système affiche instantanément les informations du billet, accompagnées d'un message coloré indiquant son statut (ex. : valide, déjà utilisé).
+ET Change automatiquement le statut du billet de "en attente" à "utilisé".
 
-On surveille aussi les alertes de stock : la plateforme nous prévient automatiquement quand une catégorie de billets des evenement en cours est sur le point de s’épuiser, pour qu’on puisse réagir vite.
+La plateforme assure également une surveillance proactive des stocks : une alerte automatique est déclenchée dès qu'une catégorie de billets pour un événement en cours est sur le point de s'épuiser.
 
-Dans cette section, on consulte l'ensemble des listes d'attente. En cliquant sur un bouton dédié, on peut traiter chaque demande utilisateur : soit l'accepter, soit la rejeter. Chaque action déclenche automatiquement l'envoi d'un email  à l'utilisateur concerné.
+ Cette section dédiée permet de consulter l'ensemble des listes d'attente. l'organisateur peut  traiter la demande en l'acceptant ou en la rejetant. Chaque action déclenche automatiquement l'envoi d'un email de notification à l'utilisateur concerné.
 
 ---
 

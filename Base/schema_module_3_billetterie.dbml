@@ -1,0 +1,323 @@
+// ============================================================
+// AIOLIA - MODULE 3 : BILLETTERIE, PANIERS, COMMANDES & PROMOTIONS
+// Génération : 2025-12-17
+// Compatible avec dbdiagram.io
+// ============================================================
+
+Project aiolia_module_3 {
+  database_type: 'PostgreSQL'
+  
+  Note: '''
+    # MODULE 3 : Billetterie, Paniers, Commandes & Promotions
+    
+    ## Modules inclus :
+    - Module 7 : BILLETTERIE
+    - Module 8 : PANIERS
+    - Module 9 : COMMANDES
+    - Module 12 : PROMOTIONS
+    
+    ## Tables partagées (références) :
+    - utilisateurs (Module 1)
+    - profils_organisateurs (Module 1)
+    - evenements (Module 2)
+    - sessions_evenements (Module 2)
+  '''
+}
+
+// ============================================================
+// TABLES PARTAGÉES (références)
+// ============================================================
+
+Table utilisateurs {
+  id bigint [pk, increment]
+  email text [not null, unique]
+  identifiant_connexion varchar(255) [not null]
+  methode_connexion varchar(20) [not null, default: 'password']
+  hash_mot_de_passe text [not null]
+  prenom text [not null]
+  nom text
+  telephone text
+  code_langue varchar(10) [not null, default: 'fr-FR']
+  url_avatar text
+  role varchar(20) [not null, default: 'user']
+  statut smallint [not null, default: 0]
+  email_verifie boolean [not null, default: false]
+  telephone_verifie boolean [not null, default: false]
+  cree_le timestamptz [not null, default: `now()`]
+  modifie_le timestamptz [not null, default: `now()`]
+  derniere_connexion_le timestamptz
+  
+  indexes {
+    email
+    (identifiant_connexion, methode_connexion) [unique]
+  }
+}
+
+Table profils_organisateurs {
+  id bigint [pk, increment]
+  id_utilisateur bigint [not null, unique, ref: - utilisateurs.id]
+  nom_affichage text [not null]
+  nom_legal text
+  numero_tva text
+  email_support text
+  telephone_support varchar(20)
+  url_site_web text
+  type_organisation varchar(20) [not null, default: 'individual']
+  statut_verification varchar(20) [not null, default: 'pending']
+  cree_le timestamptz [not null, default: `now()`]
+  modifie_le timestamptz [not null, default: `now()`]
+}
+
+Table evenements {
+  id bigint [pk, increment]
+  id_profil_organisateur bigint [ref: > profils_organisateurs.id]
+  id_categorie_principale bigint
+  id_type_evenement bigint
+  id_lieu bigint
+  id_espace_principal bigint
+  slug varchar(255) [not null, unique]
+  titre varchar(255) [not null]
+  sous_titre varchar(255)
+  description text
+  url_image_couverture text
+  statut varchar(20) [not null, default: 'draft']
+  visibilite varchar(20) [not null, default: 'public']
+  format_evenement varchar(20) [not null, default: 'in_person']
+  capacite integer
+  commence_le timestamptz [not null]
+  se_termine_le timestamptz [not null]
+  ventes_commencent_le timestamptz
+  ventes_se_terminent_le timestamptz
+  est_en_vedette boolean [not null, default: false]
+  code_qr text
+  cree_le timestamptz [not null, default: `now()`]
+  modifie_le timestamptz [not null, default: `now()`]
+  
+  indexes {
+    (commence_le, se_termine_le)
+    (statut, visibilite)
+    id_profil_organisateur
+  }
+}
+
+Table sessions_evenements {
+  id bigint [pk, increment]
+  id_evenement bigint [not null, ref: > evenements.id]
+  id_espace_lieu bigint
+  titre text
+  description text
+  commence_le timestamptz [not null]
+  se_termine_le timestamptz [not null]
+  capacite integer
+  cree_le timestamptz [not null, default: `now()`]
+}
+
+// ============================================================
+// MODULE 7 : BILLETTERIE
+// ============================================================
+
+Table configuration_segments_billets {
+  id bigint [pk, increment]
+  nom varchar(20) [not null, unique]
+  age_min integer
+  age_max integer
+  pourcentage_prix decimal(5,2) [not null, default: 0]
+  est_actif boolean [not null, default: true]
+  cree_le timestamptz [not null, default: `now()`]
+}
+
+Table configuration_categories_billets {
+  id bigint [pk, increment]
+  nom varchar(20) [not null, unique]
+  description text
+  pourcentage_prix decimal(5,2) [not null, default: 0]
+  est_actif boolean [not null, default: true]
+  cree_le timestamptz [not null, default: `now()`]
+}
+
+Table types_billets {
+  id bigint [pk, increment]
+  id_evenement bigint [not null, ref: > evenements.id]
+  id_session bigint [ref: > sessions_evenements.id]
+  id_configuration_categorie bigint [not null, ref: > configuration_categories_billets.id]
+  id_configuration_segment bigint [not null, ref: > configuration_segments_billets.id]
+  nom text [not null]
+  description text
+  devise char(3) [not null, default: 'MGA']
+  prix_de_base decimal(12,2) [not null]
+  frais_service decimal(12,2) [not null, default: 0]
+  taux_tva decimal(5,2) [not null, default: 0]
+  ventes_commencent_le timestamptz
+  ventes_se_terminent_le timestamptz
+  minimum_par_commande integer [not null, default: 1]
+  maximum_par_commande integer
+  cree_le timestamptz [not null, default: `now()`]
+  
+  indexes {
+    id_evenement
+  }
+}
+
+Table inventaire_billets {
+  id_type_billet bigint [pk, ref: - types_billets.id]
+  quantite_totale integer [not null]
+  quantite_reservee integer [not null, default: 0]
+  quantite_vendue integer [not null, default: 0]
+  modifie_le timestamptz [not null, default: `now()`]
+}
+
+Table historique_prix_billets {
+  id bigint [pk, increment]
+  id_type_billet bigint [not null, ref: > types_billets.id]
+  modifie_par bigint [ref: > utilisateurs.id]
+  prix_precedent decimal(12,2)
+  nouveau_prix decimal(12,2)
+  modifie_le timestamptz [not null, default: `now()`]
+  raison text
+}
+
+Table listes_attente_billets {
+  id bigint [pk, increment]
+  id_evenement bigint [not null, ref: > evenements.id]
+  id_type_billet bigint [not null, ref: > types_billets.id]
+  id_utilisateur bigint [not null, ref: > utilisateurs.id]
+  quantite_demandee integer [not null]
+  statut varchar(20) [not null, default: 'pending']
+  position integer
+  cree_le timestamptz [not null, default: `now()`]
+  notifie_le timestamptz
+  
+  indexes {
+    id_type_billet
+    id_utilisateur
+    (id_type_billet, statut)
+    (id_evenement, id_type_billet, id_utilisateur) [unique]
+  }
+}
+
+Table billets {
+  id bigint [pk, increment]
+  id_element_commande bigint [ref: > elements_commandes.id]
+  id_type_billet bigint [not null, ref: > types_billets.id]
+  id_utilisateur_proprietaire bigint [ref: > utilisateurs.id]
+  statut varchar(20) [not null, default: 'valid']
+  code_qr text [not null]
+  checksum_qr text
+  emis_le timestamptz [not null, default: `now()`]
+}
+
+// ============================================================
+// MODULE 8 : PANIERS
+// ============================================================
+
+Table paniers {
+  id bigint [pk, increment]
+  id_utilisateur bigint [ref: > utilisateurs.id]
+  statut varchar(20) [not null, default: 'active']
+  jeton_session text [unique]
+  devise char(3) [not null, default: 'MGA']
+  montant_total decimal(12,2) [not null, default: 0]
+  expire_le timestamptz
+  cree_le timestamptz [not null, default: `now()`]
+  modifie_le timestamptz [not null, default: `now()`]
+}
+
+Table elements_paniers {
+  id bigint [pk, increment]
+  id_panier bigint [not null, ref: > paniers.id]
+  id_type_billet bigint [not null, ref: > types_billets.id]
+  quantite integer [not null]
+  prix_unitaire decimal(12,2) [not null]
+  prix_total decimal(12,2) [not null]
+  cree_le timestamptz [not null, default: `now()`]
+  
+  indexes {
+    (id_panier, id_type_billet) [unique]
+  }
+}
+
+// ============================================================
+// MODULE 9 : COMMANDES
+// ============================================================
+
+Table commandes {
+  id bigint [pk, increment]
+  id_utilisateur bigint [not null, ref: > utilisateurs.id]
+  id_panier bigint [ref: > paniers.id]
+  statut varchar(20) [not null, default: 'pending']
+  montant_total decimal(12,2) [not null]
+  montant_remise decimal(12,2) [not null, default: 0]
+  devise char(3) [not null, default: 'MGA']
+  code_promotion text
+  paiement_due_le timestamptz
+  cree_le timestamptz [not null, default: `now()`]
+  modifie_le timestamptz [not null, default: `now()`]
+  
+  indexes {
+    id_utilisateur
+  }
+}
+
+Table elements_commandes {
+  id bigint [pk, increment]
+  id_commande bigint [not null, ref: > commandes.id]
+  id_type_billet bigint [not null, ref: > types_billets.id]
+  quantite integer [not null]
+  prix_unitaire decimal(12,2) [not null]
+  frais_service decimal(12,2) [not null, default: 0]
+  montant_tva decimal(12,2) [not null, default: 0]
+  montant_total decimal(12,2) [not null]
+  cree_le timestamptz [not null, default: `now()`]
+}
+
+Table historique_statuts_commandes {
+  id bigint [pk, increment]
+  id_commande bigint [not null, ref: > commandes.id]
+  statut_de varchar(20)
+  statut_vers varchar(20) [not null]
+  modifie_par bigint [ref: > utilisateurs.id]
+  modifie_le timestamptz [not null, default: `now()`]
+}
+
+// ============================================================
+// MODULE 12 : PROMOTIONS
+// ============================================================
+
+Table codes_promotionnels {
+  id bigint [pk, increment]
+  id_profil_organisateur bigint [ref: > profils_organisateurs.id]
+  code text [not null, unique]
+  type_promotion varchar(20) [not null]
+  valeur decimal(12,2) [not null]
+  utilisation_maximale_totale integer
+  utilisation_maximale_par_utilisateur integer
+  commence_le timestamptz
+  se_termine_le timestamptz
+  cree_le timestamptz [not null, default: `now()`]
+  date_suppression timestamptz
+}
+
+Table applications_promotions {
+  id bigint [pk, increment]
+  id_promotion bigint [not null, ref: > codes_promotionnels.id]
+  id_commande bigint [not null, ref: > commandes.id]
+  id_utilisateur bigint [not null, ref: > utilisateurs.id]
+  montant_remise decimal(12,2) [not null, default: 0]
+  applique_le timestamptz [not null, default: `now()`]
+  
+  indexes {
+    (id_promotion, id_commande) [unique]
+  }
+}
+
+Table regles_tarification {
+  id bigint [pk, increment]
+  id_type_billet bigint [not null, ref: > types_billets.id]
+  type_regle varchar(20) [not null]
+  valeur_seuil decimal(12,2)
+  valeur decimal(12,2)
+  commence_le timestamptz
+  se_termine_le timestamptz
+  cree_le timestamptz [not null, default: `now()`]
+}
+

@@ -513,3 +513,9 @@ Body:
 
 
 lien slide : https://www.canva.com/design/DAG9tgKvHJM/nMD5IrBJm-ZJvHXvJbUckQ/edit?ui=eyJBIjp7fX0
+
+
+dbdiagramm : utilisateur : https://dbdiagram.io/d/696f98c9bd82f5fce20a0be3
+             evenement  : https://dbdiagram.io/d/696f994dbd82f5fce20a1e1b
+             billets : https://dbdiagram.io/d/696f9a84bd82f5fce20a4720
+             abonnement : https://dbdiagram.io/d/696f9b57bd82f5fce20a6662

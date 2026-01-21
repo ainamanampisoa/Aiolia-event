@@ -1,0 +1,324 @@
+// ============================================================
+// AIOLIA - MODULE 2 : ÉVÉNEMENTS, LIEUX & RÉSEAUX SOCIAUX
+// Génération : 2025-12-17
+// Compatible avec dbdiagram.io
+// ============================================================
+
+Project aiolia_module_2 {
+  database_type: 'PostgreSQL'
+  
+  Note: '''
+    # MODULE 2 : Événements, Lieux & Réseaux sociaux
+    
+    ## Modules inclus :
+    - Module 5 : LIEUX
+    - Module 6 : ÉVÉNEMENTS
+    - Module 13 : FAVORIS & RÉSEAUX
+    
+    ## Tables partagées (références) :
+    - utilisateurs (Module 1)
+    - profils_organisateurs (Module 1)
+  '''
+}
+
+// ============================================================
+// TABLES PARTAGÉES (références)
+// ============================================================
+
+Table utilisateurs {
+  id bigint [pk, increment]
+  email text [not null, unique]
+  identifiant_connexion varchar(255) [not null]
+  methode_connexion varchar(20) [not null, default: 'password']
+  hash_mot_de_passe text [not null]
+  prenom text [not null]
+  nom text
+  telephone text
+  code_langue varchar(10) [not null, default: 'fr-FR']
+  url_avatar text
+  role varchar(20) [not null, default: 'user']
+  statut smallint [not null, default: 0]
+  email_verifie boolean [not null, default: false]
+  telephone_verifie boolean [not null, default: false]
+  cree_le timestamptz [not null, default: `now()`]
+  modifie_le timestamptz [not null, default: `now()`]
+  derniere_connexion_le timestamptz
+  
+  indexes {
+    email
+    (identifiant_connexion, methode_connexion) [unique]
+  }
+}
+
+Table profils_organisateurs {
+  id bigint [pk, increment]
+  id_utilisateur bigint [not null, unique, ref: - utilisateurs.id]
+  nom_affichage text [not null]
+  nom_legal text
+  numero_tva text
+  email_support text
+  telephone_support varchar(20)
+  url_site_web text
+  type_organisation varchar(20) [not null, default: 'individual']
+  statut_verification varchar(20) [not null, default: 'pending']
+  cree_le timestamptz [not null, default: `now()`]
+  modifie_le timestamptz [not null, default: `now()`]
+}
+
+// ============================================================
+// MODULE 5 : LIEUX
+// ============================================================
+
+Table lieux {
+  id bigint [pk, increment]
+  id_profil_organisateur bigint [ref: > profils_organisateurs.id]
+  nom text [not null]
+  slug varchar(255) [unique]
+  description text
+  ligne_adresse_1 text
+  ville text
+  code_pays char(2) [not null, default: 'MG']
+  latitude decimal(9,6)
+  longitude decimal(9,6)
+  email_contact text
+  telephone_contact varchar(20)
+  capacite integer
+  est_actif boolean [not null, default: true]
+  cree_le timestamptz [not null, default: `now()`]
+  modifie_le timestamptz [not null, default: `now()`]
+  
+  indexes {
+    (ville, code_pays)
+  }
+}
+
+Table espaces_lieux {
+  id bigint [pk, increment]
+  id_lieu bigint [not null, ref: > lieux.id]
+  nom text [not null]
+  description text
+  capacite integer
+  est_par_defaut boolean [not null, default: false]
+  cree_le timestamptz [not null, default: `now()`]
+  
+  indexes {
+    id_lieu
+  }
+}
+
+// ============================================================
+// MODULE 6 : ÉVÉNEMENTS
+// ============================================================
+
+Table categories_evenements {
+  id bigint [pk, increment]
+  slug varchar(120) [not null, unique]
+  libelle varchar(255) [not null]
+  description text
+  est_actif boolean [not null, default: true]
+  ordre_affichage integer [not null, default: 0]
+  cree_le timestamptz [not null, default: `now()`]
+}
+
+Table types_evenements {
+  id bigint [pk, increment]
+  slug varchar(120) [not null, unique]
+  libelle varchar(255) [not null]
+  description text
+  cree_le timestamptz [not null, default: `now()`]
+}
+
+Table evenements {
+  id bigint [pk, increment]
+  id_profil_organisateur bigint [ref: > profils_organisateurs.id]
+  id_categorie_principale bigint [ref: > categories_evenements.id]
+  id_type_evenement bigint [ref: > types_evenements.id]
+  id_lieu bigint [ref: > lieux.id]
+  id_espace_principal bigint [ref: > espaces_lieux.id]
+  slug varchar(255) [not null, unique]
+  titre varchar(255) [not null]
+  sous_titre varchar(255)
+  description text
+  url_image_couverture text
+  statut varchar(20) [not null, default: 'draft']
+  visibilite varchar(20) [not null, default: 'public']
+  format_evenement varchar(20) [not null, default: 'in_person']
+  capacite integer
+  commence_le timestamptz [not null]
+  se_termine_le timestamptz [not null]
+  ventes_commencent_le timestamptz
+  ventes_se_terminent_le timestamptz
+  est_en_vedette boolean [not null, default: false]
+  code_qr text
+  cree_le timestamptz [not null, default: `now()`]
+  modifie_le timestamptz [not null, default: `now()`]
+  
+  indexes {
+    (commence_le, se_termine_le)
+    (statut, visibilite)
+    id_profil_organisateur
+  }
+}
+
+Table liens_categories_evenements {
+  id_evenement bigint [not null, ref: > evenements.id]
+  id_categorie bigint [not null, ref: > categories_evenements.id]
+  
+  indexes {
+    (id_evenement, id_categorie) [pk]
+  }
+}
+
+Table tags_evenements {
+  id bigint [pk, increment]
+  slug text [not null, unique]
+  libelle text [not null]
+  cree_le timestamptz [not null, default: `now()`]
+}
+
+Table liens_tags_evenements {
+  id_evenement bigint [not null, ref: > evenements.id]
+  id_tag bigint [not null, ref: > tags_evenements.id]
+  
+  indexes {
+    (id_evenement, id_tag) [pk]
+  }
+}
+
+Table sessions_evenements {
+  id bigint [pk, increment]
+  id_evenement bigint [not null, ref: > evenements.id]
+  id_espace_lieu bigint [ref: > espaces_lieux.id]
+  titre text
+  description text
+  commence_le timestamptz [not null]
+  se_termine_le timestamptz [not null]
+  capacite integer
+  cree_le timestamptz [not null, default: `now()`]
+}
+
+Table medias_evenements {
+  id bigint [pk, increment]
+  id_evenement bigint [not null, ref: > evenements.id]
+  type_media varchar(20) [not null]
+  url text [not null]
+  texte_alternatif text
+  ordre_affichage integer [not null, default: 0]
+  est_public boolean [not null, default: true]
+  cree_le timestamptz [not null, default: `now()`]
+}
+
+Table vues_evenements {
+  id bigint [pk, increment]
+  id_evenement bigint [not null, ref: > evenements.id]
+  id_utilisateur bigint [ref: > utilisateurs.id]
+  adresse_ip inet
+  type_vue varchar(20) [not null, default: 'page']
+  cree_le timestamptz [not null, default: `now()`]
+  
+  indexes {
+    (id_evenement, cree_le)
+    id_utilisateur
+  }
+}
+
+Table organisateurs_evenements {
+  id_evenement bigint [not null, ref: > evenements.id]
+  id_profil_organisateur bigint [not null, ref: > profils_organisateurs.id]
+  role varchar(30) [not null, default: 'co_organisateur']
+  cree_le timestamptz [not null, default: `now()`]
+  
+  indexes {
+    (id_evenement, id_profil_organisateur) [pk]
+  }
+}
+
+Table langues {
+  id bigint [pk, increment]
+  code varchar(10) [not null, unique]
+  libelle varchar(255) [not null]
+  est_actif boolean [not null, default: true]
+  cree_le timestamptz [not null, default: `now()`]
+}
+
+Table liens_langues_evenements {
+  id_evenement bigint [not null, ref: > evenements.id]
+  id_langue bigint [not null, ref: > langues.id]
+  cree_le timestamptz [not null, default: `now()`]
+  
+  indexes {
+    (id_evenement, id_langue) [pk]
+  }
+}
+
+// ============================================================
+// MODULE 13 : FAVORIS & RÉSEAUX
+// ============================================================
+
+Table listes_souhaits {
+  id bigint [pk, increment]
+  id_utilisateur bigint [not null, ref: > utilisateurs.id]
+  titre text [not null, default: 'Favoris']
+  est_par_defaut boolean [not null, default: false]
+  cree_le timestamptz [not null, default: `now()`]
+  
+  indexes {
+    (id_utilisateur) [unique, note: 'WHERE est_par_defaut']
+  }
+}
+
+Table elements_listes_souhaits {
+  id_liste_souhaits bigint [not null, ref: > listes_souhaits.id]
+  id_evenement bigint [not null, ref: > evenements.id]
+  ajoute_le timestamptz [not null, default: `now()`]
+  
+  indexes {
+    (id_liste_souhaits, id_evenement) [pk]
+  }
+}
+
+Table participations_loteries_billets {
+  id bigint [pk, increment]
+  id_utilisateur bigint [not null, ref: > utilisateurs.id]
+  id_evenement bigint [ref: > evenements.id]
+  type_lot varchar(20) [not null]
+  valeur_lot decimal(12,2) [not null, default: 0]
+  statut varchar(20) [not null, default: 'pending']
+  cree_le timestamptz [not null, default: `now()`]
+  reclame_le timestamptz
+}
+
+Table connexions_utilisateurs {
+  id_utilisateur bigint [not null, ref: > utilisateurs.id]
+  id_utilisateur_cible bigint [not null, ref: > utilisateurs.id]
+  type_relation varchar(20) [not null, default: 'friend']
+  cree_le timestamptz [not null, default: `now()`]
+  
+  indexes {
+    (id_utilisateur, id_utilisateur_cible) [pk]
+  }
+}
+
+Table invitations_evenements {
+  id bigint [pk, increment]
+  id_evenement bigint [not null, ref: > evenements.id]
+  id_utilisateur_expediteur bigint [not null, ref: > utilisateurs.id]
+  id_utilisateur_destinataire bigint [ref: > utilisateurs.id]
+  email_destinataire text
+  statut varchar(20) [not null, default: 'pending']
+  jeton text [not null, unique]
+  envoye_le timestamptz [not null, default: `now()`]
+}
+
+Table cache_recommandations {
+  id_utilisateur bigint [not null, ref: > utilisateurs.id]
+  id_evenement bigint [not null, ref: > evenements.id]
+  score decimal(6,3) [not null]
+  raison text
+  genere_le timestamptz [not null, default: `now()`]
+  
+  indexes {
+    (id_utilisateur, id_evenement) [pk]
+  }
+}
+

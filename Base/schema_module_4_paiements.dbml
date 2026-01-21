@@ -1,0 +1,272 @@
+// ============================================================
+// AIOLIA - MODULE 4 : PAIEMENTS, ABONNEMENTS & TRANSACTIONS MOBILES
+// Génération : 2025-12-17
+// Compatible avec dbdiagram.io
+// ============================================================
+
+Project aiolia_module_4 {
+  database_type: 'PostgreSQL'
+  
+  Note: '''
+    # MODULE 4 : Paiements, Abonnements & Transactions mobiles
+    
+    ## Modules inclus :
+    - Module 4 : ABONNEMENTS
+    - Module 10 : PAIEMENTS & FACTURES
+    - Module 11 : TRANSACTIONS MOBILES
+    
+    ## Tables partagées (références) :
+    - utilisateurs (Module 1)
+    - profils_organisateurs (Module 1)
+    - commandes (Module 3)
+    - billets (Module 3)
+  '''
+}
+
+// ============================================================
+// TABLES PARTAGÉES (références)
+// ============================================================
+
+Table utilisateurs {
+  id bigint [pk, increment]
+  email text [not null, unique]
+  identifiant_connexion varchar(255) [not null]
+  methode_connexion varchar(20) [not null, default: 'password']
+  hash_mot_de_passe text [not null]
+  prenom text [not null]
+  nom text
+  telephone text
+  code_langue varchar(10) [not null, default: 'fr-FR']
+  url_avatar text
+  role varchar(20) [not null, default: 'user']
+  statut smallint [not null, default: 0]
+  email_verifie boolean [not null, default: false]
+  telephone_verifie boolean [not null, default: false]
+  cree_le timestamptz [not null, default: `now()`]
+  modifie_le timestamptz [not null, default: `now()`]
+  derniere_connexion_le timestamptz
+  
+  indexes {
+    email
+    (identifiant_connexion, methode_connexion) [unique]
+  }
+}
+
+Table profils_organisateurs {
+  id bigint [pk, increment]
+  id_utilisateur bigint [not null, unique, ref: - utilisateurs.id]
+  nom_affichage text [not null]
+  nom_legal text
+  numero_tva text
+  email_support text
+  telephone_support varchar(20)
+  url_site_web text
+  type_organisation varchar(20) [not null, default: 'individual']
+  statut_verification varchar(20) [not null, default: 'pending']
+  cree_le timestamptz [not null, default: `now()`]
+  modifie_le timestamptz [not null, default: `now()`]
+}
+
+Table commandes {
+  id bigint [pk, increment]
+  id_utilisateur bigint [not null, ref: > utilisateurs.id]
+  id_panier bigint
+  statut varchar(20) [not null, default: 'pending']
+  montant_total decimal(12,2) [not null]
+  montant_remise decimal(12,2) [not null, default: 0]
+  devise char(3) [not null, default: 'MGA']
+  code_promotion text
+  paiement_due_le timestamptz
+  cree_le timestamptz [not null, default: `now()`]
+  modifie_le timestamptz [not null, default: `now()`]
+  
+  indexes {
+    id_utilisateur
+  }
+}
+
+Table billets {
+  id bigint [pk, increment]
+  id_element_commande bigint
+  id_type_billet bigint [not null]
+  id_utilisateur_proprietaire bigint [ref: > utilisateurs.id]
+  statut varchar(20) [not null, default: 'valid']
+  code_qr text [not null]
+  checksum_qr text
+  emis_le timestamptz [not null, default: `now()`]
+}
+
+// ============================================================
+// MODULE 4 : ABONNEMENTS
+// ============================================================
+
+Table plans_abonnements {
+  id bigint [pk, increment]
+  code text [not null, unique]
+  nom text [not null]
+  description text
+  niveau varchar(20) [not null, default: 'basic']
+  periode_facturation varchar(20) [not null]
+  nombre_periodes integer [not null, default: 1]
+  devise char(3) [not null, default: 'MGA']
+  prix decimal(12,2) [not null]
+  taux_tva decimal(5,2) [not null, default: 20]
+  fonctionnalites jsonb
+  est_actif boolean [not null, default: true]
+  cree_le timestamptz [not null, default: `now()`]
+  
+  indexes {
+    (niveau, periode_facturation) [unique]
+  }
+}
+
+Table abonnements_organisateurs {
+  id bigint [pk, increment]
+  id_profil_organisateur bigint [not null, ref: > profils_organisateurs.id]
+  id_plan bigint [not null, ref: > plans_abonnements.id]
+  statut varchar(20) [not null, default: 'pending']
+  mois_prepayes_restants integer [not null, default: 0]
+  commence_le timestamptz [not null, default: `now()`]
+  debut_periode_courante timestamptz [not null, default: `now()`]
+  fin_periode_courante timestamptz
+  renouvellement_le timestamptz
+  annuler_a_la_fin_periode boolean [not null, default: false]
+  annule_le timestamptz
+  cree_le timestamptz [not null, default: `now()`]
+  
+  indexes {
+    (id_profil_organisateur, statut)
+  }
+}
+
+Table factures_abonnements {
+  id bigint [pk, increment]
+  numero_facture text [not null, unique]
+  id_abonnement bigint [not null, ref: > abonnements_organisateurs.id]
+  id_client bigint [not null, ref: > utilisateurs.id]
+  id_mode_paiement bigint [ref: > modes_paiement.id]
+  devise char(3) [not null, default: 'MGA']
+  montant_total decimal(12,2) [not null, default: 0]
+  mois_facturation date [not null]
+  statut varchar(20) [not null, default: 'draft']
+  emise_le timestamptz [not null, default: `now()`]
+  echeance_le timestamptz
+  payee_le timestamptz
+  cree_le timestamptz [not null, default: `now()`]
+  
+  indexes {
+    statut
+    (id_abonnement, mois_facturation)
+  }
+}
+
+Table elements_factures_abonnements {
+  id bigint [pk, increment]
+  id_facture bigint [not null, ref: > factures_abonnements.id]
+  id_plan bigint [ref: > plans_abonnements.id]
+  description text
+  quantite integer [not null, default: 1]
+  prix_unitaire decimal(12,2) [not null]
+  montant_total decimal(12,2) [not null]
+}
+
+Table historique_paiements_abonnements {
+  id bigint [pk, increment]
+  id_facture bigint [not null, ref: > factures_abonnements.id]
+  statut_de varchar(20)
+  statut_vers varchar(20) [not null]
+  modifie_le timestamptz [not null, default: `now()`]
+}
+
+// ============================================================
+// MODULE 10 : PAIEMENTS & FACTURES
+// ============================================================
+
+Table modes_paiement {
+  id bigint [pk, increment]
+  code varchar(50) [not null, unique]
+  libelle varchar(255) [not null]
+  description text
+  icone varchar(120)
+  est_actif boolean [not null, default: true]
+  ordre_affichage integer [not null, default: 0]
+  cree_le timestamptz [not null, default: `now()`]
+  
+  indexes {
+    code
+  }
+}
+
+Table factures_billets {
+  id bigint [pk, increment]
+  numero_facture text [not null, unique]
+  id_commande bigint [ref: > commandes.id]
+  id_client bigint [not null, ref: > utilisateurs.id]
+  id_mode_paiement bigint [ref: > modes_paiement.id]
+  devise char(3) [not null, default: 'MGA']
+  montant_total decimal(12,2) [not null, default: 0]
+  statut varchar(20) [not null, default: 'draft']
+  emise_le timestamptz [not null, default: `now()`]
+  echeance_le timestamptz
+  payee_le timestamptz
+  cree_le timestamptz [not null, default: `now()`]
+  
+  indexes {
+    statut
+    id_mode_paiement
+  }
+}
+
+Table historique_paiements_billets {
+  id bigint [pk, increment]
+  id_facture bigint [not null, ref: > factures_billets.id]
+  statut_de varchar(20)
+  statut_vers varchar(20) [not null]
+  modifie_le timestamptz [not null, default: `now()`]
+}
+
+// ============================================================
+// MODULE 11 : TRANSACTIONS MOBILES
+// ============================================================
+
+Table transactions_paiement_mobile {
+  id bigint [pk, increment]
+  reference_transaction text [not null, unique]
+  id_facture bigint [not null, ref: > factures_abonnements.id]
+  id_utilisateur bigint [not null, ref: > utilisateurs.id]
+  id_profil_organisateur bigint [not null, ref: > profils_organisateurs.id]
+  operateur_mobile varchar(20) [not null]
+  type_paiement varchar(20) [not null, default: 'abonnement']
+  numero_telephone varchar(20) [not null]
+  numero_transaction_operateur text
+  montant decimal(12,2) [not null]
+  devise char(3) [not null, default: 'MGA']
+  statut_paiement varchar(20) [not null, default: 'initiated']
+  initie_le timestamptz [not null, default: `now()`]
+  confirme_le timestamptz
+  expire_le timestamptz [not null, default: `now() + 24 hours`]
+  
+  indexes {
+    reference_transaction
+    id_facture
+    id_utilisateur
+    statut_paiement
+  }
+}
+
+// ============================================================
+// TABLE TRANSFERTS BILLETS (liée aux notifications)
+// ============================================================
+
+Table transferts_billets {
+  id bigint [pk, increment]
+  id_billet bigint [not null, ref: > billets.id]
+  id_utilisateur_de bigint [ref: > utilisateurs.id]
+  id_utilisateur_vers bigint [ref: > utilisateurs.id]
+  email_vers text
+  statut varchar(20) [not null, default: 'pending']
+  jeton text [not null, unique]
+  expire_le timestamptz
+  cree_le timestamptz [not null, default: `now()`]
+}
+
