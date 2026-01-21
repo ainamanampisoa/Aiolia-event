@@ -50,6 +50,7 @@ L'organisateur peut également consulter l'historique détaillé de l'utilisatio
 ## 💳 MODULE 4 : PAIEMENTS ET ABONNEMENTS (1 minute 30)
 
 Pour exploiter pleinement toutes les fonctionnalités de la plateforme, les organisateurs doivent souscrire à un abonnement.
+Après un paiement réussi, une facture est automatiquement générée et envoyée par email à l'organisateur.
 
 ---
 

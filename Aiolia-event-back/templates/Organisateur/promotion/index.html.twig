@@ -219,12 +219,14 @@
                             <a href="{{ path('organisateur_promotions_history', {id: promo.id}) }}" class="btn-promo-action" title="Historique">
                                 <i class="fas fa-history"></i>
                             </a>
+                            {% if hasEnded %}
                             <form method="post" action="{{ path('organisateur_promotions_delete', {id: promo.id}) }}" style="display: inline-flex;" class="promo-delete-form" data-promo-code="{{ promo.code }}">
                                 <input type="hidden" name="_token" value="{{ csrf_token('delete_promotion') }}">
                                 <button type="submit" class="btn-promo-action btn-promo-delete" title="Supprimer">
                                     <i class="fas fa-trash"></i>
                                 </button>
                             </form>
+                            {% endif %}
                         </div>
                     </div>
                 {% endfor %}
