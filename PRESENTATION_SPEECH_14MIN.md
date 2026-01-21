@@ -57,15 +57,15 @@ Après un paiement réussi, une facture est automatiquement générée et envoy�
 ## 📊 MODULE 5 : RAPPORTS ET STATISTIQUES (1 minute)
 
 
-Dans Statistiques, l'organisateur accède à un tableau de bord de suivi de performance présentant les statistiques de ventes globales. Il peut filtrer dynamiquement les résultats par période pour analyser l'évolution de ses indicateurs clés.
+Dans cette page Statistiques, l'organisateur accède à un tableau de bord de suivi de performance présentant les statistiques de ventes globales. Il peut filtrer dynamiquement les résultats par période pour analyser l'évolution de ses indicateurs clés.
 
-Dans cette page, l'organisateur consulte un rapport détaillé de tous ses événements présentés sous forme de tableaux synthétiques. Les données peuvent être filtrées par période pour une analyse temporelle ciblée.
+Dans cette page, l'organisateur consulte un rapport détaillé de tous ses événements, incluant un classement de ses trois événements les plus réussis. Les données peuvent être filtrées par période pour une analyse temporelle ciblée.
 
 Cette interface intègre également des fonctionnalités d'export de données avec deux options principales :
 
-Export CSV : permet une analyse approfondie et un traitement externe des données
+Export CSV : permet une analyse approfondie 
 
-Export PDF : génère un rapport structuré et professionnel pour diffusion et archivage
+Export PDF : génère un rapport structuré
 
 
 
@@ -76,7 +76,7 @@ Export PDF : génère un rapport structuré et professionnel pour diffusion et a
 
 Après la connexion, L'admin accède à un tableau de bord présentant les performances globales de la plateforme.
 
-Les indicateurs clés sont synthétisés en widgets pour une vue d'ensemble rapide, tandis que des graphiques interactifs permettent d'analyser les données. Ces visualisations sont filtrables par période.
+Les indicateurs clés sont synthétisés pour une vue d'ensemble rapide, tandis que des graphiques interactifs permettent d'analyser les données. Ces données sont filtrables par période.
 
 Cette interface permet à l'admin de valider les nouveaux organisateurs inscrits via le front-office. Après vérification du profil, Il approuve ou rejette la demande, ce qui déclenche l'envoi automatique d'un e-mail à l'organisateur.
 
@@ -86,12 +86,9 @@ Pour les comptes actifs, des boutons dédiés permettent d'accéder directement 
 
 ## 💰 MODULE 7 : FACTURATION (1 minute)
 
-Cet page de facturation centralise toute la gestion financière de la plateforme.
+Cette page de facturation centralise toute la gestion financière de la plateforme.
+Elle permet à l'administrateur de consulter l'ensemble des factures grâce à des filtres avancés. Chaque facture peut être examinée en détail et exportée au format PDF pour archivage ou partage.
 
-dans cette section l'admin peut  consulter toutes les factures avec des filtres avancés. Chaque facture peut être examinée en détail et exportée en PDF pour archivage ou partage.
-
-
-La génération mensuelle des factures pour tous les organisateurs actifs repose sur une tâche CRON planifiée.
 ---
 
 ## ⚙️ MODULE 8 : PARAMÈTRES UTILISATEUR (30 secondes)
@@ -104,5 +101,5 @@ Cette interface permet à chacun d'adapter l'interface à ses préférences. On 
 ---
 ## 💰 Ubix solaire 
 
-En parallèle de mon projet principal, j'ai contribué au développement d'Ubix Solar, une plateforme métier dédiée au photovoltaïque. Mon intervention a consisté à traiter des tickets de corrections et d'améliorations, avec 18 tickets déployés en production. Cette expérience m'a permis de renforcer mes compétences en cycle de développement complet sur l'écosystème Symfony/Angular.
+En parallèle de mon projet principal Aiolia-Event, j'ai contribué au développement quotidien d'Ubix Solar, une plateforme métier dédiée au secteur photovoltaïque. Mon rôle consistait principalement à traiter des tickets de correction de bugs et d'évolution fonctionnelle, avec 18 tickets déployés en production.
 
