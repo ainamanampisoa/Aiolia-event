@@ -16,12 +16,12 @@
 {% block body %}
     {% set orders = orders|default([]) %}
     {% set stats = stats|default({
-        total_spent: '0 MGA',
+        total_spent: '0 {{ 'profile_financial.currency_mga'|trans }}',
         confirmed_orders: 0,
         total_tickets: 0,
         vip_tickets: 0,
         upcoming_events: 0,
-        average_cart: '0 MGA'
+        average_cart: '0 {{ 'profile_financial.currency_mga'|trans }}'
     }) %}
 
     {# Script inline pour restaurer la position AVANT le rendu #}
@@ -48,49 +48,49 @@
         <div class="container">
             <header class="profile-history-header wow fadeIn" data-wow-delay="100ms">
                 <div>
-                    <h1>Historique d'achat</h1>
-                    <p>Consultez l'historique de toutes vos commandes et transactions</p>
+                    <h1>{{ 'profile_history.header_title'|trans }}</h1>
+                    <p>{{ 'profile_history.header_desc'|trans }}</p>
                 </div>
                 <div class="profile-history-actions">
                     <a href="{{ path('my_tickets') }}" class="btn-solid">
-                        <i class="fas fa-ticket-alt"></i> Mes billets
+                        <i class="fas fa-ticket-alt"></i> {{ 'profile_history.my_tickets_label'|trans }}
                     </a>
                     {% set exportParams = {
                         'search': searchQuery|default(''),
                         'status': currentStatusFilter|default('all'),
                         'payment_method': currentPaymentMethodFilter|default('all')
                     } %}
-                    <a href="{{ path('profile_history_export', exportParams) }}" class="btn-outline" title="Exporter l'historique en CSV">
-                        <i class="fas fa-file-csv"></i> Exporter en CSV
+                    <a href="{{ path('profile_history_export', exportParams) }}" class="btn-outline" title="{{ 'tickets.export_csv_title'|trans }}">
+                        <i class="fas fa-file-csv"></i> {{ 'tickets.export_csv'|trans }}
                     </a>
                 </div>
             </header>
 
             <section class="profile-history-summary wow fadeInUp" data-wow-delay="150ms">
                 <div class="summary-card">
-                    <span class="summary-label">Total dépensé</span>
+                    <span class="summary-label">{{ 'profile_history.total_spent_label'|trans }}</span>
                     <strong>{{ stats.total_spent }}</strong>
-                    <small>{{ stats.confirmed_orders }} commande(s)</small>
+                    <small>{{ 'profile_history.total_spent_suffix'|trans({'count': stats.confirmed_orders}) }}</small>
                 </div>
                 <div class="summary-card">
-                    <span class="summary-label">Billets achetés</span>
-                    <strong>{{ stats.total_tickets }} billet(s)</strong>
+                    <span class="summary-label">{{ 'profile_history.tickets_purchased_label'|trans }}</span>
+                    <strong>{{ stats.total_tickets }} {{ 'profile_history.tickets_singular'|trans }}</strong>
                     <small>
                         {% if stats.vip_tickets > 0 %}
-                            dont {{ stats.vip_tickets }} VIP
+                            {{ 'profile_history.tickets_vip_suffix'|trans({'vip': stats.vip_tickets}) }}
                         {% else %}
-                            Aucun billet VIP
+                            {{ 'profile_history.no_vip'|trans }}
                         {% endif %}
                     </small>
                 </div>
                 <div class="summary-card">
-                    <span class="summary-label">Événements à venir</span>
-                    <strong>{{ stats.upcoming_events }} événement(s)</strong>
+                    <span class="summary-label">{{ 'profile_history.upcoming_events_label'|trans }}</span>
+                    <strong>{{ stats.upcoming_events }} {{ 'profile_history.events_singular'|trans }}</strong>
                     <small>
                         {% if stats.upcoming_events > 0 %}
-                            Prochain événement bientôt
+                            {{ 'profile_history.next_event_soon'|trans }}
                         {% else %}
-                            Aucun événement à venir
+                            {{ 'profile_history.no_upcoming_events'|trans }}
                         {% endif %}
                     </small>
                 </div>
@@ -99,7 +99,7 @@
             {# Section du graphique d'évolution #}
             <section class="profile-history-chart wow fadeInUp" data-wow-delay="180ms">
                 <div class="chart-header">
-                    <h3>Évolution de vos dépenses</h3>
+                    <h3>{{ 'tickets.evolution_expenses'|trans }}</h3>
                     <div class="chart-actions">
                         <select id="chart-period" class="chart-select">
                             <option value="6" {{ chartPeriod|default(6) == 6 ? 'selected' : '' }}>6 mois</option>
@@ -121,14 +121,14 @@
                                 <div class="history-search">
                                     <i class="fas fa-search"></i>
                                     <input type="search" name="search" value="{{ searchQuery|default('') }}" 
-                                           placeholder="Rechercher un événement, numéro de commande..." 
+                                           placeholder="{{ 'tickets.search_placeholder_history'|trans }}" 
                                            class="search-input">
                                     {% if searchQuery %}
-                                        <button type="button" class="clear-search-btn" title="Effacer la recherche" onclick="clearSearch()">
+                                        <button type="button" class="clear-search-btn" title="{{ 'tickets.clear_search'|trans }}" onclick="clearSearch()">
                                             <i class="fas fa-times"></i>
                                         </button>
                                     {% endif %}
-                                    <button type="submit" class="search-submit-btn" title="Rechercher">
+                                    <button type="submit" class="search-submit-btn" title="{{ 'tickets.search'|trans }}">
                                         <i class="fas fa-arrow-right"></i>
                                     </button>
                                 </div>
@@ -197,7 +197,7 @@
                                 {# Bouton de réinitialisation #}
                                 <div class="filter-group filter-group-actions">
                                     <div class="filter-label" style="opacity: 0;">Actions</div>
-                                    <a href="{{ path('profile_history') }}" class="btn-reset-filters" title="Réinitialiser tous les filtres">
+                                    <a href="{{ path('profile_history') }}" class="btn-reset-filters" title="{{ 'tickets.reset_all_filters'|trans }}">
                                         <i class="fas fa-redo"></i>
                                         <span>Réinitialiser</span>
                                     </a>
@@ -211,13 +211,13 @@
                     <table class="modern-table">
                         <thead>
                             <tr>
-                                <th>Commande</th>
-                                <th>Événement</th>
-                                <th>Date et heure</th>
-                                <th>Billets</th>
-                                <th>Montant</th>
-                                <th>Paiement</th>
-                                <th class="align-right">Actions</th>
+                                <th>{{ 'profile_history.col_order'|trans }}</th>
+                                <th>{{ 'profile_history.col_event'|trans }}</th>
+                                <th>{{ 'profile_history.col_datetime'|trans }}</th>
+                                <th>{{ 'profile_history.col_tickets'|trans }}</th>
+                                <th>{{ 'profile_history.col_amount'|trans }}</th>
+                                <th>{{ 'profile_history.col_payment'|trans }}</th>
+                                <th class="align-right">{{ 'profile_history.col_actions'|trans }}</th>
                             </tr>
                         </thead>
                         <tbody>
@@ -225,11 +225,11 @@
                                 {% for order in orders %}
                                     <tr class="history-row {% if order.is_refunded %}is-refunded{% elseif order.status_key == 'paid' %}is-confirmed{% elseif order.status_key == 'cancelled' %}is-cancelled{% elseif order.status_key == 'failed' %}is-failed{% else %}is-pending{% endif %}">
                                         <td>
-                                            <div class="order-code">{{ order.code }}{% if order.is_cart is defined and order.is_cart %}<i class="fas fa-shopping-cart" style="margin-left: 5px; color: #4A90E2;" title="Dans le panier"></i>{% endif %}</div>
+                                            <div class="order-code">{{ order.code }}{% if order.is_cart is defined and order.is_cart %}<i class="fas fa-shopping-cart" style="margin-left: 5px; color: #4A90E2;" title="{{ 'tickets.in_cart'|trans }}"></i>{% endif %}</div>
                                             <span class="order-status">{{ order.status }}</span>
                                             {% if order.is_cart is defined and order.is_cart %}
                                                 <small style="display: block; margin-top: 4px; color: #4A90E2; font-size: 11px;">
-                                                    <i class="fas fa-info-circle"></i> En attente de paiement
+                                                    <i class="fas fa-info-circle"></i> {{ 'profile_history.pending_payment'|trans }}
                                                 </small>
                                             {% elseif order.is_refunded and order.refund_reason %}
                                                 <small class="refund-reason" style="display: block; margin-top: 4px; color: #e74c3c; font-size: 11px;">
@@ -249,7 +249,7 @@
                                             </div>
                                         </td>
                                         <td>
-                                            <span class="tickets-badge">{{ order.tickets }} billet(s)</span>
+                                            <span class="tickets-badge">{{ 'profile_history.tickets_badge'|trans({'count': order.tickets}) }}</span>
                                         </td>
                                         <td>
                                             <span class="amount-value">{{ order.amount }}</span>
@@ -266,17 +266,17 @@
                                                 <a href="{{ path('profile_history_invoice', {id: order.id}) }}" 
                                                        class="btn-icon btn-icon-pdf" 
                                                    target="_blank"
-                                                   title="Télécharger la facture PDF">
+                                                   title="{{ 'tickets.download_invoice_pdf'|trans }}">
                                                     <i class="fas fa-file-pdf"></i>
                                                 </a>
                                                 <button type="button" 
                                                         class="btn-icon btn-icon-delete" 
                                                         data-order-id="{{ order.id }}"
-                                                        title="Supprimer cette commande">
+                                                        title="{{ 'tickets.delete_order'|trans }}">
                                                     <i class="fas fa-trash"></i>
                                                 </button>
                                             {% else %}
-                                                <span class="btn-icon" style="opacity: 0.5; cursor: default;" title="Cette commande est dans votre panier">
+                                                <span class="btn-icon" style="opacity: 0.5; cursor: default;" title="{{ 'tickets.order_in_cart_tooltip'|trans }}">
                                                     <i class="fas fa-shopping-cart"></i>
                                                 </span>
                                             {% endif %}
@@ -289,10 +289,10 @@
                                     <td colspan="7" class="empty-state">
                                         <div class="empty-content">
                                             <i class="fas fa-shopping-bag"></i>
-                                            <p>Aucune commande trouvée</p>
+                                            <p>{{ 'tickets.no_orders_found'|trans }}</p>
                                             {% if searchQuery or currentStatusFilter != 'all' or currentPaymentMethodFilter != 'all' or currentDateFilter != 'all' %}
                                                 <a href="{{ path('profile_history') }}" class="btn-solid btn-small">
-                                                    <i class="fas fa-redo"></i> Réinitialiser les filtres
+                                                    <i class="fas fa-redo"></i> {{ 'tickets.reset_filters'|trans }}
                                                 </a>
                                             {% endif %}
                                         </div>
@@ -348,18 +348,18 @@
                 <div class="delete-modal-icon">
                     <i class="fas fa-exclamation-triangle"></i>
                 </div>
-                <h3>Confirmer la suppression</h3>
+                <h3>{{ 'tickets.confirm_delete'|trans }}</h3>
             </div>
             <div class="delete-modal-body">
-                <p>Êtes-vous sûr de vouloir supprimer cette commande de votre historique ?</p>
-                <p class="delete-modal-warning">Cette action est irréversible.</p>
+                <p>{{ 'tickets.confirm_delete_message'|trans }}</p>
+                <p class="delete-modal-warning">{{ 'tickets.confirm_delete_warning'|trans }}</p>
             </div>
             <div class="delete-modal-footer">
                 <button type="button" class="btn-modal-cancel" id="deleteModalCancel">
-                    <i class="fas fa-times"></i> Annuler
+                    <i class="fas fa-times"></i> {{ 'tickets.cancel'|trans }}
                 </button>
                 <button type="button" class="btn-modal-confirm" id="deleteModalConfirm">
-                    <i class="fas fa-trash"></i> Supprimer
+                    <i class="fas fa-trash"></i> {{ 'tickets.delete'|trans }}
                 </button>
             </div>
         </div>
@@ -372,7 +372,7 @@
                 <div class="delete-modal-icon" style="background: linear-gradient(135deg, rgba(231, 76, 60, 0.15), rgba(192, 57, 43, 0.15)); border-color: rgba(231, 76, 60, 0.2);">
                     <i class="fas fa-times-circle" style="color: #e74c3c;"></i>
                 </div>
-                <h3>Erreur</h3>
+                <h3>{{ 'tickets.error'|trans }}</h3>
             </div>
             <div class="delete-modal-body">
                 <p id="errorModalMessage"></p>
@@ -611,7 +611,7 @@
                 .then(response => {
                     if (!response.ok) {
                         return response.json().then(data => {
-                            throw new Error(data.message || 'Erreur lors de la suppression');
+                            throw new Error(data.message || '{{ 'tickets.error_delete'|trans }}');
                         });
                     }
                     return response.json();
@@ -649,7 +649,7 @@
                         }
                     } else {
                         // Afficher le message d'erreur du serveur
-                        showErrorModal(data.message || 'Une erreur est survenue lors de la suppression');
+                        showErrorModal(data.message || '{{ 'tickets.error_occurred'|trans }}');
                         if (deleteButton) {
                             deleteButton.disabled = false;
                             deleteButton.style.opacity = '1';
@@ -661,7 +661,7 @@
                     // Sauvegarder la référence avant de fermer le modal
                     const deleteButton = currentDeleteButton;
                     closeDeleteModal();
-                    showErrorModal(error.message || 'Erreur lors de la suppression. Veuillez réessayer.');
+                    showErrorModal(error.message || '{{ 'tickets.error_delete_retry'|trans }}');
                     if (deleteButton) {
                         deleteButton.disabled = false;
                         deleteButton.style.opacity = '1';
@@ -670,7 +670,7 @@
                 .finally(() => {
                     if (deleteModalConfirm) {
                         deleteModalConfirm.disabled = false;
-                        deleteModalConfirm.innerHTML = '<i class="fas fa-trash"></i> Supprimer';
+                        deleteModalConfirm.innerHTML = '<i class="fas fa-trash"></i> {{ 'tickets.delete'|trans }}';
                     }
                 });
                 });
@@ -710,7 +710,7 @@
             const chartData = {
                 labels: chartDataFromServer.labels || [],
                 datasets: [{
-                    label: 'Dépenses (MGA)',
+                    label: '{{ 'profile_financial.expenses_label'|trans }} ({{ 'profile_financial.currency_mga'|trans }})',
                     data: chartDataFromServer.data || [],
                     borderColor: '#1F2D3D',
                     backgroundColor: 'rgba(31, 45, 61, 0.1)',
@@ -753,7 +753,7 @@
                             borderWidth: 1,
                             callbacks: {
                                 label: function(context) {
-                                    return `Dépenses: ${context.parsed.y.toLocaleString('fr-FR')} MGA`;
+                                    return `{{ 'profile_financial.expenses_label'|trans }}: ${context.parsed.y.toLocaleString('fr-FR')} {{ 'profile_financial.currency_mga'|trans }}`;
                                 }
                             }
                         }
@@ -768,7 +768,7 @@
                             ticks: {
                                 stepSize: Math.ceil(yAxisMax / 5 / 1000) * 1000,
                                 callback: function(value) {
-                                    return value.toLocaleString('fr-FR') + ' MGA';
+                                    return value.toLocaleString('fr-FR') + ' {{ 'profile_financial.currency_mga'|trans }}';
                                 }
                             }
                         },
@@ -833,7 +833,7 @@
                     if (!response.ok) {
                         if (response.status === 401) {
                             // Si 401, essayer de recharger la page pour rafraîchir la session
-                            console.warn('Session expirée, rechargement de la page...');
+                            console.warn('{{ 'tickets.session_expired'|trans }}');
                             window.location.reload();
                             // Lancer une erreur pour arrêter la chaîne de promesses
                             throw new Error('SESSION_EXPIRED');
@@ -877,7 +877,7 @@
                             ticks: {
                                 stepSize: Math.ceil(yAxisMax / 5 / 1000) * 1000,
                                 callback: function(value) {
-                                    return value.toLocaleString('fr-FR') + ' MGA';
+                                    return value.toLocaleString('fr-FR') + ' {{ 'profile_financial.currency_mga'|trans }}';
                                 }
                             }
                         };

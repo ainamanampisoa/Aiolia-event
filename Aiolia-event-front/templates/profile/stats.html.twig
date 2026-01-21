@@ -102,8 +102,8 @@
                 {# Graphique 1: Budget par catégorie (Chart.js Doughnut) #}
                 <div class="chart-card wow fadeInUp" data-wow-delay="200ms">
                     <header>
-                        <h2>Budget par catégorie</h2>
-                        <span class="chart-period">Répartition de vos dépenses par type d'événement</span>
+                        <h2>{{ 'profile_stats.chart_category_title'|trans }}</h2>
+                        <span class="chart-period">{{ 'profile_stats.chart_category_desc'|trans }}</span>
                     </header>
                     <div class="chart-placeholder donut" data-categories='{{ eventTypeDistribution|slice(0, 8)|map(d => {"category": d.category, "percentage": d.percentage, "total_amount": d.total_amount, "order_count": d.order_count})|json_encode|raw }}'>
                         {% if eventTypeDistribution|length > 0 %}
@@ -111,7 +111,7 @@
                         {% else %}
                             <div class="no-data-message">
                                 <i class="fas fa-chart-pie"></i>
-                                <p>Aucune catégorie disponible</p>
+                                <p>{{ 'profile_stats.no_category_data'|trans }}</p>
                             </div>
                         {% endif %}
                     </div>
@@ -120,8 +120,8 @@
                 {# Graphique 2: Top 3 événements achetés (Liste détaillée uniquement) #}
                 <div class="chart-card wow fadeInUp" data-wow-delay="240ms">
                     <header>
-                        <h2>Top 3 événements achetés</h2>
-                        <span class="chart-period">Vos événements favoris par dépense</span>
+                        <h2>{{ 'profile_stats.chart_top3_title'|trans }}</h2>
+                        <span class="chart-period">{{ 'profile_stats.chart_top3_desc'|trans }}</span>
                     </header>
                     <div class="chart-placeholder top-events" style="min-height: 300px; position: relative;">
                         {% if topEvents|length > 0 %}
@@ -157,11 +157,11 @@
                                                 </span>
                                                 <span class="event-tickets" style="color: rgba(31, 45, 61, 0.7); display: flex; align-items: center; gap: 6px;">
                                                     <i class="fas fa-ticket-alt" style="color: #50C878;"></i>
-                                                    {{ event.total_tickets }} billet{{ event.total_tickets > 1 ? 's' : '' }}
+                                                    {{ event.total_tickets }} {{ event.total_tickets > 1 ? 'profile_stats.ticket_plural'|trans : 'profile_stats.ticket_singular'|trans }}
                                                 </span>
                                                 <span class="event-purchases" style="color: rgba(31, 45, 61, 0.7); display: flex; align-items: center; gap: 6px;">
                                                     <i class="fas fa-shopping-cart" style="color: #FF6B6B;"></i>
-                                                    {{ event.purchase_count }} achat{{ event.purchase_count > 1 ? 's' : '' }}
+                                                    {{ event.purchase_count }} {{ event.purchase_count > 1 ? 'profile_stats.purchase_plural'|trans : 'profile_stats.purchase_singular'|trans }}
                                                 </span>
                                             </div>
                                         </div>
@@ -171,8 +171,8 @@
                         {% else %}
                             <div class="no-data-message">
                                 <i class="fas fa-chart-bar"></i>
-                                <p>Aucun événement acheté pour le moment</p>
-                                <a href="{{ path('events') }}" class="btn-solid">Découvrir les événements</a>
+                                <p>{{ 'profile_stats.no_events_purchased'|trans }}</p>
+                                <a href="{{ path('events') }}" class="btn-solid">{{ 'profile_ticket_chance.discover_events'|trans }}</a>
                             </div>
                         {% endif %}
                     </div>
@@ -207,10 +207,10 @@
                                 <span>{{ category.category }}</span>
                             {% endfor %}
                         </div>
-                        <a href="{{ path('events') }}" class="btn-solid">Découvrir les événements</a>
+                        <a href="{{ path('events') }}" class="btn-solid">{{ 'profile_ticket_chance.discover_events'|trans }}</a>
                     {% else %}
-                        <p style="color: rgba(17, 34, 68, 0.6); margin: 16px 0;">Explorez nos événements pour recevoir des suggestions personnalisées</p>
-                        <a href="{{ path('events') }}" class="btn-solid">Découvrir les événements</a>
+                        <p style="color: rgba(17, 34, 68, 0.6); margin: 16px 0;">{{ 'profile_stats.explore_events_message'|trans }}</p>
+                        <a href="{{ path('events') }}" class="btn-solid">{{ 'profile_ticket_chance.discover_events'|trans }}</a>
                     {% endif %}
                 </div>
             </section>

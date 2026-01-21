@@ -157,58 +157,58 @@
                         <i class="fas fa-check"></i>
                     </div>
                     
-                    <h1 class="confirmation-title wow fadeIn" data-wow-delay="400ms">Paiement confirmé !</h1>
+                    <h1 class="confirmation-title wow fadeIn" data-wow-delay="400ms">{{ 'tickets.payment_confirmed'|trans }}</h1>
                     <p class="confirmation-message wow fadeIn" data-wow-delay="500ms">
-                        Votre paiement a été traité avec succès. Vos billets sont maintenant disponibles dans votre compte.
+                        {{ 'tickets.payment_success'|trans }}
                     </p>
                     
                     {% if order_code is defined %}
                     <div class="order-details-box wow fadeInUp" data-wow-delay="600ms">
                         <div class="order-detail-row">
                             <span class="order-detail-label">
-                                <i class="fas fa-receipt"></i> Numéro de commande
+                                <i class="fas fa-receipt"></i> {{ 'tickets.order_number'|trans }}
                             </span>
                             <span class="order-detail-value order-code">{{ order_code }}</span>
                         </div>
                         {% if tickets_count is defined %}
                         <div class="order-detail-row">
                             <span class="order-detail-label">
-                                <i class="fas fa-ticket-alt"></i> Nombre de billets
+                                <i class="fas fa-ticket-alt"></i> {{ 'tickets.tickets_count_label'|trans }}
                             </span>
-                            <span class="order-detail-value">{{ tickets_count }} billet(s)</span>
+                            <span class="order-detail-value">{{ 'tickets.tickets_count_singular'|trans({'count': tickets_count}) }}</span>
                         </div>
                         {% endif %}
                         {% if total_amount is defined %}
                         <div class="order-detail-row">
                             <span class="order-detail-label">
-                                <i class="fas fa-money-bill-wave"></i> Montant total
+                                <i class="fas fa-money-bill-wave"></i> {{ 'tickets.total_amount'|trans }}
                             </span>
-                            <span class="order-detail-value">{{ total_amount|number_format(0, ',', ' ') }} MGA</span>
+                            <span class="order-detail-value">{{ total_amount|number_format(0, ',', ' ') }} {{ 'profile_financial.currency_mga'|trans }}</span>
                         </div>
                         {% endif %}
                         <div class="order-detail-row">
                             <span class="order-detail-label">
-                                <i class="fas fa-info-circle"></i> Statut
+                                <i class="fas fa-info-circle"></i> {{ 'tickets.status'|trans }}
                             </span>
                             <span class="status-badge">
-                                <i class="fas fa-check-circle"></i> Payé
+                                <i class="fas fa-check-circle"></i> {{ 'tickets.paid'|trans }}
                             </span>
                         </div>
                     </div>
                     {% endif %}
                     
                     <p class="info-note wow fadeIn" data-wow-delay="700ms">
-                        <i class="fas fa-envelope"></i> Un email de confirmation vous a été envoyé avec les détails de votre commande.
+                        <i class="fas fa-envelope"></i> {{ 'tickets.confirmation_email_sent'|trans }}
                     </p>
                     
                     <div class="confirmation-actions wow fadeInUp" data-wow-delay="800ms">
                         <a href="{{ path('my_tickets') }}" class="btn-confirmation btn-primary-confirm">
                             <i class="fas fa-ticket-alt"></i>
-                            Voir mes billets
+                            {{ 'tickets.view_my_tickets'|trans }}
                         </a>
                         <a href="{{ path('events') }}" class="btn-confirmation btn-secondary-confirm">
                             <i class="fas fa-calendar-alt"></i>
-                            Découvrir d'autres événements
+                            {{ 'tickets.discover_other_events'|trans }}
                         </a>
                     </div>
                 </div>

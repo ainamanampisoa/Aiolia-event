@@ -61,7 +61,7 @@
                                              data-event-date="{{ item.event.starts_at|date('Y-m-d H:i:s') }}">
                                             <i class="fas fa-clock"></i>
                                             <span>{{ 'tickets.cart_expires_in'|trans }}</span>
-                                            <span class="timer-value" id="timer-{{ item.event.id }}-{{ loop.index0 }}">Calcul...</span>
+                                            <span class="timer-value" id="timer-{{ item.event.id }}-{{ loop.index0 }}">{{ 'tickets.calculating'|trans }}</span>
                                         </div>
                                     </div>
                             </div>
@@ -71,7 +71,7 @@
                                 <!-- Section quantité -->
                                 <div class="quantity-section">
                                     <div class="quantity-header">
-                                        <h4>Quantités des billets</h4>
+                                        <h4>{{ 'tickets.quantities_title'|trans }}</h4>
                                     </div>
                                     
                                     {# Vérifier les prix disponibles #}
@@ -90,7 +90,7 @@
                                         {# Cas : Type "all" ou aucun type - afficher juste "Quantité" #}
                                         <div class="quantity-control" style="justify-content: center;">
                                             <label style="text-align: center; width: 100%;">
-                                                <i class="fas fa-ticket-alt"></i> Quantité
+                                                <i class="fas fa-ticket-alt"></i> {{ 'tickets.quantity'|trans }}
                                             </label>
                                             <div class="quantity-input-group">
                                                 <div class="numbers-row">
@@ -100,9 +100,9 @@
                                                 </div>
                                                 <div class="price-indicator">
                                                     {% if uniquePrice > 0 %}
-                                                        {{ uniquePrice|number_format(0, ',', ' ') }}MGA / unité
+                                                        {{ uniquePrice|number_format(0, ',', ' ') }}{{ 'profile_financial.currency_mga'|trans }} {{ 'tickets.per_unit'|trans }}
                                                     {% else %}
-                                                        Prix non disponible
+                                                        {{ 'tickets.price_not_available'|trans }}
                                                     {% endif %}
                                                 </div>
                                             </div>
@@ -113,7 +113,7 @@
                                         {# Quantité adultes - afficher seulement si prix adulte existe #}
                                         {% if hasAdultPrice %}
                                         <div class="quantity-control">
-                                            <label><i class="fas fa-user"></i> Billets Adultes</label>
+                                            <label><i class="fas fa-user"></i> {{ 'tickets.adult_tickets_label'|trans }}</label>
                                             <div class="quantity-input-group">
                                                 <div class="numbers-row">
                                                     <button type="button" class="dec button" data-type="adult">-</button>
@@ -121,7 +121,7 @@
                                                     <button type="button" class="inc button" data-type="adult">+</button>
                                                 </div>
                                                 <div class="price-indicator">
-                                                    {{ item.event.adultPrice|number_format(0, ',', ' ') }}MGA / unité
+                                                    {{ item.event.adultPrice|number_format(0, ',', ' ') }}{{ 'profile_financial.currency_mga'|trans }} {{ 'tickets.per_unit'|trans }}
                                                 </div>
                                             </div>
                                         </div>
@@ -133,7 +133,7 @@
                                         <div class="quantity-control">
                                             <label>
                                                 <i class="fas fa-child"></i> 
-                                                Billets Enfants
+                                                {{ 'tickets.child_tickets_label'|trans }}
                                             </label>
                                             <div class="quantity-input-group">
                                                 <div class="numbers-row">
@@ -144,7 +144,7 @@
                                                     <button type="button" class="inc button" data-type="child">+</button>
                                                 </div>
                                                 <div class="price-indicator">
-                                                    {{ item.event.childPrice|number_format(0, ',', ' ') }}MGA / unité
+                                                    {{ item.event.childPrice|number_format(0, ',', ' ') }}{{ 'profile_financial.currency_mga'|trans }} {{ 'tickets.per_unit'|trans }}
                                                 </div>
                                             </div>
                                         </div>
@@ -153,8 +153,8 @@
                                         <div class="quantity-control disabled">
                                             <label>
                                                 <i class="fas fa-child"></i> 
-                                                Billets Enfants
-                                                <span style="color: #FF0000; font-size: 12px; margin-left: 5px; font-weight: normal;">(Non disponible)</span>
+                                                {{ 'tickets.child_tickets_label'|trans }}
+                                                <span style="color: #FF0000; font-size: 12px; margin-left: 5px; font-weight: normal;">{{ 'tickets.not_available'|trans }}</span>
                                             </label>
                                             <div class="quantity-input-group">
                                                 <div class="numbers-row">
@@ -191,14 +191,14 @@
                                     {% if isAllType %}
                                         {# Affichage pour type "all" - juste le nombre total de billets #}
                                         <div class="summary-item">
-                                            <span class="total-quantity">{{ totalQuantity }} billet(s)</span>
+                                            <span class="total-quantity">{{ 'tickets.total_quantity'|trans({'count': totalQuantity}) }}</span>
                                             <span class="total-price">{{ (totalQuantity * unitPrice)|number_format(0, ',', ' ') }}MGA</span>
                                         </div>
                                     {% else %}
                                         {# Affichage séparé adulte/enfant #}
                                         {% if item.adultQuantity > 0 or (hasAdultPrice and not hasChildPrice) %}
                                         <div class="summary-item">
-                                            <span class="adult-quantity">{{ item.adultQuantity }} billet(s) adulte</span>
+                                            <span class="adult-quantity">{{ 'tickets.adult_quantity'|trans({'count': item.adultQuantity}) }}</span>
                                             <span class="adult-total">
                                                 {% if item.event.adultPrice and item.event.adultPrice > 0 %}
                                                     {{ (item.adultQuantity * item.event.adultPrice)|number_format(0, ',', ' ') }}MGA
@@ -211,7 +211,7 @@
                                         
                                         {% if item.childQuantity > 0 or (hasChildPrice and not hasAdultPrice) %}
                                         <div class="summary-item">
-                                            <span class="child-quantity">{{ item.childQuantity }} billet(s) enfant</span>
+                                            <span class="child-quantity">{{ 'tickets.child_quantity'|trans({'count': item.childQuantity}) }}</span>
                                             <span class="child-total">
                                                 {% if item.event.childPrice and item.event.childPrice > 0 %}
                                                     {{ (item.childQuantity * item.event.childPrice)|number_format(0, ',', ' ') }}MGA
@@ -239,11 +239,11 @@
                                     </div>
                                     
                                     <div class="summary-actions">
-                                        <button class="btn-icon btn-remove remove-item" data-event-id="{{ item.event.id }}-{{ loop.index0 }}" data-cart-key="{{ item.cart_key|default('') }}" title="Retirer du panier">
+                                        <button class="btn-icon btn-remove remove-item" data-event-id="{{ item.event.id }}-{{ loop.index0 }}" data-cart-key="{{ item.cart_key|default('') }}" title="{{ 'tickets.remove_from_cart'|trans }}">
                                             <i class="fas fa-trash"></i>
                                         </button>
                                         <!-- ICÔNE VERTE POUR VALIDER -->
-                                        <button class="btn-icon btn-validate validate-event" data-event-id="{{ item.event.id }}-{{ loop.index0 }}" title="Valider cet événement">
+                                        <button class="btn-icon btn-validate validate-event" data-event-id="{{ item.event.id }}-{{ loop.index0 }}" title="{{ 'tickets.validate_event'|trans }}">
                                             <i class="fas fa-check"></i>
                                         </button>
                                     </div>
@@ -252,10 +252,10 @@
                                 <!-- Code promo -->
                                 <div class="promo-section">
                                     <div class="cart-line-promo">
-                                        <input type="text" class="chp" placeholder="Entrez un code promo pour cet événement">
+                                        <input type="text" class="chp" placeholder="{{ 'tickets.enter_promo_code'|trans }}">
                                         <button class="btn-promo apply-promo">
                                             <i class="fas fa-tag"></i>
-                                            Appliquer
+                                            {{ 'tickets.apply_promo'|trans }}
                                         </button>
                                     </div>
                                 </div>
@@ -268,11 +268,11 @@
                     <div class="global-actions wow fadeInUp" data-wow-delay="400ms">
                         <a href="{{ path('events') }}" class="btn-continue">
                             <i class="fas fa-arrow-left"></i>
-                            Continuer mes achats
+                            {{ 'tickets.continue_shopping'|trans }}
                         </a>
                         <button class="btn-checkout-all">
                             <i class="fas fa-lock"></i>
-                            Valider tout le panier
+                            {{ 'tickets.validate_all_cart'|trans }}
                         </button>
                     </div>
                     
@@ -851,7 +851,7 @@
             }
             
             if (quantitySpan) {
-                quantitySpan.textContent = `${totalQty} billet(s)`;
+                quantitySpan.textContent = `{{ 'tickets.total_quantity'|trans({'count': '${totalQty}'}) }}`;
             }
             if (priceSpan) {
                 priceSpan.textContent = `${(totalQty * unitPrice).toLocaleString('fr-FR')}MGA`;
@@ -876,13 +876,13 @@
             
             // Synchroniser les quantités dans le résumé
             if (adultQuantityElement) {
-                adultQuantityElement.textContent = `${adultQty} billet(s) adulte`;
+                adultQuantityElement.textContent = `{{ 'tickets.adult_quantity'|trans({'count': '${adultQty}'}) }}`;
             }
             if (adultTotalElement) {
                 adultTotalElement.textContent = `${adultTotal.toLocaleString('fr-FR')}MGA`;
             }
             if (childQuantityElement) {
-                childQuantityElement.textContent = `${childQty} billet(s) enfant`;
+                childQuantityElement.textContent = `{{ 'tickets.child_quantity'|trans({'count': '${childQty}'}) }}`;
             }
             if (childTotalElement) {
                 childTotalElement.textContent = `${childTotal.toLocaleString('fr-FR')}MGA`;

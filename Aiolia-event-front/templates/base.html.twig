@@ -835,12 +835,12 @@
                             <div class="inner ">
                                 <div class="content ">
                                     <div class="img-logo wow fadeIn" data-wow-delay="500ms">
-                                        <img src="{{ asset('vente-ticket/images/cafe-de-la-gare.jpg') }}" alt="Vente tickets">
+                                        <img src="{{ asset('vente-ticket/images/cafe-de-la-gare.jpg') }}" alt="{{ 'banner.alt_logo'|trans }}">
                                     </div>
                                     <div class="txt wow fadeIn" data-wow-delay="700ms">
-                                        <h1>Jazz show avec Koundé au <br>"Le Grand Café de la Gare"</h1>
-                                        <div class="adresse">PK O - Gare Soarano, Antananarivo Madagascar</div>
-                                        <p>Venez vibrer au son du jazz malgache avec Koundé, dans l’ambiance unique du Grand Café de la Gare.</p>
+                                        <h1>{{ 'banner.title'|trans|raw }}</h1>
+                                        <div class="adresse">{{ 'banner.address'|trans }}</div>
+                                        <p>{{ 'banner.description'|trans }}</p>
                                         <div class="contact">
                                             <ul>
                                                 <li class="tel"><a href="tel:0370500101"><span>037 05 001 01</span></a></li>

@@ -88,7 +88,7 @@
                                                     <strong>{{ startsAt|date('d', timezone=event.timezone|default('Africa/Nairobi')) }}</strong>
                                                     <span class="text-upper">{{ startsAt|date('M Y', timezone=event.timezone|default('Africa/Nairobi'))|upper }}</span>
                                                 {% else %}
-                                                    <span>À venir</span>
+                                                    <span>{{ 'tickets.filter_upcoming'|trans }}</span>
                                                 {% endif %}
                                             </div>
                                             <div class="hour">
@@ -120,7 +120,7 @@
                                             {% endif %}
                                             {% if location_parts is not empty %}
                                                 <div class="adresse">
-                                                    Lieu : {{ location_parts|join(', ') }}
+                                                    {{ 'events.location_prefix'|trans }} {{ location_parts|join(', ') }}
                                                 </div>
                                             {% endif %}
                                             <div class="tarif">
@@ -386,7 +386,7 @@
                                                         <strong>{{ similarStart|date('d') }}</strong>
                                                         <span class="text-upper">{{ similarStart|date('M Y')|upper }}</span>
                                                     {% else %}
-                                                        <span>À venir</span>
+                                                        <span>{{ 'tickets.filter_upcoming'|trans }}</span>
                                                     {% endif %}
                                                 </div>
                                                 <div class="hour">

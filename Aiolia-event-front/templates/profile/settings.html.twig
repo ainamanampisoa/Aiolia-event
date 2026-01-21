@@ -38,13 +38,13 @@
                         </div>
                         <div class="form-group">
                             <label>{{ 'settings.email'|trans }}</label>
-                            <input type="email" value="{{ user.email }}" placeholder="email@exemple.com" disabled>
+                            <input type="email" value="{{ user.email }}" placeholder="{{ 'tickets.email_placeholder'|trans }}" disabled>
                             <small style="color: #8A9BA8; font-size: 12px; margin-top: 4px; display: block;">{{ 'settings.email_cannot_be_changed'|trans }}</small>
                         </div>
                         <div class="form-row">
                             <div class="form-group">
                                 <label>{{ 'settings.phone'|trans }}</label>
-                                <input type="tel" name="phone" value="{{ user.phone }}" placeholder="032 12 345 67">
+                                <input type="tel" name="phone" value="{{ user.phone }}" placeholder="{{ 'tickets.phone_placeholder'|trans }}">
                             </div>
                             <div class="form-group">
                                 <label>{{ 'settings.language'|trans }}</label>
@@ -54,8 +54,8 @@
                                         <option value="en-US" {% if user.language_code == 'en-US' %}selected{% endif %}>English</option>
                                         <option value="fr-FR" {% if user.language_code == 'fr-FR' or user.language_code is not defined %}selected{% endif %}>French</option>
                                     {% else %}
-                                        <option value="en-US" {% if user.language_code == 'en-US' %}selected{% endif %}>Anglais</option>
-                                        <option value="fr-FR" {% if user.language_code == 'fr-FR' or user.language_code is not defined %}selected{% endif %}>Français</option>
+                                        <option value="en-US" {% if user.language_code == 'en-US' %}selected{% endif %}>{{ 'tickets.language_english'|trans }}</option>
+                                        <option value="fr-FR" {% if user.language_code == 'fr-FR' or user.language_code is not defined %}selected{% endif %}>{{ 'tickets.language_french'|trans }}</option>
                                     {% endif %}
                                 </select>
                             </div>

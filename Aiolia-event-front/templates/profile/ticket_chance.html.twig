@@ -41,21 +41,21 @@
                             <i class="fas fa-lock"></i>
                         </div>
                         <div class="text-content">
-                            <h3>Débloquez le Ticket Chance</h3>
-                            <p>Atteignez <strong>{{ eligibility.threshold|number_format(0, ',', ' ') }} MGA</strong> d'achat pour pouvoir jouer</p>
+                            <h3>{{ 'profile_ticket_chance.unlock_title'|trans }}</h3>
+                            <p>{{ 'profile_ticket_chance.unlock_message'|trans({'threshold': eligibility.threshold|number_format(0, ',', ' ')})|raw }}</p>
                         </div>
                     </div>
                     <div class="progress-bar-wrapper">
                         <div class="progress-info">
-                            <span class="progress-label">Progression</span>
+                            <span class="progress-label">{{ 'profile_ticket_chance.progress_label'|trans }}</span>
                             <span class="progress-percentage">{{ eligibility.progress|round }}%</span>
                         </div>
                         <div class="progress-bar">
                             <div class="progress-fill" style="width: {{ eligibility.progress }}%;"></div>
                         </div>
                         <div class="progress-stats">
-                            <span class="stat-current">{{ eligibility.total_spent|number_format(0, ',', ' ') }} MGA <small>dépensés</small></span>
-                            <span class="stat-remaining">{{ eligibility.remaining|number_format(0, ',', ' ') }} MGA <small>restants</small></span>
+                            <span class="stat-current">{{ eligibility.total_spent|number_format(0, ',', ' ') }} {{ 'profile_financial.currency_mga'|trans }} <small>{{ 'profile_ticket_chance.spent_label'|trans }}</small></span>
+                            <span class="stat-remaining">{{ eligibility.remaining|number_format(0, ',', ' ') }} {{ 'profile_financial.currency_mga'|trans }} <small>{{ 'profile_ticket_chance.remaining_label'|trans }}</small></span>
                         </div>
                     </div>
                 </div>
@@ -67,13 +67,13 @@
                 <section class="game-section wow fadeInUp" data-wow-delay="150ms">
                     <div class="glass-card game-card">
                         <div class="wheel-header">
-                            <h2>Roulette des récompenses</h2>
+                            <h2>{{ 'profile_ticket_chance.wheel_title'|trans }}</h2>
                             {% if eligibility.can_play %}
-                                <span class="status-badge active"><i class="fas fa-check-circle"></i> Disponible</span>
+                                <span class="status-badge active"><i class="fas fa-check-circle"></i> {{ 'profile_ticket_chance.status_available'|trans }}</span>
                             {% elseif eligibility.is_unlocked %}
-                                <span class="status-badge" style="background: #fab1a0; color: #d63031;"><i class="fas fa-clock"></i> 0 Ticket</span>
+                                <span class="status-badge" style="background: #fab1a0; color: #d63031;"><i class="fas fa-clock"></i> {{ 'profile_ticket_chance.status_no_tickets'|trans }}</span>
                             {% else %}
-                                <span class="status-badge locked"><i class="fas fa-lock"></i> Verrouillé</span>
+                                <span class="status-badge locked"><i class="fas fa-lock"></i> {{ 'profile_ticket_chance.status_locked'|trans }}</span>
                             {% endif %}
                         </div>
 
@@ -171,8 +171,8 @@
                             <li>
                                 <span class="step-number">1</span>
                                 <div class="step-content">
-                                    <strong>Achetez des billets</strong>
-                                    <p>Cumulez {{ eligibility.threshold|number_format(0, ',', ' ') }} MGA d'achats.</p>
+                                    <strong>{{ 'profile_ticket_chance.buy_tickets_label'|trans }}</strong>
+                                    <p>{{ 'profile_ticket_chance.buy_tickets_message'|trans({'threshold': eligibility.threshold|number_format(0, ',', ' ')}) }}</p>
                                 </div>
                             </li>
                             <li>
@@ -260,7 +260,7 @@
                     
                     const btnContent = spinBtn.querySelector('.btn-content');
                     if (btnContent) {
-                        btnContent.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Tirage en cours...';
+                        btnContent.innerHTML = '<i class="fas fa-spinner fa-spin"></i> {{ 'tickets.draw_in_progress'|trans }}';
                     }
                     
                     try {
@@ -320,10 +320,10 @@
                 if (promoCode) {
                     promoCodeHtml = `
                         <div class="win-promo-wrapper">
-                            <p class="promo-label">Voici votre code unique :</p>
+                            <p class="promo-label">{{ 'profile_ticket_chance.promo_code_label'|trans }}</p>
                             <div class="promo-code-container">
                                 <span class="promo-code" id="winningCode">${promoCode}</span>
-                                <button class="btn-copy-code" onclick="copyToClipboard('${promoCode}', this)" title="Copier le code">
+                                <button class="btn-copy-code" onclick="copyToClipboard('${promoCode}', this)" title="{{ 'profile_ticket_chance.copy_code_title'|trans }}">
                                     <i class="far fa-copy"></i>
                                 </button>
                             </div>

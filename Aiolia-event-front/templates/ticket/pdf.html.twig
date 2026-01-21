@@ -2,7 +2,7 @@
 <html lang="fr">
 <head>
     <meta charset="UTF-8">
-    <title>Billet - {{ ticket.event.title }}</title>
+    <title>{{ 'tickets.ticket_details_title'|trans }} - {{ ticket.event.title }}</title>
     <style>
         @page {
             size: A4 landscape;
@@ -214,8 +214,8 @@
                 
                 {% if ticket.price %}
                     <div class="price-info">
-                        Tarif acheté : <br>
-                        <span class="price-amount">{{ ticket.price|number_format(0, '.', ' ') }} MGA</span>
+                        {{ 'tickets.purchased_price'|trans }} : <br>
+                        <span class="price-amount">{{ ticket.price|number_format(0, '.', ' ') }} {{ 'profile_financial.currency_mga'|trans }}</span>
                         · {{ ticket.ticket_type }}
                     </div>
                 {% endif %}

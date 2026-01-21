@@ -1,6 +1,6 @@
 {% extends 'base.html.twig' %}
 
-{% block title %}Mes Billets - Vente tickets{% endblock %}
+{% block title %}{{ 'tickets.my_tickets_page_title'|trans }}{% endblock %}
 
 {% block stylesheets %}
         <link rel="stylesheet" type="text/css" href="{{ asset('vente-ticket/css/animate.min.css') }}">
@@ -18,8 +18,8 @@
             <section class="sec-event all-event">
                 <div class="container">
             <div class="page-header wow fadeIn" data-wow-delay="300ms">
-                <h2>Mes billets</h2>
-                <p class="page-subtitle">Gérez et consultez tous vos billets en un seul endroit</p>
+                <h2>{{ 'tickets.my_tickets_title'|trans }}</h2>
+                <p class="page-subtitle">{{ 'tickets.my_tickets_subtitle'|trans }}</p>
             </div>
 
             <!-- Filtres et statistiques -->
@@ -31,24 +31,24 @@
                     <a href="{{ path('my_tickets', {filter: 'upcoming' }) }}"
                        class="filter-btn {% if currentFilter == 'upcoming' %}filter-active{% endif %}">
                         <i class="fas fa-calendar-alt"></i>
-                        À venir ({{ counts.upcoming|default(0) }})
+                        {{ 'tickets.filter_upcoming'|trans }} ({{ counts.upcoming|default(0) }})
                     </a>
                     <a href="{{ path('my_tickets', {filter: 'past' }) }}"
                        class="filter-btn {% if currentFilter == 'past' %}filter-active{% endif %}">
                         <i class="fas fa-history"></i>
-                        Passés ({{ counts.past|default(0) }})
+                        {{ 'tickets.filter_past'|trans }} ({{ counts.past|default(0) }})
                     </a>
                     <a href="{{ path('my_tickets', {filter: 'cancelled' }) }}"
                        class="filter-btn {% if currentFilter == 'cancelled' %}filter-active{% endif %}">
                         <i class="fas fa-times-circle"></i>
-                        Annulés ({{ counts.cancelled|default(0) }})
+                        {{ 'tickets.filter_cancelled'|trans }} ({{ counts.cancelled|default(0) }})
                     </a>
                 </div>
 
                 <div class="ticket-stats">
                     <span class="ticket-badge">
                         <i class="fas fa-ticket-alt"></i>
-                        {{ counts.upcoming|default(0) }} billet(s) à venir
+                        {{ 'tickets.upcoming_count'|trans({'count': counts.upcoming|default(0)}) }}
                     </span>
                 </div>
                     </div>
@@ -59,19 +59,19 @@
                 <div class="empty-icon">
                     <i class="fas fa-ticket-alt"></i>
                         </div>
-                <div class="ticket-empty-title">Aucun billet trouvé</div>
+                <div class="ticket-empty-title">{{ 'tickets.empty_title'|trans }}</div>
                 <p class="ticket-empty-desc">
                     {% if currentFilter == 'upcoming' %}
-                        Vous n'avez pas de billets à venir. Découvrez nos prochains événements !
+                        {{ 'tickets.empty_upcoming'|trans }}
                     {% elseif currentFilter == 'past' %}
-                        Aucun billet passé pour le moment.
+                        {{ 'tickets.empty_past'|trans }}
                     {% else %}
-                        Aucun billet annulé.
+                        {{ 'tickets.empty_cancelled'|trans }}
                     {% endif %}
                 </p>
                 <a href="{{ path('events') }}" class="btn btn-primary">
                     <i class="fas fa-calendar-plus"></i>
-                    Découvrir des évènements
+                    {{ 'profile_ticket_chance.discover_events'|trans }}
                 </a>
             </div>
             {% else %}
@@ -92,20 +92,20 @@
                                                 <strong>{{ startsAt|date('d') }}</strong>
                                                 <span class="text-upper">{{ startsAt|date('M Y')|upper }}</span>
                                             {% else %}
-                                                <span>À venir</span>
+                                                <span>{{ 'tickets.filter_upcoming'|trans }}</span>
                                             {% endif %}
                                         </div>
                                         <div class="hour">
                                             {% if startsAt %}
-                                                À {{ startsAt|date('H\\hi') }}
+                                                {{ 'tickets.time_prefix'|trans }} {{ startsAt|date('H\\hi') }}
                                             {% else %}
-                                                Heure à confirmer
+                                                {{ 'tickets.time_to_confirm'|trans }}
                                             {% endif %}
                                         </div>
                                         <div class="code-barre qr-code">
                                             <img
                                                 src="https://api.qrserver.com/v1/create-qr-code/?size=120x120&data={{ (ticket.qr_code ?? ticket.id)|url_encode }}"
-                                                alt="QR Code billet"
+                                                alt="{{ 'tickets.qr_code_alt'|trans }}"
                                             >
                                         </div>
                                     </div>
@@ -118,9 +118,9 @@
                                 <div class="adresse">{{ event.location }}</div>
                                 <div class="tarif">
                                     {% if ticket.price is not null %}
-                                        {{ ticket.price|number_format(0, ',', ' ') }} MGA
+                                        {{ ticket.price|number_format(0, ',', ' ') }} {{ 'profile_financial.currency_mga'|trans }}
                                     {% else %}
-                                        Gratuit
+                                        {{ 'tickets.ticket_free'|trans }}
                                     {% endif %}
                                     · {{ ticket.ticket_type }}
                                 </div>
@@ -131,26 +131,26 @@
                                 <div class="blcBtn ticket-actions">
                                     <a href="{{ path('my_ticket_details', {id: ticket.id}) }}" class="btn btn-primary details">
                                         <i class="fas fa-eye"></i>
-                                        <span class="btn-text">Détails</span>
+                                        <span class="btn-text">{{ 'tickets.details'|trans }}</span>
                                     </a>
                                     <div class="action-group enhanced compact-mobile">
                                         <a href="{{ path('ticket_pdf', {id: ticket.id}) }}"
                                            class="action-btn btn-pdf"
-                                           data-tooltip="Télécharger PDF">
+                                           data-tooltip="{{ 'tickets.download_pdf'|trans }}">
                                             <i class="fas fa-file-pdf"></i>
-                                            <span class="btn-text">PDF</span>
+                                            <span class="btn-text">{{ 'tickets.pdf'|trans }}</span>
                                         </a>
                                         
                                         <div class="calendar-dropdown">
                                             <button class="action-btn btn-calendar" 
-                                                    data-tooltip="Ajouter au calendrier"
+                                                    data-tooltip="{{ 'tickets.add_to_calendar'|trans }}"
                                                     data-event-title="{{ event.title|e('html_attr') }}"
                                                     data-event-date="{{ startsAt ? startsAt|date('Y-m-d\\TH:i:s') : '' }}"
                                                     data-event-location="{{ event.location|e('html_attr') }}"
-                                                    data-event-description="Billet {{ ticket.ticket_type }} - {{ ticket.price ? (ticket.price|number_format(0, ',', ' ') ~ ' MGA') : 'Gratuit' }}"
+                                                    data-event-description="{{ 'tickets.ticket_type_price'|trans({'type': ticket.ticket_type, 'price': ticket.price ? (ticket.price|number_format(0, ',', ' ') ~ ' ' ~ 'profile_financial.currency_mga'|trans) : 'tickets.ticket_free'|trans}) }}"
                                                     data-ticket-id="{{ ticket.id }}">
                                                 <i class="fas fa-calendar-plus"></i>
-                                                <span class="btn-text">Calendrier</span>
+                                                <span class="btn-text">{{ 'tickets.calendar'|trans }}</span>
                                             </button>
                                             <div class="calendar-menu">
                                                 <a href="#" class="calendar-option" data-calendar="google">
@@ -215,7 +215,7 @@
                     </a>
                 </div>
                 <div class="pagination-info">
-                    Affichage de {{ tickets|length }} billet(s)
+                    {{ 'tickets.display_count'|trans({'count': tickets|length}) }}
                 </div>
             </div>
             {% endif %}
@@ -332,7 +332,7 @@
                 'DTEND:' + formatDate(endDate),
                 'SUMMARY:' + event.title,
                 'LOCATION:' + event.location,
-                'DESCRIPTION:' + event.description.replace(/\n/g, '\\n') + '\\n\\nBillet réservé sur Aiolia Event',
+                'DESCRIPTION:' + event.description.replace(/\n/g, '\\n') + '\\n\\n{{ 'tickets.calendar_description'|trans|replace({'\n': '\\n'}) }}',
                 'STATUS:CONFIRMED',
                 'BEGIN:VALARM',
                 'TRIGGER:-P1D',

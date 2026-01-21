@@ -20,7 +20,7 @@
 
             <header class="payment-header">
                 {# <span class="badge-step">Étape 2 sur 3</span> #}
-                <h1>Paiement sécurisé</h1>
+                <h1>{{ 'tickets.secure_payment'|trans }}</h1>
                 <p>
                     {% if orderReference is defined %}Référence de commande : <strong>{{ orderReference }}</strong>{% endif %}
                 </p>
@@ -59,12 +59,12 @@
                                         </div>
                                         <div class="summary-pricing">
                                             <div>
-                                                <span>{{ item.adultQuantity }} billet(s) adulte</span>
+                                                <span>{{ 'tickets.adult_quantity'|trans({'count': item.adultQuantity}) }}</span>
                                                 <strong>{{ adultTotal|number_format(0, ',', ' ') }} MGA</strong>
                                             </div>
                                             {% if childPrice > 0 %}
                                                 <div>
-                                                    <span>{{ item.childQuantity }} billet(s) enfant</span>
+                                                    <span>{{ 'tickets.child_quantity'|trans({'count': item.childQuantity}) }}</span>
                                                     <strong>{{ childTotal|number_format(0, ',', ' ') }} MGA</strong>
                                                 </div>
                                             {% endif %}
@@ -75,38 +75,38 @@
                         {% else %}
                             <div class="summary-empty">
                                 <i class="fas fa-ticket-alt"></i>
-                                <p>Aucun billet trouvé. Retournez au panier pour ajouter des événements.</p>
-                                <a href="{{ path('cart') }}" class="btn-link">Retour au panier</a>
+                                <p>{{ 'tickets.no_tickets_found'|trans }}</p>
+                                <a href="{{ path('cart') }}" class="btn-link">{{ 'tickets.back_to_cart'|trans }}</a>
                             </div>
                         {% endif %}
 
                         <div class="summary-totals">
                             <div class="line">
-                                <span>Sous-total</span>
-                                <span>{{ orderTotal|number_format(0, ',', ' ') }} MGA</span>
+                                <span>{{ 'tickets.subtotal'|trans }}</span>
+                                <span>{{ orderTotal|number_format(0, ',', ' ') }} {{ 'profile_financial.currency_mga'|trans }}</span>
                             </div>
                             <div class="line">
-                                <span>Frais de service</span>
-                                <span>{{ serviceFees|number_format(0, ',', ' ') }} MGA</span>
+                                <span>{{ 'tickets.service_fees'|trans }}</span>
+                                <span>{{ serviceFees|number_format(0, ',', ' ') }} {{ 'profile_financial.currency_mga'|trans }}</span>
                             </div>
                             <div class="line total">
-                                <span>Total à payer</span>
-                                <span>{{ grandTotal|number_format(0, ',', ' ') }} MGA</span>
+                                <span>{{ 'tickets.total_to_pay'|trans }}</span>
+                                <span>{{ grandTotal|number_format(0, ',', ' ') }} {{ 'profile_financial.currency_mga'|trans }}</span>
                             </div>
                         </div>
                     </div>
 
                     <div class="support-card">
-                        <h3>Besoin d'aide ?</h3>
-                        <p>Contactez notre support au <strong>034 12 345 67</strong> ou par e-mail : support@venteticket.mg</p>
-                        <span class="availability">Disponible 7j/7 de 8h à 20h</span>
+                        <h3>{{ 'tickets.need_help'|trans }}</h3>
+                        <p>{{ 'tickets.contact_support'|trans({'phone': '034 12 345 67', 'email': 'support@venteticket.mg'})|raw }}</p>
+                        <span class="availability">{{ 'tickets.support_availability'|trans }}</span>
                     </div>
                 </section>
 
                 <section class="payment-content">
                     <form class="payment-form" action="{{ path('checkout_process') }}{% if app.request.query.get('event') %}?event={{ app.request.query.get('event') }}{% endif %}" method="post">
                         <div class="form-section">
-                            <h2>Méthode de paiement</h2>
+                            <h2>{{ 'tickets.payment_method'|trans }}</h2>
                             <div class="method-grid">
                                 <label class="method-option" data-method="mvola">
                                     <input type="radio" name="payment_method" value="mvola" checked>
@@ -115,58 +115,58 @@
                                             <img src="{{ asset('vente-ticket/images/m-vola.png') }}" alt="M-Vola">
                                         </span>
                                         <span class="method-text">
-                                            <strong>M-Vola</strong>
-                                            <small>Confirmation immédiate</small>
+                                            <strong>{{ 'tickets.mvola_name'|trans }}</strong>
+                                            <small>{{ 'tickets.immediate_confirmation'|trans }}</small>
                                         </span>
                                     </span>
                                 </label>
                             </div>
-                            <p class="method-note">Vous recevrez un message de confirmation dès que le paiement sera validé.</p>
+                            <p class="method-note">{{ 'tickets.payment_confirmation_note'|trans }}</p>
                         </div>
 
                         <div class="form-section">
-                            <h2>Informations de paiement</h2>
+                            <h2>{{ 'tickets.payment_info'|trans }}</h2>
                             <div class="form-grid">
                                 <div class="form-group">
-                                    <label for="payment-name">Nom et prénom</label>
-                                    <input type="text" id="payment-name" name="payment_name" placeholder="Nom et prénom du titulaire du compte">
+                                    <label for="payment-name">{{ 'tickets.full_name'|trans }}</label>
+                                    <input type="text" id="payment-name" name="payment_name" placeholder="{{ 'tickets.full_name_placeholder'|trans }}">
                                 </div>
                                 <div class="form-group">
-                                    <label for="payment-email">Adresse e-mail</label>
-                                    <input type="email" id="payment-email" name="payment_email" placeholder="exemple@domain.mg">
+                                    <label for="payment-email">{{ 'tickets.email_address'|trans }}</label>
+                                    <input type="email" id="payment-email" name="payment_email" placeholder="{{ 'tickets.email_placeholder'|trans }}">
                                 </div>
                                 <div class="form-group">
-                                    <label for="payment-phone">Numéro de téléphone (Mobile Money)</label>
+                                    <label for="payment-phone">{{ 'tickets.phone_mobile_money'|trans }}</label>
                                     <input type="tel" id="payment-phone" name="payment_phone" placeholder="034 12 345 67">
                                 </div>
                                 <div class="form-group">
-                                    <label for="payment-invoice">Souhaitez-vous une facture ?</label>
+                                    <label for="payment-invoice">{{ 'tickets.want_invoice'|trans }}</label>
                                     <select id="payment-invoice" name="payment_invoice">
-                                        <option value="no">Non</option>
-                                        <option value="yes" selected>Oui</option>
+                                        <option value="no">{{ 'tickets.no'|trans }}</option>
+                                        <option value="yes" selected>{{ 'tickets.yes'|trans }}</option>
                                     </select>
                                 </div>
                             </div>
                         </div>
 
                         <div class="form-section">
-                            <h2>Conditions</h2>
+                            <h2>{{ 'tickets.conditions'|trans }}</h2>
                             <label class="checkbox">
                                 <input type="checkbox" name="terms" checked>
-                                <span>J'accepte les conditions générales d'utilisation et la politique de confidentialité.</span>
+                                <span>{{ 'tickets.accept_terms'|trans }}</span>
                             </label>
                             <label class="checkbox">
                                 <input type="checkbox" name="receive_emails">
-                                <span>Je souhaite recevoir ma confirmation de paiement par SMS et e-mail.</span>
+                                <span>{{ 'tickets.receive_confirmation'|trans }}</span>
                             </label>
                         </div>
 
                         <div class="submit-area">
                             <button type="button" class="btn-secondary" onclick="window.location.href='{{ path('cart') }}'">
-                                <i class="fas fa-arrow-left"></i> Retour au panier
+                                <i class="fas fa-arrow-left"></i> {{ 'tickets.back_to_cart'|trans }}
                             </button>
                             <button type="submit" id="btn-payment-confirm" class="btn-primary">
-                                Confirmer et payer {{ grandTotal|number_format(0, ',', ' ') }} MGA
+                                {{ 'tickets.payment_confirm'|trans({'amount': grandTotal|number_format(0, ',', ' ')}) }} {{ 'profile_financial.currency_mga'|trans }}
                             </button>
                         </div>
                     </form>
@@ -174,8 +174,8 @@
                     <div class="security-note">
                         <i class="fas fa-shield-alt"></i>
                         <div>
-                            <strong>Paiement sécurisé</strong>
-                            <p>Vos informations sont chiffrées. VenteTicket ne stocke jamais vos données de paiement.</p>
+                            <strong>{{ 'tickets.secure_payment'|trans }}</strong>
+                            <p>{{ 'tickets.secure_payment_note'|trans }}</p>
                         </div>
                     </div>
                 </section>

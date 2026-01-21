@@ -1,6 +1,6 @@
 {% extends 'base.html.twig' %}
 
-{% block title %}Créer un compte - Vente tickets{% endblock %}
+{% block title %}{{ 'tickets.create_account_title'|trans }}{% endblock %}
 
 {% block stylesheets %}
         <link rel="stylesheet" type="text/css" href="{{ asset('vente-ticket/css/animate.min.css') }}">
@@ -13,7 +13,7 @@
         <main>
             <section class="sec-login pt-100 pb-100">
                 <div class="container">
-                    <h2 class="text-center">Créer un compte</h2>
+                    <h2 class="text-center">{{ 'tickets.create_account'|trans }}</h2>
                     <div class="blc-login bg-beige">
                         {% if errors is defined and errors %}
                             <div class="msg-error alert-auto-dismiss">
@@ -26,19 +26,19 @@
                         {% endif %}
                         <form method="post" action="{{ path('register') }}">
                             <div class="blc-chp">
-                                <label>Votre prénom</label>
+                                <label>{{ 'tickets.first_name_label'|trans }}</label>
                                 <input type="text" name="first_name" class="form-control" value="{{ form_data.first_name|default('') }}" required>
                             </div>
                             <div class="blc-chp">
-                                <label>Votre nom</label>
+                                <label>{{ 'tickets.last_name_label'|trans }}</label>
                                 <input type="text" name="last_name" class="form-control" value="{{ form_data.last_name|default('') }}" required>
                             </div>
                             <div class="blc-chp">
-                                <label>Votre adresse email</label>
+                                <label>{{ 'tickets.email_label_register'|trans }}</label>
                                 <input type="email" name="email" class="form-control" value="{{ form_data.email|default('') }}" required>
                             </div>
                             <div class="blc-chp">
-                                <label>Numéro de téléphone (Madagascar)</label>
+                                <label>{{ 'tickets.phone_label'|trans }}</label>
                                 <div class="blc-phone-prefix">
                                     <span class="prefix">
                                         <img src="{{ asset('vente-ticket/images/mdg.png') }}" alt="Flag Madagascar" class="flag-icon">
@@ -48,22 +48,22 @@
                                 </div>
                             </div>
                             <div class="blc-chp">
-                                <label>Mot de passe</label>
+                                <label>{{ 'tickets.password_label'|trans }}</label>
                                 <div class="blc-password">
                                     <input type="password" name="password" class="form-control" placeholder="****" required>
                                     <span class="material-symbols-rounded pointer toggle-password"></span>
                                 </div>
                             </div>
                             <div class="blc-chp">
-                                <label>Confirmer le mot de passe</label>
+                                <label>{{ 'tickets.confirm_password'|trans }}</label>
                                 <div class="blc-password">
                                     <input type="password" name="password_confirmation" class="form-control" placeholder="****" required>
                                     <span class="material-symbols-rounded pointer toggle-password"></span>
                                 </div>
                             </div>
                             <div class="blc-btn text-center">
-                                <input type="submit" class="btn-submit check" value="Créer mon compte">
-                                <a href="{{ path('login') }}" class="link-form">Déjà un compte ? Se connecter</a>
+                                <input type="submit" class="btn-submit check" value="{{ 'tickets.create_my_account'|trans }}">
+                                <a href="{{ path('login') }}" class="link-form">{{ 'tickets.already_have_account'|trans }}</a>
                             </div>
                         </form>
                     </div>

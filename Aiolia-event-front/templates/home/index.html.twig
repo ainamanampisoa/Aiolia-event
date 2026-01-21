@@ -30,7 +30,7 @@
                                 <div class="item wow fadeInUp" data-wow-delay="300ms">
                             <div class="inner">
                                 {% if isAuthenticated %}
-                                <button class="favorite-toggle {% if event.isFavorite is defined and event.isFavorite %}is-active{% endif %}" type="button" data-event-id="{{ event.id }}" title="Ajouter aux favoris">
+                                <button class="favorite-toggle {% if event.isFavorite is defined and event.isFavorite %}is-active{% endif %}" type="button" data-event-id="{{ event.id }}" title="{{ 'events.add_to_favorites'|trans }}">
                                     <i class="fas fa-heart"></i>
                                 </button>
                                 {% endif %}
@@ -42,7 +42,7 @@
                                                         <strong>{{ startsAt|date('d') }}</strong>
                                                         <span class="text-upper">{{ startsAt|date('M Y')|upper }}</span>
                                                     {% else %}
-                                                        <span>À venir</span>
+                                                        <span>{{ 'tickets.filter_upcoming'|trans }}</span>
                                                     {% endif %}
                                                 </div>
                                                 <div class="hour">
@@ -56,7 +56,7 @@
                                     </div>
                                     <div class="col2">
                                                 <span class="bandeau">
-                                                    {{ event.category_label is not empty ? event.category_label : 'Événement' }}
+                                                    {{ event.category_label is not empty ? event.category_label : 'events.default_category'|trans }}
                                                 </span>
                                                 <h3>{{ event.title }}</h3>
                                                 {% set location_parts = [] %}
@@ -136,21 +136,21 @@
                         <div class="item">
                             <div class="inner">
                                 <div class="ico"><img src="{{ asset('vente-ticket/images/ico1.svg') }}"></div>
-                                <h3><strong>01</strong> {{ 'home.how_to_buy_step1_title'|trans }}</h3>
+                                <h3>{{ 'home.how_to_buy_step1_title'|trans }}</h3>
                                 <p>{{ 'home.how_to_buy_step1_desc'|trans }}</p>
                             </div>
                         </div>
                         <div class="item">
                             <div class="inner">
                                 <div class="ico"><img src="{{ asset('vente-ticket/images/ico2.svg') }}"></div>
-                                <h3><strong>02</strong> {{ 'home.how_to_buy_step2_title'|trans }}</h3>
+                                <h3>{{ 'home.how_to_buy_step2_title'|trans }}</h3>
                                 <p>{{ 'home.how_to_buy_step2_desc'|trans }}</p>
                             </div>
                         </div>
                         <div class="item">
                             <div class="inner">
                                 <div class="ico"><img src="{{ asset('vente-ticket/images/ico3.svg') }}"></div>
-                                <h3><strong>03</strong> {{ 'home.how_to_buy_step3_title'|trans }}</h3>
+                                <h3>{{ 'home.how_to_buy_step3_title'|trans }}</h3>
                                 <p>{{ 'home.how_to_buy_step3_desc'|trans }}</p>
                             </div>
                         </div>

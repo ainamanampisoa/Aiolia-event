@@ -16,14 +16,14 @@
 {% block body %}
     {% set monthly = monthly|default([]) %}
     {% set financialData = financialData|default({
-        total_spent: '0 MGA',
-        total_refunded: '0 MGA',
+        total_spent: '0 {{ 'profile_financial.currency_mga'|trans }}',
+        total_refunded: '0 {{ 'profile_financial.currency_mga'|trans }}',
         refund_count: 0,
-        wallet_balance: '0 MGA',
+        wallet_balance: '0 {{ 'profile_financial.currency_mga'|trans }}',
         wallet_points: 0,
         total_orders: 0,
-        average_order: '0 MGA',
-        monthly_spent: '0 MGA',
+        average_order: '0 {{ 'profile_financial.currency_mga'|trans }}',
+        monthly_spent: '0 {{ 'profile_financial.currency_mga'|trans }}',
         year_over_year_change: 0
     }) %}
     {% set paymentMethods = paymentMethods|default([]) %}
@@ -70,15 +70,15 @@
             <section class="financial-filters wow fadeIn" data-wow-delay="120ms">
                 <form method="GET" action="{{ path('profile_financial') }}" class="filter-form">
                     <div class="filter-group">
-                        <label for="period"><i class="fas fa-calendar"></i> Période</label>
+                        <label for="period"><i class="fas fa-calendar"></i> {{ 'tickets.period'|trans }}</label>
                         <select name="period" id="period" onchange="this.form.submit()">
                             <option value="year" {{ currentPeriod == 'year' ? 'selected' : '' }}>Année</option>
-                            <option value="month" {{ currentPeriod == 'month' ? 'selected' : '' }}>Mois</option>
+                            <option value="month" {{ currentPeriod == 'month' ? 'selected' : '' }}>{{ 'tickets.month'|trans }}</option>
                             <option value="all" {{ currentPeriod == 'all' ? 'selected' : '' }}>Tout</option>
                         </select>
                     </div>
                     <div class="filter-group">
-                        <label for="year"><i class="fas fa-calendar-alt"></i> Année</label>
+                        <label for="year"><i class="fas fa-calendar-alt"></i> {{ 'tickets.year'|trans }}</label>
                         <select name="year" id="year" onchange="this.form.submit()">
                             {% for y in range("now"|date("Y"), "now"|date("Y") - 5) %}
                                 <option value="{{ y }}" {{ currentYear == y ? 'selected' : '' }}>{{ y }}</option>
@@ -87,7 +87,7 @@
                     </div>
                     {% if currentPeriod == 'month' %}
                     <div class="filter-group">
-                        <label for="month"><i class="fas fa-calendar-week"></i> Mois</label>
+                        <label for="month"><i class="fas fa-calendar-week"></i> {{ 'tickets.month'|trans }}</label>
                         <select name="month" id="month" onchange="this.form.submit()">
                             <option value="0" {{ currentMonth == 0 ? 'selected' : '' }}>Tous les mois</option>
                             {% set months = {
@@ -102,7 +102,7 @@
                     </div>
                     {% endif %}
                     <div class="filter-actions">
-                        <button type="submit" class="btn-filter"><i class="fas fa-filter"></i> Filtrer</button>
+                        <button type="submit" class="btn-filter"><i class="fas fa-filter"></i> {{ 'tickets.filter'|trans }}</button>
                         <a href="{{ path('profile_financial') }}" class="btn-reset"><i class="fas fa-redo"></i> Réinitialiser</a>
                     </div>
                 </form>
@@ -136,19 +136,19 @@
                         </div>
                         
                         <div class="filter-group">
-                            <label for="min_amount"><i class="fas fa-money-bill-wave"></i> Montant minimum (MGA)</label>
+                            <label for="min_amount"><i class="fas fa-money-bill-wave"></i> {{ 'profile_financial.min_amount_label'|trans }}</label>
                             <input type="number" name="min_amount" id="min_amount" value="{{ minAmount }}" placeholder="Ex: 10000" min="0" step="1000">
                         </div>
                         
                         <div class="filter-group">
-                            <label for="max_amount"><i class="fas fa-money-bill-wave"></i> Montant maximum (MGA)</label>
+                            <label for="max_amount"><i class="fas fa-money-bill-wave"></i> {{ 'profile_financial.max_amount_label'|trans }}</label>
                             <input type="number" name="max_amount" id="max_amount" value="{{ maxAmount }}" placeholder="Ex: 100000" min="0" step="1000">
                         </div>
                         
                         <div class="filter-group">
-                            <label for="category"><i class="fas fa-tags"></i> Catégorie d'événement</label>
+                            <label for="category"><i class="fas fa-tags"></i> {{ 'profile_financial.category_label'|trans }}</label>
                             <select name="category" id="category">
-                                <option value="all" {{ categoryFilter == 'all' ? 'selected' : '' }}>Toutes</option>
+                                <option value="all" {{ categoryFilter == 'all' ? 'selected' : '' }}>{{ 'tickets.all'|trans }}</option>
                                 {% if availableCategories is defined and availableCategories is iterable %}
                                     {% for cat in availableCategories %}
                                         {% if cat is iterable and cat.slug is defined %}
@@ -194,15 +194,15 @@
                 <h2><i class="fas fa-chart-line"></i> Comparaison avec la période précédente</h2>
                 <div class="comparison-grid">
                     <div class="comparison-card">
-                        <div class="comparison-label">Dépenses</div>
+                        <div class="comparison-label">{{ 'tickets.expenses'|trans }}</div>
                         <div class="comparison-values">
-                            <span class="current-value">{{ comparison.current_spent|number_format(0, ',', ' ') }} MGA</span>
+                            <span class="current-value">{{ comparison.current_spent|number_format(0, ',', ' ') }} {{ 'profile_financial.currency_mga'|trans }}</span>
                             <span class="change-badge {{ comparison.spent_increase ? 'increase' : 'decrease' }}">
                                 <i class="fas fa-arrow-{{ comparison.spent_increase ? 'up' : 'down' }}"></i>
                                 {{ comparison.spent_change|abs|number_format(1) }}%
                             </span>
                         </div>
-                        <div class="previous-value">vs {{ comparison.previous_spent|number_format(0, ',', ' ') }} MGA</div>
+                        <div class="previous-value">{{ 'profile_financial.vs_label'|trans }} {{ comparison.previous_spent|number_format(0, ',', ' ') }} {{ 'profile_financial.currency_mga'|trans }}</div>
                     </div>
                     
                     <div class="comparison-card">
@@ -237,15 +237,15 @@
                                 } %}
                                 {{ months[currentMonth] }} {{ currentYear }}
                             {% else %}
-                                Toutes périodes
+                                {{ 'tickets.all_periods'|trans }}
                             {% endif %}
                         </span>
                         <strong>{{ financialData.total_spent }}</strong>
                         <small>
-                            {% if currentPeriod == 'year' and financialData.total_spent != '0 MGA' %}
+                            {% if currentPeriod == 'year' and financialData.total_spent != '0 ' ~ 'profile_financial.currency_mga'|trans %}
                                 <i class="fas fa-arrow-{{ financialData.year_over_year_change >= 0 ? 'up' : 'down' }}"></i>
-                                {{ financialData.year_over_year_change >= 0 ? '+' : '' }}{{ financialData.year_over_year_change }}% vs année précédente
-                            {% elseif financialData.total_spent != '0 MGA' %}
+                                {{ financialData.year_over_year_change >= 0 ? '+' : '' }}{{ financialData.year_over_year_change }}% {{ 'tickets.vs_previous_year'|trans }}
+                            {% elseif financialData.total_spent != '0 ' ~ 'profile_financial.currency_mga'|trans %}
                                 <i class="fas fa-chart-line"></i>
                                 Période sélectionnée
                             {% else %}
@@ -428,7 +428,7 @@
                                 data: {
                                     labels: labels,
                                     datasets: [{
-                                        label: 'Dépenses (MGA)',
+                                        label: '{{ 'profile_financial.expenses_label'|trans }} ({{ 'profile_financial.currency_mga'|trans }})',
                                         data: data,
                                         backgroundColor: monthlyData.map((_, index) => barColors[index % barColors.length]),
                                         borderColor: monthlyData.map((_, index) => borderColors[index % borderColors.length]),
@@ -467,7 +467,7 @@
                                             callbacks: {
                                                 title: function(context) {
                                                     const index = context[0].dataIndex;
-                                                    return monthlyData[index].month || 'Mois';
+                                                    return monthlyData[index].month || '{{ 'tickets.month'|trans }}';
                                                 },
                                                 label: function(context) {
                                                     const value = context.parsed.y;
@@ -487,11 +487,11 @@
                                             ticks: {
                                                 callback: function(value) {
                                                     if (value >= 1000000) {
-                                                        return (value / 1000000).toFixed(1) + 'M MGA';
+                                                        return (value / 1000000).toFixed(1) + 'M {{ 'profile_financial.currency_mga'|trans }}';
                                                     } else if (value >= 1000) {
-                                                        return (value / 1000).toFixed(0) + 'k MGA';
+                                                        return (value / 1000).toFixed(0) + 'k {{ 'profile_financial.currency_mga'|trans }}';
                                                     }
-                                                    return new Intl.NumberFormat('fr-FR').format(value) + ' MGA';
+                                                    return new Intl.NumberFormat('fr-FR').format(value) + ' {{ 'profile_financial.currency_mga'|trans }}';
                                                 },
                                                 color: 'rgba(31, 45, 61, 0.7)',
                                                 font: { 
