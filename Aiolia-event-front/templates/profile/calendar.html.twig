@@ -58,7 +58,8 @@
                                     {% set eventDateStr = event.starts_at|date('d F Y') %}
                                     {% set eventTime = event.starts_at|date('H:i') %}
                                     {% set eventDay = event.starts_at|date('d') %}
-                                    {% set eventMonth = event.starts_at|date('F Y') %}
+                                    {% set eventMonth = event.starts_at|date('F') %}
+                                    {% set eventYear = event.starts_at|date('Y') %}
                                     {% set catClass = '' %}
                                     {% set catLabel = event.category_label|default('Événement') %}
                                     {% if catLabel|lower matches '/concert|musique|music/' %}{% set catClass = 'category-concert' %}
@@ -71,24 +72,31 @@
                                     <article class="agenda-item {{ catClass }}" data-event-date="{{ event.starts_at|date('Y-m-d\\TH:i:sP') }}">
                                         <div class="agenda-date">
                                             <span class="day">{{ eventDay }}</span>
-                                            <span class="month">{{ eventMonth }}</span>
+                                            <div class="date-info">
+                                                <span class="month">{{ eventMonth }}</span>
+                                                <span class="year">{{ eventYear }}</span>
+                                            </div>
                                         </div>
                                         <div class="agenda-content">
-                                            <h3><a href="{{ path('event_details', { id: event.id }) }}" style="text-decoration: none; color: inherit;">{{ event.title }}</a></h3>
+                                            <h3><a href="{{ path('event_details', { id: event.id }) }}" class="event-title-link">{{ event.title }}</a></h3>
                                             <div class="agenda-meta">
-                                                <span class="cat-badge"><i class="fas fa-tag"></i> {{ catLabel }}</span>
-                                                <span><i class="fas fa-clock"></i> {{ eventTime }}</span>
-                                                <span><i class="fas fa-map-marker-alt"></i> {{ event.venue_name ?? event.city ?? 'Lieu non spécifié' }}</span>
+                                                <span class="cat-badge"><i class="fas fa-gem"></i> {{ catLabel }}</span>
+                                                <span class="meta-item"><i class="fas fa-clock"></i> {{ eventTime }}</span>
+                                                <span class="meta-item"><i class="fas fa-map-marker-alt"></i> {{ event.venue_name ?? event.city ?? 'Lieu non spécifié' }}</span>
                                                 {% if event.ticket_count|default(0) > 0 %}
-                                                    <span><i class="fas fa-ticket-alt"></i> {{ event.ticket_count }} billet{{ event.ticket_count > 1 ? 's' : '' }}</span>
+                                                    <span class="meta-item tickets-count"><i class="fas fa-ticket-alt"></i> {{ event.ticket_count }} billet{{ event.ticket_count > 1 ? 's' : '' }}</span>
                                                 {% endif %}
                                             </div>
                                             <div class="agenda-status">
-                                                <span class="status-dot {% if event.order_status == 'paid' %}status-confirmed{% endif %}"></span> {{ event.order_status == 'paid' ? 'Confirmé' : 'En attente' }}
+                                                <span class="status-dot {% if event.order_status == 'paid' %}status-confirmed{% endif %}"></span>
+                                                <span class="status-text">{{ event.order_status == 'paid' ? 'Confirmé' : 'En attente' }}</span>
                                             </div>
                                         </div>
                                         <div class="agenda-actions">
-                                            <a href="{{ path('event_details', { id: event.id }) }}" class="btn-tickets-improved"><i class="fas fa-ticket-alt"></i> {{ 'profile_calendar.btn_tickets'|trans }}</a>
+                                            <a href="{{ path('my_tickets') }}" class="btn-tickets-improved">
+                                                <i class="fas fa-ticket-alt"></i> 
+                                                <span>Mes billets</span>
+                                            </a>
                                         </div>
                                     </article>
                                 {% endif %}
