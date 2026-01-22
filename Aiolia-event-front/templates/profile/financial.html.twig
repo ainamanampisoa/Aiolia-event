@@ -15,15 +15,16 @@
 
 {% block body %}
     {% set monthly = monthly|default([]) %}
+    {% set currency = 'profile_financial.currency_mga'|trans %}
     {% set financialData = financialData|default({
-        total_spent: '0 {{ 'profile_financial.currency_mga'|trans }}',
-        total_refunded: '0 {{ 'profile_financial.currency_mga'|trans }}',
+        total_spent: '0 ' ~ currency,
+        total_refunded: '0 ' ~ currency,
         refund_count: 0,
-        wallet_balance: '0 {{ 'profile_financial.currency_mga'|trans }}',
+        wallet_balance: '0 ' ~ currency,
         wallet_points: 0,
         total_orders: 0,
-        average_order: '0 {{ 'profile_financial.currency_mga'|trans }}',
-        monthly_spent: '0 {{ 'profile_financial.currency_mga'|trans }}',
+        average_order: '0 ' ~ currency,
+        monthly_spent: '0 ' ~ currency,
         year_over_year_change: 0
     }) %}
     {% set paymentMethods = paymentMethods|default([]) %}
