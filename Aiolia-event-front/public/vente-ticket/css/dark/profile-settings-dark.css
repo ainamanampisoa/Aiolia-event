@@ -19,6 +19,16 @@ body.theme-dark .profile-settings-wrapper {
 }
 
 /* ========== EN-TÊTE ========== */
+html[data-theme="dark"] .settings-header,
+html.theme-dark .settings-header,
+body.theme-dark .settings-header {
+    background: transparent !important;
+    border: none !important;
+    box-shadow: none !important;
+    padding-left: 0 !important;
+    padding-right: 0 !important;
+}
+
 html[data-theme="dark"] .settings-header h1,
 html.theme-dark .settings-header h1,
 body.theme-dark .settings-header h1 {
