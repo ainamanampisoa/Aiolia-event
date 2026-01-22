@@ -271,12 +271,63 @@
                                 <tr>
                                     <td colspan="7" class="empty-state">
                                         <div class="empty-content">
-                                            <i class="fas fa-shopping-bag"></i>
-                                            <p>{{ 'tickets.no_orders_found'|trans }}</p>
                                             {% if searchQuery or currentStatusFilter != 'all' or currentDateFilter != 'all' or currentCategoryFilter != 'all' %}
-                                                <a href="{{ path('profile_history') }}" class="btn-solid btn-small">
-                                                    <i class="fas fa-redo"></i> {{ 'tickets.reset_filters'|trans }}
-                                                </a>
+                                                {# État vide avec filtres actifs #}
+                                                <div class="empty-icon-wrapper">
+                                                    <i class="fas fa-filter"></i>
+                                                </div>
+                                                <div class="empty-message">
+                                                    <h3>Aucune commande trouvée</h3>
+                                                    <p>Aucune commande ne correspond aux critères de recherche sélectionnés.</p>
+                                                </div>
+                                                <div class="empty-filters-info">
+                                                    <p class="filters-label">Filtres actifs :</p>
+                                                    <div class="active-filters-list">
+                                                        {% if searchQuery %}
+                                                            <span class="filter-badge">
+                                                                <i class="fas fa-search"></i> Recherche : "{{ searchQuery }}"
+                                                            </span>
+                                                        {% endif %}
+                                                        {% if currentStatusFilter != 'all' %}
+                                                            {% set statusLabel = (availableStatuses is defined and availableStatuses) ? availableStatuses|filter(s => s.key == currentStatusFilter)|first : null %}
+                                                            <span class="filter-badge">
+                                                                <i class="fas fa-tag"></i> Statut : {{ statusLabel ? statusLabel.label : currentStatusFilter }}
+                                                            </span>
+                                                        {% endif %}
+                                                        {% if currentDateFilter != 'all' %}
+                                                            {% set periodLabels = {
+                                                                'today': 'Aujourd\'hui',
+                                                                'week': 'Cette semaine',
+                                                                'month': 'Ce mois',
+                                                                '3months': '3 derniers mois',
+                                                                'year': 'Cette année'
+                                                            } %}
+                                                            <span class="filter-badge">
+                                                                <i class="fas fa-calendar-alt"></i> Période : {{ periodLabels[currentDateFilter]|default(currentDateFilter) }}
+                                                            </span>
+                                                        {% endif %}
+                                                        {% if currentCategoryFilter != 'all' %}
+                                                            {% set categoryLabel = (availableCategories is defined and availableCategories) ? availableCategories|filter(c => c.slug == currentCategoryFilter)|first : null %}
+                                                            <span class="filter-badge">
+                                                                <i class="fas fa-tags"></i> Catégorie : {{ categoryLabel ? categoryLabel.label : currentCategoryFilter }}
+                                                            </span>
+                                                        {% endif %}
+                                                    </div>
+                                                </div>
+                                            {% else %}
+                                                {# État vide sans filtres - aucune commande du tout #}
+                                                <div class="empty-icon-wrapper">
+                                                    <i class="fas fa-shopping-bag"></i>
+                                                </div>
+                                                <div class="empty-message">
+                                                    <h3>Aucune commande</h3>
+                                                    <p>Vous n'avez pas encore effectué d'achat. Découvrez nos événements et réservez vos billets !</p>
+                                                </div>
+                                                <div class="empty-actions">
+                                                    <a href="{{ path('events') }}" class="btn-solid btn-primary-large">
+                                                        <i class="fas fa-calendar-check"></i> Découvrir les événements
+                                                    </a>
+                                                </div>
                                             {% endif %}
                                         </div>
                                     </td>
