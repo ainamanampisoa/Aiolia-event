@@ -128,9 +128,17 @@ body.theme-dark .lst-event .item .blc-col1 .col2 .bandeau {
 html[data-theme="dark"] .btn.ticket,
 html.theme-dark .btn.ticket,
 body.theme-dark .btn.ticket {
-  background: var(--dark-gradient-primary) !important;
+  background: linear-gradient(135deg, #2c3e50 0%, #1a252f 100%) !important;
   color: #ffffff !important;
   border-radius: 12px !important;
+  border: 1px solid rgba(255, 255, 255, 0.1) !important;
+  transition: all 0.3s ease !important;
+}
+
+html[data-theme="dark"] .btn.ticket:hover,
+html.theme-dark .btn.ticket:hover {
+  background: linear-gradient(135deg, #34495e 0%, #2c3e50 100%) !important;
+  box-shadow: 0 4px 15px rgba(0, 0, 0, 0.3) !important;
 }
 
 /* Bouton Détails */
@@ -163,6 +171,24 @@ body.theme-dark .pagination ul li.selected a {
   color: var(--dark-accent-primary) !important;
 }
 
+/* ========== STYLES TIMBRE (Bords dentelés) ========== */
+/* On ajuste la couleur des bords dentelés pour qu'ils soient subtilement visibles (gris neutre sur fond sombre) */
+html[data-theme="dark"] .lst-event .item .blc-col1 .col1:before,
+html[data-theme="dark"] .lst-event .item .blc-col1 .col2:before,
+html[data-theme="dark"] .lst-event .item .blc-col1 .col2:after,
+html.theme-dark .lst-event .item .blc-col1 .col1:before,
+html.theme-dark .lst-event .item .blc-col1 .col2:before,
+html.theme-dark .lst-event .item .blc-col1 .col2:after {
+  filter: brightness(0) invert(0.25) !important;
+  opacity: 0.8 !important;
+}
+
+/* Correction pour les zones de fond derrière le dentelé */
+html[data-theme="dark"] .lst-event .item .blc-col1 .col1,
+html.theme-dark .lst-event .item .blc-col1 .col1 {
+  border: none !important;
+}
+
 /* ========== CALENDRIER ========== */
 html[data-theme="dark"] .calendar .blcLeft,
 html.theme-dark .calendar .blcLeft,
@@ -184,4 +210,28 @@ html[data-theme="dark"] .lst-pro-event .item:hover,
 html.theme-dark .lst-pro-event .item:hover,
 body.theme-dark .lst-pro-event .item:hover {
   background-color: rgba(255, 255, 255, 0.06) !important;
+}
+
+/* ========== BOUTON FAVORIS (Cœur) ========== */
+html[data-theme="dark"] .favorite-toggle,
+html.theme-dark .favorite-toggle,
+body.theme-dark .favorite-toggle {
+  background: rgba(255, 255, 255, 0.05) !important;
+  border: 1px solid var(--dark-border-primary) !important;
+  color: var(--dark-text-secondary) !important;
+  backdrop-filter: blur(5px) !important;
+  box-shadow: var(--dark-shadow-sm) !important;
+}
+
+html[data-theme="dark"] .favorite-toggle:hover,
+html.theme-dark .favorite-toggle:hover {
+  color: var(--dark-accent-primary) !important;
+  background: rgba(255, 255, 255, 0.1) !important;
+}
+
+html[data-theme="dark"] .favorite-toggle.is-active,
+html.theme-dark .favorite-toggle.is-active {
+  background: var(--dark-gradient-danger) !important;
+  color: #ffffff !important;
+  border: none !important;
 }
