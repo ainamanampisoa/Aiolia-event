@@ -11,17 +11,17 @@
 :root[data-theme="dark"],
 html.theme-dark,
 body.theme-dark {
-    /* ========== COULEURS DE FOND - CONFORTABLES ========== */
-    /* Utilisation de tons gris chauds au lieu du noir pur pour plus de confort */
-    --dark-bg-primary: #1a1d23;
-    /* Fond principal - gris ardoise chaud */
-    --dark-bg-secondary: #21252b;
-    /* Fond secondaire (header, footer, cards) */
-    --dark-bg-tertiary: #282c34;
+    /* ========== COULEURS DE FOND - PREMIUM & DYNAMIQUE ========== */
+    /* Utilisation de tons profonds avec une pointe de bleu pour un aspect plus moderne */
+    --dark-bg-primary: #0f1218;
+    /* Fond principal - Noir bleuté profond */
+    --dark-bg-secondary: #161a22;
+    /* Fond secondaire (header, cards) - Un peu plus clair */
+    --dark-bg-tertiary: #1c212b;
     /* Fond tertiaire (éléments imbriqués) */
-    --dark-bg-card: #21252b;
-    /* Fond des cartes */
-    --dark-bg-elevated: #282c34;
+    --dark-bg-card: #181d25;
+    /* Fond des cartes - Design épuré */
+    --dark-bg-elevated: #212733;
     /* Fond des éléments surélevés */
     --dark-bg-input: rgba(255, 255, 255, 0.08);
     /* Fond des champs de formulaire */

@@ -12,16 +12,36 @@ html[data-theme="dark"] body,
 html.theme-dark body,
 body.theme-dark {
     background-color: var(--dark-bg-primary) !important;
+    background-image:
+        radial-gradient(circle at 20% 20%, rgba(97, 175, 239, 0.05) 0%, transparent 40%),
+        radial-gradient(circle at 80% 80%, rgba(97, 175, 239, 0.05) 0%, transparent 40%) !important;
+    background-attachment: fixed !important;
     color: var(--dark-text-secondary);
 }
 
-/* Logo Fix & Size */
-html[data-theme="dark"] .logo img,
-html.theme-dark .logo img {
-    filter: none !important;
-    opacity: 1 !important;
+/* Logo Fix & Size - Using same file as light mode with CSS filters for perfect consistency */
+html[data-theme="dark"] .logo img.logo-dark,
+html.theme-dark .logo img.logo-dark,
+html[data-theme="dark"] .logo-ftr img.logo-dark,
+html.theme-dark .logo-ftr img.logo-dark {
+    filter: invert(1) hue-rotate(190deg) brightness(1.3) contrast(1.1) !important;
+    background: none !important;
+    background-color: transparent !important;
+    mix-blend-mode: normal !important;
+    border: none !important;
+    outline: none !important;
+    box-shadow: none !important;
+    padding: 0 !important;
     max-height: 55px !important;
     width: auto !important;
+    margin: 0 !important;
+    transform: none !important;
+    opacity: 1 !important;
+}
+
+html[data-theme="dark"] .logo,
+html.theme-dark .logo {
+    background: transparent !important;
 }
 
 /* ========== HEADER ET NAVIGATION ========== */
