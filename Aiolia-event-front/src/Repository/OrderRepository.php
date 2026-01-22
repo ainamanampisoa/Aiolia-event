@@ -50,7 +50,7 @@ class OrderRepository
     /**
      * Récupère les commandes d'un utilisateur avec filtres.
      */
-    public function findUserOrders(int $userId, string $searchQuery = '', string $statusFilter = 'all', string $paymentMethodFilter = 'all', ?int $limit = null, ?int $offset = null): array
+    public function findUserOrders(int $userId, string $searchQuery = '', string $statusFilter = 'all', string $dateRangeFilter = 'all', string $categoryFilter = 'all', ?int $limit = null, ?int $offset = null): array
     {
         $sql = <<<SQL
             SELECT 
@@ -82,10 +82,49 @@ class OrderRepository
             $params['status'] = $statusFilter;
         }
 
-        // Appliquer le filtre de mode de paiement
-        if ($paymentMethodFilter !== 'all') {
-            $sql .= " AND o.notes::jsonb->>'payment_method' = :payment_method";
-            $params['payment_method'] = $paymentMethodFilter;
+        // Appliquer le filtre de période
+        if ($dateRangeFilter !== 'all') {
+            $now = new \DateTimeImmutable();
+            switch ($dateRangeFilter) {
+                case 'today':
+                    $startDate = $now->setTime(0, 0, 0);
+                    $sql .= ' AND o.created_at >= :date_start';
+                    $params['date_start'] = $startDate->format('Y-m-d H:i:s');
+                    break;
+                case 'week':
+                    $startDate = $now->modify('-7 days')->setTime(0, 0, 0);
+                    $sql .= ' AND o.created_at >= :date_start';
+                    $params['date_start'] = $startDate->format('Y-m-d H:i:s');
+                    break;
+                case 'month':
+                    $startDate = $now->modify('first day of this month')->setTime(0, 0, 0);
+                    $sql .= ' AND o.created_at >= :date_start';
+                    $params['date_start'] = $startDate->format('Y-m-d H:i:s');
+                    break;
+                case '3months':
+                    $startDate = $now->modify('-3 months')->setTime(0, 0, 0);
+                    $sql .= ' AND o.created_at >= :date_start';
+                    $params['date_start'] = $startDate->format('Y-m-d H:i:s');
+                    break;
+                case 'year':
+                    $startDate = $now->modify('first day of January')->setTime(0, 0, 0);
+                    $sql .= ' AND o.created_at >= :date_start';
+                    $params['date_start'] = $startDate->format('Y-m-d H:i:s');
+                    break;
+            }
+        }
+
+        // Appliquer le filtre de catégorie
+        if ($categoryFilter !== 'all') {
+            $sql .= " AND EXISTS (
+                SELECT 1 FROM aiolia.order_items oi2
+                INNER JOIN aiolia.ticket_types tt2 ON tt2.id = oi2.ticket_type_id
+                INNER JOIN aiolia.events e2 ON e2.id = tt2.event_id
+                INNER JOIN aiolia.event_categories ec ON ec.id = e2.primary_category_id
+                WHERE oi2.order_id = o.id
+                AND ec.slug = :category
+            )";
+            $params['category'] = $categoryFilter;
         }
 
         // Appliquer la recherche
@@ -120,7 +159,7 @@ class OrderRepository
     /**
      * Compte le nombre total de commandes d'un utilisateur avec filtres (pour la pagination).
      */
-    public function countUserOrders(int $userId, string $searchQuery = '', string $statusFilter = 'all', string $paymentMethodFilter = 'all'): int
+    public function countUserOrders(int $userId, string $searchQuery = '', string $statusFilter = 'all', string $dateRangeFilter = 'all', string $categoryFilter = 'all'): int
     {
         $sql = <<<SQL
             SELECT COUNT(DISTINCT o.id) as total
@@ -139,10 +178,49 @@ class OrderRepository
             $params['status'] = $statusFilter;
         }
 
-        // Appliquer le filtre de mode de paiement
-        if ($paymentMethodFilter !== 'all') {
-            $sql .= " AND o.notes::jsonb->>'payment_method' = :payment_method";
-            $params['payment_method'] = $paymentMethodFilter;
+        // Appliquer le filtre de période
+        if ($dateRangeFilter !== 'all') {
+            $now = new \DateTimeImmutable();
+            switch ($dateRangeFilter) {
+                case 'today':
+                    $startDate = $now->setTime(0, 0, 0);
+                    $sql .= ' AND o.created_at >= :date_start';
+                    $params['date_start'] = $startDate->format('Y-m-d H:i:s');
+                    break;
+                case 'week':
+                    $startDate = $now->modify('-7 days')->setTime(0, 0, 0);
+                    $sql .= ' AND o.created_at >= :date_start';
+                    $params['date_start'] = $startDate->format('Y-m-d H:i:s');
+                    break;
+                case 'month':
+                    $startDate = $now->modify('first day of this month')->setTime(0, 0, 0);
+                    $sql .= ' AND o.created_at >= :date_start';
+                    $params['date_start'] = $startDate->format('Y-m-d H:i:s');
+                    break;
+                case '3months':
+                    $startDate = $now->modify('-3 months')->setTime(0, 0, 0);
+                    $sql .= ' AND o.created_at >= :date_start';
+                    $params['date_start'] = $startDate->format('Y-m-d H:i:s');
+                    break;
+                case 'year':
+                    $startDate = $now->modify('first day of January')->setTime(0, 0, 0);
+                    $sql .= ' AND o.created_at >= :date_start';
+                    $params['date_start'] = $startDate->format('Y-m-d H:i:s');
+                    break;
+            }
+        }
+
+        // Appliquer le filtre de catégorie
+        if ($categoryFilter !== 'all') {
+            $sql .= " AND EXISTS (
+                SELECT 1 FROM aiolia.order_items oi2
+                INNER JOIN aiolia.ticket_types tt2 ON tt2.id = oi2.ticket_type_id
+                INNER JOIN aiolia.events e2 ON e2.id = tt2.event_id
+                INNER JOIN aiolia.event_categories ec ON ec.id = e2.primary_category_id
+                WHERE oi2.order_id = o.id
+                AND ec.slug = :category
+            )";
+            $params['category'] = $categoryFilter;
         }
 
         // Appliquer la recherche
@@ -215,6 +293,37 @@ class OrderRepository
         }
 
         return $availableStatuses;
+    }
+
+    /**
+     * Récupère les catégories disponibles pour un utilisateur (basées sur ses commandes).
+     */
+    public function findAvailableCategories(int $userId): array
+    {
+        $sql = <<<SQL
+            SELECT DISTINCT
+                ec.slug,
+                ec.label,
+                COUNT(DISTINCT o.id) as order_count
+            FROM aiolia.orders o
+            INNER JOIN aiolia.order_items oi ON oi.order_id = o.id
+            INNER JOIN aiolia.ticket_types tt ON tt.id = oi.ticket_type_id
+            INNER JOIN aiolia.events e ON e.id = tt.event_id
+            INNER JOIN aiolia.event_categories ec ON ec.id = e.primary_category_id
+            WHERE o.user_id = :user_id
+            GROUP BY ec.slug, ec.label
+            ORDER BY order_count DESC, ec.label ASC
+        SQL;
+
+        $rows = $this->connection->executeQuery($sql, ['user_id' => $userId])->fetchAllAssociative();
+
+        return array_map(function (array $row): array {
+            return [
+                'slug' => $row['slug'],
+                'label' => $row['label'],
+                'count' => (int) $row['order_count'],
+            ];
+        }, $rows);
     }
 
     /**

@@ -214,11 +214,12 @@ class ProfileController extends AbstractController
         // Récupérer les paramètres de recherche et de filtre (sans pagination pour exporter tout)
         $searchQuery = $request->query->get('search', '');
         $statusFilter = $request->query->get('status', 'all');
-        $paymentMethodFilter = $request->query->get('payment_method', 'all');
+        $dateRangeFilter = $request->query->get('date_range', 'all');
+        $categoryFilter = $request->query->get('category', 'all');
 
         try {
             // Récupérer toutes les commandes avec les filtres (sans pagination)
-            $orders = $this->fetchUserOrders($userId, $searchQuery, $statusFilter, $paymentMethodFilter);
+            $orders = $this->fetchUserOrders($userId, $searchQuery, $statusFilter, $dateRangeFilter, $categoryFilter);
 
             // Générer le CSV
             $csvLines = [];
@@ -326,7 +327,8 @@ class ProfileController extends AbstractController
         // Récupérer les paramètres de recherche et de filtre
         $searchQuery = $request->query->get('search', '');
         $statusFilter = $request->query->get('status', 'all');
-        $paymentMethodFilter = $request->query->get('payment_method', 'all');
+        $dateRangeFilter = $request->query->get('date_range', 'all');
+        $categoryFilter = $request->query->get('category', 'all');
 
         // Paramètres de pagination
         $page = max(1, (int) $request->query->get('page', 1));
@@ -346,7 +348,7 @@ class ProfileController extends AbstractController
         error_log('History - Cart orders: ' . json_encode($cartOrders));
 
         // Filtrer les commandes du panier selon les filtres actifs
-        $filteredCartOrders = $this->filterCartOrders($cartOrders, $searchQuery, $statusFilter, $paymentMethodFilter);
+        $filteredCartOrders = $this->filterCartOrders($cartOrders, $searchQuery, $statusFilter, $dateRangeFilter, $categoryFilter);
         $cartItemsCount = count($filteredCartOrders);
         
         // Debug: logger pour voir les commandes filtrées
@@ -354,7 +356,7 @@ class ProfileController extends AbstractController
         error_log('History - Page: ' . $page);
 
         // Compter le nombre total de résultats pour la pagination (commandes DB uniquement)
-        $dbOrdersCount = $this->orderRepository->countUserOrders($userId, $searchQuery, $statusFilter, $paymentMethodFilter);
+        $dbOrdersCount = $this->orderRepository->countUserOrders($userId, $searchQuery, $statusFilter, $dateRangeFilter, $categoryFilter);
         
         // Les items du panier sont toujours affichés sur la première page s'ils correspondent aux filtres
         // Calculer le total en incluant les items du panier
@@ -383,7 +385,7 @@ class ProfileController extends AbstractController
         }
 
         // Récupérer les commandes paginées (pour l'affichage)
-        $paginatedOrders = $this->fetchUserOrders($userId, $searchQuery, $statusFilter, $paymentMethodFilter, $dbOrdersPerPage, $dbOffset);
+        $paginatedOrders = $this->fetchUserOrders($userId, $searchQuery, $statusFilter, $dateRangeFilter, $categoryFilter, $dbOrdersPerPage, $dbOffset);
 
         // Si on est sur la première page et qu'il y a des items du panier, les ajouter au début
         if ($page === 1 && $cartItemsCount > 0) {
@@ -399,10 +401,13 @@ class ProfileController extends AbstractController
 
         // Récupérer toutes les commandes pour les statistiques (sans filtres)
         // Note: On pourrait optimiser cela en créant une méthode dédiée dans le repo pour les stats
-        $allOrders = $this->fetchUserOrders($userId, '', 'all');
+        $allOrders = $this->fetchUserOrders($userId, '', 'all', 'all', 'all');
 
         // Récupérer les statuts disponibles depuis la base de données
         $availableStatuses = $this->orderRepository->findAvailableStatuses($userId);
+
+        // Récupérer les catégories disponibles depuis la base de données
+        $availableCategories = $this->orderRepository->findAvailableCategories($userId);
 
         // Calculer les statistiques avec toutes les commandes
         $stats = $this->calculatePurchaseStats($userId, $allOrders);
@@ -418,11 +423,10 @@ class ProfileController extends AbstractController
             'orders' => $paginatedOrders,
             'stats' => $stats,
             'availableStatuses' => $availableStatuses,
+            'availableCategories' => $availableCategories,
             'currentStatusFilter' => $statusFilter,
-            'currentPaymentMethodFilter' => $paymentMethodFilter,
-            // Le filtre de date n'est pas encore implémenté côté contrôleur,
-            // on utilise donc 'all' comme valeur par défaut pour éviter les erreurs Twig.
-            'currentDateFilter' => 'all',
+            'currentDateFilter' => $dateRangeFilter,
+            'currentCategoryFilter' => $categoryFilter,
             'searchQuery' => $searchQuery,
             'totalPages' => $totalPages,
             'currentPage' => $page,
@@ -1726,9 +1730,9 @@ class ProfileController extends AbstractController
     /**
      * Récupère les commandes de l'utilisateur avec leurs détails.
      */
-    private function fetchUserOrders(int $userId, string $searchQuery = '', string $statusFilter = 'all', string $paymentMethodFilter = 'all', ?int $limit = null, ?int $offset = null): array
+    private function fetchUserOrders(int $userId, string $searchQuery = '', string $statusFilter = 'all', string $dateRangeFilter = 'all', string $categoryFilter = 'all', ?int $limit = null, ?int $offset = null): array
     {
-        $rows = $this->orderRepository->findUserOrders($userId, $searchQuery, $statusFilter, $paymentMethodFilter, $limit, $offset);
+        $rows = $this->orderRepository->findUserOrders($userId, $searchQuery, $statusFilter, $dateRangeFilter, $categoryFilter, $limit, $offset);
 
         return array_map(function (array $row): array {
             $status = $row['status'];
@@ -2433,10 +2437,11 @@ class ProfileController extends AbstractController
      * @param array<int, array<string, mixed>> $cartOrders Commandes du panier formatées
      * @param string $searchQuery Recherche textuelle
      * @param string $statusFilter Filtre de statut
-     * @param string $paymentMethodFilter Filtre de méthode de paiement
+     * @param string $dateRangeFilter Filtre de période
+     * @param string $categoryFilter Filtre de catégorie
      * @return array<int, array<string, mixed>> Commandes filtrées
      */
-    private function filterCartOrders(array $cartOrders, string $searchQuery, string $statusFilter, string $paymentMethodFilter): array
+    private function filterCartOrders(array $cartOrders, string $searchQuery, string $statusFilter, string $dateRangeFilter, string $categoryFilter): array
     {
         if (empty($cartOrders)) {
             return [];
@@ -2459,8 +2464,16 @@ class ProfileController extends AbstractController
                 }
             }
 
-            // Filtrer par méthode de paiement (les commandes du panier n'ont pas de méthode)
-            if ($paymentMethodFilter !== 'all') {
+            // Filtrer par période (les commandes du panier sont toujours récentes, on les garde si le filtre est 'all' ou 'today')
+            if ($dateRangeFilter !== 'all' && $dateRangeFilter !== 'today') {
+                // Pour les autres périodes, on peut filtrer selon la date de création du panier
+                // Pour simplifier, on garde les commandes du panier seulement si le filtre est 'all' ou 'today'
+                continue;
+            }
+
+            // Filtrer par catégorie (les commandes du panier n'ont pas de catégorie facilement accessible, on les garde si le filtre est 'all')
+            if ($categoryFilter !== 'all') {
+                // Pour simplifier, on exclut les commandes du panier si un filtre de catégorie est actif
                 continue;
             }
 

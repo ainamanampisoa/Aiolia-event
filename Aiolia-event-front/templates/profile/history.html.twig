@@ -147,24 +147,11 @@
                                 
                                 <div class="filter-group">
                                     <div class="filter-label">
-                                        <i class="fas fa-credit-card"></i>
-                                        <span>Paiement</span>
-                                    </div>
-                                    <select name="payment_method" class="filter-select auto-submit">
-                                        <option value="all">Tous les paiements</option>
-                                        <option value="mvola" {% if currentPaymentMethodFilter|default('all') == 'mvola' %}selected{% endif %}>M-Vola</option>
-                                        <option value="orange-money" {% if currentPaymentMethodFilter|default('all') == 'orange-money' %}selected{% endif %}>Orange Money</option>
-                                        <option value="airtel-money" {% if currentPaymentMethodFilter|default('all') == 'airtel-money' %}selected{% endif %}>Airtel Money</option>
-                                    </select>
-                                </div>
-                                
-                                <div class="filter-group">
-                                    <div class="filter-label">
                                         <i class="fas fa-calendar-alt"></i>
                                         <span>Période</span>
                                     </div>
                                     <select name="date_range" class="filter-select auto-submit">
-                                        <option value="all">Toute période</option>
+                                        <option value="all" {% if currentDateFilter|default('all') == 'all' %}selected{% endif %}>Toute période</option>
                                         <option value="today" {% if currentDateFilter|default('all') == 'today' %}selected{% endif %}>Aujourd'hui</option>
                                         <option value="week" {% if currentDateFilter|default('all') == 'week' %}selected{% endif %}>Cette semaine</option>
                                         <option value="month" {% if currentDateFilter|default('all') == 'month' %}selected{% endif %}>Ce mois</option>
@@ -172,19 +159,22 @@
                                         <option value="year" {% if currentDateFilter|default('all') == 'year' %}selected{% endif %}>Cette année</option>
                                     </select>
                                 </div>
-                                
-                                <div class="filter-group filter-group-dates">
+
+                                <div class="filter-group">
                                     <div class="filter-label">
-                                        <i class="fas fa-calendar-check"></i>
-                                        <span>Dates</span>
+                                        <i class="fas fa-tags"></i>
+                                        <span>Catégorie</span>
                                     </div>
-                                    <div class="date-inputs">
-                                        <input type="date" name="start_date" value="{{ startDate|default('') }}" 
-                                               class="date-input auto-submit" placeholder="De">
-                                        <span class="date-separator">à</span>
-                                        <input type="date" name="end_date" value="{{ endDate|default('') }}" 
-                                               class="date-input auto-submit" placeholder="À">
-                                    </div>
+                                    <select name="category" class="filter-select auto-submit">
+                                        <option value="all" {% if currentCategoryFilter|default('all') == 'all' %}selected{% endif %}>Toutes les catégories</option>
+                                        {% if availableCategories is defined and availableCategories|length > 0 %}
+                                            {% for category in availableCategories %}
+                                                <option value="{{ category.slug }}" {% if currentCategoryFilter|default('all') == category.slug %}selected{% endif %}>
+                                                    {{ category.label }} ({{ category.count }})
+                                                </option>
+                                            {% endfor %}
+                                        {% endif %}
+                                    </select>
                                 </div>
 
                                 {# Bouton de réinitialisation #}
@@ -283,7 +273,7 @@
                                         <div class="empty-content">
                                             <i class="fas fa-shopping-bag"></i>
                                             <p>{{ 'tickets.no_orders_found'|trans }}</p>
-                                            {% if searchQuery or currentStatusFilter != 'all' or currentPaymentMethodFilter != 'all' or currentDateFilter != 'all' %}
+                                            {% if searchQuery or currentStatusFilter != 'all' or currentDateFilter != 'all' or currentCategoryFilter != 'all' %}
                                                 <a href="{{ path('profile_history') }}" class="btn-solid btn-small">
                                                     <i class="fas fa-redo"></i> {{ 'tickets.reset_filters'|trans }}
                                                 </a>
