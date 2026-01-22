@@ -217,17 +217,21 @@ $( function() {
   
 
       //check local storage for the lang
-      var sessionLang = localStorage.getItem('lang');
-      if (sessionLang){
-        //find an item with value of sessionLang
-        var langIndex = langArray.indexOf(sessionLang);
-        $('.btn-select').html(langArray[langIndex]);
-        $('.btn-select').attr('value', sessionLang);
-      } else {
-         var langIndex = langArray.indexOf('ch');
-        console.log(langIndex);
-        $('.btn-select').html(langArray[langIndex]);
-        //$('.btn-select').attr('value', 'en');
+      if (typeof langArray !== 'undefined' && Array.isArray(langArray) && langArray.length > 0) {
+        var sessionLang = localStorage.getItem('lang');
+        if (sessionLang){
+          //find an item with value of sessionLang
+          var langIndex = langArray.indexOf(sessionLang);
+          if (langIndex !== -1) {
+            $('.btn-select').html(langArray[langIndex]);
+            $('.btn-select').attr('value', sessionLang);
+          }
+        } else {
+          var langIndex = langArray.indexOf('ch');
+          if (langIndex !== -1) {
+            $('.btn-select').html(langArray[langIndex]);
+          }
+        }
       }
 
 

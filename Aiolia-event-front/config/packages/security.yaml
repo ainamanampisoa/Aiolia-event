@@ -24,21 +24,27 @@ security:
             pattern: ^/api/ticket-chance
             security: false
 
-        main:
-            lazy: true
-            provider: app_user_provider
+        # Firewall pour les routes de tickets qui utilisent la session (panier, promo codes)
+        # IMPORTANT: Doit être AVANT le firewall 'api' pour être prioritaire
+        tickets_session:
+            pattern: ^/api/tickets/(cart|promo)
+            security: false
 
-        # Firewall API (utilise JWT)
+        # Firewall API (utilise JWT) - Doit être APRÈS les firewalls spécifiques
         api:
             pattern: ^/api
             stateless: true
             provider: app_user_provider
             jwt: ~
 
+        main:
+            lazy: true
+            provider: app_user_provider
+
     access_control:
         - { path: ^/api/auth/(login|register|refresh)$, roles: PUBLIC_ACCESS }
         - { path: ^/api/auth/logout$, roles: ROLE_USER }
-        - { path: ^/api/tickets/cart/(count|sync|load)$, roles: PUBLIC_ACCESS }
+        - { path: ^/api/tickets/(cart|promo), roles: PUBLIC_ACCESS }
         - { path: ^/api, roles: ROLE_USER }
 
 when@test:

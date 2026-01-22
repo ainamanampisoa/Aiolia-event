@@ -14,7 +14,10 @@
     <main class="payment-page">
         <div class="container">
             {% set items = items|default([]) %}
+            {% set subtotal = subtotal|default(orderTotal|default(0)) %}
             {% set orderTotal = orderTotal|default(0) %}
+            {% set discountAmount = discountAmount|default(0) %}
+            {% set promoCode = promoCode|default(null) %}
             {% set serviceFees = serviceFees|default(0) %}
             {% set grandTotal = orderTotal + serviceFees %}
 
@@ -83,8 +86,19 @@
                         <div class="summary-totals">
                             <div class="line">
                                 <span>{{ 'tickets.subtotal'|trans }}</span>
-                                <span>{{ orderTotal|number_format(0, ',', ' ') }} {{ 'profile_financial.currency_mga'|trans }}</span>
+                                <span>{{ subtotal|number_format(0, ',', ' ') }} {{ 'profile_financial.currency_mga'|trans }}</span>
                             </div>
+                            {% if discountAmount > 0 and promoCode %}
+                            <div class="line discount-line">
+                                <span>
+                                    <i class="fas fa-tag" style="color: #27ae60; margin-right: 5px;"></i>
+                                    Code promo <strong>{{ promoCode }}</strong>
+                                </span>
+                                <span style="color: #27ae60; font-weight: 600;">
+                                    -{{ discountAmount|number_format(0, ',', ' ') }} {{ 'profile_financial.currency_mga'|trans }}
+                                </span>
+                            </div>
+                            {% endif %}
                             <div class="line">
                                 <span>{{ 'tickets.service_fees'|trans }}</span>
                                 <span>{{ serviceFees|number_format(0, ',', ' ') }} {{ 'profile_financial.currency_mga'|trans }}</span>
@@ -105,6 +119,9 @@
 
                 <section class="payment-content">
                     <form class="payment-form" action="{{ path('checkout_process') }}{% if app.request.query.get('event') %}?event={{ app.request.query.get('event') }}{% endif %}" method="post">
+                        {% if promoCode %}
+                            <input type="hidden" name="promo_code" value="{{ promoCode }}">
+                        {% endif %}
                         <div class="form-section">
                             <h2>{{ 'tickets.payment_method'|trans }}</h2>
                             <div class="method-grid">

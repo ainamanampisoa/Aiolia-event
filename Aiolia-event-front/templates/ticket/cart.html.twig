@@ -228,13 +228,25 @@
                                         <span>0MGA</span>
                                     </div>
                                     
+                                    {% set eventKey = item.event.id ~ '-' ~ (loop.index0) %}
+                                    {% set appliedPromo = appliedPromoCodes[eventKey]|default(null) %}
+                                    {% if appliedPromo %}
+                                    <div class="summary-item" style="color: #27ae60;">
+                                        <span>Réduction</span>
+                                        <span>-{{ appliedPromo.discount_amount|number_format(0, ',', ' ') }}MGA</span>
+                                    </div>
+                                    {% endif %}
+                                    
                                     <!-- TOTAL AMÉLIORÉ - PLUS COMPACT -->
                                     <div class="summary-item total">
                                         <span class="total-label">Total</span>
                                         <span class="total-amount" id="subtotal-{{ item.event.id }}-{{ loop.index0 }}">
                                             {% set adultTotal = (item.adultQuantity * (item.event.adultPrice ?? 0)) %}
                                             {% set childTotal = (item.childQuantity * (item.event.childPrice ?? 0)) %}
-                                            {{ (adultTotal + childTotal)|number_format(0, ',', ' ') }}MGA
+                                            {% set subtotal = adultTotal + childTotal %}
+                                            {% set discount = appliedPromo ? appliedPromo.discount_amount : 0 %}
+                                            {% set finalTotal = subtotal - discount %}
+                                            {{ (finalTotal > 0 ? finalTotal : 0)|number_format(0, ',', ' ') }}MGA
                                         </span>
                                     </div>
                                     
@@ -251,9 +263,26 @@
                                 
                                 <!-- Code promo -->
                                 <div class="promo-section">
+                                    {% set eventKey = item.event.id ~ '-' ~ (loop.index0) %}
+                                    {% set appliedPromo = appliedPromoCodes[eventKey]|default(null) %}
+                                    {% if appliedPromo %}
+                                        <div class="promo-applied" style="display: flex; align-items: center; gap: 10px; padding: 12px; background: #f0f9f4; border: 2px solid #27ae60; border-radius: 8px; margin-bottom: 10px;">
+                                            <i class="fas fa-check-circle" style="color: #27ae60; font-size: 18px;"></i>
+                                            <div style="flex: 1;">
+                                                <strong style="color: #27ae60;">Code promo appliqué : {{ appliedPromo.code }}</strong>
+                                                <div style="font-size: 13px; color: #555;">
+                                                    Réduction de {{ appliedPromo.discount_amount|number_format(0, ',', ' ') }} MGA
+                                                </div>
+                                            </div>
+                                            <button type="button" class="btn-remove-promo" data-event-id="{{ eventKey }}" style="background: #e74c3c; color: white; border: none; padding: 6px 12px; border-radius: 6px; cursor: pointer; font-size: 12px;">
+                                                <i class="fas fa-times"></i> Retirer
+                                            </button>
+                                        </div>
+                                    {% endif %}
                                     <div class="cart-line-promo">
-                                        <input type="text" class="chp" placeholder="{{ 'tickets.enter_promo_code'|trans }}">
-                                        <button class="btn-promo apply-promo">
+                                        <input type="text" class="chp promo-input" data-event-id="{{ eventKey }}" placeholder="{{ 'tickets.enter_promo_code'|trans }}" 
+                                               {% if appliedPromo %}value="{{ appliedPromo.code }}" disabled style="background: #f0f9f4; border-color: #27ae60;"{% endif %}>
+                                        <button class="btn-promo apply-promo" data-event-id="{{ eventKey }}" {% if appliedPromo %}style="display: none;"{% endif %}>
                                             <i class="fas fa-tag"></i>
                                             {{ 'tickets.apply_promo'|trans }}
                                         </button>
@@ -623,19 +652,148 @@
             button.addEventListener('click', function() {
                 const input = this.previousElementSibling;
                 const code = input.value.trim();
+                const eventId = this.dataset.eventId || '';
+                const originalButtonHTML = this.innerHTML;
+                const originalButtonStyle = this.style.cssText;
                 
-                if (code) {
-                    this.innerHTML = '<i class="fas fa-spinner fa-spin"></i>';
-                    this.disabled = true;
-                    
-                    // Simulation d'appel API
-                    setTimeout(() => {
-                        this.innerHTML = '<i class="fas fa-check"></i> Appliqué';
-                        this.style.background = 'var(--success)';
-                        input.style.borderColor = 'var(--success)';
-                        input.disabled = true;
-                    }, 1000);
+                if (!code) {
+                    alert('Veuillez entrer un code promo');
+                    return;
                 }
+                
+                if (!eventId) {
+                    alert('Erreur: ID événement manquant');
+                    return;
+                }
+                
+                // Désactiver le bouton et afficher le chargement
+                this.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Validation...';
+                this.disabled = true;
+                input.disabled = true;
+                
+                // Appeler l'API de validation
+                fetch('{{ path("api_tickets_validate_promo") }}', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/x-www-form-urlencoded',
+                        'X-Requested-With': 'XMLHttpRequest'
+                    },
+                    body: 'code=' + encodeURIComponent(code) + '&event_id=' + encodeURIComponent(eventId)
+                })
+                .then(async response => {
+                    let data;
+                    try {
+                        data = await response.json();
+                    } catch (e) {
+                        // Si la réponse n'est pas du JSON, créer un objet d'erreur
+                        throw new Error('Erreur de communication avec le serveur');
+                    }
+                    
+                    if (!response.ok) {
+                        const errorMsg = data.error || data.message || `Erreur ${response.status}: ${response.statusText}`;
+                        throw new Error(errorMsg);
+                    }
+                    
+                    return data;
+                })
+                .then(data => {
+                    if (data.success) {
+                        // Code promo valide
+                        this.innerHTML = '<i class="fas fa-check"></i> Appliqué';
+                        this.style.background = '#27ae60';
+                        this.style.color = '#ffffff';
+                        input.style.borderColor = '#27ae60';
+                        input.style.backgroundColor = '#f0f9f4';
+                        input.disabled = true;
+                        
+                        // Afficher un message de succès
+                        const discountText = data.discount_amount.toLocaleString('fr-FR') + ' MGA';
+                        const totalAfterText = data.total_after.toLocaleString('fr-FR') + ' MGA';
+                        
+                        // Créer une notification visuelle
+                        const notification = document.createElement('div');
+                        notification.style.cssText = 'position: fixed; top: 20px; right: 20px; background: #27ae60; color: white; padding: 15px 20px; border-radius: 8px; box-shadow: 0 4px 12px rgba(0,0,0,0.15); z-index: 10000; max-width: 350px;';
+                        notification.innerHTML = `
+                            <div style="display: flex; align-items: center; gap: 10px;">
+                                <i class="fas fa-check-circle" style="font-size: 20px;"></i>
+                                <div>
+                                    <strong>Code promo appliqué !</strong><br>
+                                    <small>Réduction de ${discountText}</small>
+                                </div>
+                            </div>
+                        `;
+                        document.body.appendChild(notification);
+                        
+                        // Retirer la notification après 5 secondes
+                        setTimeout(() => {
+                            notification.style.transition = 'opacity 0.3s';
+                            notification.style.opacity = '0';
+                            setTimeout(() => notification.remove(), 300);
+                        }, 5000);
+                        
+                        // Recharger la page pour mettre à jour les totaux
+                        setTimeout(() => {
+                            window.location.reload();
+                        }, 1500);
+                    } else {
+                        // Code promo invalide
+                        this.innerHTML = originalButtonHTML;
+                        this.style.cssText = originalButtonStyle;
+                        this.disabled = false;
+                        input.disabled = false;
+                        input.style.borderColor = '#e74c3c';
+                        input.style.backgroundColor = '#fee';
+                        
+                        const errorMsg = data.error || data.debug || 'Code promo invalide';
+                        alert('Erreur: ' + errorMsg);
+                        console.error('Erreur validation promo:', data);
+                    }
+                })
+                .catch(error => {
+                    console.error('Erreur:', error);
+                    this.innerHTML = originalButtonHTML;
+                    this.style.cssText = originalButtonStyle;
+                    this.disabled = false;
+                    input.disabled = false;
+                    const errorMsg = error.message || 'Erreur lors de la validation du code promo. Veuillez réessayer.';
+                    alert(errorMsg);
+                });
+            });
+        });
+
+        // Boutons retirer code promo
+        document.querySelectorAll('.btn-remove-promo').forEach(button => {
+            button.addEventListener('click', function() {
+                if (!confirm('Voulez-vous retirer le code promo ?')) {
+                    return;
+                }
+                
+                const eventId = this.dataset.eventId || '';
+                if (!eventId) {
+                    alert('Erreur: ID événement manquant');
+                    return;
+                }
+                
+                fetch('{{ path("api_tickets_remove_promo") }}', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/x-www-form-urlencoded',
+                        'X-Requested-With': 'XMLHttpRequest'
+                    },
+                    body: 'event_id=' + encodeURIComponent(eventId)
+                })
+                .then(response => response.json())
+                .then(data => {
+                    if (data.success) {
+                        window.location.reload();
+                    } else {
+                        alert('Erreur lors de la suppression du code promo');
+                    }
+                })
+                .catch(error => {
+                    console.error('Erreur:', error);
+                    alert('Erreur lors de la suppression du code promo');
+                });
             });
         });
 

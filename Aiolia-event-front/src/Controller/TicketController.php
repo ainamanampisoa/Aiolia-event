@@ -7,6 +7,7 @@ use App\Repository\TicketRepository;
 use App\Service\ActivityService;
 use App\Service\CartSyncService;
 use App\Service\PaymentService;
+use Doctrine\DBAL\Connection;
 use Symfony\Bundle\FrameworkBundle\Controller\AbstractController;
 use Symfony\Component\HttpFoundation\JsonResponse;
 use Symfony\Component\HttpFoundation\Request;
@@ -22,7 +23,8 @@ class TicketController extends AbstractController
         private readonly EventRepository $eventRepository,
         private readonly CartSyncService $cartSyncService,
         private readonly PaymentService $paymentService,
-        private readonly ActivityService $activityService
+        private readonly ActivityService $activityService,
+        private readonly Connection $connection
     ) {
     }
 
@@ -67,8 +69,12 @@ class TicketController extends AbstractController
 
         $items = $this->formatCartItemsForTemplate($cartItems);
 
+        // Récupérer les codes promo appliqués par événement depuis la session
+        $appliedPromoCodes = $session->get('applied_promo_codes', []);
+
         return $this->render('ticket/cart.html.twig', [
             'items' => $items,
+            'appliedPromoCodes' => $appliedPromoCodes,
         ]);
     }
 
@@ -408,22 +414,64 @@ class TicketController extends AbstractController
 
         $items = $this->formatCartItemsForTemplate($cartItems);
 
+        // Récupérer les codes promo appliqués par événement
+        $appliedPromoCodes = $session->get('applied_promo_codes', []);
+        
         $orderTotal = 0;
-        foreach ($items as $item) {
+        $discountAmount = 0;
+        $promoCodes = [];
+        
+        // Calculer le total et la réduction par événement
+        foreach ($items as $index => $item) {
             $adultPrice = $item['event']['adultPrice'] ?? 0;
             $childPrice = $item['event']['childPrice'] ?? 0;
             $adultTotal = ($item['adultQuantity'] ?? 0) * $adultPrice;
             $childTotal = ($item['childQuantity'] ?? 0) * $childPrice;
-            $orderTotal += $adultTotal + $childTotal;
+            $itemTotal = $adultTotal + $childTotal;
+            $orderTotal += $itemTotal;
+            
+            // Vérifier si cet événement a un code promo appliqué
+            $eventKey = ($item['event']['id'] ?? '') . '-' . $index;
+            if (isset($appliedPromoCodes[$eventKey])) {
+                $promo = $appliedPromoCodes[$eventKey];
+                $discountAmount += (float) ($promo['discount_amount'] ?? 0);
+                if (!empty($promo['code'])) {
+                    $promoCodes[] = $promo['code'];
+                }
+            }
         }
+        
+        // Si un eventId est filtré, utiliser uniquement le code promo de cet événement
+        if ($eventIdToFilter !== null) {
+            $discountAmount = 0;
+            $promoCodes = [];
+            foreach ($items as $index => $item) {
+                $eventKey = ($item['event']['id'] ?? '') . '-' . $index;
+                if (isset($appliedPromoCodes[$eventKey]) && ($item['event']['id'] ?? null) === $eventIdToFilter) {
+                    $promo = $appliedPromoCodes[$eventKey];
+                    $discountAmount = (float) ($promo['discount_amount'] ?? 0);
+                    if (!empty($promo['code'])) {
+                        $promoCodes = [$promo['code']];
+                    }
+                    break;
+                }
+            }
+        }
+        
+        $promoCode = !empty($promoCodes) ? implode(', ', $promoCodes) : null;
 
         $serviceFees = 0;
+        $subtotal = $orderTotal;
+        $orderTotal = max(0, $orderTotal - $discountAmount);
         $paymentDeadline = new \DateTime('+15 minutes');
         $reference = 'CMD-' . date('Ymd') . '-0001';
 
         return $this->render('ticket/payment.html.twig', [
             'items' => $items,
+            'subtotal' => $subtotal,
             'orderTotal' => $orderTotal,
+            'discountAmount' => $discountAmount,
+            'promoCode' => $promoCode,
             'serviceFees' => $serviceFees,
             'paymentDeadline' => $paymentDeadline,
             'orderReference' => $reference,
@@ -444,6 +492,17 @@ class TicketController extends AbstractController
         $paymentName = $request->request->get('payment_name', '');
         $paymentEmail = $request->request->get('payment_email', '');
         $paymentPhone = $request->request->get('payment_phone', '');
+        
+        // Récupérer les codes promo depuis la session (appliqués dans le panier) ou depuis le formulaire
+        $appliedPromoCodes = $session->get('applied_promo_codes', []);
+        $promoCodesList = [];
+        foreach ($appliedPromoCodes as $promo) {
+            if (!empty($promo['code'])) {
+                $promoCodesList[] = $promo['code'];
+            }
+        }
+        $promoCode = !empty($promoCodesList) ? implode(', ', $promoCodesList) : trim($request->request->get('promo_code', ''));
+        
         $terms = $request->request->get('terms', false);
 
         if (!$terms) {
@@ -503,6 +562,7 @@ class TicketController extends AbstractController
             'payment_name' => $paymentName,
             'payment_email' => $paymentEmail,
             'payment_phone' => $paymentPhone,
+            'promo_code' => !empty($promoCode) ? $promoCode : null,
         ];
 
         try {
@@ -891,6 +951,295 @@ class TicketController extends AbstractController
         ]);
     }
 
+    #[Route('/api/tickets/promo/validate', name: 'api_tickets_validate_promo', methods: ['POST', 'OPTIONS'])]
+    public function validatePromoCode(Request $request): JsonResponse
+    {
+        // Initialiser le logging dès le début - AVANT TOUT
+        $logDir = dirname(__DIR__, 2) . '/var/log';
+        @mkdir($logDir, 0755, true);
+        $logFile = $logDir . '/promo_validation.log';
+        $isDev = ($_ENV['APP_ENV'] ?? 'dev') === 'dev';
+        
+        // Écrire immédiatement dans le fichier de log
+        $logEntry = date('Y-m-d H:i:s') . " - ===== MÉTHODE APPELÉE =====\n";
+        $logEntry .= "Method: " . $request->getMethod() . "\n";
+        $logEntry .= "URI: " . $request->getRequestUri() . "\n";
+        $logEntry .= "Content-Type: " . $request->headers->get('Content-Type', 'N/A') . "\n";
+        @file_put_contents($logFile, $logEntry, FILE_APPEND);
+        error_log('=== VALIDATE PROMO CODE CALLED === Method: ' . $request->getMethod());
+        
+        // Gérer les requêtes OPTIONS (preflight CORS)
+        if ($request->getMethod() === 'OPTIONS') {
+            @file_put_contents($logFile, date('Y-m-d H:i:s') . " - Requête OPTIONS (preflight CORS)\n", FILE_APPEND);
+            return new JsonResponse([], 200, [
+                'Access-Control-Allow-Origin' => '*',
+                'Access-Control-Allow-Methods' => 'POST, OPTIONS',
+                'Access-Control-Allow-Headers' => 'Content-Type, X-Requested-With',
+                'Access-Control-Max-Age' => '3600'
+            ]);
+        }
+        
+        try {
+            $session = $request->getSession();
+            if (!$session->isStarted()) {
+                $session->start();
+            }
+            @file_put_contents($logFile, date('Y-m-d H:i:s') . " - Session initialisée\n", FILE_APPEND);
+        } catch (\Exception $e) {
+            $errorMsg = date('Y-m-d H:i:s') . " - ERREUR initialisation session: " . $e->getMessage() . "\n";
+            $errorMsg .= "Trace: " . $e->getTraceAsString() . "\n";
+            @file_put_contents($logFile, $errorMsg, FILE_APPEND);
+            error_log('Erreur initialisation session: ' . $e->getMessage());
+            return new JsonResponse([
+                'success' => false,
+                'error' => 'Erreur lors de l\'initialisation de la session',
+                'debug' => $isDev ? $e->getMessage() : null
+            ], 500);
+        }
+
+        $code = trim($request->request->get('code', ''));
+        $eventId = trim($request->request->get('event_id', ''));
+        @file_put_contents($logFile, date('Y-m-d H:i:s') . " - Code reçu: " . ($code ?: 'vide') . " - EventId: " . ($eventId ?: 'vide') . "\n", FILE_APPEND);
+        
+        if (empty($code)) {
+            return new JsonResponse([
+                'success' => false,
+                'error' => 'Code promo requis'
+            ], 400);
+        }
+        
+        if (empty($eventId)) {
+            return new JsonResponse([
+                'success' => false,
+                'error' => 'ID événement requis'
+            ], 400);
+        }
+
+        // Récupérer l'utilisateur (optionnel pour la validation)
+        $user = $session->get('user');
+        $userId = null;
+        if ($user) {
+            if (is_array($user)) {
+                $userId = $user['id'] ?? null;
+            } elseif (is_numeric($user)) {
+                $userId = (int) $user;
+            } elseif (is_object($user) && method_exists($user, 'getId')) {
+                $userId = $user->getId();
+            }
+        }
+        
+        // Log pour debug
+        $logMessage = date('Y-m-d H:i:s') . ' - User session: ' . json_encode($user) . ' - Extracted userId: ' . ($userId ?? 'null') . "\n";
+        @file_put_contents($logFile, $logMessage, FILE_APPEND);
+        error_log('User session data: ' . json_encode($user));
+        error_log('Extracted userId: ' . ($userId ?? 'null'));
+
+        // Récupérer les items du panier et trouver l'événement spécifique
+        $cartItems = $session->get('cart_items', []);
+        
+        // Extraire l'eventId du format "eventId-loopIndex" ou juste "eventId"
+        $eventIdParts = explode('-', $eventId);
+        $targetEventId = (int) $eventIdParts[0];
+        
+        // Trouver l'item correspondant à cet événement
+        $targetItem = null;
+        foreach ($cartItems as $item) {
+            // Récupérer l'eventId de l'item
+            $itemEventId = null;
+            if (isset($item['ticketTypeId'])) {
+                // Récupérer l'eventId depuis ticket_types
+                try {
+                    $ticketType = $this->connection->executeQuery(
+                        'SELECT event_id FROM aiolia.ticket_types WHERE id = :id',
+                        ['id' => $item['ticketTypeId']]
+                    )->fetchAssociative();
+                    $itemEventId = $ticketType ? (int) $ticketType['event_id'] : null;
+                } catch (\Exception $e) {
+                    error_log('Erreur récupération eventId: ' . $e->getMessage());
+                }
+            }
+            
+            if ($itemEventId === $targetEventId) {
+                $targetItem = $item;
+                break;
+            }
+        }
+        
+        if (!$targetItem) {
+            return new JsonResponse([
+                'success' => false,
+                'error' => 'Événement introuvable dans le panier'
+            ], 400);
+        }
+
+        // Calculer le total uniquement pour cet événement
+        $totalAmount = 0;
+        $adultTotal = ($targetItem['adultQuantity'] ?? 0) * ($targetItem['adultPrice'] ?? 0);
+        $childTotal = ($targetItem['childQuantity'] ?? 0) * ($targetItem['childPrice'] ?? 0);
+        $totalAmount = $adultTotal + $childTotal;
+
+        if ($totalAmount <= 0) {
+            return new JsonResponse([
+                'success' => false,
+                'error' => 'Aucun billet pour cet événement'
+            ], 400);
+        }
+
+        // Valider le code promo
+        try {
+            $codeUpper = strtoupper(trim($code));
+            error_log('Validation code promo: ' . $codeUpper . ' pour user: ' . $userId);
+            
+            $sql = <<<SQL
+                SELECT 
+                    id,
+                    code,
+                    promotion_type,
+                    value,
+                    max_usage_total,
+                    max_usage_per_user,
+                    starts_at,
+                    ends_at
+                FROM aiolia.promotion_codes
+                WHERE UPPER(TRIM(code)) = UPPER(TRIM(:code))
+                  AND (starts_at IS NULL OR starts_at <= NOW())
+                  AND (ends_at IS NULL OR ends_at >= NOW())
+            SQL;
+
+            try {
+                $promo = $this->connection->executeQuery($sql, ['code' => $code])->fetchAssociative();
+                error_log('Résultat requête promo: ' . ($promo ? 'trouvé (id: ' . ($promo['id'] ?? 'N/A') . ')' : 'non trouvé'));
+            } catch (\Exception $dbError) {
+                $errorDetails = [
+                    'message' => $dbError->getMessage(),
+                    'code' => $dbError->getCode(),
+                    'file' => $dbError->getFile(),
+                    'line' => $dbError->getLine()
+                ];
+                error_log('Erreur DB lors de la requête promo: ' . json_encode($errorDetails));
+                
+                // Écrire aussi dans le fichier de log
+                $logDir = dirname(__DIR__, 2) . '/var/log';
+                if (!is_dir($logDir)) {
+                    @mkdir($logDir, 0755, true);
+                }
+                $logFile = $logDir . '/promo_validation.log';
+                $logMessage = date('Y-m-d H:i:s') . " - ERREUR DB: " . json_encode($errorDetails, JSON_PRETTY_PRINT) . "\n";
+                $logMessage .= "SQL: {$sql}\n";
+                $logMessage .= "Code: {$code}\n";
+                $logMessage .= str_repeat('-', 80) . "\n";
+                @file_put_contents($logFile, $logMessage, FILE_APPEND);
+                
+                throw $dbError;
+            }
+
+            if (!$promo) {
+                return new JsonResponse([
+                    'success' => false,
+                    'error' => 'Code promo introuvable ou expiré'
+                ], 400);
+            }
+
+            $promotionId = (int) $promo['id'];
+            $promotionType = $promo['promotion_type'];
+            $value = (float) $promo['value'];
+
+            // Vérifier les limites d'utilisation totale
+            if ($promo['max_usage_total'] !== null) {
+                $usageCount = $this->connection->executeQuery(
+                    'SELECT COUNT(*) FROM aiolia.promotion_applications WHERE promotion_id = :promotion_id',
+                    ['promotion_id' => $promotionId]
+                )->fetchOne();
+                
+                if ($usageCount >= (int) $promo['max_usage_total']) {
+                    return new JsonResponse([
+                        'success' => false,
+                        'error' => 'Code promo épuisé'
+                    ], 400);
+                }
+            }
+
+            // Vérifier les limites d'utilisation par utilisateur (seulement si connecté)
+            if ($promo['max_usage_per_user'] !== null && $userId) {
+                $userUsageCount = $this->connection->executeQuery(
+                    'SELECT COUNT(*) FROM aiolia.promotion_applications WHERE promotion_id = :promotion_id AND user_id = :user_id',
+                    ['promotion_id' => $promotionId, 'user_id' => $userId]
+                )->fetchOne();
+                
+                if ($userUsageCount >= (int) $promo['max_usage_per_user']) {
+                    return new JsonResponse([
+                        'success' => false,
+                        'error' => 'Vous avez déjà utilisé ce code promo'
+                    ], 400);
+                }
+            }
+
+            // Calculer la réduction uniquement pour cet événement
+            $discountAmount = 0;
+            if ($promotionType === 'percent') {
+                $discountAmount = $totalAmount * ($value / 100);
+            } elseif ($promotionType === 'amount') {
+                $discountAmount = min($value, $totalAmount);
+            }
+
+            $totalAfterDiscount = max(0, $totalAmount - $discountAmount);
+
+            // Stocker le code promo en session par eventId
+            $appliedPromoCodes = $session->get('applied_promo_codes', []);
+            $appliedPromoCodes[$eventId] = [
+                'code' => $code,
+                'promotion_id' => $promotionId,
+                'discount_amount' => $discountAmount,
+                'promotion_type' => $promotionType,
+                'value' => $value,
+                'event_id' => $targetEventId
+            ];
+            $session->set('applied_promo_codes', $appliedPromoCodes);
+
+            return new JsonResponse([
+                'success' => true,
+                'code' => $code,
+                'discount_amount' => $discountAmount,
+                'total_before' => $totalAmount,
+                'total_after' => $totalAfterDiscount,
+                'promotion_type' => $promotionType,
+                'value' => $value
+            ]);
+        } catch (\Exception $e) {
+            $isDev = ($_ENV['APP_ENV'] ?? 'dev') === 'dev';
+            $errorMessage = $e->getMessage();
+            $errorFile = $e->getFile();
+            $errorLine = $e->getLine();
+            $errorTrace = $e->getTraceAsString();
+            
+            // Log détaillé
+            $logDir = dirname(__DIR__, 2) . '/var/log';
+            if (!is_dir($logDir)) {
+                @mkdir($logDir, 0755, true);
+            }
+            $logFile = $logDir . '/promo_validation.log';
+            $logMessage = date('Y-m-d H:i:s') . " - ERREUR: {$errorMessage}\n";
+            $logMessage .= "Fichier: {$errorFile}:{$errorLine}\n";
+            $logMessage .= "Stack trace:\n{$errorTrace}\n";
+            $logMessage .= str_repeat('-', 80) . "\n";
+            @file_put_contents($logFile, $logMessage, FILE_APPEND);
+            
+            error_log('Erreur validation code promo: ' . $errorMessage);
+            error_log('Fichier: ' . $errorFile . ':' . $errorLine);
+            error_log('Stack trace: ' . $errorTrace);
+            
+            return new JsonResponse([
+                'success' => false,
+                'error' => 'Erreur lors de la validation du code promo. Veuillez réessayer.',
+                'debug' => $isDev ? [
+                    'message' => $errorMessage,
+                    'file' => $errorFile,
+                    'line' => $errorLine
+                ] : null
+            ], 500);
+        }
+    }
+
     #[Route('/api/tickets/{id}/validate', name: 'api_tickets_validate', methods: ['POST'])]
     public function validateTicket(int $id): JsonResponse
     {
@@ -1064,6 +1413,36 @@ class TicketController extends AbstractController
             'status' => 'success',
             'count' => count($cartItems),
             'items' => $items,
+        ]);
+    }
+
+    #[Route('/api/tickets/promo/remove', name: 'api_tickets_remove_promo', methods: ['POST'])]
+    public function removePromoCode(Request $request): JsonResponse
+    {
+        $session = $request->getSession();
+        if (!$session->isStarted()) {
+            $session->start();
+        }
+
+        $eventId = trim($request->request->get('event_id', ''));
+        
+        if (empty($eventId)) {
+            return new JsonResponse([
+                'success' => false,
+                'error' => 'ID événement requis'
+            ], 400);
+        }
+
+        // Retirer le code promo pour cet événement spécifique
+        $appliedPromoCodes = $session->get('applied_promo_codes', []);
+        if (isset($appliedPromoCodes[$eventId])) {
+            unset($appliedPromoCodes[$eventId]);
+            $session->set('applied_promo_codes', $appliedPromoCodes);
+        }
+
+        return new JsonResponse([
+            'success' => true,
+            'message' => 'Code promo retiré'
         ]);
     }
 

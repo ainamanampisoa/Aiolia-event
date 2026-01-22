@@ -94,7 +94,35 @@ class PaymentService
             $totalAmount += $adultTotal + $childTotal;
         }
 
-        $this->logDebug('Total calculé', ['total_amount' => $totalAmount]);
+        // Valider et appliquer le code promo si fourni
+        $promoCode = $paymentData['promo_code'] ?? null;
+        $discountAmount = 0;
+        $promotionId = null;
+        
+        if ($promoCode && $userId) {
+            $promoResult = $this->validateAndApplyPromoCode($promoCode, $userId, $totalAmount);
+            if ($promoResult['valid']) {
+                $discountAmount = $promoResult['discount_amount'];
+                $promotionId = $promoResult['promotion_id'];
+                $totalAmount = max(0, $totalAmount - $discountAmount);
+                $this->logInfo('Code promo appliqué', [
+                    'code' => $promoCode,
+                    'discount_amount' => $discountAmount,
+                    'total_after_discount' => $totalAmount
+                ]);
+            } else {
+                $this->logDebug('Code promo invalide ou non applicable', [
+                    'code' => $promoCode,
+                    'error' => $promoResult['error'] ?? 'Raison inconnue'
+                ]);
+            }
+        }
+
+        $this->logDebug('Total calculé', [
+            'total_amount' => $totalAmount,
+            'discount_amount' => $discountAmount,
+            'promo_code' => $promoCode
+        ]);
 
         // MODE SIMULATION (utilisateur non connecté) :
         // On ne touche pas à la base de données, on renvoie juste un résultat "succès"
@@ -130,8 +158,13 @@ class PaymentService
             // Sauvegarder les cart_keys des items payés pour pouvoir les retirer après paiement
             $cartKeys = array_keys($cartItems);
 
-            // Créer la commande
-            $orderId = $this->createOrder($userId, $cartId, $totalAmount, $paymentData, $cartKeys);
+            // Créer la commande avec le code promo et la réduction
+            $orderId = $this->createOrder($userId, $cartId, $totalAmount, $discountAmount, $promoCode, $paymentData, $cartKeys);
+            
+            // Enregistrer l'application du code promo si applicable
+            if ($promotionId && $discountAmount > 0) {
+                $this->recordPromotionApplication($promotionId, $orderId, $userId, $discountAmount);
+            }
 
             // Si méthode de paiement MVola, initier la transaction
             $paymentMethod = $paymentData['payment_method'] ?? 'mvola';
@@ -180,6 +213,7 @@ class PaymentService
                     ['id' => $orderId]
                 );
 
+                // Utiliser le montant après réduction pour le paiement MVola
                 $mvolaResult = $this->initiateMvolaPayment($orderId, $totalAmount, $paymentData);
 
                 if (!$mvolaResult['success']) {
@@ -355,7 +389,7 @@ class PaymentService
     /**
      * Crée une commande dans la base de données.
      */
-    private function createOrder(?int $userId, int $cartId, float $totalAmount, array $paymentData, array $cartKeys = []): int
+    private function createOrder(?int $userId, int $cartId, float $totalAmount, float $discountAmount, ?string $promoCode, array $paymentData, array $cartKeys = []): int
     {
         $paymentMethod = $paymentData['payment_method'] ?? 'mvola';
         $paymentDueAt = new \DateTimeImmutable('+15 minutes');
@@ -367,7 +401,8 @@ class PaymentService
             // on utilise "pending" pour représenter une commande en attente de paiement.
             'status' => 'pending',
             'total_amount' => $totalAmount,
-            'discount_amount' => 0,
+            'discount_amount' => $discountAmount,
+            'promotion_code' => $promoCode,
             'currency' => 'MGA',
             'payment_due_at' => $paymentDueAt->format('Y-m-d H:i:s'),
             'notes' => json_encode([
@@ -506,6 +541,114 @@ class PaymentService
             ],
             ['id' => $cartId]
         );
+    }
+
+    /**
+     * Valide et calcule la réduction d'un code promo depuis promotion_codes.
+     */
+    private function validateAndApplyPromoCode(string $code, int $userId, float $totalAmount): array
+    {
+        try {
+            $sql = <<<SQL
+                SELECT 
+                    id,
+                    code,
+                    promotion_type,
+                    value,
+                    max_usage_total,
+                    max_usage_per_user,
+                    starts_at,
+                    ends_at
+                FROM aiolia.promotion_codes
+                WHERE code = :code
+                  AND (starts_at IS NULL OR starts_at <= NOW())
+                  AND (ends_at IS NULL OR ends_at >= NOW())
+            SQL;
+
+            $promo = $this->connection->executeQuery($sql, ['code' => strtoupper(trim($code))])->fetchAssociative();
+
+            if (!$promo) {
+                return ['valid' => false, 'error' => 'Code promo introuvable ou expiré'];
+            }
+
+            $promotionId = (int) $promo['id'];
+            $promotionType = $promo['promotion_type'];
+            $value = (float) $promo['value'];
+
+            // Vérifier les limites d'utilisation totale
+            if ($promo['max_usage_total'] !== null) {
+                $usageCount = $this->connection->executeQuery(
+                    'SELECT COUNT(*) FROM aiolia.promotion_applications WHERE promotion_id = :promotion_id',
+                    ['promotion_id' => $promotionId]
+                )->fetchOne();
+                
+                if ($usageCount >= (int) $promo['max_usage_total']) {
+                    return ['valid' => false, 'error' => 'Code promo épuisé'];
+                }
+            }
+
+            // Vérifier les limites d'utilisation par utilisateur
+            if ($promo['max_usage_per_user'] !== null) {
+                $userUsageCount = $this->connection->executeQuery(
+                    'SELECT COUNT(*) FROM aiolia.promotion_applications WHERE promotion_id = :promotion_id AND user_id = :user_id',
+                    ['promotion_id' => $promotionId, 'user_id' => $userId]
+                )->fetchOne();
+                
+                if ($userUsageCount >= (int) $promo['max_usage_per_user']) {
+                    return ['valid' => false, 'error' => 'Vous avez déjà utilisé ce code promo'];
+                }
+            }
+
+            // Calculer la réduction
+            $discountAmount = 0;
+            if ($promotionType === 'percent') {
+                $discountAmount = $totalAmount * ($value / 100);
+            } elseif ($promotionType === 'amount') {
+                $discountAmount = min($value, $totalAmount); // Ne pas dépasser le total
+            }
+
+            return [
+                'valid' => true,
+                'promotion_id' => $promotionId,
+                'discount_amount' => $discountAmount,
+                'promotion_type' => $promotionType,
+                'value' => $value
+            ];
+        } catch (\Exception $e) {
+            $this->logError('Erreur lors de la validation du code promo', [
+                'code' => $code,
+                'message' => $e->getMessage()
+            ]);
+            return ['valid' => false, 'error' => 'Erreur lors de la validation du code promo'];
+        }
+    }
+
+    /**
+     * Enregistre l'application d'un code promo dans promotion_applications.
+     */
+    private function recordPromotionApplication(int $promotionId, int $orderId, int $userId, float $discountAmount): void
+    {
+        try {
+            $this->connection->insert('aiolia.promotion_applications', [
+                'promotion_id' => $promotionId,
+                'order_id' => $orderId,
+                'user_id' => $userId,
+                'discount_amount' => $discountAmount,
+                'applied_at' => (new \DateTimeImmutable())->format('Y-m-d H:i:s'),
+            ]);
+            
+            $this->logInfo('Application du code promo enregistrée', [
+                'promotion_id' => $promotionId,
+                'order_id' => $orderId,
+                'discount_amount' => $discountAmount
+            ]);
+        } catch (\Exception $e) {
+            $this->logError('Erreur lors de l\'enregistrement de l\'application du code promo', [
+                'promotion_id' => $promotionId,
+                'order_id' => $orderId,
+                'message' => $e->getMessage()
+            ]);
+        }
     }
 
     /**
