@@ -56,14 +56,6 @@
                     <a href="{{ path('my_tickets') }}" class="btn-solid">
                         <i class="fas fa-ticket-alt"></i> {{ 'profile_history.my_tickets_label'|trans }}
                     </a>
-                    {% set exportParams = {
-                        'search': searchQuery|default(''),
-                        'status': currentStatusFilter|default('all'),
-                        'payment_method': currentPaymentMethodFilter|default('all')
-                    } %}
-                    <a href="{{ path('profile_history_export', exportParams) }}" class="btn-outline" title="{{ 'tickets.export_csv_title'|trans }}">
-                        <i class="fas fa-file-csv"></i> {{ 'tickets.export_csv'|trans }}
-                    </a>
                 </div>
             </header>
 

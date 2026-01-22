@@ -39,32 +39,6 @@
                     <h1 style="color: #1F2D3D;">Historique financier détaillé</h1>
                     <p>Analysez vos dépenses et vos remboursements mois par mois.</p>
                 </div>
-                <div class="financial-actions">
-                    <a href="{{ path('profile_financial_export_pdf', {
-                        'year': currentYear,
-                        'month': currentMonth,
-                        'period': currentPeriod,
-                        'monthly_range': monthlyRange|default('last_6'),
-                        'payment_method': paymentMethodFilter|default('all'),
-                        'min_amount': minAmount|default(null),
-                        'max_amount': maxAmount|default(null),
-                        'category': categoryFilter|default('all')
-                    }) }}" class="btn-solid btn-pdf" target="_blank">
-                        <i class="fas fa-file-pdf"></i> Rapport PDF
-                    </a>
-                    <a href="{{ path('profile_financial_export_csv', {
-                        'year': currentYear,
-                        'month': currentMonth,
-                        'period': currentPeriod,
-                        'monthly_range': monthlyRange|default('last_6'),
-                        'payment_method': paymentMethodFilter|default('all'),
-                        'min_amount': minAmount|default(null),
-                        'max_amount': maxAmount|default(null),
-                        'category': categoryFilter|default('all')
-                    }) }}" class="btn-solid btn-csv" style="background: linear-gradient(135deg, #50C878 0%, #3FAF6B 100%); margin-left: 10px;">
-                        <i class="fas fa-file-csv"></i> Export CSV
-                    </a>
-                </div>
             </header>
 
             {# Filtres de statistiques #}
