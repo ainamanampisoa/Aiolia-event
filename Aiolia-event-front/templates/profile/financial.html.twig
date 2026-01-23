@@ -163,38 +163,6 @@
             </section>
             {% endif %}
 
-            {# Comparaison avec période précédente #}
-            {% if comparison is defined and comparison.has_comparison %}
-            <section class="financial-comparison wow fadeInUp" data-wow-delay="165ms">
-                <h2><i class="fas fa-chart-line"></i> Comparaison avec la période précédente</h2>
-                <div class="comparison-grid">
-                    <div class="comparison-card">
-                        <div class="comparison-label">{{ 'tickets.expenses'|trans }}</div>
-                        <div class="comparison-values">
-                            <span class="current-value">{{ comparison.current_spent|number_format(0, ',', ' ') }} {{ 'profile_financial.currency_mga'|trans }}</span>
-                            <span class="change-badge {{ comparison.spent_increase ? 'increase' : 'decrease' }}">
-                                <i class="fas fa-arrow-{{ comparison.spent_increase ? 'up' : 'down' }}"></i>
-                                {{ comparison.spent_change|abs|number_format(1) }}%
-                            </span>
-                        </div>
-                        <div class="previous-value">{{ 'profile_financial.vs_label'|trans }} {{ comparison.previous_spent|number_format(0, ',', ' ') }} {{ 'profile_financial.currency_mga'|trans }}</div>
-                    </div>
-                    
-                    <div class="comparison-card">
-                        <div class="comparison-label">Commandes</div>
-                        <div class="comparison-values">
-                            <span class="current-value">{{ comparison.current_orders }}</span>
-                            <span class="change-badge {{ comparison.orders_increase ? 'increase' : 'decrease' }}">
-                                <i class="fas fa-arrow-{{ comparison.orders_increase ? 'up' : 'down' }}"></i>
-                                {{ comparison.orders_change|abs|number_format(1) }}%
-                            </span>
-                        </div>
-                        <div class="previous-value">vs {{ comparison.previous_orders }}</div>
-                    </div>
-                </div>
-            </section>
-            {% endif %}
-
             <section class="financial-summary wow fadeInUp" data-wow-delay="150ms">
                 <div class="financial-card card-total">
                     <div class="card-icon icon-total">
@@ -261,6 +229,38 @@
                     </div>
                 </div>
             </section>
+
+            {# Comparaison avec période précédente #}
+            {% if comparison is defined and comparison.has_comparison %}
+            <section class="financial-comparison wow fadeInUp" data-wow-delay="165ms">
+                <h2><i class="fas fa-chart-line"></i> Comparaison avec la période précédente</h2>
+                <div class="comparison-grid">
+                    <div class="comparison-card">
+                        <div class="comparison-label">Commandes</div>
+                        <div class="comparison-values">
+                            <span class="current-value">{{ comparison.current_orders }}</span>
+                            <span class="change-badge {{ comparison.orders_increase ? 'increase' : 'decrease' }}">
+                                <i class="fas fa-arrow-{{ comparison.orders_increase ? 'up' : 'down' }}"></i>
+                                {{ comparison.orders_change|abs|number_format(1) }}%
+                            </span>
+                        </div>
+                        <div class="previous-value">vs {{ comparison.previous_orders }}</div>
+                    </div>
+                    
+                    <div class="comparison-card">
+                        <div class="comparison-label">{{ 'tickets.expenses'|trans }}</div>
+                        <div class="comparison-values">
+                            <span class="current-value">{{ comparison.current_spent|number_format(0, ',', ' ') }} {{ 'profile_financial.currency_mga'|trans }}</span>
+                            <span class="change-badge {{ comparison.spent_increase ? 'increase' : 'decrease' }}">
+                                <i class="fas fa-arrow-{{ comparison.spent_increase ? 'up' : 'down' }}"></i>
+                                {{ comparison.spent_change|abs|number_format(1) }}%
+                            </span>
+                        </div>
+                        <div class="previous-value">{{ 'profile_financial.vs_label'|trans }} {{ comparison.previous_spent|number_format(0, ',', ' ') }} {{ 'profile_financial.currency_mga'|trans }}</div>
+                    </div>
+                </div>
+            </section>
+            {% endif %}
 
             <section class="financial-grid">
                 <div class="financial-chart wow fadeInUp" data-wow-delay="180ms">
