@@ -19,7 +19,8 @@
             {% set discountAmount = discountAmount|default(0) %}
             {% set promoCode = promoCode|default(null) %}
             {% set serviceFees = serviceFees|default(0) %}
-            {% set grandTotal = orderTotal + serviceFees %}
+            {# Le grandTotal doit être : sous-total - réduction + frais de service #}
+            {% set grandTotal = subtotal - discountAmount + serviceFees %}
 
             <header class="payment-header">
                 {# <span class="badge-step">Étape 2 sur 3</span> #}
@@ -84,28 +85,30 @@
                         {% endif %}
 
                         <div class="summary-totals">
-                            <div class="line">
-                                <span>{{ 'tickets.subtotal'|trans }}</span>
-                                <span>{{ subtotal|number_format(0, ',', ' ') }} {{ 'profile_financial.currency_mga'|trans }}</span>
-                            </div>
-                            {% if discountAmount > 0 and promoCode %}
-                            <div class="line discount-line">
-                                <span>
-                                    <i class="fas fa-tag" style="color: #27ae60; margin-right: 5px;"></i>
-                                    Code promo <strong>{{ promoCode }}</strong>
-                                </span>
-                                <span style="color: #27ae60; font-weight: 600;">
-                                    -{{ discountAmount|number_format(0, ',', ' ') }} {{ 'profile_financial.currency_mga'|trans }}
-                                </span>
-                            </div>
-                            {% endif %}
-                            <div class="line">
-                                <span>{{ 'tickets.service_fees'|trans }}</span>
-                                <span>{{ serviceFees|number_format(0, ',', ' ') }} {{ 'profile_financial.currency_mga'|trans }}</span>
+                            <div class="totals-section">
+                                <div class="line">
+                                    <span>{{ 'tickets.subtotal'|trans }}</span>
+                                    <span class="amount">{{ subtotal|number_format(0, ',', ' ') }} {{ 'profile_financial.currency_mga'|trans }}</span>
+                                </div>
+                                {% if discountAmount > 0 and promoCode %}
+                                <div class="line discount">
+                                    <span class="discount-label">
+                                        <i class="fas fa-tag"></i>
+                                        Code promo <strong>{{ promoCode }}</strong>
+                                    </span>
+                                    <span class="discount-amount">
+                                        -{{ discountAmount|number_format(0, ',', ' ') }} {{ 'profile_financial.currency_mga'|trans }}
+                                    </span>
+                                </div>
+                                {% endif %}
+                                <div class="line">
+                                    <span>{{ 'tickets.service_fees'|trans }}</span>
+                                    <span class="amount">{{ serviceFees|number_format(0, ',', ' ') }} {{ 'profile_financial.currency_mga'|trans }}</span>
+                                </div>
                             </div>
                             <div class="line total">
                                 <span>{{ 'tickets.total_to_pay'|trans }}</span>
-                                <span>{{ grandTotal|number_format(0, ',', ' ') }} {{ 'profile_financial.currency_mga'|trans }}</span>
+                                <span class="total-amount">{{ grandTotal|number_format(0, ',', ' ') }} {{ 'profile_financial.currency_mga'|trans }}</span>
                             </div>
                         </div>
                     </div>
