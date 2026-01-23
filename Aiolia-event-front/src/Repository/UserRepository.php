@@ -191,10 +191,16 @@ class UserRepository extends ServiceEntityRepository
         
         if ($preferences) {
             $prefs = json_decode($preferences, true);
-            return $prefs['event_reminders'] ?? true; // Par défaut activé
+            $enabled = $prefs['event_reminders'] ?? true; // Par défaut activé
+            
+            // Log pour débogage
+            error_log("User {$userId} - event_reminders: " . ($enabled ? 'enabled' : 'disabled') . " (raw: " . var_export($prefs, true) . ")");
+            
+            return $enabled;
         }
 
         // Par défaut, les rappels sont activés
+        error_log("User {$userId} - Aucune préférence trouvée, event_reminders activé par défaut");
         return true;
     }
 

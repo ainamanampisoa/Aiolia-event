@@ -52,7 +52,16 @@ class EventReminderService
                     
                     foreach ($users as $user) {
                         // Vérifier si l'utilisateur a activé les rappels d'événements
-                        if (!$this->userRepository->hasEventRemindersEnabled($user['id'])) {
+                        $hasRemindersEnabled = $this->userRepository->hasEventRemindersEnabled($user['id']);
+                        $this->logger->info("Vérification des rappels pour l'utilisateur {$user['id']}", [
+                            'user_id' => $user['id'],
+                            'event_id' => $event['id'],
+                            'hours_before' => $hours,
+                            'has_reminders_enabled' => $hasRemindersEnabled,
+                        ]);
+                        
+                        if (!$hasRemindersEnabled) {
+                            $this->logger->info("Rappels désactivés pour l'utilisateur {$user['id']}, notification ignorée");
                             continue;
                         }
 
