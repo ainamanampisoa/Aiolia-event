@@ -389,6 +389,10 @@
             ,'stats.charts.labels.invoices_plural': 'factures'
             ,'stats.charts.labels.no_invoices': 'Aucune facture'
             ,'stats.charts.labels.subscription_count': 'Nombre d\'abonnements'
+            ,'stats.charts.labels.values': 'Valeurs'
+            ,'stats.period.all_periods': 'Toutes périodes'
+            ,'stats.period.all_years': 'Toutes années'
+            ,'stats.period.jan_dec': 'Jan-Déc'
         },
         en: {
             'app.language.name.fr': 'French',
@@ -763,6 +767,10 @@
             ,'stats.charts.labels.invoices_plural': 'invoices'
             ,'stats.charts.labels.no_invoices': 'No invoices'
             ,'stats.charts.labels.subscription_count': 'Number of subscriptions'
+            ,'stats.charts.labels.values': 'Values'
+            ,'stats.period.all_periods': 'All periods'
+            ,'stats.period.all_years': 'All years'
+            ,'stats.period.jan_dec': 'Jan-Dec'
         }
     };
 

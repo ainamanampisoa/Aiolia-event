@@ -359,17 +359,15 @@
                     {% if statistics.widgets.most_used_subscription %}
                         <span data-subscription-name="{{ statistics.widgets.most_used_subscription.nom|upper }}" style="opacity: 0;">{{ statistics.widgets.most_used_subscription.nom|upper }}</span>
                     {% else %}
-                        N/A
+                        <span data-i18n="common.na">N/A</span>
                     {% endif %}
                 </h3>
                 <p>
                     {% if statistics.widgets.most_used_subscription %}
                         {{ statistics.widgets.most_used_subscription.count }} 
-                        <span data-i18n="{{ statistics.widgets.most_used_subscription.count > 1 ? 'stats.charts.labels.invoices_plural' : 'stats.charts.labels.invoices' }}">
-                            {{ statistics.widgets.most_used_subscription.count > 1 ? 'factures' : 'facture' }}
-                        </span>
+                        <span data-i18n="{{ statistics.widgets.most_used_subscription.count > 1 ? 'stats.charts.labels.invoices_plural' : 'stats.charts.labels.invoices' }}"></span>
                     {% else %}
-                        <span data-i18n="stats.charts.labels.no_invoices">Aucune facture</span>
+                        <span data-i18n="stats.charts.labels.no_invoices"></span>
                     {% endif %}
                 </p>
             </div>
@@ -455,7 +453,7 @@
             <div class="charts-grid">
                 <!-- Graphique 1 : Organisateurs actifs -->
                 <div class="chart-card">
-                    <h3><i class="fas fa-chart-line"></i> <span data-i18n="stats.charts.active_organizers">Organisateurs actifs</span> ({{ periodLabel }})</h3>
+                    <h3><i class="fas fa-chart-line"></i> <span data-i18n="stats.charts.active_organizers">Organisateurs actifs</span> (<span class="period-label-translate">{{ periodLabel }}</span>)</h3>
                     <div class="chart-container">
                         <canvas id="activeOrganizersChart"></canvas>
                     </div>
@@ -463,7 +461,7 @@
 
                 <!-- Graphique 2 : Répartition abonnements -->
                 <div class="chart-card">
-                    <h3><i class="fas fa-chart-pie"></i> <span data-i18n="stats.charts.subscription_distribution">Répartition des abonnements</span> ({{ periodLabel }})</h3>
+                    <h3><i class="fas fa-chart-pie"></i> <span data-i18n="stats.charts.subscription_distribution">Répartition des abonnements</span> (<span class="period-label-translate">{{ periodLabel }}</span>)</h3>
                     <div class="chart-container">
                         <canvas id="subscriptionDistributionChart"></canvas>
                     </div>
@@ -471,7 +469,7 @@
 
                 <!-- Graphique 3 : Prévision CA -->
                 <div class="chart-card chart-card-full-width">
-                    <h3><i class="fas fa-chart-area"></i> <span data-i18n="stats.charts.revenue_curve">Courbe CA (HT/TTC/TVA)</span> - {{ periodLabel }}</h3>
+                    <h3><i class="fas fa-chart-area"></i> <span data-i18n="stats.charts.revenue_curve">Courbe CA (HT/TTC/TVA)</span> - <span class="period-label-translate">{{ periodLabel }}</span></h3>
                     <div class="chart-container">
                         <canvas id="revenueForecastChart"></canvas>
                     </div>
@@ -491,90 +489,19 @@
         return;
     }
 
+    // Translations are already in language-manager.js, only add missing ones
     window.languageManager.extendTranslations({
         fr: {
-            'stats.header.title': 'Statistiques',
-            'stats.header.subtitle': 'Analysez les performances et les tendances de votre plateforme',
-            'stats.widgets.active_organizers': 'Organisateurs actifs',
-            'stats.widgets.new_organizers': 'Nouveaux organisateurs',
-            'stats.widgets.revenue_forecast': 'Chiffre d\'affaire',
-            'stats.filters.title': 'Filtres de recherche',
-            'stats.filters.month': 'Mois',
-            'stats.filters.month.all': 'Tous les mois',
-            'stats.filters.month.january': 'Janvier',
-            'stats.filters.month.february': 'Février',
-            'stats.filters.month.march': 'Mars',
-            'stats.filters.month.april': 'Avril',
-            'stats.filters.month.may': 'Mai',
-            'stats.filters.month.june': 'Juin',
-            'stats.filters.month.july': 'Juillet',
-            'stats.filters.month.august': 'Août',
-            'stats.filters.month.september': 'Septembre',
-            'stats.filters.month.october': 'Octobre',
-            'stats.filters.month.november': 'Novembre',
-            'stats.filters.month.december': 'Décembre',
-            'stats.filters.year': 'Année',
-            'stats.filters.year.all': 'Toutes les années',
-            'stats.actions.search': 'Rechercher',
-            'stats.actions.reset': 'Réinitialiser',
-            'stats.charts.active_organizers': 'Organisateurs actifs',
-            'stats.charts.subscription_distribution': 'Répartition des abonnements',
-            'stats.charts.revenue_curve': 'Courbe CA (HT/TTC/TVA)',
-            'stats.charts.labels.ca_ht': 'CA HT (Ar)',
-            'stats.charts.labels.tva': 'TVA (Ar)',
-            'stats.charts.labels.ca_ttc': 'CA TTC (Ar)',
-            'stats.charts.labels.basic': 'Basic',
-            'stats.charts.labels.pro': 'Pro',
-            'stats.charts.labels.enterprise': 'Enterprise',
-            'stats.charts.labels.invoices': 'facture',
-            'stats.charts.labels.invoices_plural': 'factures',
-            'stats.charts.labels.no_invoices': 'Aucune facture',
-            'stats.charts.labels.subscription_count': 'Nombre d\'abonnements',
-            'stats.widgets.subscription.basic': 'Basic',
-            'stats.widgets.subscription.pro': 'Pro',
-            'stats.widgets.subscription.enterprise': 'Enterprise'
+            'stats.period.all_periods': 'Toutes périodes',
+            'stats.period.all_years': 'Toutes années',
+            'stats.period.jan_dec': 'Jan-Déc',
+            'stats.charts.labels.values': 'Valeurs'
         },
         en: {
-            'stats.header.title': 'Statistics',
-            'stats.header.subtitle': 'Analyze your platform performance and trends',
-            'stats.widgets.active_organizers': 'Active organizers',
-            'stats.widgets.new_organizers': 'New organizers',
-            'stats.widgets.revenue_forecast': 'Revenue',
-            'stats.filters.title': 'Search filters',
-            'stats.filters.month': 'Month',
-            'stats.filters.month.all': 'All months',
-            'stats.filters.month.january': 'January',
-            'stats.filters.month.february': 'February',
-            'stats.filters.month.march': 'March',
-            'stats.filters.month.april': 'April',
-            'stats.filters.month.may': 'May',
-            'stats.filters.month.june': 'June',
-            'stats.filters.month.july': 'July',
-            'stats.filters.month.august': 'August',
-            'stats.filters.month.september': 'September',
-            'stats.filters.month.october': 'October',
-            'stats.filters.month.november': 'November',
-            'stats.filters.month.december': 'December',
-            'stats.filters.year': 'Year',
-            'stats.filters.year.all': 'All years',
-            'stats.actions.search': 'Search',
-            'stats.actions.reset': 'Reset',
-            'stats.charts.active_organizers': 'Active organizers',
-            'stats.charts.subscription_distribution': 'Subscription distribution',
-            'stats.charts.revenue_curve': 'Revenue curve (HT/TTC/VAT)',
-            'stats.charts.labels.ca_ht': 'Revenue HT (Ar)',
-            'stats.charts.labels.tva': 'VAT (Ar)',
-            'stats.charts.labels.ca_ttc': 'Revenue TTC (Ar)',
-            'stats.charts.labels.basic': 'Basic',
-            'stats.charts.labels.pro': 'Pro',
-            'stats.charts.labels.enterprise': 'Enterprise',
-            'stats.charts.labels.invoices': 'invoice',
-            'stats.charts.labels.invoices_plural': 'invoices',
-            'stats.charts.labels.no_invoices': 'No invoices',
-            'stats.charts.labels.subscription_count': 'Number of subscriptions',
-            'stats.widgets.subscription.basic': 'Basic',
-            'stats.widgets.subscription.pro': 'Pro',
-            'stats.widgets.subscription.enterprise': 'Enterprise'
+            'stats.period.all_periods': 'All periods',
+            'stats.period.all_years': 'All years',
+            'stats.period.jan_dec': 'Jan-Dec',
+            'stats.charts.labels.values': 'Values'
         }
     });
 })();
@@ -588,6 +515,44 @@ function translateInline(key, fallback, params = {}) {
         }
     }
     return fallback;
+}
+
+function translatePeriodLabel(label) {
+    if (!label) return label;
+    
+    const translations = {
+        'Toutes périodes': translateInline('stats.period.all_periods', 'All periods'),
+        'Toutes années': translateInline('stats.period.all_years', 'All years'),
+        'Jan-Déc': translateInline('stats.period.jan_dec', 'Jan-Dec')
+    };
+    
+    // Replace known French phrases
+    let translated = label;
+    Object.keys(translations).forEach(fr => {
+        translated = translated.replace(fr, translations[fr]);
+    });
+    
+    // Translate month names
+    const monthMap = {
+        'Janvier': translateInline('stats.filters.month.january', 'January'),
+        'Février': translateInline('stats.filters.month.february', 'February'),
+        'Mars': translateInline('stats.filters.month.march', 'March'),
+        'Avril': translateInline('stats.filters.month.april', 'April'),
+        'Mai': translateInline('stats.filters.month.may', 'May'),
+        'Juin': translateInline('stats.filters.month.june', 'June'),
+        'Juillet': translateInline('stats.filters.month.july', 'July'),
+        'Août': translateInline('stats.filters.month.august', 'August'),
+        'Septembre': translateInline('stats.filters.month.september', 'September'),
+        'Octobre': translateInline('stats.filters.month.october', 'October'),
+        'Novembre': translateInline('stats.filters.month.november', 'November'),
+        'Décembre': translateInline('stats.filters.month.december', 'December')
+    };
+    
+    Object.keys(monthMap).forEach(fr => {
+        translated = translated.replace(fr, monthMap[fr]);
+    });
+    
+    return translated;
 }
 
 function translateSubscriptionName(rawName) {
@@ -716,10 +681,10 @@ function updateSubscriptionNameTranslation() {
     }
     
     
-    // Debug : afficher les données dans la console
-    console.log('Organisateurs actifs:', activeOrganizersData);
-    console.log('Répartition abonnements:', subscriptionDistribution);
-    console.log('Répartition CA:', revenueBreakdown);
+    // Debug: display data in console
+    console.log('Active organizers:', activeOrganizersData);
+    console.log('Subscription distribution:', subscriptionDistribution);
+    console.log('Revenue breakdown:', revenueBreakdown);
 
     // Graphique 1 : Organisateurs actifs
     const activeOrganizersCtx = document.getElementById('activeOrganizersChart').getContext('2d');
@@ -846,7 +811,7 @@ function updateSubscriptionNameTranslation() {
                     translateInline('stats.charts.labels.ca_ttc', 'CA TTC (Ar)')
                 ],
                 datasets: [{
-                    label: `Valeurs - ${monthLabel}`,
+                    label: translateInline('stats.charts.labels.values', 'Values') + ' - ' + monthLabel,
                     data: [singleData.ht, singleData.tva, singleData.ttc],
                     backgroundColor: ['#3b82f6', '#f97316', '#22c55e'],
                     borderRadius: 8
@@ -985,7 +950,7 @@ function updateSubscriptionNameTranslation() {
                         mode: 'index',
                         intersect: false,
                         filter: function(tooltipItem) {
-                            // Afficher seulement le premier dataset pour éviter la duplication
+                            // Show only the first dataset to avoid duplication
                             return tooltipItem.datasetIndex === 0;
                         },
                         callbacks: {
@@ -993,7 +958,7 @@ function updateSubscriptionNameTranslation() {
                                 return context[0].label;
                             },
                             label: function(context) {
-                                // Afficher toutes les valeurs du même point (même index)
+                                // Display all values from the same point (same index)
                                 const index = context.dataIndex;
                                 const ht = revenueHTData[index] || 0;
                                 const tva = revenueTVAData[index] || 0;
@@ -1025,7 +990,7 @@ function updateSubscriptionNameTranslation() {
         });
     }
     
-    // Traduire les options des select après le chargement
+    // Translate select options after loading
     function translateSelectOptions() {
         if (!window.languageManager) return;
         
@@ -1050,10 +1015,17 @@ function updateSubscriptionNameTranslation() {
         }
     }
     
-    // Appliquer les traductions au chargement et lors du changement de langue
+    // Apply translations on load and when language changes
     function applyAllTranslations() {
         translateSelectOptions();
-        // updateSubscriptionNameTranslation est déjà appelée immédiatement, mais on la rappelle au cas où
+        
+        // Translate period labels
+        document.querySelectorAll('.period-label-translate').forEach(el => {
+            const originalText = el.textContent.trim();
+            el.textContent = translatePeriodLabel(originalText);
+        });
+        
+        // updateSubscriptionNameTranslation is already called immediately, but we call it again just in case
         const nameElement = document.querySelector('#mostUsedSubscriptionName span[data-subscription-name]');
         if (nameElement && nameElement.style.opacity === '0') {
             updateSubscriptionNameTranslation();
