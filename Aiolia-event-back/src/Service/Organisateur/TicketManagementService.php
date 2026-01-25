@@ -41,10 +41,9 @@ class TicketManagementService
         $capaciteParCategorie = [];
         
         foreach ($allTypesBillets as $typeBillet) {
-            $inventaire = $typeBillet->getInventaire();
             $evenement = $typeBillet->getEvenement();
             
-            if (!$inventaire || !$evenement) {
+            if (!$evenement) {
                 continue;
             }
             
@@ -53,18 +52,12 @@ class TicketManagementService
                 continue;
             }
             
-            $quantiteTotale = $inventaire->getQuantiteTotale();
-            $quantiteVendue = $inventaire->getQuantiteVendue();
-            $quantiteReservee = $inventaire->getQuantiteReservee();
+            // Utiliser la même logique que categories.html.twig via getSalesStatsByTypeBillet
+            $stats = $this->billetService->getSalesStatsByTypeBillet($typeBillet);
             
-            // **CORRECTION DÉFINITIVE :**
-            // Les données montrent que quantiteReservee est FAUX !
-            // Pour Événement #21, Standard: 
-            // - Page catégories: Disponible = 10 - 4 = 6 ✓
-            // - Données actuelles: Réservé = 9 (FAUX!)
-            
-            // Donc on IGNORE complètement quantiteReservee et on recalcule
-            $quantiteRestante = max(0, $quantiteTotale - $quantiteVendue);
+            $quantiteTotale = $stats['stockTotal'];
+            $quantiteVendue = $stats['vendus'];
+            $quantiteRestante = $stats['disponibles'];
             
             // Pourcentage restant
             $pourcentage = $quantiteTotale > 0
@@ -122,16 +115,17 @@ class TicketManagementService
             if (!isset($capaciteParCategorie[$eventId][$categorieId])) {
                 $capaciteParCategorie[$eventId][$categorieId] = 0;
             }
+            // Utiliser quantiteTotale de getSalesStatsByTypeBillet (basé sur les billets réels)
             $capaciteParCategorie[$eventId][$categorieId] += $quantiteTotale;
             
             // **DEBUG :** Afficher les calculs
             error_log(sprintf(
-                "CALCUL: Événement: %s, Type: %s, Total: %d, Vendu: %d, Réservé(FAUX): %d, Restant: %d, %%: %.1f, Niveau: %s",
+                "CALCUL: Événement: %s, Type: %s, Total: %d, Vendu: %d, Disponible: %d, Restant: %d, %%: %.1f, Niveau: %s",
                 $evenement->getTitre(),
                 $typeBillet->getNom(),
                 $quantiteTotale,
                 $quantiteVendue,
-                $quantiteReservee,
+                $quantiteRestante,
                 $quantiteRestante,
                 $pourcentage,
                 $niveau ?: 'aucun'
@@ -140,7 +134,7 @@ class TicketManagementService
             // Créer l'alerte
             $alerte = [
                 'typeBillet' => $typeBillet,
-                'inventaire' => $inventaire,
+                'inventaire' => $typeBillet->getInventaire(), // Garder pour compatibilité template
                 'quantiteRestante' => $quantiteRestante,
                 'pourcentage' => round($pourcentage, 2),
                 'niveau' => $niveau,
@@ -149,7 +143,7 @@ class TicketManagementService
                 'evenementTitre' => $evenement->getTitre(),
                 'quantiteTotale' => $quantiteTotale,
                 'quantiteVendue' => $quantiteVendue,
-                'quantiteReservee' => $quantiteReservee,
+                'quantiteReservee' => 0, // Non utilisé avec la nouvelle logique
                 'isDataCorrected' => true,
             ];
             
