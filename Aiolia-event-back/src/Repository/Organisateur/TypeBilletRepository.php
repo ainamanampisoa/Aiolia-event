@@ -2,6 +2,8 @@
 
 namespace App\Repository\Organisateur;
 
+use App\Entity\Billet;
+use App\Entity\ElementPanier;
 use App\Entity\Event;
 use App\Entity\TypeBillet;
 use App\Entity\User;
@@ -63,8 +65,23 @@ class TypeBilletRepository extends ServiceEntityRepository
     
     public function delete(TypeBillet $typeBillet): void
     {
-        $this->getEntityManager()->remove($typeBillet);
-        $this->getEntityManager()->flush();
+        $em = $this->getEntityManager();
+        
+        // First, delete all associated Billet records (these have a foreign key constraint)
+        $billets = $em->getRepository(Billet::class)->findBy(['typeBillet' => $typeBillet]);
+        foreach ($billets as $billet) {
+            $em->remove($billet);
+        }
+        
+        // Also delete ElementPanier records (cart items) that reference this TypeBillet
+        $elementPaniers = $em->getRepository(ElementPanier::class)->findBy(['typeBillet' => $typeBillet]);
+        foreach ($elementPaniers as $elementPanier) {
+            $em->remove($elementPanier);
+        }
+        
+        // Then delete the TypeBillet
+        $em->remove($typeBillet);
+        $em->flush();
     }
 
     

@@ -8,6 +8,7 @@ Les décisions finales seront communiquées une fois les travaux conclus en coll
 Merci à tous
 TEAM SMATCHIN
 
+CRON avec Symfony offre une exécution performante et sécurisée, entièrement maîtrisée côté serveur
 
 
 login : admin1@yopmail.com  organisateur11@yopmail.com
