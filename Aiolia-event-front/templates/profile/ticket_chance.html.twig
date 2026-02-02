@@ -198,35 +198,43 @@
                     <!-- History -->
                     <div class="glass-card history-card">
                         <h3><i class="fas fa-history"></i> Vos derniers gains</h3>
-                        {% if recentWins|length > 0 %}
-                            <div class="history-list">
-                                {% for win in recentWins %}
-                                    <div class="history-item" style="border-left: 3px solid {{ win.color|default('#4A90E2') }}">
-                                        <div class="history-icon" style="background: {{ win.color|default('#4A90E2') }}">
-                                            <i class="fas {{ win.icon|default('fa-gift') }}"></i>
+                        {% if eligibility.is_unlocked %}
+                            {% if recentWins|length > 0 %}
+                                <div class="history-list">
+                                    {% for win in recentWins %}
+                                        <div class="history-item" style="border-left: 3px solid {{ win.color|default('#4A90E2') }}">
+                                            <div class="history-icon" style="background: {{ win.color|default('#4A90E2') }}">
+                                                <i class="fas {{ win.icon|default('fa-gift') }}"></i>
+                                            </div>
+                                            <div class="history-details">
+                                                <span class="history-prize">{{ win.prize }}</span>
+                                                <span class="history-date">{{ win.date|date('d/m/Y') }}</span>
+                                                {% if win.promo_code %}
+                                                    <span class="history-code">Code: {{ win.promo_code }}</span>
+                                                {% endif %}
+                                            </div>
+                                            <div class="history-status">
+                                                {% if win.status == 'claimed' %}
+                                                    <span class="badge badge-used">Utilisé</span>
+                                                {% else %}
+                                                    <span class="badge badge-available">Disponible</span>
+                                                {% endif %}
+                                            </div>
                                         </div>
-                                        <div class="history-details">
-                                            <span class="history-prize">{{ win.prize }}</span>
-                                            <span class="history-date">{{ win.date|date('d/m/Y') }}</span>
-                                            {% if win.promo_code %}
-                                                <span class="history-code">Code: {{ win.promo_code }}</span>
-                                            {% endif %}
-                                        </div>
-                                        <div class="history-status">
-                                            {% if win.status == 'claimed' %}
-                                                <span class="badge badge-used">Utilisé</span>
-                                            {% else %}
-                                                <span class="badge badge-available">Disponible</span>
-                                            {% endif %}
-                                        </div>
-                                    </div>
-                                {% endfor %}
-                            </div>
+                                    {% endfor %}
+                                </div>
+                            {% else %}
+                                <div class="empty-state">
+                                    <i class="fas fa-ghost"></i>
+                                    <p>Aucun gain pour le moment</p>
+                                    <small>Tournez la roue pour gagner des récompenses !</small>
+                                </div>
+                            {% endif %}
                         {% else %}
                             <div class="empty-state">
-                                <i class="fas fa-ghost"></i>
-                                <p>Aucun gain pour le moment</p>
-                                <small>Tournez la roue pour gagner des récompenses !</small>
+                                <i class="fas fa-lock"></i>
+                                <p>Historique verrouillé</p>
+                                <small>Débloquez Ticket Chance pour voir vos gains</small>
                             </div>
                         {% endif %}
                     </div>

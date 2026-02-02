@@ -718,7 +718,9 @@ class ProfileController extends AbstractController
         $events = [];
         if ($isAuthenticated) {
             $userId = (int) $sessionUser['id'];
-            $events = $this->eventRepository->findUpcomingEventsForUser($userId);
+            // Récupérer tous les événements (passés et futurs) pour le calendrier
+            // Le filtre "passés" est géré côté client dans le template
+            $events = $this->eventRepository->findAllEventsForUser($userId);
         }
 
         return $this->render('profile/calendar.html.twig', [
@@ -1393,8 +1395,10 @@ class ProfileController extends AbstractController
         $eligibility = $this->ticketChanceService->canUserPlay($userId);
         $availablePrizes = $this->ticketChanceService->getAvailablePrizes();
 
-        // Récupérer l'historique des gains
-        $recentWins = $this->ticketChanceService->getUserHistory($userId, 10);
+        // Récupérer l'historique des gains uniquement si Ticket-Chance est débloqué
+        $recentWins = $eligibility['is_unlocked'] 
+            ? $this->ticketChanceService->getUserHistory($userId, 10) 
+            : [];
 
         return $this->render('profile/ticket_chance.html.twig', [
             'eligibility' => $eligibility,

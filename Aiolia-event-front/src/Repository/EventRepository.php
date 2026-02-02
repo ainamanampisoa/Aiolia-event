@@ -206,7 +206,8 @@ class EventRepository extends ServiceEntityRepository
                 WHERE tt.event_id = e.id
             ) AS pricing ON TRUE
             WHERE e.status = 'published'
-              AND (e.starts_at IS NULL OR e.starts_at >= NOW() - INTERVAL '1 day')
+              AND (e.starts_at IS NULL OR e.starts_at >= NOW())
+              AND (e.ends_at IS NULL OR e.ends_at >= NOW())
             ORDER BY e.starts_at ASC NULLS LAST
             LIMIT :limit
         SQL;
@@ -375,7 +376,12 @@ class EventRepository extends ServiceEntityRepository
             LEFT JOIN aiolia.event_tags tag ON tag.id = etl.tag_id
         SQL;
 
-        $where = ["e.status = 'published'", "e.visibility = 'public'"];
+        $where = [
+            "e.status = 'published'",
+            "e.visibility = 'public'",
+            "(e.starts_at IS NULL OR e.starts_at >= NOW())",
+            "(e.ends_at IS NULL OR e.ends_at >= NOW())"
+        ];
         $params = [
             'exact_query' => $exactQuery,
             'start_query' => $startQuery,
@@ -576,6 +582,8 @@ class EventRepository extends ServiceEntityRepository
             ) AS pricing ON TRUE
             WHERE e.status = 'published'
               AND e.visibility = 'public'
+              AND (e.starts_at IS NULL OR e.starts_at >= NOW())
+              AND (e.ends_at IS NULL OR e.ends_at >= NOW())
             ORDER BY e.starts_at ASC NULLS LAST, e.title ASC
         SQL;
 
@@ -980,6 +988,8 @@ class EventRepository extends ServiceEntityRepository
             WHERE e.status = 'published'
               AND e.visibility = 'public'
               AND e.id <> :exclude_id
+              AND (e.starts_at IS NULL OR e.starts_at >= NOW())
+              AND (e.ends_at IS NULL OR e.ends_at >= NOW())
         SQL;
 
         $parameters = ['exclude_id' => $excludeId];
@@ -1098,6 +1108,94 @@ class EventRepository extends ServiceEntityRepository
             }, $rows);
         } catch (\Exception $e) {
             error_log('Error fetching upcoming events for user: ' . $e->getMessage());
+            return [];
+        }
+    }
+
+    /**
+     * Récupère tous les événements (passés et futurs) pour un utilisateur
+     * Utilisé pour le calendrier qui doit afficher les événements passés et futurs
+     */
+    public function findAllEventsForUser(int $userId): array
+    {
+        $sql = <<<SQL
+            SELECT DISTINCT
+                e.id,
+                e.slug,
+                e.title,
+                e.subtitle,
+                e.summary,
+                COALESCE(e.location_override->>'venue_name', v.name) AS venue_name,
+                COALESCE(e.location_override->>'address', NULLIF(CONCAT_WS(', ', v.address_line1, v.address_line2), '')) AS venue_address,
+                COALESCE(e.location_override->>'city', v.city) AS city,
+                COALESCE(e.location_override->>'region', v.region) AS region,
+                e.starts_at,
+                e.ends_at,
+                COALESCE(primary_cat.label, cat.label) AS category_label,
+                COALESCE(media.url, e.cover_image_url) AS image_url,
+                COUNT(DISTINCT t.id) AS ticket_count,
+                MAX(o.status) AS order_status
+            FROM aiolia.events e
+            INNER JOIN aiolia.ticket_types tt ON tt.event_id = e.id
+            INNER JOIN aiolia.order_items oi ON oi.ticket_type_id = tt.id
+            INNER JOIN aiolia.orders o ON o.id = oi.order_id
+            LEFT JOIN aiolia.tickets t ON t.order_item_id = oi.id 
+                AND (t.owner_user_id = :user_id OR (t.owner_user_id IS NULL AND o.user_id = :user_id))
+                AND (t.status IS NULL OR t.status != 'cancelled')
+            LEFT JOIN aiolia.venues v ON v.id = e.venue_id
+            LEFT JOIN aiolia.event_categories primary_cat ON primary_cat.id = e.primary_category_id
+            LEFT JOIN LATERAL (
+                SELECT c.label
+                FROM aiolia.event_category_links cl
+                JOIN aiolia.event_categories c ON c.id = cl.category_id
+                WHERE cl.event_id = e.id
+                ORDER BY c.display_order ASC, c.label ASC
+                LIMIT 1
+            ) AS cat ON TRUE
+            LEFT JOIN LATERAL (
+                SELECT m.url
+                FROM aiolia.event_media m
+                WHERE m.event_id = e.id
+                  AND m.is_public IS TRUE
+                ORDER BY m.display_order ASC, m.id ASC
+                LIMIT 1
+            ) AS media ON TRUE
+            WHERE o.user_id = :user_id
+              AND o.status = 'paid'
+            GROUP BY e.id, e.slug, e.title, e.subtitle, e.summary, e.location_override, 
+                     v.name, v.address_line1, v.address_line2, v.city, v.region,
+                     e.starts_at, e.ends_at, primary_cat.label, cat.label, 
+                     media.url, e.cover_image_url
+            ORDER BY e.starts_at DESC
+        SQL;
+
+        try {
+            $rows = $this->connection->executeQuery($sql, ['user_id' => $userId])->fetchAllAssociative();
+
+            return array_map(static function (array $row): array {
+                $startsAt = isset($row['starts_at']) ? new \DateTimeImmutable($row['starts_at']) : null;
+                $endsAt = isset($row['ends_at']) ? new \DateTimeImmutable($row['ends_at']) : null;
+
+                return [
+                    'id' => (int) $row['id'],
+                    'slug' => $row['slug'],
+                    'title' => $row['title'],
+                    'subtitle' => $row['subtitle'],
+                    'summary' => $row['summary'],
+                    'venue_name' => $row['venue_name'],
+                    'venue_address' => $row['venue_address'],
+                    'city' => $row['city'],
+                    'region' => $row['region'],
+                    'category_label' => $row['category_label'] ?? 'Événement',
+                    'image_url' => $row['image_url'],
+                    'starts_at' => $startsAt,
+                    'ends_at' => $endsAt,
+                    'ticket_count' => (int) ($row['ticket_count'] ?? 0),
+                    'order_status' => $row['order_status'],
+                ];
+            }, $rows);
+        } catch (\Exception $e) {
+            error_log('Error fetching all events for user: ' . $e->getMessage());
             return [];
         }
     }
@@ -1250,7 +1348,7 @@ class EventRepository extends ServiceEntityRepository
             FROM aiolia.events e
             LEFT JOIN aiolia.venues v ON v.id = e.venue_id
             WHERE e.status = 'published'
-              AND e.starts_at >= NOW() + make_interval(hours => :hours)
+              AND e.starts_at >= NOW() + make_interval(hours => :hours) - INTERVAL '2 hours'
               AND e.starts_at < NOW() + make_interval(hours => :hours) + INTERVAL '1 hour'
             ORDER BY e.starts_at ASC
         SQL;

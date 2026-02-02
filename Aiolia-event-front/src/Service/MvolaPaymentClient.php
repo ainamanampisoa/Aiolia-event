@@ -41,21 +41,68 @@ class MvolaPaymentClient
         ?LoggerInterface $logger = null,
     ) {
         if ($httpClient === null) {
-            $this->httpClient = HttpClient::create([
+            // Configuration pour gérer les problèmes de résolution DNS
+            $httpClientOptions = [
                 'timeout' => 30,
                 'verify_peer' => true,
                 'verify_host' => true,
-            ]);
+                'max_redirects' => 5,
+            ];
+            
+            // Vérifier la résolution DNS avant de créer le client
+            $host = parse_url($baseUrl, PHP_URL_HOST);
+            if ($host) {
+                // Test de résolution DNS
+                $ip = @gethostbyname($host);
+                if ($ip === $host || !filter_var($ip, FILTER_VALIDATE_IP)) {
+                    // DNS ne fonctionne pas, essayer avec getaddrinfo
+                    $records = @dns_get_record($host, DNS_A);
+                    if (empty($records)) {
+                        error_log("[MVola] ERREUR: Impossible de résoudre DNS pour {$host}");
+                        error_log("[MVola] SOLUTION: Ajoutez cette ligne dans /etc/hosts:");
+                        error_log("[MVola] 104.18.18.187 devapi.mvola.mg");
+                        error_log("[MVola] OU configurez un serveur DNS valide");
+                    } else {
+                        $ip = $records[0]['ip'] ?? $ip;
+                        error_log("[MVola] DNS résolu via dns_get_record: {$host} -> {$ip}");
+                    }
+                } else {
+                    error_log("[MVola] DNS résolu via gethostbyname: {$host} -> {$ip}");
+                }
+            }
+            
+            $this->httpClient = HttpClient::create($httpClientOptions);
         } else {
             $this->httpClient = $httpClient;
         }
+        
+        // Valider et normaliser l'URL de base
+        $baseUrl = trim($baseUrl);
+        if (empty($baseUrl)) {
+            throw new \InvalidArgumentException('MVOLA_BASE_URL ne peut pas être vide');
+        }
+        
+        // S'assurer que l'URL commence par http:// ou https://
+        if (!preg_match('#^https?://#', $baseUrl)) {
+            throw new \InvalidArgumentException('MVOLA_BASE_URL doit commencer par http:// ou https://. Valeur reçue: ' . $baseUrl);
+        }
+        
+        // Retirer le slash final s'il existe
+        $baseUrl = rtrim($baseUrl, '/');
+        
         $this->baseUrl = $baseUrl;
+        
+        // Log de la configuration au démarrage
+        error_log('[MVola] Client initialisé avec baseUrl: ' . $this->baseUrl);
         $this->consumerKey = $consumerKey;
         $this->consumerSecret = $consumerSecret;
         $this->partnerMsisdn = $partnerMsisdn;
         $this->partnerName = $partnerName;
         $this->callbackUrl = $callbackUrl;
         $this->logger = $logger;
+        
+        // Log de la configuration au démarrage
+        error_log('[MVola] Client initialisé avec baseUrl: ' . $this->baseUrl);
     }
 
     public function getBaseUrl(): string
@@ -68,6 +115,11 @@ class MvolaPaymentClient
         $logMessage = '[MVola] ' . $message;
         if (!empty($context)) {
             $logMessage .= ' ' . json_encode($context, JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES | JSON_PRETTY_PRINT);
+        }
+
+        // Toujours logger les erreurs et les infos de debug dans error_log
+        if ($level === 'error' || $level === 'debug') {
+            error_log($logMessage);
         }
 
         if ($this->logger !== null) {
@@ -704,6 +756,12 @@ class MvolaPaymentClient
 
         try {
             $endpoint = rtrim($this->baseUrl, '/') . '/mvola/mm/transactions/type/merchantpay/1.0.0';
+            
+            // Log de débogage pour voir l'URL utilisée
+            $this->log('debug', 'Tentative de connexion à MVola', [
+                'base_url' => $this->baseUrl,
+                'endpoint' => $endpoint,
+            ]);
 
             // ========== CONSTRUCTION DU PAYLOAD - TOUS LES CHAMPS VALIDÉS ==========
 
@@ -1311,20 +1369,32 @@ class MvolaPaymentClient
                 'error' => 'Erreur lors de l\'appel API MVola: ' . $e->getMessage(),
             ];
         } catch (\Throwable $e) {
+            $errorMessage = $e->getMessage();
+            
+            // Améliorer le message d'erreur pour les problèmes de connexion
+            if (strpos($errorMessage, 'Failed to open stream') !== false || 
+                strpos($errorMessage, 'HTTP request failed') !== false ||
+                strpos($errorMessage, 'Connection') !== false) {
+                $errorMessage = 'Impossible de se connecter à l\'API MVola. Vérifiez votre connexion internet et la configuration MVOLA_BASE_URL. ' . 
+                               'URL configurée: ' . $this->baseUrl;
+            }
+            
             $this->log('error', 'Erreur lors de l\'initiation du paiement MVola', [
                 'message' => $e->getMessage(),
                 'file' => $e->getFile(),
                 'line' => $e->getLine(),
+                'base_url' => $this->baseUrl,
                 'trace' => $e->getTraceAsString()
             ]);
 
             return [
                 'success' => false,
-                'error' => $e->getMessage(),
+                'error' => $errorMessage,
                 'debug' => [
                     'message' => $e->getMessage(),
                     'file' => $e->getFile(),
                     'line' => $e->getLine(),
+                    'base_url' => $this->baseUrl,
                 ],
             ];
         }

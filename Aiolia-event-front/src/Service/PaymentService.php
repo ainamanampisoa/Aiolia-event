@@ -214,10 +214,27 @@ class PaymentService
                 );
 
                 // Utiliser le montant après réduction pour le paiement MVola
+                $this->logInfo('Avant appel initiateMvolaPayment', [
+                    'order_id' => $orderId,
+                    'total_amount' => $totalAmount,
+                    'payment_data_keys' => array_keys($paymentData),
+                ]);
+                
                 $mvolaResult = $this->initiateMvolaPayment($orderId, $totalAmount, $paymentData);
+                
+                $this->logInfo('Après appel initiateMvolaPayment', [
+                    'success' => $mvolaResult['success'] ?? false,
+                    'error' => $mvolaResult['error'] ?? null,
+                ]);
 
                 if (!$mvolaResult['success']) {
-                    throw new \RuntimeException('Erreur lors de l\'initiation du paiement MVola: ' . ($mvolaResult['error'] ?? 'Erreur inconnue'));
+                    $errorMsg = 'Erreur lors de l\'initiation du paiement MVola: ' . ($mvolaResult['error'] ?? 'Erreur inconnue');
+                    $this->logError('Échec initiateMvolaPayment', [
+                        'order_id' => $orderId,
+                        'error' => $errorMsg,
+                        'mvola_result' => $mvolaResult,
+                    ]);
+                    throw new \RuntimeException($errorMsg);
                 }
 
                 // Retirer immédiatement les items payés du panier (avant le callback)
@@ -681,7 +698,14 @@ class PaymentService
      */
     private function initiateMvolaPayment(int $orderId, float $amount, array $paymentData): array
     {
+        $this->logInfo('Début initiateMvolaPayment', [
+            'order_id' => $orderId,
+            'amount' => $amount,
+            'mvola_client_null' => $this->mvolaClient === null,
+        ]);
+        
         if ($this->mvolaClient === null) {
+            $this->logError('Service MVola non configuré');
             return [
                 'success' => false,
                 'error' => 'Service MVola non configuré',
@@ -696,6 +720,7 @@ class PaymentService
             // Récupérer le numéro de téléphone du client
             $customerMsisdn = trim($paymentData['payment_phone'] ?? '');
             if (empty($customerMsisdn)) {
+                $this->logError('Numéro de téléphone MVola requis');
                 return [
                     'success' => false,
                     'error' => 'Numéro de téléphone MVola requis',
@@ -704,11 +729,18 @@ class PaymentService
 
             // Valider que le montant est positif
             if ($amount <= 0) {
+                $this->logError('Montant invalide', ['amount' => $amount]);
                 return [
                     'success' => false,
                     'error' => 'Le montant doit être supérieur à zéro',
                 ];
             }
+
+            $this->logInfo('Appel initiateTransactionWithRetry', [
+                'amount' => $amount,
+                'customer_msisdn' => $customerMsisdn,
+                'reference' => $baseTransactionReference,
+            ]);
 
             // Initier la transaction MVola avec retry automatique pour gérer l'erreur 4002
             $result = $this->mvolaClient->initiateTransactionWithRetry(
@@ -718,11 +750,21 @@ class PaymentService
                 'Paiement de billets - Commande #' . $orderId,
                 3 // maxRetries = 3 tentatives
             );
+            
+            $this->logInfo('Résultat initiateTransactionWithRetry', [
+                'success' => $result['success'] ?? false,
+                'error' => $result['error'] ?? null,
+            ]);
 
             if (!$result['success']) {
+                $errorMsg = $result['error'] ?? 'Erreur lors de l\'initiation de la transaction MVola';
+                $this->logError('Échec initiateTransactionWithRetry', [
+                    'error' => $errorMsg,
+                    'result' => $result,
+                ]);
                 return [
                     'success' => false,
-                    'error' => $result['error'] ?? 'Erreur lors de l\'initiation de la transaction MVola',
+                    'error' => $errorMsg,
                 ];
             }
 
