@@ -16,3 +16,9 @@ login : admin1@yopmail.com  organisateur11@yopmail.com
 php bin/console app:sync:event-images
 php bin/console app:fix-passwords
 php bin/console app:update-event-status
+
+
+Quel algorique que tu utilise pour les favories ,et vue 
+Reservation hotel
+Preprod 
+Symfony no ao ampisana de afaka ankizy afak no mandray azy

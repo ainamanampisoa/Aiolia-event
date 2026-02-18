@@ -139,7 +139,7 @@
             
             <div class="security-notice">
                 <i class="fas fa-lock"></i>
-                <span>Pour garantir la sécurité de votre compte, veuillez confirmer votre numéro MVola et entrer votre code PIN.</span>
+                <span>Pour garantir la sécurité de votre compte, veuillez confirmer votre numéro MVola.</span>
             </div>
 
             {% if mvolaNumberMasked %}
@@ -181,37 +181,6 @@
                         <small class="form-text">Format: 0341234567 ou +261341234567 (chiffres uniquement)</small>
                     </div>
 
-                    <div class="form-group">
-                        <label for="mvola-pin" class="form-label">
-                            <i class="fas fa-key"></i>
-                            Code PIN MVola
-                            <span class="required-indicator">*</span>
-                        </label>
-                        <div class="pin-input-wrapper">
-                            <input 
-                                type="password" 
-                                id="mvola-pin" 
-                                class="form-control pin-input" 
-                                placeholder="Entrez votre code PIN"
-                                maxlength="6"
-                                pattern="[0-9]{4,6}"
-                                autocomplete="off"
-                            >
-                            <button type="button" class="btn-toggle-pin" id="btn-toggle-pin" title="Afficher/Masquer">
-                                <i class="fas fa-eye" id="pin-eye-icon"></i>
-                            </button>
-                        </div>
-                        <small class="form-text">Le code PIN de votre compte MVola (4 à 6 chiffres)</small>
-                        <div class="pin-error" id="pin-error" style="display: none;">
-                            <i class="fas fa-exclamation-circle"></i>
-                            <span id="pin-error-text"></span>
-                        </div>
-                    </div>
-
-                    <div class="attempts-counter" id="attempts-counter" style="display: none;">
-                        <i class="fas fa-exclamation-triangle"></i>
-                        <span>Tentatives restantes: <strong id="attempts-remaining">3</strong></span>
-                    </div>
                 </div>
             {% else %}
                 <div class="no-mvola-number">
@@ -387,9 +356,6 @@ if (mvolaNumber && typeof mvolaNumber === 'string') {
 }
 
 // Variables de validation
-let mvolaPinAttempts = 3;
-let mvolaPinValidated = false;
-let isPinVisible = false;
 let isPhoneNumberValid = true;
 let previousPaymentMethod = null; // Pour détecter les changements de méthode de paiement
 
@@ -612,7 +578,6 @@ document.addEventListener('DOMContentLoaded', function() {
                     selectedNiveau,
                     selectedPeriod,
                     selectedPaymentMethod,
-                    mvolaPinValidated,
                     isPhoneNumberValid
                 });
                 
@@ -621,19 +586,6 @@ document.addEventListener('DOMContentLoaded', function() {
                     showNotification('Veuillez remplir tous les champs obligatoires correctement.', 'error');
                     validateAllFields(); // Forcer la validation pour voir quels champs sont manquants
                     return;
-                }
-                
-                // Vérification finale avant le paiement
-                if (selectedPaymentMethod === 'mvola' && mvolaNumber) {
-                    const pinInput = document.getElementById('mvola-pin');
-                    if (pinInput) {
-                        const pin = pinInput.value.trim();
-                        if (!mvolaPinValidated || pin.length < 4) {
-                            showNotification('Veuillez entrer un code PIN valide pour continuer.', 'error');
-                            pinInput.focus();
-                            return;
-                        }
-                    }
                 }
                 
                 // Afficher la modale de confirmation
@@ -655,30 +607,6 @@ document.addEventListener('DOMContentLoaded', function() {
 
         // Gestion de la modale de confirmation
         setupPaymentModal();
-
-        // Event listeners pour la vérification MVola
-        // Gestion de l'affichage/masquage du code PIN
-        const btnTogglePin = document.getElementById('btn-toggle-pin');
-        if (btnTogglePin) {
-            btnTogglePin.addEventListener('click', function() {
-                const pinInput = document.getElementById('mvola-pin');
-                const pinEyeIcon = document.getElementById('pin-eye-icon');
-                
-                if (!pinInput || !pinEyeIcon) return;
-                
-                if (isPinVisible) {
-                    pinInput.type = 'password';
-                    pinEyeIcon.classList.remove('fa-eye-slash');
-                    pinEyeIcon.classList.add('fa-eye');
-                    isPinVisible = false;
-                } else {
-                    pinInput.type = 'text';
-                    pinEyeIcon.classList.remove('fa-eye');
-                    pinEyeIcon.classList.add('fa-eye-slash');
-                    isPinVisible = true;
-                }
-            });
-        }
 
         // Gestion du changement de numéro MVola
         const btnChangeNumber = document.getElementById('btn-change-number');
@@ -748,20 +676,6 @@ document.addEventListener('DOMContentLoaded', function() {
             });
         }
 
-        // Validation du code PIN en temps réel
-        const mvolaPinInput = document.getElementById('mvola-pin');
-        if (mvolaPinInput) {
-            mvolaPinInput.addEventListener('input', function() {
-                validateMvolaPin();
-            });
-
-            mvolaPinInput.addEventListener('keypress', function(e) {
-                // N'autoriser que les chiffres
-                if (!/[0-9]/.test(e.key) && e.key !== 'Enter') {
-                    e.preventDefault();
-                }
-            });
-        }
     } catch (error) {
         console.error('Erreur lors de l\'initialisation:', error);
     }
@@ -883,16 +797,6 @@ function showMvolaVerification() {
         const wasHidden = verificationSection.style.display === 'none';
         verificationSection.style.display = 'block';
         
-        // Réinitialiser la validation seulement si la méthode de paiement a changé
-        // ou si la section était cachée (première affichage ou changement de méthode)
-        const paymentMethodChanged = previousPaymentMethod !== null && previousPaymentMethod !== 'mvola';
-        if (wasHidden || paymentMethodChanged) {
-            mvolaPinValidated = false;
-            const pinInput = document.getElementById('mvola-pin');
-            if (pinInput) {
-                pinInput.value = '';
-            }
-        }
         previousPaymentMethod = 'mvola';
         updatePaymentButton();
     } else {
@@ -901,63 +805,6 @@ function showMvolaVerification() {
             previousPaymentMethod = selectedPaymentMethod;
         }
     }
-}
-
-// Fonction de validation du code PIN
-function validateMvolaPin() {
-    const pinInput = document.getElementById('mvola-pin');
-    const pinError = document.getElementById('pin-error');
-    const pinErrorText = document.getElementById('pin-error-text');
-    const attemptsCounter = document.getElementById('attempts-counter');
-    const attemptsRemaining = document.getElementById('attempts-remaining');
-    
-    if (!pinInput) return false;
-    
-    const pin = pinInput.value.trim();
-    
-    // Réinitialiser les erreurs
-    pinError.style.display = 'none';
-    pinInput.classList.remove('error', 'error-border', 'success');
-    mvolaPinValidated = false;
-    
-    // Validation basique du format
-    if (pin.length === 0) {
-        pinInput.classList.add('error-border');
-        updatePaymentButton();
-        return false;
-    }
-    
-    // Vérifier la longueur
-    if (pin.length < 4 || pin.length > 6) {
-        pinError.style.display = 'flex';
-        pinErrorText.textContent = 'Le code PIN doit contenir entre 4 et 6 chiffres';
-        pinInput.classList.add('error', 'error-border');
-        mvolaPinValidated = false;
-        updatePaymentButton();
-        return false;
-    }
-    
-    // Vérifier que ce sont uniquement des chiffres
-    if (!/^[0-9]+$/.test(pin)) {
-        pinError.style.display = 'flex';
-        pinErrorText.textContent = 'Le code PIN ne doit contenir que des chiffres';
-        pinInput.classList.add('error', 'error-border');
-        mvolaPinValidated = false;
-        updatePaymentButton();
-        return false;
-    }
-    
-    // Si le format est valide
-    mvolaPinValidated = true;
-    pinError.style.display = 'none';
-    pinInput.classList.remove('error', 'error-border');
-    pinInput.classList.add('success');
-    attemptsCounter.style.display = 'none';
-    
-    console.log('✅ [validateMvolaPin] PIN validé:', pin.length, 'chiffres');
-    updatePaymentButton();
-    
-    return true;
 }
 
 // Fonction pour mettre à jour le bouton de paiement
@@ -978,18 +825,6 @@ function updatePaymentButton() {
         if (!isValidPhoneNumberForPayment(mvolaNumber)) {
             console.error('❌ [updatePaymentButton] Numéro MVola invalide (contient email ou format incorrect):', mvolaNumber);
             canProceed = false;
-        }
-        
-        // Vérifier le code PIN
-        const pinInput = document.getElementById('mvola-pin');
-        if (pinInput) {
-            const pin = pinInput.value.trim();
-            // Le PIN doit avoir entre 4 et 6 chiffres
-            const isPinValid = mvolaPinValidated && pin.length >= 4 && pin.length <= 6;
-            
-            if (!isPinValid) {
-                canProceed = false;
-            }
         }
         
         // Vérifier si l'utilisateur a modifié le numéro
@@ -1037,7 +872,6 @@ function updatePaymentButton() {
         hasPaymentMethod,
         canProceed,
         selectedPaymentMethod,
-        mvolaPinValidated,
         isPhoneNumberValid
     });
 }
@@ -1049,10 +883,7 @@ function validateAllFields() {
     // Nettoyer d'abord le champ s'il contient des valeurs invalides
     cleanPhoneNumberField();
     
-    // Valider le PIN si MVola est sélectionné
     if (selectedPaymentMethod === 'mvola') {
-        validateMvolaPin();
-        
         // Valider le numéro de téléphone si le formulaire de modification est visible
         const changeForm = document.getElementById('change-number-form');
         const newNumberInput = document.getElementById('new-mvola-number');
@@ -1093,7 +924,6 @@ function validateAllFields() {
         selectedNiveau,
         selectedPeriod,
         selectedPaymentMethod,
-        mvolaPinValidated,
         isPhoneNumberValid
     });
 }
@@ -1416,14 +1246,6 @@ function setupPaymentModal() {
                 montant: String(prices[selectedNiveau][selectedPeriod]),
                 mode_paiement: selectedPaymentMethod
             };
-            
-            // Si MVola, ajouter le PIN
-            if (selectedPaymentMethod === 'mvola' && customerPhone) {
-                const pinInput = document.getElementById('mvola-pin');
-                if (pinInput) {
-                    paymentData.pin = pinInput.value.trim();
-                }
-            }
             
             // Envoyer la requête au serveur
             fetch('{{ path('organisateur_paiement_abonnement_initiate') }}', {
@@ -2055,34 +1877,6 @@ function showNotification(message, type = 'info') {
     background: var(--bg-secondary);
 }
 
-.pin-input-wrapper {
-    position: relative;
-    display: flex;
-    align-items: center;
-}
-
-.pin-input {
-    padding-right: 48px;
-}
-
-.btn-toggle-pin {
-    position: absolute;
-    right: 12px;
-    background: transparent;
-    border: none;
-    color: var(--text-secondary);
-    cursor: pointer;
-    padding: 8px;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    transition: color 0.3s ease;
-}
-
-.btn-toggle-pin:hover {
-    color: var(--accent);
-}
-
 .form-text {
     display: block;
     margin-top: 6px;
@@ -2092,50 +1886,6 @@ function showNotification(message, type = 'info') {
 
 .text-danger {
     color: #dc3545 !important;
-}
-
-.pin-error {
-    display: flex;
-    align-items: center;
-    gap: 8px;
-    margin-top: 8px;
-    padding: 12px;
-    background: #ffebee;
-    border-left: 4px solid #d32f2f;
-    border-radius: var(--border-radius-sm);
-    color: #c62828;
-    font-size: 0.875rem;
-}
-
-.pin-error i {
-    color: #d32f2f;
-}
-
-.attempts-counter {
-    display: flex;
-    align-items: center;
-    gap: 8px;
-    padding: 12px 16px;
-    background: #fff3e0;
-    border-left: 4px solid #f57c00;
-    border-radius: var(--border-radius-sm);
-    color: #e65100;
-    font-size: 0.875rem;
-    margin-top: 12px;
-}
-
-.attempts-counter.blocked {
-    background: #ffebee;
-    border-left-color: #d32f2f;
-    color: #c62828;
-}
-
-.attempts-counter i {
-    color: #f57c00;
-}
-
-.attempts-counter.blocked i {
-    color: #d32f2f;
 }
 
 .no-mvola-number {
