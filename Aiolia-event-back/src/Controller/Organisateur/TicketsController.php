@@ -67,8 +67,8 @@ class TicketsController extends AbstractController
         $totalItems = $history['total'] ?? 0;
         $totalPages = (int) ceil($totalItems / $limit);
 
-        // Stats globales avec les filtres appliqués
-        $stats = $this->billetService->getStatsByOrganizer($user, $event, $filters);
+        // Stats globales sans filtres (pour les widgets)
+        $stats = $this->billetService->getStatsByOrganizer($user, $event);
 
         // Filtres disponibles depuis la base de données (toutes les valeurs possibles)
         $availableFilters = $this->billetService->getFilterOptionsByOrganizer($user, $event);
