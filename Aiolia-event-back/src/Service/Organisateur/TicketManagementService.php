@@ -2,6 +2,7 @@
 
 namespace App\Service\Organisateur;
 
+use App\Entity\Billet;
 use App\Entity\Event;
 use App\Entity\TypeBillet;
 use App\Entity\User;
@@ -387,10 +388,78 @@ class TicketManagementService
             ]);
         }
 
+        // Synchroniser les entités Billet réelles avec la nouvelle quantité
+        $this->syncBilletEntities($typeBillet, $quantiteTotale);
+
         return [
             'success' => true,
             'message' => 'Type de billet modifié avec succès',
         ];
+    }
+
+    /**
+     * Synchronise les entités Billet réelles avec la quantité totale souhaitée.
+     * Crée des billets "dispo" si on augmente, supprime des billets "dispo" si on diminue.
+     */
+    private function syncBilletEntities(TypeBillet $typeBillet, int $quantiteTotale): void
+    {
+        $currentBillets = $this->billetService->getByTypeBillet($typeBillet);
+        $currentCount = count($currentBillets);
+
+        if ($quantiteTotale > $currentCount) {
+            $toCreate = $quantiteTotale - $currentCount;
+            $event = $typeBillet->getEvenement();
+            $now = new \DateTimeImmutable();
+            $categorieId = $typeBillet->getConfigurationCategorie()?->getId() ?? '0';
+            $segmentId = $typeBillet->getConfigurationSegment()?->getId() ?? '0';
+            $eventId = $event ? $event->getId() : '0';
+
+            for ($i = 0; $i < $toCreate; $i++) {
+                $codeQr = sprintf(
+                    'QR-%s-%s-%s-STOCK-%d-%d-%d',
+                    $eventId,
+                    $categorieId,
+                    $segmentId,
+                    $currentCount + $i + 1,
+                    $now->getTimestamp(),
+                    random_int(100000, 999999)
+                );
+
+                $this->billetService->create([
+                    'statut' => Billet::STATUT_DISPO,
+                    'codeQr' => $codeQr,
+                    'checksumQr' => md5($codeQr),
+                    'metadonnees' => [
+                        'evenement_id' => $eventId,
+                        'categorie' => $categorieId,
+                        'segment' => $segmentId,
+                        'numero_billet' => $currentCount + $i + 1,
+                        'statut' => 'dispo',
+                        'date_emission' => $now->format('Y-m-d H:i:s'),
+                        'ajout_stock' => true,
+                    ],
+                ], $typeBillet, null, null);
+            }
+
+            $this->entityManager->flush();
+        } elseif ($quantiteTotale < $currentCount) {
+            $toRemove = $currentCount - $quantiteTotale;
+            $dispoBillets = array_filter(
+                $currentBillets,
+                fn(Billet $b) => $b->getStatut() === Billet::STATUT_DISPO && $b->getElementCommande() === null
+            );
+
+            $removed = 0;
+            foreach ($dispoBillets as $billet) {
+                if ($removed >= $toRemove) {
+                    break;
+                }
+                $this->billetService->delete($billet);
+                $removed++;
+            }
+
+            $this->entityManager->flush();
+        }
     }
 
     /**
