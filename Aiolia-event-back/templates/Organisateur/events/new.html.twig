@@ -582,6 +582,37 @@
     color: white;
 }
 
+.btn-refresh-venues {
+    background: linear-gradient(135deg, #3498DB, #5DADE2);
+    color: white;
+    border: none;
+    width: 46px;
+    height: 46px;
+    border-radius: 8px;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 1.1rem;
+    box-shadow: 0 2px 8px rgba(52, 152, 219, 0.3);
+    transition: all 0.3s ease;
+    flex-shrink: 0;
+}
+
+.btn-refresh-venues:hover {
+    background: linear-gradient(135deg, #2980B9, #3498DB);
+    box-shadow: 0 4px 12px rgba(52, 152, 219, 0.4);
+    transform: translateY(-2px);
+}
+
+.btn-refresh-venues .fa-sync-alt {
+    transition: transform 0.5s ease;
+}
+
+.btn-refresh-venues:active .fa-sync-alt {
+    transform: rotate(360deg);
+}
+
 /* Actions du formulaire */
 .form-actions {
     display: flex;
@@ -702,8 +733,13 @@
     }
     
     .btn-create-venue {
-        width: 100%;
+        width: calc(100% - 58px);
         justify-content: center;
+    }
+
+    .btn-refresh-venues {
+        width: 46px;
+        height: 46px;
     }
     
     .accessibility-card {
@@ -1051,12 +1087,15 @@
                                     </option>
                                 {% endfor %}
                             </select>
-                            <a href="{{ path('organisateur_venues_new', {'return_to': 'events_new'}) }}" class="btn-create-venue" title="Créer un nouveau lieu">
+                            <a href="{{ path('organisateur_venues_new', {'return_to': 'events_new'}) }}" class="btn-create-venue" target="_blank" title="Créer un nouveau lieu (s'ouvre dans un nouvel onglet)">
                                 <i class="fas fa-plus-circle"></i>
                                 <span>Créer un lieu</span>
                             </a>
+                            <button type="button" class="btn-refresh-venues" id="btn-refresh-venues" title="Rafraîchir la liste des lieux">
+                                <i class="fas fa-sync-alt"></i>
+                            </button>
                         </div>
-                        <small class="form-help">Choisissez un lieu existant ou créez-en un nouveau</small>
+                        <small class="form-help">Choisissez un lieu existant ou créez-en un nouveau. Après avoir créé un lieu, cliquez sur <i class="fas fa-sync-alt"></i> pour rafraîchir la liste.</small>
                     </div>
                 </div>
             </div>
@@ -1574,6 +1613,230 @@ let hasTousCategory = false;
 let hasTousSegment = false;
 let ticketCount = 1;
 
+const FORM_STORAGE_KEY = 'aiolia_event_form_draft';
+
+// Sauvegarde des données du formulaire dans sessionStorage
+function saveFormData() {
+    const data = {};
+
+    // Champs texte Symfony (titre, résumé, description)
+    document.querySelectorAll('input[name^="event["], textarea[name^="event["], select[name^="event["]').forEach(el => {
+        if (el.type === 'hidden' && !el.name.includes('_token')) return;
+        data[el.name] = el.value;
+    });
+
+    // Selects Symfony (categoriePrincipale, typeEvenement)
+    const catSelect = document.querySelector('select[name="event[categoriePrincipale]"]');
+    if (catSelect) data['event[categoriePrincipale]'] = catSelect.value;
+    const typeSelect = document.querySelector('select[name="event[typeEvenement]"]');
+    if (typeSelect) data['event[typeEvenement]'] = typeSelect.value;
+
+    // Dates et heures
+    ['date_start_date', 'date_start_time', 'date_end_date', 'date_end_time',
+     'ticket_sales_start_date', 'ticket_sales_start_time',
+     'ticket_sales_end_date', 'ticket_sales_end_time'].forEach(name => {
+        const el = document.querySelector(`input[name="${name}"]`);
+        if (el) data[name] = el.value;
+    });
+
+    // Lieu sélectionné
+    const venueSelect = document.getElementById('venueSelect');
+    if (venueSelect) data['venue_id'] = venueSelect.value;
+
+    // Tags (checkboxes)
+    data['tags'] = [];
+    document.querySelectorAll('input[name="tags[]"]:checked').forEach(cb => {
+        data['tags'].push(cb.value);
+    });
+
+    // Modes de paiement (checkboxes)
+    data['payment_methods'] = [];
+    document.querySelectorAll('input[name="payment_methods[]"]:checked').forEach(cb => {
+        data['payment_methods'].push(cb.value);
+    });
+
+    // Accessibilité (checkboxes)
+    data['accessibility'] = [];
+    document.querySelectorAll('input[name="accessibility[]"]:checked').forEach(cb => {
+        data['accessibility'].push(cb.value);
+    });
+
+    // Options avancées (checkboxes)
+    data['options'] = {};
+    ['is_featured', 'allow_waiting_list', 'send_reminders', 'publish_immediately'].forEach(name => {
+        const cb = document.querySelector(`input[name="${name}"]`);
+        if (cb) data['options'][name] = cb.checked;
+    });
+
+    // Billets (toutes les catégories dynamiques)
+    data['tickets'] = [];
+    document.querySelectorAll('.ticket-category').forEach(ticket => {
+        const cat = ticket.querySelector('select[name="ticket_categorie[]"]');
+        const seg = ticket.querySelector('select[name="ticket_segment[]"]');
+        const price = ticket.querySelector('input[name="ticket_price[]"]');
+        const qty = ticket.querySelector('input[name="ticket_quantity[]"]');
+        data['tickets'].push({
+            categorie: cat ? cat.value : '',
+            segment: seg ? seg.value : '',
+            price: price ? price.value : '',
+            quantity: qty ? qty.value : ''
+        });
+    });
+
+    // Paramètres de vente
+    const minOrder = document.querySelector('input[name="ticket_min_per_order"]');
+    if (minOrder) data['ticket_min_per_order'] = minOrder.value;
+    const maxOrder = document.querySelector('input[name="ticket_max_per_order"]');
+    if (maxOrder) data['ticket_max_per_order'] = maxOrder.value;
+
+    sessionStorage.setItem(FORM_STORAGE_KEY, JSON.stringify(data));
+}
+
+// Restauration des données du formulaire depuis sessionStorage
+function restoreFormData() {
+    const raw = sessionStorage.getItem(FORM_STORAGE_KEY);
+    if (!raw) return false;
+
+    let data;
+    try {
+        data = JSON.parse(raw);
+    } catch (e) {
+        sessionStorage.removeItem(FORM_STORAGE_KEY);
+        return false;
+    }
+
+    // Champs texte Symfony
+    Object.keys(data).forEach(name => {
+        if (!name.startsWith('event[')) return;
+        const el = document.querySelector(`[name="${name}"]`);
+        if (el && typeof data[name] === 'string') {
+            el.value = data[name];
+            el.dispatchEvent(new Event('input', { bubbles: true }));
+        }
+    });
+
+    // Dates et heures
+    ['date_start_date', 'date_start_time', 'date_end_date', 'date_end_time',
+     'ticket_sales_start_date', 'ticket_sales_start_time',
+     'ticket_sales_end_date', 'ticket_sales_end_time'].forEach(name => {
+        if (data[name]) {
+            const el = document.querySelector(`input[name="${name}"]`);
+            if (el) {
+                el.value = data[name];
+                if (el._flatpickr) {
+                    if (name.includes('time')) {
+                        el._flatpickr.setDate(data[name], false, 'H:i');
+                    } else {
+                        el._flatpickr.setDate(data[name], false, 'd/m/Y');
+                    }
+                }
+            }
+        }
+    });
+
+    // Lieu (ne pas écraser si venue_id est dans l'URL)
+    const urlParams = new URLSearchParams(window.location.search);
+    if (!urlParams.get('venue_id') && data['venue_id']) {
+        const venueSelect = document.getElementById('venueSelect');
+        if (venueSelect) venueSelect.value = data['venue_id'];
+    }
+
+    // Tags
+    if (Array.isArray(data['tags'])) {
+        data['tags'].forEach(val => {
+            const cb = document.querySelector(`input[name="tags[]"][value="${val}"]`);
+            if (cb) cb.checked = true;
+        });
+    }
+
+    // Modes de paiement
+    if (Array.isArray(data['payment_methods'])) {
+        data['payment_methods'].forEach(val => {
+            const cb = document.querySelector(`input[name="payment_methods[]"][value="${val}"]`);
+            if (cb) cb.checked = true;
+        });
+    }
+
+    // Accessibilité
+    if (Array.isArray(data['accessibility'])) {
+        data['accessibility'].forEach(val => {
+            const cb = document.querySelector(`input[name="accessibility[]"][value="${val}"]`);
+            if (cb) cb.checked = true;
+        });
+    }
+
+    // Options avancées
+    if (data['options']) {
+        Object.keys(data['options']).forEach(name => {
+            const cb = document.querySelector(`input[name="${name}"]`);
+            if (cb) cb.checked = data['options'][name];
+        });
+    }
+
+    // Billets
+    if (Array.isArray(data['tickets']) && data['tickets'].length > 0) {
+        const existingTickets = document.querySelectorAll('.ticket-category');
+
+        // Restaurer le premier billet existant
+        if (existingTickets.length > 0 && data['tickets'][0]) {
+            const first = existingTickets[0];
+            const t = data['tickets'][0];
+            const cat = first.querySelector('select[name="ticket_categorie[]"]');
+            const seg = first.querySelector('select[name="ticket_segment[]"]');
+            const price = first.querySelector('input[name="ticket_price[]"]');
+            const qty = first.querySelector('input[name="ticket_quantity[]"]');
+            if (cat && t.categorie) cat.value = t.categorie;
+            if (seg && t.segment) seg.value = t.segment;
+            if (price && t.price) price.value = t.price;
+            if (qty && t.quantity) qty.value = t.quantity;
+        }
+
+        // Ajouter les billets supplémentaires
+        for (let i = 1; i < data['tickets'].length; i++) {
+            addTicket();
+            const tickets = document.querySelectorAll('.ticket-category');
+            const last = tickets[tickets.length - 1];
+            const t = data['tickets'][i];
+            const cat = last.querySelector('select[name="ticket_categorie[]"]');
+            const seg = last.querySelector('select[name="ticket_segment[]"]');
+            const price = last.querySelector('input[name="ticket_price[]"]');
+            const qty = last.querySelector('input[name="ticket_quantity[]"]');
+            if (cat && t.categorie) cat.value = t.categorie;
+            if (seg && t.segment) seg.value = t.segment;
+            if (price && t.price) price.value = t.price;
+            if (qty && t.quantity) qty.value = t.quantity;
+        }
+    }
+
+    // Paramètres de vente
+    if (data['ticket_min_per_order']) {
+        const el = document.querySelector('input[name="ticket_min_per_order"]');
+        if (el) el.value = data['ticket_min_per_order'];
+    }
+    if (data['ticket_max_per_order']) {
+        const el = document.querySelector('input[name="ticket_max_per_order"]');
+        if (el) el.value = data['ticket_max_per_order'];
+    }
+
+    // Mettre à jour les champs hidden des dates après restauration
+    updateHiddenField('date_start_date', 'date_start_time', 'date_start');
+    updateHiddenField('date_end_date', 'date_end_time', 'date_end');
+    updateHiddenField('ticket_sales_start_date', 'ticket_sales_start_time', 'ticket_sales_start');
+    updateHiddenField('ticket_sales_end_date', 'ticket_sales_end_time', 'ticket_sales_end');
+
+    // Nettoyer le storage après restauration
+    sessionStorage.removeItem(FORM_STORAGE_KEY);
+
+    // Mettre à jour le compteur de caractères
+    const textarea = document.querySelector('textarea[name="event[resume]"]');
+    const charCount = document.getElementById('charCount');
+    if (textarea && charCount) {
+        charCount.textContent = textarea.value.length;
+    }
+
+    return true;
+}
+
 // Initialisation
 document.addEventListener('DOMContentLoaded', function() {
     // Compteur de caractères pour le résumé
@@ -1639,6 +1902,29 @@ document.addEventListener('DOMContentLoaded', function() {
             select.value = venueId;
             select.scrollIntoView({ behavior: 'smooth', block: 'center' });
         }
+    }
+
+    // Restaurer les données du formulaire si elles étaient sauvegardées (retour de création de lieu)
+    restoreFormData();
+
+    // Bouton "Rafraîchir les lieux" : sauvegarder les données, puis recharger la page
+    const refreshVenuesBtn = document.getElementById('btn-refresh-venues');
+    if (refreshVenuesBtn) {
+        refreshVenuesBtn.addEventListener('click', function() {
+            saveFormData();
+            // Recharger la page sans paramètres pour récupérer les nouveaux lieux
+            const url = new URL(window.location.href);
+            url.searchParams.delete('venue_id');
+            window.location.href = url.toString();
+        });
+    }
+
+    // Nettoyer le storage quand le formulaire est soumis avec succès
+    const eventForm = document.querySelector('.event-form');
+    if (eventForm) {
+        eventForm.addEventListener('submit', function() {
+            sessionStorage.removeItem(FORM_STORAGE_KEY);
+        });
     }
 });
 
