@@ -341,7 +341,6 @@ class TicketManagementService
         int $quantiteTotale,
         User $user
     ): array {
-        // Validation
         if ($prixDeBase < 0) {
             return [
                 'success' => false,
@@ -361,40 +360,47 @@ class TicketManagementService
             ];
         }
 
-        // Mettre à jour le prix
-        $nouveauPrix = number_format((float)$prixDeBase, 2, '.', '');
-        $ancienPrix = $typeBillet->getPrixDeBase();
-        
-        $this->typeBilletService->update($typeBillet, [
-            'prixDeBase' => $nouveauPrix,
-        ]);
+        $this->entityManager->beginTransaction();
 
-        // Enregistrer l'historique si le prix a changé
-        if ($ancienPrix !== $nouveauPrix) {
-            $this->historiquePrixBilletService->enregistrerChangement(
-                $typeBillet,
-                $ancienPrix,
-                $nouveauPrix,
-                $user,
-                'Modification via interface catégories',
-                ['action' => 'modification_prix_quantite', 'type_billet_id' => $typeBillet->getId()]
-            );
+        try {
+            $nouveauPrix = number_format((float)$prixDeBase, 2, '.', '');
+            $ancienPrix = $typeBillet->getPrixDeBase();
+            
+            $typeBillet->setPrixDeBase($nouveauPrix);
+
+            if ($ancienPrix !== $nouveauPrix) {
+                $this->historiquePrixBilletService->enregistrerChangement(
+                    $typeBillet,
+                    $ancienPrix,
+                    $nouveauPrix,
+                    $user,
+                    'Modification via interface catégories',
+                    ['action' => 'modification_prix_quantite', 'type_billet_id' => $typeBillet->getId()]
+                );
+            }
+
+            if ($inventaire) {
+                $inventaire->setQuantiteTotale($quantiteTotale);
+            }
+
+            $this->entityManager->flush();
+
+            $this->syncBilletEntities($typeBillet, $quantiteTotale);
+
+            $this->entityManager->commit();
+
+            return [
+                'success' => true,
+                'message' => 'Type de billet modifié avec succès',
+            ];
+        } catch (\Throwable $e) {
+            $this->entityManager->rollback();
+            
+            return [
+                'success' => false,
+                'message' => 'Erreur lors de la modification : ' . $e->getMessage(),
+            ];
         }
-
-        // Mettre à jour la quantité dans l'inventaire
-        if ($inventaire) {
-            $this->inventaireBilletService->update($inventaire, [
-                'quantiteTotale' => $quantiteTotale,
-            ]);
-        }
-
-        // Synchroniser les entités Billet réelles avec la nouvelle quantité
-        $this->syncBilletEntities($typeBillet, $quantiteTotale);
-
-        return [
-            'success' => true,
-            'message' => 'Type de billet modifié avec succès',
-        ];
     }
 
     /**
@@ -425,20 +431,22 @@ class TicketManagementService
                     random_int(100000, 999999)
                 );
 
-                $this->billetService->create([
-                    'statut' => Billet::STATUT_DISPO,
-                    'codeQr' => $codeQr,
-                    'checksumQr' => md5($codeQr),
-                    'metadonnees' => [
-                        'evenement_id' => $eventId,
-                        'categorie' => $categorieId,
-                        'segment' => $segmentId,
-                        'numero_billet' => $currentCount + $i + 1,
-                        'statut' => 'dispo',
-                        'date_emission' => $now->format('Y-m-d H:i:s'),
-                        'ajout_stock' => true,
-                    ],
-                ], $typeBillet, null, null);
+                $billet = new Billet();
+                $billet->setTypeBillet($typeBillet);
+                $billet->setStatut(Billet::STATUT_DISPO);
+                $billet->setCodeQr($codeQr);
+                $billet->setChecksumQr(md5($codeQr));
+                $billet->setMetadonnees([
+                    'evenement_id' => $eventId,
+                    'categorie' => $categorieId,
+                    'segment' => $segmentId,
+                    'numero_billet' => $currentCount + $i + 1,
+                    'statut' => 'dispo',
+                    'date_emission' => $now->format('Y-m-d H:i:s'),
+                    'ajout_stock' => true,
+                ]);
+
+                $this->entityManager->persist($billet);
             }
 
             $this->entityManager->flush();
@@ -454,7 +462,7 @@ class TicketManagementService
                 if ($removed >= $toRemove) {
                     break;
                 }
-                $this->billetService->delete($billet);
+                $this->entityManager->remove($billet);
                 $removed++;
             }
 

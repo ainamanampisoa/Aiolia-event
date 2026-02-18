@@ -1412,10 +1412,9 @@ document.addEventListener('DOMContentLoaded', function() {
                 successMessage.innerHTML = `<i class="fas fa-check-circle"></i> ${data.message}`;
                 document.getElementById('modalBody').insertBefore(successMessage, form);
                 
-                // Fermer et recharger
                 setTimeout(() => {
                     closeModal();
-                    window.location.reload();
+                    window.location.href = window.location.pathname + window.location.search;
                 }, 1500);
             } else {
                 // Afficher erreurs

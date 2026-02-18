@@ -199,6 +199,17 @@ class StatisticsRepository extends ServiceEntityRepository
      */
     public function getRevenue(int $month, int $year): float
     {
+        if ($month > 0 && $year === 0) {
+            $connection = $this->getEntityManager()->getConnection();
+            $sql = "
+                SELECT COALESCE(SUM(montant_total), 0)
+                FROM aiolia.factures_abonnements
+                WHERE statut IN ('paid', 'partially_paid')
+                    AND EXTRACT(MONTH FROM mois_facturation) = :month
+            ";
+            return (float) $connection->fetchOne($sql, ['month' => $month]);
+        }
+
         $period = $this->resolvePeriod($month, $year);
         $start = $period['start'];
         $end = $period['end'];
@@ -209,13 +220,11 @@ class StatisticsRepository extends ServiceEntityRepository
             ->where('i.status IN (:paidStatuses)')
             ->setParameter('paidStatuses', ['paid', 'partially_paid']);
 
-        // Ajouter la condition de date seulement si start et end ne sont pas null
         if ($start !== null && $end !== null) {
             $qb->andWhere('i.billingMonth BETWEEN :date_start AND :date_end')
             ->setParameter('date_start', new \DateTime($start))
             ->setParameter('date_end', new \DateTime($end));
         }
-        // Si start et end sont null (cas "Tous"), on ne filtre pas par date
 
         return (float) $qb->getQuery()->getSingleScalarResult();
     }
@@ -406,6 +415,10 @@ class StatisticsRepository extends ServiceEntityRepository
      */
     public function getRevenueBreakdownByPeriod(int $month, int $year): array
     {
+        if ($month > 0 && $year === 0) {
+            return $this->getRevenueBreakdownForMonthAllYears($month);
+        }
+
         $period = $this->resolvePeriod($month, $year);
         $start = $period['start'];
         $end = $period['end'];
@@ -423,7 +436,6 @@ class StatisticsRepository extends ServiceEntityRepository
             ->orderBy('i.billingMonth', 'ASC')
             ->setParameter('paidStatuses', ['paid', 'partially_paid']);
 
-        // Si des dates sont spécifiées, ajouter le filtre de date
         if ($start && $end) {
             $qb->andWhere('i.billingMonth BETWEEN :date_start AND :date_end')
                 ->setParameter('date_start', new \DateTime($start))
@@ -450,6 +462,46 @@ class StatisticsRepository extends ServiceEntityRepository
         }
 
         return $results;
+    }
+
+    /**
+     * Agrège le CA d'un mois spécifique sur toutes les années
+     */
+    private function getRevenueBreakdownForMonthAllYears(int $month): array
+    {
+        $connection = $this->getEntityManager()->getConnection();
+
+        $sql = "
+            SELECT
+                SUM(montant_ht) as revenue_ht,
+                SUM(montant_tva_detail) as revenue_tva,
+                SUM(montant_ttc) as revenue_ttc
+            FROM aiolia.factures_abonnements
+            WHERE statut IN ('paid', 'partially_paid')
+                AND EXTRACT(MONTH FROM mois_facturation) = :month
+        ";
+
+        $row = $connection->fetchAssociative($sql, ['month' => $month]);
+
+        if (!$row || ((float) ($row['revenue_ht'] ?? 0) === 0.0
+            && (float) ($row['revenue_tva'] ?? 0) === 0.0
+            && (float) ($row['revenue_ttc'] ?? 0) === 0.0)) {
+            return [];
+        }
+
+        $monthNames = [
+            1 => 'Jan', 2 => 'Feb', 3 => 'Mar', 4 => 'Apr',
+            5 => 'May', 6 => 'Jun', 7 => 'Jul', 8 => 'Aug',
+            9 => 'Sep', 10 => 'Oct', 11 => 'Nov', 12 => 'Dec',
+        ];
+
+        return [[
+            'period_start' => date('Y') . '-' . str_pad($month, 2, '0', STR_PAD_LEFT) . '-01',
+            'month_label' => $monthNames[$month] ?? 'Unknown',
+            'revenue_ht' => $row['revenue_ht'] ?? 0,
+            'revenue_tva' => $row['revenue_tva'] ?? 0,
+            'revenue_ttc' => $row['revenue_ttc'] ?? 0,
+        ]];
     }
 
     /**
